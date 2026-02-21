@@ -49,7 +49,9 @@ class ProductForm
                     TextInput::make('name')
                         ->label('Product Name')
                         ->required()
-                        ->maxLength(255),
+                        ->maxLength(255)
+                        ->helperText('Auto-generated from category + required attributes. You can override manually.')
+                        ->placeholder('Will be auto-generated from attributes'),
                     TextInput::make('sku')
                         ->label('SKU')
                         ->unique(ignoreRecord: true)

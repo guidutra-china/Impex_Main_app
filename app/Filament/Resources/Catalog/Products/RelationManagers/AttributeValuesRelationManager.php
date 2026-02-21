@@ -4,6 +4,8 @@ namespace App\Filament\Resources\Catalog\Products\RelationManagers;
 
 use App\Domain\Catalog\Enums\AttributeType;
 use App\Domain\Catalog\Models\CategoryAttribute;
+use App\Domain\Catalog\Services\DuplicateProductDetector;
+use App\Domain\Catalog\Services\ProductNameGenerator;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -17,6 +19,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\BulkActionGroup;
+use Filament\Notifications\Notification;
 
 class AttributeValuesRelationManager extends RelationManager
 {
@@ -67,13 +70,16 @@ class AttributeValuesRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make()
                     ->label('Add Attribute Value')
-                    ->mutateFormDataUsing(fn (array $data) => $this->normalizeValueField($data)),
+                    ->mutateFormDataUsing(fn (array $data) => $this->normalizeValueField($data))
+                    ->after(fn () => $this->afterAttributeSaved()),
             ])
             ->actions([
                 EditAction::make()
                     ->mutateRecordDataUsing(fn (array $data) => $this->expandValueField($data))
-                    ->mutateFormDataUsing(fn (array $data) => $this->normalizeValueField($data)),
-                DeleteAction::make(),
+                    ->mutateFormDataUsing(fn (array $data) => $this->normalizeValueField($data))
+                    ->after(fn () => $this->afterAttributeSaved()),
+                DeleteAction::make()
+                    ->after(fn () => $this->afterAttributeSaved()),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
@@ -241,5 +247,39 @@ class AttributeValuesRelationManager extends RelationManager
     private function resolveUnit(Get $get): ?string
     {
         return $this->resolveAttr($get)?->unit;
+    }
+
+    protected function afterAttributeSaved(): void
+    {
+        $product = $this->getOwnerRecord()->fresh();
+
+        ProductNameGenerator::updateProductName($product);
+
+        if (! $product->category_id) {
+            return;
+        }
+
+        $attributeMap = DuplicateProductDetector::getAttributeMap($product);
+
+        if (empty($attributeMap)) {
+            return;
+        }
+
+        $duplicates = DuplicateProductDetector::findSimilar(
+            $product->category_id,
+            $attributeMap,
+            $product->id,
+        );
+
+        if ($duplicates->isNotEmpty()) {
+            $names = $duplicates->pluck('name')->implode(', ');
+
+            Notification::make()
+                ->title('Possible Duplicate Detected')
+                ->body("Products with matching attributes already exist: {$names}. Consider adding a supplier to the existing product instead.")
+                ->warning()
+                ->persistent()
+                ->send();
+        }
     }
 }
