@@ -40,9 +40,14 @@ class CategoryForm
                             ->helperText('Used as prefix for product SKUs in this category (e.g., ELE → ELE-0001).'),
                         Select::make('parent_id')
                             ->label('Parent Category')
-                            ->relationship('parent', 'name')
+                            ->options(function (?Category $record) {
+                                return Category::query()
+                                    ->when($record, fn ($q) => $q->where('id', '!=', $record->id))
+                                    ->orderBy('name')
+                                    ->get()
+                                    ->mapWithKeys(fn (Category $cat) => [$cat->id => $cat->full_path]);
+                            })
                             ->searchable()
-                            ->preload()
                             ->placeholder('None (root category)'),
                         TextInput::make('sort_order')
                             ->label('Sort Order')

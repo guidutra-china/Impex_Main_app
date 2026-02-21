@@ -2,10 +2,12 @@
 
 namespace App\Domain\CRM\Models;
 
+use App\Domain\Catalog\Models\Category;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Enums\CompanyStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -48,6 +50,13 @@ class Company extends Model
     public function companyRoles(): HasMany
     {
         return $this->hasMany(CompanyRoleAssignment::class);
+    }
+
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(Category::class, 'category_company')
+            ->withPivot('notes')
+            ->withTimestamps();
     }
 
     // --- Scopes ---

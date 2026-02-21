@@ -17,10 +17,10 @@ class CategoriesTable
     {
         return $table
             ->columns([
-                TextColumn::make('name')
-                    ->label('Name')
-                    ->searchable()
-                    ->sortable()
+                TextColumn::make('full_path')
+                    ->label('Category')
+                    ->searchable('name')
+                    ->sortable('name')
                     ->weight('bold'),
                 TextColumn::make('sku_prefix')
                     ->label('SKU Prefix')
@@ -30,10 +30,19 @@ class CategoriesTable
                 TextColumn::make('parent.name')
                     ->label('Parent')
                     ->placeholder('Root')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('products_count')
                     ->label('Products')
                     ->counts('products')
+                    ->alignCenter(),
+                TextColumn::make('companies_count')
+                    ->label('Companies')
+                    ->counts('companies')
+                    ->alignCenter(),
+                TextColumn::make('children_count')
+                    ->label('Subcategories')
+                    ->counts('children')
                     ->alignCenter(),
                 IconColumn::make('is_active')
                     ->label('Active')

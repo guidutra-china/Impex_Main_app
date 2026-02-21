@@ -6,6 +6,7 @@ use App\Domain\CRM\Models\Company;
 use App\Filament\Resources\CRM\Companies\Pages\CreateCompany;
 use App\Filament\Resources\CRM\Companies\Pages\EditCompany;
 use App\Filament\Resources\CRM\Companies\Pages\ListCompanies;
+use App\Filament\Resources\CRM\Companies\RelationManagers\CategoriesRelationManager;
 use App\Filament\Resources\CRM\Companies\RelationManagers\ContactsRelationManager;
 use App\Filament\Resources\CRM\Companies\RelationManagers\RolesRelationManager;
 use App\Filament\Resources\CRM\Companies\Schemas\CompanyForm;
@@ -52,6 +53,7 @@ class CompanyResource extends Resource
         return [
             RolesRelationManager::class,
             ContactsRelationManager::class,
+            CategoriesRelationManager::class,
         ];
     }
 

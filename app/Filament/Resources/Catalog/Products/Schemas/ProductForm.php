@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Catalog\Products\Schemas;
 
 use App\Domain\Catalog\Enums\ProductStatus;
+use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Tag;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -60,9 +61,14 @@ class ProductForm
                         ->default(ProductStatus::DRAFT),
                     Select::make('category_id')
                         ->label('Category')
-                        ->relationship('category', 'name')
+                        ->options(
+                            fn () => Category::query()
+                                ->active()
+                                ->orderBy('name')
+                                ->get()
+                                ->mapWithKeys(fn (Category $cat) => [$cat->id => $cat->full_path])
+                        )
                         ->searchable()
-                        ->preload()
                         ->required(),
                     Select::make('parent_id')
                         ->label('Variant Of')
