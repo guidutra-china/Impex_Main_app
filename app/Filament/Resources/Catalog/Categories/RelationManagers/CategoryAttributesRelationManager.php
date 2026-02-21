@@ -103,12 +103,12 @@ class CategoryAttributesRelationManager extends RelationManager
                     ->label('Default Value')
                     ->maxLength(255)
                     ->placeholder('e.g., 100, 6500K, Aluminum')
-                    ->visible(fn (Get $get) => in_array($get('type'), ['text', 'number'])),
+                    ->visible(fn (Get $get) => in_array((string) $get('type'), ['text', 'number'])),
                 TagsInput::make('options')
                     ->label('Options')
                     ->placeholder('Add option and press Enter')
                     ->helperText('Define the selectable options for this attribute.')
-                    ->visible(fn (Get $get) => $get('type') === 'select'),
+                    ->visible(fn (Get $get) => (string) $get('type') === 'select'),
                 TextInput::make('unit')
                     ->label('Unit of Measure')
                     ->maxLength(50)
