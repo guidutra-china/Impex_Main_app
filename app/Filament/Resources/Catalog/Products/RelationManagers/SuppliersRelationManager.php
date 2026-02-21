@@ -23,6 +23,8 @@ class SuppliersRelationManager extends RelationManager
 
     protected static ?string $title = 'Suppliers';
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     protected static BackedEnum|string|null $icon = 'heroicon-o-truck';
 
     public function form(Schema $schema): Schema
@@ -97,6 +99,9 @@ class SuppliersRelationManager extends RelationManager
                     ->label('Add Supplier')
                     ->preloadRecordSelect()
                     ->recordSelectSearchColumns(['name', 'legal_name'])
+                    ->recordSelectOptionsQuery(
+                        fn ($query) => $query->whereHas('companyRoles', fn ($q) => $q->where('role', \App\Domain\CRM\Enums\CompanyRole::SUPPLIER))
+                    )
                     ->form(fn (AttachAction $action): array => [
                         $action->getRecordSelect(),
                         TextInput::make('external_code')

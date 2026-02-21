@@ -23,6 +23,8 @@ class ClientsRelationManager extends RelationManager
 
     protected static ?string $title = 'Clients';
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     protected static BackedEnum|string|null $icon = 'heroicon-o-user-group';
 
     public function form(Schema $schema): Schema
@@ -85,6 +87,9 @@ class ClientsRelationManager extends RelationManager
                     ->label('Add Client')
                     ->preloadRecordSelect()
                     ->recordSelectSearchColumns(['name', 'legal_name'])
+                    ->recordSelectOptionsQuery(
+                        fn ($query) => $query->whereHas('companyRoles', fn ($q) => $q->where('role', \App\Domain\CRM\Enums\CompanyRole::CLIENT))
+                    )
                     ->form(fn (AttachAction $action): array => [
                         $action->getRecordSelect(),
                         TextInput::make('external_code')
