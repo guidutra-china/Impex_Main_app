@@ -6,7 +6,9 @@ use App\Domain\Catalog\Models\Product;
 use App\Filament\Resources\Catalog\Products\Pages\CreateProduct;
 use App\Filament\Resources\Catalog\Products\Pages\EditProduct;
 use App\Filament\Resources\Catalog\Products\Pages\ListProducts;
+use App\Filament\Resources\Catalog\Products\Pages\ViewProduct;
 use App\Filament\Resources\Catalog\Products\Schemas\ProductForm;
+use App\Filament\Resources\Catalog\Products\Schemas\ProductInfolist;
 use App\Filament\Resources\Catalog\Products\Tables\ProductsTable;
 use App\Filament\Resources\Catalog\Products\RelationManagers\ClientsRelationManager;
 use App\Filament\Resources\Catalog\Products\RelationManagers\SuppliersRelationManager;
@@ -44,6 +46,11 @@ class ProductResource extends Resource
         return ProductForm::configure($schema);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return ProductInfolist::configure($schema);
+    }
+
     public static function table(Table $table): Table
     {
         return ProductsTable::configure($table);
@@ -64,6 +71,7 @@ class ProductResource extends Resource
         return [
             'index' => ListProducts::route('/'),
             'create' => CreateProduct::route('/create'),
+            'view' => ViewProduct::route('/{record}'),
             'edit' => EditProduct::route('/{record}/edit'),
         ];
     }
