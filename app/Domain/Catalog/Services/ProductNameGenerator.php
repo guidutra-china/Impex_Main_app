@@ -6,16 +6,16 @@ use App\Domain\Catalog\Models\Product;
 
 class ProductNameGenerator
 {
-    public static function generate(Product $product): ?string
+    public static function generate(Product $product): string
     {
         if (! $product->category_id) {
-            return null;
+            return $product->name ?? 'New Product';
         }
 
         $category = $product->category;
 
         if (! $category) {
-            return null;
+            return $product->name ?? 'New Product';
         }
 
         $categoryName = $category->name;
@@ -57,7 +57,7 @@ class ProductNameGenerator
     {
         $generatedName = static::generate($product);
 
-        if ($generatedName && $generatedName !== $product->name) {
+        if ($generatedName !== $product->name) {
             $product->updateQuietly(['name' => $generatedName]);
         }
     }
