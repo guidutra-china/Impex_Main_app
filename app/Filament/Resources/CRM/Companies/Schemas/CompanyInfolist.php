@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\CRM\Companies\Schemas;
 
-use Filament\Infolists\Components\IconEntry;
+use App\Domain\CRM\Models\Company;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -60,6 +60,39 @@ class CompanyInfolist
                             ->placeholder('No roles assigned'),
                     ])
                     ->columnSpan(['lg' => 1]),
+
+                Section::make('Primary Contact')
+                    ->schema([
+                        TextEntry::make('primaryContact.name')
+                            ->label('Name')
+                            ->placeholder('No primary contact set')
+                            ->weight(FontWeight::Bold)
+                            ->icon('heroicon-o-user'),
+                        TextEntry::make('primaryContact.position')
+                            ->label('Position')
+                            ->placeholder('—'),
+                        TextEntry::make('primaryContact.email')
+                            ->label('Email')
+                            ->placeholder('—')
+                            ->copyable()
+                            ->icon('heroicon-o-envelope'),
+                        TextEntry::make('primaryContact.phone')
+                            ->label('Phone')
+                            ->placeholder('—')
+                            ->copyable()
+                            ->icon('heroicon-o-phone'),
+                        TextEntry::make('primaryContact.whatsapp')
+                            ->label('WhatsApp')
+                            ->placeholder('—')
+                            ->copyable()
+                            ->icon('heroicon-o-chat-bubble-left-ellipsis'),
+                        TextEntry::make('primaryContact.wechat')
+                            ->label('WeChat')
+                            ->placeholder('—'),
+                    ])
+                    ->columns(2)
+                    ->columnSpan(['lg' => 2])
+                    ->visible(fn (Company $record) => $record->contacts()->where('is_primary', true)->exists()),
 
                 Section::make('Address')
                     ->schema([

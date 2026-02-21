@@ -17,7 +17,9 @@ class Contact extends Model
         'email',
         'phone',
         'wechat',
+        'whatsapp',
         'function',
+        'position',
         'is_primary',
         'notes',
     ];
