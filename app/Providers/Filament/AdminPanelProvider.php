@@ -42,13 +42,13 @@ class AdminPanelProvider extends PanelProvider
                 'warning' => Color::Amber,
             ])
             ->navigationGroups([
+                'CRM',
+                'Catalog',
                 'Sales & Quotations',
                 'Purchasing',
                 'Logistics & Shipping',
                 'Finance',
                 'Documents',
-                'Contacts',
-                'Inventory',
                 'Settings',
                 'Security',
             ])
