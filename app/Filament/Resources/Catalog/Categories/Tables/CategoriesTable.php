@@ -17,19 +17,26 @@ class CategoriesTable
     {
         return $table
             ->columns([
-                TextColumn::make('full_path')
+                TextColumn::make('name')
                     ->label('Category')
-                    ->weight('bold'),
+                    ->searchable()
+                    ->sortable()
+                    ->weight('bold')
+                    ->description(fn ($record) => $record->parent ? $record->full_path : null),
+                TextColumn::make('parent.name')
+                    ->label('Parent')
+                    ->placeholder('Root')
+                    ->sortable()
+                    ->searchable(),
                 TextColumn::make('sku_prefix')
                     ->label('SKU Prefix')
                     ->badge()
                     ->color('primary')
                     ->placeholder('—'),
-                TextColumn::make('parent.name')
-                    ->label('Parent')
-                    ->placeholder('Root')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('children_count')
+                    ->label('Subcategories')
+                    ->counts('children')
+                    ->alignCenter(),
                 TextColumn::make('products_count')
                     ->label('Products')
                     ->counts('products')
@@ -37,10 +44,6 @@ class CategoriesTable
                 TextColumn::make('companies_count')
                     ->label('Companies')
                     ->counts('companies')
-                    ->alignCenter(),
-                TextColumn::make('children_count')
-                    ->label('Subcategories')
-                    ->counts('children')
                     ->alignCenter(),
                 IconColumn::make('is_active')
                     ->label('Active')
@@ -74,7 +77,7 @@ class CategoriesTable
                     DeleteBulkAction::make(),
                 ]),
             ])
-            ->defaultSort('sort_order', 'asc')
+            ->defaultSort('name', 'asc')
             ->emptyStateHeading('No categories')
             ->emptyStateDescription('Create categories to organize your products and generate SKU prefixes.')
             ->emptyStateIcon('heroicon-o-squares-2x2');
