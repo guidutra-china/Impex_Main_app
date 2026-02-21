@@ -6,6 +6,7 @@ use App\Domain\Catalog\Models\Category;
 use App\Filament\Resources\Catalog\Categories\Pages\CreateCategory;
 use App\Filament\Resources\Catalog\Categories\Pages\EditCategory;
 use App\Filament\Resources\Catalog\Categories\Pages\ListCategories;
+use App\Filament\Resources\Catalog\Categories\RelationManagers\CategoryAttributesRelationManager;
 use App\Filament\Resources\Catalog\Categories\Schemas\CategoryForm;
 use App\Filament\Resources\Catalog\Categories\Tables\CategoriesTable;
 use BackedEnum;
@@ -38,6 +39,13 @@ class CategoryResource extends Resource
     public static function table(Table $table): Table
     {
         return CategoriesTable::configure($table);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            CategoryAttributesRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

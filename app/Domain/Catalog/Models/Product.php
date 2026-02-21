@@ -116,6 +116,11 @@ class Product extends Model
         return $this->morphToMany(Tag::class, 'taggable');
     }
 
+    public function attributeValues(): HasMany
+    {
+        return $this->hasMany(ProductAttributeValue::class);
+    }
+
     public function companies(): BelongsToMany
     {
         return $this->belongsToMany(Company::class, 'company_product')

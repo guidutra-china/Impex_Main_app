@@ -55,6 +55,11 @@ class Category extends Model
             ->withTimestamps();
     }
 
+    public function categoryAttributes(): HasMany
+    {
+        return $this->hasMany(CategoryAttribute::class);
+    }
+
     // --- Scopes ---
 
     public function scopeActive($query)
@@ -80,5 +85,33 @@ class Category extends Model
         }
 
         return $path->implode(' > ');
+    }
+
+    /**
+     * Get all attributes including inherited from parent categories.
+     * Own attributes come last (higher priority for display).
+     */
+    public function getAllAttributes(): \Illuminate\Support\Collection
+    {
+        $attributes = collect();
+        $ancestors = collect();
+        $current = $this->parent;
+
+        while ($current) {
+            $ancestors->prepend($current);
+            $current = $current->parent;
+        }
+
+        foreach ($ancestors as $ancestor) {
+            foreach ($ancestor->categoryAttributes()->orderBy('sort_order')->get() as $attr) {
+                $attributes->put($attr->id, $attr);
+            }
+        }
+
+        foreach ($this->categoryAttributes()->orderBy('sort_order')->get() as $attr) {
+            $attributes->put($attr->id, $attr);
+        }
+
+        return $attributes->values();
     }
 }

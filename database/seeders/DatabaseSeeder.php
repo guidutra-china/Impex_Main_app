@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
 
             // Catalog
             CategorySeeder::class,
+            CategoryAttributeSeeder::class,
             TagSeeder::class,
         ]);
     }

@@ -10,6 +10,7 @@ use App\Filament\Resources\Catalog\Products\Schemas\ProductForm;
 use App\Filament\Resources\Catalog\Products\Tables\ProductsTable;
 use App\Filament\Resources\Catalog\Products\RelationManagers\ClientsRelationManager;
 use App\Filament\Resources\Catalog\Products\RelationManagers\SuppliersRelationManager;
+use App\Filament\Resources\Catalog\Products\RelationManagers\AttributeValuesRelationManager;
 use App\Filament\Resources\Catalog\Products\RelationManagers\VariantsRelationManager;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -51,6 +52,7 @@ class ProductResource extends Resource
     public static function getRelations(): array
     {
         return [
+            AttributeValuesRelationManager::class,
             VariantsRelationManager::class,
             SuppliersRelationManager::class,
             ClientsRelationManager::class,
