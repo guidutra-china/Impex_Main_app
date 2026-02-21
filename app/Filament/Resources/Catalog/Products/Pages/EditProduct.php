@@ -7,6 +7,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
 use Filament\Resources\Pages\EditRecord;
+use Livewire\Attributes\On;
 
 class EditProduct extends EditRecord
 {
@@ -19,6 +20,12 @@ class EditProduct extends EditRecord
             RestoreAction::make(),
             ForceDeleteAction::make(),
         ];
+    }
+
+    #[On('product-name-updated')]
+    public function reloadName(): void
+    {
+        $this->refreshFormData(['name']);
     }
 
     protected function getRedirectUrl(): string

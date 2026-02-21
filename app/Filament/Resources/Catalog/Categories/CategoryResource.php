@@ -7,6 +7,7 @@ use App\Filament\Resources\Catalog\Categories\Pages\CreateCategory;
 use App\Filament\Resources\Catalog\Categories\Pages\EditCategory;
 use App\Filament\Resources\Catalog\Categories\Pages\ListCategories;
 use App\Filament\Resources\Catalog\Categories\RelationManagers\CategoryAttributesRelationManager;
+use App\Filament\Resources\Catalog\Categories\RelationManagers\InheritedAttributesRelationManager;
 use App\Filament\Resources\Catalog\Categories\Schemas\CategoryForm;
 use App\Filament\Resources\Catalog\Categories\Tables\CategoriesTable;
 use BackedEnum;
@@ -45,6 +46,7 @@ class CategoryResource extends Resource
     {
         return [
             CategoryAttributesRelationManager::class,
+            InheritedAttributesRelationManager::class,
         ];
     }
 
