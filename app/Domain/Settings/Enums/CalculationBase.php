@@ -12,6 +12,9 @@ enum CalculationBase: string implements HasLabel
     case DELIVERY_DATE = 'delivery_date';
     case BL_DATE = 'bl_date';
     case PO_DATE = 'po_date';
+    case BEFORE_SHIPMENT = 'before_shipment';
+    case BEFORE_PRODUCTION = 'before_production';
+    case AFTER_PRODUCTION = 'after_production';
 
     public function getLabel(): ?string
     {
@@ -22,6 +25,9 @@ enum CalculationBase: string implements HasLabel
             self::DELIVERY_DATE => 'Delivery Date',
             self::BL_DATE => 'Bill of Lading Date',
             self::PO_DATE => 'Purchase Order Date',
+            self::BEFORE_SHIPMENT => 'Before Shipment',
+            self::BEFORE_PRODUCTION => 'Before Production',
+            self::AFTER_PRODUCTION => 'After Production',
         };
     }
 }
