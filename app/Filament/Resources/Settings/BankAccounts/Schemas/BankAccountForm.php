@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Settings\BankAccounts\Schemas;
 
 use App\Domain\Settings\Enums\BankAccountStatus;
 use App\Domain\Settings\Enums\BankAccountType;
-use Filament\Forms\Components\Section;
+use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;

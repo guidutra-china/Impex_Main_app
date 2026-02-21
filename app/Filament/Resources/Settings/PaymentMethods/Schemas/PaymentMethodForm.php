@@ -5,7 +5,7 @@ namespace App\Filament\Resources\Settings\PaymentMethods\Schemas;
 use App\Domain\Settings\Enums\FeeType;
 use App\Domain\Settings\Enums\PaymentMethodType;
 use App\Domain\Settings\Enums\ProcessingTime;
-use Filament\Forms\Components\Section;
+use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;

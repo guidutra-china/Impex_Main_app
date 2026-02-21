@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Settings\PaymentTerms\Schemas;
 
 use App\Domain\Settings\Enums\CalculationBase;
 use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Section;
+use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;

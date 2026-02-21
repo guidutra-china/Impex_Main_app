@@ -4,7 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Domain\Settings\DataTransferObjects\CompanySettings;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Section;
+use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Pages\SettingsPage;
