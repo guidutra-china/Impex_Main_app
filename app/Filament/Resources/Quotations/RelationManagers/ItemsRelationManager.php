@@ -11,6 +11,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -34,37 +35,68 @@ class ItemsRelationManager extends RelationManager
             ->components([
                 Select::make('product_id')
                     ->label('Product')
-                    ->options(
-                        fn () => Product::query()
-                            ->orderBy('name')
-                            ->limit(100)
-                            ->pluck('name', 'id')
-                    )
                     ->searchable()
-                    ->getSearchResultsUsing(
-                        fn (string $search) => Product::where('name', 'like', "%{$search}%")
-                            ->orWhere('sku', 'like', "%{$search}%")
+                    ->getSearchResultsUsing(function (string $search) {
+                        return Product::query()
+                            ->where(function ($query) use ($search) {
+                                $query->where('name', 'like', "%{$search}%")
+                                    ->orWhere('sku', 'like', "%{$search}%")
+                                    ->orWhereHas('companies', function ($q) use ($search) {
+                                        $q->where('company_product.external_code', 'like', "%{$search}%");
+                                    });
+                            })
                             ->limit(50)
-                            ->pluck('name', 'id')
-                    )
+                            ->get()
+                            ->mapWithKeys(fn (Product $product) => [
+                                $product->id => "{$product->sku} — {$product->name}",
+                            ]);
+                    })
+                    ->getOptionLabelUsing(function ($value) {
+                        $product = Product::find($value);
+                        return $product ? "{$product->sku} — {$product->name}" : null;
+                    })
                     ->required()
+                    ->live()
+                    ->afterStateUpdated(function ($state, Get $get, Set $set) {
+                        if (! $state) {
+                            return;
+                        }
+
+                        $this->fillPricesFromProduct((int) $state, $get, $set);
+                    })
                     ->columnSpanFull(),
+
+                Select::make('selected_supplier_id')
+                    ->label('Selected Supplier')
+                    ->options(function (Get $get) {
+                        $productId = $get('product_id');
+                        if (! $productId) {
+                            return [];
+                        }
+
+                        return Product::find($productId)
+                            ?->suppliers()
+                            ->pluck('companies.name', 'companies.id')
+                            ->toArray() ?? [];
+                    })
+                    ->searchable()
+                    ->placeholder('Select supplier...')
+                    ->live()
+                    ->afterStateUpdated(function ($state, Get $get, Set $set) {
+                        if (! $state || ! $get('product_id')) {
+                            return;
+                        }
+
+                        $this->fillSupplierCost((int) $get('product_id'), (int) $state, $get, $set);
+                    }),
+
                 TextInput::make('quantity')
                     ->label('Quantity')
                     ->numeric()
                     ->required()
                     ->minValue(1)
                     ->default(1),
-                Select::make('selected_supplier_id')
-                    ->label('Selected Supplier')
-                    ->options(
-                        fn () => Company::query()
-                            ->whereHas('companyRoles', fn ($q) => $q->where('role', \App\Domain\CRM\Enums\CompanyRole::SUPPLIER))
-                            ->orderBy('name')
-                            ->pluck('name', 'id')
-                    )
-                    ->searchable()
-                    ->placeholder('Select supplier...'),
+
                 TextInput::make('unit_cost')
                     ->label('Unit Cost')
                     ->numeric()
@@ -74,9 +106,10 @@ class ItemsRelationManager extends RelationManager
                     ->inputMode('decimal')
                     ->default(0)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(function (Get $get, \Filament\Schemas\Components\Utilities\Set $set) {
-                        static::calculateUnitPrice($get, $set);
+                    ->afterStateUpdated(function (Get $get, Set $set) {
+                        $this->recalculateUnitPrice($get, $set);
                     }),
+
                 TextInput::make('commission_rate')
                     ->label('Commission Rate (%)')
                     ->numeric()
@@ -87,10 +120,11 @@ class ItemsRelationManager extends RelationManager
                     ->default(0)
                     ->visible(fn () => $this->getOwnerRecord()->commission_type === CommissionType::EMBEDDED)
                     ->live(onBlur: true)
-                    ->afterStateUpdated(function (Get $get, \Filament\Schemas\Components\Utilities\Set $set) {
-                        static::calculateUnitPrice($get, $set);
+                    ->afterStateUpdated(function (Get $get, Set $set) {
+                        $this->recalculateUnitPrice($get, $set);
                     })
                     ->helperText('Commission embedded in the unit price.'),
+
                 TextInput::make('unit_price')
                     ->label('Unit Price (to Client)')
                     ->numeric()
@@ -99,16 +133,13 @@ class ItemsRelationManager extends RelationManager
                     ->prefix('$')
                     ->inputMode('decimal')
                     ->default(0)
-                    ->helperText('Auto-calculated from cost + commission. Override manually if needed.'),
+                    ->helperText('Auto-filled from product catalog or calculated from cost + commission.'),
+
                 Select::make('incoterm')
                     ->label('Incoterm')
                     ->options(Incoterm::class)
                     ->placeholder('Select incoterm...'),
-                TextInput::make('sort_order')
-                    ->label('Sort Order')
-                    ->numeric()
-                    ->default(0)
-                    ->minValue(0),
+
                 Textarea::make('notes')
                     ->label('Item Notes')
                     ->rows(2)
@@ -122,21 +153,16 @@ class ItemsRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                TextColumn::make('sort_order')
-                    ->label('#')
-                    ->sortable()
-                    ->alignCenter()
-                    ->width('50px'),
-                TextColumn::make('product.name')
-                    ->label('Product')
-                    ->searchable()
-                    ->limit(35)
-                    ->weight('bold'),
                 TextColumn::make('product.sku')
                     ->label('SKU')
                     ->searchable()
                     ->badge()
                     ->color('gray'),
+                TextColumn::make('product.name')
+                    ->label('Product')
+                    ->searchable()
+                    ->limit(35)
+                    ->weight('bold'),
                 TextColumn::make('quantity')
                     ->label('Qty')
                     ->numeric()
@@ -204,14 +230,75 @@ class ItemsRelationManager extends RelationManager
             ]);
     }
 
-    protected static function calculateUnitPrice(Get $get, \Filament\Schemas\Components\Utilities\Set $set): void
+    protected function fillPricesFromProduct(int $productId, Get $get, Set $set): void
+    {
+        $product = Product::with(['suppliers', 'clients'])->find($productId);
+        if (! $product) {
+            return;
+        }
+
+        $quotation = $this->getOwnerRecord();
+        $clientId = $quotation->company_id;
+
+        $clientPivot = $product->clients()
+            ->where('companies.id', $clientId)
+            ->first()
+            ?->pivot;
+
+        $preferredSupplier = $product->suppliers()
+            ->orderByDesc('company_product.is_preferred')
+            ->first();
+
+        if ($preferredSupplier) {
+            $set('selected_supplier_id', $preferredSupplier->id);
+            $set('unit_cost', $preferredSupplier->pivot->unit_price / 100);
+
+            if ($preferredSupplier->pivot->incoterm ?? null) {
+                $set('incoterm', $preferredSupplier->pivot->incoterm);
+            }
+        }
+
+        if ($clientPivot && $clientPivot->unit_price > 0) {
+            $set('unit_price', $clientPivot->unit_price / 100);
+        } else {
+            $this->recalculateUnitPrice($get, $set);
+        }
+    }
+
+    protected function fillSupplierCost(int $productId, int $supplierId, Get $get, Set $set): void
+    {
+        $product = Product::find($productId);
+        if (! $product) {
+            return;
+        }
+
+        $supplierPivot = $product->suppliers()
+            ->where('companies.id', $supplierId)
+            ->first()
+            ?->pivot;
+
+        if ($supplierPivot) {
+            $set('unit_cost', $supplierPivot->unit_price / 100);
+        }
+
+        $quotation = $this->getOwnerRecord();
+        $clientPivot = $product->clients()
+            ->where('companies.id', $quotation->company_id)
+            ->first()
+            ?->pivot;
+
+        if (! $clientPivot || $clientPivot->unit_price <= 0) {
+            $this->recalculateUnitPrice($get, $set);
+        }
+    }
+
+    protected function recalculateUnitPrice(Get $get, Set $set): void
     {
         $cost = (float) ($get('unit_cost') ?? 0);
         $commissionRate = (float) ($get('commission_rate') ?? 0);
 
         if ($cost > 0 && $commissionRate > 0) {
-            $price = $cost * (1 + ($commissionRate / 100));
-            $set('unit_price', round($price, 2));
+            $set('unit_price', round($cost * (1 + ($commissionRate / 100)), 2));
         } elseif ($cost > 0) {
             $set('unit_price', round($cost, 2));
         }
