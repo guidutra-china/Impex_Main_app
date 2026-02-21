@@ -83,13 +83,13 @@ return new class extends Migration
             $table->id();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->foreignId('currency_id')->nullable()->constrained()->nullOnDelete();
-            $table->bigInteger('base_price')->default(0)->comment('Minor units (cents)');
-            $table->bigInteger('bom_material_cost')->default(0)->comment('Minor units');
-            $table->bigInteger('direct_labor_cost')->default(0)->comment('Minor units');
-            $table->bigInteger('direct_overhead_cost')->default(0)->comment('Minor units');
-            $table->bigInteger('total_manufacturing_cost')->default(0)->comment('Minor units');
-            $table->decimal('markup_percentage', 8, 2)->default(0);
-            $table->bigInteger('calculated_selling_price')->default(0)->comment('Minor units');
+            $table->bigInteger('base_price')->nullable()->default(0)->comment('Minor units (cents)');
+            $table->bigInteger('bom_material_cost')->nullable()->default(0)->comment('Minor units');
+            $table->bigInteger('direct_labor_cost')->nullable()->default(0)->comment('Minor units');
+            $table->bigInteger('direct_overhead_cost')->nullable()->default(0)->comment('Minor units');
+            $table->bigInteger('total_manufacturing_cost')->nullable()->default(0)->comment('Minor units');
+            $table->decimal('markup_percentage', 8, 2)->nullable()->default(0);
+            $table->bigInteger('calculated_selling_price')->nullable()->default(0)->comment('Minor units');
             $table->timestamps();
 
             $table->unique('product_id');
