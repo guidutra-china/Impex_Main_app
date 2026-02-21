@@ -1,0 +1,37 @@
+<?php
+
+namespace App\Domain\CRM\Models;
+
+use App\Domain\CRM\Enums\ContactFunction;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class Contact extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'company_id',
+        'name',
+        'email',
+        'phone',
+        'wechat',
+        'function',
+        'is_primary',
+        'notes',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'function' => ContactFunction::class,
+            'is_primary' => 'boolean',
+        ];
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+}
