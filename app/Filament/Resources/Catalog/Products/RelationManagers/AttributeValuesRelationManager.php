@@ -255,6 +255,8 @@ class AttributeValuesRelationManager extends RelationManager
 
         ProductNameGenerator::updateProductName($product);
 
+        $this->dispatch('refreshFormData', statePaths: ['name']);
+
         if (! $product->category_id) {
             return;
         }

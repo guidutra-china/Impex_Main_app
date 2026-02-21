@@ -23,6 +23,11 @@ class Product extends Model
             if (empty($product->sku) && $product->category_id) {
                 $product->sku = static::generateSku($product->category_id);
             }
+
+            if (empty($product->name) && $product->category_id) {
+                $category = Category::find($product->category_id);
+                $product->name = $category?->name ?? 'New Product';
+            }
         });
     }
 

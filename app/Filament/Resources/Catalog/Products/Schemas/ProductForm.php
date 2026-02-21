@@ -48,7 +48,6 @@ class ProductForm
                 ->schema([
                     TextInput::make('name')
                         ->label('Product Name')
-                        ->required()
                         ->maxLength(255)
                         ->helperText('Auto-generated from category + required attributes. You can override manually.')
                         ->placeholder('Will be auto-generated from attributes'),
@@ -78,6 +77,10 @@ class ProductForm
                         ->afterStateUpdated(function (Set $set, ?string $state) {
                             if ($state) {
                                 $set('sku', Product::generateSku((int) $state));
+                                $category = Category::find((int) $state);
+                                if ($category) {
+                                    $set('name', $category->name);
+                                }
                             }
                         }),
                     Select::make('parent_id')
