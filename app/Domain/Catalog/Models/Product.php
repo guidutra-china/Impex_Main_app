@@ -17,6 +17,40 @@ class Product extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected static function booted(): void
+    {
+        static::creating(function (Product $product) {
+            if (empty($product->sku) && $product->category_id) {
+                $product->sku = static::generateSku($product->category_id);
+            }
+        });
+    }
+
+    public static function generateSku(int $categoryId): string
+    {
+        $category = Category::find($categoryId);
+
+        if (! $category || ! $category->sku_prefix) {
+            return 'PRD-' . str_pad(static::withTrashed()->count() + 1, 5, '0', STR_PAD_LEFT);
+        }
+
+        $prefix = $category->sku_prefix;
+
+        $lastSku = static::withTrashed()
+            ->where('sku', 'like', $prefix . '-%')
+            ->orderByRaw("CAST(SUBSTRING_INDEX(sku, '-', -1) AS UNSIGNED) DESC")
+            ->value('sku');
+
+        if ($lastSku) {
+            $lastNumber = (int) last(explode('-', $lastSku));
+            $nextNumber = $lastNumber + 1;
+        } else {
+            $nextNumber = 1;
+        }
+
+        return $prefix . '-' . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
+    }
+
     protected $fillable = [
         'name',
         'sku',

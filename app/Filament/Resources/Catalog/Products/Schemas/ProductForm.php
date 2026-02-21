@@ -4,7 +4,9 @@ namespace App\Filament\Resources\Catalog\Products\Schemas;
 
 use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\Category;
+use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\Tag;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -50,10 +52,10 @@ class ProductForm
                         ->maxLength(255),
                     TextInput::make('sku')
                         ->label('SKU')
-                        ->required()
                         ->unique(ignoreRecord: true)
                         ->maxLength(50)
-                        ->helperText('Auto-generated from category prefix or enter manually.'),
+                        ->helperText('Auto-generated from category prefix. You can override manually.')
+                        ->placeholder('Will be auto-generated on save'),
                     Select::make('status')
                         ->label('Status')
                         ->options(ProductStatus::class)
@@ -69,7 +71,13 @@ class ProductForm
                                 ->mapWithKeys(fn (Category $cat) => [$cat->id => $cat->full_path])
                         )
                         ->searchable()
-                        ->required(),
+                        ->required()
+                        ->live()
+                        ->afterStateUpdated(function (Set $set, ?string $state) {
+                            if ($state) {
+                                $set('sku', Product::generateSku((int) $state));
+                            }
+                        }),
                     Select::make('parent_id')
                         ->label('Variant Of')
                         ->relationship('parent', 'name', fn ($query) => $query->whereNull('parent_id'))
