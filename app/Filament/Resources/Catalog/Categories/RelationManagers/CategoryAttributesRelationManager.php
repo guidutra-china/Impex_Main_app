@@ -8,7 +8,6 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
@@ -103,12 +102,12 @@ class CategoryAttributesRelationManager extends RelationManager
                     ->label('Default Value')
                     ->maxLength(255)
                     ->placeholder('e.g., 100, 6500K, Aluminum')
-                    ->visible(fn (Get $get) => in_array((string) $get('type'), ['text', 'number'])),
+                    ->visible(fn (Get $get) => in_array($this->resolveTypeValue($get), ['text', 'number'])),
                 TagsInput::make('options')
                     ->label('Options')
                     ->placeholder('Add option and press Enter')
                     ->helperText('Define the selectable options for this attribute.')
-                    ->visible(fn (Get $get) => (string) $get('type') === 'select'),
+                    ->visible(fn (Get $get) => $this->resolveTypeValue($get) === 'select'),
                 TextInput::make('unit')
                     ->label('Unit of Measure')
                     ->maxLength(50)
@@ -122,5 +121,16 @@ class CategoryAttributesRelationManager extends RelationManager
                     ->default(0)
                     ->minValue(0),
             ]);
+    }
+
+    private function resolveTypeValue(Get $get): ?string
+    {
+        $type = $get('type');
+
+        if ($type instanceof AttributeType) {
+            return $type->value;
+        }
+
+        return $type;
     }
 }
