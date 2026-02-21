@@ -46,23 +46,6 @@ class ProductForm
         return [
             Section::make('Product Identity')
                 ->schema([
-                    TextInput::make('name')
-                        ->label('Product Name')
-                        ->required()
-                        ->maxLength(255)
-                        ->helperText('Auto-generated from category + required attributes. You can override manually.')
-                        ->placeholder('Will be auto-generated from attributes'),
-                    TextInput::make('sku')
-                        ->label('SKU')
-                        ->unique(ignoreRecord: true)
-                        ->maxLength(50)
-                        ->helperText('Auto-generated from category prefix. You can override manually.')
-                        ->placeholder('Will be auto-generated on save'),
-                    Select::make('status')
-                        ->label('Status')
-                        ->options(ProductStatus::class)
-                        ->required()
-                        ->default(ProductStatus::DRAFT),
                     Select::make('category_id')
                         ->label('Category')
                         ->options(
@@ -84,6 +67,23 @@ class ProductForm
                                 }
                             }
                         }),
+                    TextInput::make('name')
+                        ->label('Product Name')
+                        ->required()
+                        ->maxLength(255)
+                        ->helperText('Auto-generated from category + required attributes. You can override manually.')
+                        ->placeholder('Will be auto-generated from attributes'),
+                    TextInput::make('sku')
+                        ->label('SKU')
+                        ->unique(ignoreRecord: true)
+                        ->maxLength(50)
+                        ->helperText('Auto-generated from category prefix. You can override manually.')
+                        ->placeholder('Will be auto-generated on save'),
+                    Select::make('status')
+                        ->label('Status')
+                        ->options(ProductStatus::class)
+                        ->required()
+                        ->default(ProductStatus::DRAFT),
                     Select::make('parent_id')
                         ->label('Variant Of')
                         ->relationship('parent', 'name', fn ($query) => $query->whereNull('parent_id'))
