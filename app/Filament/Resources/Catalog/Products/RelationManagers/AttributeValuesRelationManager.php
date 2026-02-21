@@ -8,6 +8,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -35,12 +36,28 @@ class AttributeValuesRelationManager extends RelationManager
                     ->sortable(),
                 TextColumn::make('value')
                     ->label('Value')
+                    ->formatStateUsing(function ($state, $record) {
+                        $attr = $record->categoryAttribute;
+                        if (!$attr) {
+                            return $state;
+                        }
+
+                        if ($attr->type === AttributeType::BOOLEAN) {
+                            return $state === '1' ? 'Yes' : 'No';
+                        }
+
+                        return $state;
+                    })
                     ->searchable(),
                 TextColumn::make('categoryAttribute.unit')
                     ->label('Unit')
                     ->badge()
                     ->color('gray')
                     ->placeholder('-'),
+                TextColumn::make('categoryAttribute.type')
+                    ->label('Type')
+                    ->badge()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('categoryAttribute.category.name')
                     ->label('Inherited From')
                     ->placeholder('(own category)')
@@ -49,10 +66,13 @@ class AttributeValuesRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make()
-                    ->label('Add Attribute Value'),
+                    ->label('Add Attribute Value')
+                    ->mutateFormDataUsing(fn (array $data) => $this->normalizeValueField($data)),
             ])
             ->actions([
-                EditAction::make(),
+                EditAction::make()
+                    ->mutateRecordDataUsing(fn (array $data) => $this->expandValueField($data))
+                    ->mutateFormDataUsing(fn (array $data) => $this->normalizeValueField($data)),
                 DeleteAction::make(),
             ])
             ->bulkActions([
@@ -60,8 +80,9 @@ class AttributeValuesRelationManager extends RelationManager
                     DeleteBulkAction::make(),
                 ]),
             ])
+            ->defaultSort('categoryAttribute.sort_order', 'asc')
             ->emptyStateHeading('No attributes')
-            ->emptyStateDescription('Attributes are auto-populated when a product is created with a category. You can also add them manually.')
+            ->emptyStateDescription('Attributes are auto-populated when a product is created with a category.')
             ->emptyStateIcon('heroicon-o-sparkles');
     }
 
@@ -78,26 +99,143 @@ class AttributeValuesRelationManager extends RelationManager
             }
         }
 
-        $existingAttributeIds = $product->attributeValues()->pluck('category_attribute_id')->toArray();
-
         return $schema
             ->components([
                 Select::make('category_attribute_id')
                     ->label('Attribute')
-                    ->options(
-                        $availableAttributes
-                            ->reject(fn ($attr) => in_array($attr->id, $existingAttributeIds))
+                    ->options(function (?string $operation, $record) use ($availableAttributes, $product) {
+                        $existingIds = $product->attributeValues()
+                            ->pluck('category_attribute_id')
+                            ->toArray();
+
+                        if ($operation === 'edit' && $record) {
+                            $existingIds = array_values(
+                                array_filter($existingIds, fn ($id) => $id != $record->category_attribute_id)
+                            );
+                        }
+
+                        return $availableAttributes
+                            ->reject(fn ($attr) => in_array($attr->id, $existingIds))
                             ->mapWithKeys(fn ($attr) => [
-                                $attr->id => $attr->name . ($attr->unit ? " ({$attr->unit})" : '') . ' [' . $attr->category->name . ']',
-                            ])
-                    )
+                                $attr->id => $attr->name
+                                    . ($attr->unit ? " ({$attr->unit})" : '')
+                                    . ' [' . $attr->category->name . ']',
+                            ]);
+                    })
                     ->required()
                     ->searchable()
+                    ->live()
+                    ->afterStateUpdated(function ($state, callable $set) {
+                        $set('value_text', null);
+                        $set('value_number', null);
+                        $set('value_select', null);
+                        $set('value_boolean', false);
+                    })
                     ->disabledOn('edit'),
-                TextInput::make('value')
+
+                TextInput::make('value_text')
                     ->label('Value')
-                    ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->dehydratedWhenHidden()
+                    ->visible(fn (Get $get) => $this->resolveType($get) === AttributeType::TEXT)
+                    ->required(fn (Get $get) => $this->resolveType($get) === AttributeType::TEXT)
+                    ->suffix(fn (Get $get) => $this->resolveUnit($get)),
+
+                TextInput::make('value_number')
+                    ->label('Value')
+                    ->numeric()
+                    ->dehydratedWhenHidden()
+                    ->visible(fn (Get $get) => $this->resolveType($get) === AttributeType::NUMBER)
+                    ->required(fn (Get $get) => $this->resolveType($get) === AttributeType::NUMBER)
+                    ->suffix(fn (Get $get) => $this->resolveUnit($get)),
+
+                Select::make('value_select')
+                    ->label('Value')
+                    ->options(function (Get $get) {
+                        $attr = $this->resolveAttr($get);
+                        if (!$attr || !is_array($attr->options)) {
+                            return [];
+                        }
+                        return array_combine($attr->options, $attr->options);
+                    })
+                    ->searchable()
+                    ->dehydratedWhenHidden()
+                    ->visible(fn (Get $get) => $this->resolveType($get) === AttributeType::SELECT)
+                    ->required(fn (Get $get) => $this->resolveType($get) === AttributeType::SELECT),
+
+                Toggle::make('value_boolean')
+                    ->label('Value')
+                    ->dehydratedWhenHidden()
+                    ->visible(fn (Get $get) => $this->resolveType($get) === AttributeType::BOOLEAN),
             ]);
+    }
+
+    /**
+     * Before filling the edit form: expand `value` into the correct typed field.
+     */
+    protected function expandValueField(array $data): array
+    {
+        $data['value_text'] = null;
+        $data['value_number'] = null;
+        $data['value_select'] = null;
+        $data['value_boolean'] = false;
+
+        $attrId = $data['category_attribute_id'] ?? null;
+        $attr = $attrId ? CategoryAttribute::find($attrId) : null;
+        $value = $data['value'] ?? null;
+
+        if ($attr) {
+            match ($attr->type) {
+                AttributeType::TEXT => $data['value_text'] = $value,
+                AttributeType::NUMBER => $data['value_number'] = $value,
+                AttributeType::SELECT => $data['value_select'] = $value,
+                AttributeType::BOOLEAN => $data['value_boolean'] = $value === '1',
+            };
+        }
+
+        return $data;
+    }
+
+    /**
+     * Before saving: collapse the typed field back into `value`.
+     */
+    protected function normalizeValueField(array $data): array
+    {
+        $attrId = $data['category_attribute_id'] ?? null;
+        $attr = $attrId ? CategoryAttribute::find($attrId) : null;
+
+        if ($attr) {
+            $data['value'] = match ($attr->type) {
+                AttributeType::TEXT => $data['value_text'] ?? null,
+                AttributeType::NUMBER => $data['value_number'] ?? null,
+                AttributeType::SELECT => $data['value_select'] ?? null,
+                AttributeType::BOOLEAN => ($data['value_boolean'] ?? false) ? '1' : '0',
+            };
+        } else {
+            $data['value'] = $data['value_text']
+                ?? $data['value_number']
+                ?? $data['value_select']
+                ?? (($data['value_boolean'] ?? false) ? '1' : '0');
+        }
+
+        unset($data['value_text'], $data['value_number'], $data['value_select'], $data['value_boolean']);
+
+        return $data;
+    }
+
+    private function resolveAttr(Get $get): ?CategoryAttribute
+    {
+        $attrId = $get('category_attribute_id');
+        return $attrId ? CategoryAttribute::find($attrId) : null;
+    }
+
+    private function resolveType(Get $get): ?AttributeType
+    {
+        return $this->resolveAttr($get)?->type;
+    }
+
+    private function resolveUnit(Get $get): ?string
+    {
+        return $this->resolveAttr($get)?->unit;
     }
 }
