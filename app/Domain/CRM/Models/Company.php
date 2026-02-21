@@ -52,6 +52,23 @@ class Company extends Model
         return $this->hasMany(CompanyRoleAssignment::class);
     }
 
+    public function products(): BelongsToMany
+    {
+        return $this->belongsToMany(\App\Domain\Catalog\Models\Product::class, 'company_product')
+            ->withPivot([
+                'role',
+                'external_code',
+                'external_name',
+                'unit_price',
+                'currency_code',
+                'lead_time_days',
+                'moq',
+                'notes',
+                'is_preferred',
+            ])
+            ->withTimestamps();
+    }
+
     public function categories(): BelongsToMany
     {
         return $this->belongsToMany(Category::class, 'category_company')
