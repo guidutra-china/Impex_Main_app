@@ -80,7 +80,11 @@ class AttributeValuesRelationManager extends RelationManager
                     DeleteBulkAction::make(),
                 ]),
             ])
-            ->defaultSort('categoryAttribute.sort_order', 'asc')
+            ->modifyQueryUsing(fn ($query) => $query
+                ->join('category_attributes', 'product_attribute_values.category_attribute_id', '=', 'category_attributes.id')
+                ->orderBy('category_attributes.sort_order')
+                ->select('product_attribute_values.*')
+            )
             ->emptyStateHeading('No attributes')
             ->emptyStateDescription('Attributes are auto-populated when a product is created with a category.')
             ->emptyStateIcon('heroicon-o-sparkles');
