@@ -10,6 +10,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class CategoriesTable
 {
@@ -26,7 +27,12 @@ class CategoriesTable
                 TextColumn::make('parent.name')
                     ->label('Parent')
                     ->placeholder('Root')
-                    ->sortable()
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query
+                            ->leftJoin('categories as parent', 'categories.parent_id', '=', 'parent.id')
+                            ->orderBy('parent.name', $direction)
+                            ->select('categories.*');
+                    })
                     ->searchable(),
                 TextColumn::make('sku_prefix')
                     ->label('SKU Prefix')
