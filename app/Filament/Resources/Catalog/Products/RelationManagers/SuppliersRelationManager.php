@@ -46,9 +46,12 @@ class SuppliersRelationManager extends RelationManager
                     ->helperText('Product description as used by the supplier. Will appear on invoices.')
                     ->columnSpanFull(),
                 TextInput::make('unit_price')
-                    ->label('Unit Price (minor units)')
+                    ->label('Unit Price')
                     ->numeric()
-                    ->minValue(0),
+                    ->minValue(0)
+                    ->step(0.01)
+                    ->prefix('$')
+                    ->inputMode('decimal'),
                 Select::make('currency_code')
                     ->label('Currency')
                     ->options(fn () => \App\Domain\Settings\Models\Currency::pluck('code', 'code'))
@@ -84,7 +87,7 @@ class SuppliersRelationManager extends RelationManager
                     ->placeholder('—'),
                 TextColumn::make('pivot.unit_price')
                     ->label('Unit Price')
-                    ->numeric()
+                    ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : '—')
                     ->alignEnd(),
                 TextColumn::make('pivot.currency_code')
                     ->label('Currency'),
@@ -122,9 +125,12 @@ class SuppliersRelationManager extends RelationManager
                             ->maxLength(2000)
                             ->helperText('Will appear on invoices.'),
                         TextInput::make('unit_price')
-                            ->label('Unit Price (minor units)')
+                            ->label('Unit Price')
                             ->numeric()
                             ->minValue(0)
+                            ->step(0.01)
+                            ->prefix('$')
+                            ->inputMode('decimal')
                             ->default(0),
                         Select::make('currency_code')
                             ->label('Currency')
@@ -143,13 +149,20 @@ class SuppliersRelationManager extends RelationManager
                     ])
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['role'] = 'supplier';
+                        $data['unit_price'] = (int) round(($data['unit_price'] ?? 0) * 100);
                         return $data;
                     }),
             ])
             ->recordActions([
                 EditAction::make()
                     ->mountUsing(function ($form, $record) {
-                        $form->fill($record->pivot->toArray());
+                        $data = $record->pivot->toArray();
+                        $data['unit_price'] = $data['unit_price'] / 100;
+                        $form->fill($data);
+                    })
+                    ->mutateFormDataUsing(function (array $data): array {
+                        $data['unit_price'] = (int) round(($data['unit_price'] ?? 0) * 100);
+                        return $data;
                     }),
                 DetachAction::make(),
             ])
