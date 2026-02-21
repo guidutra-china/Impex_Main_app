@@ -59,6 +59,7 @@ class Company extends Model
                 'role',
                 'external_code',
                 'external_name',
+                'external_description',
                 'unit_price',
                 'currency_code',
                 'lead_time_days',

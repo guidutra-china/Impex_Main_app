@@ -39,6 +39,12 @@ class SuppliersRelationManager extends RelationManager
                     ->label('Supplier Name for Product')
                     ->maxLength(255)
                     ->helperText("How the supplier calls this product."),
+                Textarea::make('external_description')
+                    ->label('Supplier Product Description')
+                    ->rows(3)
+                    ->maxLength(2000)
+                    ->helperText('Product description as used by the supplier. Will appear on invoices.')
+                    ->columnSpanFull(),
                 TextInput::make('unit_price')
                     ->label('Unit Price (minor units)')
                     ->numeric()
@@ -110,6 +116,11 @@ class SuppliersRelationManager extends RelationManager
                         TextInput::make('external_name')
                             ->label('Supplier Product Name')
                             ->maxLength(255),
+                        Textarea::make('external_description')
+                            ->label('Supplier Product Description')
+                            ->rows(3)
+                            ->maxLength(2000)
+                            ->helperText('Will appear on invoices.'),
                         TextInput::make('unit_price')
                             ->label('Unit Price (minor units)')
                             ->numeric()

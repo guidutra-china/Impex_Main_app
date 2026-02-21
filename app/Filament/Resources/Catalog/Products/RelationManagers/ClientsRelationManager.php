@@ -39,6 +39,12 @@ class ClientsRelationManager extends RelationManager
                     ->label('Client Name for Product')
                     ->maxLength(255)
                     ->helperText("How the client calls this product."),
+                Textarea::make('external_description')
+                    ->label('Client Product Description')
+                    ->rows(3)
+                    ->maxLength(2000)
+                    ->helperText('Product description as used by the client. Will appear on invoices.')
+                    ->columnSpanFull(),
                 TextInput::make('unit_price')
                     ->label('Selling Price (minor units)')
                     ->numeric()
@@ -98,6 +104,11 @@ class ClientsRelationManager extends RelationManager
                         TextInput::make('external_name')
                             ->label('Client Product Name')
                             ->maxLength(255),
+                        Textarea::make('external_description')
+                            ->label('Client Product Description')
+                            ->rows(3)
+                            ->maxLength(2000)
+                            ->helperText('Will appear on invoices.'),
                         TextInput::make('unit_price')
                             ->label('Selling Price (minor units)')
                             ->numeric()
