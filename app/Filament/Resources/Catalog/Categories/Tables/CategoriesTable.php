@@ -19,8 +19,6 @@ class CategoriesTable
             ->columns([
                 TextColumn::make('full_path')
                     ->label('Category')
-                    ->searchable('name')
-                    ->sortable('name')
                     ->weight('bold'),
                 TextColumn::make('sku_prefix')
                     ->label('SKU Prefix')
