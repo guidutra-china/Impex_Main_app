@@ -8,6 +8,8 @@ use App\Filament\Resources\Catalog\Products\Pages\EditProduct;
 use App\Filament\Resources\Catalog\Products\Pages\ListProducts;
 use App\Filament\Resources\Catalog\Products\Schemas\ProductForm;
 use App\Filament\Resources\Catalog\Products\Tables\ProductsTable;
+use App\Filament\Resources\Catalog\Products\RelationManagers\ClientsRelationManager;
+use App\Filament\Resources\Catalog\Products\RelationManagers\SuppliersRelationManager;
 use App\Filament\Resources\Catalog\Products\RelationManagers\VariantsRelationManager;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -50,6 +52,8 @@ class ProductResource extends Resource
     {
         return [
             VariantsRelationManager::class,
+            SuppliersRelationManager::class,
+            ClientsRelationManager::class,
         ];
     }
 
