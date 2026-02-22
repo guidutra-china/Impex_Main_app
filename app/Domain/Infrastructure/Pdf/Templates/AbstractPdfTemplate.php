@@ -38,21 +38,26 @@ abstract class AbstractPdfTemplate
                 'company' => $this->getCompanyData(),
                 'title' => $this->getDocumentTitle(),
                 'locale' => $this->locale,
+                'document_version' => $this->getNextVersion(),
             ],
             $this->getDocumentData(),
         );
     }
 
-    public function getFilename(): string
+    public function getNextVersion(): int
     {
-        $reference = $this->model->reference ?? $this->model->getKey();
-        $version = $this->model->documents()
+        $currentMax = $this->model->documents()
             ->where('type', $this->getDocumentType())
             ->max('version') ?? 0;
 
-        $versionSuffix = $version > 0 ? '-v' . ($version + 1) : '-v1';
+        return $currentMax + 1;
+    }
 
-        return $reference . $versionSuffix . '.pdf';
+    public function getFilename(): string
+    {
+        $reference = $this->model->reference ?? $this->model->getKey();
+
+        return $reference . '-v' . $this->getNextVersion() . '.pdf';
     }
 
     abstract public function getDocumentType(): string;

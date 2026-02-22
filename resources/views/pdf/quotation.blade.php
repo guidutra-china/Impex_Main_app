@@ -7,6 +7,10 @@
             <td class="meta-value">{{ $quotation['reference'] }}</td>
         </tr>
         <tr>
+            <td class="meta-label">{{ $labels['version'] }}</td>
+            <td class="meta-value">v{{ $document_version }}</td>
+        </tr>
+        <tr>
             <td class="meta-label">{{ $labels['date'] }}</td>
             <td class="meta-value">{{ $quotation['date'] }}</td>
         </tr>
