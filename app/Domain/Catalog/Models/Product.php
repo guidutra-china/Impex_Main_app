@@ -2,6 +2,7 @@
 
 namespace App\Domain\Catalog\Models;
 
+use App\Domain\Catalog\Actions\GenerateProductSkuAction;
 use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\CRM\Models\Company;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,7 +22,9 @@ class Product extends Model
     {
         static::creating(function (Product $product) {
             if (empty($product->sku) && $product->category_id) {
-                $product->sku = static::generateSku($product->category_id);
+                // Usa a Action com lock/retry para garantir unicidade em concorrência.
+                // O valor pré-visualizado no formulário é apenas uma sugestão e pode diferir.
+                $product->sku = app(GenerateProductSkuAction::class)->execute($product->category_id);
             }
 
             if (empty($product->name) && $product->category_id) {
@@ -29,31 +32,6 @@ class Product extends Model
                 $product->name = $category?->name ?? 'New Product';
             }
         });
-    }
-
-    public static function generateSku(int $categoryId): string
-    {
-        $category = Category::find($categoryId);
-
-        if (! $category || ! $category->sku_prefix) {
-            return 'PRD-' . str_pad(static::withTrashed()->count() + 1, 5, '0', STR_PAD_LEFT);
-        }
-
-        $prefix = $category->sku_prefix;
-
-        $lastSku = static::withTrashed()
-            ->where('sku', 'like', $prefix . '-%')
-            ->orderByRaw("CAST(SUBSTRING_INDEX(sku, '-', -1) AS UNSIGNED) DESC")
-            ->value('sku');
-
-        if ($lastSku) {
-            $lastNumber = (int) last(explode('-', $lastSku));
-            $nextNumber = $lastNumber + 1;
-        } else {
-            $nextNumber = 1;
-        }
-
-        return $prefix . '-' . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
     }
 
     protected $fillable = [
@@ -129,6 +107,7 @@ class Product extends Model
     public function companies(): BelongsToMany
     {
         return $this->belongsToMany(Company::class, 'company_product')
+            ->using(CompanyProduct::class)
             ->withPivot([
                 'role',
                 'external_code',
@@ -136,6 +115,7 @@ class Product extends Model
                 'external_description',
                 'unit_price',
                 'currency_code',
+                'incoterm',
                 'lead_time_days',
                 'moq',
                 'notes',

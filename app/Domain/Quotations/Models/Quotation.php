@@ -4,6 +4,7 @@ namespace App\Domain\Quotations\Models;
 
 use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Models\Contact;
+use App\Domain\Quotations\Actions\GenerateQuotationReferenceAction;
 use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\QuotationStatus;
 use App\Domain\Settings\Models\PaymentTerm;
@@ -53,7 +54,8 @@ class Quotation extends Model
     {
         static::creating(function (Quotation $quotation) {
             if (empty($quotation->reference)) {
-                $quotation->reference = static::generateReference();
+                // Usa a Action com lock/retry para garantir unicidade em concorrência.
+                $quotation->reference = app(GenerateQuotationReferenceAction::class)->execute();
             }
 
             if (empty($quotation->valid_until) && $quotation->validity_days) {
@@ -64,26 +66,6 @@ class Quotation extends Model
                 $quotation->created_by = auth()->id();
             }
         });
-    }
-
-    public static function generateReference(): string
-    {
-        $year = now()->year;
-        $prefix = "QT-{$year}-";
-
-        $lastRef = static::withTrashed()
-            ->where('reference', 'like', $prefix . '%')
-            ->orderBy('id', 'desc')
-            ->value('reference');
-
-        if ($lastRef) {
-            $lastNumber = (int) last(explode('-', $lastRef));
-            $nextNumber = $lastNumber + 1;
-        } else {
-            $nextNumber = 1;
-        }
-
-        return $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
 
     // --- Relationships ---

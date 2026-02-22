@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Catalog\Products\Schemas;
 
 use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\Category;
+use App\Domain\Catalog\Actions\GenerateProductSkuAction;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\Tag;
 use Filament\Schemas\Components\Utilities\Set;
@@ -60,7 +61,9 @@ class ProductForm
                         ->live()
                         ->afterStateUpdated(function (Set $set, ?string $state) {
                             if ($state) {
-                                $set('sku', Product::generateSku((int) $state));
+                                // preview() não usa lock — é apenas uma sugestão visual.
+                                // O SKU final e único é gerado no evento creating do Model.
+                                $set('sku', app(GenerateProductSkuAction::class)->preview((int) $state));
                                 $category = Category::find((int) $state);
                                 if ($category) {
                                     $set('name', $category->name);

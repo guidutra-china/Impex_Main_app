@@ -3,6 +3,7 @@
 namespace App\Domain\CRM\Models;
 
 use App\Domain\Catalog\Models\Category;
+use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Enums\CompanyStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -61,6 +62,7 @@ class Company extends Model
     public function products(): BelongsToMany
     {
         return $this->belongsToMany(\App\Domain\Catalog\Models\Product::class, 'company_product')
+            ->using(CompanyProduct::class)
             ->withPivot([
                 'role',
                 'external_code',
@@ -68,6 +70,7 @@ class Company extends Model
                 'external_description',
                 'unit_price',
                 'currency_code',
+                'incoterm',
                 'lead_time_days',
                 'moq',
                 'notes',
@@ -118,11 +121,6 @@ class Company extends Model
         ]);
 
         return implode(', ', $parts);
-    }
-
-    public function getPrimaryContactAttribute(): ?Contact
-    {
-        return $this->contacts->firstWhere('is_primary', true);
     }
 
     // --- Helper Methods ---

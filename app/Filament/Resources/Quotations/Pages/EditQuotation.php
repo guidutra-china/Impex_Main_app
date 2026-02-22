@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Quotations\Pages;
 
+use App\Domain\Quotations\Models\Quotation;
 use App\Domain\Quotations\Models\QuotationVersion;
 use App\Filament\Resources\Quotations\QuotationResource;
 use Filament\Actions\Action;
@@ -11,6 +12,7 @@ use Filament\Actions\RestoreAction;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\Facades\DB;
 
 class EditQuotation extends EditRecord
 {
@@ -34,32 +36,51 @@ class EditQuotation extends EditRecord
                         ->maxLength(2000),
                 ])
                 ->action(function (array $data) {
-                    $quotation = $this->record;
+                    try {
+                        $savedVersion = DB::transaction(function () use ($data) {
+                            // lockForUpdate deve ser feito via query builder, não na instância já carregada.
+                            $quotation = Quotation::query()
+                                ->lockForUpdate()
+                                ->findOrFail($this->record->id);
 
-                    $snapshot = [
-                        'quotation' => $quotation->toArray(),
-                        'items' => $quotation->items->map(function ($item) {
-                            return array_merge($item->toArray(), [
-                                'suppliers' => $item->suppliers->toArray(),
+                            $currentVersion = $quotation->version;
+
+                            $snapshot = [
+                                'quotation' => $quotation->toArray(),
+                                'items' => $quotation->items()
+                                    ->with('suppliers')
+                                    ->get()
+                                    ->map(fn ($item) => array_merge($item->toArray(), [
+                                        'suppliers' => $item->suppliers->toArray(),
+                                    ]))
+                                    ->toArray(),
+                            ];
+
+                            QuotationVersion::create([
+                                'quotation_id' => $quotation->id,
+                                'version' => $currentVersion,
+                                'snapshot' => $snapshot,
+                                'change_notes' => $data['change_notes'] ?? null,
+                                'created_by' => auth()->id(),
                             ]);
-                        })->toArray(),
-                    ];
 
-                    QuotationVersion::create([
-                        'quotation_id' => $quotation->id,
-                        'version' => $quotation->version,
-                        'snapshot' => $snapshot,
-                        'change_notes' => $data['change_notes'] ?? null,
-                        'created_by' => auth()->id(),
-                    ]);
+                            $quotation->increment('version');
 
-                    $quotation->increment('version');
+                            return $currentVersion;
+                        });
 
-                    Notification::make()
-                        ->title('Version v' . ($quotation->version - 1) . ' saved')
-                        ->body('Snapshot created. Now working on v' . $quotation->version . '.')
-                        ->success()
-                        ->send();
+                        Notification::make()
+                            ->title('Version v' . $savedVersion . ' saved')
+                            ->body('Snapshot created. Now working on v' . ($savedVersion + 1) . '.')
+                            ->success()
+                            ->send();
+                    } catch (\Throwable $e) {
+                        Notification::make()
+                            ->title('Error creating version')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
 
                     $this->refreshFormData(['version']);
                 }),

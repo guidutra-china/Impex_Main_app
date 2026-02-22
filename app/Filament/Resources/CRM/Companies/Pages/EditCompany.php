@@ -6,6 +6,7 @@ use App\Domain\CRM\Models\CompanyRoleAssignment;
 use App\Filament\Resources\CRM\Companies\CompanyResource;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\Facades\DB;
 
 class EditCompany extends EditRecord
 {
@@ -44,13 +45,23 @@ class EditCompany extends EditRecord
     {
         $roles = $this->data['roles'] ?? [];
 
-        $this->record->companyRoles()->delete();
+        DB::transaction(function () use ($roles) {
+            $this->record->companyRoles()->delete();
 
-        foreach ($roles as $role) {
-            CompanyRoleAssignment::create([
+            if (empty($roles)) {
+                return;
+            }
+
+            $now = now();
+
+            $assignments = collect($roles)->map(fn ($role) => [
                 'company_id' => $this->record->id,
                 'role' => $role,
-            ]);
-        }
+                'created_at' => $now,
+                'updated_at' => $now,
+            ])->all();
+
+            CompanyRoleAssignment::insert($assignments);
+        });
     }
 }

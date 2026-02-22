@@ -3,6 +3,7 @@
 namespace App\Domain\Catalog\Models;
 
 use App\Domain\CRM\Models\Company;
+use App\Domain\Quotations\Enums\Incoterm;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
@@ -21,6 +22,7 @@ class CompanyProduct extends Pivot
         'external_description',
         'unit_price',
         'currency_code',
+        'incoterm',
         'lead_time_days',
         'moq',
         'notes',
@@ -34,6 +36,7 @@ class CompanyProduct extends Pivot
             'lead_time_days' => 'integer',
             'moq' => 'integer',
             'is_preferred' => 'boolean',
+            'incoterm' => Incoterm::class,
         ];
     }
 
