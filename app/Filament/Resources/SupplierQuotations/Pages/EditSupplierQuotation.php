@@ -3,8 +3,10 @@
 namespace App\Filament\Resources\SupplierQuotations\Pages;
 
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
+use App\Domain\Infrastructure\Pdf\Templates\RfqPdfTemplate;
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
 use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
+use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Resources\SupplierQuotations\SupplierQuotationResource;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -120,6 +122,20 @@ class EditSupplierQuotation extends EditRecord
                             ->send();
                     }
                 }),
+
+            GeneratePdfAction::make(
+                templateClass: RfqPdfTemplate::class,
+                label: 'Generate RFQ',
+                icon: 'heroicon-o-document-arrow-down',
+            ),
+            GeneratePdfAction::download(
+                documentType: 'rfq_pdf',
+                label: 'Download RFQ',
+            ),
+            GeneratePdfAction::preview(
+                templateClass: RfqPdfTemplate::class,
+                label: 'Preview RFQ',
+            ),
 
             DeleteAction::make(),
             RestoreAction::make(),

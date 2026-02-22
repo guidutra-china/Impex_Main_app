@@ -40,6 +40,7 @@ class SupplierQuotation extends Model
         'payment_term_id',
         'notes',
         'internal_notes',
+        'rfq_instructions',
         'created_by',
     ];
 

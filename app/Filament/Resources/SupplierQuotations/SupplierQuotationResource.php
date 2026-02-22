@@ -7,6 +7,7 @@ use App\Filament\Resources\SupplierQuotations\Pages\CreateSupplierQuotation;
 use App\Filament\Resources\SupplierQuotations\Pages\EditSupplierQuotation;
 use App\Filament\Resources\SupplierQuotations\Pages\ListSupplierQuotations;
 use App\Filament\Resources\SupplierQuotations\Pages\ViewSupplierQuotation;
+use App\Filament\RelationManagers\DocumentsRelationManager;
 use App\Filament\Resources\SupplierQuotations\RelationManagers\ItemsRelationManager;
 use App\Filament\Resources\SupplierQuotations\Schemas\SupplierQuotationForm;
 use App\Filament\Resources\SupplierQuotations\Schemas\SupplierQuotationInfolist;
@@ -54,6 +55,7 @@ class SupplierQuotationResource extends Resource
     {
         return [
             ItemsRelationManager::class,
+            DocumentsRelationManager::class,
         ];
     }
 

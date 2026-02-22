@@ -240,6 +240,12 @@ class SupplierQuotationForm
                         ->maxLength(5000)
                         ->helperText('Internal analysis, observations, comparison notes.')
                         ->columnSpanFull(),
+                    Textarea::make('rfq_instructions')
+                        ->label('RFQ Instructions')
+                        ->rows(4)
+                        ->maxLength(5000)
+                        ->helperText('Custom instructions for this RFQ. Leave empty to use the default from Company Settings.')
+                        ->columnSpanFull(),
                 ]),
         ];
     }

@@ -53,6 +53,18 @@ class DocumentLabels
             'terms_and_conditions' => 'Terms & Conditions',
             'bank_details' => 'Bank Details',
 
+            // RFQ
+            'request_for_quotation' => 'Request for Quotation',
+            'rfq' => 'RFQ',
+            'requested_date' => 'Requested Date',
+            'response_deadline' => 'Response Deadline',
+            'target_price' => 'Target Price',
+            'target_total' => 'Target Total',
+            'specifications' => 'Specifications',
+            'quotation_instructions' => 'Quotation Instructions',
+            'inquiry_reference' => 'Inquiry Ref.',
+            'total_target_value' => 'Total Target Value',
+
             // Payment term stages
             'stage' => 'Stage',
             'percentage' => 'Percentage',
@@ -101,6 +113,17 @@ class DocumentLabels
             'terms_and_conditions' => 'Termos e Condições',
             'bank_details' => 'Dados Bancários',
 
+            'request_for_quotation' => 'Solicitação de Cotação',
+            'rfq' => 'RFQ',
+            'requested_date' => 'Data da Solicitação',
+            'response_deadline' => 'Prazo de Resposta',
+            'target_price' => 'Preço Alvo',
+            'target_total' => 'Total Alvo',
+            'specifications' => 'Especificações',
+            'quotation_instructions' => 'Instruções para Cotação',
+            'inquiry_reference' => 'Ref. Consulta',
+            'total_target_value' => 'Valor Alvo Total',
+
             'stage' => 'Etapa',
             'percentage' => 'Percentual',
             'days' => 'Dias',
@@ -147,6 +170,17 @@ class DocumentLabels
             'notes' => '备注',
             'terms_and_conditions' => '条款与条件',
             'bank_details' => '银行信息',
+
+            'request_for_quotation' => '询价单',
+            'rfq' => 'RFQ',
+            'requested_date' => '询价日期',
+            'response_deadline' => '回复截止日期',
+            'target_price' => '目标价格',
+            'target_total' => '目标总价',
+            'specifications' => '规格',
+            'quotation_instructions' => '报价说明',
+            'inquiry_reference' => '询价编号',
+            'total_target_value' => '目标总价值',
 
             'stage' => '阶段',
             'percentage' => '百分比',
