@@ -22,7 +22,7 @@ class CurrencyResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-currency-dollar';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $navigationLabel = 'Currencies';
 

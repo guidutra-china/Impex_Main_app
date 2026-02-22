@@ -28,7 +28,7 @@ class ProductResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-cube';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $navigationLabel = 'Products';
 

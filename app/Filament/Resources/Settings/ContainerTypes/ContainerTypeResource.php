@@ -22,7 +22,7 @@ class ContainerTypeResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-cube';
 
-    protected static ?int $navigationSort = 30;
+    protected static ?int $navigationSort = 7;
 
     protected static ?string $navigationLabel = 'Container Types';
 

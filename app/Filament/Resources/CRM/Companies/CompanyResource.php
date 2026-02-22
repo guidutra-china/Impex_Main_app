@@ -29,7 +29,7 @@ class CompanyResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-building-office-2';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $navigationLabel = 'Companies';
 

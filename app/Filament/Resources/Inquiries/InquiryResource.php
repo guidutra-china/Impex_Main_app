@@ -21,11 +21,11 @@ class InquiryResource extends Resource
 {
     protected static ?string $model = Inquiry::class;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Sales & Quotations';
+    protected static UnitEnum|string|null $navigationGroup = 'Operations';
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-inbox-arrow-down';
 
-    protected static ?int $navigationSort = 0;
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $navigationLabel = 'Inquiries';
 

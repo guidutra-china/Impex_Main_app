@@ -23,9 +23,9 @@ class SupplierQuotationResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-check';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Commercial';
+    protected static string|UnitEnum|null $navigationGroup = 'Operations';
 
-    protected static ?int $navigationSort = 15;
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $navigationLabel = 'Supplier Quotations';
 

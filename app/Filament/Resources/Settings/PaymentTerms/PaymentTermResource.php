@@ -22,7 +22,7 @@ class PaymentTermResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-clock';
 
-    protected static ?int $navigationSort = 25;
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $navigationLabel = 'Payment Terms';
 
