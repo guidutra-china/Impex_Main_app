@@ -3,12 +3,18 @@
 namespace App\Filament\RelationManagers;
 
 use App\Domain\Infrastructure\Enums\DocumentSourceType;
+use App\Domain\Infrastructure\Models\DocumentVersion;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Filament\Actions\ViewAction;
+use Illuminate\Support\Facades\Storage;
 
 class DocumentsRelationManager extends RelationManager
 {
@@ -31,7 +37,7 @@ class DocumentsRelationManager extends RelationManager
                     ->searchable()
                     ->limit(40),
                 TextColumn::make('version')
-                    ->label('Version')
+                    ->label('Current Version')
                     ->prefix('v')
                     ->alignCenter()
                     ->sortable(),
@@ -70,12 +76,48 @@ class DocumentsRelationManager extends RelationManager
                             return;
                         }
 
-                        return response()->download(
-                            $record->getFullPath(),
+                        return response()->streamDownload(
+                            function () use ($record) {
+                                echo file_get_contents($record->getFullPath());
+                            },
                             $record->name,
                             ['Content-Type' => $record->mime_type ?? 'application/octet-stream'],
                         );
                     }),
+                ViewAction::make('version_history')
+                    ->label('History')
+                    ->icon('heroicon-o-clock')
+                    ->color('gray')
+                    ->modalHeading(fn ($record) => "Version History — {$record->name}")
+                    ->infolist(fn (Schema $schema) => $schema->components([
+                        TextEntry::make('version')
+                            ->label('Current Version')
+                            ->prefix('v')
+                            ->badge()
+                            ->color('success'),
+                        TextEntry::make('updated_at')
+                            ->label('Last Updated')
+                            ->dateTime('d/m/Y H:i'),
+                        RepeatableEntry::make('versions')
+                            ->label('Previous Versions')
+                            ->schema([
+                                TextEntry::make('version')
+                                    ->label('Version')
+                                    ->prefix('v')
+                                    ->badge()
+                                    ->color('gray'),
+                                TextEntry::make('size')
+                                    ->label('Size')
+                                    ->formatStateUsing(fn (?int $state) => $state ? self::formatBytes($state) : '—'),
+                                TextEntry::make('created_at')
+                                    ->label('Date')
+                                    ->dateTime('d/m/Y H:i'),
+                                TextEntry::make('creator.name')
+                                    ->label('Created By')
+                                    ->placeholder('System'),
+                            ])
+                            ->columns(4),
+                    ])),
             ])
             ->defaultSort('updated_at', 'desc')
             ->emptyStateHeading('No documents yet')
