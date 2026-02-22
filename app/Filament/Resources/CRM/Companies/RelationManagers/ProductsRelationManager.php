@@ -5,6 +5,7 @@ namespace App\Filament\Resources\CRM\Companies\RelationManagers;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Settings\Models\Currency;
+use BackedEnum;
 use Filament\Actions\AttachAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DetachAction;
@@ -28,7 +29,7 @@ class ProductsRelationManager extends RelationManager
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    protected static ?string $icon = 'heroicon-o-cube';
+    protected static BackedEnum|string|null $icon = 'heroicon-o-cube';
 
     /**
      * O título da aba muda dinamicamente conforme o papel da empresa.
