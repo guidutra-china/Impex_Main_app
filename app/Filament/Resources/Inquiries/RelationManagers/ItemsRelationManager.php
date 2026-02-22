@@ -239,9 +239,19 @@ class ItemsRelationManager extends RelationManager
                 $data['description'] = $newName;
             }
 
+            // Auto-associate the Inquiry's client with this product
+            $inquiry = $this->getOwnerRecord();
+            if ($inquiry->company_id) {
+                $product->companies()->attach($inquiry->company_id, [
+                    'role' => 'client',
+                    'external_name' => $newName,
+                    'is_preferred' => true,
+                ]);
+            }
+
             Notification::make()
                 ->title('Draft product created: ' . $product->sku)
-                ->body($product->name)
+                ->body($product->name . ' — linked to ' . ($inquiry->company?->name ?? 'client'))
                 ->info()
                 ->send();
         }
