@@ -11,6 +11,7 @@ use App\Domain\Infrastructure\Traits\HasStateMachine;
 use App\Domain\Inquiries\Enums\InquirySource;
 use App\Domain\Inquiries\Enums\InquiryStatus;
 use App\Domain\Quotations\Models\Quotation;
+use App\Domain\SupplierQuotations\Models\SupplierQuotation;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -119,6 +120,11 @@ class Inquiry extends Model
     public function quotations(): HasMany
     {
         return $this->hasMany(Quotation::class);
+    }
+
+    public function supplierQuotations(): HasMany
+    {
+        return $this->hasMany(SupplierQuotation::class);
     }
 
     // --- Scopes ---

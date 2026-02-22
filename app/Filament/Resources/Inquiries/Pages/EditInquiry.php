@@ -5,11 +5,17 @@ namespace App\Filament\Resources\Inquiries\Pages;
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Inquiries\Enums\InquiryStatus;
 use App\Domain\Inquiries\Models\Inquiry;
+use App\Domain\CRM\Enums\CompanyRole;
+use App\Domain\CRM\Models\Company;
 use App\Domain\Quotations\Enums\QuotationStatus;
 use App\Domain\Quotations\Models\Quotation;
 use App\Domain\Quotations\Models\QuotationItem;
+use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
+use App\Domain\SupplierQuotations\Models\SupplierQuotation;
+use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
 use App\Filament\Resources\Inquiries\InquiryResource;
 use App\Filament\Resources\Quotations\QuotationResource;
+use App\Filament\Resources\SupplierQuotations\SupplierQuotationResource;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
@@ -25,6 +31,86 @@ class EditInquiry extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('requestSupplierQuotation')
+                ->label('Request Supplier Quotation')
+                ->icon('heroicon-o-paper-airplane')
+                ->color('info')
+                ->visible(fn () => in_array($this->record->status, [
+                    InquiryStatus::RECEIVED,
+                    InquiryStatus::QUOTING,
+                ]))
+                ->form([
+                    \Filament\Forms\Components\Select::make('company_ids')
+                        ->label('Suppliers')
+                        ->options(
+                            fn () => Company::query()
+                                ->whereHas('companyRoles', fn ($q) => $q->where('role', CompanyRole::SUPPLIER))
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                        )
+                        ->multiple()
+                        ->searchable()
+                        ->required()
+                        ->helperText('Select one or more suppliers to request quotations from. Items from this inquiry will be copied to each supplier quotation.'),
+                ])
+                ->action(function (array $data) {
+                    try {
+                        $created = [];
+                        DB::transaction(function () use ($data, &$created) {
+                            $inquiry = Inquiry::lockForUpdate()->findOrFail($this->record->id);
+
+                            foreach ($data['company_ids'] as $companyId) {
+                                $sq = SupplierQuotation::create([
+                                    'inquiry_id' => $inquiry->id,
+                                    'company_id' => $companyId,
+                                    'status' => SupplierQuotationStatus::REQUESTED,
+                                    'currency_code' => $inquiry->currency_code,
+                                    'requested_at' => now()->toDateString(),
+                                ]);
+
+                                foreach ($inquiry->items as $item) {
+                                    SupplierQuotationItem::create([
+                                        'supplier_quotation_id' => $sq->id,
+                                        'inquiry_item_id' => $item->id,
+                                        'product_id' => $item->product_id,
+                                        'description' => $item->description,
+                                        'quantity' => $item->quantity,
+                                        'unit' => $item->unit,
+                                        'unit_cost' => 0,
+                                        'specifications' => $item->specifications,
+                                        'notes' => $item->notes,
+                                        'sort_order' => $item->sort_order,
+                                    ]);
+                                }
+
+                                $created[] = $sq->reference . ' (' . Company::find($companyId)->name . ')';
+                            }
+
+                            if ($inquiry->status === InquiryStatus::RECEIVED) {
+                                app(TransitionStatusAction::class)->execute(
+                                    $inquiry,
+                                    InquiryStatus::QUOTING,
+                                    'Supplier quotations requested: ' . implode(', ', $created),
+                                );
+                            }
+                        });
+
+                        Notification::make()
+                            ->title(count($created) . ' supplier quotation(s) created')
+                            ->body(implode("\n", $created))
+                            ->success()
+                            ->send();
+
+                        $this->refreshFormData(['status']);
+                    } catch (\Throwable $e) {
+                        Notification::make()
+                            ->title('Error creating supplier quotations')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
+                }),
+
             Action::make('createQuotation')
                 ->label('Create Quotation')
                 ->icon('heroicon-o-document-plus')
