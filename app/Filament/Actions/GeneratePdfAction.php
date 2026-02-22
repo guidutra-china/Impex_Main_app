@@ -2,14 +2,12 @@
 
 namespace App\Filament\Actions;
 
-use App\Domain\Infrastructure\Models\Document;
 use App\Domain\Infrastructure\Pdf\PdfGeneratorService;
 use App\Domain\Infrastructure\Pdf\PdfRenderer;
 use App\Domain\Infrastructure\Pdf\Templates\AbstractPdfTemplate;
 use App\Domain\Infrastructure\Services\DocumentService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\Storage;
 
 class GeneratePdfAction
 {
@@ -76,8 +74,10 @@ class GeneratePdfAction
                     return;
                 }
 
-                return response()->download(
-                    $document->getFullPath(),
+                return response()->streamDownload(
+                    function () use ($document) {
+                        echo file_get_contents($document->getFullPath());
+                    },
                     $document->name,
                     ['Content-Type' => 'application/pdf'],
                 );
@@ -103,10 +103,16 @@ class GeneratePdfAction
 
                     $content = $service->preview($template);
 
-                    return response($content, 200, [
-                        'Content-Type' => 'application/pdf',
-                        'Content-Disposition' => 'inline; filename="' . $template->getFilename() . '"',
-                    ]);
+                    return response()->streamDownload(
+                        function () use ($content) {
+                            echo $content;
+                        },
+                        $template->getFilename(),
+                        [
+                            'Content-Type' => 'application/pdf',
+                            'Content-Disposition' => 'inline; filename="' . $template->getFilename() . '"',
+                        ],
+                    );
                 } catch (\Throwable $e) {
                     report($e);
 

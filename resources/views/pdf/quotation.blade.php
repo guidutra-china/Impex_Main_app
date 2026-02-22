@@ -1,67 +1,52 @@
 @extends('pdf.layouts.document')
 
 @section('document-meta')
-    <div class="document-meta">
-        <div><span class="label">{{ $labels['reference'] }}</span></div>
-        <div class="value">{{ $quotation['reference'] }}</div>
-
-        <div style="margin-top: 6px;"><span class="label">{{ $labels['date'] }}</span></div>
-        <div class="value">{{ $quotation['date'] }}</div>
-
+    <table class="document-meta-table">
+        <tr>
+            <td class="meta-label">{{ $labels['reference'] }}</td>
+            <td class="meta-value">{{ $quotation['reference'] }}</td>
+        </tr>
+        <tr>
+            <td class="meta-label">{{ $labels['date'] }}</td>
+            <td class="meta-value">{{ $quotation['date'] }}</td>
+        </tr>
         @if($quotation['valid_until'] !== '—')
-            <div style="margin-top: 6px;"><span class="label">{{ $labels['valid_until'] }}</span></div>
-            <div class="value">{{ $quotation['valid_until'] }}</div>
+            <tr>
+                <td class="meta-label">{{ $labels['valid_until'] }}</td>
+                <td class="meta-value">{{ $quotation['valid_until'] }}</td>
+            </tr>
         @endif
-
-        <div style="margin-top: 6px;"><span class="label">{{ $labels['currency'] }}</span></div>
-        <div class="value">{{ $quotation['currency_code'] }}</div>
-
+        <tr>
+            <td class="meta-label">{{ $labels['currency'] }}</td>
+            <td class="meta-value">{{ $quotation['currency_code'] }}</td>
+        </tr>
         @if($quotation['inquiry_reference'])
-            <div style="margin-top: 6px;"><span class="label">Inquiry Ref.</span></div>
-            <div class="value">{{ $quotation['inquiry_reference'] }}</div>
+            <tr>
+                <td class="meta-label">Inquiry Ref.</td>
+                <td class="meta-value">{{ $quotation['inquiry_reference'] }}</td>
+            </tr>
         @endif
-    </div>
+    </table>
 @endsection
 
-@section('parties')
-    <div class="parties">
-        <table class="parties-table">
-            <tr>
-                <td>
-                    <div class="party-box">
-                        <div class="party-label">{{ $labels['from'] }}</div>
-                        <div class="party-name">{{ $company['name'] }}</div>
-                        <div class="party-detail">
-                            @if($company['address']){{ $company['address'] }}<br>@endif
-                            @if($company['city'] || $company['state'])
-                                {{ collect([$company['city'], $company['state'], $company['zip_code']])->filter()->implode(', ') }}<br>
-                            @endif
-                            @if($company['country']){{ $company['country'] }}<br>@endif
-                            @if($company['phone']){{ $labels['phone'] }}: {{ $company['phone'] }}<br>@endif
-                            @if($company['email']){{ $labels['email'] }}: {{ $company['email'] }}@endif
-                        </div>
-                    </div>
-                </td>
-                <td>
-                    <div class="party-box">
-                        <div class="party-label">{{ $labels['to'] }}</div>
-                        <div class="party-name">{{ $client['name'] }}</div>
-                        <div class="party-detail">
-                            @if($client['legal_name'] && $client['legal_name'] !== $client['name'])
-                                {{ $client['legal_name'] }}<br>
-                            @endif
-                            @if($client['address'] && $client['address'] !== '—'){{ $client['address'] }}<br>@endif
-                            @if($client['tax_id']){{ $labels['tax_id'] }}: {{ $client['tax_id'] }}<br>@endif
-                            @if($client['contact_name']){{ $labels['attention'] }}: {{ $client['contact_name'] }}<br>@endif
-                            @if($client['phone']){{ $labels['phone'] }}: {{ $client['phone'] }}<br>@endif
-                            @if($client['contact_email'] ?? $client['email'])
-                                {{ $labels['email'] }}: {{ $client['contact_email'] ?? $client['email'] }}
-                            @endif
-                        </div>
-                    </div>
-                </td>
-            </tr>
-        </table>
+@section('client-info')
+    <div class="client-section">
+        <div class="client-box">
+            <div class="client-label">{{ $labels['to'] }}</div>
+            <div class="client-name">{{ $client['name'] }}</div>
+            <div class="client-detail">
+                @if($client['legal_name'] && $client['legal_name'] !== $client['name'])
+                    {{ $client['legal_name'] }}<br>
+                @endif
+                @if($client['address'] && $client['address'] !== '—'){{ $client['address'] }}<br>@endif
+                @if($client['tax_id']){{ $labels['tax_id'] }}: {{ $client['tax_id'] }}<br>@endif
+                @if($client['contact_name']){{ $labels['attention'] }}: {{ $client['contact_name'] }}<br>@endif
+                @if($client['phone']){{ $labels['phone'] }}: {{ $client['phone'] }}<br>@endif
+                @if($client['contact_email'] ?? $client['email'])
+                    {{ $labels['email'] }}: {{ $client['contact_email'] ?? $client['email'] }}
+                @endif
+            </div>
+        </div>
     </div>
 @endsection
 
@@ -124,30 +109,7 @@
         <div class="section">
             <div class="section-title">{{ $labels['payment_terms'] }}</div>
             <div class="section-content">
-                <strong>{{ $payment_term['name'] }}</strong>
-
-                @if(count($payment_term['stages']) > 0)
-                    <table class="payment-terms-table">
-                        <thead>
-                            <tr>
-                                <th>{{ $labels['stage'] }}</th>
-                                <th>{{ $labels['percentage'] }}</th>
-                                <th>{{ $labels['days'] }}</th>
-                                <th>{{ $labels['calculation_base'] }}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($payment_term['stages'] as $index => $stage)
-                                <tr>
-                                    <td>{{ $index + 1 }}</td>
-                                    <td>{{ $stage['percentage'] }}</td>
-                                    <td>{{ $stage['days'] }}</td>
-                                    <td>{{ $stage['calculation_base'] }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                @endif
+                {{ $payment_term['description'] ?? $payment_term['name'] }}
             </div>
         </div>
     @endif

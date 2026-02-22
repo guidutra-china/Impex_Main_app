@@ -95,16 +95,20 @@ abstract class AbstractPdfTemplate
             return null;
         }
 
-        $fullPath = storage_path('app/public/' . $logoPath);
+        $candidates = [
+            storage_path('app/public/' . $logoPath),
+            storage_path('app/' . $logoPath),
+            public_path('storage/' . $logoPath),
+            public_path($logoPath),
+        ];
 
-        if (file_exists($fullPath)) {
-            return $fullPath;
-        }
+        foreach ($candidates as $path) {
+            if (file_exists($path)) {
+                $mime = mime_content_type($path);
+                $data = base64_encode(file_get_contents($path));
 
-        $publicPath = public_path($logoPath);
-
-        if (file_exists($publicPath)) {
-            return $publicPath;
+                return "data:{$mime};base64,{$data}";
+            }
         }
 
         return null;

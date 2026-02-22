@@ -15,13 +15,13 @@
         }
 
         .container {
-            padding: 25px 30px;
+            padding: 20px 30px;
         }
 
         /* === Header === */
         .header {
-            margin-bottom: 20px;
-            padding-bottom: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
             border-bottom: 3px solid #1e40af;
         }
 
@@ -35,114 +35,112 @@
 
         .company-logo img {
             max-width: 160px;
-            max-height: 60px;
-            margin-bottom: 6px;
+            max-height: 55px;
+            margin-bottom: 4px;
         }
 
         .company-name {
-            font-size: 16pt;
+            font-size: 14pt;
             font-weight: bold;
             color: #1e40af;
             margin-bottom: 2px;
         }
 
         .company-details {
-            font-size: 8pt;
+            font-size: 7.5pt;
             color: #6b7280;
-            line-height: 1.6;
+            line-height: 1.5;
         }
 
         .document-title {
-            font-size: 20pt;
+            font-size: 18pt;
             font-weight: bold;
             color: #1e40af;
             text-align: right;
-            margin-bottom: 4px;
+            margin-bottom: 8px;
         }
 
-        .document-meta {
-            text-align: right;
-            font-size: 9pt;
-            color: #4b5563;
-        }
-
-        .document-meta .label {
-            color: #9ca3af;
+        /* === Document Meta (inline) === */
+        .document-meta-table {
+            float: right;
+            border-collapse: collapse;
             font-size: 8pt;
+        }
+
+        .document-meta-table td {
+            padding: 2px 0;
+        }
+
+        .document-meta-table .meta-label {
+            color: #9ca3af;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding-right: 10px;
+            text-align: right;
+            font-size: 7pt;
         }
 
-        .document-meta .value {
+        .document-meta-table .meta-value {
             font-weight: bold;
+            color: #1f2937;
+            text-align: right;
         }
 
-        /* === Parties === */
-        .parties {
-            margin: 20px 0;
+        /* === Client Box (TO only) === */
+        .client-section {
+            margin: 12px 0;
         }
 
-        .parties-table {
-            width: 100%;
-        }
-
-        .parties-table td {
-            vertical-align: top;
-            width: 48%;
-        }
-
-        .parties-table td:first-child {
-            padding-right: 4%;
-        }
-
-        .party-box {
+        .client-box {
             padding: 12px 14px;
             border: 1px solid #e5e7eb;
             border-radius: 4px;
             background: #f9fafb;
+            width: 55%;
         }
 
-        .party-label {
+        .client-label {
             font-size: 7pt;
             text-transform: uppercase;
             letter-spacing: 1px;
             color: #9ca3af;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             font-weight: bold;
         }
 
-        .party-name {
-            font-size: 11pt;
+        .client-name {
+            font-size: 10pt;
             font-weight: bold;
             color: #111827;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
         }
 
-        .party-detail {
+        .client-detail {
             font-size: 8pt;
             color: #6b7280;
-            line-height: 1.6;
+            line-height: 1.5;
         }
 
         /* === Content (yield) === */
         .content {
-            margin: 15px 0;
+            margin: 10px 0;
         }
 
         /* === Items Table === */
         .items-table {
             width: 100%;
             border-collapse: collapse;
-            margin: 15px 0;
+            margin: 12px 0;
             font-size: 8.5pt;
         }
 
         .items-table thead th {
             background: #1e40af;
             color: #ffffff;
-            padding: 8px 10px;
+            padding: 7px 10px;
             text-align: left;
             font-weight: bold;
-            font-size: 8pt;
+            font-size: 7.5pt;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -156,7 +154,7 @@
         }
 
         .items-table tbody td {
-            padding: 7px 10px;
+            padding: 6px 10px;
             border-bottom: 1px solid #e5e7eb;
         }
 
@@ -169,7 +167,7 @@
 
         /* === Totals === */
         .totals-wrapper {
-            margin-top: 10px;
+            margin-top: 8px;
         }
 
         .totals-table {
@@ -179,7 +177,7 @@
         }
 
         .totals-table td {
-            padding: 6px 10px;
+            padding: 5px 10px;
             font-size: 9pt;
         }
 
@@ -199,7 +197,7 @@
             color: #ffffff;
             font-weight: bold;
             font-size: 10pt;
-            padding: 8px 10px;
+            padding: 7px 10px;
         }
 
         .totals-table .subtotal-row td {
@@ -208,7 +206,7 @@
 
         /* === Sections below table === */
         .section {
-            margin-top: 20px;
+            margin-top: 16px;
             clear: both;
         }
 
@@ -218,8 +216,8 @@
             color: #1e40af;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 6px;
-            padding-bottom: 4px;
+            margin-bottom: 5px;
+            padding-bottom: 3px;
             border-bottom: 1px solid #e5e7eb;
         }
 
@@ -229,32 +227,10 @@
             line-height: 1.6;
         }
 
-        /* === Payment Terms Table === */
-        .payment-terms-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 6px;
-            font-size: 8.5pt;
-        }
-
-        .payment-terms-table th {
-            background: #f3f4f6;
-            padding: 5px 8px;
-            text-align: left;
-            font-weight: bold;
-            color: #374151;
-            border-bottom: 1px solid #d1d5db;
-        }
-
-        .payment-terms-table td {
-            padding: 5px 8px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
         /* === Footer === */
         .footer {
-            margin-top: 30px;
-            padding-top: 10px;
+            margin-top: 25px;
+            padding-top: 8px;
             border-top: 2px solid #1e40af;
             font-size: 7.5pt;
             color: #9ca3af;
@@ -269,7 +245,7 @@
 
         /* === DomPDF page numbering === */
         @page {
-            margin: 15mm 10mm 20mm 10mm;
+            margin: 12mm 10mm 15mm 10mm;
         }
 
         .page-number {
@@ -295,7 +271,7 @@
         <div class="header">
             <table class="header-table">
                 <tr>
-                    <td style="width: 55%;">
+                    <td style="width: 50%;">
                         @if(! empty($company['logo_path']))
                             <div class="company-logo">
                                 <img src="{{ $company['logo_path'] }}" alt="{{ $company['name'] }}">
@@ -308,12 +284,13 @@
                                 {{ collect([$company['city'], $company['state'], $company['zip_code']])->filter()->implode(', ') }}<br>
                             @endif
                             @if($company['country']){{ $company['country'] }}<br>@endif
-                            @if($company['phone']){{ $labels['phone'] ?? 'Phone' }}: {{ $company['phone'] }}<br>@endif
-                            @if($company['email']){{ $labels['email'] ?? 'Email' }}: {{ $company['email'] }}<br>@endif
-                            @if($company['tax_id']){{ $labels['tax_id'] ?? 'Tax ID' }}: {{ $company['tax_id'] }}@endif
+                            @if($company['phone']){{ $labels['phone'] ?? 'Phone' }}: {{ $company['phone'] }}@endif
+                            @if($company['phone'] && $company['email']) | @endif
+                            @if($company['email']){{ $labels['email'] ?? 'Email' }}: {{ $company['email'] }}@endif
+                            @if($company['tax_id'])<br>{{ $labels['tax_id'] ?? 'Tax ID' }}: {{ $company['tax_id'] }}@endif
                         </div>
                     </td>
-                    <td style="width: 45%;">
+                    <td style="width: 50%;">
                         <div class="document-title">{{ $title }}</div>
                         @yield('document-meta')
                     </td>
@@ -321,8 +298,8 @@
             </table>
         </div>
 
-        {{-- === PARTIES === --}}
-        @yield('parties')
+        {{-- === CLIENT === --}}
+        @yield('client-info')
 
         {{-- === CONTENT === --}}
         <div class="content">

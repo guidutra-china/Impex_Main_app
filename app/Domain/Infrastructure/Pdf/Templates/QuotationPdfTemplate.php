@@ -31,7 +31,7 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
             'company',
             'contact',
             'inquiry',
-            'paymentTerm.stages',
+            'paymentTerm',
             'items.product',
             'creator',
         ]);
@@ -53,15 +53,6 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
 
         $showCommission = $quotation->commission_type === CommissionType::SEPARATE
             && $quotation->commission_rate > 0;
-
-        $paymentTermStages = [];
-        if ($quotation->paymentTerm) {
-            $paymentTermStages = $quotation->paymentTerm->stages->map(fn ($stage) => [
-                'percentage' => $stage->percentage . '%',
-                'days' => $stage->days,
-                'calculation_base' => $stage->calculation_base?->getLabel() ?? '—',
-            ])->toArray();
-        }
 
         return [
             'quotation' => [
@@ -96,7 +87,7 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
             ],
             'payment_term' => [
                 'name' => $quotation->paymentTerm?->name,
-                'stages' => $paymentTermStages,
+                'description' => $quotation->paymentTerm?->description,
             ],
         ];
     }
