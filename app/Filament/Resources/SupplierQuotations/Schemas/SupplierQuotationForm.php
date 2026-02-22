@@ -11,7 +11,7 @@ use App\Domain\Settings\Models\Currency;
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Tabs;
+use Filament\Schemas\Components\Tabs;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
