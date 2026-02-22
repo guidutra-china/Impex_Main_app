@@ -79,6 +79,16 @@ class Company extends Model
             ->withTimestamps();
     }
 
+    public function supplierProducts(): BelongsToMany
+    {
+        return $this->products()->wherePivot('role', 'supplier');
+    }
+
+    public function clientProducts(): BelongsToMany
+    {
+        return $this->products()->wherePivot('role', 'client');
+    }
+
     public function categories(): BelongsToMany
     {
         return $this->belongsToMany(Category::class, 'category_company')
