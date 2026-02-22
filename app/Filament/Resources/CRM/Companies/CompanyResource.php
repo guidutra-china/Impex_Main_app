@@ -8,9 +8,10 @@ use App\Filament\Resources\CRM\Companies\Pages\EditCompany;
 use App\Filament\Resources\CRM\Companies\Pages\ListCompanies;
 use App\Filament\Resources\CRM\Companies\Pages\ViewCompany;
 use App\Filament\Resources\CRM\Companies\RelationManagers\CategoriesRelationManager;
+use App\Filament\Resources\CRM\Companies\RelationManagers\ClientProductsRelationManager;
 use App\Filament\Resources\CRM\Companies\RelationManagers\ContactsRelationManager;
-use App\Filament\Resources\CRM\Companies\RelationManagers\ProductsRelationManager;
 use App\Filament\Resources\CRM\Companies\RelationManagers\RolesRelationManager;
+use App\Filament\Resources\CRM\Companies\RelationManagers\SupplierProductsRelationManager;
 use App\Filament\Resources\CRM\Companies\Schemas\CompanyForm;
 use App\Filament\Resources\CRM\Companies\Schemas\CompanyInfolist;
 use App\Filament\Resources\CRM\Companies\Tables\CompaniesTable;
@@ -62,7 +63,8 @@ class CompanyResource extends Resource
             RolesRelationManager::class,
             ContactsRelationManager::class,
             CategoriesRelationManager::class,
-            ProductsRelationManager::class,
+            SupplierProductsRelationManager::class,
+            ClientProductsRelationManager::class,
         ];
     }
 

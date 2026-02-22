@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\CRM\Companies\RelationManagers;
 
 use App\Domain\CRM\Enums\CompanyRole;
-use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Settings\Models\Currency;
 use BackedEnum;
 use Filament\Actions\AttachAction;
@@ -20,79 +19,43 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
-class ProductsRelationManager extends RelationManager
+class ClientProductsRelationManager extends RelationManager
 {
-    protected static string $relationship = 'supplierProducts';
+    protected static string $relationship = 'clientProducts';
 
-    protected static ?string $title = 'Products';
+    protected static ?string $title = 'Products (Client)';
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    protected static BackedEnum|string|null $icon = 'heroicon-o-cube';
+    protected static BackedEnum|string|null $icon = 'heroicon-o-user-group';
 
-    /**
-     * O título da aba muda dinamicamente conforme o papel da empresa.
-     * Se a empresa for apenas cliente, exibe os produtos como cliente.
-     */
-    public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
+    public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
     {
-        $roles = $ownerRecord->companyRoles->pluck('role');
-
-        if ($roles->contains(CompanyRole::SUPPLIER) && $roles->contains(CompanyRole::CLIENT)) {
-            return 'Products (Supplier & Client)';
-        }
-
-        if ($roles->contains(CompanyRole::CLIENT)) {
-            return 'Products (Client)';
-        }
-
-        return 'Products (Supplier)';
-    }
-
-    /**
-     * Ajusta a relação usada conforme o papel da empresa.
-     * Empresas que são apenas clientes usam clientProducts().
-     * Empresas que são fornecedores (ou ambos) usam supplierProducts().
-     */
-    protected function getRelationship(): \Illuminate\Database\Eloquent\Relations\Relation
-    {
-        $ownerRecord = $this->getOwnerRecord();
-        $roles = $ownerRecord->companyRoles->pluck('role');
-
-        if (! $roles->contains(CompanyRole::SUPPLIER) && $roles->contains(CompanyRole::CLIENT)) {
-            return $ownerRecord->clientProducts();
-        }
-
-        return $ownerRecord->supplierProducts();
+        return $ownerRecord->companyRoles()->where('role', CompanyRole::CLIENT)->exists();
     }
 
     public function form(Schema $schema): Schema
     {
-        $ownerRecord = $this->getOwnerRecord();
-        $roles = $ownerRecord->companyRoles->pluck('role');
-        $isSupplier = $roles->contains(CompanyRole::SUPPLIER);
-
         return $schema
             ->columns(2)
             ->components([
                 TextInput::make('external_code')
-                    ->label($isSupplier ? 'Supplier Code' : 'Client Code')
+                    ->label('Client Code')
                     ->maxLength(100)
-                    ->helperText($isSupplier
-                        ? "Supplier's internal code for this product."
-                        : "Client's internal code for this product."),
+                    ->helperText("Client's internal code for this product."),
                 TextInput::make('external_name')
-                    ->label($isSupplier ? 'Supplier Product Name' : 'Client Product Name')
+                    ->label('Client Product Name')
                     ->maxLength(255),
                 Textarea::make('external_description')
-                    ->label('Product Description')
+                    ->label('Client Product Description')
                     ->rows(3)
                     ->maxLength(2000)
                     ->helperText('Will appear on invoices.')
                     ->columnSpanFull(),
                 TextInput::make('unit_price')
-                    ->label($isSupplier ? 'Purchase Price' : 'Selling Price')
+                    ->label('Selling Price')
                     ->numeric()
                     ->minValue(0)
                     ->step(0.01)
@@ -102,23 +65,8 @@ class ProductsRelationManager extends RelationManager
                     ->label('Currency')
                     ->options(fn () => Currency::pluck('code', 'code'))
                     ->searchable(),
-                Select::make('incoterm')
-                    ->label('Incoterm')
-                    ->options(Incoterm::class)
-                    ->searchable()
-                    ->visible($isSupplier),
-                TextInput::make('lead_time_days')
-                    ->label('Lead Time (days)')
-                    ->numeric()
-                    ->minValue(0)
-                    ->visible($isSupplier),
-                TextInput::make('moq')
-                    ->label('MOQ')
-                    ->numeric()
-                    ->minValue(1)
-                    ->visible($isSupplier),
                 Checkbox::make('is_preferred')
-                    ->label($isSupplier ? 'Preferred Supplier' : 'Primary Client')
+                    ->label('Primary Client')
                     ->columnSpanFull(),
                 Textarea::make('notes')
                     ->label('Notes')
@@ -130,10 +78,6 @@ class ProductsRelationManager extends RelationManager
 
     public function table(Table $table): Table
     {
-        $ownerRecord = $this->getOwnerRecord();
-        $roles = $ownerRecord->companyRoles->pluck('role');
-        $isSupplier = $roles->contains(CompanyRole::SUPPLIER);
-
         return $table
             ->columns([
                 TextColumn::make('sku')
@@ -151,36 +95,21 @@ class ProductsRelationManager extends RelationManager
                     ->badge()
                     ->color('primary'),
                 TextColumn::make('pivot.external_code')
-                    ->label($isSupplier ? 'Supplier Code' : 'Client Code')
+                    ->label('Client Code')
                     ->placeholder('—'),
                 TextColumn::make('pivot.external_name')
-                    ->label($isSupplier ? 'Supplier Name' : 'Client Name')
+                    ->label('Client Product Name')
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('pivot.unit_price')
-                    ->label($isSupplier ? 'Purchase Price' : 'Selling Price')
+                    ->label('Selling Price')
                     ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : '—')
                     ->alignEnd(),
                 TextColumn::make('pivot.currency_code')
                     ->label('Currency')
                     ->placeholder('—'),
-                TextColumn::make('pivot.incoterm')
-                    ->label('Incoterm')
-                    ->placeholder('—')
-                    ->visible($isSupplier),
-                TextColumn::make('pivot.moq')
-                    ->label('MOQ')
-                    ->numeric()
-                    ->alignEnd()
-                    ->placeholder('—')
-                    ->visible($isSupplier),
-                TextColumn::make('pivot.lead_time_days')
-                    ->label('Lead Time')
-                    ->suffix(' days')
-                    ->placeholder('—')
-                    ->visible($isSupplier),
                 IconColumn::make('pivot.is_preferred')
-                    ->label($isSupplier ? 'Preferred' : 'Primary')
+                    ->label('Primary')
                     ->boolean()
                     ->alignCenter(),
             ])
@@ -192,18 +121,18 @@ class ProductsRelationManager extends RelationManager
                     ->form(fn (AttachAction $action): array => [
                         $action->getRecordSelect(),
                         TextInput::make('external_code')
-                            ->label($isSupplier ? 'Supplier Code' : 'Client Code')
+                            ->label('Client Code')
                             ->maxLength(100),
                         TextInput::make('external_name')
-                            ->label($isSupplier ? 'Supplier Product Name' : 'Client Product Name')
+                            ->label('Client Product Name')
                             ->maxLength(255),
                         Textarea::make('external_description')
-                            ->label('Product Description')
+                            ->label('Client Product Description')
                             ->rows(3)
                             ->maxLength(2000)
                             ->helperText('Will appear on invoices.'),
                         TextInput::make('unit_price')
-                            ->label($isSupplier ? 'Purchase Price' : 'Selling Price')
+                            ->label('Selling Price')
                             ->numeric()
                             ->minValue(0)
                             ->step(0.01)
@@ -214,25 +143,11 @@ class ProductsRelationManager extends RelationManager
                             ->label('Currency')
                             ->options(fn () => Currency::pluck('code', 'code'))
                             ->searchable(),
-                        ...$isSupplier ? [
-                            Select::make('incoterm')
-                                ->label('Incoterm')
-                                ->options(Incoterm::class)
-                                ->searchable(),
-                            TextInput::make('moq')
-                                ->label('MOQ')
-                                ->numeric()
-                                ->minValue(1),
-                            TextInput::make('lead_time_days')
-                                ->label('Lead Time (days)')
-                                ->numeric()
-                                ->minValue(0),
-                        ] : [],
                         Checkbox::make('is_preferred')
-                            ->label($isSupplier ? 'Preferred Supplier' : 'Primary Client'),
+                            ->label('Primary Client'),
                     ])
-                    ->mutateFormDataUsing(function (array $data) use ($isSupplier): array {
-                        $data['role'] = $isSupplier ? 'supplier' : 'client';
+                    ->mutateFormDataUsing(function (array $data): array {
+                        $data['role'] = 'client';
                         $data['unit_price'] = (int) round(($data['unit_price'] ?? 0) * 100);
                         return $data;
                     }),
@@ -255,8 +170,8 @@ class ProductsRelationManager extends RelationManager
                     DetachBulkAction::make(),
                 ]),
             ])
-            ->emptyStateHeading('No products linked')
-            ->emptyStateDescription('Link products to track pricing, codes, and commercial terms for this company.')
+            ->emptyStateHeading('No products linked as client')
+            ->emptyStateDescription('Link products to track selling prices and client-specific codes for this client.')
             ->emptyStateIcon('heroicon-o-cube');
     }
 }
