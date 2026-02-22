@@ -8,6 +8,7 @@ use App\Domain\Infrastructure\Enums\DocumentType;
 use App\Domain\Infrastructure\Traits\HasDocuments;
 use App\Domain\Infrastructure\Traits\HasReference;
 use App\Domain\Infrastructure\Traits\HasStateMachine;
+use App\Domain\Inquiries\Models\Inquiry;
 use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\QuotationStatus;
 use App\Domain\Settings\Models\PaymentTerm;
@@ -24,6 +25,7 @@ class Quotation extends Model
 
     protected $fillable = [
         'reference',
+        'inquiry_id',
         'company_id',
         'contact_id',
         'payment_term_id',
@@ -112,6 +114,11 @@ class Quotation extends Model
     }
 
     // --- Relationships ---
+
+    public function inquiry(): BelongsTo
+    {
+        return $this->belongsTo(Inquiry::class);
+    }
 
     public function company(): BelongsTo
     {
