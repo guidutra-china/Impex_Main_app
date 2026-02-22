@@ -2,7 +2,9 @@
 
 namespace App\Domain\Infrastructure\Pdf;
 
-use Barryvdh\DomPDF\Facade\Pdf;
+use Dompdf\Dompdf;
+use Dompdf\Options;
+use Illuminate\Support\Facades\View;
 
 class PdfRenderer
 {
@@ -12,12 +14,19 @@ class PdfRenderer
         string $paper = 'a4',
         string $orientation = 'portrait',
     ): string {
-        $pdf = Pdf::loadView($view, $data)
-            ->setPaper($paper, $orientation)
-            ->setOption('isRemoteEnabled', true)
-            ->setOption('isHtml5ParserEnabled', true)
-            ->setOption('defaultFont', 'DejaVu Sans');
+        $html = View::make($view, $data)->render();
 
-        return $pdf->output();
+        $options = new Options();
+        $options->set('isRemoteEnabled', true);
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('defaultFont', 'DejaVu Sans');
+        $options->set('isFontSubsettingEnabled', true);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper($paper, $orientation);
+        $dompdf->render();
+
+        return $dompdf->output();
     }
 }
