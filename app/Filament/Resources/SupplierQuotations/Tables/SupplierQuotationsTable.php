@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\SupplierQuotations\Tables;
 
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
+use App\Filament\Resources\Inquiries\InquiryResource;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -23,7 +24,7 @@ class SupplierQuotationsTable
                     ->searchable()
                     ->sortable()
                     ->url(fn ($record) => $record->inquiry
-                        ? route('filament.panel.resources.inquiries.view', $record->inquiry)
+                        ? InquiryResource::getUrl('view', ['record' => $record->inquiry])
                         : null
                     ),
                 TextColumn::make('company.name')
