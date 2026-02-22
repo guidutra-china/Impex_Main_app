@@ -9,6 +9,7 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -64,7 +65,6 @@ class ItemsRelationManager extends RelationManager
                                     if ($product) {
                                         $set('description', $product->name);
 
-                                        // Try to get the supplier's unit_cost from company_product pivot
                                         $supplierQuotation = $this->getOwnerRecord();
                                         $pivot = $product->companies()
                                             ->where('company_id', $supplierQuotation->company_id)
@@ -73,21 +73,27 @@ class ItemsRelationManager extends RelationManager
 
                                         if ($pivot && $pivot->pivot->unit_price) {
                                             $set('unit_cost', number_format($pivot->pivot->unit_price / 100, 2, '.', ''));
+                                            static::recalculateTotal($set, fn ($key) => match ($key) {
+                                                'quantity' => 1,
+                                                'unit_cost' => number_format($pivot->pivot->unit_price / 100, 2, '.', ''),
+                                                default => null,
+                                            });
                                         }
                                     }
                                 }
                             })
                             ->helperText('Search by name or SKU. Price auto-fills from supplier catalog if available.')
                             ->columnSpanFull(),
-                    ]),
-
-                Section::make('Item Details')
-                    ->schema([
                         TextInput::make('description')
                             ->label('Description')
                             ->maxLength(500)
                             ->helperText('Item description as provided by the supplier.')
                             ->columnSpanFull(),
+                    ])
+                    ->columnSpanFull(),
+
+                Section::make('Pricing')
+                    ->schema([
                         TextInput::make('quantity')
                             ->label('Quantity')
                             ->numeric()
@@ -126,7 +132,8 @@ class ItemsRelationManager extends RelationManager
                             ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2, '.', '') : '0.00')
                             ->dehydrateStateUsing(fn ($state) => $state ? (int) round((float) $state * 100) : 0),
                     ])
-                    ->columns(4),
+                    ->columns(4)
+                    ->columnSpanFull(),
 
                 Section::make('Additional Info')
                     ->schema([
@@ -153,7 +160,8 @@ class ItemsRelationManager extends RelationManager
                             ->columnSpanFull(),
                     ])
                     ->columns(2)
-                    ->collapsed(),
+                    ->collapsed()
+                    ->columnSpanFull(),
             ]);
     }
 
@@ -216,7 +224,7 @@ class ItemsRelationManager extends RelationManager
             ->emptyStateDescription('Add items manually or use "Import Inquiry Items" button above to copy items from the linked inquiry.');
     }
 
-    protected static function recalculateTotal(Set $set, Get $get): void
+    protected static function recalculateTotal(Set $set, Get|callable $get): void
     {
         $quantity = (int) ($get('quantity') ?? 0);
         $unitCost = (float) ($get('unit_cost') ?? 0);
