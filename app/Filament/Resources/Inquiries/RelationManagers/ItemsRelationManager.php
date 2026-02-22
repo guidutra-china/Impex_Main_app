@@ -111,11 +111,6 @@ class ItemsRelationManager extends RelationManager
                             ->options(fn () => Category::active()->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->helperText('Assign a category if known. Affects SKU prefix generation.'),
-                        Textarea::make('new_product_description')
-                            ->label('Product Description')
-                            ->rows(3)
-                            ->maxLength(2000)
-                            ->helperText('Client-provided description. Will be saved to the product catalog.'),
                     ])
                     ->visible(fn (Get $get) => (bool) $get('create_new_product'))
                     ->columns(2),
@@ -127,6 +122,7 @@ class ItemsRelationManager extends RelationManager
                             ->label('Item Description')
                             ->maxLength(255)
                             ->helperText('Description for this inquiry line item. Auto-filled from product.')
+                            ->visible(fn (Get $get) => ! $get('create_new_product'))
                             ->columnSpanFull(),
                         TextInput::make('quantity')
                             ->label('Quantity')
