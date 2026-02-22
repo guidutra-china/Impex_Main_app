@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources\Quotations\Pages;
 
+use App\Domain\Infrastructure\Pdf\Templates\QuotationPdfTemplate;
 use App\Domain\Quotations\Models\Quotation;
 use App\Domain\Quotations\Models\QuotationVersion;
+use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Resources\Quotations\QuotationResource;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -21,6 +23,14 @@ class EditQuotation extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            GeneratePdfAction::make(
+                templateClass: QuotationPdfTemplate::class,
+                label: 'Generate PDF',
+            ),
+            GeneratePdfAction::download(
+                documentType: 'quotation_pdf',
+                label: 'Download PDF',
+            ),
             Action::make('createVersion')
                 ->label('Save Version')
                 ->icon('heroicon-o-clock')
@@ -38,7 +48,6 @@ class EditQuotation extends EditRecord
                 ->action(function (array $data) {
                     try {
                         $savedVersion = DB::transaction(function () use ($data) {
-                            // lockForUpdate deve ser feito via query builder, não na instância já carregada.
                             $quotation = Quotation::query()
                                 ->lockForUpdate()
                                 ->findOrFail($this->record->id);

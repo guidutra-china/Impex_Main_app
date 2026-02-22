@@ -7,6 +7,7 @@ use App\Filament\Resources\Quotations\Pages\CreateQuotation;
 use App\Filament\Resources\Quotations\Pages\EditQuotation;
 use App\Filament\Resources\Quotations\Pages\ListQuotations;
 use App\Filament\Resources\Quotations\Pages\ViewQuotation;
+use App\Filament\RelationManagers\DocumentsRelationManager;
 use App\Filament\Resources\Quotations\RelationManagers\ItemsRelationManager;
 use App\Filament\Resources\Quotations\RelationManagers\VersionsRelationManager;
 use App\Filament\Resources\Quotations\Schemas\QuotationForm;
@@ -59,6 +60,7 @@ class QuotationResource extends Resource
         return [
             ItemsRelationManager::class,
             VersionsRelationManager::class,
+            DocumentsRelationManager::class,
         ];
     }
 
