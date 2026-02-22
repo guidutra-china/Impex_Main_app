@@ -3,7 +3,6 @@
 namespace App\Filament\RelationManagers;
 
 use App\Domain\Infrastructure\Enums\DocumentSourceType;
-use App\Domain\Infrastructure\Models\DocumentVersion;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Infolists\Components\RepeatableEntry;
@@ -14,7 +13,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Actions\ViewAction;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 class DocumentsRelationManager extends RelationManager
 {
@@ -112,9 +111,15 @@ class DocumentsRelationManager extends RelationManager
                                 TextEntry::make('created_at')
                                     ->label('Date')
                                     ->dateTime('d/m/Y H:i'),
-                                TextEntry::make('creator.name')
-                                    ->label('Created By')
-                                    ->placeholder('System'),
+                                TextEntry::make('id')
+                                    ->label('Download')
+                                    ->formatStateUsing(function ($state) {
+                                        $url = URL::signedRoute('document-version.download', ['version' => $state]);
+
+                                        return new \Illuminate\Support\HtmlString(
+                                            '<a href="' . e($url) . '" target="_blank" class="text-primary-600 hover:underline text-sm font-medium">Download</a>'
+                                        );
+                                    }),
                             ])
                             ->columns(4),
                     ])),
