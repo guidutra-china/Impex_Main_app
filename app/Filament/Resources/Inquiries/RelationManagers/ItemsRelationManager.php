@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Inquiries\RelationManagers;
 
+use App\Domain\Catalog\Enums\ProductStatus;
+use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
@@ -11,7 +13,11 @@ use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
@@ -29,81 +35,133 @@ class ItemsRelationManager extends RelationManager
     {
         return $schema
             ->components([
-                Select::make('product_id')
-                    ->label('Product')
-                    ->options(function () {
-                        return Product::query()
-                            ->orderBy('name')
-                            ->get()
-                            ->mapWithKeys(fn ($p) => [$p->id => $p->sku . ' — ' . $p->name]);
-                    })
-                    ->searchable()
-                    ->getSearchResultsUsing(function (string $search) {
-                        return Product::query()
-                            ->where(function ($query) use ($search) {
-                                $query->where('name', 'like', "%{$search}%")
-                                    ->orWhere('sku', 'like', "%{$search}%")
-                                    ->orWhereHas('companies', function ($q) use ($search) {
-                                        $q->where('company_product.external_code', 'like', "%{$search}%");
-                                    });
-                            })
-                            ->limit(50)
-                            ->get()
-                            ->mapWithKeys(fn ($p) => [$p->id => $p->sku . ' — ' . $p->name]);
-                    })
+                Toggle::make('create_new_product')
+                    ->label('Create new draft product')
+                    ->helperText('Enable to create a new product in the catalog as draft.')
                     ->live()
-                    ->afterStateUpdated(function (Set $set, ?string $state) {
+                    ->dehydrated(false)
+                    ->default(false)
+                    ->columnSpanFull()
+                    ->afterStateUpdated(function (Set $set, bool $state) {
                         if ($state) {
-                            $product = Product::find($state);
-                            if ($product) {
-                                $set('description', $product->name);
-                            }
+                            $set('product_id', null);
+                        } else {
+                            $set('new_product_name', null);
+                            $set('new_product_category_id', null);
+                            $set('new_product_description', null);
                         }
-                    })
-                    ->helperText('Search by name, SKU, or supplier/client code. Leave empty for free-text items.')
-                    ->columnSpanFull(),
+                    }),
 
-                TextInput::make('description')
-                    ->label('Description')
-                    ->maxLength(255)
-                    ->helperText('Free-text description. Auto-filled from product if selected.')
-                    ->columnSpanFull(),
+                // --- Existing product selection ---
+                Section::make('Select Existing Product')
+                    ->schema([
+                        Select::make('product_id')
+                            ->label('Product')
+                            ->options(function () {
+                                return Product::query()
+                                    ->orderBy('name')
+                                    ->get()
+                                    ->mapWithKeys(fn ($p) => [
+                                        $p->id => ($p->status === ProductStatus::DRAFT ? '[DRAFT] ' : '') . $p->sku . ' — ' . $p->name,
+                                    ]);
+                            })
+                            ->searchable()
+                            ->getSearchResultsUsing(function (string $search) {
+                                return Product::query()
+                                    ->where(function ($query) use ($search) {
+                                        $query->where('name', 'like', "%{$search}%")
+                                            ->orWhere('sku', 'like', "%{$search}%")
+                                            ->orWhereHas('companies', function ($q) use ($search) {
+                                                $q->where('company_product.external_code', 'like', "%{$search}%");
+                                            });
+                                    })
+                                    ->limit(50)
+                                    ->get()
+                                    ->mapWithKeys(fn ($p) => [
+                                        $p->id => ($p->status === ProductStatus::DRAFT ? '[DRAFT] ' : '') . $p->sku . ' — ' . $p->name,
+                                    ]);
+                            })
+                            ->live()
+                            ->afterStateUpdated(function (Set $set, ?string $state) {
+                                if ($state) {
+                                    $product = Product::find($state);
+                                    if ($product) {
+                                        $set('description', $product->name);
+                                    }
+                                }
+                            })
+                            ->helperText('Search by name, SKU, or supplier/client code.')
+                            ->columnSpanFull(),
+                    ])
+                    ->visible(fn (Get $get) => ! $get('create_new_product')),
 
-                TextInput::make('quantity')
-                    ->label('Quantity')
-                    ->numeric()
-                    ->minValue(1)
-                    ->default(1)
-                    ->required(),
+                // --- New draft product creation ---
+                Section::make('New Draft Product')
+                    ->description('A new product will be created in the catalog with DRAFT status. You can complete its details later.')
+                    ->schema([
+                        TextInput::make('new_product_name')
+                            ->label('Product Name')
+                            ->required(fn (Get $get) => (bool) $get('create_new_product'))
+                            ->maxLength(255)
+                            ->dehydrated(false)
+                            ->helperText('Name as described by the client. Can be refined later.'),
+                        Select::make('new_product_category_id')
+                            ->label('Category (optional)')
+                            ->options(fn () => Category::active()->orderBy('name')->pluck('name', 'id'))
+                            ->searchable()
+                            ->dehydrated(false)
+                            ->helperText('Assign a category if known. Affects SKU prefix generation.'),
+                        Textarea::make('new_product_description')
+                            ->label('Product Description')
+                            ->rows(3)
+                            ->maxLength(2000)
+                            ->dehydrated(false)
+                            ->helperText('Client-provided description. Will be saved to the product catalog.'),
+                    ])
+                    ->visible(fn (Get $get) => (bool) $get('create_new_product'))
+                    ->columns(2),
 
-                TextInput::make('unit')
-                    ->label('Unit')
-                    ->default('pcs')
-                    ->maxLength(20)
-                    ->required(),
-
-                TextInput::make('target_price')
-                    ->label('Target Price')
-                    ->numeric()
-                    ->minValue(0)
-                    ->step(0.01)
-                    ->prefix('$')
-                    ->helperText('Client target price per unit, if provided.')
-                    ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2, '.', '') : null)
-                    ->dehydrateStateUsing(fn ($state) => $state ? (int) round((float) $state * 100) : null),
-
-                Textarea::make('specifications')
-                    ->label('Specifications')
-                    ->rows(3)
-                    ->maxLength(2000)
-                    ->helperText('Client-provided specs, dimensions, certifications, etc.')
-                    ->columnSpanFull(),
-
-                Textarea::make('notes')
-                    ->label('Notes')
-                    ->rows(2)
-                    ->maxLength(1000)
-                    ->columnSpanFull(),
+                // --- Common fields ---
+                Section::make('Item Details')
+                    ->schema([
+                        TextInput::make('description')
+                            ->label('Item Description')
+                            ->maxLength(255)
+                            ->helperText('Description for this inquiry line item. Auto-filled from product.')
+                            ->columnSpanFull(),
+                        TextInput::make('quantity')
+                            ->label('Quantity')
+                            ->numeric()
+                            ->minValue(1)
+                            ->default(1)
+                            ->required(),
+                        TextInput::make('unit')
+                            ->label('Unit')
+                            ->default('pcs')
+                            ->maxLength(20)
+                            ->required(),
+                        TextInput::make('target_price')
+                            ->label('Target Price')
+                            ->numeric()
+                            ->minValue(0)
+                            ->step(0.01)
+                            ->prefix('$')
+                            ->helperText('Client target price per unit, if provided.')
+                            ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2, '.', '') : null)
+                            ->dehydrateStateUsing(fn ($state) => $state ? (int) round((float) $state * 100) : null),
+                        Textarea::make('specifications')
+                            ->label('Specifications')
+                            ->rows(3)
+                            ->maxLength(2000)
+                            ->helperText('Client-provided specs, dimensions, certifications, etc.')
+                            ->columnSpanFull(),
+                        Textarea::make('notes')
+                            ->label('Notes')
+                            ->rows(2)
+                            ->maxLength(1000)
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(3),
             ]);
     }
 
@@ -114,7 +172,9 @@ class ItemsRelationManager extends RelationManager
                 TextColumn::make('product.sku')
                     ->label('SKU')
                     ->placeholder('—')
-                    ->searchable(),
+                    ->searchable()
+                    ->badge()
+                    ->color(fn ($record) => $record->product?->status === ProductStatus::DRAFT ? 'warning' : 'gray'),
                 TextColumn::make('displayName')
                     ->label('Item')
                     ->searchable(['description'])
@@ -135,7 +195,10 @@ class ItemsRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->headerActions([
-                CreateAction::make(),
+                CreateAction::make()
+                    ->using(function (array $data, string $model) {
+                        return $this->createItemWithDraftProduct($data, $model);
+                    }),
             ])
             ->recordActions([
                 EditAction::make(),
@@ -149,6 +212,42 @@ class ItemsRelationManager extends RelationManager
             ->reorderable('sort_order')
             ->defaultSort('sort_order')
             ->emptyStateHeading('No items')
-            ->emptyStateDescription('Add products or free-text items that the client is requesting.');
+            ->emptyStateDescription('Add products or create new draft products for items the client is requesting.');
+    }
+
+    protected function createItemWithDraftProduct(array $data, string $model): \Illuminate\Database\Eloquent\Model
+    {
+        if (! empty($data['product_id'])) {
+            return $this->getOwnerRecord()->items()->create($data);
+        }
+
+        $newName = $data['new_product_name'] ?? null;
+        $newCategoryId = $data['new_product_category_id'] ?? null;
+        $newDescription = $data['new_product_description'] ?? null;
+
+        if ($newName) {
+            $product = Product::create([
+                'name' => $newName,
+                'description' => $newDescription,
+                'category_id' => $newCategoryId,
+                'status' => ProductStatus::DRAFT,
+            ]);
+
+            $data['product_id'] = $product->id;
+
+            if (empty($data['description'])) {
+                $data['description'] = $newName;
+            }
+
+            Notification::make()
+                ->title('Draft product created: ' . $product->sku)
+                ->body($product->name)
+                ->info()
+                ->send();
+        }
+
+        unset($data['new_product_name'], $data['new_product_category_id'], $data['new_product_description']);
+
+        return $this->getOwnerRecord()->items()->create($data);
     }
 }

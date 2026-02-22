@@ -58,6 +58,42 @@ class GenerateProductSkuAction
     }
 
     /**
+     * Generate a unique SKU for draft products without a category.
+     * Uses DRF- prefix with lock for concurrency safety.
+     */
+    public function generateDraftSku(): string
+    {
+        $attempts = 0;
+        $maxAttempts = 3;
+
+        while ($attempts < $maxAttempts) {
+            try {
+                return DB::transaction(function () {
+                    $lastSku = Product::withTrashed()
+                        ->where('sku', 'like', 'DRF-%')
+                        ->lockForUpdate()
+                        ->orderByRaw("CAST(REPLACE(sku, 'DRF-', '') AS INTEGER) DESC")
+                        ->value('sku');
+
+                    $nextNumber = $lastSku
+                        ? (int) str_replace('DRF-', '', $lastSku) + 1
+                        : 1;
+
+                    return 'DRF-' . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
+                });
+            } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                $attempts++;
+
+                if ($attempts >= $maxAttempts) {
+                    throw $e;
+                }
+            }
+        }
+
+        throw new \RuntimeException('Failed to generate unique draft SKU after ' . $maxAttempts . ' attempts.');
+    }
+
+    /**
      * Gera uma prévia do próximo SKU sem lock (apenas para exibição no formulário).
      * O valor final é sempre recalculado no evento creating do Model.
      */

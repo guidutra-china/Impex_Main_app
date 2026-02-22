@@ -22,9 +22,11 @@ class Product extends Model
     {
         static::creating(function (Product $product) {
             if (empty($product->sku) && $product->category_id) {
-                // Usa a Action com lock/retry para garantir unicidade em concorrência.
-                // O valor pré-visualizado no formulário é apenas uma sugestão e pode diferir.
                 $product->sku = app(GenerateProductSkuAction::class)->execute($product->category_id);
+            }
+
+            if (empty($product->sku) && ! $product->category_id) {
+                $product->sku = app(GenerateProductSkuAction::class)->generateDraftSku();
             }
 
             if (empty($product->name) && $product->category_id) {
