@@ -96,7 +96,7 @@ class SupplierQuotationInfolist
                     TextEntry::make('incoterm')
                         ->label('Incoterm')
                         ->placeholder('—'),
-                    TextEntry::make('payment_terms')
+                    TextEntry::make('paymentTerm.name')
                         ->label('Payment Terms')
                         ->placeholder('—'),
                 ])

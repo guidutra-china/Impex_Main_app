@@ -7,7 +7,12 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Models\Contact;
 use App\Domain\Inquiries\Models\Inquiry;
 use App\Domain\Quotations\Enums\Incoterm;
+use App\Domain\Settings\Enums\CalculationBase;
 use App\Domain\Settings\Models\Currency;
+use App\Domain\Settings\Models\PaymentTerm;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\TextInput as FormTextInput;
+use Filament\Forms\Components\Toggle;
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -159,10 +164,59 @@ class SupplierQuotationForm
                         ->label('Incoterm')
                         ->options(Incoterm::class)
                         ->searchable(),
-                    TextInput::make('payment_terms')
+                    Select::make('payment_term_id')
                         ->label('Payment Terms')
-                        ->maxLength(255)
-                        ->helperText('Supplier payment terms (e.g., 30% TT advance, 70% before shipment).')
+                        ->relationship('paymentTerm', 'name')
+                        ->options(fn () => PaymentTerm::active()->orderBy('name')->pluck('name', 'id'))
+                        ->searchable()
+                        ->preload()
+                        ->createOptionForm([
+                            TextInput::make('name')
+                                ->label('Name')
+                                ->required()
+                                ->maxLength(255)
+                                ->placeholder('e.g., 30/70 - 30% deposit, 70% before shipment')
+                                ->columnSpanFull(),
+                            Textarea::make('description')
+                                ->label('Description')
+                                ->rows(2)
+                                ->maxLength(65535)
+                                ->columnSpanFull(),
+                            Toggle::make('is_active')
+                                ->label('Active')
+                                ->default(true),
+                            Repeater::make('stages')
+                                ->relationship()
+                                ->schema([
+                                    FormTextInput::make('percentage')
+                                        ->label('Percentage')
+                                        ->required()
+                                        ->numeric()
+                                        ->suffix('%')
+                                        ->minValue(1)
+                                        ->maxValue(100),
+                                    FormTextInput::make('days')
+                                        ->label('Days')
+                                        ->required()
+                                        ->numeric()
+                                        ->default(0)
+                                        ->minValue(0),
+                                    Select::make('calculation_base')
+                                        ->label('Calculation Base')
+                                        ->options(CalculationBase::class)
+                                        ->required()
+                                        ->default(CalculationBase::ORDER_DATE),
+                                ])
+                                ->columns(3)
+                                ->orderColumn('sort_order')
+                                ->reorderable()
+                                ->addActionLabel('Add Stage')
+                                ->defaultItems(1)
+                                ->minItems(1)
+                                ->columnSpanFull(),
+                        ])
+                        ->createOptionModalHeading('Create Payment Term')
+                        ->helperText('Select or create a new payment term.')
                         ->columnSpanFull(),
                 ])
                 ->columns(3),

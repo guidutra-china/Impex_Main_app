@@ -10,6 +10,7 @@ use App\Domain\Infrastructure\Traits\HasReference;
 use App\Domain\Infrastructure\Traits\HasStateMachine;
 use App\Domain\Inquiries\Models\Inquiry;
 use App\Domain\Inquiries\Models\InquiryItem;
+use App\Domain\Settings\Models\PaymentTerm;
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -36,7 +37,7 @@ class SupplierQuotation extends Model
         'lead_time_days',
         'moq',
         'incoterm',
-        'payment_terms',
+        'payment_term_id',
         'notes',
         'internal_notes',
         'created_by',
@@ -116,6 +117,11 @@ class SupplierQuotation extends Model
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    public function paymentTerm(): BelongsTo
+    {
+        return $this->belongsTo(PaymentTerm::class);
     }
 
     public function creator(): BelongsTo
