@@ -5,6 +5,7 @@ namespace App\Domain\Quotations\Models;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Quotations\Enums\Incoterm;
+use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +18,7 @@ class QuotationItem extends Model
     protected $fillable = [
         'quotation_id',
         'product_id',
+        'supplier_quotation_item_id',
         'quantity',
         'selected_supplier_id',
         'unit_cost',
@@ -56,6 +58,11 @@ class QuotationItem extends Model
         return $this->belongsTo(Company::class, 'selected_supplier_id');
     }
 
+    public function supplierQuotationItem(): BelongsTo
+    {
+        return $this->belongsTo(SupplierQuotationItem::class);
+    }
+
     public function suppliers(): HasMany
     {
         return $this->hasMany(QuotationItemSupplier::class);
@@ -80,5 +87,19 @@ class QuotationItem extends Model
         }
 
         return round((($this->unit_price - $this->unit_cost) / $this->unit_cost) * 100, 2);
+    }
+
+    public function getSourceLabelAttribute(): ?string
+    {
+        if (! $this->supplier_quotation_item_id) {
+            return null;
+        }
+
+        $sqItem = $this->supplierQuotationItem()->with('supplierQuotation')->first();
+        if (! $sqItem || ! $sqItem->supplierQuotation) {
+            return null;
+        }
+
+        return $sqItem->supplierQuotation->reference;
     }
 }

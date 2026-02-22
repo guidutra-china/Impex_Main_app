@@ -6,6 +6,8 @@ use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\Incoterm;
+use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
+use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -62,9 +64,77 @@ class ItemsRelationManager extends RelationManager
                             return;
                         }
 
+                        $set('supplier_quotation_item_id', null);
+                        $set('selected_supplier_id', null);
                         $this->fillPricesFromProduct((int) $state, $get, $set);
                     })
                     ->columnSpanFull(),
+
+                Select::make('supplier_quotation_item_id')
+                    ->label('Source (Supplier Quotation)')
+                    ->options(function (Get $get) {
+                        $productId = $get('product_id');
+                        $quotation = $this->getOwnerRecord();
+                        $inquiryId = $quotation->inquiry_id;
+
+                        if (! $productId || ! $inquiryId) {
+                            return [];
+                        }
+
+                        return SupplierQuotationItem::query()
+                            ->where('product_id', $productId)
+                            ->where('unit_cost', '>', 0)
+                            ->whereHas('supplierQuotation', function ($q) use ($inquiryId) {
+                                $q->where('inquiry_id', $inquiryId)
+                                    ->whereIn('status', [
+                                        SupplierQuotationStatus::RECEIVED,
+                                        SupplierQuotationStatus::UNDER_ANALYSIS,
+                                        SupplierQuotationStatus::SELECTED,
+                                    ]);
+                            })
+                            ->with('supplierQuotation.company')
+                            ->get()
+                            ->mapWithKeys(fn ($sqItem) => [
+                                $sqItem->id => "{$sqItem->supplierQuotation->reference} — {$sqItem->supplierQuotation->company->name} — $" . number_format($sqItem->unit_cost / 100, 2),
+                            ])
+                            ->toArray();
+                    })
+                    ->searchable()
+                    ->placeholder('Select supplier quotation source...')
+                    ->helperText('Optional. Link this item to a specific supplier quotation for traceability.')
+                    ->live()
+                    ->afterStateUpdated(function ($state, Get $get, Set $set) {
+                        if (! $state) {
+                            return;
+                        }
+
+                        $sqItem = SupplierQuotationItem::with('supplierQuotation')->find($state);
+                        if (! $sqItem) {
+                            return;
+                        }
+
+                        $set('selected_supplier_id', $sqItem->supplierQuotation->company_id);
+                        $set('unit_cost', $sqItem->unit_cost / 100);
+
+                        $quotation = $this->getOwnerRecord();
+                        $clientId = $quotation->company_id;
+                        $productId = $get('product_id');
+
+                        $clientPivot = null;
+                        if ($productId) {
+                            $product = Product::find($productId);
+                            $clientPivot = $product?->clients()
+                                ->where('companies.id', $clientId)
+                                ->first()
+                                ?->pivot;
+                        }
+
+                        if ($clientPivot && $clientPivot->unit_price > 0) {
+                            $set('unit_price', $clientPivot->unit_price / 100);
+                        } else {
+                            $this->recalculateUnitPrice($get, $set);
+                        }
+                    }),
 
                 Select::make('selected_supplier_id')
                     ->label('Selected Supplier')
@@ -117,7 +187,7 @@ class ItemsRelationManager extends RelationManager
                     ->maxValue(100)
                     ->step(0.01)
                     ->suffix('%')
-                    ->default(0)
+                    ->default(fn () => $this->getOwnerRecord()->commission_rate ?? 0)
                     ->visible(fn () => $this->getOwnerRecord()->commission_type === CommissionType::EMBEDDED)
                     ->live(onBlur: true)
                     ->afterStateUpdated(function (Get $get, Set $set) {
@@ -133,7 +203,7 @@ class ItemsRelationManager extends RelationManager
                     ->prefix('$')
                     ->inputMode('decimal')
                     ->default(0)
-                    ->helperText('Auto-filled from product catalog or calculated from cost + commission.'),
+                    ->helperText('Auto-filled from catalog, supplier quotation, or calculated from cost + commission.'),
 
                 Select::make('incoterm')
                     ->label('Incoterm')
@@ -157,11 +227,11 @@ class ItemsRelationManager extends RelationManager
                     ->label('SKU')
                     ->searchable()
                     ->badge()
-                    ->color('gray'),
+                    ->color(fn ($record) => $record->product?->status?->value === 'draft' ? 'warning' : 'gray'),
                 TextColumn::make('product.name')
                     ->label('Product')
                     ->searchable()
-                    ->limit(35)
+                    ->limit(30)
                     ->weight('bold'),
                 TextColumn::make('quantity')
                     ->label('Qty')
@@ -171,6 +241,12 @@ class ItemsRelationManager extends RelationManager
                     ->label('Supplier')
                     ->placeholder('—')
                     ->limit(20),
+                TextColumn::make('supplierQuotationItem.supplierQuotation.reference')
+                    ->label('SQ Source')
+                    ->badge()
+                    ->color('info')
+                    ->placeholder('Manual')
+                    ->toggleable(isToggledHiddenByDefault: false),
                 TextColumn::make('unit_cost')
                     ->label('Unit Cost')
                     ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : '—')
@@ -191,6 +267,17 @@ class ItemsRelationManager extends RelationManager
                     ->alignEnd()
                     ->weight('bold')
                     ->color('success'),
+                TextColumn::make('margin')
+                    ->label('Margin')
+                    ->getStateUsing(fn ($record) => $record->margin > 0 ? number_format($record->margin, 1) . '%' : '—')
+                    ->alignCenter()
+                    ->color(fn ($record) => match (true) {
+                        $record->margin >= 15 => 'success',
+                        $record->margin >= 5 => 'warning',
+                        $record->margin > 0 => 'danger',
+                        default => 'gray',
+                    })
+                    ->toggleable(isToggledHiddenByDefault: false),
                 TextColumn::make('incoterm')
                     ->label('Incoterm')
                     ->badge()
@@ -239,11 +326,42 @@ class ItemsRelationManager extends RelationManager
 
         $quotation = $this->getOwnerRecord();
         $clientId = $quotation->company_id;
+        $inquiryId = $quotation->inquiry_id;
 
-        $clientPivot = $product->clients()
-            ->where('companies.id', $clientId)
-            ->first()
-            ?->pivot;
+        if ($inquiryId) {
+            $sqItem = SupplierQuotationItem::query()
+                ->where('product_id', $productId)
+                ->where('unit_cost', '>', 0)
+                ->whereHas('supplierQuotation', function ($q) use ($inquiryId) {
+                    $q->where('inquiry_id', $inquiryId)
+                        ->whereIn('status', [
+                            SupplierQuotationStatus::SELECTED,
+                            SupplierQuotationStatus::UNDER_ANALYSIS,
+                            SupplierQuotationStatus::RECEIVED,
+                        ]);
+                })
+                ->with('supplierQuotation')
+                ->first();
+
+            if ($sqItem) {
+                $set('supplier_quotation_item_id', $sqItem->id);
+                $set('selected_supplier_id', $sqItem->supplierQuotation->company_id);
+                $set('unit_cost', $sqItem->unit_cost / 100);
+
+                $clientPivot = $product->clients()
+                    ->where('companies.id', $clientId)
+                    ->first()
+                    ?->pivot;
+
+                if ($clientPivot && $clientPivot->unit_price > 0) {
+                    $set('unit_price', $clientPivot->unit_price / 100);
+                } else {
+                    $this->recalculateUnitPrice($get, $set);
+                }
+
+                return;
+            }
+        }
 
         $preferredSupplier = $product->suppliers()
             ->orderByDesc('company_product.is_preferred')
@@ -257,6 +375,11 @@ class ItemsRelationManager extends RelationManager
                 $set('incoterm', $preferredSupplier->pivot->incoterm);
             }
         }
+
+        $clientPivot = $product->clients()
+            ->where('companies.id', $clientId)
+            ->first()
+            ?->pivot;
 
         if ($clientPivot && $clientPivot->unit_price > 0) {
             $set('unit_price', $clientPivot->unit_price / 100);
@@ -295,7 +418,11 @@ class ItemsRelationManager extends RelationManager
     protected function recalculateUnitPrice(Get $get, Set $set): void
     {
         $cost = (float) ($get('unit_cost') ?? 0);
-        $commissionRate = (float) ($get('commission_rate') ?? 0);
+        $quotation = $this->getOwnerRecord();
+
+        $commissionRate = $quotation->commission_type === CommissionType::EMBEDDED
+            ? (float) ($get('commission_rate') ?? $quotation->commission_rate ?? 0)
+            : 0;
 
         if ($cost > 0 && $commissionRate > 0) {
             $set('unit_price', round($cost * (1 + ($commissionRate / 100)), 2));
