@@ -6,7 +6,6 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages\Auth\Register;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -23,12 +22,11 @@ class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
-        return $panel
+        $panel = $panel
             ->default()
             ->id('admin')
             ->path('panel')
             ->login()
-            ->registration(app()->isLocal() ? Register::class : null)
             ->passwordReset()
             ->emailVerification()
             ->sidebarCollapsibleOnDesktop()
@@ -76,5 +74,13 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ]);
+
+        // O auto-registro é habilitado apenas em ambiente local.
+        // Em produção, novos usuários admin devem ser criados via seeder ou Tinker.
+        if (app()->isLocal()) {
+            $panel->registration();
+        }
+
+        return $panel;
     }
 }
