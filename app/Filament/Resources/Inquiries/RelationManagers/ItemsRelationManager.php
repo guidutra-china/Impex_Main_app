@@ -96,6 +96,8 @@ class ItemsRelationManager extends RelationManager
                     ->visible(fn (Get $get) => ! $get('create_new_product')),
 
                 // --- New draft product creation ---
+                // Fields use dehydrated(true) so they reach the CreateAction->using() callback.
+                // They are manually removed from $data before creating the InquiryItem.
                 Section::make('New Draft Product')
                     ->description('A new product will be created in the catalog with DRAFT status. You can complete its details later.')
                     ->schema([
@@ -103,19 +105,16 @@ class ItemsRelationManager extends RelationManager
                             ->label('Product Name')
                             ->required(fn (Get $get) => (bool) $get('create_new_product'))
                             ->maxLength(255)
-                            ->dehydrated(false)
                             ->helperText('Name as described by the client. Can be refined later.'),
                         Select::make('new_product_category_id')
                             ->label('Category (optional)')
                             ->options(fn () => Category::active()->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
-                            ->dehydrated(false)
                             ->helperText('Assign a category if known. Affects SKU prefix generation.'),
                         Textarea::make('new_product_description')
                             ->label('Product Description')
                             ->rows(3)
                             ->maxLength(2000)
-                            ->dehydrated(false)
                             ->helperText('Client-provided description. Will be saved to the product catalog.'),
                     ])
                     ->visible(fn (Get $get) => (bool) $get('create_new_product'))
@@ -197,7 +196,7 @@ class ItemsRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make()
                     ->using(function (array $data, string $model) {
-                        return $this->createItemWithDraftProduct($data, $model);
+                        return $this->createItemWithDraftProduct($data);
                     }),
             ])
             ->recordActions([
@@ -215,17 +214,18 @@ class ItemsRelationManager extends RelationManager
             ->emptyStateDescription('Add products or create new draft products for items the client is requesting.');
     }
 
-    protected function createItemWithDraftProduct(array $data, string $model): \Illuminate\Database\Eloquent\Model
+    protected function createItemWithDraftProduct(array $data): \Illuminate\Database\Eloquent\Model
     {
-        if (! empty($data['product_id'])) {
-            return $this->getOwnerRecord()->items()->create($data);
-        }
-
+        // Extract draft product fields from data (they are NOT InquiryItem columns)
         $newName = $data['new_product_name'] ?? null;
         $newCategoryId = $data['new_product_category_id'] ?? null;
         $newDescription = $data['new_product_description'] ?? null;
 
-        if ($newName) {
+        // Remove non-InquiryItem fields before creating the record
+        unset($data['new_product_name'], $data['new_product_category_id'], $data['new_product_description']);
+
+        // If we have draft product data, create the product first
+        if ($newName && empty($data['product_id'])) {
             $product = Product::create([
                 'name' => $newName,
                 'description' => $newDescription,
@@ -245,8 +245,6 @@ class ItemsRelationManager extends RelationManager
                 ->info()
                 ->send();
         }
-
-        unset($data['new_product_name'], $data['new_product_category_id'], $data['new_product_description']);
 
         return $this->getOwnerRecord()->items()->create($data);
     }

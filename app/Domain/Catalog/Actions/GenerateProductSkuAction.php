@@ -72,7 +72,7 @@ class GenerateProductSkuAction
                     $lastSku = Product::withTrashed()
                         ->where('sku', 'like', 'DRF-%')
                         ->lockForUpdate()
-                        ->orderByRaw("CAST(REPLACE(sku, 'DRF-', '') AS INTEGER) DESC")
+                        ->orderByRaw("CAST(REPLACE(sku, 'DRF-', '') AS UNSIGNED) DESC")
                         ->value('sku');
 
                     $nextNumber = $lastSku
