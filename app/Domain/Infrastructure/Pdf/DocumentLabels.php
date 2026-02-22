@@ -65,6 +65,12 @@ class DocumentLabels
             'inquiry_reference' => 'Inquiry Ref.',
             'total_target_value' => 'Total Target Value',
 
+            // Proforma Invoice
+            'issue_date' => 'Issue Date',
+            'confirmed_via' => 'Confirmed Via',
+            'confirmation_ref' => 'Confirmation Ref.',
+            'linked_quotations' => 'Linked Quotations',
+
             // Payment term stages
             'stage' => 'Stage',
             'percentage' => 'Percentage',
@@ -124,6 +130,11 @@ class DocumentLabels
             'inquiry_reference' => 'Ref. Consulta',
             'total_target_value' => 'Valor Alvo Total',
 
+            'issue_date' => 'Data de Emissão',
+            'confirmed_via' => 'Confirmado Via',
+            'confirmation_ref' => 'Ref. Confirmação',
+            'linked_quotations' => 'Cotações Vinculadas',
+
             'stage' => 'Etapa',
             'percentage' => 'Percentual',
             'days' => 'Dias',
@@ -181,6 +192,11 @@ class DocumentLabels
             'quotation_instructions' => '报价说明',
             'inquiry_reference' => '询价编号',
             'total_target_value' => '目标总价值',
+
+            'issue_date' => '开具日期',
+            'confirmed_via' => '确认方式',
+            'confirmation_ref' => '确认参考',
+            'linked_quotations' => '关联报价',
 
             'stage' => '阶段',
             'percentage' => '百分比',

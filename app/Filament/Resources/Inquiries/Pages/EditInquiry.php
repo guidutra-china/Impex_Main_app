@@ -7,6 +7,9 @@ use App\Domain\Inquiries\Enums\InquiryStatus;
 use App\Domain\Inquiries\Models\Inquiry;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
+use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
+use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
 use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\QuotationStatus;
 use App\Domain\Quotations\Models\Quotation;
@@ -15,6 +18,7 @@ use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
 use App\Domain\SupplierQuotations\Models\SupplierQuotation;
 use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
 use App\Filament\Resources\Inquiries\InquiryResource;
+use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
 use App\Filament\Resources\Quotations\QuotationResource;
 use App\Filament\Resources\SupplierQuotations\SupplierQuotationResource;
 use Filament\Actions\Action;
@@ -39,6 +43,7 @@ class EditInquiry extends EditRecord
         return [
             $this->requestSupplierQuotationAction(),
             $this->createQuotationAction(),
+            $this->createProformaInvoiceAction(),
             $this->transitionStatusAction(),
             DeleteAction::make(),
             RestoreAction::make(),
@@ -306,6 +311,69 @@ class EditInquiry extends EditRecord
                 } catch (\Throwable $e) {
                     Notification::make()
                         ->title('Error creating quotation')
+                        ->body($e->getMessage())
+                        ->danger()
+                        ->send();
+                }
+            });
+    }
+
+    protected function createProformaInvoiceAction(): Action
+    {
+        return Action::make('createProformaInvoice')
+            ->label('Create Proforma Invoice')
+            ->icon('heroicon-o-document-text')
+            ->color('success')
+            ->requiresConfirmation()
+            ->modalHeading('Create Proforma Invoice')
+            ->modalDescription('This will create a new Proforma Invoice linked to this inquiry. You can then import items from quotations or add them manually.')
+            ->form([
+                Select::make('quotation_ids')
+                    ->label('Link Quotations (optional)')
+                    ->multiple()
+                    ->options(function () {
+                        return Quotation::query()
+                            ->where('inquiry_id', $this->record->id)
+                            ->orderByDesc('id')
+                            ->get()
+                            ->mapWithKeys(fn ($q) => [
+                                $q->id => $q->reference . ' (' . $q->status->getLabel() . ')',
+                            ]);
+                    })
+                    ->helperText('Optionally link existing quotations. Items can be imported after creation.'),
+            ])
+            ->action(function (array $data) {
+                try {
+                    $inquiry = $this->record;
+
+                    $pi = DB::transaction(function () use ($inquiry, $data) {
+                        $proformaInvoice = ProformaInvoice::create([
+                            'inquiry_id' => $inquiry->id,
+                            'company_id' => $inquiry->company_id,
+                            'contact_id' => $inquiry->contact_id,
+                            'status' => ProformaInvoiceStatus::DRAFT,
+                            'currency_code' => $inquiry->currency_code ?? 'USD',
+                            'issue_date' => now(),
+                            'created_by' => auth()->id(),
+                        ]);
+
+                        if (! empty($data['quotation_ids'])) {
+                            $proformaInvoice->quotations()->attach($data['quotation_ids']);
+                        }
+
+                        return $proformaInvoice;
+                    });
+
+                    Notification::make()
+                        ->title('Proforma Invoice created: ' . $pi->reference)
+                        ->body('Redirecting to edit. Use "Import from Quotations" to add items.')
+                        ->success()
+                        ->send();
+
+                    return redirect(ProformaInvoiceResource::getUrl('edit', ['record' => $pi]));
+                } catch (\Throwable $e) {
+                    Notification::make()
+                        ->title('Error creating Proforma Invoice')
                         ->body($e->getMessage())
                         ->danger()
                         ->send();
