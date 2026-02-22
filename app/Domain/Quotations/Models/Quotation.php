@@ -4,7 +4,10 @@ namespace App\Domain\Quotations\Models;
 
 use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Models\Contact;
-use App\Domain\Quotations\Actions\GenerateQuotationReferenceAction;
+use App\Domain\Infrastructure\Enums\DocumentType;
+use App\Domain\Infrastructure\Traits\HasDocuments;
+use App\Domain\Infrastructure\Traits\HasReference;
+use App\Domain\Infrastructure\Traits\HasStateMachine;
 use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\QuotationStatus;
 use App\Domain\Settings\Models\PaymentTerm;
@@ -17,7 +20,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Quotation extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, HasReference, HasStateMachine, HasDocuments;
 
     protected $fillable = [
         'reference',
@@ -50,14 +53,54 @@ class Quotation extends Model
         ];
     }
 
+    // --- HasReference ---
+
+    public function getDocumentType(): DocumentType
+    {
+        return DocumentType::QUOTATION;
+    }
+
+    // --- HasStateMachine ---
+
+    public static function allowedTransitions(): array
+    {
+        return [
+            QuotationStatus::DRAFT->value => [
+                QuotationStatus::SENT->value,
+                QuotationStatus::CANCELLED->value,
+            ],
+            QuotationStatus::SENT->value => [
+                QuotationStatus::NEGOTIATING->value,
+                QuotationStatus::APPROVED->value,
+                QuotationStatus::REJECTED->value,
+                QuotationStatus::EXPIRED->value,
+                QuotationStatus::CANCELLED->value,
+            ],
+            QuotationStatus::NEGOTIATING->value => [
+                QuotationStatus::SENT->value,
+                QuotationStatus::APPROVED->value,
+                QuotationStatus::REJECTED->value,
+                QuotationStatus::EXPIRED->value,
+                QuotationStatus::CANCELLED->value,
+            ],
+            QuotationStatus::APPROVED->value => [
+                QuotationStatus::CANCELLED->value,
+            ],
+            QuotationStatus::REJECTED->value => [
+                QuotationStatus::DRAFT->value,
+            ],
+            QuotationStatus::EXPIRED->value => [
+                QuotationStatus::DRAFT->value,
+            ],
+            QuotationStatus::CANCELLED->value => [],
+        ];
+    }
+
+    // --- Boot ---
+
     protected static function booted(): void
     {
         static::creating(function (Quotation $quotation) {
-            if (empty($quotation->reference)) {
-                // Usa a Action com lock/retry para garantir unicidade em concorrência.
-                $quotation->reference = app(GenerateQuotationReferenceAction::class)->execute();
-            }
-
             if (empty($quotation->valid_until) && $quotation->validity_days) {
                 $quotation->valid_until = now()->addDays($quotation->validity_days);
             }
