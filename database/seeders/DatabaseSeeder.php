@@ -23,6 +23,9 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             CategoryAttributeSeeder::class,
             TagSeeder::class,
+
+            // Development Data (Companies, Products, Contacts)
+            DevelopmentSeeder::class,
         ]);
     }
 }
