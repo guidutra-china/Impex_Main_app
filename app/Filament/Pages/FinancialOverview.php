@@ -375,12 +375,13 @@ class FinancialOverview extends Page implements HasTable
             ->count();
 
         return [
-            'pending_receivables' => Money::format($pendingReceivables),
-            'approved_receivables' => Money::format($approvedReceivables),
-            'pending_payables' => Money::format($pendingPayables),
-            'approved_payables' => Money::format($approvedPayables),
-            'pending_additional_costs' => Money::format($pendingAdditionalCosts),
+            'pending_receivables' => Money::formatDisplay($pendingReceivables),
+            'approved_receivables' => Money::formatDisplay($approvedReceivables),
+            'pending_payables' => Money::formatDisplay($pendingPayables),
+            'approved_payables' => Money::formatDisplay($approvedPayables),
+            'pending_additional_costs' => Money::formatDisplay($pendingAdditionalCosts),
             'blocking_schedule_items' => $blockingScheduleItems,
+            'blocking_count' => $blockingScheduleItems,
         ];
     }
 }
