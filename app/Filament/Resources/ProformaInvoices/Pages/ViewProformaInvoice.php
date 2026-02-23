@@ -2,10 +2,8 @@
 
 namespace App\Filament\Resources\ProformaInvoices\Pages;
 
-use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Pdf\Templates\ProformaInvoicePdfTemplate;
-use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Domain\PurchaseOrders\Actions\GeneratePurchaseOrdersAction;
 use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
@@ -48,14 +46,13 @@ class ViewProformaInvoice extends ViewRecord
             ->modalHeading('Generate Purchase Orders')
             ->modalDescription(function () {
                 $record = $this->getRecord();
-                $record->loadMissing(['items.supplierCompany', 'paymentScheduleItems']);
+                $record->loadMissing(['items.supplierCompany']);
 
-                $blockingItems = $record->paymentScheduleItems
-                    ->filter(fn ($item) => $item->is_blocking && ! $item->status->isResolved());
+                $blockers = PaymentScheduleItem::blockingPurchaseOrderGeneration($record);
 
-                if ($blockingItems->isNotEmpty()) {
-                    $labels = $blockingItems->pluck('label')->implode(', ');
-                    return "**Cannot generate POs.** The following blocking payments must be resolved first:\n\n"
+                if (count($blockers) > 0) {
+                    $labels = collect($blockers)->pluck('label')->implode(', ');
+                    return "**Cannot generate POs.** The following upfront payments must be resolved first:\n\n"
                         . $labels
                         . "\n\nPlease record and approve the required payments, or waive them to proceed.";
                 }
@@ -95,15 +92,13 @@ class ViewProformaInvoice extends ViewRecord
             ->visible(fn () => $this->getRecord()->items()->exists())
             ->action(function () {
                 $record = $this->getRecord();
-                $record->loadMissing('paymentScheduleItems');
 
-                $blockingItems = $record->paymentScheduleItems
-                    ->filter(fn ($item) => $item->is_blocking && ! $item->status->isResolved());
+                $blockers = PaymentScheduleItem::blockingPurchaseOrderGeneration($record);
 
-                if ($blockingItems->isNotEmpty()) {
+                if (count($blockers) > 0) {
                     Notification::make()
                         ->title('Blocked by Payment Requirements')
-                        ->body('Resolve blocking payments before generating POs.')
+                        ->body('Resolve upfront/deposit payments before generating POs.')
                         ->danger()
                         ->send();
 

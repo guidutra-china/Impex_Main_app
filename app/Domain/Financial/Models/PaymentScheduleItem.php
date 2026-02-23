@@ -123,4 +123,36 @@ class PaymentScheduleItem extends Model
             default => false,
         };
     }
+
+    /**
+     * Conditions that must be resolved before PO generation.
+     * Only upfront/deposit-type conditions block PO creation.
+     */
+    public function blocksPurchaseOrderGeneration(): bool
+    {
+        if (! $this->is_blocking || $this->isResolved()) {
+            return false;
+        }
+
+        return in_array($this->due_condition, [
+            CalculationBase::BEFORE_PRODUCTION,
+            CalculationBase::ORDER_DATE,
+            CalculationBase::PO_DATE,
+        ]);
+    }
+
+    public static function blockingPurchaseOrderGeneration(Model $payable): array
+    {
+        return static::where('payable_type', get_class($payable))
+            ->where('payable_id', $payable->getKey())
+            ->where('is_blocking', true)
+            ->whereNotIn('status', [
+                PaymentScheduleStatus::PAID->value,
+                PaymentScheduleStatus::WAIVED->value,
+            ])
+            ->get()
+            ->filter(fn (self $item) => $item->blocksPurchaseOrderGeneration())
+            ->values()
+            ->all();
+    }
 }
