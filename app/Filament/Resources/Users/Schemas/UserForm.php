@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Users\Schemas;
 
 use App\Domain\CRM\Models\Company;
 use App\Domain\Users\Enums\UserType;
-use Filament\Forms\Components\Section;
+use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
