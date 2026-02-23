@@ -42,7 +42,7 @@ class FinancialOverview extends Page implements HasTable
 
     protected static ?string $slug = 'financial-overview';
 
-    protected static string $view = 'filament.pages.financial-overview';
+    protected string $view = 'filament.pages.financial-overview';
 
     public string $activeTab = 'receivables';
 
