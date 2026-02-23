@@ -13,6 +13,7 @@ use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\Payment;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
+use App\Filament\Widgets\FinancialStatsOverview;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
@@ -49,6 +50,18 @@ class FinancialOverview extends Page implements HasTable
     public static function canAccess(): bool
     {
         return auth()->user()?->can('view-payments') ?? false;
+    }
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            FinancialStatsOverview::class,
+        ];
+    }
+
+    public function getHeaderWidgetsColumns(): int|array
+    {
+        return 6;
     }
 
     public function table(Table $table): Table
@@ -344,44 +357,5 @@ class FinancialOverview extends Page implements HasTable
     {
         $this->activeTab = $tab;
         $this->resetTable();
-    }
-
-    public function getStats(): array
-    {
-        $pendingReceivables = Payment::inbound()
-            ->where('status', PaymentStatus::PENDING_APPROVAL)
-            ->sum('amount');
-
-        $approvedReceivables = Payment::inbound()
-            ->approved()
-            ->sum('amount');
-
-        $pendingPayables = Payment::outbound()
-            ->where('status', PaymentStatus::PENDING_APPROVAL)
-            ->sum('amount');
-
-        $approvedPayables = Payment::outbound()
-            ->approved()
-            ->sum('amount');
-
-        $pendingAdditionalCosts = AdditionalCost::where('status', AdditionalCostStatus::PENDING)
-            ->sum('amount_in_document_currency');
-
-        $blockingScheduleItems = PaymentScheduleItem::where('is_blocking', true)
-            ->whereNotIn('status', [
-                PaymentScheduleStatus::PAID->value,
-                PaymentScheduleStatus::WAIVED->value,
-            ])
-            ->count();
-
-        return [
-            'pending_receivables' => Money::formatDisplay($pendingReceivables),
-            'approved_receivables' => Money::formatDisplay($approvedReceivables),
-            'pending_payables' => Money::formatDisplay($pendingPayables),
-            'approved_payables' => Money::formatDisplay($approvedPayables),
-            'pending_additional_costs' => Money::formatDisplay($pendingAdditionalCosts),
-            'blocking_schedule_items' => $blockingScheduleItems,
-            'blocking_count' => $blockingScheduleItems,
-        ];
     }
 }
