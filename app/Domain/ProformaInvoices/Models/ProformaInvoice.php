@@ -4,6 +4,8 @@ namespace App\Domain\ProformaInvoices\Models;
 
 use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Models\Contact;
+use App\Domain\Financial\Enums\AdditionalCostStatus;
+use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Infrastructure\Enums\DocumentType;
 use App\Domain\Financial\Traits\HasAdditionalCosts;
 use App\Domain\Financial\Traits\HasPaymentSchedule;
@@ -83,6 +85,14 @@ class ProformaInvoice extends Model
                 ProformaInvoiceStatus::CANCELLED->value,
             ],
             ProformaInvoiceStatus::CONFIRMED->value => [
+                ProformaInvoiceStatus::FINALIZED->value,
+                ProformaInvoiceStatus::CANCELLED->value,
+            ],
+            ProformaInvoiceStatus::FINALIZED->value => [
+                ProformaInvoiceStatus::REOPENED->value,
+            ],
+            ProformaInvoiceStatus::REOPENED->value => [
+                ProformaInvoiceStatus::FINALIZED->value,
                 ProformaInvoiceStatus::CANCELLED->value,
             ],
             ProformaInvoiceStatus::CANCELLED->value => [
@@ -170,6 +180,11 @@ class ProformaInvoice extends Model
         return $this->subtotal;
     }
 
+    public function getGrandTotalAttribute(): int
+    {
+        return $this->total + $this->client_billable_costs_total;
+    }
+
     public function getCostTotalAttribute(): int
     {
         return $this->items->sum(fn (ProformaInvoiceItem $item) => $item->cost_total);
@@ -182,6 +197,49 @@ class ProformaInvoice extends Model
         }
 
         return round((($this->total - $this->cost_total) / $this->cost_total) * 100, 2);
+    }
+
+    // --- Finalization ---
+
+    public function getFinalizationBlockers(): array
+    {
+        $blockers = [];
+
+        $unresolvedScheduleItems = $this->paymentScheduleItems()
+            ->where('is_credit', false)
+            ->whereNotIn('status', [
+                PaymentScheduleStatus::PAID->value,
+                PaymentScheduleStatus::WAIVED->value,
+            ])
+            ->count();
+
+        if ($unresolvedScheduleItems > 0) {
+            $blockers[] = "{$unresolvedScheduleItems} payment schedule item(s) not yet paid or waived";
+        }
+
+        $unresolvedCosts = $this->additionalCosts()
+            ->whereNotIn('status', [
+                AdditionalCostStatus::PAID->value,
+                AdditionalCostStatus::WAIVED->value,
+            ])
+            ->count();
+
+        if ($unresolvedCosts > 0) {
+            $blockers[] = "{$unresolvedCosts} additional cost(s) not yet paid or waived";
+        }
+
+        // TODO: Check shipment status when Shipment module is implemented
+        // $unshippedItems = ...
+        // if ($unshippedItems > 0) {
+        //     $blockers[] = "{$unshippedItems} item(s) not yet shipped";
+        // }
+
+        return $blockers;
+    }
+
+    public function canFinalize(): bool
+    {
+        return empty($this->getFinalizationBlockers());
     }
 
     // --- Scopes ---

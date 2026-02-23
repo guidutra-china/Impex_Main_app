@@ -5,7 +5,12 @@ namespace App\Filament\RelationManagers;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
+use App\Domain\Financial\Enums\PaymentScheduleStatus;
+use App\Domain\Financial\Models\AdditionalCost;
+use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\Settings\Models\Currency;
 use App\Domain\Settings\Models\ExchangeRate;
 use BackedEnum;
@@ -93,7 +98,7 @@ class AdditionalCostsRelationManager extends RelationManager
             ])
             ->recordActions([
                 $this->editCostAction(),
-                $this->markAsPaidAction(),
+                $this->waiveCostAction(),
                 $this->deleteCostAction(),
             ]);
     }
@@ -107,7 +112,8 @@ class AdditionalCostsRelationManager extends RelationManager
             ->visible(fn () => auth()->user()?->can('create-payments'))
             ->form($this->costFormSchema())
             ->action(function (array $data) {
-                $this->saveCost($data);
+                $cost = $this->saveCost($data);
+                $this->syncScheduleItem($cost);
 
                 Notification::make()
                     ->title('Additional cost added')
@@ -137,7 +143,8 @@ class AdditionalCostsRelationManager extends RelationManager
             ])
             ->form($this->costFormSchema())
             ->action(function ($record, array $data) {
-                $this->saveCost($data, $record);
+                $cost = $this->saveCost($data, $record);
+                $this->syncScheduleItem($cost);
 
                 Notification::make()
                     ->title('Cost updated')
@@ -146,18 +153,31 @@ class AdditionalCostsRelationManager extends RelationManager
             });
     }
 
-    protected function markAsPaidAction(): Action
+    protected function waiveCostAction(): Action
     {
-        return Action::make('markAsPaid')
-            ->label('Mark Paid')
-            ->icon('heroicon-o-check-circle')
-            ->color('success')
+        return Action::make('waive')
+            ->label('Waive')
+            ->icon('heroicon-o-arrow-uturn-right')
+            ->color('warning')
             ->requiresConfirmation()
+            ->modalDescription('This will waive the cost and its linked schedule item. The amount will no longer be collectible/deductible.')
             ->visible(fn ($record) => in_array($record->status, [AdditionalCostStatus::PENDING, AdditionalCostStatus::INVOICED]) && auth()->user()?->can('approve-payments'))
             ->action(function ($record) {
-                $record->update(['status' => AdditionalCostStatus::PAID]);
+                $record->update(['status' => AdditionalCostStatus::WAIVED]);
 
-                Notification::make()->title('Cost marked as paid')->success()->send();
+                $scheduleItem = PaymentScheduleItem::where('source_type', AdditionalCost::class)
+                    ->where('source_id', $record->id)
+                    ->first();
+
+                if ($scheduleItem) {
+                    $scheduleItem->update([
+                        'status' => PaymentScheduleStatus::WAIVED,
+                        'waived_by' => auth()->id(),
+                        'waived_at' => now(),
+                    ]);
+                }
+
+                Notification::make()->title('Cost waived')->success()->send();
             });
     }
 
@@ -168,8 +188,14 @@ class AdditionalCostsRelationManager extends RelationManager
             ->icon('heroicon-o-trash')
             ->color('danger')
             ->requiresConfirmation()
+            ->modalDescription('This will delete the cost and its linked schedule item.')
             ->visible(fn ($record) => $record->status === AdditionalCostStatus::PENDING && auth()->user()?->can('create-payments'))
             ->action(function ($record) {
+                PaymentScheduleItem::where('source_type', AdditionalCost::class)
+                    ->where('source_id', $record->id)
+                    ->whereDoesntHave('allocations')
+                    ->delete();
+
                 $record->delete();
 
                 Notification::make()->title('Cost deleted')->danger()->send();
@@ -193,8 +219,8 @@ class AdditionalCostsRelationManager extends RelationManager
                 TextInput::make('amount')
                     ->label('Amount')
                     ->numeric()
-                    ->step('0.0001')
-                    ->minValue(0.0001)
+                    ->step('0.01')
+                    ->minValue(0.01)
                     ->required(),
                 Select::make('currency_code')
                     ->label('Currency')
@@ -236,7 +262,7 @@ class AdditionalCostsRelationManager extends RelationManager
         ];
     }
 
-    protected function saveCost(array $data, $record = null): void
+    protected function saveCost(array $data, $record = null): AdditionalCost
     {
         $owner = $this->getOwnerRecord();
         $amountMinor = Money::toMinor((float) $data['amount']);
@@ -286,9 +312,105 @@ class AdditionalCostsRelationManager extends RelationManager
 
         if ($record) {
             $record->update($payload);
-        } else {
-            $payload['status'] = AdditionalCostStatus::PENDING->value;
-            $owner->additionalCosts()->create($payload);
+            return $record->fresh();
         }
+
+        $payload['status'] = AdditionalCostStatus::PENDING->value;
+        return $owner->additionalCosts()->create($payload);
+    }
+
+    protected function syncScheduleItem(AdditionalCost $cost): void
+    {
+        $owner = $this->getOwnerRecord();
+        $billableTo = $cost->billable_to instanceof BillableTo ? $cost->billable_to : BillableTo::from($cost->billable_to);
+
+        if ($billableTo === BillableTo::COMPANY) {
+            PaymentScheduleItem::where('source_type', AdditionalCost::class)
+                ->where('source_id', $cost->id)
+                ->whereDoesntHave('allocations')
+                ->delete();
+            return;
+        }
+
+        $payable = $this->resolvePayableForCost($cost, $owner, $billableTo);
+
+        if (! $payable) {
+            return;
+        }
+
+        $isCredit = $billableTo === BillableTo::SUPPLIER;
+        $maxSortOrder = PaymentScheduleItem::where('payable_type', get_class($payable))
+            ->where('payable_id', $payable->getKey())
+            ->max('sort_order') ?? 0;
+
+        $costTypeLabel = $cost->cost_type instanceof AdditionalCostType
+            ? $cost->cost_type->getLabel()
+            : $cost->cost_type;
+
+        $label = $isCredit
+            ? "Credit: {$cost->description}"
+            : "{$costTypeLabel}: {$cost->description}";
+
+        $scheduleData = [
+            'payable_type' => get_class($payable),
+            'payable_id' => $payable->getKey(),
+            'label' => mb_substr($label, 0, 100),
+            'percentage' => 0,
+            'amount' => $cost->amount_in_document_currency,
+            'currency_code' => $payable->currency_code,
+            'status' => PaymentScheduleStatus::DUE->value,
+            'is_blocking' => false,
+            'is_credit' => $isCredit,
+            'source_type' => AdditionalCost::class,
+            'source_id' => $cost->id,
+            'sort_order' => $maxSortOrder + 1,
+            'notes' => $cost->notes,
+        ];
+
+        $existing = PaymentScheduleItem::where('source_type', AdditionalCost::class)
+            ->where('source_id', $cost->id)
+            ->first();
+
+        if ($existing) {
+            if ($existing->allocations()->exists()) {
+                $existing->update([
+                    'label' => $scheduleData['label'],
+                    'amount' => $scheduleData['amount'],
+                    'is_credit' => $scheduleData['is_credit'],
+                    'notes' => $scheduleData['notes'],
+                ]);
+            } else {
+                $existing->update($scheduleData);
+            }
+        } else {
+            PaymentScheduleItem::create($scheduleData);
+        }
+    }
+
+    protected function resolvePayableForCost(AdditionalCost $cost, $owner, BillableTo $billableTo)
+    {
+        if ($billableTo === BillableTo::CLIENT) {
+            if ($owner instanceof ProformaInvoice) {
+                return $owner;
+            }
+            if ($owner instanceof PurchaseOrder) {
+                return $owner->proformaInvoice;
+            }
+        }
+
+        if ($billableTo === BillableTo::SUPPLIER) {
+            if ($owner instanceof PurchaseOrder) {
+                return $owner;
+            }
+            if ($owner instanceof ProformaInvoice) {
+                $po = $owner->purchaseOrders()->first();
+                if ($po) {
+                    return $po;
+                }
+                return $owner;
+            }
+        }
+
+        return $owner;
     }
 }

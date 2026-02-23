@@ -11,6 +11,8 @@ enum ProformaInvoiceStatus: string implements HasLabel, HasColor, HasIcon
     case DRAFT = 'draft';
     case SENT = 'sent';
     case CONFIRMED = 'confirmed';
+    case FINALIZED = 'finalized';
+    case REOPENED = 'reopened';
     case CANCELLED = 'cancelled';
 
     public function getLabel(): string
@@ -19,6 +21,8 @@ enum ProformaInvoiceStatus: string implements HasLabel, HasColor, HasIcon
             self::DRAFT => 'Draft',
             self::SENT => 'Sent',
             self::CONFIRMED => 'Confirmed',
+            self::FINALIZED => 'Finalized',
+            self::REOPENED => 'Reopened',
             self::CANCELLED => 'Cancelled',
         };
     }
@@ -29,6 +33,8 @@ enum ProformaInvoiceStatus: string implements HasLabel, HasColor, HasIcon
             self::DRAFT => 'gray',
             self::SENT => 'info',
             self::CONFIRMED => 'success',
+            self::FINALIZED => 'primary',
+            self::REOPENED => 'warning',
             self::CANCELLED => 'danger',
         };
     }
@@ -39,6 +45,8 @@ enum ProformaInvoiceStatus: string implements HasLabel, HasColor, HasIcon
             self::DRAFT => 'heroicon-o-pencil-square',
             self::SENT => 'heroicon-o-paper-airplane',
             self::CONFIRMED => 'heroicon-o-check-circle',
+            self::FINALIZED => 'heroicon-o-lock-closed',
+            self::REOPENED => 'heroicon-o-lock-open',
             self::CANCELLED => 'heroicon-o-x-circle',
         };
     }

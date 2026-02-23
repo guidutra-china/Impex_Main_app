@@ -25,24 +25,35 @@ class PurchaseOrderStats extends BaseWidget
 
         $currency = $po->currency_code ?? 'USD';
         $total = $po->total;
-        $paid = $po->schedule_paid_total;
-        $remaining = $po->schedule_remaining;
-        $progress = $po->payment_progress;
-        $itemCount = $po->items->count();
 
-        return [
+        $scheduleItems = $po->paymentScheduleItems;
+        $regularItems = $scheduleItems->where('is_credit', false);
+        $creditItems = $scheduleItems->where('is_credit', true);
+
+        $totalDue = $regularItems->sum('amount');
+        $totalCredits = $creditItems->sum(fn ($i) => abs($i->amount));
+        $netDue = $totalDue - $totalCredits;
+        $totalPaid = $regularItems->sum(fn ($i) => $i->paid_amount);
+        $netRemaining = max(0, $netDue - $totalPaid);
+        $progress = $netDue > 0 ? round(($totalPaid / $netDue) * 100) : 0;
+
+        $stats = [
             Stat::make('PO Total', $currency . ' ' . Money::format($total))
-                ->description($itemCount . ' item(s)')
+                ->description($totalCredits > 0
+                    ? 'Credits: ' . $currency . ' ' . Money::format($totalCredits)
+                    : $po->items->count() . ' item(s)')
                 ->icon('heroicon-o-shopping-cart')
                 ->color('primary'),
-            Stat::make('Paid', $currency . ' ' . Money::format($paid))
+            Stat::make('Paid', $currency . ' ' . Money::format($totalPaid))
                 ->description($progress . '% paid')
                 ->icon('heroicon-o-banknotes')
                 ->color($progress >= 100 ? 'success' : ($progress > 0 ? 'info' : 'gray')),
-            Stat::make('Remaining', $currency . ' ' . Money::format($remaining))
-                ->description($remaining <= 0 ? 'Fully paid' : 'Outstanding')
+            Stat::make('Remaining', $currency . ' ' . Money::format($netRemaining))
+                ->description($netRemaining <= 0 ? 'Fully paid' : 'Outstanding')
                 ->icon('heroicon-o-clock')
-                ->color($remaining <= 0 ? 'success' : 'warning'),
+                ->color($netRemaining <= 0 ? 'success' : 'warning'),
         ];
+
+        return $stats;
     }
 }

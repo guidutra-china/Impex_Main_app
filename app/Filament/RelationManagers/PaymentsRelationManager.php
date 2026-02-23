@@ -8,10 +8,7 @@ use App\Domain\Infrastructure\Support\Money;
 use App\Filament\Resources\Payments\PaymentResource;
 use BackedEnum;
 use Filament\Actions\Action;
-use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Schemas\Components\Section;
-use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -33,27 +30,37 @@ class PaymentsRelationManager extends RelationManager
                 TextColumn::make('label')
                     ->label('Schedule Stage')
                     ->weight('bold')
+                    ->icon(fn ($record) => $record->is_credit ? 'heroicon-o-arrow-uturn-left' : null)
+                    ->color(fn ($record) => $record->is_credit ? 'info' : null)
+                    ->description(fn ($record) => $record->is_credit ? 'Credit' : null)
                     ->searchable(),
                 TextColumn::make('percentage')
                     ->label('%')
                     ->suffix('%')
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->placeholder('—'),
                 TextColumn::make('amount')
-                    ->label('Due Amount')
-                    ->formatStateUsing(fn ($state, $record) => $record->currency_code . ' ' . Money::format($state))
+                    ->label(fn () => 'Due Amount')
+                    ->formatStateUsing(function ($state, $record) {
+                        $formatted = $record->currency_code . ' ' . Money::format(abs($state));
+                        return $record->is_credit ? "({$formatted})" : $formatted;
+                    })
+                    ->color(fn ($record) => $record->is_credit ? 'info' : null)
                     ->alignEnd(),
                 TextColumn::make('paid_amount')
                     ->label('Paid')
                     ->getStateUsing(fn ($record) => $record->paid_amount)
                     ->formatStateUsing(fn ($state, $record) => $record->currency_code . ' ' . Money::format($state))
                     ->alignEnd()
-                    ->color(fn ($record) => $record->is_paid_in_full ? 'success' : ($record->paid_amount > 0 ? 'info' : 'gray')),
+                    ->color(fn ($record) => $record->is_paid_in_full ? 'success' : ($record->paid_amount > 0 ? 'info' : 'gray'))
+                    ->visible(fn () => ! $this->hasOnlyCredits()),
                 TextColumn::make('remaining_amount')
                     ->label('Remaining')
                     ->getStateUsing(fn ($record) => $record->remaining_amount)
-                    ->formatStateUsing(fn ($state, $record) => $record->currency_code . ' ' . Money::format($state))
+                    ->formatStateUsing(fn ($state, $record) => $record->currency_code . ' ' . Money::format(abs($state)))
                     ->alignEnd()
-                    ->color(fn ($state) => $state > 0 ? 'warning' : 'success'),
+                    ->color(fn ($state) => $state > 0 ? 'warning' : 'success')
+                    ->visible(fn () => ! $this->hasOnlyCredits()),
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge(),
@@ -61,6 +68,14 @@ class PaymentsRelationManager extends RelationManager
                     ->label('Deposits')
                     ->wrap()
                     ->getStateUsing(function ($record) {
+                        if ($record->is_credit) {
+                            $source = $record->source;
+                            if ($source) {
+                                return "Credit from: {$source->description}";
+                            }
+                            return 'Credit';
+                        }
+
                         $allocations = $record->allocations()
                             ->whereHas('payment', fn ($q) => $q->whereNot('status', PaymentStatus::CANCELLED))
                             ->with('payment')
@@ -88,6 +103,7 @@ class PaymentsRelationManager extends RelationManager
                     }),
             ])
             ->defaultSort('sort_order')
+            ->contentFooter(fn () => new HtmlString($this->renderPaymentSummary()))
             ->headerActions([
                 Action::make('recordPayment')
                     ->label('Record Payment')
@@ -101,6 +117,7 @@ class PaymentsRelationManager extends RelationManager
                     ->label('View Deposits')
                     ->icon('heroicon-o-eye')
                     ->color('gray')
+                    ->visible(fn ($record) => ! $record->is_credit)
                     ->modalHeading(fn ($record) => "Deposits for: {$record->label}")
                     ->modalContent(fn ($record) => new HtmlString($this->renderAllocationsDetail($record)))
                     ->modalSubmitAction(false)
@@ -115,7 +132,71 @@ class PaymentsRelationManager extends RelationManager
         return PaymentScheduleItem::query()
             ->where('payable_type', get_class($record))
             ->where('payable_id', $record->getKey())
+            ->orderBy('is_credit')
             ->orderBy('sort_order');
+    }
+
+    protected function hasOnlyCredits(): bool
+    {
+        $record = $this->getOwnerRecord();
+
+        return PaymentScheduleItem::query()
+            ->where('payable_type', get_class($record))
+            ->where('payable_id', $record->getKey())
+            ->where('is_credit', false)
+            ->doesntExist();
+    }
+
+    protected function renderPaymentSummary(): string
+    {
+        $record = $this->getOwnerRecord();
+        $items = PaymentScheduleItem::query()
+            ->where('payable_type', get_class($record))
+            ->where('payable_id', $record->getKey())
+            ->get();
+
+        $currency = $record->currency_code ?? 'USD';
+
+        $totalDue = $items->where('is_credit', false)->sum('amount');
+        $totalCredits = $items->where('is_credit', true)->sum('amount');
+        $netDue = $totalDue - abs($totalCredits);
+        $totalPaid = $items->where('is_credit', false)->sum(fn ($i) => $i->paid_amount);
+        $netRemaining = $netDue - $totalPaid;
+
+        $html = '<div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">';
+        $html .= '<div class="flex justify-end gap-8 text-sm">';
+
+        $html .= '<div class="text-right">';
+        $html .= '<span class="text-gray-500 dark:text-gray-400">Total Due:</span> ';
+        $html .= '<span class="font-semibold">' . $currency . ' ' . Money::format($totalDue) . '</span>';
+        $html .= '</div>';
+
+        if (abs($totalCredits) > 0) {
+            $html .= '<div class="text-right">';
+            $html .= '<span class="text-gray-500 dark:text-gray-400">Credits:</span> ';
+            $html .= '<span class="font-semibold text-info-600">(' . $currency . ' ' . Money::format(abs($totalCredits)) . ')</span>';
+            $html .= '</div>';
+
+            $html .= '<div class="text-right">';
+            $html .= '<span class="text-gray-500 dark:text-gray-400">Net Due:</span> ';
+            $html .= '<span class="font-semibold">' . $currency . ' ' . Money::format($netDue) . '</span>';
+            $html .= '</div>';
+        }
+
+        $html .= '<div class="text-right">';
+        $html .= '<span class="text-gray-500 dark:text-gray-400">Paid:</span> ';
+        $html .= '<span class="font-semibold text-success-600">' . $currency . ' ' . Money::format($totalPaid) . '</span>';
+        $html .= '</div>';
+
+        $html .= '<div class="text-right">';
+        $html .= '<span class="text-gray-500 dark:text-gray-400">Remaining:</span> ';
+        $remainingColor = $netRemaining > 0 ? 'text-warning-600' : 'text-success-600';
+        $html .= '<span class="font-semibold ' . $remainingColor . '">' . $currency . ' ' . Money::format(abs($netRemaining)) . '</span>';
+        $html .= '</div>';
+
+        $html .= '</div></div>';
+
+        return $html;
     }
 
     protected function renderAllocationsDetail(PaymentScheduleItem $item): string

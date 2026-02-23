@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ProformaInvoices\Pages;
 
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Pdf\Templates\ProformaInvoicePdfTemplate;
+use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Domain\PurchaseOrders\Actions\GeneratePurchaseOrdersAction;
 use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
@@ -27,6 +28,8 @@ class ViewProformaInvoice extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            $this->finalizeAction(),
+            $this->reopenAction(),
             $this->generatePurchaseOrdersAction(),
             GeneratePdfAction::make(
                 templateClass: ProformaInvoicePdfTemplate::class,
@@ -40,8 +43,110 @@ class ViewProformaInvoice extends ViewRecord
                 templateClass: ProformaInvoicePdfTemplate::class,
                 label: 'Preview PDF',
             ),
-            EditAction::make(),
+            EditAction::make()
+                ->visible(fn () => ! in_array($this->getRecord()->status, [
+                    ProformaInvoiceStatus::FINALIZED,
+                ])),
         ];
+    }
+
+    protected function finalizeAction(): Action
+    {
+        return Action::make('finalize')
+            ->label('Finalize')
+            ->icon('heroicon-o-lock-closed')
+            ->color('primary')
+            ->requiresConfirmation()
+            ->modalHeading('Finalize Proforma Invoice')
+            ->modalDescription(function () {
+                $record = $this->getRecord();
+                $blockers = $record->getFinalizationBlockers();
+
+                if (! empty($blockers)) {
+                    $list = collect($blockers)->map(fn ($b) => "• {$b}")->implode("\n");
+                    return "**Cannot finalize.** The following conditions must be met first:\n\n{$list}";
+                }
+
+                return 'All conditions are met. This will lock the invoice — no further edits, payments, or additional costs can be added. Are you sure?';
+            })
+            ->modalSubmitActionLabel('Finalize')
+            ->visible(fn () => in_array($this->getRecord()->status, [
+                ProformaInvoiceStatus::CONFIRMED,
+                ProformaInvoiceStatus::REOPENED,
+            ]))
+            ->action(function () {
+                $record = $this->getRecord();
+                $blockers = $record->getFinalizationBlockers();
+
+                if (! empty($blockers)) {
+                    Notification::make()
+                        ->title('Cannot Finalize')
+                        ->body('Not all conditions are met. Check outstanding payments, additional costs, and shipments.')
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+
+                $targetStatus = ProformaInvoiceStatus::FINALIZED->value;
+
+                if (! $record->canTransitionTo($targetStatus)) {
+                    Notification::make()
+                        ->title('Invalid Transition')
+                        ->body("Cannot transition from {$record->status->getLabel()} to Finalized.")
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+
+                $record->transitionTo($targetStatus);
+
+                Notification::make()
+                    ->title('Invoice Finalized')
+                    ->body('The proforma invoice has been locked.')
+                    ->success()
+                    ->send();
+
+                $this->refreshFormData(['status']);
+            });
+    }
+
+    protected function reopenAction(): Action
+    {
+        return Action::make('reopen')
+            ->label('Reopen')
+            ->icon('heroicon-o-lock-open')
+            ->color('warning')
+            ->requiresConfirmation()
+            ->modalHeading('Reopen Proforma Invoice')
+            ->modalDescription('This will unlock the invoice, allowing edits, new payments, and additional costs. This action should only be used when there is a divergence that needs to be resolved.')
+            ->modalSubmitActionLabel('Reopen')
+            ->visible(fn () => $this->getRecord()->status === ProformaInvoiceStatus::FINALIZED
+                && auth()->user()?->can('reopen-proforma-invoices'))
+            ->action(function () {
+                $record = $this->getRecord();
+                $targetStatus = ProformaInvoiceStatus::REOPENED->value;
+
+                if (! $record->canTransitionTo($targetStatus)) {
+                    Notification::make()
+                        ->title('Invalid Transition')
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+
+                $record->transitionTo($targetStatus);
+
+                Notification::make()
+                    ->title('Invoice Reopened')
+                    ->body('The proforma invoice has been unlocked for modifications.')
+                    ->warning()
+                    ->send();
+
+                $this->refreshFormData(['status']);
+            });
     }
 
     protected function generatePurchaseOrdersAction(): Action
@@ -97,7 +202,12 @@ class ViewProformaInvoice extends ViewRecord
                 return implode("\n\n", $lines);
             })
             ->modalSubmitActionLabel('Generate')
-            ->visible(fn () => $this->getRecord()->items()->exists() && auth()->user()?->can('generate-purchase-orders'))
+            ->visible(fn () => in_array($this->getRecord()->status, [
+                    ProformaInvoiceStatus::CONFIRMED,
+                    ProformaInvoiceStatus::REOPENED,
+                ])
+                && $this->getRecord()->items()->exists()
+                && auth()->user()?->can('generate-purchase-orders'))
             ->action(function () {
                 $record = $this->getRecord();
 

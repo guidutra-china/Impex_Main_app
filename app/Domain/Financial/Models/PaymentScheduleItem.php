@@ -26,6 +26,9 @@ class PaymentScheduleItem extends Model
         'due_date',
         'status',
         'is_blocking',
+        'is_credit',
+        'source_type',
+        'source_id',
         'sort_order',
         'notes',
         'waived_by',
@@ -41,6 +44,7 @@ class PaymentScheduleItem extends Model
             'due_date' => 'date',
             'status' => PaymentScheduleStatus::class,
             'is_blocking' => 'boolean',
+            'is_credit' => 'boolean',
             'sort_order' => 'integer',
             'waived_at' => 'datetime',
         ];
@@ -49,6 +53,11 @@ class PaymentScheduleItem extends Model
     // --- Relationships ---
 
     public function payable(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    public function source(): MorphTo
     {
         return $this->morphTo();
     }
@@ -79,17 +88,35 @@ class PaymentScheduleItem extends Model
 
     public function getRemainingAmountAttribute(): int
     {
+        if ($this->is_credit) {
+            return 0;
+        }
+
         return max(0, $this->amount - $this->paid_amount);
+    }
+
+    public function getEffectiveAmountAttribute(): int
+    {
+        return $this->is_credit ? -$this->amount : $this->amount;
     }
 
     public function getIsPaidInFullAttribute(): bool
     {
+        if ($this->is_credit) {
+            return true;
+        }
+
         return $this->remaining_amount <= 0;
     }
 
     public function isResolved(): bool
     {
         return $this->status->isResolved();
+    }
+
+    public function isFromAdditionalCost(): bool
+    {
+        return $this->source_type === AdditionalCost::class;
     }
 
     // --- Blocking Logic ---
@@ -99,6 +126,7 @@ class PaymentScheduleItem extends Model
         return static::where('payable_type', get_class($payable))
             ->where('payable_id', $payable->getKey())
             ->where('is_blocking', true)
+            ->where('is_credit', false)
             ->whereNotIn('status', [
                 PaymentScheduleStatus::PAID->value,
                 PaymentScheduleStatus::WAIVED->value,
@@ -111,7 +139,7 @@ class PaymentScheduleItem extends Model
 
     public function blocksTransitionTo(string $targetStatus): bool
     {
-        if (! $this->is_blocking || $this->isResolved()) {
+        if (! $this->is_blocking || $this->isResolved() || $this->is_credit) {
             return false;
         }
 
@@ -126,7 +154,7 @@ class PaymentScheduleItem extends Model
 
     public function blocksPurchaseOrderGeneration(): bool
     {
-        if (! $this->is_blocking || $this->isResolved()) {
+        if (! $this->is_blocking || $this->isResolved() || $this->is_credit) {
             return false;
         }
 
@@ -142,6 +170,7 @@ class PaymentScheduleItem extends Model
         return static::where('payable_type', get_class($payable))
             ->where('payable_id', $payable->getKey())
             ->where('is_blocking', true)
+            ->where('is_credit', false)
             ->whereNotIn('status', [
                 PaymentScheduleStatus::PAID->value,
                 PaymentScheduleStatus::WAIVED->value,
