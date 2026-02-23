@@ -45,9 +45,11 @@ class PaymentForm
                             return [];
                         }
 
+                        $directionValue = $direction instanceof PaymentDirection ? $direction->value : $direction;
+
                         $query = Company::query();
 
-                        if ($direction === PaymentDirection::INBOUND->value || $direction === 'inbound') {
+                        if ($directionValue === PaymentDirection::INBOUND->value || $directionValue === 'inbound') {
                             $query->whereHas('companyRoles', fn ($q) => $q->where('role', 'client'));
                         } else {
                             $query->whereHas('companyRoles', fn ($q) => $q->where('role', 'supplier'));
@@ -173,10 +175,12 @@ class PaymentForm
         ]);
     }
 
-    public static function getCompanyScheduleItems(int $companyId, ?string $direction): \Illuminate\Support\Collection
+    public static function getCompanyScheduleItems(int $companyId, mixed $direction): \Illuminate\Support\Collection
     {
         $piType = ProformaInvoice::class;
         $poType = PurchaseOrder::class;
+
+        $directionValue = $direction instanceof PaymentDirection ? $direction->value : $direction;
 
         $query = PaymentScheduleItem::query()
             ->whereNotIn('status', [
@@ -184,7 +188,7 @@ class PaymentForm
                 PaymentScheduleStatus::WAIVED->value,
             ]);
 
-        if ($direction === PaymentDirection::INBOUND->value || $direction === 'inbound') {
+        if ($directionValue === PaymentDirection::INBOUND->value || $directionValue === 'inbound') {
             $piIds = ProformaInvoice::where('company_id', $companyId)->pluck('id');
             $query->where('payable_type', $piType)->whereIn('payable_id', $piIds);
         } else {
