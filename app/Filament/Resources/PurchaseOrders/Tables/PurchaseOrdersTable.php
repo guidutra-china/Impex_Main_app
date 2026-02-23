@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PurchaseOrders\Tables;
 
+use App\Domain\Infrastructure\Support\Money;
 use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -50,17 +51,20 @@ class PurchaseOrdersTable
                 TextColumn::make('incoterm')
                     ->label('Incoterm')
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('items_count')
-                    ->label('Items')
-                    ->counts('items')
-                    ->alignCenter(),
                 TextColumn::make('total')
                     ->label('Total')
                     ->getStateUsing(fn ($record) => $record->total)
-                    ->formatStateUsing(fn ($state) => \App\Domain\Infrastructure\Support\Money::format($state))
-                    ->prefix('$ ')
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state))
+                    ->sortable(query: fn ($query, $direction) => $query->orderByRaw(
+                        '(SELECT COALESCE(SUM(quantity * unit_price), 0) FROM purchase_order_items WHERE purchase_order_id = purchase_orders.id) ' . $direction
+                    ))
                     ->alignEnd()
                     ->weight('bold'),
+                TextColumn::make('items_count')
+                    ->label('Items')
+                    ->counts('items')
+                    ->alignCenter()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('issue_date')
                     ->label('Issue Date')
                     ->date('d/m/Y')

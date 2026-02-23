@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ProformaInvoices\Tables;
 
+use App\Domain\Infrastructure\Support\Money;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -50,10 +51,20 @@ class ProformaInvoicesTable
                 TextColumn::make('incoterm')
                     ->label('Incoterm')
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('total')
+                    ->label('Total')
+                    ->getStateUsing(fn ($record) => $record->total)
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state))
+                    ->sortable(query: fn ($query, $direction) => $query->orderByRaw(
+                        '(SELECT COALESCE(SUM(quantity * unit_price), 0) FROM proforma_invoice_items WHERE proforma_invoice_id = proforma_invoices.id) ' . $direction
+                    ))
+                    ->alignEnd()
+                    ->weight('bold'),
                 TextColumn::make('items_count')
                     ->label('Items')
                     ->counts('items')
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('issue_date')
                     ->label('Issue Date')
                     ->date('d/m/Y')
