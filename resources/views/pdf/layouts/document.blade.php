@@ -15,18 +15,13 @@
         }
 
         .container {
-            padding: 20px 30px;
+            padding: 15px 25px;
         }
 
         /* === Header === */
-        .header {
-            margin-bottom: 8px;
-            padding-bottom: 6px;
-            border-bottom: 3px solid #1e40af;
-        }
-
         .header-table {
             width: 100%;
+            margin-bottom: 0;
         }
 
         .header-table td {
@@ -57,7 +52,14 @@
             font-weight: bold;
             color: #1e40af;
             text-align: right;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
+        }
+
+        /* === Blue Divider === */
+        .header-divider {
+            border: none;
+            border-top: 3px solid #1e40af;
+            margin: 6px 0 8px 0;
         }
 
         /* === Document Meta (inline) === */
@@ -89,15 +91,14 @@
 
         /* === Client Box (TO only) === */
         .client-section {
-            margin: 8px 0;
+            margin: 6px 0;
         }
 
         .client-box {
-            padding: 10px 14px;
+            padding: 8px 12px;
             border: 1px solid #e5e7eb;
             border-radius: 4px;
             background: #f9fafb;
-            width: 100%;
         }
 
         .client-label {
@@ -105,7 +106,7 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             color: #9ca3af;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
             font-weight: bold;
         }
 
@@ -124,7 +125,7 @@
 
         /* === Content (yield) === */
         .content {
-            margin: 10px 0;
+            margin: 8px 0;
         }
 
         /* === Items Table === */
@@ -269,35 +270,36 @@
 
     <div class="container">
         {{-- === HEADER === --}}
-        <div class="header">
-            <table class="header-table">
-                <tr>
-                    <td style="width: 50%;">
-                        @if(! empty($company['logo_path']))
-                            <div class="company-logo">
-                                <img src="{{ $company['logo_path'] }}" alt="{{ $company['name'] }}">
-                            </div>
-                        @endif
-                        <div class="company-name">{{ $company['name'] }}</div>
-                        <div class="company-details">
-                            @if($company['address']){{ $company['address'] }}@endif
-                            @if($company['city'] || $company['state'] || $company['zip_code'] || $company['country'])
-                                — {{ collect([$company['city'], $company['state'], $company['zip_code'], $company['country']])->filter()->implode(', ') }}
-                            @endif
-                            <br>
-                            @if($company['phone']){{ $company['phone'] }}@endif
-                            @if($company['phone'] && $company['email']) | @endif
-                            @if($company['email']){{ $company['email'] }}@endif
-                            @if($company['tax_id']) | {{ $labels['tax_id'] ?? 'Tax ID' }}: {{ $company['tax_id'] }}@endif
+        <table class="header-table">
+            <tr>
+                <td style="width: 50%;">
+                    @if(! empty($company['logo_path']))
+                        <div class="company-logo">
+                            <img src="{{ $company['logo_path'] }}" alt="{{ $company['name'] }}">
                         </div>
-                    </td>
-                    <td style="width: 50%;">
-                        <div class="document-title">{{ $title }}</div>
-                        @yield('document-meta')
-                    </td>
-                </tr>
-            </table>
-        </div>
+                    @endif
+                    <div class="company-name">{{ $company['name'] }}</div>
+                    <div class="company-details">
+                        @if($company['address']){{ $company['address'] }}@endif
+                        @if($company['city'] || $company['state'] || $company['zip_code'] || $company['country'])
+                            — {{ collect([$company['city'], $company['state'], $company['zip_code'], $company['country']])->filter()->implode(', ') }}
+                        @endif
+                        <br>
+                        @if($company['phone']){{ $company['phone'] }}@endif
+                        @if($company['phone'] && $company['email']) | @endif
+                        @if($company['email']){{ $company['email'] }}@endif
+                        @if($company['tax_id']) | {{ $labels['tax_id'] ?? 'Tax ID' }}: {{ $company['tax_id'] }}@endif
+                    </div>
+                </td>
+                <td style="width: 50%;">
+                    <div class="document-title">{{ $title }}</div>
+                    @yield('document-meta')
+                </td>
+            </tr>
+        </table>
+
+        {{-- === BLUE DIVIDER (separate from header table) === --}}
+        <hr class="header-divider">
 
         {{-- === CLIENT === --}}
         @yield('client-info')
