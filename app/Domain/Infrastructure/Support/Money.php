@@ -24,7 +24,7 @@ class Money
         return $minorUnits / self::SCALE;
     }
 
-    public static function format(int|null $minorUnits, int $decimals = 4): string
+    public static function format(int|null $minorUnits, int $decimals = 2): string
     {
         return number_format(self::toMajor($minorUnits), $decimals, '.', ',');
     }

@@ -189,7 +189,7 @@ class ItemsRelationManager extends RelationManager
                     ->alignCenter(),
                 TextColumn::make('unit_cost')
                     ->label('Unit Cost')
-                    ->formatStateUsing(fn ($state) => $state ? '$ ' . Money::format($state) : '—')
+                    ->formatStateUsing(fn ($state) => $state ? '$ ' . Money::format($state, 4) : '—')
                     ->alignEnd(),
                 TextColumn::make('total_cost')
                     ->label('Total')

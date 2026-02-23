@@ -104,7 +104,7 @@ class ClientProductsRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('pivot.unit_price')
                     ->label('Selling Price')
-                    ->formatStateUsing(fn ($state) => $state ? Money::format($state) : '—')
+                    ->formatStateUsing(fn ($state) => $state ? Money::format($state, 4) : '—')
                     ->prefix('$ ')
                     ->alignEnd(),
                 TextColumn::make('pivot.currency_code')

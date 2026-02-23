@@ -120,7 +120,7 @@ class ItemsRelationManager extends RelationManager
                     ->alignCenter(),
                 TextColumn::make('unit_cost')
                     ->label('Unit Cost')
-                    ->formatStateUsing(fn ($state) => \App\Domain\Infrastructure\Support\Money::format($state))
+                    ->formatStateUsing(fn ($state) => \App\Domain\Infrastructure\Support\Money::format($state, 4))
                     ->prefix('$ ')
                     ->alignEnd(),
                 TextColumn::make('line_total')

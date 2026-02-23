@@ -147,12 +147,12 @@ class ItemsRelationManager extends RelationManager
                     ->alignCenter(),
                 TextColumn::make('unit_price')
                     ->label('Price')
-                    ->formatStateUsing(fn ($state) => Money::format($state))
+                    ->formatStateUsing(fn ($state) => Money::format($state, 4))
                     ->prefix('$ ')
                     ->alignEnd(),
                 TextColumn::make('unit_cost')
                     ->label('Cost')
-                    ->formatStateUsing(fn ($state) => Money::format($state))
+                    ->formatStateUsing(fn ($state) => Money::format($state, 4))
                     ->prefix('$ ')
                     ->alignEnd(),
                 TextColumn::make('line_total')
@@ -231,7 +231,7 @@ class ItemsRelationManager extends RelationManager
                     $item->id => '[' . $item->quotation->reference . '] '
                         . ($item->product?->name ?? 'Item #' . $item->id)
                         . ' — Qty: ' . $item->quantity
-                        . ' — $' . Money::format($item->unit_price),
+                        . ' — $' . Money::format($item->unit_price, 4),
                 ])->toArray();
 
                 return [

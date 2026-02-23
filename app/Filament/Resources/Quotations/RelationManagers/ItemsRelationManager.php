@@ -96,7 +96,7 @@ class ItemsRelationManager extends RelationManager
                             ->with('supplierQuotation.company')
                             ->get()
                             ->mapWithKeys(fn ($sqItem) => [
-                                $sqItem->id => "{$sqItem->supplierQuotation->reference} — {$sqItem->supplierQuotation->company->name} — $" . Money::format($sqItem->unit_cost),
+                                $sqItem->id => "{$sqItem->supplierQuotation->reference} — {$sqItem->supplierQuotation->company->name} — $" . Money::format($sqItem->unit_cost, 4),
                             ])
                             ->toArray();
                     })
@@ -250,7 +250,7 @@ class ItemsRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: false),
                 TextColumn::make('unit_cost')
                     ->label('Unit Cost')
-                    ->formatStateUsing(fn ($state) => $state ? Money::format($state) : '—')
+                    ->formatStateUsing(fn ($state) => $state ? Money::format($state, 4) : '—')
                     ->alignEnd(),
                 TextColumn::make('commission_rate')
                     ->label('Comm. %')
@@ -259,7 +259,7 @@ class ItemsRelationManager extends RelationManager
                     ->visible(fn () => $this->getOwnerRecord()->commission_type === CommissionType::EMBEDDED),
                 TextColumn::make('unit_price')
                     ->label('Unit Price')
-                    ->formatStateUsing(fn ($state) => $state ? Money::format($state) : '—')
+                    ->formatStateUsing(fn ($state) => $state ? Money::format($state, 4) : '—')
                     ->alignEnd()
                     ->weight('bold'),
                 TextColumn::make('line_total')

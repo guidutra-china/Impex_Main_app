@@ -113,7 +113,7 @@ class SupplierProductsRelationManager extends RelationManager
                     ->placeholder('—'),
                 TextColumn::make('pivot.unit_price')
                     ->label('Purchase Price')
-                    ->formatStateUsing(fn ($state) => $state ? Money::format($state) : '—')
+                    ->formatStateUsing(fn ($state) => $state ? Money::format($state, 4) : '—')
                     ->prefix('$ ')
                     ->alignEnd(),
                 TextColumn::make('pivot.currency_code')
