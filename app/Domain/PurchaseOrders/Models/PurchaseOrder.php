@@ -4,6 +4,7 @@ namespace App\Domain\PurchaseOrders\Models;
 
 use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Models\Contact;
+use App\Domain\Financial\Traits\HasPaymentSchedule;
 use App\Domain\Infrastructure\Enums\DocumentType;
 use App\Domain\Infrastructure\Traits\HasDocuments;
 use App\Domain\Infrastructure\Traits\HasReference;
@@ -22,7 +23,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PurchaseOrder extends Model
 {
-    use HasFactory, SoftDeletes, HasReference, HasStateMachine, HasDocuments;
+    use HasFactory, SoftDeletes, HasReference, HasStateMachine, HasDocuments, HasPaymentSchedule;
 
     protected $fillable = [
         'reference',

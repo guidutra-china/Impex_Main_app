@@ -9,6 +9,8 @@ use App\Filament\Resources\ProformaInvoices\Pages\EditProformaInvoice;
 use App\Filament\Resources\ProformaInvoices\Pages\ListProformaInvoices;
 use App\Filament\Resources\ProformaInvoices\Pages\ViewProformaInvoice;
 use App\Filament\Resources\ProformaInvoices\RelationManagers\ItemsRelationManager;
+use App\Filament\Resources\ProformaInvoices\RelationManagers\PaymentScheduleRelationManager;
+use App\Filament\Resources\ProformaInvoices\RelationManagers\PaymentsRelationManager;
 use App\Filament\Resources\ProformaInvoices\Schemas\ProformaInvoiceForm;
 use App\Filament\Resources\ProformaInvoices\Schemas\ProformaInvoiceInfolist;
 use App\Filament\Resources\ProformaInvoices\Tables\ProformaInvoicesTable;
@@ -62,6 +64,8 @@ class ProformaInvoiceResource extends Resource
     {
         return [
             ItemsRelationManager::class,
+            PaymentScheduleRelationManager::class,
+            PaymentsRelationManager::class,
             DocumentsRelationManager::class,
         ];
     }

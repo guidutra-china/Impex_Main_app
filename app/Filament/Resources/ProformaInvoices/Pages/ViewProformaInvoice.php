@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\ProformaInvoices\Pages;
 
+use App\Domain\Financial\Enums\PaymentScheduleStatus;
+use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Pdf\Templates\ProformaInvoicePdfTemplate;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Domain\PurchaseOrders\Actions\GeneratePurchaseOrdersAction;
@@ -46,7 +48,17 @@ class ViewProformaInvoice extends ViewRecord
             ->modalHeading('Generate Purchase Orders')
             ->modalDescription(function () {
                 $record = $this->getRecord();
-                $record->loadMissing(['items.supplierCompany']);
+                $record->loadMissing(['items.supplierCompany', 'paymentScheduleItems']);
+
+                $blockingItems = $record->paymentScheduleItems
+                    ->filter(fn ($item) => $item->is_blocking && ! $item->status->isResolved());
+
+                if ($blockingItems->isNotEmpty()) {
+                    $labels = $blockingItems->pluck('label')->implode(', ');
+                    return "**Cannot generate POs.** The following blocking payments must be resolved first:\n\n"
+                        . $labels
+                        . "\n\nPlease record and approve the required payments, or waive them to proceed.";
+                }
 
                 $action = new GeneratePurchaseOrdersAction();
                 $existing = $action->getExistingPOs($record);
@@ -83,6 +95,21 @@ class ViewProformaInvoice extends ViewRecord
             ->visible(fn () => $this->getRecord()->items()->exists())
             ->action(function () {
                 $record = $this->getRecord();
+                $record->loadMissing('paymentScheduleItems');
+
+                $blockingItems = $record->paymentScheduleItems
+                    ->filter(fn ($item) => $item->is_blocking && ! $item->status->isResolved());
+
+                if ($blockingItems->isNotEmpty()) {
+                    Notification::make()
+                        ->title('Blocked by Payment Requirements')
+                        ->body('Resolve blocking payments before generating POs.')
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+
                 $action = new GeneratePurchaseOrdersAction();
                 $created = $action->execute($record);
 
