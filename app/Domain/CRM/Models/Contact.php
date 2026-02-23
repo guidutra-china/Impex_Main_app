@@ -3,6 +3,7 @@
 namespace App\Domain\CRM\Models;
 
 use App\Domain\CRM\Enums\ContactFunction;
+use Database\Factories\ContactFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +11,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Contact extends Model
 {
     use HasFactory;
+
+    protected static function newFactory(): ContactFactory
+    {
+        return ContactFactory::new();
+    }
 
     protected $fillable = [
         'company_id',
