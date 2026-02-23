@@ -57,7 +57,7 @@ class PurchaseOrdersTable
                 TextColumn::make('total')
                     ->label('Total')
                     ->getStateUsing(fn ($record) => $record->total)
-                    ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
+                    ->formatStateUsing(fn ($state) => \App\Domain\Infrastructure\Support\Money::format($state))
                     ->prefix('$ ')
                     ->alignEnd()
                     ->weight('bold'),

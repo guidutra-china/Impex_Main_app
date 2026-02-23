@@ -5,6 +5,7 @@ namespace App\Filament\Resources\ProformaInvoices\RelationManagers;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
+use App\Domain\Infrastructure\Support\Money;
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Inquiries\Models\InquiryItem;
@@ -94,14 +95,14 @@ class ItemsRelationManager extends RelationManager
                 ->numeric()
                 ->required()
                 ->prefix('$')
-                ->step(0.01)
+                ->step(0.0001)
                 ->minValue(0),
 
             TextInput::make('unit_cost')
                 ->label('Unit Cost (Internal)')
                 ->numeric()
                 ->prefix('$')
-                ->step(0.01)
+                ->step(0.0001)
                 ->minValue(0)
                 ->default(0),
 
@@ -146,18 +147,18 @@ class ItemsRelationManager extends RelationManager
                     ->alignCenter(),
                 TextColumn::make('unit_price')
                     ->label('Price')
-                    ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
+                    ->formatStateUsing(fn ($state) => Money::format($state))
                     ->prefix('$ ')
                     ->alignEnd(),
                 TextColumn::make('unit_cost')
                     ->label('Cost')
-                    ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
+                    ->formatStateUsing(fn ($state) => Money::format($state))
                     ->prefix('$ ')
                     ->alignEnd(),
                 TextColumn::make('line_total')
                     ->label('Total')
                     ->getStateUsing(fn ($record) => $record->line_total)
-                    ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
+                    ->formatStateUsing(fn ($state) => Money::format($state))
                     ->prefix('$ ')
                     ->alignEnd()
                     ->weight('bold'),
@@ -171,8 +172,8 @@ class ItemsRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make()
                     ->mutateFormDataUsing(function (array $data): array {
-                        $data['unit_cost'] = (int) round(($data['unit_cost'] ?? 0) * 100);
-                        $data['unit_price'] = (int) round(($data['unit_price'] ?? 0) * 100);
+                        $data['unit_cost'] = Money::toMinor($data['unit_cost'] ?? 0);
+                        $data['unit_price'] = Money::toMinor($data['unit_price'] ?? 0);
                         $data['sort_order'] = $this->getOwnerRecord()->items()->max('sort_order') + 1;
 
                         return $data;
@@ -184,13 +185,13 @@ class ItemsRelationManager extends RelationManager
                 EditAction::make()
                     ->mountUsing(function ($form, $record) {
                         $data = $record->toArray();
-                        $data['unit_cost'] = $data['unit_cost'] / 100;
-                        $data['unit_price'] = $data['unit_price'] / 100;
+                        $data['unit_cost'] = Money::toMajor($data['unit_cost']);
+                        $data['unit_price'] = Money::toMajor($data['unit_price']);
                         $form->fill($data);
                     })
                     ->mutateFormDataUsing(function (array $data): array {
-                        $data['unit_cost'] = (int) round(($data['unit_cost'] ?? 0) * 100);
-                        $data['unit_price'] = (int) round(($data['unit_price'] ?? 0) * 100);
+                        $data['unit_cost'] = Money::toMinor($data['unit_cost'] ?? 0);
+                        $data['unit_price'] = Money::toMinor($data['unit_price'] ?? 0);
 
                         return $data;
                     }),
@@ -230,7 +231,7 @@ class ItemsRelationManager extends RelationManager
                     $item->id => '[' . $item->quotation->reference . '] '
                         . ($item->product?->name ?? 'Item #' . $item->id)
                         . ' — Qty: ' . $item->quantity
-                        . ' — $' . number_format($item->unit_price / 100, 2),
+                        . ' — $' . Money::format($item->unit_price),
                 ])->toArray();
 
                 return [
@@ -269,6 +270,7 @@ class ItemsRelationManager extends RelationManager
                         $supplierId = $preferred?->id;
                     }
 
+                    // Quotation import: use quotation values directly
                     ProformaInvoiceItem::create([
                         'proforma_invoice_id' => $pi->id,
                         'product_id' => $item->product_id,
@@ -325,7 +327,7 @@ class ItemsRelationManager extends RelationManager
                 $options = $inquiryItems->mapWithKeys(fn ($item) => [
                     $item->id => ($item->product?->name ?? $item->description ?? 'Item #' . $item->id)
                         . ' — Qty: ' . $item->quantity
-                        . ($item->target_price ? ' — Target: $' . number_format($item->target_price / 100, 2) : ''),
+                        . ($item->target_price ? ' — Target: $' . Money::format($item->target_price) : ''),
                 ])->toArray();
 
                 return [
@@ -360,6 +362,7 @@ class ItemsRelationManager extends RelationManager
                     $incoterm = null;
 
                     if ($item->product) {
+                        // Get preferred supplier and their unit_cost from product catalog
                         $preferred = $item->product->suppliers()
                             ->orderByDesc('company_product.is_preferred')
                             ->first();
@@ -370,6 +373,7 @@ class ItemsRelationManager extends RelationManager
                             $incoterm = $preferred->pivot->incoterm ?? null;
                         }
 
+                        // Get client-specific price if available
                         $clientPivot = $item->product->clients()
                             ->where('companies.id', $pi->company_id)
                             ->first()
@@ -401,7 +405,7 @@ class ItemsRelationManager extends RelationManager
 
                 Notification::make()
                     ->title($imported . ' items imported from inquiry')
-                    ->body('Prices pre-filled from product catalog. Review and adjust as needed.')
+                    ->body('Prices pre-filled from product catalog (supplier cost + client price). Review and adjust as needed.')
                     ->success()
                     ->send();
             });
@@ -423,7 +427,7 @@ class ItemsRelationManager extends RelationManager
 
         if ($preferred) {
             $set('supplier_company_id', $preferred->id);
-            $set('unit_cost', $preferred->pivot->unit_price / 100);
+            $set('unit_cost', Money::toMajor($preferred->pivot->unit_price));
 
             if ($preferred->pivot->incoterm ?? null) {
                 $set('incoterm', $preferred->pivot->incoterm);
@@ -437,7 +441,7 @@ class ItemsRelationManager extends RelationManager
             ?->pivot;
 
         if ($clientPivot && $clientPivot->unit_price > 0) {
-            $set('unit_price', $clientPivot->unit_price / 100);
+            $set('unit_price', Money::toMajor($clientPivot->unit_price));
         }
     }
 }

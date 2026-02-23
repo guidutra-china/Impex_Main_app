@@ -166,13 +166,13 @@ class ProformaInvoiceInfolist
                 ->schema([
                     TextEntry::make('subtotal')
                         ->label('Total (Client)')
-                        ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
+                        ->formatStateUsing(fn ($state) => \App\Domain\Infrastructure\Support\Money::format($state))
                         ->prefix('$ ')
                         ->weight(FontWeight::Bold)
                         ->color('success'),
                     TextEntry::make('cost_total')
                         ->label('Total Cost')
-                        ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
+                        ->formatStateUsing(fn ($state) => \App\Domain\Infrastructure\Support\Money::format($state))
                         ->prefix('$ ')
                         ->weight(FontWeight::Bold)
                         ->color('danger'),

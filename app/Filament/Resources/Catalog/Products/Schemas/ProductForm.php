@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Catalog\Products\Schemas;
 
 use App\Domain\Catalog\Enums\ProductStatus;
+use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Actions\GenerateProductSkuAction;
 use App\Domain\Catalog\Models\Product;
@@ -349,24 +350,42 @@ class ProductForm
                         ->label('Base Price')
                         ->numeric()
                         ->minValue(0)
-                        ->helperText('Base unit price in minor units (cents).'),
+                        ->step(0.0001)
+                        ->prefix('$')
+                        ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : null)
+                        ->dehydrateStateUsing(fn ($state) => $state ? Money::toMinor($state) : null),
                     TextInput::make('bom_material_cost')
                         ->label('BOM Material Cost')
                         ->numeric()
                         ->minValue(0)
-                        ->helperText('Bill of Materials cost in minor units.'),
+                        ->step(0.0001)
+                        ->prefix('$')
+                        ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : null)
+                        ->dehydrateStateUsing(fn ($state) => $state ? Money::toMinor($state) : null),
                     TextInput::make('direct_labor_cost')
                         ->label('Direct Labor Cost')
                         ->numeric()
-                        ->minValue(0),
+                        ->minValue(0)
+                        ->step(0.0001)
+                        ->prefix('$')
+                        ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : null)
+                        ->dehydrateStateUsing(fn ($state) => $state ? Money::toMinor($state) : null),
                     TextInput::make('direct_overhead_cost')
                         ->label('Direct Overhead Cost')
                         ->numeric()
-                        ->minValue(0),
+                        ->minValue(0)
+                        ->step(0.0001)
+                        ->prefix('$')
+                        ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : null)
+                        ->dehydrateStateUsing(fn ($state) => $state ? Money::toMinor($state) : null),
                     TextInput::make('total_manufacturing_cost')
                         ->label('Total Manufacturing Cost')
                         ->numeric()
                         ->minValue(0)
+                        ->step(0.0001)
+                        ->prefix('$')
+                        ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : null)
+                        ->dehydrateStateUsing(fn ($state) => $state ? Money::toMinor($state) : null)
                         ->helperText('Sum of BOM + Labor + Overhead.'),
                     TextInput::make('markup_percentage')
                         ->label('Markup %')
@@ -378,6 +397,10 @@ class ProductForm
                         ->label('Calculated Selling Price')
                         ->numeric()
                         ->minValue(0)
+                        ->step(0.0001)
+                        ->prefix('$')
+                        ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : null)
+                        ->dehydrateStateUsing(fn ($state) => $state ? Money::toMinor($state) : null)
                         ->helperText('Manufacturing cost × (1 + markup%).'),
                 ])
                 ->columns(2),

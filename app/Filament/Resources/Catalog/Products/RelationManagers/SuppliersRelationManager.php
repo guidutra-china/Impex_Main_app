@@ -15,6 +15,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use App\Domain\Infrastructure\Support\Money;
 use Filament\Tables\Table;
 
 class SuppliersRelationManager extends RelationManager
@@ -49,7 +50,7 @@ class SuppliersRelationManager extends RelationManager
                     ->label('Unit Price')
                     ->numeric()
                     ->minValue(0)
-                    ->step(0.01)
+                    ->step(0.0001)
                     ->prefix('$')
                     ->inputMode('decimal'),
                 Select::make('currency_code')
@@ -87,7 +88,8 @@ class SuppliersRelationManager extends RelationManager
                     ->placeholder('—'),
                 TextColumn::make('pivot.unit_price')
                     ->label('Unit Price')
-                    ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : '—')
+                    ->formatStateUsing(fn ($state) => $state ? Money::format($state) : '—')
+                    ->prefix('$ ')
                     ->alignEnd(),
                 TextColumn::make('pivot.currency_code')
                     ->label('Currency'),
@@ -128,7 +130,7 @@ class SuppliersRelationManager extends RelationManager
                             ->label('Unit Price')
                             ->numeric()
                             ->minValue(0)
-                            ->step(0.01)
+                            ->step(0.0001)
                             ->prefix('$')
                             ->inputMode('decimal')
                             ->default(0),
@@ -149,7 +151,7 @@ class SuppliersRelationManager extends RelationManager
                     ])
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['role'] = 'supplier';
-                        $data['unit_price'] = (int) round(($data['unit_price'] ?? 0) * 100);
+                        $data['unit_price'] = Money::toMinor($data['unit_price'] ?? 0);
                         return $data;
                     }),
             ])
@@ -157,11 +159,11 @@ class SuppliersRelationManager extends RelationManager
                 EditAction::make()
                     ->mountUsing(function ($form, $record) {
                         $data = $record->pivot->toArray();
-                        $data['unit_price'] = $data['unit_price'] / 100;
+                        $data['unit_price'] = Money::toMajor($data['unit_price'] ?? 0);
                         $form->fill($data);
                     })
                     ->mutateFormDataUsing(function (array $data): array {
-                        $data['unit_price'] = (int) round(($data['unit_price'] ?? 0) * 100);
+                        $data['unit_price'] = Money::toMinor($data['unit_price'] ?? 0);
                         return $data;
                     }),
                 DetachAction::make(),

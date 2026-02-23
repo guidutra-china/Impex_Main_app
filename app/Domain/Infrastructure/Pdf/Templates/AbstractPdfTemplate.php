@@ -119,11 +119,11 @@ abstract class AbstractPdfTemplate
         return null;
     }
 
-    protected function formatMoney(int $amountInCents, string $currencyCode = 'USD'): string
+    protected function formatMoney(int $amountInMinorUnits, string $currencyCode = 'USD', int $decimals = 4): string
     {
-        $amount = $amountInCents / 100;
+        $amount = $amountInMinorUnits / \App\Domain\Infrastructure\Support\Money::SCALE;
 
-        return number_format($amount, 2, '.', ',');
+        return number_format($amount, $decimals, '.', ',');
     }
 
     protected function formatDate(mixed $date, string $format = 'd/m/Y'): string

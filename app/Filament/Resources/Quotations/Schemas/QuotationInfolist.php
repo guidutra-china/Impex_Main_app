@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Quotations\Schemas;
 
+use App\Domain\Infrastructure\Support\Money;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
@@ -130,17 +131,17 @@ class QuotationInfolist
                 ->schema([
                     TextEntry::make('subtotal')
                         ->label('Subtotal')
-                        ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
+                        ->formatStateUsing(fn ($state) => Money::format($state))
                         ->prefix('$ ')
                         ->weight(FontWeight::Bold),
                     TextEntry::make('commission_amount')
                         ->label('Commission (Separate)')
-                        ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
+                        ->formatStateUsing(fn ($state) => Money::format($state))
                         ->prefix('$ ')
                         ->visible(fn ($record) => $record->commission_amount > 0),
                     TextEntry::make('total')
                         ->label('Total')
-                        ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
+                        ->formatStateUsing(fn ($state) => Money::format($state))
                         ->prefix('$ ')
                         ->weight(FontWeight::Bold)
                         ->color('success'),

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Catalog\Products\Schemas;
 
 use App\Domain\Catalog\Enums\ProductStatus;
+use App\Domain\Infrastructure\Support\Money;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
@@ -268,27 +269,27 @@ class ProductInfolist
                         ->placeholder('—'),
                     TextEntry::make('base_price')
                         ->label('Base Price')
-                        ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : null)
+                        ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
                         ->prefix('$ ')
                         ->placeholder('—'),
                     TextEntry::make('bom_material_cost')
                         ->label('BOM Material Cost')
-                        ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : null)
+                        ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
                         ->prefix('$ ')
                         ->placeholder('—'),
                     TextEntry::make('direct_labor_cost')
                         ->label('Direct Labor Cost')
-                        ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : null)
+                        ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
                         ->prefix('$ ')
                         ->placeholder('—'),
                     TextEntry::make('direct_overhead_cost')
                         ->label('Direct Overhead Cost')
-                        ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : null)
+                        ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
                         ->prefix('$ ')
                         ->placeholder('—'),
                     TextEntry::make('total_manufacturing_cost')
                         ->label('Total Manufacturing Cost')
-                        ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : null)
+                        ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
                         ->prefix('$ ')
                         ->placeholder('—')
                         ->weight(FontWeight::Bold),
@@ -298,7 +299,7 @@ class ProductInfolist
                         ->placeholder('—'),
                     TextEntry::make('calculated_selling_price')
                         ->label('Calculated Selling Price')
-                        ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : null)
+                        ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
                         ->prefix('$ ')
                         ->placeholder('—')
                         ->weight(FontWeight::Bold)

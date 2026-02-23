@@ -49,6 +49,6 @@ class QuotationItemSupplier extends Model
 
     public function getFormattedCostAttribute(): string
     {
-        return number_format($this->unit_cost / 100, 2);
+        return \App\Domain\Infrastructure\Support\Money::format($this->unit_cost);
     }
 }

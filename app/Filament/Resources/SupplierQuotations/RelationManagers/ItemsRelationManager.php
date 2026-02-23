@@ -4,6 +4,7 @@ namespace App\Filament\Resources\SupplierQuotations\RelationManagers;
 
 use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\Product;
+use App\Domain\Infrastructure\Support\Money;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -72,10 +73,11 @@ class ItemsRelationManager extends RelationManager
                                             ->first();
 
                                         if ($pivot && $pivot->pivot->unit_price) {
-                                            $set('unit_cost', number_format($pivot->pivot->unit_price / 100, 2, '.', ''));
+                                            $majorValue = Money::toMajor($pivot->pivot->unit_price);
+                                            $set('unit_cost', number_format($majorValue, 4, '.', ''));
                                             static::recalculateTotal($set, fn ($key) => match ($key) {
                                                 'quantity' => 1,
-                                                'unit_cost' => number_format($pivot->pivot->unit_price / 100, 2, '.', ''),
+                                                'unit_cost' => number_format($majorValue, 4, '.', ''),
                                                 default => null,
                                             });
                                         }
@@ -113,7 +115,7 @@ class ItemsRelationManager extends RelationManager
                             ->label('Unit Cost')
                             ->numeric()
                             ->minValue(0)
-                            ->step(0.01)
+                            ->step(0.0001)
                             ->prefix('$')
                             ->required()
                             ->default(0)
@@ -121,16 +123,16 @@ class ItemsRelationManager extends RelationManager
                             ->afterStateUpdated(function (Set $set, Get $get) {
                                 static::recalculateTotal($set, $get);
                             })
-                            ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2, '.', '') : '0.00')
-                            ->dehydrateStateUsing(fn ($state) => $state ? (int) round((float) $state * 100) : 0),
+                            ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : '0.0000')
+                            ->dehydrateStateUsing(fn ($state) => Money::toMinor($state)),
                         TextInput::make('total_cost')
                             ->label('Total Cost')
                             ->numeric()
                             ->prefix('$')
                             ->disabled()
                             ->dehydrated()
-                            ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2, '.', '') : '0.00')
-                            ->dehydrateStateUsing(fn ($state) => $state ? (int) round((float) $state * 100) : 0),
+                            ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : '0.0000')
+                            ->dehydrateStateUsing(fn ($state) => Money::toMinor($state)),
                     ])
                     ->columns(4)
                     ->columnSpanFull(),
@@ -187,11 +189,11 @@ class ItemsRelationManager extends RelationManager
                     ->alignCenter(),
                 TextColumn::make('unit_cost')
                     ->label('Unit Cost')
-                    ->formatStateUsing(fn ($state) => $state ? '$ ' . number_format($state / 100, 2) : '—')
+                    ->formatStateUsing(fn ($state) => $state ? '$ ' . Money::format($state) : '—')
                     ->alignEnd(),
                 TextColumn::make('total_cost')
                     ->label('Total')
-                    ->formatStateUsing(fn ($state) => $state ? '$ ' . number_format($state / 100, 2) : '—')
+                    ->formatStateUsing(fn ($state) => $state ? '$ ' . Money::format($state) : '—')
                     ->alignEnd()
                     ->weight('bold'),
                 TextColumn::make('lead_time_days')
@@ -229,6 +231,6 @@ class ItemsRelationManager extends RelationManager
         $quantity = (int) ($get('quantity') ?? 0);
         $unitCost = (float) ($get('unit_cost') ?? 0);
         $total = $quantity * $unitCost;
-        $set('total_cost', number_format($total, 2, '.', ''));
+        $set('total_cost', number_format($total, 4, '.', ''));
     }
 }

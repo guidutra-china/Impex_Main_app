@@ -57,10 +57,13 @@ class PaymentMethodForm
                             ->default(FeeType::NONE)
                             ->live(),
                         TextInput::make('fixed_fee_amount')
-                            ->label('Fixed Fee (in minor units / cents)')
+                            ->label('Fixed Fee')
                             ->numeric()
                             ->default(0)
-                            ->helperText('Amount in cents (e.g., 500 for $5.00).')
+                            ->step(0.0001)
+                            ->prefix('$')
+                            ->formatStateUsing(fn ($state) => $state ? number_format(\App\Domain\Infrastructure\Support\Money::toMajor($state), 4, '.', '') : '0.0000')
+                            ->dehydrateStateUsing(fn ($state) => \App\Domain\Infrastructure\Support\Money::toMinor($state ?? 0))
                             ->visible(fn ($get) => in_array($get('fee_type'), [
                                 FeeType::FIXED->value,
                                 FeeType::FIXED_PLUS_PERCENTAGE->value,

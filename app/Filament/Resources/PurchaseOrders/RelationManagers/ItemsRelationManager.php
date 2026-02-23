@@ -80,7 +80,7 @@ class ItemsRelationManager extends RelationManager
                 ->numeric()
                 ->required()
                 ->prefix('$')
-                ->step(0.01)
+                ->step(0.0001)
                 ->minValue(0),
 
             Select::make('incoterm')
@@ -120,13 +120,13 @@ class ItemsRelationManager extends RelationManager
                     ->alignCenter(),
                 TextColumn::make('unit_cost')
                     ->label('Unit Cost')
-                    ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
+                    ->formatStateUsing(fn ($state) => \App\Domain\Infrastructure\Support\Money::format($state))
                     ->prefix('$ ')
                     ->alignEnd(),
                 TextColumn::make('line_total')
                     ->label('Total')
                     ->getStateUsing(fn ($record) => $record->line_total)
-                    ->formatStateUsing(fn ($state) => number_format($state / 100, 2))
+                    ->formatStateUsing(fn ($state) => \App\Domain\Infrastructure\Support\Money::format($state))
                     ->prefix('$ ')
                     ->alignEnd()
                     ->weight('bold'),
@@ -139,7 +139,7 @@ class ItemsRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make()
                     ->mutateFormDataUsing(function (array $data): array {
-                        $data['unit_cost'] = (int) round(($data['unit_cost'] ?? 0) * 100);
+                        $data['unit_cost'] = \App\Domain\Infrastructure\Support\Money::toMinor($data['unit_cost'] ?? 0);
                         $data['sort_order'] = $this->getOwnerRecord()->items()->max('sort_order') + 1;
 
                         return $data;
@@ -149,11 +149,11 @@ class ItemsRelationManager extends RelationManager
                 EditAction::make()
                     ->mountUsing(function ($form, $record) {
                         $data = $record->toArray();
-                        $data['unit_cost'] = $data['unit_cost'] / 100;
+                        $data['unit_cost'] = \App\Domain\Infrastructure\Support\Money::toMajor($data['unit_cost']);
                         $form->fill($data);
                     })
                     ->mutateFormDataUsing(function (array $data): array {
-                        $data['unit_cost'] = (int) round(($data['unit_cost'] ?? 0) * 100);
+                        $data['unit_cost'] = \App\Domain\Infrastructure\Support\Money::toMinor($data['unit_cost'] ?? 0);
 
                         return $data;
                     }),

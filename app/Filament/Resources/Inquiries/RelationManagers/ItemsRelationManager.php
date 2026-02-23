@@ -20,6 +20,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use App\Domain\Infrastructure\Support\Money;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -139,11 +140,11 @@ class ItemsRelationManager extends RelationManager
                             ->label('Target Price')
                             ->numeric()
                             ->minValue(0)
-                            ->step(0.01)
+                            ->step(0.0001)
                             ->prefix('$')
                             ->helperText('Client target price per unit, if provided.')
-                            ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2, '.', '') : null)
-                            ->dehydrateStateUsing(fn ($state) => $state ? (int) round((float) $state * 100) : null),
+                            ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : null)
+                            ->dehydrateStateUsing(fn ($state) => $state ? Money::toMinor($state) : null),
                         Textarea::make('specifications')
                             ->label('Specifications')
                             ->rows(3)
@@ -182,7 +183,7 @@ class ItemsRelationManager extends RelationManager
                     ->alignCenter(),
                 TextColumn::make('target_price')
                     ->label('Target Price')
-                    ->formatStateUsing(fn ($state) => $state ? '$ ' . number_format($state / 100, 2) : '—')
+                    ->formatStateUsing(fn ($state) => $state ? '$ ' . Money::format($state) : '—')
                     ->alignEnd(),
                 TextColumn::make('specifications')
                     ->label('Specs')

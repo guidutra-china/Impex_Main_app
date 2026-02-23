@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Quotations\RelationManagers;
 
 use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Models\Company;
+use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
@@ -95,7 +96,7 @@ class ItemsRelationManager extends RelationManager
                             ->with('supplierQuotation.company')
                             ->get()
                             ->mapWithKeys(fn ($sqItem) => [
-                                $sqItem->id => "{$sqItem->supplierQuotation->reference} — {$sqItem->supplierQuotation->company->name} — $" . number_format($sqItem->unit_cost / 100, 2),
+                                $sqItem->id => "{$sqItem->supplierQuotation->reference} — {$sqItem->supplierQuotation->company->name} — $" . Money::format($sqItem->unit_cost),
                             ])
                             ->toArray();
                     })
@@ -114,7 +115,7 @@ class ItemsRelationManager extends RelationManager
                         }
 
                         $set('selected_supplier_id', $sqItem->supplierQuotation->company_id);
-                        $set('unit_cost', $sqItem->unit_cost / 100);
+                        $set('unit_cost', Money::toMajor($sqItem->unit_cost));
 
                         $quotation = $this->getOwnerRecord();
                         $clientId = $quotation->company_id;
@@ -130,7 +131,7 @@ class ItemsRelationManager extends RelationManager
                         }
 
                         if ($clientPivot && $clientPivot->unit_price > 0) {
-                            $set('unit_price', $clientPivot->unit_price / 100);
+                            $set('unit_price', Money::toMajor($clientPivot->unit_price));
                         } else {
                             $this->recalculateUnitPrice($get, $set);
                         }
@@ -171,7 +172,7 @@ class ItemsRelationManager extends RelationManager
                     ->label('Unit Cost')
                     ->numeric()
                     ->minValue(0)
-                    ->step(0.01)
+                    ->step(0.0001)
                     ->prefix('$')
                     ->inputMode('decimal')
                     ->default(0)
@@ -199,7 +200,7 @@ class ItemsRelationManager extends RelationManager
                     ->label('Unit Price (to Client)')
                     ->numeric()
                     ->minValue(0)
-                    ->step(0.01)
+                    ->step(0.0001)
                     ->prefix('$')
                     ->inputMode('decimal')
                     ->default(0)
@@ -249,7 +250,7 @@ class ItemsRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: false),
                 TextColumn::make('unit_cost')
                     ->label('Unit Cost')
-                    ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : '—')
+                    ->formatStateUsing(fn ($state) => $state ? Money::format($state) : '—')
                     ->alignEnd(),
                 TextColumn::make('commission_rate')
                     ->label('Comm. %')
@@ -258,12 +259,12 @@ class ItemsRelationManager extends RelationManager
                     ->visible(fn () => $this->getOwnerRecord()->commission_type === CommissionType::EMBEDDED),
                 TextColumn::make('unit_price')
                     ->label('Unit Price')
-                    ->formatStateUsing(fn ($state) => $state ? number_format($state / 100, 2) : '—')
+                    ->formatStateUsing(fn ($state) => $state ? Money::format($state) : '—')
                     ->alignEnd()
                     ->weight('bold'),
                 TextColumn::make('line_total')
                     ->label('Line Total')
-                    ->getStateUsing(fn ($record) => number_format(($record->unit_price * $record->quantity) / 100, 2))
+                    ->getStateUsing(fn ($record) => Money::format($record->unit_price * $record->quantity))
                     ->alignEnd()
                     ->weight('bold')
                     ->color('success'),
@@ -290,8 +291,8 @@ class ItemsRelationManager extends RelationManager
                 CreateAction::make()
                     ->label('Add Item')
                     ->mutateFormDataUsing(function (array $data): array {
-                        $data['unit_cost'] = (int) round(($data['unit_cost'] ?? 0) * 100);
-                        $data['unit_price'] = (int) round(($data['unit_price'] ?? 0) * 100);
+                        $data['unit_cost'] = Money::toMinor($data['unit_cost'] ?? 0);
+                        $data['unit_price'] = Money::toMinor($data['unit_price'] ?? 0);
                         return $data;
                     }),
             ])
@@ -299,13 +300,13 @@ class ItemsRelationManager extends RelationManager
                 EditAction::make()
                     ->mountUsing(function ($form, $record) {
                         $data = $record->toArray();
-                        $data['unit_cost'] = $data['unit_cost'] / 100;
-                        $data['unit_price'] = $data['unit_price'] / 100;
+                        $data['unit_cost'] = Money::toMajor($data['unit_cost']);
+                        $data['unit_price'] = Money::toMajor($data['unit_price']);
                         $form->fill($data);
                     })
                     ->mutateFormDataUsing(function (array $data): array {
-                        $data['unit_cost'] = (int) round(($data['unit_cost'] ?? 0) * 100);
-                        $data['unit_price'] = (int) round(($data['unit_price'] ?? 0) * 100);
+                        $data['unit_cost'] = Money::toMinor($data['unit_cost'] ?? 0);
+                        $data['unit_price'] = Money::toMinor($data['unit_price'] ?? 0);
                         return $data;
                     }),
                 DeleteAction::make(),
@@ -346,7 +347,7 @@ class ItemsRelationManager extends RelationManager
             if ($sqItem) {
                 $set('supplier_quotation_item_id', $sqItem->id);
                 $set('selected_supplier_id', $sqItem->supplierQuotation->company_id);
-                $set('unit_cost', $sqItem->unit_cost / 100);
+                $set('unit_cost', Money::toMajor($sqItem->unit_cost));
 
                 $clientPivot = $product->clients()
                     ->where('companies.id', $clientId)
@@ -354,7 +355,7 @@ class ItemsRelationManager extends RelationManager
                     ?->pivot;
 
                 if ($clientPivot && $clientPivot->unit_price > 0) {
-                    $set('unit_price', $clientPivot->unit_price / 100);
+                    $set('unit_price', Money::toMajor($clientPivot->unit_price));
                 } else {
                     $this->recalculateUnitPrice($get, $set);
                 }
@@ -369,7 +370,7 @@ class ItemsRelationManager extends RelationManager
 
         if ($preferredSupplier) {
             $set('selected_supplier_id', $preferredSupplier->id);
-            $set('unit_cost', $preferredSupplier->pivot->unit_price / 100);
+            $set('unit_cost', Money::toMajor($preferredSupplier->pivot->unit_price));
 
             if ($preferredSupplier->pivot->incoterm ?? null) {
                 $set('incoterm', $preferredSupplier->pivot->incoterm);
@@ -382,7 +383,7 @@ class ItemsRelationManager extends RelationManager
             ?->pivot;
 
         if ($clientPivot && $clientPivot->unit_price > 0) {
-            $set('unit_price', $clientPivot->unit_price / 100);
+            $set('unit_price', Money::toMajor($clientPivot->unit_price));
         } else {
             $this->recalculateUnitPrice($get, $set);
         }
@@ -401,7 +402,7 @@ class ItemsRelationManager extends RelationManager
             ?->pivot;
 
         if ($supplierPivot) {
-            $set('unit_cost', $supplierPivot->unit_price / 100);
+            $set('unit_cost', Money::toMajor($supplierPivot->unit_price));
         }
 
         $quotation = $this->getOwnerRecord();
@@ -425,9 +426,9 @@ class ItemsRelationManager extends RelationManager
             : 0;
 
         if ($cost > 0 && $commissionRate > 0) {
-            $set('unit_price', round($cost * (1 + ($commissionRate / 100)), 2));
+            $set('unit_price', round($cost * (1 + ($commissionRate / 100)), 4));
         } elseif ($cost > 0) {
-            $set('unit_price', round($cost, 2));
+            $set('unit_price', round($cost, 4));
         }
     }
 }
