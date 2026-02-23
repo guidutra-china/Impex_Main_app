@@ -5,6 +5,7 @@ namespace App\Domain\ProformaInvoices\Models;
 use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Models\Contact;
 use App\Domain\Infrastructure\Enums\DocumentType;
+use App\Domain\Financial\Traits\HasAdditionalCosts;
 use App\Domain\Financial\Traits\HasPaymentSchedule;
 use App\Domain\Infrastructure\Traits\HasDocuments;
 use App\Domain\Infrastructure\Traits\HasReference;
@@ -25,7 +26,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ProformaInvoice extends Model
 {
-    use HasFactory, SoftDeletes, HasReference, HasStateMachine, HasDocuments, HasPaymentSchedule;
+    use HasFactory, SoftDeletes, HasReference, HasStateMachine, HasDocuments, HasPaymentSchedule, HasAdditionalCosts;
 
     protected $fillable = [
         'reference',

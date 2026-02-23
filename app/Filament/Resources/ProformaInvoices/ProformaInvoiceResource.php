@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ProformaInvoices;
 
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Filament\RelationManagers\AdditionalCostsRelationManager;
 use App\Filament\RelationManagers\DocumentsRelationManager;
 use App\Filament\Resources\ProformaInvoices\Pages\CreateProformaInvoice;
 use App\Filament\Resources\ProformaInvoices\Pages\EditProformaInvoice;
@@ -69,6 +70,7 @@ class ProformaInvoiceResource extends Resource
     {
         return [
             ItemsRelationManager::class,
+            AdditionalCostsRelationManager::class,
             PaymentScheduleRelationManager::class,
             PaymentsRelationManager::class,
             DocumentsRelationManager::class,

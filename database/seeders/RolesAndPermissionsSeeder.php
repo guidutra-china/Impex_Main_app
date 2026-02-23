@@ -84,6 +84,12 @@ class RolesAndPermissionsSeeder extends Seeder
             'view-payment-schedule',
             'generate-payment-schedule',
 
+            // Additional Costs
+            'view-additional-costs',
+            'create-additional-costs',
+            'edit-additional-costs',
+            'delete-additional-costs',
+
             // Costs & Margins (sensitive data)
             'view-costs',
             'view-margins',
