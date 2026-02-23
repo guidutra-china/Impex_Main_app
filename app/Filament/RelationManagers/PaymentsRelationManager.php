@@ -24,6 +24,8 @@ class PaymentsRelationManager extends RelationManager
 
     public function table(Table $table): Table
     {
+        $summaryData = $this->getPaymentSummaryData();
+
         return $table
             ->query(fn () => $this->getScheduleItemsQuery())
             ->columns([
@@ -103,7 +105,9 @@ class PaymentsRelationManager extends RelationManager
                     }),
             ])
             ->defaultSort('sort_order')
-            ->contentFooter(fn () => new HtmlString($this->renderPaymentSummary()))
+            ->contentFooter(
+                view('filament.payments.schedule-footer', $summaryData)
+            )
             ->headerActions([
                 Action::make('recordPayment')
                     ->label('Record Payment')
@@ -147,7 +151,7 @@ class PaymentsRelationManager extends RelationManager
             ->doesntExist();
     }
 
-    protected function renderPaymentSummary(): string
+    protected function getPaymentSummaryData(): array
     {
         $record = $this->getOwnerRecord();
         $items = PaymentScheduleItem::query()
@@ -157,46 +161,22 @@ class PaymentsRelationManager extends RelationManager
 
         $currency = $record->currency_code ?? 'USD';
 
-        $totalDue = $items->where('is_credit', false)->sum('amount');
-        $totalCredits = $items->where('is_credit', true)->sum('amount');
-        $netDue = $totalDue - abs($totalCredits);
-        $totalPaid = $items->where('is_credit', false)->sum(fn ($i) => $i->paid_amount);
-        $netRemaining = $netDue - $totalPaid;
+        $totalDueRaw = $items->where('is_credit', false)->sum('amount');
+        $totalCreditsRaw = $items->where('is_credit', true)->sum(fn ($i) => abs($i->amount));
+        $netDueRaw = $totalDueRaw - $totalCreditsRaw;
+        $totalPaidRaw = $items->where('is_credit', false)->sum(fn ($i) => $i->paid_amount);
+        $netRemainingRaw = $netDueRaw - $totalPaidRaw;
 
-        $html = '<div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">';
-        $html .= '<div class="flex justify-end gap-8 text-sm">';
-
-        $html .= '<div class="text-right">';
-        $html .= '<span class="text-gray-500 dark:text-gray-400">Total Due:</span> ';
-        $html .= '<span class="font-semibold">' . $currency . ' ' . Money::format($totalDue) . '</span>';
-        $html .= '</div>';
-
-        if (abs($totalCredits) > 0) {
-            $html .= '<div class="text-right">';
-            $html .= '<span class="text-gray-500 dark:text-gray-400">Credits:</span> ';
-            $html .= '<span class="font-semibold text-info-600">(' . $currency . ' ' . Money::format(abs($totalCredits)) . ')</span>';
-            $html .= '</div>';
-
-            $html .= '<div class="text-right">';
-            $html .= '<span class="text-gray-500 dark:text-gray-400">Net Due:</span> ';
-            $html .= '<span class="font-semibold">' . $currency . ' ' . Money::format($netDue) . '</span>';
-            $html .= '</div>';
-        }
-
-        $html .= '<div class="text-right">';
-        $html .= '<span class="text-gray-500 dark:text-gray-400">Paid:</span> ';
-        $html .= '<span class="font-semibold text-success-600">' . $currency . ' ' . Money::format($totalPaid) . '</span>';
-        $html .= '</div>';
-
-        $html .= '<div class="text-right">';
-        $html .= '<span class="text-gray-500 dark:text-gray-400">Remaining:</span> ';
-        $remainingColor = $netRemaining > 0 ? 'text-warning-600' : 'text-success-600';
-        $html .= '<span class="font-semibold ' . $remainingColor . '">' . $currency . ' ' . Money::format(abs($netRemaining)) . '</span>';
-        $html .= '</div>';
-
-        $html .= '</div></div>';
-
-        return $html;
+        return [
+            'currency' => $currency,
+            'totalDue' => Money::format($totalDueRaw),
+            'totalCredits' => $totalCreditsRaw,
+            'totalCreditsFormatted' => Money::format($totalCreditsRaw),
+            'netDueFormatted' => Money::format($netDueRaw),
+            'totalPaidFormatted' => Money::format($totalPaidRaw),
+            'netRemaining' => $netRemainingRaw,
+            'netRemainingFormatted' => Money::format(abs($netRemainingRaw)),
+        ];
     }
 
     protected function renderAllocationsDetail(PaymentScheduleItem $item): string
