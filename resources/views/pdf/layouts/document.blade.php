@@ -9,9 +9,9 @@
 
         body {
             font-family: 'DejaVu Sans', sans-serif;
-            font-size: 9pt;
+            font-size: 8pt;
             color: #1f2937;
-            line-height: 1.5;
+            line-height: 1.4;
         }
 
         .container {
@@ -40,44 +40,44 @@
         }
 
         .company-name {
-            font-size: 14pt;
+            font-size: 12pt;
             font-weight: bold;
             color: #1e40af;
             margin-bottom: 2px;
         }
 
         .company-details {
-            font-size: 7.5pt;
+            font-size: 7pt;
             color: #6b7280;
-            line-height: 1.5;
+            line-height: 1.4;
         }
 
         .document-title {
-            font-size: 18pt;
+            font-size: 15pt;
             font-weight: bold;
             color: #1e40af;
             text-align: right;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         /* === Document Meta (inline) === */
         .document-meta-table {
             float: right;
             border-collapse: collapse;
-            font-size: 8pt;
+            font-size: 7.5pt;
         }
 
         .document-meta-table td {
-            padding: 2px 0;
+            padding: 1px 0;
         }
 
         .document-meta-table .meta-label {
             color: #9ca3af;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            padding-right: 10px;
+            padding-right: 8px;
             text-align: right;
-            font-size: 7pt;
+            font-size: 6.5pt;
         }
 
         .document-meta-table .meta-value {
@@ -88,15 +88,15 @@
 
         /* === Client Box (TO only) === */
         .client-section {
-            margin: 12px 0;
+            margin: 8px 0;
         }
 
         .client-box {
-            padding: 12px 14px;
+            padding: 10px 14px;
             border: 1px solid #e5e7eb;
             border-radius: 4px;
             background: #f9fafb;
-            width: 55%;
+            width: 100%;
         }
 
         .client-label {
@@ -109,16 +109,16 @@
         }
 
         .client-name {
-            font-size: 10pt;
+            font-size: 9pt;
             font-weight: bold;
             color: #111827;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
         }
 
         .client-detail {
-            font-size: 8pt;
+            font-size: 7.5pt;
             color: #6b7280;
-            line-height: 1.5;
+            line-height: 1.4;
         }
 
         /* === Content (yield) === */
@@ -130,17 +130,17 @@
         .items-table {
             width: 100%;
             border-collapse: collapse;
-            margin: 12px 0;
-            font-size: 8.5pt;
+            margin: 8px 0;
+            font-size: 8pt;
         }
 
         .items-table thead th {
             background: #1e40af;
             color: #ffffff;
-            padding: 7px 10px;
+            padding: 5px 8px;
             text-align: left;
             font-weight: bold;
-            font-size: 7.5pt;
+            font-size: 7pt;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -154,7 +154,7 @@
         }
 
         .items-table tbody td {
-            padding: 6px 10px;
+            padding: 5px 8px;
             border-bottom: 1px solid #e5e7eb;
         }
 
