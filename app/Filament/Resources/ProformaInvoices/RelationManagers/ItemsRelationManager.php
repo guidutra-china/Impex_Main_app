@@ -7,6 +7,7 @@ use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
 use App\Domain\Quotations\Enums\Incoterm;
+use App\Domain\Inquiries\Models\InquiryItem;
 use App\Domain\Quotations\Models\Quotation;
 use App\Domain\Quotations\Models\QuotationItem;
 use BackedEnum;
@@ -177,6 +178,7 @@ class ItemsRelationManager extends RelationManager
                         return $data;
                     }),
                 $this->importFromQuotationsAction(),
+                $this->importFromInquiryAction(),
             ])
             ->recordActions([
                 EditAction::make()
@@ -292,6 +294,114 @@ class ItemsRelationManager extends RelationManager
                 Notification::make()
                     ->title($imported . ' items imported')
                     ->body('Items imported from ' . count(array_unique($linkedQuotationIds)) . ' quotation(s).')
+                    ->success()
+                    ->send();
+            });
+    }
+
+    protected function importFromInquiryAction(): Action
+    {
+        return Action::make('importFromInquiry')
+            ->label('Import from Inquiry')
+            ->icon('heroicon-o-clipboard-document-list')
+            ->color('warning')
+            ->form(function () {
+                $pi = $this->getOwnerRecord();
+
+                $inquiryItems = InquiryItem::query()
+                    ->where('inquiry_id', $pi->inquiry_id)
+                    ->with('product')
+                    ->orderBy('sort_order')
+                    ->get();
+
+                if ($inquiryItems->isEmpty()) {
+                    return [
+                        \Filament\Forms\Components\Placeholder::make('no_items')
+                            ->label('')
+                            ->content('No items found in this inquiry.'),
+                    ];
+                }
+
+                $options = $inquiryItems->mapWithKeys(fn ($item) => [
+                    $item->id => ($item->product?->name ?? $item->description ?? 'Item #' . $item->id)
+                        . ' — Qty: ' . $item->quantity
+                        . ($item->target_price ? ' — Target: $' . number_format($item->target_price / 100, 2) : ''),
+                ])->toArray();
+
+                return [
+                    \Filament\Forms\Components\CheckboxList::make('item_ids')
+                        ->label('Select Items to Import')
+                        ->options($options)
+                        ->required()
+                        ->searchable()
+                        ->bulkToggleable()
+                        ->helperText('Import items directly from the inquiry. Use this for recurring purchases where no quotation is needed.'),
+                ];
+            })
+            ->action(function (array $data) {
+                $pi = $this->getOwnerRecord();
+                $itemIds = $data['item_ids'] ?? [];
+
+                if (empty($itemIds)) {
+                    return;
+                }
+
+                $items = InquiryItem::whereIn('id', $itemIds)
+                    ->with(['product', 'product.suppliers', 'product.specification', 'product.clients'])
+                    ->get();
+
+                $maxSort = $pi->items()->max('sort_order') ?? 0;
+                $imported = 0;
+
+                foreach ($items as $item) {
+                    $supplierId = null;
+                    $unitCost = 0;
+                    $unitPrice = $item->target_price ?? 0;
+                    $incoterm = null;
+
+                    if ($item->product) {
+                        $preferred = $item->product->suppliers()
+                            ->orderByDesc('company_product.is_preferred')
+                            ->first();
+
+                        if ($preferred) {
+                            $supplierId = $preferred->id;
+                            $unitCost = $preferred->pivot->unit_price ?? 0;
+                            $incoterm = $preferred->pivot->incoterm ?? null;
+                        }
+
+                        $clientPivot = $item->product->clients()
+                            ->where('companies.id', $pi->company_id)
+                            ->first()
+                            ?->pivot;
+
+                        if ($clientPivot && $clientPivot->unit_price > 0) {
+                            $unitPrice = $clientPivot->unit_price;
+                        }
+                    }
+
+                    ProformaInvoiceItem::create([
+                        'proforma_invoice_id' => $pi->id,
+                        'product_id' => $item->product_id,
+                        'quotation_item_id' => null,
+                        'supplier_company_id' => $supplierId,
+                        'description' => $item->product?->name ?? $item->description,
+                        'specifications' => $item->product?->specification?->description ?? $item->specifications,
+                        'quantity' => $item->quantity,
+                        'unit' => $item->unit ?? 'pcs',
+                        'unit_price' => $unitPrice,
+                        'unit_cost' => $unitCost,
+                        'incoterm' => $incoterm,
+                        'notes' => $item->notes,
+                        'sort_order' => ++$maxSort,
+                    ]);
+
+                    $imported++;
+                }
+
+                Notification::make()
+                    ->title($imported . ' items imported from inquiry')
+                    ->body('Prices pre-filled from product catalog. Review and adjust as needed.')
                     ->success()
                     ->send();
             });
