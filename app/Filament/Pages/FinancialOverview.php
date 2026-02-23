@@ -277,7 +277,7 @@ class FinancialOverview extends Page implements HasTable
         return $table
             ->query(
                 PaymentScheduleItem::query()
-                    ->with(['payable.company', 'payable.supplierCompany', 'paymentTermStage', 'waivedByUser'])
+                    ->with(['payable', 'paymentTermStage', 'waivedByUser'])
             )
             ->columns([
                 TextColumn::make('company_name')
