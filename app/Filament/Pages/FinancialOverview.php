@@ -306,9 +306,9 @@ class FinancialOverview extends Page implements HasTable
             ]);
     }
 
-    protected function approvePaymentAction(): \Filament\Tables\Actions\Action
+    protected function approvePaymentAction(): Action
     {
-        return \Filament\Tables\Actions\Action::make('approve')
+        return Action::make('approve')
             ->label('Approve')
             ->icon('heroicon-o-check-circle')
             ->color('success')
@@ -320,9 +320,9 @@ class FinancialOverview extends Page implements HasTable
             });
     }
 
-    protected function rejectPaymentAction(): \Filament\Tables\Actions\Action
+    protected function rejectPaymentAction(): Action
     {
-        return \Filament\Tables\Actions\Action::make('reject')
+        return Action::make('reject')
             ->label('Reject')
             ->icon('heroicon-o-x-circle')
             ->color('danger')
