@@ -64,7 +64,6 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['payable_type', 'payable_id']);
             $table->index('status');
             $table->index('payment_date');
             $table->index('direction');
