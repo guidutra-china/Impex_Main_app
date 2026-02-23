@@ -71,6 +71,11 @@ class DocumentLabels
             'confirmation_ref' => 'Confirmation Ref.',
             'linked_quotations' => 'Linked Quotations',
 
+            // Purchase Order
+            'expected_delivery' => 'Expected Delivery',
+            'pi_reference' => 'PI Ref.',
+            'shipping_instructions' => 'Shipping Instructions',
+
             // Payment term stages
             'stage' => 'Stage',
             'percentage' => 'Percentage',
@@ -135,6 +140,10 @@ class DocumentLabels
             'confirmation_ref' => 'Ref. Confirmação',
             'linked_quotations' => 'Cotações Vinculadas',
 
+            'expected_delivery' => 'Entrega Prevista',
+            'pi_reference' => 'Ref. PI',
+            'shipping_instructions' => 'Instruções de Envio',
+
             'stage' => 'Etapa',
             'percentage' => 'Percentual',
             'days' => 'Dias',
@@ -197,6 +206,10 @@ class DocumentLabels
             'confirmed_via' => '确认方式',
             'confirmation_ref' => '确认参考',
             'linked_quotations' => '关联报价',
+
+            'expected_delivery' => '预计交货',
+            'pi_reference' => 'PI 编号',
+            'shipping_instructions' => '发货说明',
 
             'stage' => '阶段',
             'percentage' => '百分比',

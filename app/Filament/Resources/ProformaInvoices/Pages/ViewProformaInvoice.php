@@ -3,9 +3,13 @@
 namespace App\Filament\Resources\ProformaInvoices\Pages;
 
 use App\Domain\Infrastructure\Pdf\Templates\ProformaInvoicePdfTemplate;
+use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
+use App\Domain\PurchaseOrders\Actions\GeneratePurchaseOrdersAction;
 use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
+use Filament\Actions\Action;
 use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewProformaInvoice extends ViewRecord
@@ -15,6 +19,7 @@ class ViewProformaInvoice extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            $this->generatePurchaseOrdersAction(),
             GeneratePdfAction::make(
                 templateClass: ProformaInvoicePdfTemplate::class,
                 label: 'Generate PDF',
@@ -29,5 +34,75 @@ class ViewProformaInvoice extends ViewRecord
             ),
             EditAction::make(),
         ];
+    }
+
+    protected function generatePurchaseOrdersAction(): Action
+    {
+        return Action::make('generatePurchaseOrders')
+            ->label('Generate POs')
+            ->icon('heroicon-o-shopping-cart')
+            ->color('warning')
+            ->requiresConfirmation()
+            ->modalHeading('Generate Purchase Orders')
+            ->modalDescription(function () {
+                $record = $this->getRecord();
+                $record->loadMissing(['items.supplierCompany']);
+
+                $action = new GeneratePurchaseOrdersAction();
+                $existing = $action->getExistingPOs($record);
+                $skipped = $action->getSkippedSuppliers($record);
+
+                $supplierGroups = $record->items
+                    ->filter(fn ($item) => $item->supplier_company_id !== null)
+                    ->groupBy('supplier_company_id');
+
+                $newCount = $supplierGroups->count() - $existing->count();
+
+                $lines = [];
+
+                if ($newCount > 0) {
+                    $lines[] = "**{$newCount} new PO(s)** will be created, one per supplier.";
+                }
+
+                if ($existing->isNotEmpty()) {
+                    $names = $existing->map(fn ($po) => $po->supplierCompany?->name ?? $po->reference)->implode(', ');
+                    $lines[] = "**Already exists:** {$names} (will be skipped).";
+                }
+
+                if ($skipped->isNotEmpty()) {
+                    $lines[] = "**{$skipped->count()} item(s)** have no supplier assigned and will be skipped.";
+                }
+
+                if ($newCount <= 0) {
+                    $lines[] = "All supplier POs already exist for this PI. Nothing to generate.";
+                }
+
+                return implode("\n\n", $lines);
+            })
+            ->modalSubmitActionLabel('Generate')
+            ->visible(fn () => $this->getRecord()->items()->exists())
+            ->action(function () {
+                $record = $this->getRecord();
+                $action = new GeneratePurchaseOrdersAction();
+                $created = $action->execute($record);
+
+                if ($created->isEmpty()) {
+                    Notification::make()
+                        ->title('No POs Created')
+                        ->body('All supplier POs already exist or no items have suppliers assigned.')
+                        ->warning()
+                        ->send();
+
+                    return;
+                }
+
+                $refs = $created->pluck('reference')->implode(', ');
+
+                Notification::make()
+                    ->title($created->count() . ' Purchase Order(s) Generated')
+                    ->body("Created: {$refs}")
+                    ->success()
+                    ->send();
+            });
     }
 }

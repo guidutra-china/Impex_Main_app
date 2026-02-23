@@ -11,6 +11,7 @@ use App\Domain\Infrastructure\Traits\HasStateMachine;
 use App\Domain\Inquiries\Models\Inquiry;
 use App\Domain\ProformaInvoices\Enums\ConfirmationMethod;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
+use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\Quotations\Models\Quotation;
 use App\Domain\Settings\Models\PaymentTerm;
 use App\Models\User;
@@ -142,6 +143,11 @@ class ProformaInvoice extends Model
     public function items(): HasMany
     {
         return $this->hasMany(ProformaInvoiceItem::class)->orderBy('sort_order');
+    }
+
+    public function purchaseOrders(): HasMany
+    {
+        return $this->hasMany(PurchaseOrder::class);
     }
 
     public function quotations(): BelongsToMany
