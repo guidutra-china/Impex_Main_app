@@ -2,10 +2,8 @@
 
 namespace App\Filament\Widgets;
 
-use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
-use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\Payment;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
@@ -34,9 +32,6 @@ class FinancialStatsOverview extends BaseWidget
             ->approved()
             ->sum('amount');
 
-        $pendingAdditionalCosts = AdditionalCost::where('status', AdditionalCostStatus::PENDING)
-            ->sum('amount_in_document_currency');
-
         $blockingScheduleItems = PaymentScheduleItem::where('is_blocking', true)
             ->whereNotIn('status', [
                 PaymentScheduleStatus::PAID->value,
@@ -53,8 +48,6 @@ class FinancialStatsOverview extends BaseWidget
                 ->color('warning'),
             Stat::make('Approved Payables', Money::formatDisplay($approvedPayables))
                 ->color('danger'),
-            Stat::make('Pending Add. Costs', Money::formatDisplay($pendingAdditionalCosts))
-                ->color('info'),
             Stat::make('Blocking Items', $blockingScheduleItems)
                 ->color($blockingScheduleItems > 0 ? 'danger' : 'gray'),
         ];

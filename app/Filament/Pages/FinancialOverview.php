@@ -3,16 +3,14 @@
 namespace App\Filament\Pages;
 
 use App\Domain\Financial\Actions\ApprovePaymentAction;
-use App\Domain\Financial\Enums\AdditionalCostStatus;
-use App\Domain\Financial\Enums\AdditionalCostType;
-use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
-use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\Payment;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Filament\Widgets\FinancialStatsOverview;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -69,7 +67,6 @@ class FinancialOverview extends Page implements HasTable
         return match ($this->activeTab) {
             'payables' => $this->payablesTable($table),
             'schedule' => $this->scheduleTable($table),
-            'additional_costs' => $this->additionalCostsTable($table),
             default => $this->receivablesTable($table),
         };
     }
@@ -80,48 +77,84 @@ class FinancialOverview extends Page implements HasTable
             ->query(
                 Payment::query()
                     ->where('direction', PaymentDirection::INBOUND)
-                    ->with(['payable', 'paymentMethod', 'scheduleItem', 'approvedByUser', 'creator'])
+                    ->with(['payable.company', 'paymentMethod', 'scheduleItem', 'approvedByUser', 'creator'])
             )
             ->columns([
                 TextColumn::make('payment_date')
                     ->label('Date')
                     ->date('d/m/Y')
                     ->sortable(),
+                TextColumn::make('client_name')
+                    ->label('Client')
+                    ->state(function ($record) {
+                        $payable = $record->payable;
+                        if ($payable instanceof ProformaInvoice) {
+                            return $payable->company?->name ?? '—';
+                        }
+                        return '—';
+                    })
+                    ->searchable(query: function ($query, string $search) {
+                        $query->whereHasMorph('payable', [ProformaInvoice::class], function ($q) use ($search) {
+                            $q->whereHas('company', fn ($c) => $c->where('name', 'like', "%{$search}%"));
+                        });
+                    })
+                    ->sortable(query: function ($query, string $direction) {
+                        $query->orderBy(
+                            ProformaInvoice::select('companies.name')
+                                ->from('proforma_invoices')
+                                ->join('companies', 'companies.id', '=', 'proforma_invoices.company_id')
+                                ->whereColumn('proforma_invoices.id', 'payments.payable_id')
+                                ->where('payments.payable_type', (new ProformaInvoice)->getMorphClass())
+                                ->limit(1),
+                            $direction
+                        );
+                    }),
                 TextColumn::make('payable')
                     ->label('Document')
                     ->formatStateUsing(function ($record) {
                         $payable = $record->payable;
                         if (! $payable) return '—';
-                        $ref = $payable->reference ?? '—';
-                        $type = class_basename($payable);
-                        return "{$type}: {$ref}";
+                        return $payable->reference ?? '—';
+                    })
+                    ->sortable(query: function ($query, string $direction) {
+                        $query->orderBy(
+                            ProformaInvoice::select('reference')
+                                ->from('proforma_invoices')
+                                ->whereColumn('proforma_invoices.id', 'payments.payable_id')
+                                ->where('payments.payable_type', (new ProformaInvoice)->getMorphClass())
+                                ->limit(1),
+                            $direction
+                        );
                     }),
                 TextColumn::make('scheduleItem.label')
                     ->label('Schedule Item')
                     ->placeholder('Ad-hoc'),
                 TextColumn::make('amount')
                     ->label('Amount')
-                    ->formatStateUsing(fn ($state) => Money::format($state))
+                    ->formatStateUsing(fn ($state) => Money::formatDisplay($state))
                     ->alignEnd()
+                    ->sortable()
                     ->summarize(Sum::make()
                         ->label('Total')
-                        ->formatStateUsing(fn ($state) => Money::format((int) $state))),
+                        ->formatStateUsing(fn ($state) => Money::formatDisplay((int) $state))),
                 TextColumn::make('currency_code')
                     ->label('Currency'),
                 TextColumn::make('amount_in_document_currency')
                     ->label('Doc. Amount')
-                    ->formatStateUsing(fn ($state) => $state ? Money::format($state) : '—')
+                    ->formatStateUsing(fn ($state) => $state ? Money::formatDisplay($state) : '—')
                     ->alignEnd(),
                 TextColumn::make('paymentMethod.name')
                     ->label('Method')
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->sortable(),
                 TextColumn::make('reference')
                     ->label('Reference')
                     ->placeholder('—')
                     ->limit(20),
                 TextColumn::make('status')
                     ->label('Status')
-                    ->badge(),
+                    ->badge()
+                    ->sortable(),
                 TextColumn::make('approvedByUser.name')
                     ->label('Approved By')
                     ->placeholder('—'),
@@ -146,48 +179,84 @@ class FinancialOverview extends Page implements HasTable
             ->query(
                 Payment::query()
                     ->where('direction', PaymentDirection::OUTBOUND)
-                    ->with(['payable', 'paymentMethod', 'scheduleItem', 'approvedByUser', 'creator'])
+                    ->with(['payable.supplierCompany', 'paymentMethod', 'scheduleItem', 'approvedByUser', 'creator'])
             )
             ->columns([
                 TextColumn::make('payment_date')
                     ->label('Date')
                     ->date('d/m/Y')
                     ->sortable(),
+                TextColumn::make('supplier_name')
+                    ->label('Supplier')
+                    ->state(function ($record) {
+                        $payable = $record->payable;
+                        if ($payable instanceof PurchaseOrder) {
+                            return $payable->supplierCompany?->name ?? '—';
+                        }
+                        return '—';
+                    })
+                    ->searchable(query: function ($query, string $search) {
+                        $query->whereHasMorph('payable', [PurchaseOrder::class], function ($q) use ($search) {
+                            $q->whereHas('supplierCompany', fn ($c) => $c->where('name', 'like', "%{$search}%"));
+                        });
+                    })
+                    ->sortable(query: function ($query, string $direction) {
+                        $query->orderBy(
+                            PurchaseOrder::select('companies.name')
+                                ->from('purchase_orders')
+                                ->join('companies', 'companies.id', '=', 'purchase_orders.supplier_company_id')
+                                ->whereColumn('purchase_orders.id', 'payments.payable_id')
+                                ->where('payments.payable_type', (new PurchaseOrder)->getMorphClass())
+                                ->limit(1),
+                            $direction
+                        );
+                    }),
                 TextColumn::make('payable')
                     ->label('Document')
                     ->formatStateUsing(function ($record) {
                         $payable = $record->payable;
                         if (! $payable) return '—';
-                        $ref = $payable->reference ?? '—';
-                        $type = class_basename($payable);
-                        return "{$type}: {$ref}";
+                        return $payable->reference ?? '—';
+                    })
+                    ->sortable(query: function ($query, string $direction) {
+                        $query->orderBy(
+                            PurchaseOrder::select('reference')
+                                ->from('purchase_orders')
+                                ->whereColumn('purchase_orders.id', 'payments.payable_id')
+                                ->where('payments.payable_type', (new PurchaseOrder)->getMorphClass())
+                                ->limit(1),
+                            $direction
+                        );
                     }),
                 TextColumn::make('scheduleItem.label')
                     ->label('Schedule Item')
                     ->placeholder('Ad-hoc'),
                 TextColumn::make('amount')
                     ->label('Amount')
-                    ->formatStateUsing(fn ($state) => Money::format($state))
+                    ->formatStateUsing(fn ($state) => Money::formatDisplay($state))
                     ->alignEnd()
+                    ->sortable()
                     ->summarize(Sum::make()
                         ->label('Total')
-                        ->formatStateUsing(fn ($state) => Money::format((int) $state))),
+                        ->formatStateUsing(fn ($state) => Money::formatDisplay((int) $state))),
                 TextColumn::make('currency_code')
                     ->label('Currency'),
                 TextColumn::make('amount_in_document_currency')
                     ->label('Doc. Amount')
-                    ->formatStateUsing(fn ($state) => $state ? Money::format($state) : '—')
+                    ->formatStateUsing(fn ($state) => $state ? Money::formatDisplay($state) : '—')
                     ->alignEnd(),
                 TextColumn::make('paymentMethod.name')
                     ->label('Method')
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->sortable(),
                 TextColumn::make('reference')
                     ->label('Reference')
                     ->placeholder('—')
                     ->limit(20),
                 TextColumn::make('status')
                     ->label('Status')
-                    ->badge(),
+                    ->badge()
+                    ->sortable(),
                 TextColumn::make('approvedByUser.name')
                     ->label('Approved By')
                     ->placeholder('—'),
@@ -208,9 +277,46 @@ class FinancialOverview extends Page implements HasTable
         return $table
             ->query(
                 PaymentScheduleItem::query()
-                    ->with(['payable', 'paymentTermStage', 'waivedByUser'])
+                    ->with(['payable.company', 'payable.supplierCompany', 'paymentTermStage', 'waivedByUser'])
             )
             ->columns([
+                TextColumn::make('company_name')
+                    ->label('Client / Supplier')
+                    ->state(function ($record) {
+                        $payable = $record->payable;
+                        if ($payable instanceof ProformaInvoice) {
+                            return $payable->company?->name ?? '—';
+                        }
+                        if ($payable instanceof PurchaseOrder) {
+                            return $payable->supplierCompany?->name ?? '—';
+                        }
+                        return '—';
+                    })
+                    ->searchable(query: function ($query, string $search) {
+                        $query->where(function ($q) use ($search) {
+                            $q->whereHasMorph('payable', [ProformaInvoice::class], function ($pq) use ($search) {
+                                $pq->whereHas('company', fn ($c) => $c->where('name', 'like', "%{$search}%"));
+                            })->orWhereHasMorph('payable', [PurchaseOrder::class], function ($pq) use ($search) {
+                                $pq->whereHas('supplierCompany', fn ($c) => $c->where('name', 'like', "%{$search}%"));
+                            });
+                        });
+                    })
+                    ->sortable(query: function ($query, string $direction) {
+                        $query->orderByRaw("
+                            COALESCE(
+                                (SELECT c.name FROM proforma_invoices pi
+                                 JOIN companies c ON c.id = pi.company_id
+                                 WHERE pi.id = payment_schedule_items.payable_id
+                                 AND payment_schedule_items.payable_type = ?
+                                 LIMIT 1),
+                                (SELECT c.name FROM purchase_orders po
+                                 JOIN companies c ON c.id = po.supplier_company_id
+                                 WHERE po.id = payment_schedule_items.payable_id
+                                 AND payment_schedule_items.payable_type = ?
+                                 LIMIT 1)
+                            ) {$direction}
+                        ", [(new ProformaInvoice)->getMorphClass(), (new PurchaseOrder)->getMorphClass()]);
+                    }),
                 TextColumn::make('payable')
                     ->label('Document')
                     ->formatStateUsing(function ($record) {
@@ -222,100 +328,45 @@ class FinancialOverview extends Page implements HasTable
                     }),
                 TextColumn::make('label')
                     ->label('Label')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('percentage')
                     ->label('%')
                     ->suffix('%')
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->sortable(),
                 TextColumn::make('amount')
                     ->label('Amount')
-                    ->formatStateUsing(fn ($state) => Money::format($state))
-                    ->alignEnd(),
+                    ->formatStateUsing(fn ($state) => Money::formatDisplay($state))
+                    ->alignEnd()
+                    ->sortable(),
                 TextColumn::make('currency_code')
-                    ->label('Currency'),
+                    ->label('Currency')
+                    ->sortable(),
                 TextColumn::make('due_condition')
                     ->label('Condition')
-                    ->badge(),
+                    ->badge()
+                    ->sortable(),
                 TextColumn::make('due_date')
                     ->label('Due Date')
                     ->date('d/m/Y')
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->sortable(),
                 TextColumn::make('is_blocking')
                     ->label('Blocking')
                     ->formatStateUsing(fn ($state) => $state ? 'Yes' : 'No')
                     ->badge()
-                    ->color(fn ($state) => $state ? 'danger' : 'gray'),
+                    ->color(fn ($state) => $state ? 'danger' : 'gray')
+                    ->sortable(),
                 TextColumn::make('status')
                     ->label('Status')
-                    ->badge(),
+                    ->badge()
+                    ->sortable(),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
                 SelectFilter::make('status')
                     ->options(PaymentScheduleStatus::class),
-            ]);
-    }
-
-    protected function additionalCostsTable(Table $table): Table
-    {
-        return $table
-            ->query(
-                AdditionalCost::query()
-                    ->with(['costable', 'supplierCompany', 'creator'])
-            )
-            ->columns([
-                TextColumn::make('costable')
-                    ->label('Document')
-                    ->formatStateUsing(function ($record) {
-                        $costable = $record->costable;
-                        if (! $costable) return '—';
-                        $ref = $costable->reference ?? '—';
-                        $type = class_basename($costable);
-                        return "{$type}: {$ref}";
-                    }),
-                TextColumn::make('cost_type')
-                    ->label('Type')
-                    ->badge()
-                    ->sortable(),
-                TextColumn::make('description')
-                    ->label('Description')
-                    ->limit(40)
-                    ->tooltip(fn ($record) => $record->description),
-                TextColumn::make('amount')
-                    ->label('Amount')
-                    ->formatStateUsing(fn ($state) => Money::format($state))
-                    ->alignEnd(),
-                TextColumn::make('currency_code')
-                    ->label('Currency'),
-                TextColumn::make('amount_in_document_currency')
-                    ->label('Doc. Amount')
-                    ->formatStateUsing(fn ($state) => Money::format($state))
-                    ->alignEnd()
-                    ->summarize(Sum::make()
-                        ->label('Total')
-                        ->formatStateUsing(fn ($state) => Money::format((int) $state))),
-                TextColumn::make('billable_to')
-                    ->label('Billable To')
-                    ->badge(),
-                TextColumn::make('supplierCompany.name')
-                    ->label('Supplier')
-                    ->placeholder('—'),
-                TextColumn::make('cost_date')
-                    ->label('Date')
-                    ->date('d/m/Y')
-                    ->sortable(),
-                TextColumn::make('status')
-                    ->label('Status')
-                    ->badge(),
-            ])
-            ->defaultSort('cost_date', 'desc')
-            ->filters([
-                SelectFilter::make('cost_type')
-                    ->options(AdditionalCostType::class),
-                SelectFilter::make('billable_to')
-                    ->options(BillableTo::class),
-                SelectFilter::make('status')
-                    ->options(AdditionalCostStatus::class),
             ]);
     }
 

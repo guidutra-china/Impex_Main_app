@@ -24,14 +24,6 @@
         >
             Payment Schedule
         </x-filament::tabs.item>
-
-        <x-filament::tabs.item
-            :active="$activeTab === 'additional_costs'"
-            wire:click="switchTab('additional_costs')"
-            icon="heroicon-o-receipt-percent"
-        >
-            Additional Costs
-        </x-filament::tabs.item>
     </x-filament::tabs>
 
     {{-- Table --}}
