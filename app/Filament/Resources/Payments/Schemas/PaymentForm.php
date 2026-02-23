@@ -132,7 +132,6 @@ class PaymentForm
                         }),
                     Repeater::make('allocations')
                         ->label('Allocations')
-                        ->relationship('allocations')
                         ->schema([
                             Select::make('payment_schedule_item_id')
                                 ->label('Schedule Item')

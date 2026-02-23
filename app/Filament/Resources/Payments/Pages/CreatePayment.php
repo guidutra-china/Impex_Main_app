@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Payments\Pages;
 
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\PaymentAllocation;
+use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Settings\Models\Currency;
 use App\Domain\Settings\Models\ExchangeRate;
@@ -14,36 +15,50 @@ class CreatePayment extends CreateRecord
 {
     protected static string $resource = PaymentResource::class;
 
+    protected array $pendingAllocations = [];
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        $this->pendingAllocations = $data['allocations'] ?? [];
+
         $data['amount'] = Money::toMinor((float) $data['amount']);
         $data['status'] = PaymentStatus::PENDING_APPROVAL->value;
+
+        unset($data['allocations']);
 
         return $data;
     }
 
     protected function afterCreate(): void
     {
-        $payment = $this->record;
-        $data = $this->form->getState();
-
-        if (empty($data['allocations'])) {
+        if (empty($this->pendingAllocations)) {
             return;
         }
 
+        $payment = $this->record;
         $paymentCurrencyCode = $payment->currency_code;
 
-        foreach ($data['allocations'] as $allocationData) {
-            $scheduleItem = \App\Domain\Financial\Models\PaymentScheduleItem::find($allocationData['payment_schedule_item_id']);
+        foreach ($this->pendingAllocations as $allocationData) {
+            $scheduleItemId = $allocationData['payment_schedule_item_id'] ?? null;
+
+            if (! $scheduleItemId) {
+                continue;
+            }
+
+            $scheduleItem = PaymentScheduleItem::find($scheduleItemId);
 
             if (! $scheduleItem) {
                 continue;
             }
 
-            $allocatedMinor = Money::toMinor((float) $allocationData['allocated_amount']);
+            $allocatedMinor = Money::toMinor((float) ($allocationData['allocated_amount'] ?? 0));
+
+            if ($allocatedMinor <= 0) {
+                continue;
+            }
+
             $exchangeRate = ! empty($allocationData['exchange_rate']) ? (float) $allocationData['exchange_rate'] : null;
             $documentCurrencyCode = $scheduleItem->currency_code;
-
             $allocatedInDocCurrency = $allocatedMinor;
 
             if ($paymentCurrencyCode !== $documentCurrencyCode) {
@@ -70,7 +85,7 @@ class CreatePayment extends CreateRecord
 
             PaymentAllocation::create([
                 'payment_id' => $payment->id,
-                'payment_schedule_item_id' => $allocationData['payment_schedule_item_id'],
+                'payment_schedule_item_id' => $scheduleItemId,
                 'allocated_amount' => $allocatedMinor,
                 'exchange_rate' => $exchangeRate,
                 'allocated_amount_in_document_currency' => $allocatedInDocCurrency,
