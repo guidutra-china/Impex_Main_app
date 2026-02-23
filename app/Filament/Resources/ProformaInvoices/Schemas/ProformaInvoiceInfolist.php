@@ -7,7 +7,7 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Enums\FontWeight;
+use Filament\Support\Enums\FontWeight;
 
 class ProformaInvoiceInfolist
 {
