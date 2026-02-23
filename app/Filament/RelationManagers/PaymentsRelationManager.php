@@ -8,7 +8,6 @@ use App\Filament\Resources\Payments\PaymentResource;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables\Actions\Action as TableAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -92,7 +91,7 @@ class PaymentsRelationManager extends RelationManager
                     ->openUrlInNewTab(),
             ])
             ->recordActions([
-                TableAction::make('view')
+                Action::make('view')
                     ->label('View')
                     ->icon('heroicon-o-eye')
                     ->url(fn ($record) => PaymentResource::getUrl('view', ['record' => $record]))
