@@ -26,6 +26,11 @@ class CurrencyResource extends Resource
 
     protected static ?string $navigationLabel = 'Currencies';
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('view-settings') ?? false;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return CurrencyForm::configure($schema);

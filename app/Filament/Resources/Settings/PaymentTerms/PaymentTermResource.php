@@ -26,6 +26,11 @@ class PaymentTermResource extends Resource
 
     protected static ?string $navigationLabel = 'Payment Terms';
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('view-settings') ?? false;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return PaymentTermForm::configure($schema);

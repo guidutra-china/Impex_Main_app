@@ -36,6 +36,11 @@ class SupplierQuotationResource extends Resource
 
     protected static ?string $slug = 'supplier-quotations';
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('view-supplier-quotations') ?? false;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return SupplierQuotationForm::configure($schema);

@@ -26,6 +26,11 @@ class PaymentMethodResource extends Resource
 
     protected static ?string $navigationLabel = 'Payment Methods';
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('view-settings') ?? false;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return PaymentMethodForm::configure($schema);

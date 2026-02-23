@@ -40,6 +40,11 @@ class ProformaInvoiceResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'reference';
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('view-proforma-invoices') ?? false;
+    }
+
     public static function getGloballySearchableAttributes(): array
     {
         return ['reference', 'company.name', 'notes'];

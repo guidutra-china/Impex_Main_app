@@ -98,6 +98,7 @@ class PaymentsRelationManager extends RelationManager
             ->label('Record Payment')
             ->icon('heroicon-o-plus-circle')
             ->color('primary')
+            ->visible(fn () => auth()->user()?->can('create-payments'))
             ->form([
                 Section::make('Payment Details')->columns(2)->schema([
                     Select::make('payment_schedule_item_id')
@@ -233,7 +234,7 @@ class PaymentsRelationManager extends RelationManager
             ->requiresConfirmation()
             ->modalHeading('Approve Payment')
             ->modalDescription(fn ($record) => 'Approve payment of ' . Money::format($record->amount) . ' ' . $record->currency_code . '?')
-            ->visible(fn ($record) => $record->status === PaymentStatus::PENDING_APPROVAL)
+            ->visible(fn ($record) => $record->status === PaymentStatus::PENDING_APPROVAL && auth()->user()?->can('approve-payments'))
             ->action(function ($record) {
                 app(ApprovePaymentAction::class)->approve($record);
 
@@ -255,7 +256,7 @@ class PaymentsRelationManager extends RelationManager
                     ->rows(2)
                     ->required(),
             ])
-            ->visible(fn ($record) => $record->status === PaymentStatus::PENDING_APPROVAL)
+            ->visible(fn ($record) => $record->status === PaymentStatus::PENDING_APPROVAL && auth()->user()?->can('reject-payments'))
             ->action(function ($record, array $data) {
                 app(ApprovePaymentAction::class)->reject($record, $data['reason']);
 

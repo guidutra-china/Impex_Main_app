@@ -26,6 +26,11 @@ class ExchangeRateResource extends Resource
 
     protected static ?string $navigationLabel = 'Exchange Rates';
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('view-settings') ?? false;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return ExchangeRateForm::configure($schema);

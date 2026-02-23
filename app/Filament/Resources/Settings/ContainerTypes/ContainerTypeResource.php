@@ -26,6 +26,11 @@ class ContainerTypeResource extends Resource
 
     protected static ?string $navigationLabel = 'Container Types';
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('view-settings') ?? false;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return ContainerTypeForm::configure($schema);

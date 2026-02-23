@@ -33,6 +33,11 @@ class InquiryResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'reference';
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('view-inquiries') ?? false;
+    }
+
     public static function getGloballySearchableAttributes(): array
     {
         return ['reference', 'company.name', 'notes'];

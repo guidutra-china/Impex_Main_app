@@ -89,7 +89,7 @@ class ViewProformaInvoice extends ViewRecord
                 return implode("\n\n", $lines);
             })
             ->modalSubmitActionLabel('Generate')
-            ->visible(fn () => $this->getRecord()->items()->exists())
+            ->visible(fn () => $this->getRecord()->items()->exists() && auth()->user()?->can('generate-purchase-orders'))
             ->action(function () {
                 $record = $this->getRecord();
 

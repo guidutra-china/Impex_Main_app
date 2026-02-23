@@ -40,6 +40,11 @@ class PurchaseOrderResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'reference';
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('view-purchase-orders') ?? false;
+    }
+
     public static function getGloballySearchableAttributes(): array
     {
         return ['reference', 'supplierCompany.name', 'notes'];

@@ -100,6 +100,7 @@ class PaymentScheduleRelationManager extends RelationManager
             ->label('Generate Schedule')
             ->icon('heroicon-o-sparkles')
             ->color('primary')
+            ->visible(fn () => auth()->user()?->can('generate-payment-schedule'))
             ->requiresConfirmation()
             ->modalHeading('Generate Payment Schedule')
             ->modalDescription(function () {
@@ -152,7 +153,7 @@ class PaymentScheduleRelationManager extends RelationManager
             ->requiresConfirmation()
             ->modalHeading('Regenerate Payment Schedule')
             ->modalDescription('This will delete unpaid/unwaived schedule items without payments and recreate them from the current payment terms and total. Paid and waived items will be preserved.')
-            ->visible(fn () => $this->getOwnerRecord()->hasPaymentSchedule())
+            ->visible(fn () => $this->getOwnerRecord()->hasPaymentSchedule() && auth()->user()?->can('generate-payment-schedule'))
             ->action(function () {
                 $record = $this->getOwnerRecord();
                 $count = app(GeneratePaymentScheduleAction::class)->regenerate($record);
@@ -198,7 +199,7 @@ class PaymentScheduleRelationManager extends RelationManager
                     ->rows(2)
                     ->maxLength(500),
             ])
-            ->visible(fn ($record) => ! $record->status->isResolved())
+            ->visible(fn ($record) => ! $record->status->isResolved() && auth()->user()?->can('waive-payments'))
             ->action(function ($record, array $data) {
                 app(WaivePaymentScheduleItemAction::class)->execute($record, $data['reason'] ?? null);
 

@@ -37,6 +37,11 @@ class CompanyResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('view-companies') ?? false;
+    }
+
     public static function getGloballySearchableAttributes(): array
     {
         return ['name', 'legal_name', 'tax_number', 'email'];

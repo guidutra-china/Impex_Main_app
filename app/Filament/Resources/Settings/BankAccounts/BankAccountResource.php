@@ -26,6 +26,11 @@ class BankAccountResource extends Resource
 
     protected static ?string $navigationLabel = 'Bank Accounts';
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('view-settings') ?? false;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return BankAccountForm::configure($schema);

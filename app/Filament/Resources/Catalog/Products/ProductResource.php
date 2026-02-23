@@ -36,6 +36,11 @@ class ProductResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('view-products') ?? false;
+    }
+
     public static function getGloballySearchableAttributes(): array
     {
         return ['name', 'sku', 'brand', 'model_number', 'hs_code'];
