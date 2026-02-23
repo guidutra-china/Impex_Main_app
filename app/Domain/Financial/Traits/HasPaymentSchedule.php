@@ -2,9 +2,8 @@
 
 namespace App\Domain\Financial\Traits;
 
-use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
-use App\Domain\Financial\Models\Payment;
+use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
@@ -13,11 +12,6 @@ trait HasPaymentSchedule
     public function paymentScheduleItems(): MorphMany
     {
         return $this->morphMany(PaymentScheduleItem::class, 'payable')->orderBy('sort_order');
-    }
-
-    public function payments(): MorphMany
-    {
-        return $this->morphMany(Payment::class, 'payable');
     }
 
     public function hasPaymentSchedule(): bool
@@ -32,9 +26,15 @@ trait HasPaymentSchedule
 
     public function getSchedulePaidTotalAttribute(): int
     {
-        return $this->payments()
-            ->where('status', PaymentStatus::APPROVED)
-            ->sum('amount_in_document_currency');
+        $scheduleItemIds = $this->paymentScheduleItems()->pluck('id');
+
+        if ($scheduleItemIds->isEmpty()) {
+            return 0;
+        }
+
+        return (int) PaymentAllocation::whereIn('payment_schedule_item_id', $scheduleItemIds)
+            ->whereHas('payment', fn ($q) => $q->where('status', PaymentStatus::APPROVED))
+            ->sum('allocated_amount_in_document_currency');
     }
 
     public function getScheduleRemainingAttribute(): int

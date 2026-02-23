@@ -74,7 +74,7 @@ class GeneratePaymentScheduleAction
                 PaymentScheduleStatus::PAID->value,
                 PaymentScheduleStatus::WAIVED->value,
             ])
-            ->whereDoesntHave('payments')
+            ->whereDoesntHave('allocations')
             ->delete();
 
         $paymentTermId = $payable->payment_term_id;

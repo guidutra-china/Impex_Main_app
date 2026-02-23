@@ -77,58 +77,34 @@ class FinancialOverview extends Page implements HasTable
             ->query(
                 Payment::query()
                     ->where('direction', PaymentDirection::INBOUND)
-                    ->with(['payable.company', 'paymentMethod', 'scheduleItem', 'approvedByUser', 'creator'])
+                    ->with(['company', 'paymentMethod', 'allocations.scheduleItem', 'approvedByUser', 'creator'])
             )
             ->columns([
                 TextColumn::make('payment_date')
                     ->label('Date')
                     ->date('d/m/Y')
                     ->sortable(),
-                TextColumn::make('client_name')
+                TextColumn::make('company.name')
                     ->label('Client')
+                    ->placeholder('—')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('allocations_summary')
+                    ->label('Allocated To')
                     ->state(function ($record) {
-                        $payable = $record->payable;
-                        if ($payable instanceof ProformaInvoice) {
-                            return $payable->company?->name ?? '—';
+                        $allocations = $record->allocations;
+                        if ($allocations->isEmpty()) {
+                            return 'No allocations';
                         }
-                        return '—';
+
+                        return $allocations->map(function ($alloc) {
+                            $label = $alloc->scheduleItem?->label ?? '?';
+
+                            return $label . ': ' . Money::formatDisplay($alloc->allocated_amount);
+                        })->join(', ');
                     })
-                    ->searchable(query: function ($query, string $search) {
-                        $query->whereHasMorph('payable', [ProformaInvoice::class], function ($q) use ($search) {
-                            $q->whereHas('company', fn ($c) => $c->where('name', 'like', "%{$search}%"));
-                        });
-                    })
-                    ->sortable(query: function ($query, string $direction) {
-                        $query->orderBy(
-                            ProformaInvoice::select('companies.name')
-                                ->from('proforma_invoices')
-                                ->join('companies', 'companies.id', '=', 'proforma_invoices.company_id')
-                                ->whereColumn('proforma_invoices.id', 'payments.payable_id')
-                                ->where('payments.payable_type', (new ProformaInvoice)->getMorphClass())
-                                ->limit(1),
-                            $direction
-                        );
-                    }),
-                TextColumn::make('payable')
-                    ->label('Document')
-                    ->formatStateUsing(function ($record) {
-                        $payable = $record->payable;
-                        if (! $payable) return '—';
-                        return $payable->reference ?? '—';
-                    })
-                    ->sortable(query: function ($query, string $direction) {
-                        $query->orderBy(
-                            ProformaInvoice::select('reference')
-                                ->from('proforma_invoices')
-                                ->whereColumn('proforma_invoices.id', 'payments.payable_id')
-                                ->where('payments.payable_type', (new ProformaInvoice)->getMorphClass())
-                                ->limit(1),
-                            $direction
-                        );
-                    }),
-                TextColumn::make('scheduleItem.label')
-                    ->label('Schedule Item')
-                    ->placeholder('Ad-hoc'),
+                    ->wrap()
+                    ->limit(80),
                 TextColumn::make('amount')
                     ->label('Amount')
                     ->formatStateUsing(fn ($state) => Money::formatDisplay($state))
@@ -139,10 +115,6 @@ class FinancialOverview extends Page implements HasTable
                         ->formatStateUsing(fn ($state) => Money::formatDisplay((int) $state))),
                 TextColumn::make('currency_code')
                     ->label('Currency'),
-                TextColumn::make('amount_in_document_currency')
-                    ->label('Doc. Amount')
-                    ->formatStateUsing(fn ($state) => $state ? Money::formatDisplay($state) : '—')
-                    ->alignEnd(),
                 TextColumn::make('paymentMethod.name')
                     ->label('Method')
                     ->placeholder('—')
@@ -179,58 +151,34 @@ class FinancialOverview extends Page implements HasTable
             ->query(
                 Payment::query()
                     ->where('direction', PaymentDirection::OUTBOUND)
-                    ->with(['payable.supplierCompany', 'paymentMethod', 'scheduleItem', 'approvedByUser', 'creator'])
+                    ->with(['company', 'paymentMethod', 'allocations.scheduleItem', 'approvedByUser', 'creator'])
             )
             ->columns([
                 TextColumn::make('payment_date')
                     ->label('Date')
                     ->date('d/m/Y')
                     ->sortable(),
-                TextColumn::make('supplier_name')
+                TextColumn::make('company.name')
                     ->label('Supplier')
+                    ->placeholder('—')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('allocations_summary')
+                    ->label('Allocated To')
                     ->state(function ($record) {
-                        $payable = $record->payable;
-                        if ($payable instanceof PurchaseOrder) {
-                            return $payable->supplierCompany?->name ?? '—';
+                        $allocations = $record->allocations;
+                        if ($allocations->isEmpty()) {
+                            return 'No allocations';
                         }
-                        return '—';
+
+                        return $allocations->map(function ($alloc) {
+                            $label = $alloc->scheduleItem?->label ?? '?';
+
+                            return $label . ': ' . Money::formatDisplay($alloc->allocated_amount);
+                        })->join(', ');
                     })
-                    ->searchable(query: function ($query, string $search) {
-                        $query->whereHasMorph('payable', [PurchaseOrder::class], function ($q) use ($search) {
-                            $q->whereHas('supplierCompany', fn ($c) => $c->where('name', 'like', "%{$search}%"));
-                        });
-                    })
-                    ->sortable(query: function ($query, string $direction) {
-                        $query->orderBy(
-                            PurchaseOrder::select('companies.name')
-                                ->from('purchase_orders')
-                                ->join('companies', 'companies.id', '=', 'purchase_orders.supplier_company_id')
-                                ->whereColumn('purchase_orders.id', 'payments.payable_id')
-                                ->where('payments.payable_type', (new PurchaseOrder)->getMorphClass())
-                                ->limit(1),
-                            $direction
-                        );
-                    }),
-                TextColumn::make('payable')
-                    ->label('Document')
-                    ->formatStateUsing(function ($record) {
-                        $payable = $record->payable;
-                        if (! $payable) return '—';
-                        return $payable->reference ?? '—';
-                    })
-                    ->sortable(query: function ($query, string $direction) {
-                        $query->orderBy(
-                            PurchaseOrder::select('reference')
-                                ->from('purchase_orders')
-                                ->whereColumn('purchase_orders.id', 'payments.payable_id')
-                                ->where('payments.payable_type', (new PurchaseOrder)->getMorphClass())
-                                ->limit(1),
-                            $direction
-                        );
-                    }),
-                TextColumn::make('scheduleItem.label')
-                    ->label('Schedule Item')
-                    ->placeholder('Ad-hoc'),
+                    ->wrap()
+                    ->limit(80),
                 TextColumn::make('amount')
                     ->label('Amount')
                     ->formatStateUsing(fn ($state) => Money::formatDisplay($state))
@@ -241,10 +189,6 @@ class FinancialOverview extends Page implements HasTable
                         ->formatStateUsing(fn ($state) => Money::formatDisplay((int) $state))),
                 TextColumn::make('currency_code')
                     ->label('Currency'),
-                TextColumn::make('amount_in_document_currency')
-                    ->label('Doc. Amount')
-                    ->formatStateUsing(fn ($state) => $state ? Money::formatDisplay($state) : '—')
-                    ->alignEnd(),
                 TextColumn::make('paymentMethod.name')
                     ->label('Method')
                     ->placeholder('—')
@@ -290,6 +234,7 @@ class FinancialOverview extends Page implements HasTable
                         if ($payable instanceof PurchaseOrder) {
                             return $payable->supplierCompany?->name ?? '—';
                         }
+
                         return '—';
                     })
                     ->searchable(query: function ($query, string $search) {
@@ -321,9 +266,12 @@ class FinancialOverview extends Page implements HasTable
                     ->label('Document')
                     ->formatStateUsing(function ($record) {
                         $payable = $record->payable;
-                        if (! $payable) return '—';
+                        if (! $payable) {
+                            return '—';
+                        }
                         $ref = $payable->reference ?? '—';
                         $type = class_basename($payable);
+
                         return "{$type}: {$ref}";
                     }),
                 TextColumn::make('label')

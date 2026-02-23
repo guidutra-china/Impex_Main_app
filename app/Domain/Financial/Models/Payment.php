@@ -2,6 +2,7 @@
 
 namespace App\Domain\Financial\Models;
 
+use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Settings\Models\BankAccount;
@@ -9,7 +10,7 @@ use App\Domain\Settings\Models\PaymentMethod;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Payment extends Model
@@ -17,14 +18,10 @@ class Payment extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'payment_schedule_item_id',
-        'payable_type',
-        'payable_id',
         'direction',
+        'company_id',
         'amount',
         'currency_code',
-        'exchange_rate',
-        'amount_in_document_currency',
         'payment_method_id',
         'bank_account_id',
         'payment_date',
@@ -42,15 +39,11 @@ class Payment extends Model
         return [
             'direction' => PaymentDirection::class,
             'amount' => 'integer',
-            'exchange_rate' => 'decimal:8',
-            'amount_in_document_currency' => 'integer',
             'payment_date' => 'date',
             'status' => PaymentStatus::class,
             'approved_at' => 'datetime',
         ];
     }
-
-    // --- Boot ---
 
     protected static function booted(): void
     {
@@ -63,14 +56,14 @@ class Payment extends Model
 
     // --- Relationships ---
 
-    public function payable(): MorphTo
+    public function company(): BelongsTo
     {
-        return $this->morphTo();
+        return $this->belongsTo(Company::class);
     }
 
-    public function scheduleItem(): BelongsTo
+    public function allocations(): HasMany
     {
-        return $this->belongsTo(PaymentScheduleItem::class, 'payment_schedule_item_id');
+        return $this->hasMany(PaymentAllocation::class);
     }
 
     public function paymentMethod(): BelongsTo
@@ -91,6 +84,23 @@ class Payment extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    // --- Computed ---
+
+    public function getAllocatedTotalAttribute(): int
+    {
+        return (int) $this->allocations()->sum('allocated_amount');
+    }
+
+    public function getUnallocatedAmountAttribute(): int
+    {
+        return max(0, $this->amount - $this->allocated_total);
+    }
+
+    public function isFullyAllocated(): bool
+    {
+        return $this->unallocated_amount <= 0;
     }
 
     // --- Scopes ---

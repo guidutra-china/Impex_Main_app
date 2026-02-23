@@ -63,18 +63,18 @@ class PaymentScheduleItem extends Model
         return $this->belongsTo(User::class, 'waived_by');
     }
 
-    public function payments(): HasMany
+    public function allocations(): HasMany
     {
-        return $this->hasMany(Payment::class);
+        return $this->hasMany(PaymentAllocation::class);
     }
 
     // --- Accessors ---
 
     public function getPaidAmountAttribute(): int
     {
-        return $this->payments()
-            ->where('status', PaymentStatus::APPROVED)
-            ->sum('amount_in_document_currency');
+        return (int) $this->allocations()
+            ->whereHas('payment', fn ($q) => $q->where('status', PaymentStatus::APPROVED))
+            ->sum('allocated_amount_in_document_currency');
     }
 
     public function getRemainingAmountAttribute(): int
@@ -124,10 +124,6 @@ class PaymentScheduleItem extends Model
         };
     }
 
-    /**
-     * Conditions that must be resolved before PO generation.
-     * Only upfront/deposit-type conditions block PO creation.
-     */
     public function blocksPurchaseOrderGeneration(): bool
     {
         if (! $this->is_blocking || $this->isResolved()) {

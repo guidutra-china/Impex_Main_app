@@ -35,16 +35,14 @@ return new class extends Migration
 
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('payment_schedule_item_id')
-                ->nullable()
-                ->constrained('payment_schedule_items')
-                ->nullOnDelete();
-            $table->morphs('payable');
             $table->string('direction', 20)->comment('inbound (from client) or outbound (to supplier)');
-            $table->bigInteger('amount')->comment('In minor units (scale 10000) in payment currency');
-            $table->string('currency_code', 10)->comment('Currency of the actual payment');
-            $table->decimal('exchange_rate', 15, 8)->nullable()->comment('Rate to convert to document currency');
-            $table->bigInteger('amount_in_document_currency')->nullable()->comment('Converted amount in document currency');
+            $table->foreignId('company_id')
+                ->nullable()
+                ->constrained('companies')
+                ->nullOnDelete()
+                ->comment('The counterparty: client (inbound) or supplier (outbound)');
+            $table->bigInteger('amount')->comment('Total payment amount in payment currency (minor units, scale 10000)');
+            $table->string('currency_code', 10)->comment('Currency of the actual bank transfer');
             $table->foreignId('payment_method_id')
                 ->nullable()
                 ->constrained('payment_methods')
@@ -67,11 +65,30 @@ return new class extends Migration
             $table->index('status');
             $table->index('payment_date');
             $table->index('direction');
+            $table->index('company_id');
+        });
+
+        Schema::create('payment_allocations', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('payment_id')
+                ->constrained('payments')
+                ->cascadeOnDelete();
+            $table->foreignId('payment_schedule_item_id')
+                ->constrained('payment_schedule_items')
+                ->cascadeOnDelete();
+            $table->bigInteger('allocated_amount')->comment('Amount allocated in payment currency (minor units)');
+            $table->decimal('exchange_rate', 15, 8)->nullable()->comment('Rate to convert payment currency to document currency');
+            $table->bigInteger('allocated_amount_in_document_currency')->nullable()->comment('Converted amount in document currency (minor units)');
+            $table->timestamp('created_at')->useCurrent();
+
+            $table->unique(['payment_id', 'payment_schedule_item_id'], 'payment_allocation_unique');
+            $table->index('payment_schedule_item_id');
         });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('payment_allocations');
         Schema::dropIfExists('payments');
         Schema::dropIfExists('payment_schedule_items');
     }

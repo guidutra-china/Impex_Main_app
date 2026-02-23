@@ -16,7 +16,7 @@ class ApprovePaymentAction
             'approved_at' => now(),
         ]);
 
-        $this->updateScheduleItemStatus($payment);
+        $this->updateAllocatedScheduleItems($payment);
     }
 
     public function reject(Payment $payment, ?string $reason = null): void
@@ -25,22 +25,28 @@ class ApprovePaymentAction
             'status' => PaymentStatus::REJECTED,
             'approved_by' => auth()->id(),
             'approved_at' => now(),
-            'notes' => $reason ? ($payment->notes ? $payment->notes . "\n\nRejection: " . $reason : 'Rejection: ' . $reason) : $payment->notes,
+            'notes' => $reason
+                ? ($payment->notes ? $payment->notes . "\n\nRejection: " . $reason : 'Rejection: ' . $reason)
+                : $payment->notes,
         ]);
     }
 
-    protected function updateScheduleItemStatus(Payment $payment): void
+    protected function updateAllocatedScheduleItems(Payment $payment): void
     {
-        $scheduleItem = $payment->scheduleItem;
+        $allocations = $payment->allocations()->with('scheduleItem')->get();
 
-        if (! $scheduleItem) {
-            return;
-        }
+        foreach ($allocations as $allocation) {
+            $scheduleItem = $allocation->scheduleItem;
 
-        if ($scheduleItem->is_paid_in_full) {
-            $scheduleItem->update([
-                'status' => PaymentScheduleStatus::PAID,
-            ]);
+            if (! $scheduleItem) {
+                continue;
+            }
+
+            if ($scheduleItem->is_paid_in_full) {
+                $scheduleItem->update([
+                    'status' => PaymentScheduleStatus::PAID,
+                ]);
+            }
         }
     }
 }
