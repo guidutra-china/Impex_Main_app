@@ -11,10 +11,19 @@ use App\Domain\CRM\Enums\ContactFunction;
 use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Models\CompanyRoleAssignment;
 use App\Domain\CRM\Models\Contact;
+use Faker\Factory as FakerFactory;
+use Faker\Generator as Faker;
 use Illuminate\Database\Seeder;
 
 class DevelopmentSeeder extends Seeder
 {
+    protected Faker $faker;
+
+    public function __construct()
+    {
+        $this->faker = FakerFactory::create();
+    }
+
     public function run(): void
     {
         $this->command->info('Seeding development data...');
@@ -55,7 +64,7 @@ class DevelopmentSeeder extends Seeder
             Contact::factory()->chinese()->primary()->create([
                 'company_id' => $company->id,
                 'function' => ContactFunction::SALES,
-                'position' => fake()->randomElement(['Sales Manager', 'Export Manager', 'Business Manager']),
+                'position' => $this->faker->randomElement(['Sales Manager', 'Export Manager', 'Business Manager']),
             ]);
 
             Contact::factory()->chinese()->create([
@@ -64,7 +73,7 @@ class DevelopmentSeeder extends Seeder
                 'position' => 'Shipping Coordinator',
             ]);
 
-            if (fake()->boolean(60)) {
+            if ($this->faker->boolean(60)) {
                 Contact::factory()->chinese()->create([
                     'company_id' => $company->id,
                     'function' => ContactFunction::QUALITY,
@@ -93,16 +102,16 @@ class DevelopmentSeeder extends Seeder
             Contact::factory()->brazilian()->primary()->create([
                 'company_id' => $company->id,
                 'function' => ContactFunction::PURCHASING,
-                'position' => fake()->randomElement(['Diretor de Compras', 'Gerente de Importação', 'Comprador']),
+                'position' => $this->faker->randomElement(['Diretor de Compras', 'Gerente de Importação', 'Comprador']),
             ]);
 
             Contact::factory()->brazilian()->create([
                 'company_id' => $company->id,
                 'function' => ContactFunction::FINANCE,
-                'position' => fake()->randomElement(['Gerente Financeiro', 'Analista Financeiro']),
+                'position' => $this->faker->randomElement(['Gerente Financeiro', 'Analista Financeiro']),
             ]);
 
-            if (fake()->boolean(50)) {
+            if ($this->faker->boolean(50)) {
                 Contact::factory()->brazilian()->create([
                     'company_id' => $company->id,
                     'function' => ContactFunction::LOGISTICS,
@@ -133,10 +142,10 @@ class DevelopmentSeeder extends Seeder
                     'hs_code' => $productDef['hs_code'],
                     'origin_country' => 'CN',
                     'brand' => $productDef['brand'],
-                    'model_number' => strtoupper(fake()->bothify('??-####')),
-                    'moq' => fake()->randomElement([100, 200, 500, 1000, 2000, 5000]),
+                    'model_number' => strtoupper($this->faker->bothify('??-####')),
+                    'moq' => $this->faker->randomElement([100, 200, 500, 1000, 2000, 5000]),
                     'moq_unit' => 'pcs',
-                    'lead_time_days' => fake()->randomElement([15, 20, 25, 30, 45]),
+                    'lead_time_days' => $this->faker->randomElement([15, 20, 25, 30, 45]),
                 ]);
 
                 $this->createProductSpecification($product);
@@ -153,17 +162,17 @@ class DevelopmentSeeder extends Seeder
     {
         ProductSpecification::create([
             'product_id' => $product->id,
-            'net_weight' => fake()->randomFloat(3, 0.05, 50),
-            'gross_weight' => fake()->randomFloat(3, 0.1, 55),
-            'length' => fake()->randomFloat(2, 5, 200),
-            'width' => fake()->randomFloat(2, 5, 150),
-            'height' => fake()->randomFloat(2, 1, 100),
-            'material' => fake()->randomElement([
+            'net_weight' => $this->faker->randomFloat(3, 0.05, 50),
+            'gross_weight' => $this->faker->randomFloat(3, 0.1, 55),
+            'length' => $this->faker->randomFloat(2, 5, 200),
+            'width' => $this->faker->randomFloat(2, 5, 150),
+            'height' => $this->faker->randomFloat(2, 1, 100),
+            'material' => $this->faker->randomElement([
                 'ABS Plastic', 'Aluminum Alloy', 'Stainless Steel 304',
                 'Polyester', 'Cotton', 'MDF Board', 'Tempered Glass',
                 'Polycarbonate', 'Brass', 'PVC', 'Nylon',
             ]),
-            'color' => fake()->randomElement([
+            'color' => $this->faker->randomElement([
                 'White', 'Black', 'Silver', 'Natural', 'Custom',
                 'Blue', 'Red', 'Green', 'Gray', 'Multi-color',
             ]),
@@ -172,10 +181,10 @@ class DevelopmentSeeder extends Seeder
 
     protected function createProductPackaging(Product $product): void
     {
-        $pcsPerCarton = fake()->randomElement([1, 2, 4, 6, 10, 12, 20, 24, 50, 100]);
-        $cartonL = fake()->randomFloat(2, 20, 80);
-        $cartonW = fake()->randomFloat(2, 15, 60);
-        $cartonH = fake()->randomFloat(2, 10, 50);
+        $pcsPerCarton = $this->faker->randomElement([1, 2, 4, 6, 10, 12, 20, 24, 50, 100]);
+        $cartonL = $this->faker->randomFloat(2, 20, 80);
+        $cartonW = $this->faker->randomFloat(2, 15, 60);
+        $cartonH = $this->faker->randomFloat(2, 10, 50);
         $cbm = round(($cartonL * $cartonW * $cartonH) / 1000000, 4);
 
         ProductPackaging::create([
@@ -184,7 +193,7 @@ class DevelopmentSeeder extends Seeder
             'carton_length' => $cartonL,
             'carton_width' => $cartonW,
             'carton_height' => $cartonH,
-            'carton_weight' => fake()->randomFloat(3, 1, 30),
+            'carton_weight' => $this->faker->randomFloat(3, 1, 30),
             'carton_cbm' => $cbm,
             'cartons_per_20ft' => $cbm > 0 ? (int) floor(28 / $cbm) : null,
             'cartons_per_40ft' => $cbm > 0 ? (int) floor(58 / $cbm) : null,
@@ -195,14 +204,14 @@ class DevelopmentSeeder extends Seeder
     protected function linkSuppliersToProducts(\Illuminate\Support\Collection $suppliers, \Illuminate\Support\Collection $products): void
     {
         $supplierCategoryMap = [
-            0 => ['LED Lighting', 'Batteries'],           // Brightstar Electronics
-            1 => ['Office Furniture', 'Home Furniture', 'Outdoor Furniture'], // Haiyu Furniture
-            2 => ['Fabrics', 'Garments', 'Home Textiles'], // Yongxin Textile
-            3 => ['Fasteners', 'Tools', 'Plumbing'],       // Deli Hardware
-            4 => ['Boxes & Cartons', 'Bags & Pouches', 'Labels & Stickers'], // Greenpack
-            5 => ['Solar Panels'],                          // Sunlight Solar
-            6 => ['Cables & Connectors'],                   // Meida Cable
-            7 => ['LED Lighting'],                          // Topbright Lighting
+            0 => ['LED Lighting', 'Batteries'],
+            1 => ['Office Furniture', 'Home Furniture', 'Outdoor Furniture'],
+            2 => ['Fabrics', 'Garments', 'Home Textiles'],
+            3 => ['Fasteners', 'Tools', 'Plumbing'],
+            4 => ['Boxes & Cartons', 'Bags & Pouches', 'Labels & Stickers'],
+            5 => ['Solar Panels'],
+            6 => ['Cables & Connectors'],
+            7 => ['LED Lighting'],
         ];
 
         foreach ($suppliers as $index => $supplier) {
@@ -215,15 +224,15 @@ class DevelopmentSeeder extends Seeder
                 });
 
                 foreach ($categoryProducts as $product) {
-                    $basePrice = fake()->randomElement([50, 120, 250, 500, 800, 1500, 3000, 5000, 10000, 25000]);
+                    $basePrice = $this->faker->randomElement([50, 120, 250, 500, 800, 1500, 3000, 5000, 10000, 25000]);
 
                     $supplier->products()->attach($product->id, [
                         'role' => 'supplier',
-                        'external_code' => strtoupper(fake()->bothify('??-#####')),
+                        'external_code' => strtoupper($this->faker->bothify('??-#####')),
                         'external_name' => $product->name,
                         'unit_price' => $basePrice * 100,
-                        'currency_code' => fake()->randomElement(['USD', 'CNY']),
-                        'incoterm' => fake()->randomElement(['FOB', 'EXW', 'CIF']),
+                        'currency_code' => $this->faker->randomElement(['USD', 'CNY']),
+                        'incoterm' => $this->faker->randomElement(['FOB', 'EXW', 'CIF']),
                         'lead_time_days' => $product->lead_time_days,
                         'moq' => $product->moq,
                         'is_preferred' => $index < 5,
@@ -236,12 +245,12 @@ class DevelopmentSeeder extends Seeder
     protected function linkClientsToProducts(\Illuminate\Support\Collection $clients, \Illuminate\Support\Collection $products): void
     {
         $clientInterests = [
-            0 => ['LED Lighting', 'Solar Panels', 'Batteries', 'Cables & Connectors'], // Eletro Brasil
-            1 => ['Home Furniture', 'Office Furniture', 'Home Textiles'],               // Casa & Conforto
-            2 => ['LED Lighting'],                                                       // Luminar
-            3 => ['Fasteners', 'Tools', 'Plumbing'],                                    // Ferramentas do Sul
-            4 => ['Fabrics', 'Garments', 'Home Textiles'],                              // Têxtil Nordeste
-            5 => ['Solar Panels', 'Batteries', 'Cables & Connectors'],                  // Solar Energy
+            0 => ['LED Lighting', 'Solar Panels', 'Batteries', 'Cables & Connectors'],
+            1 => ['Home Furniture', 'Office Furniture', 'Home Textiles'],
+            2 => ['LED Lighting'],
+            3 => ['Fasteners', 'Tools', 'Plumbing'],
+            4 => ['Fabrics', 'Garments', 'Home Textiles'],
+            5 => ['Solar Panels', 'Batteries', 'Cables & Connectors'],
         ];
 
         foreach ($clients as $index => $client) {
@@ -258,17 +267,17 @@ class DevelopmentSeeder extends Seeder
                         ->wherePivot('role', 'supplier')
                         ->first()?->pivot?->unit_price ?? 50000;
 
-                    $markup = fake()->randomFloat(2, 1.15, 1.45);
+                    $markup = $this->faker->randomFloat(2, 1.15, 1.45);
                     $clientPrice = (int) round($supplierPrice * $markup);
 
                     $client->products()->attach($product->id, [
                         'role' => 'client',
-                        'external_code' => strtoupper(fake()->bothify('CLI-#####')),
+                        'external_code' => strtoupper($this->faker->bothify('CLI-#####')),
                         'external_name' => $product->name,
                         'unit_price' => $clientPrice,
                         'currency_code' => 'USD',
-                        'incoterm' => fake()->randomElement(['CIF', 'CFR', 'FOB']),
-                        'lead_time_days' => ($product->lead_time_days ?? 30) + fake()->numberBetween(10, 20),
+                        'incoterm' => $this->faker->randomElement(['CIF', 'CFR', 'FOB']),
+                        'lead_time_days' => ($product->lead_time_days ?? 30) + $this->faker->numberBetween(10, 20),
                         'moq' => $product->moq,
                         'is_preferred' => false,
                     ]);
@@ -322,6 +331,6 @@ class DevelopmentSeeder extends Seeder
             'Professional grade product designed for commercial applications.',
         ];
 
-        return $productName . '. ' . fake()->randomElement($descriptions);
+        return $productName . '. ' . $this->faker->randomElement($descriptions);
     }
 }

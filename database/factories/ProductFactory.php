@@ -90,16 +90,16 @@ class ProductFactory extends Factory
     {
         return [
             'name' => 'Generic Product',
-            'description' => fake()->paragraph(2),
+            'description' => $this->faker->paragraph(2),
             'status' => ProductStatus::ACTIVE,
             'category_id' => null,
-            'hs_code' => fake()->numerify('####.##'),
+            'hs_code' => $this->faker->numerify('####.##'),
             'origin_country' => 'CN',
-            'brand' => fake()->company(),
-            'model_number' => strtoupper(fake()->bothify('??-####')),
-            'moq' => fake()->randomElement([100, 200, 500, 1000, 2000, 5000]),
+            'brand' => $this->faker->company(),
+            'model_number' => strtoupper($this->faker->bothify('??-####')),
+            'moq' => $this->faker->randomElement([100, 200, 500, 1000, 2000, 5000]),
             'moq_unit' => 'pcs',
-            'lead_time_days' => fake()->randomElement([15, 20, 25, 30, 35, 45, 60]),
+            'lead_time_days' => $this->faker->randomElement([15, 20, 25, 30, 35, 45, 60]),
         ];
     }
 
@@ -111,7 +111,7 @@ class ProductFactory extends Factory
             return $this;
         }
 
-        $product = fake()->randomElement($products);
+        $product = $this->faker->randomElement($products);
 
         return $this->state(function () use ($categoryName, $product) {
             $category = Category::where('name', $categoryName)->first();
@@ -122,9 +122,9 @@ class ProductFactory extends Factory
                 'hs_code' => $product['hs_code'],
                 'brand' => $product['brand'],
                 'origin_country' => 'CN',
-                'model_number' => strtoupper(fake()->bothify('??-####')),
-                'moq' => fake()->randomElement([100, 200, 500, 1000, 2000]),
-                'lead_time_days' => fake()->randomElement([15, 25, 30, 45]),
+                'model_number' => strtoupper($this->faker->bothify('??-####')),
+                'moq' => $this->faker->randomElement([100, 200, 500, 1000, 2000]),
+                'lead_time_days' => $this->faker->randomElement([15, 25, 30, 45]),
             ];
         });
     }

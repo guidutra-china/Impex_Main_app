@@ -18,11 +18,11 @@ class ContactFactory extends Factory
     {
         return [
             'company_id' => Company::factory(),
-            'name' => fake()->name(),
-            'email' => fake()->safeEmail(),
-            'phone' => fake()->phoneNumber(),
-            'function' => fake()->randomElement(ContactFunction::cases()),
-            'position' => fake()->randomElement(['Manager', 'Director', 'Coordinator', 'Analyst', 'Assistant']),
+            'name' => $this->faker->name(),
+            'email' => $this->faker->safeEmail(),
+            'phone' => $this->faker->phoneNumber(),
+            'function' => $this->faker->randomElement(ContactFunction::cases()),
+            'position' => $this->faker->randomElement(['Manager', 'Director', 'Coordinator', 'Analyst', 'Assistant']),
             'is_primary' => false,
         ];
     }
@@ -39,23 +39,25 @@ class ContactFactory extends Factory
         $surnames = ['Wang', 'Li', 'Zhang', 'Liu', 'Chen', 'Yang', 'Huang', 'Zhao', 'Wu', 'Zhou'];
         $names = ['Wei', 'Fang', 'Ming', 'Jing', 'Hua', 'Xin', 'Lei', 'Yan', 'Ping', 'Jun'];
 
-        $fullName = fake()->randomElement($surnames) . ' ' . fake()->randomElement($names);
+        $fullName = $this->faker->randomElement($surnames) . ' ' . $this->faker->randomElement($names);
 
         return $this->state(fn () => [
             'name' => $fullName,
-            'email' => strtolower(str_replace(' ', '.', $fullName)) . '@' . fake()->domainWord() . '.cn',
-            'phone' => '+86 ' . fake()->numerify('1## #### ####'),
-            'wechat' => strtolower(str_replace(' ', '', $fullName)) . fake()->numerify('##'),
+            'email' => strtolower(str_replace(' ', '.', $fullName)) . '@' . $this->faker->domainWord() . '.cn',
+            'phone' => '+86 ' . $this->faker->numerify('1## #### ####'),
+            'wechat' => strtolower(str_replace(' ', '', $fullName)) . $this->faker->numerify('##'),
         ]);
     }
 
     public function brazilian(): static
     {
+        $brFaker = \Faker\Factory::create('pt_BR');
+
         return $this->state(fn () => [
-            'name' => fake('pt_BR')->name(),
-            'email' => fake('pt_BR')->safeEmail(),
-            'phone' => '+55 ' . fake()->numerify('## #####-####'),
-            'whatsapp' => '+55' . fake()->numerify('###########'),
+            'name' => $brFaker->name(),
+            'email' => $brFaker->safeEmail(),
+            'phone' => '+55 ' . $this->faker->numerify('## #####-####'),
+            'whatsapp' => '+55' . $this->faker->numerify('###########'),
         ]);
     }
 }

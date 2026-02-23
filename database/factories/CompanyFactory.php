@@ -44,18 +44,18 @@ class CompanyFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->company(),
-            'legal_name' => fake()->company() . ' ' . fake()->randomElement(['Ltda.', 'S.A.', 'Co., Ltd.', 'LLC']),
-            'tax_number' => fake()->numerify('##.###.###/####-##'),
-            'website' => fake()->url(),
-            'phone' => fake()->phoneNumber(),
-            'email' => fake()->companyEmail(),
-            'address_street' => fake()->streetName(),
-            'address_number' => fake()->buildingNumber(),
-            'address_city' => fake()->city(),
-            'address_state' => fake()->state(),
-            'address_zip' => fake()->postcode(),
-            'address_country' => fake()->randomElement(['BR', 'CN', 'US']),
+            'name' => $this->faker->company(),
+            'legal_name' => $this->faker->company() . ' ' . $this->faker->randomElement(['Ltda.', 'S.A.', 'Co., Ltd.', 'LLC']),
+            'tax_number' => $this->faker->numerify('##.###.###/####-##'),
+            'website' => $this->faker->url(),
+            'phone' => $this->faker->phoneNumber(),
+            'email' => $this->faker->companyEmail(),
+            'address_street' => $this->faker->streetName(),
+            'address_number' => $this->faker->buildingNumber(),
+            'address_city' => $this->faker->city(),
+            'address_state' => $this->faker->state(),
+            'address_zip' => $this->faker->postcode(),
+            'address_country' => $this->faker->randomElement(['BR', 'CN', 'US']),
             'status' => CompanyStatus::ACTIVE,
         ];
     }
@@ -68,15 +68,15 @@ class CompanyFactory extends Factory
         return $this->state(fn () => [
             'name' => $data['name'],
             'legal_name' => $data['name'],
-            'tax_number' => fake()->numerify('91########CN####'),
-            'website' => 'https://www.' . fake()->domainWord() . '.cn',
-            'phone' => '+86 ' . fake()->numerify('### #### ####'),
-            'email' => 'sales@' . fake()->domainWord() . '.cn',
-            'address_street' => fake()->randomElement(['Xinhua Road', 'Zhongshan Avenue', 'Nanshan District', 'Baoan Industrial Zone', 'Longgang Technology Park']),
-            'address_number' => fake()->numerify('Building ##'),
+            'tax_number' => $this->faker->numerify('91########CN####'),
+            'website' => 'https://www.' . $this->faker->domainWord() . '.cn',
+            'phone' => '+86 ' . $this->faker->numerify('### #### ####'),
+            'email' => 'sales@' . $this->faker->domainWord() . '.cn',
+            'address_street' => $this->faker->randomElement(['Xinhua Road', 'Zhongshan Avenue', 'Nanshan District', 'Baoan Industrial Zone', 'Longgang Technology Park']),
+            'address_number' => $this->faker->numerify('Building ##'),
             'address_city' => $data['city'],
             'address_state' => $data['state'],
-            'address_zip' => fake()->numerify('######'),
+            'address_zip' => $this->faker->numerify('######'),
             'address_country' => 'CN',
             'status' => CompanyStatus::ACTIVE,
         ]);
@@ -87,18 +87,20 @@ class CompanyFactory extends Factory
         $data = static::$brazilianClients[static::$clientIndex % count(static::$brazilianClients)];
         static::$clientIndex++;
 
+        $brFaker = \Faker\Factory::create('pt_BR');
+
         return $this->state(fn () => [
             'name' => $data['name'],
             'legal_name' => $data['name'],
-            'tax_number' => fake('pt_BR')->cnpj(),
-            'website' => 'https://www.' . fake()->domainWord() . '.com.br',
-            'phone' => '+55 ' . fake()->numerify('## #####-####'),
-            'email' => 'compras@' . fake()->domainWord() . '.com.br',
-            'address_street' => fake('pt_BR')->streetName(),
-            'address_number' => fake()->buildingNumber(),
+            'tax_number' => $brFaker->cnpj(),
+            'website' => 'https://www.' . $this->faker->domainWord() . '.com.br',
+            'phone' => '+55 ' . $this->faker->numerify('## #####-####'),
+            'email' => 'compras@' . $this->faker->domainWord() . '.com.br',
+            'address_street' => $brFaker->streetName(),
+            'address_number' => $this->faker->buildingNumber(),
             'address_city' => $data['city'],
             'address_state' => $data['state'],
-            'address_zip' => fake()->numerify('#####-###'),
+            'address_zip' => $this->faker->numerify('#####-###'),
             'address_country' => 'BR',
             'status' => CompanyStatus::ACTIVE,
         ]);
