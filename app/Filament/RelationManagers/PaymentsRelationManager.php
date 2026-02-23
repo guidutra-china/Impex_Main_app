@@ -16,7 +16,7 @@ use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Grid;
+use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -99,7 +99,7 @@ class PaymentsRelationManager extends RelationManager
             ->icon('heroicon-o-plus-circle')
             ->color('primary')
             ->form([
-                Grid::make(2)->schema([
+                Section::make('Payment Details')->columns(2)->schema([
                     Select::make('payment_schedule_item_id')
                         ->label('Schedule Item')
                         ->options(function () {
