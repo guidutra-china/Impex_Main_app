@@ -2,15 +2,20 @@
 
 namespace App\Filament\RelationManagers;
 
-use App\Domain\Financial\Models\Payment;
+use App\Domain\Financial\Enums\PaymentStatus;
+use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
 use App\Filament\Resources\Payments\PaymentResource;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\HtmlString;
 
 class PaymentsRelationManager extends RelationManager
 {
@@ -23,27 +28,42 @@ class PaymentsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->query(fn () => $this->getPaymentsQuery())
+            ->query(fn () => $this->getScheduleItemsQuery())
             ->columns([
-                TextColumn::make('payment_date')
-                    ->label('Date')
-                    ->date('d/m/Y')
-                    ->sortable(),
-                TextColumn::make('direction')
-                    ->label('Direction')
+                TextColumn::make('label')
+                    ->label('Schedule Stage')
+                    ->weight('bold')
+                    ->searchable(),
+                TextColumn::make('percentage')
+                    ->label('%')
+                    ->suffix('%')
+                    ->alignCenter(),
+                TextColumn::make('amount')
+                    ->label('Due Amount')
+                    ->formatStateUsing(fn ($state, $record) => $record->currency_code . ' ' . Money::format($state))
+                    ->alignEnd(),
+                TextColumn::make('paid_amount')
+                    ->label('Paid')
+                    ->getStateUsing(fn ($record) => $record->paid_amount)
+                    ->formatStateUsing(fn ($state, $record) => $record->currency_code . ' ' . Money::format($state))
+                    ->alignEnd()
+                    ->color(fn ($record) => $record->is_paid_in_full ? 'success' : ($record->paid_amount > 0 ? 'info' : 'gray')),
+                TextColumn::make('remaining_amount')
+                    ->label('Remaining')
+                    ->getStateUsing(fn ($record) => $record->remaining_amount)
+                    ->formatStateUsing(fn ($state, $record) => $record->currency_code . ' ' . Money::format($state))
+                    ->alignEnd()
+                    ->color(fn ($state) => $state > 0 ? 'warning' : 'success'),
+                TextColumn::make('status')
+                    ->label('Status')
                     ->badge(),
-                TextColumn::make('company.name')
-                    ->label('Company')
-                    ->placeholder('—'),
-                TextColumn::make('allocations_for_this_document')
-                    ->label('Allocated Here')
-                    ->state(function ($record) {
-                        $ownerRecord = $this->getOwnerRecord();
-                        $scheduleItemIds = $ownerRecord->paymentScheduleItems()->pluck('id');
-
+                TextColumn::make('allocations_detail')
+                    ->label('Deposits')
+                    ->wrap()
+                    ->getStateUsing(function ($record) {
                         $allocations = $record->allocations()
-                            ->with('scheduleItem')
-                            ->whereIn('payment_schedule_item_id', $scheduleItemIds)
+                            ->whereHas('payment', fn ($q) => $q->whereNot('status', PaymentStatus::CANCELLED))
+                            ->with('payment')
                             ->get();
 
                         if ($allocations->isEmpty()) {
@@ -51,37 +71,23 @@ class PaymentsRelationManager extends RelationManager
                         }
 
                         return $allocations->map(function ($alloc) {
-                            $label = $alloc->scheduleItem?->label ?? '?';
+                            $payment = $alloc->payment;
+                            $date = $payment->payment_date?->format('d/m/Y') ?? '—';
                             $amount = Money::format($alloc->allocated_amount);
-                            return "{$label}: {$amount}";
-                        })->join(', ');
-                    })
-                    ->wrap(),
-                TextColumn::make('amount')
-                    ->label('Total Payment')
-                    ->formatStateUsing(fn ($state) => Money::format($state))
-                    ->alignEnd(),
-                TextColumn::make('currency_code')
-                    ->label('Currency'),
-                TextColumn::make('unallocated_amount')
-                    ->label('Unallocated')
-                    ->getStateUsing(fn ($record) => $record->unallocated_amount)
-                    ->formatStateUsing(fn ($state) => Money::format($state))
-                    ->alignEnd()
-                    ->color(fn ($state) => $state > 0 ? 'warning' : 'gray'),
-                TextColumn::make('paymentMethod.name')
-                    ->label('Method')
-                    ->placeholder('—'),
-                TextColumn::make('reference')
-                    ->label('Reference')
-                    ->placeholder('—')
-                    ->limit(20)
-                    ->tooltip(fn ($record) => $record->reference),
-                TextColumn::make('status')
-                    ->label('Status')
-                    ->badge(),
+                            $currency = $payment->currency_code;
+                            $ref = $payment->reference ? " ({$payment->reference})" : '';
+                            $statusBadge = match ($payment->status) {
+                                PaymentStatus::APPROVED => '✓',
+                                PaymentStatus::PENDING_APPROVAL => '⏳',
+                                PaymentStatus::REJECTED => '✗',
+                                default => '',
+                            };
+
+                            return "{$statusBadge} {$date} — {$currency} {$amount}{$ref}";
+                        })->join("\n");
+                    }),
             ])
-            ->defaultSort('payment_date', 'desc')
+            ->defaultSort('sort_order')
             ->headerActions([
                 Action::make('recordPayment')
                     ->label('Record Payment')
@@ -91,21 +97,101 @@ class PaymentsRelationManager extends RelationManager
                     ->openUrlInNewTab(),
             ])
             ->recordActions([
-                Action::make('view')
-                    ->label('View')
+                Action::make('viewPayments')
+                    ->label('View Deposits')
                     ->icon('heroicon-o-eye')
-                    ->url(fn ($record) => PaymentResource::getUrl('view', ['record' => $record]))
-                    ->openUrlInNewTab(),
+                    ->color('gray')
+                    ->modalHeading(fn ($record) => "Deposits for: {$record->label}")
+                    ->modalContent(fn ($record) => new HtmlString($this->renderAllocationsDetail($record)))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Close'),
             ]);
     }
 
-    protected function getPaymentsQuery(): Builder
+    protected function getScheduleItemsQuery(): Builder
     {
         $record = $this->getOwnerRecord();
-        $scheduleItemIds = $record->paymentScheduleItems()->pluck('id');
 
-        return Payment::query()
-            ->whereHas('allocations', fn ($q) => $q->whereIn('payment_schedule_item_id', $scheduleItemIds))
-            ->with(['company', 'allocations.scheduleItem', 'paymentMethod', 'approvedByUser']);
+        return PaymentScheduleItem::query()
+            ->where('payable_type', get_class($record))
+            ->where('payable_id', $record->getKey())
+            ->orderBy('sort_order');
+    }
+
+    protected function renderAllocationsDetail(PaymentScheduleItem $item): string
+    {
+        $allocations = $item->allocations()
+            ->whereHas('payment', fn ($q) => $q->whereNot('status', PaymentStatus::CANCELLED))
+            ->with(['payment.paymentMethod', 'payment.company'])
+            ->get();
+
+        if ($allocations->isEmpty()) {
+            return '<p class="text-sm text-gray-500 py-4">No deposits recorded for this schedule item.</p>';
+        }
+
+        $html = '<div class="overflow-x-auto">';
+        $html .= '<table class="w-full text-sm border-collapse">';
+        $html .= '<thead><tr class="border-b border-gray-200 dark:border-gray-700">';
+        $html .= '<th class="text-left py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Date</th>';
+        $html .= '<th class="text-right py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Amount</th>';
+        $html .= '<th class="text-left py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Currency</th>';
+        $html .= '<th class="text-left py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Method</th>';
+        $html .= '<th class="text-left py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Reference</th>';
+        $html .= '<th class="text-left py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Status</th>';
+        $html .= '<th class="text-center py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Action</th>';
+        $html .= '</tr></thead><tbody>';
+
+        $totalAllocated = 0;
+
+        foreach ($allocations as $alloc) {
+            $payment = $alloc->payment;
+            $date = $payment->payment_date?->format('d/m/Y') ?? '—';
+            $amount = Money::format($alloc->allocated_amount);
+            $currency = $payment->currency_code;
+            $method = $payment->paymentMethod?->name ?? '—';
+            $ref = e($payment->reference ?? '—');
+            $totalAllocated += $alloc->allocated_amount;
+
+            $statusColor = match ($payment->status) {
+                PaymentStatus::APPROVED => 'text-green-600',
+                PaymentStatus::PENDING_APPROVAL => 'text-yellow-600',
+                PaymentStatus::REJECTED => 'text-red-600',
+                default => 'text-gray-500',
+            };
+            $statusLabel = $payment->status instanceof BackedEnum ? ucfirst($payment->status->value) : $payment->status;
+
+            $viewUrl = PaymentResource::getUrl('view', ['record' => $payment]);
+
+            $html .= '<tr class="border-b border-gray-100 dark:border-gray-800">';
+            $html .= "<td class=\"py-2 px-3\">{$date}</td>";
+            $html .= "<td class=\"py-2 px-3 text-right font-medium\">{$amount}</td>";
+            $html .= "<td class=\"py-2 px-3\">{$currency}</td>";
+            $html .= "<td class=\"py-2 px-3\">{$method}</td>";
+            $html .= "<td class=\"py-2 px-3\">{$ref}</td>";
+            $html .= "<td class=\"py-2 px-3 {$statusColor} font-medium\">{$statusLabel}</td>";
+            $html .= "<td class=\"py-2 px-3 text-center\"><a href=\"{$viewUrl}\" target=\"_blank\" class=\"text-primary-600 hover:underline text-xs\">View</a></td>";
+            $html .= '</tr>';
+        }
+
+        $html .= '</tbody>';
+        $html .= '<tfoot><tr class="border-t-2 border-gray-300 dark:border-gray-600">';
+        $html .= '<td class="py-2 px-3 font-bold text-right">Total:</td>';
+        $html .= '<td class="py-2 px-3 text-right font-bold">' . Money::format($totalAllocated) . '</td>';
+        $html .= '<td colspan="5"></td>';
+        $html .= '</tr></tfoot>';
+        $html .= '</table></div>';
+
+        $remaining = $item->remaining_amount;
+        if ($remaining > 0) {
+            $html .= '<div class="mt-3 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded text-sm text-yellow-700 dark:text-yellow-400">';
+            $html .= 'Remaining: ' . $item->currency_code . ' ' . Money::format($remaining);
+            $html .= '</div>';
+        } else {
+            $html .= '<div class="mt-3 p-2 bg-green-50 dark:bg-green-900/20 rounded text-sm text-green-700 dark:text-green-400">';
+            $html .= 'Fully paid';
+            $html .= '</div>';
+        }
+
+        return $html;
     }
 }

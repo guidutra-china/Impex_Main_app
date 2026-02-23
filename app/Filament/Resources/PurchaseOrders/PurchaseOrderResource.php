@@ -12,6 +12,7 @@ use App\Filament\Resources\PurchaseOrders\RelationManagers\ItemsRelationManager;
 use App\Filament\Resources\PurchaseOrders\RelationManagers\PaymentScheduleRelationManager;
 use App\Filament\Resources\PurchaseOrders\RelationManagers\PaymentsRelationManager;
 use App\Filament\Resources\PurchaseOrders\Schemas\PurchaseOrderForm;
+use App\Filament\Resources\PurchaseOrders\Widgets\PurchaseOrderStats;
 use App\Filament\Resources\PurchaseOrders\Schemas\PurchaseOrderInfolist;
 use App\Filament\Resources\PurchaseOrders\Tables\PurchaseOrdersTable;
 use BackedEnum;
@@ -72,6 +73,13 @@ class PurchaseOrderResource extends Resource
             PaymentScheduleRelationManager::class,
             PaymentsRelationManager::class,
             DocumentsRelationManager::class,
+        ];
+    }
+
+    public static function getWidgets(): array
+    {
+        return [
+            PurchaseOrderStats::class,
         ];
     }
 

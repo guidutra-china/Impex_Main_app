@@ -7,6 +7,7 @@ use App\Domain\Infrastructure\Pdf\Templates\ProformaInvoicePdfTemplate;
 use App\Domain\PurchaseOrders\Actions\GeneratePurchaseOrdersAction;
 use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
+use App\Filament\Resources\ProformaInvoices\Widgets\ProformaInvoiceStats;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Notifications\Notification;
@@ -15,6 +16,13 @@ use Filament\Resources\Pages\ViewRecord;
 class ViewProformaInvoice extends ViewRecord
 {
     protected static string $resource = ProformaInvoiceResource::class;
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            ProformaInvoiceStats::class,
+        ];
+    }
 
     protected function getHeaderActions(): array
     {

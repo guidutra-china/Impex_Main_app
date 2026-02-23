@@ -13,6 +13,7 @@ use App\Filament\Resources\ProformaInvoices\RelationManagers\ItemsRelationManage
 use App\Filament\Resources\ProformaInvoices\RelationManagers\PaymentScheduleRelationManager;
 use App\Filament\Resources\ProformaInvoices\RelationManagers\PaymentsRelationManager;
 use App\Filament\Resources\ProformaInvoices\Schemas\ProformaInvoiceForm;
+use App\Filament\Resources\ProformaInvoices\Widgets\ProformaInvoiceStats;
 use App\Filament\Resources\ProformaInvoices\Schemas\ProformaInvoiceInfolist;
 use App\Filament\Resources\ProformaInvoices\Tables\ProformaInvoicesTable;
 use BackedEnum;
@@ -74,6 +75,13 @@ class ProformaInvoiceResource extends Resource
             PaymentScheduleRelationManager::class,
             PaymentsRelationManager::class,
             DocumentsRelationManager::class,
+        ];
+    }
+
+    public static function getWidgets(): array
+    {
+        return [
+            ProformaInvoiceStats::class,
         ];
     }
 

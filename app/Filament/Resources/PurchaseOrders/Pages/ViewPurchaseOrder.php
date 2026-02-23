@@ -5,12 +5,20 @@ namespace App\Filament\Resources\PurchaseOrders\Pages;
 use App\Domain\Infrastructure\Pdf\Templates\PurchaseOrderPdfTemplate;
 use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Resources\PurchaseOrders\PurchaseOrderResource;
+use App\Filament\Resources\PurchaseOrders\Widgets\PurchaseOrderStats;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewPurchaseOrder extends ViewRecord
 {
     protected static string $resource = PurchaseOrderResource::class;
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            PurchaseOrderStats::class,
+        ];
+    }
 
     protected function getHeaderActions(): array
     {
