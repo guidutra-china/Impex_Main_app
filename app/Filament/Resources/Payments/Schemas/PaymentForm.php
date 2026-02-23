@@ -5,7 +5,6 @@ namespace App\Filament\Resources\Payments\Schemas;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
-use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
@@ -21,21 +20,28 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Support\HtmlString;
 
 class PaymentForm
 {
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Payment Details')->columns(2)->schema([
+            Section::make('Payment Context')->columns(3)->schema([
                 Select::make('direction')
                     ->label('Direction')
                     ->options(PaymentDirection::class)
                     ->required()
                     ->live()
-                    ->afterStateUpdated(fn (callable $set) => $set('company_id', null)),
+                    ->afterStateUpdated(function (Set $set) {
+                        $set('company_id', null);
+                        $set('allocations', []);
+                        $set('amount', null);
+                    })
+                    ->columnSpan(1),
                 Select::make('company_id')
                     ->label('Company')
                     ->options(function (Get $get) {
@@ -59,23 +65,189 @@ class PaymentForm
                     })
                     ->searchable()
                     ->required()
-                    ->live(),
-                DatePicker::make('payment_date')
-                    ->label('Payment Date')
-                    ->default(now())
-                    ->required(),
-                TextInput::make('amount')
-                    ->label('Total Payment Amount')
-                    ->numeric()
-                    ->step('0.0001')
-                    ->minValue(0.0001)
-                    ->required()
-                    ->live(onBlur: true),
+                    ->live()
+                    ->afterStateUpdated(function (Set $set) {
+                        $set('allocations', []);
+                        $set('amount', null);
+                    })
+                    ->columnSpan(1),
                 Select::make('currency_code')
                     ->label('Payment Currency')
                     ->options(fn () => Currency::pluck('code', 'code'))
                     ->required()
-                    ->live(),
+                    ->live()
+                    ->columnSpan(1),
+            ]),
+
+            Section::make('Outstanding Schedule Items')
+                ->description('All pending schedule items for the selected company. Use this as reference when adding allocations below.')
+                ->visible(fn (Get $get) => filled($get('company_id')))
+                ->schema([
+                    Placeholder::make('pending_items_table')
+                        ->label('')
+                        ->content(function (Get $get) {
+                            $companyId = $get('company_id');
+                            $direction = $get('direction');
+
+                            if (! $companyId) {
+                                return 'Select a company to see outstanding items.';
+                            }
+
+                            $items = static::getCompanyScheduleItems((int) $companyId, $direction);
+
+                            if ($items->isEmpty()) {
+                                return new HtmlString('<p class="text-sm text-gray-500">No pending schedule items for this company.</p>');
+                            }
+
+                            $grouped = $items->groupBy(fn ($item) => $item->payable?->reference ?? 'Unknown');
+
+                            $html = '<div class="overflow-x-auto">';
+                            $html .= '<table class="w-full text-sm border-collapse">';
+                            $html .= '<thead><tr class="border-b border-gray-200 dark:border-gray-700">';
+                            $html .= '<th class="text-left py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Document</th>';
+                            $html .= '<th class="text-left py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Stage</th>';
+                            $html .= '<th class="text-right py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Total Due</th>';
+                            $html .= '<th class="text-right py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Already Paid</th>';
+                            $html .= '<th class="text-right py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Remaining</th>';
+                            $html .= '<th class="text-left py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Currency</th>';
+                            $html .= '<th class="text-left py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Status</th>';
+                            $html .= '</tr></thead><tbody>';
+
+                            $totalRemaining = 0;
+
+                            foreach ($grouped as $docRef => $docItems) {
+                                foreach ($docItems as $item) {
+                                    $remaining = $item->remaining_amount;
+                                    $totalRemaining += $remaining;
+                                    $paidAmount = $item->paid_amount;
+                                    $statusColor = match ($item->status->value ?? $item->status) {
+                                        'due' => 'text-yellow-600',
+                                        'overdue' => 'text-red-600',
+                                        'pending' => 'text-gray-500',
+                                        'partial' => 'text-blue-600',
+                                        default => 'text-gray-500',
+                                    };
+
+                                    $statusLabel = $item->status instanceof \BackedEnum ? $item->status->value : $item->status;
+
+                                    $html .= '<tr class="border-b border-gray-100 dark:border-gray-800">';
+                                    $html .= '<td class="py-2 px-3 font-medium">' . e($docRef) . '</td>';
+                                    $html .= '<td class="py-2 px-3">' . e($item->label) . '</td>';
+                                    $html .= '<td class="py-2 px-3 text-right">' . Money::format($item->amount) . '</td>';
+                                    $html .= '<td class="py-2 px-3 text-right">' . Money::format($paidAmount) . '</td>';
+                                    $html .= '<td class="py-2 px-3 text-right font-semibold">' . Money::format($remaining) . '</td>';
+                                    $html .= '<td class="py-2 px-3">' . e($item->currency_code) . '</td>';
+                                    $html .= '<td class="py-2 px-3 ' . $statusColor . ' capitalize">' . e($statusLabel) . '</td>';
+                                    $html .= '</tr>';
+                                }
+                            }
+
+                            $html .= '</tbody>';
+                            $html .= '<tfoot><tr class="border-t-2 border-gray-300 dark:border-gray-600">';
+                            $html .= '<td colspan="4" class="py-2 px-3 font-bold text-right">Total Remaining:</td>';
+                            $html .= '<td class="py-2 px-3 text-right font-bold text-primary-600">' . Money::format($totalRemaining) . '</td>';
+                            $html .= '<td colspan="2"></td>';
+                            $html .= '</tr></tfoot>';
+                            $html .= '</table></div>';
+
+                            return new HtmlString($html);
+                        }),
+                ]),
+
+            Section::make('Allocations')
+                ->description('Add allocations first. The total payment amount will be calculated automatically from the sum of allocations.')
+                ->visible(fn (Get $get) => filled($get('company_id')))
+                ->schema([
+                    Repeater::make('allocations')
+                        ->label('')
+                        ->schema([
+                            Select::make('payment_schedule_item_id')
+                                ->label('Schedule Item')
+                                ->options(function (Get $get) {
+                                    $companyId = $get('../../company_id');
+                                    $direction = $get('../../direction');
+
+                                    if (! $companyId) {
+                                        return [];
+                                    }
+
+                                    return static::getCompanyScheduleItems((int) $companyId, $direction)
+                                        ->mapWithKeys(fn ($item) => [
+                                            $item->id => static::formatScheduleItemLabel($item),
+                                        ]);
+                                })
+                                ->required()
+                                ->distinct()
+                                ->searchable()
+                                ->columnSpan(4),
+                            TextInput::make('allocated_amount')
+                                ->label('Amount to Allocate')
+                                ->numeric()
+                                ->step('0.01')
+                                ->minValue(0.01)
+                                ->required()
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(function (Get $get, Set $set) {
+                                    static::recalculateTotal($get, $set);
+                                })
+                                ->columnSpan(3),
+                            TextInput::make('exchange_rate')
+                                ->label('Exchange Rate')
+                                ->numeric()
+                                ->step('0.00000001')
+                                ->placeholder('Auto / Same currency')
+                                ->columnSpan(2),
+                        ])
+                        ->columns(9)
+                        ->defaultItems(0)
+                        ->addActionLabel('+ Add Allocation')
+                        ->deleteAction(fn ($action) => $action->after(function (Get $get, Set $set) {
+                            static::recalculateTotal($get, $set);
+                        }))
+                        ->live()
+                        ->columnSpanFull(),
+
+                    Placeholder::make('allocation_summary')
+                        ->label('')
+                        ->content(function (Get $get) {
+                            $allocations = $get('allocations') ?? [];
+                            $total = 0;
+
+                            foreach ($allocations as $alloc) {
+                                $total += (float) ($alloc['allocated_amount'] ?? 0);
+                            }
+
+                            $amount = (float) ($get('amount') ?? 0);
+                            $unallocated = $amount - $total;
+
+                            $parts = [];
+                            $parts[] = '<span class="font-semibold">Total Allocated: ' . number_format($total, 2) . '</span>';
+
+                            if ($amount > 0 && abs($unallocated) > 0.001) {
+                                if ($unallocated > 0) {
+                                    $parts[] = '<span class="text-yellow-600 font-medium"> | Unallocated: ' . number_format($unallocated, 2) . ' (will be credit)</span>';
+                                } else {
+                                    $parts[] = '<span class="text-red-600 font-medium"> | Over-allocated by: ' . number_format(abs($unallocated), 2) . '</span>';
+                                }
+                            }
+
+                            return new HtmlString(implode('', $parts));
+                        }),
+                ]),
+
+            Section::make('Payment Details')->columns(2)->schema([
+                TextInput::make('amount')
+                    ->label('Total Payment Amount')
+                    ->numeric()
+                    ->step('0.01')
+                    ->minValue(0.01)
+                    ->required()
+                    ->live(onBlur: true)
+                    ->helperText('Auto-calculated from allocations. Adjust if payment includes unallocated credit.'),
+                DatePicker::make('payment_date')
+                    ->label('Payment Date')
+                    ->default(now())
+                    ->required(),
                 Select::make('payment_method_id')
                     ->label('Payment Method')
                     ->options(fn () => PaymentMethod::active()->pluck('name', 'id')),
@@ -98,80 +270,21 @@ class PaymentForm
                     ->maxSize(5120)
                     ->columnSpanFull(),
             ]),
-
-            Section::make('Allocations')
-                ->description('Distribute this payment across schedule items from any PI or PO of the selected company.')
-                ->schema([
-                    Placeholder::make('allocation_hint')
-                        ->label('')
-                        ->content(function (Get $get) {
-                            $companyId = $get('company_id');
-                            $amount = $get('amount');
-
-                            if (! $companyId) {
-                                return 'Select a company first to see available schedule items.';
-                            }
-
-                            $pendingItems = static::getCompanyScheduleItems((int) $companyId, $get('direction'));
-                            $totalRemaining = $pendingItems->sum('remaining_amount');
-
-                            $parts = [];
-                            $parts[] = $pendingItems->count() . ' pending schedule item(s) for this company.';
-                            $parts[] = 'Total remaining: ' . Money::format($totalRemaining);
-
-                            if ($amount) {
-                                $amountMinor = Money::toMinor((float) $amount);
-                                $diff = $amountMinor - $totalRemaining;
-
-                                if ($diff > 0) {
-                                    $parts[] = '⚠ Payment exceeds total remaining by ' . Money::format($diff) . ' (will be unallocated credit).';
-                                }
-                            }
-
-                            return implode(' ', $parts);
-                        }),
-                    Repeater::make('allocations')
-                        ->label('Allocations')
-                        ->schema([
-                            Select::make('payment_schedule_item_id')
-                                ->label('Schedule Item')
-                                ->options(function (Get $get) {
-                                    $companyId = $get('../../company_id');
-                                    $direction = $get('../../direction');
-
-                                    if (! $companyId) {
-                                        return [];
-                                    }
-
-                                    return static::getCompanyScheduleItems((int) $companyId, $direction)
-                                        ->mapWithKeys(fn ($item) => [
-                                            $item->id => static::formatScheduleItemLabel($item),
-                                        ]);
-                                })
-                                ->required()
-                                ->distinct()
-                                ->searchable()
-                                ->columnSpan(3),
-                            TextInput::make('allocated_amount')
-                                ->label('Allocated Amount')
-                                ->numeric()
-                                ->step('0.0001')
-                                ->minValue(0.0001)
-                                ->required()
-                                ->columnSpan(1),
-                            TextInput::make('exchange_rate')
-                                ->label('Exchange Rate')
-                                ->numeric()
-                                ->step('0.00000001')
-                                ->helperText('Leave empty if same currency')
-                                ->columnSpan(1),
-                        ])
-                        ->columns(5)
-                        ->defaultItems(1)
-                        ->addActionLabel('Add allocation')
-                        ->columnSpanFull(),
-                ]),
         ]);
+    }
+
+    protected static function recalculateTotal(Get $get, Set $set): void
+    {
+        $allocations = $get('../../allocations') ?? $get('allocations') ?? [];
+        $total = 0;
+
+        foreach ($allocations as $alloc) {
+            $total += (float) ($alloc['allocated_amount'] ?? 0);
+        }
+
+        if ($total > 0) {
+            $set('../../amount', number_format($total, 2, '.', ''));
+        }
     }
 
     public static function getCompanyScheduleItems(int $companyId, mixed $direction): \Illuminate\Support\Collection
@@ -203,7 +316,8 @@ class PaymentForm
         $payable = $item->payable;
         $docRef = $payable?->reference ?? 'Unknown';
         $remaining = Money::format($item->remaining_amount);
+        $currency = $item->currency_code;
 
-        return "[{$docRef}] {$item->label} — {$item->currency_code} {$remaining} remaining";
+        return "[{$docRef}] {$item->label} — {$currency} {$remaining} remaining";
     }
 }
