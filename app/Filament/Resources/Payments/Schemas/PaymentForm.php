@@ -48,9 +48,9 @@ class PaymentForm
                         $query = Company::query();
 
                         if ($direction === PaymentDirection::INBOUND->value || $direction === 'inbound') {
-                            $query->whereHas('roleAssignments', fn ($q) => $q->where('role', 'client'));
+                            $query->whereHas('companyRoles', fn ($q) => $q->where('role', 'client'));
                         } else {
-                            $query->whereHas('roleAssignments', fn ($q) => $q->where('role', 'supplier'));
+                            $query->whereHas('companyRoles', fn ($q) => $q->where('role', 'supplier'));
                         }
 
                         return $query->pluck('name', 'id');
