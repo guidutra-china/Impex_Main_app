@@ -14,6 +14,12 @@ class ContactFactory extends Factory
 {
     protected $model = Contact::class;
 
+    protected static array $brazilianNames = [
+        'Carlos Silva', 'Ana Oliveira', 'Pedro Santos', 'Maria Costa',
+        'João Souza', 'Fernanda Lima', 'Ricardo Pereira', 'Juliana Almeida',
+        'Bruno Ferreira', 'Camila Rodrigues', 'Lucas Martins', 'Patricia Gomes',
+    ];
+
     public function definition(): array
     {
         return [
@@ -51,11 +57,12 @@ class ContactFactory extends Factory
 
     public function brazilian(): static
     {
-        $brFaker = \Faker\Factory::create('pt_BR');
+        $name = $this->faker->randomElement(static::$brazilianNames);
+        $emailName = strtolower(str_replace(' ', '.', $name));
 
         return $this->state(fn () => [
-            'name' => $brFaker->name(),
-            'email' => $brFaker->safeEmail(),
+            'name' => $name,
+            'email' => $emailName . '@' . $this->faker->domainWord() . '.com.br',
             'phone' => '+55 ' . $this->faker->numerify('## #####-####'),
             'whatsapp' => '+55' . $this->faker->numerify('###########'),
         ]);

@@ -37,6 +37,12 @@ class CompanyFactory extends Factory
         ['name' => 'Movelaria Premium Importadora Ltda.', 'city' => 'Joinville', 'state' => 'SC', 'country' => 'BR'],
     ];
 
+    protected static array $brazilianStreets = [
+        'Rua Augusta', 'Av. Paulista', 'Rua das Flores', 'Av. Brasil',
+        'Rua XV de Novembro', 'Av. Atlântica', 'Rua da Consolação',
+        'Av. Presidente Vargas', 'Rua Oscar Freire', 'Av. Beira Mar',
+    ];
+
     protected static int $supplierIndex = 0;
 
     protected static int $clientIndex = 0;
@@ -87,16 +93,14 @@ class CompanyFactory extends Factory
         $data = static::$brazilianClients[static::$clientIndex % count(static::$brazilianClients)];
         static::$clientIndex++;
 
-        $brFaker = \Faker\Factory::create('pt_BR');
-
         return $this->state(fn () => [
             'name' => $data['name'],
             'legal_name' => $data['name'],
-            'tax_number' => $brFaker->cnpj(),
+            'tax_number' => $this->faker->numerify('##.###.###/####-##'),
             'website' => 'https://www.' . $this->faker->domainWord() . '.com.br',
             'phone' => '+55 ' . $this->faker->numerify('## #####-####'),
             'email' => 'compras@' . $this->faker->domainWord() . '.com.br',
-            'address_street' => $brFaker->streetName(),
+            'address_street' => $this->faker->randomElement(static::$brazilianStreets),
             'address_number' => $this->faker->buildingNumber(),
             'address_city' => $data['city'],
             'address_state' => $data['state'],
