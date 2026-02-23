@@ -47,11 +47,12 @@ class FinancialStatsOverview extends BaseWidget
             ->where('status', PaymentStatus::PENDING_APPROVAL)
             ->count();
 
-        $blockingScheduleItems = PaymentScheduleItem::where('is_blocking', true)
-            ->whereNotIn('status', [
-                PaymentScheduleStatus::PAID->value,
-                PaymentScheduleStatus::WAIVED->value,
-            ])
+        $openPIs = ProformaInvoice::whereHas('paymentScheduleItems', function ($q) {
+                $q->whereNotIn('status', [
+                    PaymentScheduleStatus::PAID->value,
+                    PaymentScheduleStatus::WAIVED->value,
+                ]);
+            })
             ->count();
 
         return [
@@ -70,9 +71,9 @@ class FinancialStatsOverview extends BaseWidget
             Stat::make('Pending Approval', $pendingApproval)
                 ->description('Payments awaiting approval')
                 ->color($pendingApproval > 0 ? 'warning' : 'gray'),
-            Stat::make('Blocking Items', $blockingScheduleItems)
-                ->description('Unpaid blocking schedule items')
-                ->color($blockingScheduleItems > 0 ? 'danger' : 'gray'),
+            Stat::make('Open PIs', $openPIs)
+                ->description('PIs with pending payments')
+                ->color($openPIs > 0 ? 'info' : 'gray'),
         ];
     }
 }
