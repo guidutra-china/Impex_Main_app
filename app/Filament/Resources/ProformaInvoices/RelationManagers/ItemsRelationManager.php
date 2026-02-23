@@ -208,59 +208,54 @@ class ItemsRelationManager extends RelationManager
             ->label('Import from Quotations')
             ->icon('heroicon-o-arrow-down-tray')
             ->color('info')
-            ->form([
-                Select::make('quotation_id')
-                    ->label('Quotation')
-                    ->options(function () {
-                        $pi = $this->getOwnerRecord();
+            ->form(function () {
+                $pi = $this->getOwnerRecord();
 
-                        return Quotation::query()
-                            ->where('inquiry_id', $pi->inquiry_id)
-                            ->orderByDesc('id')
-                            ->get()
-                            ->mapWithKeys(fn ($q) => [
-                                $q->id => $q->reference . ' — ' . $q->company?->name . ' (' . $q->status->getLabel() . ')',
-                            ]);
-                    })
-                    ->searchable()
-                    ->required()
-                    ->live()
-                    ->helperText('Only quotations from the same inquiry are shown.'),
+                $quotationItems = QuotationItem::query()
+                    ->whereHas('quotation', fn ($q) => $q->where('inquiry_id', $pi->inquiry_id))
+                    ->with(['quotation', 'product'])
+                    ->get();
 
-                Select::make('item_ids')
-                    ->label('Items to Import')
-                    ->multiple()
-                    ->options(function (Get $get) {
-                        $quotationId = $get('quotation_id');
-                        if (! $quotationId) {
-                            return [];
-                        }
+                if ($quotationItems->isEmpty()) {
+                    return [
+                        \Filament\Forms\Components\Placeholder::make('no_items')
+                            ->label('')
+                            ->content('No quotation items found for this inquiry.'),
+                    ];
+                }
 
-                        return QuotationItem::where('quotation_id', $quotationId)
-                            ->with('product')
-                            ->get()
-                            ->mapWithKeys(fn ($item) => [
-                                $item->id => ($item->product?->name ?? 'Item #' . $item->id)
-                                    . ' — Qty: ' . $item->quantity
-                                    . ' — $' . number_format($item->unit_price / 100, 2),
-                            ]);
-                    })
-                    ->required()
-                    ->helperText('Select which items to import into this proforma invoice.'),
-            ])
+                $options = $quotationItems->mapWithKeys(fn ($item) => [
+                    $item->id => '[' . $item->quotation->reference . '] '
+                        . ($item->product?->name ?? 'Item #' . $item->id)
+                        . ' — Qty: ' . $item->quantity
+                        . ' — $' . number_format($item->unit_price / 100, 2),
+                ])->toArray();
+
+                return [
+                    \Filament\Forms\Components\CheckboxList::make('item_ids')
+                        ->label('Select Items to Import')
+                        ->options($options)
+                        ->required()
+                        ->searchable()
+                        ->bulkToggleable()
+                        ->helperText('Items are grouped by quotation reference. Select which items to import.'),
+                ];
+            })
             ->action(function (array $data) {
                 $pi = $this->getOwnerRecord();
-                $quotationId = $data['quotation_id'];
-                $itemIds = $data['item_ids'];
+                $itemIds = $data['item_ids'] ?? [];
 
-                $quotation = Quotation::find($quotationId);
+                if (empty($itemIds)) {
+                    return;
+                }
+
                 $items = QuotationItem::whereIn('id', $itemIds)
-                    ->where('quotation_id', $quotationId)
-                    ->with(['product', 'product.suppliers'])
+                    ->with(['quotation', 'product', 'product.suppliers'])
                     ->get();
 
                 $maxSort = $pi->items()->max('sort_order') ?? 0;
                 $imported = 0;
+                $linkedQuotationIds = [];
 
                 foreach ($items as $item) {
                     $supplierId = $item->selected_supplier_id;
@@ -288,14 +283,15 @@ class ItemsRelationManager extends RelationManager
                         'sort_order' => ++$maxSort,
                     ]);
 
+                    $linkedQuotationIds[] = $item->quotation_id;
                     $imported++;
                 }
 
-                $pi->quotations()->syncWithoutDetaching([$quotationId]);
+                $pi->quotations()->syncWithoutDetaching(array_unique($linkedQuotationIds));
 
                 Notification::make()
                     ->title($imported . ' items imported')
-                    ->body('Items imported from ' . $quotation->reference . '.')
+                    ->body('Items imported from ' . count(array_unique($linkedQuotationIds)) . ' quotation(s).')
                     ->success()
                     ->send();
             });
