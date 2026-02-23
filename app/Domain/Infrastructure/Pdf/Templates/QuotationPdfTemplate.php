@@ -47,7 +47,7 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
                 'unit' => $item->product?->unit ?? 'pcs',
                 'unit_price' => $this->formatMoney($item->unit_price, $currencyCode),
                 'line_total' => $this->formatMoney($item->line_total, $currencyCode),
-                'incoterm' => $item->incoterm?->value,
+                'incoterm' => $item->incoterm instanceof \BackedEnum ? $item->incoterm->value : $item->incoterm,
             ];
         });
 

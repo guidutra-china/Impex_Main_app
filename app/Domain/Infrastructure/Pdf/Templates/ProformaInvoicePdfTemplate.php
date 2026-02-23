@@ -48,7 +48,7 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
                 'unit' => $item->unit ?? 'pcs',
                 'unit_price' => $this->formatMoney($item->unit_price, $currencyCode),
                 'line_total' => $this->formatMoney($item->line_total, $currencyCode),
-                'incoterm' => $item->incoterm?->value,
+                'incoterm' => $item->incoterm instanceof \BackedEnum ? $item->incoterm->value : $item->incoterm,
             ];
         });
 
@@ -60,7 +60,7 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
                 'issue_date' => $this->formatDate($pi->issue_date),
                 'valid_until' => $this->formatDate($pi->valid_until),
                 'currency_code' => $currencyCode,
-                'incoterm' => $pi->incoterm?->value,
+                'incoterm' => $pi->incoterm instanceof \BackedEnum ? $pi->incoterm->value : $pi->incoterm,
                 'inquiry_reference' => $pi->inquiry?->reference,
                 'notes' => $pi->notes,
                 'created_by' => $pi->creator?->name,

@@ -55,6 +55,7 @@ class ProformaInvoice extends Model
             'valid_until' => 'date',
             'validity_days' => 'integer',
             'confirmed_at' => 'datetime',
+            'incoterm' => \App\Domain\Quotations\Enums\Incoterm::class,
         ];
     }
 
