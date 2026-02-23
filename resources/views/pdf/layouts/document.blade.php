@@ -20,8 +20,8 @@
 
         /* === Header === */
         .header {
-            margin-bottom: 15px;
-            padding-bottom: 12px;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
             border-bottom: 3px solid #1e40af;
         }
 
@@ -34,37 +34,37 @@
         }
 
         .company-logo img {
-            max-width: 160px;
-            max-height: 55px;
-            margin-bottom: 4px;
-        }
-
-        .company-name {
-            font-size: 12pt;
-            font-weight: bold;
-            color: #1e40af;
+            max-width: 130px;
+            max-height: 40px;
             margin-bottom: 2px;
         }
 
+        .company-name {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 1px;
+        }
+
         .company-details {
-            font-size: 7pt;
+            font-size: 6.5pt;
             color: #6b7280;
-            line-height: 1.4;
+            line-height: 1.3;
         }
 
         .document-title {
-            font-size: 15pt;
+            font-size: 14pt;
             font-weight: bold;
             color: #1e40af;
             text-align: right;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
 
         /* === Document Meta (inline) === */
         .document-meta-table {
             float: right;
             border-collapse: collapse;
-            font-size: 7.5pt;
+            font-size: 7pt;
         }
 
         .document-meta-table td {
@@ -84,6 +84,7 @@
             font-weight: bold;
             color: #1f2937;
             text-align: right;
+            font-size: 7pt;
         }
 
         /* === Client Box (TO only) === */
@@ -279,15 +280,15 @@
                         @endif
                         <div class="company-name">{{ $company['name'] }}</div>
                         <div class="company-details">
-                            @if($company['address']){{ $company['address'] }}<br>@endif
-                            @if($company['city'] || $company['state'] || $company['zip_code'])
-                                {{ collect([$company['city'], $company['state'], $company['zip_code']])->filter()->implode(', ') }}<br>
+                            @if($company['address']){{ $company['address'] }}@endif
+                            @if($company['city'] || $company['state'] || $company['zip_code'] || $company['country'])
+                                — {{ collect([$company['city'], $company['state'], $company['zip_code'], $company['country']])->filter()->implode(', ') }}
                             @endif
-                            @if($company['country']){{ $company['country'] }}<br>@endif
-                            @if($company['phone']){{ $labels['phone'] ?? 'Phone' }}: {{ $company['phone'] }}@endif
+                            <br>
+                            @if($company['phone']){{ $company['phone'] }}@endif
                             @if($company['phone'] && $company['email']) | @endif
-                            @if($company['email']){{ $labels['email'] ?? 'Email' }}: {{ $company['email'] }}@endif
-                            @if($company['tax_id'])<br>{{ $labels['tax_id'] ?? 'Tax ID' }}: {{ $company['tax_id'] }}@endif
+                            @if($company['email']){{ $company['email'] }}@endif
+                            @if($company['tax_id']) | {{ $labels['tax_id'] ?? 'Tax ID' }}: {{ $company['tax_id'] }}@endif
                         </div>
                     </td>
                     <td style="width: 50%;">
