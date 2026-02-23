@@ -68,15 +68,6 @@ class GeneratePaymentScheduleAction
 
     public function regenerate(Model $payable): int
     {
-        PaymentScheduleItem::where('payable_type', get_class($payable))
-            ->where('payable_id', $payable->getKey())
-            ->whereNotIn('status', [
-                PaymentScheduleStatus::PAID->value,
-                PaymentScheduleStatus::WAIVED->value,
-            ])
-            ->whereDoesntHave('allocations')
-            ->delete();
-
         $paymentTermId = $payable->payment_term_id;
 
         if (! $paymentTermId) {
@@ -89,44 +80,68 @@ class GeneratePaymentScheduleAction
             return 0;
         }
 
-        $existingStageIds = PaymentScheduleItem::where('payable_type', get_class($payable))
-            ->where('payable_id', $payable->getKey())
-            ->pluck('payment_term_stage_id')
-            ->toArray();
-
+        // Force fresh total from the database (not cached relation)
+        $payable->load('items');
         $totalAmount = $payable->total;
         $currencyCode = $payable->currency_code;
-        $created = 0;
+
+        // Delete items that have no allocations and are not resolved
+        PaymentScheduleItem::where('payable_type', get_class($payable))
+            ->where('payable_id', $payable->getKey())
+            ->whereNotIn('status', [
+                PaymentScheduleStatus::PAID->value,
+                PaymentScheduleStatus::WAIVED->value,
+            ])
+            ->whereDoesntHave('allocations')
+            ->delete();
+
+        // Get remaining items (paid/waived or with allocations)
+        $preservedItems = PaymentScheduleItem::where('payable_type', get_class($payable))
+            ->where('payable_id', $payable->getKey())
+            ->get()
+            ->keyBy('payment_term_stage_id');
+
+        $processed = 0;
 
         foreach ($paymentTerm->stages as $stage) {
-            if (in_array($stage->id, $existingStageIds)) {
-                continue;
-            }
-
-            $amount = (int) round($totalAmount * ($stage->percentage / 100));
+            $newAmount = (int) round($totalAmount * ($stage->percentage / 100));
             $isBlocking = $this->isBlockingCondition($stage->calculation_base);
             $dueDate = $this->calculateDueDate($payable, $stage);
             $label = $this->generateLabel($stage);
 
-            PaymentScheduleItem::create([
-                'payable_type' => get_class($payable),
-                'payable_id' => $payable->getKey(),
-                'payment_term_stage_id' => $stage->id,
-                'label' => $label,
-                'percentage' => $stage->percentage,
-                'amount' => $amount,
-                'currency_code' => $currencyCode,
-                'due_condition' => $stage->calculation_base,
-                'due_date' => $dueDate,
-                'status' => PaymentScheduleStatus::PENDING,
-                'is_blocking' => $isBlocking,
-                'sort_order' => $stage->sort_order,
-            ]);
+            $existing = $preservedItems->get($stage->id);
 
-            $created++;
+            if ($existing) {
+                // Update the amount on preserved items (paid amount stays, remaining recalculates)
+                $existing->update([
+                    'amount' => $newAmount,
+                    'label' => $label,
+                    'percentage' => $stage->percentage,
+                    'due_condition' => $stage->calculation_base,
+                    'is_blocking' => $isBlocking,
+                ]);
+            } else {
+                // Recreate deleted item
+                PaymentScheduleItem::create([
+                    'payable_type' => get_class($payable),
+                    'payable_id' => $payable->getKey(),
+                    'payment_term_stage_id' => $stage->id,
+                    'label' => $label,
+                    'percentage' => $stage->percentage,
+                    'amount' => $newAmount,
+                    'currency_code' => $currencyCode,
+                    'due_condition' => $stage->calculation_base,
+                    'due_date' => $dueDate,
+                    'status' => PaymentScheduleStatus::PENDING,
+                    'is_blocking' => $isBlocking,
+                    'sort_order' => $stage->sort_order,
+                ]);
+            }
+
+            $processed++;
         }
 
-        return $created;
+        return $processed;
     }
 
     protected function isBlockingCondition(?CalculationBase $condition): bool
