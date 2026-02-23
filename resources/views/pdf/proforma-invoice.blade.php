@@ -4,7 +4,7 @@
     <table class="document-meta-table">
         <tr>
             <td class="meta-label">{{ $labels['reference'] }}</td>
-            <td class="meta-value">{{ $proforma_invoice['reference'] }} (v{{ $document_version }})</td>
+            <td class="meta-value">{{ $proforma_invoice['reference'] }} (v{{ $document_version }})@if($proforma_invoice['inquiry_reference'])<br><span style="font-size: 6pt; font-weight: normal; color: #9ca3af;">{{ $labels['inquiry_reference'] }}: {{ $proforma_invoice['inquiry_reference'] }}</span>@endif</td>
         </tr>
         <tr>
             <td class="meta-label">{{ $labels['issue_date'] }}</td>
@@ -20,12 +20,6 @@
             <td class="meta-label">{{ $labels['currency'] }} @if($proforma_invoice['incoterm'])/ {{ $labels['incoterm'] }}@endif</td>
             <td class="meta-value">{{ $proforma_invoice['currency_code'] }} @if($proforma_invoice['incoterm'])/ {{ $proforma_invoice['incoterm'] }}@endif</td>
         </tr>
-        @if($proforma_invoice['inquiry_reference'])
-            <tr>
-                <td class="meta-label">{{ $labels['inquiry_reference'] }}</td>
-                <td class="meta-value">{{ $proforma_invoice['inquiry_reference'] }}</td>
-            </tr>
-        @endif
     </table>
 @endsection
 

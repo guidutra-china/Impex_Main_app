@@ -4,7 +4,7 @@
     <table class="document-meta-table">
         <tr>
             <td class="meta-label">{{ $labels['reference'] }}</td>
-            <td class="meta-value">{{ $quotation['reference'] }} (v{{ $document_version }})</td>
+            <td class="meta-value">{{ $quotation['reference'] }} (v{{ $document_version }})@if($quotation['inquiry_reference'])<br><span style="font-size: 6pt; font-weight: normal; color: #9ca3af;">{{ $labels['inquiry_reference'] ?? 'Inquiry Ref.' }}: {{ $quotation['inquiry_reference'] }}</span>@endif</td>
         </tr>
         <tr>
             <td class="meta-label">{{ $labels['date'] }}</td>
@@ -20,12 +20,6 @@
             <td class="meta-label">{{ $labels['currency'] }}</td>
             <td class="meta-value">{{ $quotation['currency_code'] }}</td>
         </tr>
-        @if($quotation['inquiry_reference'])
-            <tr>
-                <td class="meta-label">{{ $labels['inquiry_reference'] ?? 'Inquiry Ref.' }}</td>
-                <td class="meta-value">{{ $quotation['inquiry_reference'] }}</td>
-            </tr>
-        @endif
     </table>
 @endsection
 
