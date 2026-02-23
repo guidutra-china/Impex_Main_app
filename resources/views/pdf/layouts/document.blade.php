@@ -21,11 +21,15 @@
         /* === Header === */
         .header-table {
             width: 100%;
-            margin-bottom: 0;
+            border-collapse: collapse;
+            border-bottom: 3px solid #1e40af;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
         }
 
         .header-table td {
             vertical-align: top;
+            padding-bottom: 6px;
         }
 
         .company-logo img {
@@ -55,18 +59,11 @@
             margin-bottom: 3px;
         }
 
-        /* === Blue Divider === */
-        .header-divider {
-            border: none;
-            border-top: 3px solid #1e40af;
-            margin: 6px 0 8px 0;
-        }
-
-        /* === Document Meta (inline) === */
+        /* === Document Meta (inside right td, no float) === */
         .document-meta-table {
-            float: right;
             border-collapse: collapse;
             font-size: 7pt;
+            margin-left: auto;
         }
 
         .document-meta-table td {
@@ -269,7 +266,7 @@
     <div class="page-number"></div>
 
     <div class="container">
-        {{-- === HEADER === --}}
+        {{-- === HEADER (single table, border-bottom = blue divider) === --}}
         <table class="header-table">
             <tr>
                 <td style="width: 50%;">
@@ -297,9 +294,6 @@
                 </td>
             </tr>
         </table>
-
-        {{-- === BLUE DIVIDER (separate from header table) === --}}
-        <hr class="header-divider">
 
         {{-- === CLIENT === --}}
         @yield('client-info')
