@@ -2,10 +2,14 @@
 
 namespace App\Domain\Infrastructure\Pdf\Templates;
 
+use App\Domain\Catalog\Models\Product;
 use App\Domain\Logistics\Models\Shipment;
 
 class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
 {
+    private ?int $clientCompanyId = null;
+    private array $clientPivotCache = [];
+
     public function getView(): string
     {
         return 'pdf.commercial-invoice';
@@ -27,10 +31,13 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
         $shipment = $this->model;
         $shipment->loadMissing([
             'company',
-            'items.proformaInvoiceItem.product',
+            'items.proformaInvoiceItem.product.companies',
             'items.proformaInvoiceItem.proformaInvoice.paymentTerm',
             'additionalCosts',
         ]);
+
+        $this->clientCompanyId = $shipment->company_id;
+        $this->warmPivotCache($shipment);
 
         $currencyCode = $shipment->currency_code ?? 'USD';
 
@@ -99,12 +106,13 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
             ->map(function ($item, $index) use ($currencyCode) {
                 $product = $item->proformaInvoiceItem?->product;
                 $piItem = $item->proformaInvoiceItem;
+                $pivot = $this->getClientPivot($product);
 
                 return [
                     'index' => $index + 1,
-                    'model_no' => $product?->sku ?? '—',
-                    'product_name' => $item->product_name,
-                    'description' => $piItem?->description ?? $piItem?->specifications ?? '',
+                    'model_no' => $pivot?->external_code ?: ($product?->model_number ?: ($product?->sku ?? '—')),
+                    'product_name' => $pivot?->external_name ?: $item->product_name,
+                    'description' => $pivot?->external_description ?: ($piItem?->description ?? $piItem?->specifications ?? ''),
                     'quantity' => $item->quantity,
                     'unit' => $piItem?->unit ?? 'pcs',
                     'unit_price' => $this->formatMoney($item->unit_price, $currencyCode),
@@ -127,6 +135,38 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
             'port_of_destination' => $shipment->destination_port,
             'country_of_origin' => 'China',
         ]);
+    }
+
+    private function warmPivotCache(Shipment $shipment): void
+    {
+        if (! $this->clientCompanyId) {
+            return;
+        }
+
+        foreach ($shipment->items as $item) {
+            $product = $item->proformaInvoiceItem?->product;
+            if (! $product) {
+                continue;
+            }
+
+            $clientPivot = $product->companies
+                ->where('pivot.company_id', $this->clientCompanyId)
+                ->where('pivot.role', 'client')
+                ->first();
+
+            if ($clientPivot) {
+                $this->clientPivotCache[$product->id] = $clientPivot->pivot;
+            }
+        }
+    }
+
+    private function getClientPivot(?Product $product)
+    {
+        if (! $product) {
+            return null;
+        }
+
+        return $this->clientPivotCache[$product->id] ?? null;
     }
 
     private function labels(string $key): string

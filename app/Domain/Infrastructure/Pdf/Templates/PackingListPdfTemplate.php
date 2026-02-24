@@ -2,11 +2,14 @@
 
 namespace App\Domain\Infrastructure\Pdf\Templates;
 
-use App\Domain\Logistics\Enums\PackagingType;
+use App\Domain\Catalog\Models\Product;
 use App\Domain\Logistics\Models\Shipment;
 
 class PackingListPdfTemplate extends AbstractPdfTemplate
 {
+    private ?int $clientCompanyId = null;
+    private array $clientPivotCache = [];
+
     public function getView(): string
     {
         return 'pdf.packing-list';
@@ -33,10 +36,13 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
         $shipment = $this->model;
         $shipment->loadMissing([
             'company',
-            'items.proformaInvoiceItem.product',
+            'items.proformaInvoiceItem.product.companies',
             'items.proformaInvoiceItem.proformaInvoice',
-            'packingListItems.shipmentItem.proformaInvoiceItem.product',
+            'packingListItems.shipmentItem.proformaInvoiceItem.product.companies',
         ]);
+
+        $this->clientCompanyId = $shipment->company_id;
+        $this->warmPivotCache($shipment);
 
         $currencyCode = $shipment->currency_code ?? 'USD';
 
@@ -100,16 +106,10 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
         return $containerGroups;
     }
 
-    /**
-     * Merge items that share the same carton range (mixed cartons).
-     * For mixed cartons: package_no, pkg_qty, NW, GW, dimensions, volume appear only on the first row.
-     * Sub-items only show product info and equipment qty.
-     */
     private function buildMergedLines(mixed $containerItems): array
     {
         $sorted = $containerItems->sortBy('carton_from')->values();
 
-        // Group by carton_from + carton_to to detect mixed cartons
         $cartonGroups = $sorted->groupBy(fn ($item) => $item->carton_from . '-' . $item->carton_to);
 
         $lines = [];
@@ -118,21 +118,20 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
             $isMixed = $groupItems->count() > 1;
 
             if ($isMixed) {
-                // Sum weights and volume across all items in this carton group
                 $totalGW = $groupItems->sum(fn ($i) => (float) $i->total_gross_weight);
                 $totalNW = $groupItems->sum(fn ($i) => (float) $i->total_net_weight);
                 $totalVol = $groupItems->sum(fn ($i) => (float) $i->total_volume);
-                $totalPkgs = $groupItems->first()->quantity; // same carton = 1 package group
+                $totalPkgs = $groupItems->first()->quantity;
 
-                // First item in the mixed carton: shows package info
                 $firstItem = $groupItems->first();
                 $firstProduct = $firstItem->shipmentItem?->proformaInvoiceItem?->product;
+                $firstPivot = $this->getClientPivot($firstProduct);
 
                 $lines[] = [
                     'package_no' => $this->formatPackageNumber($firstItem->carton_from, $firstItem->carton_to),
                     'pallet' => $firstItem->pallet_number ? 'PLT-' . str_pad($firstItem->pallet_number, 2, '0', STR_PAD_LEFT) : null,
-                    'model_no' => $firstProduct?->sku ?? '',
-                    'product_name' => $firstItem->product_name,
+                    'model_no' => $firstPivot?->external_code ?: ($firstProduct?->model_number ?: ($firstProduct?->sku ?? '')),
+                    'product_name' => $firstPivot?->external_name ?: $firstItem->product_name,
                     'description' => $firstItem->description,
                     'unit' => $firstItem->shipmentItem?->unit ?? 'pcs',
                     'equipment_qty' => $firstItem->total_quantity,
@@ -144,15 +143,15 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
                     'is_sub_item' => false,
                 ];
 
-                // Remaining items in the mixed carton: only product info
                 foreach ($groupItems->skip(1) as $subItem) {
                     $subProduct = $subItem->shipmentItem?->proformaInvoiceItem?->product;
+                    $subPivot = $this->getClientPivot($subProduct);
 
                     $lines[] = [
                         'package_no' => '',
                         'pallet' => null,
-                        'model_no' => $subProduct?->sku ?? '',
-                        'product_name' => $subItem->product_name,
+                        'model_no' => $subPivot?->external_code ?: ($subProduct?->model_number ?: ($subProduct?->sku ?? '')),
+                        'product_name' => $subPivot?->external_name ?: $subItem->product_name,
                         'description' => $subItem->description,
                         'unit' => $subItem->shipmentItem?->unit ?? 'pcs',
                         'equipment_qty' => $subItem->total_quantity,
@@ -165,15 +164,15 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
                     ];
                 }
             } else {
-                // Single product per carton range — normal row
                 $item = $groupItems->first();
                 $product = $item->shipmentItem?->proformaInvoiceItem?->product;
+                $pivot = $this->getClientPivot($product);
 
                 $lines[] = [
                     'package_no' => $this->formatPackageNumber($item->carton_from, $item->carton_to),
                     'pallet' => $item->pallet_number ? 'PLT-' . str_pad($item->pallet_number, 2, '0', STR_PAD_LEFT) : null,
-                    'model_no' => $product?->sku ?? '',
-                    'product_name' => $item->product_name,
+                    'model_no' => $pivot?->external_code ?: ($product?->model_number ?: ($product?->sku ?? '')),
+                    'product_name' => $pivot?->external_name ?: $item->product_name,
                     'description' => $item->description,
                     'unit' => $item->shipmentItem?->unit ?? 'pcs',
                     'equipment_qty' => $item->total_quantity,
@@ -216,11 +215,6 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
         return "{$l} × {$w} × {$h}";
     }
 
-    /**
-     * Calculate totals with deduplication for mixed cartons.
-     * PKG QTY: count only once per unique carton range (carton_from-carton_to).
-     * NW/GW/Volume/Equipment Qty: sum all rows (no dedup needed, values are per-product).
-     */
     private function calculateDedupedTotals($items): array
     {
         $seenCartonRanges = [];
@@ -250,13 +244,60 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
             'total_net_weight' => $totalNetWeight,
             'total_volume' => $totalVolume,
             'total_equipment_qty' => $totalEquipmentQty,
-            // Aliases for container subtotals
             'packages' => $totalPackages,
             'equipment_qty' => $totalEquipmentQty,
             'gross_weight' => $totalGrossWeight,
             'net_weight' => $totalNetWeight,
             'volume' => $totalVolume,
         ];
+    }
+
+    private function warmPivotCache(Shipment $shipment): void
+    {
+        if (! $this->clientCompanyId) {
+            return;
+        }
+
+        foreach ($shipment->items as $item) {
+            $product = $item->proformaInvoiceItem?->product;
+            if (! $product || isset($this->clientPivotCache[$product->id])) {
+                continue;
+            }
+
+            $clientPivot = $product->companies
+                ->where('pivot.company_id', $this->clientCompanyId)
+                ->where('pivot.role', 'client')
+                ->first();
+
+            if ($clientPivot) {
+                $this->clientPivotCache[$product->id] = $clientPivot->pivot;
+            }
+        }
+
+        foreach ($shipment->packingListItems as $plItem) {
+            $product = $plItem->shipmentItem?->proformaInvoiceItem?->product;
+            if (! $product || isset($this->clientPivotCache[$product->id])) {
+                continue;
+            }
+
+            $clientPivot = $product->companies
+                ->where('pivot.company_id', $this->clientCompanyId)
+                ->where('pivot.role', 'client')
+                ->first();
+
+            if ($clientPivot) {
+                $this->clientPivotCache[$product->id] = $clientPivot->pivot;
+            }
+        }
+    }
+
+    private function getClientPivot(?Product $product)
+    {
+        if (! $product) {
+            return null;
+        }
+
+        return $this->clientPivotCache[$product->id] ?? null;
     }
 
     private function labels(string $key): string
