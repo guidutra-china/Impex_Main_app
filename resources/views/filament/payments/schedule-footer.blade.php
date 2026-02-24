@@ -1,31 +1,29 @@
-<td colspan="{{ count($columns) }}" class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
-    <div class="flex items-center justify-between text-sm">
-        <div class="flex items-center gap-x-10">
-            <span>
-                <span class="font-bold text-gray-700 dark:text-gray-300">Total Due:</span>
-                <span class="font-bold">{{ $currency }} {{ $totalDue }}</span>
-            </span>
+<td colspan="{{ count($columns) }}" class="px-4 py-4 border-t-2 border-gray-300 dark:border-gray-600">
+    <div class="flex items-center gap-x-12 text-base font-bold">
+        <span>
+            <span class="text-gray-600 dark:text-gray-400">Total Due:</span>
+            <span class="text-gray-900 dark:text-gray-100">{{ $currency }} {{ $totalDue }}</span>
+        </span>
 
-            @if ($totalCredits > 0)
-                <span>
-                    <span class="font-bold text-gray-700 dark:text-gray-300">Credits:</span>
-                    <span class="font-bold text-info-600">({{ $currency }} {{ $totalCreditsFormatted }})</span>
-                </span>
-                <span>
-                    <span class="font-bold text-gray-700 dark:text-gray-300">Net Due:</span>
-                    <span class="font-bold">{{ $currency }} {{ $netDueFormatted }}</span>
-                </span>
-            @endif
-
+        @if ($totalCredits > 0)
             <span>
-                <span class="font-bold text-gray-700 dark:text-gray-300">Paid:</span>
-                <span class="font-bold text-success-600">{{ $currency }} {{ $totalPaidFormatted }}</span>
+                <span class="text-gray-600 dark:text-gray-400">Credits:</span>
+                <span class="text-blue-600">({{ $currency }} {{ $totalCreditsFormatted }})</span>
             </span>
-        </div>
+            <span>
+                <span class="text-gray-600 dark:text-gray-400">Net Due:</span>
+                <span class="text-gray-900 dark:text-gray-100">{{ $currency }} {{ $netDueFormatted }}</span>
+            </span>
+        @endif
 
         <span>
-            <span class="font-bold text-gray-700 dark:text-gray-300">Remaining:</span>
-            <span class="font-bold text-lg {{ $netRemaining > 0 ? 'text-warning-600' : 'text-success-600' }}">
+            <span class="text-gray-600 dark:text-gray-400">Paid:</span>
+            <span class="text-green-600">{{ $currency }} {{ $totalPaidFormatted }}</span>
+        </span>
+
+        <span>
+            <span class="text-gray-600 dark:text-gray-400">Remaining:</span>
+            <span class="{{ $netRemaining > 0 ? 'text-red-600' : 'text-green-600' }}">
                 {{ $currency }} {{ $netRemainingFormatted }}
             </span>
         </span>
