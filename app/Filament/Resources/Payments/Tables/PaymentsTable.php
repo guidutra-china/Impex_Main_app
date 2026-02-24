@@ -72,7 +72,6 @@ class PaymentsTable
             ])
             ->persistFiltersInSession()
             ->persistSearchInSession()
-            ->persistSortInSession()
             ->defaultSort('payment_date', 'desc')
             ->filters([
                 SelectFilter::make('direction')

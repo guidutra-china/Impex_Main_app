@@ -114,7 +114,6 @@ class ProformaInvoicesTable
             ])
             ->persistFiltersInSession()
             ->persistSearchInSession()
-            ->persistSortInSession()
             ->defaultSort('created_at', 'desc')
             ->emptyStateHeading('No proforma invoices')
             ->emptyStateDescription('Create your first proforma invoice to formalize a deal.')

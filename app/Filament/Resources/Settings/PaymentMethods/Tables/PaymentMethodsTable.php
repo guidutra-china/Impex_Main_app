@@ -71,7 +71,6 @@ class PaymentMethodsTable
             ])
             ->persistFiltersInSession()
             ->persistSearchInSession()
-            ->persistSortInSession()
             ->defaultSort('name', 'asc')
             ->emptyStateHeading('No payment methods')
             ->emptyStateDescription('Create your first payment method to start managing payments.')

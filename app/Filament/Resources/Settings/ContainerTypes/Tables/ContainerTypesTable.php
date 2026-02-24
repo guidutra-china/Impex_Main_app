@@ -70,7 +70,6 @@ class ContainerTypesTable
             ])
             ->persistFiltersInSession()
             ->persistSearchInSession()
-            ->persistSortInSession()
             ->defaultSort('code', 'asc')
             ->emptyStateHeading('No container types')
             ->emptyStateDescription('Create your first container type to manage shipping logistics.')

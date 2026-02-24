@@ -63,7 +63,6 @@ class PaymentTermsTable
             ])
             ->persistFiltersInSession()
             ->persistSearchInSession()
-            ->persistSortInSession()
             ->defaultSort('name', 'asc')
             ->emptyStateHeading('No payment terms')
             ->emptyStateDescription('Create your first payment term to define payment schedules.')

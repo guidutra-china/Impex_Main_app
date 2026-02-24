@@ -115,7 +115,6 @@ class PurchaseOrdersTable
             ])
             ->persistFiltersInSession()
             ->persistSearchInSession()
-            ->persistSortInSession()
             ->defaultSort('created_at', 'desc')
             ->emptyStateHeading('No purchase orders')
             ->emptyStateDescription('Generate purchase orders from a confirmed proforma invoice.')

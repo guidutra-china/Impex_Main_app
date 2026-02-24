@@ -84,7 +84,6 @@ class CompaniesTable
             ])
             ->persistFiltersInSession()
             ->persistSearchInSession()
-            ->persistSortInSession()
             ->defaultSort('name', 'asc')
             ->emptyStateHeading('No companies')
             ->emptyStateDescription('Create your first company to start managing clients, suppliers, and partners.')

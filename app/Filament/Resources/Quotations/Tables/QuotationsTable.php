@@ -95,7 +95,6 @@ class QuotationsTable
             ])
             ->persistFiltersInSession()
             ->persistSearchInSession()
-            ->persistSortInSession()
             ->defaultSort('created_at', 'desc')
             ->emptyStateHeading('No quotations')
             ->emptyStateDescription('Create your first quotation to start quoting clients.')

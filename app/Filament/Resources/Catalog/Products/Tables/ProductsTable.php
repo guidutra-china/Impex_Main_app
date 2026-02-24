@@ -91,7 +91,6 @@ class ProductsTable
             ])
             ->persistFiltersInSession()
             ->persistSearchInSession()
-            ->persistSortInSession()
             ->defaultSort('updated_at', 'desc')
             ->emptyStateHeading('No products')
             ->emptyStateDescription('Create your first product to start building your catalog.')

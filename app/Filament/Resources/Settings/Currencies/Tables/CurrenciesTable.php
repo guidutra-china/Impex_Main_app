@@ -67,7 +67,6 @@ class CurrenciesTable
             ])
             ->persistFiltersInSession()
             ->persistSearchInSession()
-            ->persistSortInSession()
             ->defaultSort('code', 'asc')
             ->emptyStateHeading('No currencies')
             ->emptyStateDescription('Create your first currency to start managing multi-currency operations.')

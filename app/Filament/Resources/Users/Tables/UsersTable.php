@@ -60,7 +60,6 @@ class UsersTable
             ])
             ->persistFiltersInSession()
             ->persistSearchInSession()
-            ->persistSortInSession()
             ->defaultSort('name');
     }
 }

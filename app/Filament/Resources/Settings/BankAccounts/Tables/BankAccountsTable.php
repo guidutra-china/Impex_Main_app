@@ -73,7 +73,6 @@ class BankAccountsTable
             ])
             ->persistFiltersInSession()
             ->persistSearchInSession()
-            ->persistSortInSession()
             ->defaultSort('account_name', 'asc')
             ->emptyStateHeading('No bank accounts')
             ->emptyStateDescription('Create your first bank account to manage financial operations.')
