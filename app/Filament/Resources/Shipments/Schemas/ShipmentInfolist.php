@@ -38,7 +38,8 @@ class ShipmentInfolist
                         ->date('d/m/Y')
                         ->placeholder('Not set'),
                 ])
-                ->columns(3),
+                ->columns(3)
+                ->columnSpanFull(),
 
             Section::make('Route & Transport')
                 ->schema([
@@ -61,7 +62,8 @@ class ShipmentInfolist
                         ->placeholder('—'),
                 ])
                 ->columns(3)
-                ->collapsible(),
+                ->collapsible()
+                ->columnSpanFull(),
 
             Section::make('Carrier & Booking')
                 ->schema([
@@ -75,7 +77,8 @@ class ShipmentInfolist
                 ])
                 ->columns(3)
                 ->collapsible()
-                ->collapsed(),
+                ->collapsed()
+                ->columnSpanFull(),
 
             Section::make('Dates')
                 ->schema([
@@ -97,7 +100,8 @@ class ShipmentInfolist
                         ->placeholder('—'),
                 ])
                 ->columns(4)
-                ->collapsible(),
+                ->collapsible()
+                ->columnSpanFull(),
 
             Section::make('Weight & Volume')
                 ->schema([
@@ -118,7 +122,8 @@ class ShipmentInfolist
                         ->placeholder('—'),
                 ])
                 ->columns(4)
-                ->collapsible(),
+                ->collapsible()
+                ->columnSpanFull(),
 
             Section::make('References')
                 ->schema([
@@ -133,7 +138,8 @@ class ShipmentInfolist
                         ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state))
                         ->weight('bold'),
                 ])
-                ->columns(3),
+                ->columns(3)
+                ->columnSpanFull(),
 
             Section::make('Notes')
                 ->schema([
@@ -145,7 +151,8 @@ class ShipmentInfolist
                         ->columnSpanFull(),
                 ])
                 ->collapsible()
-                ->collapsed(),
+                ->collapsed()
+                ->columnSpanFull(),
         ]);
     }
 }

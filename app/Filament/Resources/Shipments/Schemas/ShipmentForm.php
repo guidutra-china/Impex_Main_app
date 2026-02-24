@@ -50,7 +50,8 @@ class ShipmentForm
                         ->label('Document Issue Date')
                         ->helperText('Date printed on CI and Packing List'),
                 ])
-                ->columns(3),
+                ->columns(3)
+                ->columnSpanFull(),
 
             Section::make('Route & Transport')
                 ->schema([
@@ -71,7 +72,8 @@ class ShipmentForm
                         ->maxLength(255),
                 ])
                 ->columns(3)
-                ->collapsible(),
+                ->collapsible()
+                ->columnSpanFull(),
 
             Section::make('Carrier & Booking')
                 ->schema([
@@ -84,7 +86,8 @@ class ShipmentForm
                 ])
                 ->columns(3)
                 ->collapsible()
-                ->collapsed(),
+                ->collapsed()
+                ->columnSpanFull(),
 
             Section::make('Dates')
                 ->schema([
@@ -98,7 +101,8 @@ class ShipmentForm
                         ->label('Actual Arrival'),
                 ])
                 ->columns(4)
-                ->collapsible(),
+                ->collapsible()
+                ->columnSpanFull(),
 
             Section::make('Weight & Volume')
                 ->description('Auto-calculated from Packing List. Manual override available.')
@@ -122,7 +126,8 @@ class ShipmentForm
                 ])
                 ->columns(4)
                 ->collapsible()
-                ->collapsed(),
+                ->collapsed()
+                ->columnSpanFull(),
 
             Section::make('Notes')
                 ->schema([
@@ -134,7 +139,8 @@ class ShipmentForm
                         ->columnSpanFull(),
                 ])
                 ->collapsible()
-                ->collapsed(),
+                ->collapsed()
+                ->columnSpanFull(),
         ]);
     }
 }
