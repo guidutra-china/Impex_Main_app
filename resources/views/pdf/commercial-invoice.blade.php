@@ -14,7 +14,7 @@
         @endif
         <tr>
             <td class="meta-label">{{ $labels['date'] }}</td>
-            <td class="meta-value">{{ $shipment['etd'] }}</td>
+            <td class="meta-value">{{ $shipment['date'] }}</td>
         </tr>
         @if($shipment['incoterm'])
             <tr>

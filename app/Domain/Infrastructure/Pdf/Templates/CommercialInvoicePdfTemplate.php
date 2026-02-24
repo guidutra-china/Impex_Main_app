@@ -66,11 +66,14 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
 
         $grandTotal = $subtotal + $freightCosts;
 
+        $documentDate = $shipment->etd ?? $shipment->created_at ?? now();
+
         return [
             'shipment' => [
                 'reference' => $shipment->reference,
                 'origin_port' => $shipment->origin_port,
                 'destination_port' => $shipment->destination_port,
+                'date' => $this->formatDate($documentDate),
                 'etd' => $this->formatDate($shipment->etd),
                 'currency_code' => $currencyCode,
                 'pi_references' => $piReferences,
