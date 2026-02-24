@@ -9,7 +9,7 @@ class RecalculateShipmentTotalsAction
     public function execute(Shipment $shipment): void
     {
         $packingTotals = $shipment->packingListItems()
-            ->selectRaw('SUM(gross_weight) as total_gross, SUM(net_weight) as total_net, SUM(volume) as total_vol, COUNT(*) as total_pkgs')
+            ->selectRaw('SUM(total_gross_weight) as total_gross, SUM(total_net_weight) as total_net, SUM(total_volume) as total_vol, SUM(quantity) as total_pkgs')
             ->first();
 
         if ($packingTotals && $packingTotals->total_pkgs > 0) {
@@ -24,7 +24,7 @@ class RecalculateShipmentTotalsAction
         }
 
         $itemTotals = $shipment->items()
-            ->selectRaw('SUM(total_weight) as total_weight, SUM(total_volume) as total_volume, COUNT(*) as item_count')
+            ->selectRaw('SUM(total_weight) as total_weight, SUM(total_volume) as total_volume')
             ->first();
 
         $shipment->update([
