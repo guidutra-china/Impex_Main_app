@@ -2,6 +2,7 @@
 
 namespace App\Domain\Logistics\Actions;
 
+use App\Domain\Logistics\Enums\PackagingType;
 use App\Domain\Logistics\Models\PackingListItem;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Logistics\Models\ShipmentItem;
@@ -39,6 +40,7 @@ class GeneratePackingListAction
         $remainder = $totalQty % $pcsPerCarton;
         $created = 0;
 
+        $packagingType = $packaging->packaging_type ?? PackagingType::CARTON;
         $cartonWeight = (float) ($packaging->carton_weight ?? 0);
         $cartonLength = (float) ($packaging->carton_length ?? 0);
         $cartonWidth = (float) ($packaging->carton_width ?? 0);
@@ -58,6 +60,7 @@ class GeneratePackingListAction
             PackingListItem::create([
                 'shipment_id' => $shipment->id,
                 'shipment_item_id' => $shipmentItem->id,
+                'packaging_type' => $packagingType,
                 'carton_from' => $cartonFrom,
                 'carton_to' => $cartonTo,
                 'quantity' => $fullCartons,
@@ -89,6 +92,7 @@ class GeneratePackingListAction
             PackingListItem::create([
                 'shipment_id' => $shipment->id,
                 'shipment_item_id' => $shipmentItem->id,
+                'packaging_type' => $packagingType,
                 'carton_from' => $cartonCounter,
                 'carton_to' => $cartonCounter,
                 'quantity' => 1,
@@ -115,9 +119,13 @@ class GeneratePackingListAction
         $cartonCounter++;
         $sortOrder++;
 
+        $packaging = $shipmentItem->proformaInvoiceItem?->product?->packaging;
+        $packagingType = $packaging?->packaging_type ?? PackagingType::CARTON;
+
         PackingListItem::create([
             'shipment_id' => $shipment->id,
             'shipment_item_id' => $shipmentItem->id,
+            'packaging_type' => $packagingType,
             'carton_from' => $cartonCounter,
             'carton_to' => $cartonCounter,
             'quantity' => 1,

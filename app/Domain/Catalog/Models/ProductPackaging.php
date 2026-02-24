@@ -2,6 +2,7 @@
 
 namespace App\Domain\Catalog\Models;
 
+use App\Domain\Logistics\Enums\PackagingType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -11,6 +12,7 @@ class ProductPackaging extends Model
 
     protected $fillable = [
         'product_id',
+        'packaging_type',
         'pcs_per_inner_box',
         'inner_box_length',
         'inner_box_width',
@@ -32,6 +34,7 @@ class ProductPackaging extends Model
     protected function casts(): array
     {
         return [
+            'packaging_type' => PackagingType::class,
             'pcs_per_inner_box' => 'integer',
             'inner_box_length' => 'decimal:2',
             'inner_box_width' => 'decimal:2',

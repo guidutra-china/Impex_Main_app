@@ -2,6 +2,7 @@
 
 namespace App\Domain\Logistics\Models;
 
+use App\Domain\Logistics\Enums\PackagingType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -10,6 +11,8 @@ class PackingListItem extends Model
     protected $fillable = [
         'shipment_id',
         'shipment_item_id',
+        'packaging_type',
+        'pallet_number',
         'carton_from',
         'carton_to',
         'description',
@@ -32,6 +35,8 @@ class PackingListItem extends Model
     protected function casts(): array
     {
         return [
+            'packaging_type' => PackagingType::class,
+            'pallet_number' => 'integer',
             'carton_from' => 'integer',
             'carton_to' => 'integer',
             'quantity' => 'integer',

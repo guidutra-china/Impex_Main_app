@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Shipments\RelationManagers;
 
 use App\Domain\Logistics\Actions\GeneratePackingListAction;
 use App\Domain\Logistics\Actions\RecalculateShipmentTotalsAction;
+use App\Domain\Logistics\Enums\PackagingType;
 use App\Domain\Logistics\Models\PackingListItem;
 use App\Domain\Logistics\Models\ShipmentItem;
 use BackedEnum;
@@ -19,6 +20,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use UnitEnum;
 
@@ -71,6 +73,8 @@ class PackingListRelationManager extends RelationManager
                         return;
                     }
 
+                    $set('packaging_type', $packaging->packaging_type?->value ?? PackagingType::CARTON->value);
+
                     if ($packaging->pcs_per_carton > 0) {
                         $set('qty_per_carton', $packaging->pcs_per_carton);
                     }
@@ -101,6 +105,25 @@ class PackingListRelationManager extends RelationManager
                 ->maxLength(255)
                 ->placeholder('Additional description if needed'),
 
+            Section::make('Packaging & Pallet')
+                ->schema([
+                    Grid::make(2)->schema([
+                        Select::make('packaging_type')
+                            ->label('Packaging Type')
+                            ->options(PackagingType::class)
+                            ->default(PackagingType::CARTON)
+                            ->required()
+                            ->helperText('Auto-filled from product packaging'),
+
+                        TextInput::make('pallet_number')
+                            ->label('Pallet #')
+                            ->numeric()
+                            ->integer()
+                            ->minValue(1)
+                            ->placeholder('Leave empty if not palletized'),
+                    ]),
+                ]),
+
             Section::make('Quantity & Cartons')
                 ->schema([
                     Grid::make(2)->schema([
@@ -114,7 +137,7 @@ class PackingListRelationManager extends RelationManager
                             ->afterStateUpdated(fn (Get $get, Set $set) => $this->recalculateFromQuantity($get, $set)),
 
                         TextInput::make('qty_per_carton')
-                            ->label('Qty per Carton')
+                            ->label('Qty per Package')
                             ->required()
                             ->numeric()
                             ->integer()
@@ -126,21 +149,21 @@ class PackingListRelationManager extends RelationManager
 
                     Grid::make(3)->schema([
                         TextInput::make('quantity')
-                            ->label('Number of Cartons')
+                            ->label('Number of Packages')
                             ->numeric()
                             ->integer()
                             ->disabled()
                             ->dehydrated(),
 
                         TextInput::make('carton_from')
-                            ->label('Carton From')
+                            ->label('Package From')
                             ->numeric()
                             ->integer()
                             ->disabled()
                             ->dehydrated(),
 
                         TextInput::make('carton_to')
-                            ->label('Carton To')
+                            ->label('Package To')
                             ->numeric()
                             ->integer()
                             ->disabled()
@@ -148,7 +171,7 @@ class PackingListRelationManager extends RelationManager
                     ]),
                 ]),
 
-            Section::make('Weight & Dimensions (per carton)')
+            Section::make('Weight & Dimensions (per package)')
                 ->schema([
                     Grid::make(2)->schema([
                         TextInput::make('gross_weight')
@@ -184,7 +207,7 @@ class PackingListRelationManager extends RelationManager
                             ->afterStateUpdated(fn (Get $get, Set $set) => static::calculateVolume($get, $set)),
 
                         TextInput::make('volume')
-                            ->label('CBM/Ctn')
+                            ->label('CBM/Pkg')
                             ->numeric()
                             ->live(onBlur: true)
                             ->afterStateUpdated(fn (Get $get, Set $set) => static::recalculateWeightVolumeTotals($get, $set)),
@@ -224,18 +247,27 @@ class PackingListRelationManager extends RelationManager
     {
         return $table
             ->columns([
+                TextColumn::make('pallet_number')
+                    ->label('Pallet')
+                    ->formatStateUsing(fn ($state) => $state ? 'PLT-' . str_pad($state, 2, '0', STR_PAD_LEFT) : '—')
+                    ->badge()
+                    ->color(fn ($state) => $state ? 'primary' : 'gray')
+                    ->alignCenter(),
+                TextColumn::make('packaging_type')
+                    ->label('Type')
+                    ->badge(),
                 TextColumn::make('carton_range')
-                    ->label('Cartons')
+                    ->label('Packages')
                     ->weight('bold'),
                 TextColumn::make('product_name')
                     ->label('Product')
                     ->limit(30),
                 TextColumn::make('quantity')
-                    ->label('# Cartons')
+                    ->label('# Pkgs')
                     ->alignCenter()
                     ->summarize(Sum::make()->label('Total')),
                 TextColumn::make('qty_per_carton')
-                    ->label('Pcs/Carton')
+                    ->label('Pcs/Pkg')
                     ->alignCenter()
                     ->placeholder('—'),
                 TextColumn::make('total_quantity')
@@ -243,31 +275,17 @@ class PackingListRelationManager extends RelationManager
                     ->alignCenter()
                     ->weight('bold')
                     ->summarize(Sum::make()->label('Total')),
-                TextColumn::make('gross_weight')
-                    ->label('GW/Ctn (kg)')
-                    ->alignEnd()
-                    ->placeholder('—'),
                 TextColumn::make('total_gross_weight')
                     ->label('Total GW (kg)')
                     ->alignEnd()
                     ->placeholder('—')
                     ->weight('bold')
                     ->summarize(Sum::make()->label('Total')->suffix(' kg')),
-                TextColumn::make('net_weight')
-                    ->label('NW/Ctn (kg)')
-                    ->alignEnd()
-                    ->placeholder('—')
-                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('total_net_weight')
                     ->label('Total NW (kg)')
                     ->alignEnd()
                     ->placeholder('—')
                     ->summarize(Sum::make()->label('Total')->suffix(' kg'))
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('volume')
-                    ->label('CBM/Ctn')
-                    ->alignEnd()
-                    ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('total_volume')
                     ->label('Total CBM')
@@ -279,6 +297,13 @@ class PackingListRelationManager extends RelationManager
                     ->limit(30)
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->groups([
+                Group::make('pallet_number')
+                    ->label('Pallet')
+                    ->getTitleFromRecordUsing(fn ($record) => $record->pallet_number
+                        ? 'Pallet ' . str_pad($record->pallet_number, 2, '0', STR_PAD_LEFT)
+                        : 'No Pallet'),
             ])
             ->recordActions([
                 \Filament\Actions\EditAction::make()

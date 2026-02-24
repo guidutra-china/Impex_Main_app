@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Catalog\Products\Schemas;
 
 use App\Domain\Catalog\Enums\ProductStatus;
+use App\Domain\Logistics\Enums\PackagingType;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Actions\GenerateProductSkuAction;
@@ -239,6 +240,17 @@ class ProductForm
     protected static function packagingTab(): array
     {
         return [
+            Section::make('Packaging Type')
+                ->relationship('packaging')
+                ->schema([
+                    Select::make('packaging_type')
+                        ->label('Packaging Type')
+                        ->options(PackagingType::class)
+                        ->default(PackagingType::CARTON)
+                        ->helperText('Primary packaging type for this product'),
+                ])
+                ->columns(3),
+
             Section::make('Inner Box')
                 ->relationship('packaging')
                 ->schema([

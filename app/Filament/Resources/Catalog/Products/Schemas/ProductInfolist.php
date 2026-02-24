@@ -179,6 +179,16 @@ class ProductInfolist
     protected static function packagingTab(): array
     {
         return [
+            Section::make('Packaging Type')
+                ->relationship('packaging')
+                ->schema([
+                    TextEntry::make('packaging_type')
+                        ->label('Packaging Type')
+                        ->badge()
+                        ->placeholder('—'),
+                ])
+                ->columns(3),
+
             Section::make('Inner Box')
                 ->relationship('packaging')
                 ->schema([
