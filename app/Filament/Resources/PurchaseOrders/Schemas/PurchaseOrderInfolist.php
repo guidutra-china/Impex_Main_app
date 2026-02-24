@@ -157,7 +157,7 @@ class PurchaseOrderInfolist
                         ->label('Invoice File')
                         ->formatStateUsing(fn ($state) => $state ? 'Download' : null)
                         ->url(fn ($record) => $record->supplier_invoice_file
-                            ? \Illuminate\Support\Facades\Storage::url($record->supplier_invoice_file)
+                            ? \Illuminate\Support\Facades\URL::signedRoute('file.download', ['path' => $record->supplier_invoice_file])
                             : null
                         )
                         ->openUrlInNewTab()
