@@ -152,22 +152,24 @@ class PackingListRelationManager extends RelationManager
                             ->label('Number of Packages')
                             ->numeric()
                             ->integer()
-                            ->disabled()
-                            ->dehydrated(),
+                            ->minValue(1)
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(fn (Get $get, Set $set) => static::recalculateWeightVolumeTotals($get, $set))
+                            ->helperText('Auto-calculated, editable for mixed cartons'),
 
                         TextInput::make('carton_from')
                             ->label('Package From')
                             ->numeric()
                             ->integer()
-                            ->disabled()
-                            ->dehydrated(),
+                            ->minValue(1)
+                            ->helperText('Auto-calculated, editable for mixed cartons'),
 
                         TextInput::make('carton_to')
                             ->label('Package To')
                             ->numeric()
                             ->integer()
-                            ->disabled()
-                            ->dehydrated(),
+                            ->minValue(1)
+                            ->helperText('Auto-calculated, editable for mixed cartons'),
                     ]),
                 ]),
 

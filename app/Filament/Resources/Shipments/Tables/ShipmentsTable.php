@@ -99,6 +99,9 @@ class ShipmentsTable
                     DeleteBulkAction::make(),
                 ]),
             ])
+            ->persistFiltersInSession()
+            ->persistSearchInSession()
+            ->persistSortInSession()
             ->defaultSort('created_at', 'desc')
             ->emptyStateHeading('No shipments')
             ->emptyStateDescription('Create a shipment to start tracking your exports.')

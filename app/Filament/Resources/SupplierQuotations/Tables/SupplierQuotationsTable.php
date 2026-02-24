@@ -90,6 +90,9 @@ class SupplierQuotationsTable
                     ->searchable()
                     ->preload(),
             ])
+            ->persistFiltersInSession()
+            ->persistSearchInSession()
+            ->persistSortInSession()
             ->defaultSort('created_at', 'desc')
             ->striped();
     }

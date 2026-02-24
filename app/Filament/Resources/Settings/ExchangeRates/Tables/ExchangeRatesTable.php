@@ -82,6 +82,9 @@ class ExchangeRatesTable
                     DeleteBulkAction::make(),
                 ]),
             ])
+            ->persistFiltersInSession()
+            ->persistSearchInSession()
+            ->persistSortInSession()
             ->defaultSort('date', 'desc')
             ->emptyStateHeading('No exchange rates')
             ->emptyStateDescription('Create your first exchange rate to start tracking currency conversions.')

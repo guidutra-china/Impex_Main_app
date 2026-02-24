@@ -92,6 +92,9 @@ class InquiriesTable
                     DeleteBulkAction::make(),
                 ]),
             ])
+            ->persistFiltersInSession()
+            ->persistSearchInSession()
+            ->persistSortInSession()
             ->defaultSort('created_at', 'desc')
             ->emptyStateHeading('No inquiries')
             ->emptyStateDescription('Register your first client inquiry to start the quotation process.')

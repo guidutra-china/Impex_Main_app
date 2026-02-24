@@ -83,6 +83,9 @@ class CategoriesTable
                     DeleteBulkAction::make(),
                 ]),
             ])
+            ->persistFiltersInSession()
+            ->persistSearchInSession()
+            ->persistSortInSession()
             ->defaultSort('name', 'asc')
             ->emptyStateHeading('No categories')
             ->emptyStateDescription('Create categories to organize your products and generate SKU prefixes.')

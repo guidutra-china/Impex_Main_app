@@ -58,6 +58,9 @@ class UsersTable
                     ->relationship('roles', 'name')
                     ->preload(),
             ])
+            ->persistFiltersInSession()
+            ->persistSearchInSession()
+            ->persistSortInSession()
             ->defaultSort('name');
     }
 }

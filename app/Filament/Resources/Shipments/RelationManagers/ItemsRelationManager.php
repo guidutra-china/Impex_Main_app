@@ -9,6 +9,7 @@ use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
 use App\Domain\PurchaseOrders\Models\PurchaseOrderItem;
 use BackedEnum;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -202,13 +203,111 @@ class ItemsRelationManager extends RelationManager
                     ->summarize(Sum::make()->label('Total')->suffix(' CBM')),
             ])
             ->recordActions([
-                \Filament\Actions\EditAction::make(),
+                \Filament\Actions\EditAction::make()
+                    ->mountUsing(function ($form, $record) {
+                        $piItem = $record->proformaInvoiceItem;
+                        $piId = $piItem?->proforma_invoice_id;
+
+                        $form->fill(array_merge($record->toArray(), [
+                            'proforma_invoice_id' => $piId,
+                        ]));
+                    }),
                 \Filament\Actions\DeleteAction::make()
                     ->after(function () {
                         app(RecalculateShipmentTotalsAction::class)->execute($this->getOwnerRecord());
                     }),
             ])
             ->headerActions([
+                \Filament\Actions\Action::make('import_from_pi')
+                    ->label('Import from PI')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('warning')
+                    ->form([
+                        Select::make('proforma_invoice_id')
+                            ->label('Proforma Invoice')
+                            ->options(function () {
+                                $companyId = $this->getOwnerRecord()->company_id;
+                                return ProformaInvoice::where('company_id', $companyId)
+                                    ->pluck('reference', 'id');
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->live(),
+
+                        Checkbox::make('only_remaining')
+                            ->label('Only import remaining quantities (exclude already shipped)')
+                            ->default(true),
+                    ])
+                    ->action(function (array $data) {
+                        $piId = $data['proforma_invoice_id'];
+                        $onlyRemaining = $data['only_remaining'] ?? true;
+                        $shipment = $this->getOwnerRecord();
+
+                        $piItems = ProformaInvoiceItem::where('proforma_invoice_id', $piId)
+                            ->with('product.packaging', 'product.specification')
+                            ->get();
+
+                        $created = 0;
+                        $skipped = 0;
+                        $maxSort = $shipment->items()->max('sort_order') ?? 0;
+
+                        foreach ($piItems as $piItem) {
+                            $alreadyShipped = ShipmentItem::where('proforma_invoice_item_id', $piItem->id)->sum('quantity');
+                            $qty = $onlyRemaining ? ($piItem->quantity - $alreadyShipped) : $piItem->quantity;
+
+                            if ($qty <= 0) {
+                                $skipped++;
+                                continue;
+                            }
+
+                            $packaging = $piItem->product?->packaging;
+                            $unitWeight = null;
+                            $totalWeight = null;
+                            $totalVolume = null;
+
+                            if ($packaging && $packaging->pcs_per_carton > 0 && $packaging->carton_weight > 0) {
+                                $unitWeight = round((float) $packaging->carton_weight / $packaging->pcs_per_carton, 3);
+                                $totalWeight = round($unitWeight * $qty, 3);
+                            }
+
+                            if ($packaging && $packaging->pcs_per_carton > 0 && $packaging->carton_cbm > 0) {
+                                $numCartons = ceil($qty / $packaging->pcs_per_carton);
+                                $totalVolume = round($numCartons * (float) $packaging->carton_cbm, 4);
+                            }
+
+                            $poItem = PurchaseOrderItem::where('proforma_invoice_item_id', $piItem->id)->first();
+
+                            $maxSort++;
+                            ShipmentItem::create([
+                                'shipment_id' => $shipment->id,
+                                'proforma_invoice_item_id' => $piItem->id,
+                                'purchase_order_item_id' => $poItem?->id,
+                                'quantity' => $qty,
+                                'unit' => $piItem->unit,
+                                'unit_weight' => $unitWeight,
+                                'total_weight' => $totalWeight,
+                                'total_volume' => $totalVolume,
+                                'sort_order' => $maxSort,
+                            ]);
+
+                            $created++;
+                        }
+
+                        app(RecalculateShipmentTotalsAction::class)->execute($shipment);
+
+                        $message = "{$created} item(s) imported";
+                        if ($skipped > 0) {
+                            $message .= ", {$skipped} skipped (fully shipped)";
+                        }
+
+                        Notification::make()
+                            ->success()
+                            ->title('Items imported from PI')
+                            ->body($message)
+                            ->send();
+                    }),
+
                 \Filament\Actions\CreateAction::make()
                     ->label('Add Item')
                     ->icon('heroicon-o-plus')

@@ -70,6 +70,9 @@ class PaymentsTable
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->persistFiltersInSession()
+            ->persistSearchInSession()
+            ->persistSortInSession()
             ->defaultSort('payment_date', 'desc')
             ->filters([
                 SelectFilter::make('direction')

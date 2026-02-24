@@ -41,6 +41,9 @@ class TagsTable
                     DeleteBulkAction::make(),
                 ]),
             ])
+            ->persistFiltersInSession()
+            ->persistSearchInSession()
+            ->persistSortInSession()
             ->defaultSort('name', 'asc')
             ->emptyStateHeading('No tags')
             ->emptyStateDescription('Create tags to label and filter your products.')
