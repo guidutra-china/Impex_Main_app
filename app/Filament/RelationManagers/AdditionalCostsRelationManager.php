@@ -8,6 +8,10 @@ use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\Infrastructure\Pdf\PdfGeneratorService;
+use App\Domain\Infrastructure\Pdf\PdfRenderer;
+use App\Domain\Infrastructure\Pdf\Templates\CostStatementPdfTemplate;
+use App\Domain\Infrastructure\Services\DocumentService;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
@@ -95,6 +99,7 @@ class AdditionalCostsRelationManager extends RelationManager
             ])
             ->headerActions([
                 $this->addCostAction(),
+                $this->costStatementAction(),
             ])
             ->recordActions([
                 $this->editCostAction(),
@@ -412,5 +417,48 @@ class AdditionalCostsRelationManager extends RelationManager
         }
 
         return $owner;
+    }
+
+    protected function costStatementAction(): Action
+    {
+        return Action::make('costStatement')
+            ->label('Cost Statement')
+            ->icon('heroicon-o-document-text')
+            ->color('info')
+            ->visible(fn () => $this->getOwnerRecord() instanceof ProformaInvoice
+                && $this->getOwnerRecord()
+                    ->additionalCosts()
+                    ->where('billable_to', BillableTo::CLIENT)
+                    ->exists())
+            ->action(function () {
+                try {
+                    $template = new CostStatementPdfTemplate($this->getOwnerRecord());
+                    $service = new PdfGeneratorService(
+                        new PdfRenderer(),
+                        new DocumentService(),
+                    );
+
+                    $content = $service->preview($template);
+
+                    return response()->streamDownload(
+                        function () use ($content) {
+                            echo $content;
+                        },
+                        $template->getFilename(),
+                        [
+                            'Content-Type' => 'application/pdf',
+                            'Content-Disposition' => 'inline; filename="' . $template->getFilename() . '"',
+                        ],
+                    );
+                } catch (\Throwable $e) {
+                    report($e);
+
+                    Notification::make()
+                        ->title('Cost Statement Generation Failed')
+                        ->body($e->getMessage())
+                        ->danger()
+                        ->send();
+                }
+            });
     }
 }

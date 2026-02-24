@@ -95,23 +95,10 @@
 
 @section('client-info')
     <div class="client-section">
-        <table style="width: 100%;">
-            <tr>
-                <td style="width: 50%; vertical-align: top;">
-                    <div class="client-box">
-                        <div class="client-label">{{ $labels['from'] }}</div>
-                        <div class="client-name">{{ $company['name'] }}</div>
-                    </div>
-                </td>
-                <td style="width: 10px;"></td>
-                <td style="width: 50%; vertical-align: top;">
-                    <div class="client-box">
-                        <div class="client-label">{{ $labels['to'] }}</div>
-                        <div class="client-name">{{ $client['name'] }}</div>
-                    </div>
-                </td>
-            </tr>
-        </table>
+        <div class="client-box">
+            <div class="client-label">{{ $labels['to'] }}</div>
+            <div class="client-name">{{ $client['name'] }}</div>
+        </div>
     </div>
 @endsection
 
@@ -190,13 +177,4 @@
     <div class="generated-at">
         Generated on {{ $generated_at }}
     </div>
-
-    @if(! empty($company['bank_details']))
-        <div class="section">
-            <div class="section-title">{{ $labels['bank_details'] }}</div>
-            <div class="section-content">
-                {!! nl2br(e($company['bank_details'])) !!}
-            </div>
-        </div>
-    @endif
 @endsection
