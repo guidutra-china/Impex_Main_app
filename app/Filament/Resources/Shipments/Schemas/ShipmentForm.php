@@ -82,6 +82,9 @@ class ShipmentForm
 
             Section::make('Dates')
                 ->schema([
+                    DatePicker::make('issue_date')
+                        ->label('Document Issue Date')
+                        ->helperText('Date printed on CI and Packing List'),
                     DatePicker::make('etd')
                         ->label('ETD (Estimated Departure)'),
                     DatePicker::make('eta')
@@ -91,7 +94,7 @@ class ShipmentForm
                     DatePicker::make('actual_arrival')
                         ->label('Actual Arrival'),
                 ])
-                ->columns(4)
+                ->columns(5)
                 ->collapsible(),
 
             Section::make('Weight & Volume')

@@ -56,7 +56,7 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
 
         $totals = $this->calculateDedupedTotals($shipment->packingListItems);
 
-        $documentDate = $shipment->etd ?? $shipment->created_at ?? now();
+        $documentDate = $shipment->issue_date ?? $shipment->etd ?? $shipment->created_at ?? now();
 
         return [
             'shipment' => [

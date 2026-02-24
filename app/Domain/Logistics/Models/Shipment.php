@@ -26,6 +26,7 @@ class Shipment extends Model
 
     protected $fillable = [
         'reference',
+        'issue_date',
         'company_id',
         'status',
         'transport_mode',
@@ -59,6 +60,7 @@ class Shipment extends Model
             'status' => ShipmentStatus::class,
             'transport_mode' => TransportMode::class,
 
+            'issue_date' => 'date',
             'etd' => 'date',
             'eta' => 'date',
             'actual_departure' => 'date',
