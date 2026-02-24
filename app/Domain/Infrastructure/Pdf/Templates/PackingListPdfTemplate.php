@@ -46,7 +46,7 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
             ->unique()
             ->implode(', ');
 
-        $packingLines = $this->buildPackingLines($shipment);
+        $containerGroups = $this->buildContainerGroups($shipment);
 
         $totals = [
             'total_packages' => $shipment->packingListItems->sum('quantity'),
@@ -61,7 +61,6 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
                 'reference' => $shipment->reference,
                 'origin_port' => $shipment->origin_port,
                 'destination_port' => $shipment->destination_port,
-                'container_number' => $shipment->container_number,
                 'etd' => $this->formatDate($shipment->etd),
                 'bl_number' => $shipment->bl_number,
                 'vessel_name' => $shipment->vessel_name,
@@ -76,41 +75,65 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
                 'email' => $shipment->company?->email,
                 'tax_id' => $shipment->company?->tax_number,
             ],
-            'packing_lines' => $packingLines,
+            'container_groups' => $containerGroups,
+            'has_multiple_containers' => count($containerGroups) > 1,
             'totals' => $totals,
         ];
     }
 
-    private function buildPackingLines(Shipment $shipment): array
+    private function buildContainerGroups(Shipment $shipment): array
     {
-        $lines = [];
-
         $items = $shipment->packingListItems->sortBy('sort_order')->values();
 
-        foreach ($items as $item) {
-            $product = $item->shipmentItem?->proformaInvoiceItem?->product;
+        $grouped = $items->groupBy(fn ($item) => $item->container_number ?? '__none__');
 
-            $packagePrefix = $this->getPackagePrefix($item->packaging_type);
-            $packageNo = $this->formatPackageNumber($packagePrefix, $item->carton_from, $item->carton_to);
+        $containerGroups = [];
 
-            $lines[] = [
-                'container' => $shipment->container_number ?? '',
-                'pallet' => $item->pallet_number ? 'PLT-' . str_pad($item->pallet_number, 2, '0', STR_PAD_LEFT) : null,
-                'package_no' => $packageNo,
-                'model_no' => $product?->sku ?? '',
-                'product_name' => $item->product_name,
-                'description' => $item->description,
-                'equipment_qty' => $item->total_quantity,
-                'package_qty' => $item->quantity,
-                'net_weight' => $item->total_net_weight ? number_format((float) $item->total_net_weight, 1) : '',
-                'gross_weight' => $item->total_gross_weight ? number_format((float) $item->total_gross_weight, 1) : '',
-                'dimensions' => $this->formatDimensions($item),
-                'volume' => $item->total_volume ? number_format((float) $item->total_volume, 2) : '',
-                'is_sub_item' => false,
+        foreach ($grouped as $containerNumber => $containerItems) {
+            $lines = [];
+            $containerTotals = [
+                'packages' => 0,
+                'equipment_qty' => 0,
+                'gross_weight' => 0,
+                'net_weight' => 0,
+                'volume' => 0,
+            ];
+
+            foreach ($containerItems as $item) {
+                $product = $item->shipmentItem?->proformaInvoiceItem?->product;
+
+                $packagePrefix = $this->getPackagePrefix($item->packaging_type);
+                $packageNo = $this->formatPackageNumber($packagePrefix, $item->carton_from, $item->carton_to);
+
+                $lines[] = [
+                    'pallet' => $item->pallet_number ? 'PLT-' . str_pad($item->pallet_number, 2, '0', STR_PAD_LEFT) : null,
+                    'package_no' => $packageNo,
+                    'model_no' => $product?->sku ?? '',
+                    'product_name' => $item->product_name,
+                    'description' => $item->description,
+                    'equipment_qty' => $item->total_quantity,
+                    'package_qty' => $item->quantity,
+                    'net_weight' => $item->total_net_weight ? number_format((float) $item->total_net_weight, 1) : '',
+                    'gross_weight' => $item->total_gross_weight ? number_format((float) $item->total_gross_weight, 1) : '',
+                    'dimensions' => $this->formatDimensions($item),
+                    'volume' => $item->total_volume ? number_format((float) $item->total_volume, 2) : '',
+                ];
+
+                $containerTotals['packages'] += (int) $item->quantity;
+                $containerTotals['equipment_qty'] += (int) $item->total_quantity;
+                $containerTotals['gross_weight'] += (float) $item->total_gross_weight;
+                $containerTotals['net_weight'] += (float) $item->total_net_weight;
+                $containerTotals['volume'] += (float) $item->total_volume;
+            }
+
+            $containerGroups[] = [
+                'container_number' => $containerNumber === '__none__' ? null : $containerNumber,
+                'lines' => $lines,
+                'totals' => $containerTotals,
             ];
         }
 
-        return $lines;
+        return $containerGroups;
     }
 
     private function getPackagePrefix(?PackagingType $type): string

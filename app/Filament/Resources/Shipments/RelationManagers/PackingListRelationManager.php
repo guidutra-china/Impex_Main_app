@@ -105,15 +105,20 @@ class PackingListRelationManager extends RelationManager
                 ->maxLength(255)
                 ->placeholder('Additional description if needed'),
 
-            Section::make('Packaging & Pallet')
+            Section::make('Packaging & Container')
                 ->schema([
-                    Grid::make(2)->schema([
+                    Grid::make(3)->schema([
                         Select::make('packaging_type')
                             ->label('Packaging Type')
                             ->options(PackagingType::class)
                             ->default(PackagingType::CARTON)
                             ->required()
                             ->helperText('Auto-filled from product packaging'),
+
+                        TextInput::make('container_number')
+                            ->label('Container #')
+                            ->maxLength(50)
+                            ->placeholder('e.g. CCLU7730065'),
 
                         TextInput::make('pallet_number')
                             ->label('Pallet #')
@@ -249,12 +254,19 @@ class PackingListRelationManager extends RelationManager
     {
         return $table
             ->columns([
+                TextColumn::make('container_number')
+                    ->label('Container')
+                    ->placeholder('—')
+                    ->badge()
+                    ->color('gray')
+                    ->toggleable(),
                 TextColumn::make('pallet_number')
                     ->label('Pallet')
                     ->formatStateUsing(fn ($state) => $state ? 'PLT-' . str_pad($state, 2, '0', STR_PAD_LEFT) : '—')
                     ->badge()
                     ->color(fn ($state) => $state ? 'primary' : 'gray')
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->toggleable(),
                 TextColumn::make('packaging_type')
                     ->label('Type')
                     ->badge(),
@@ -301,6 +313,11 @@ class PackingListRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->groups([
+                Group::make('container_number')
+                    ->label('Container')
+                    ->getTitleFromRecordUsing(fn ($record) => $record->container_number
+                        ? 'Container: ' . $record->container_number
+                        : 'No Container'),
                 Group::make('pallet_number')
                     ->label('Pallet')
                     ->getTitleFromRecordUsing(fn ($record) => $record->pallet_number

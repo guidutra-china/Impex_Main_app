@@ -11,6 +11,7 @@ class PackingListItem extends Model
     protected $fillable = [
         'shipment_id',
         'shipment_item_id',
+        'container_number',
         'packaging_type',
         'pallet_number',
         'carton_from',

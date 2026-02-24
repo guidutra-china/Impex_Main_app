@@ -1,10 +1,6 @@
 @extends('pdf.layouts.document')
 
 @section('extra-styles')
-    .packing-meta-row {
-        margin-bottom: 6px;
-    }
-
     .packing-meta-table {
         width: 100%;
         border-collapse: collapse;
@@ -69,12 +65,6 @@
         background: #f9fafb;
     }
 
-    .packing-items-table tbody tr.sub-item td {
-        padding-left: 20px;
-        color: #6b7280;
-        font-size: 6.5pt;
-    }
-
     .packing-items-table tfoot td {
         padding: 5px 5px;
         font-weight: bold;
@@ -83,13 +73,29 @@
         background: #eff6ff;
     }
 
-    .container-header td {
+    .container-header {
         background: #f0f4ff !important;
+        border-top: 2px solid #1e40af;
+    }
+
+    .container-header td {
+        font-weight: bold;
+        font-size: 7.5pt;
+        color: #1e40af;
+        padding: 5px 5px;
+    }
+
+    .container-subtotal {
+        background: #f8fafc !important;
+    }
+
+    .container-subtotal td {
         font-weight: bold;
         font-size: 7pt;
-        color: #1e40af;
+        color: #374151;
         padding: 4px 5px;
-        border-top: 2px solid #1e40af;
+        border-top: 1px solid #93c5fd;
+        border-bottom: 2px solid #93c5fd;
     }
 
     .pallet-badge {
@@ -151,16 +157,10 @@
                 <td class="value">{{ $shipment['vessel_name'] }}</td>
             @endif
         </tr>
-        @if($shipment['container_number'] || $shipment['bl_number'])
+        @if($shipment['bl_number'])
             <tr>
-                @if($shipment['container_number'])
-                    <td class="label">CNTR:</td>
-                    <td class="value">{{ $shipment['container_number'] }}</td>
-                @endif
-                @if($shipment['bl_number'])
-                    <td class="label">B/L:</td>
-                    <td class="value">{{ $shipment['bl_number'] }}</td>
-                @endif
+                <td class="label">B/L:</td>
+                <td class="value" colspan="5">{{ $shipment['bl_number'] }}</td>
             </tr>
         @endif
     </table>
@@ -170,45 +170,76 @@
     <table class="packing-items-table">
         <thead>
             <tr>
-                <th style="width: 40px;">PKG NO.</th>
+                <th style="width: 70px;">PKG NO.</th>
                 <th style="width: 70px;">MODEL NO.</th>
                 <th>PRODUCT NAME</th>
                 <th class="text-center" style="width: 50px;">EQUIP QTY</th>
                 <th class="text-center" style="width: 45px;">PKG QTY</th>
                 <th class="text-right" style="width: 55px;">NW (KG)</th>
                 <th class="text-right" style="width: 55px;">GW (KG)</th>
-                <th class="text-center" style="width: 80px;">DIMENSIONS (cm)</th>
-                <th class="text-right" style="width: 55px;">VOL (m³)</th>
+                <th class="text-center" style="width: 90px;">DIMENSIONS (cm)</th>
+                <th class="text-right" style="width: 55px;">VOL (m&sup3;)</th>
             </tr>
         </thead>
         <tbody>
-            @foreach($packing_lines as $line)
-                <tr class="{{ $line['is_sub_item'] ? 'sub-item' : '' }}">
-                    <td>
-                        {{ $line['package_no'] }}
-                        @if($line['pallet'])
-                            <br><span class="pallet-badge">{{ $line['pallet'] }}</span>
-                        @endif
-                    </td>
-                    <td>{{ $line['model_no'] }}</td>
-                    <td>
-                        {{ $line['product_name'] }}
-                        @if($line['description'])
-                            <br><span style="font-size: 6pt; color: #6b7280;">{{ $line['description'] }}</span>
-                        @endif
-                    </td>
-                    <td class="text-center">{{ $line['equipment_qty'] ?: '' }}</td>
-                    <td class="text-center">{{ $line['package_qty'] ?: '' }}</td>
-                    <td class="text-right">{{ $line['net_weight'] }}</td>
-                    <td class="text-right">{{ $line['gross_weight'] }}</td>
-                    <td class="text-center">{{ $line['dimensions'] }}</td>
-                    <td class="text-right">{{ $line['volume'] }}</td>
-                </tr>
+            @foreach($container_groups as $group)
+                {{-- Container header row (only if multiple containers or container is set) --}}
+                @if($has_multiple_containers || $group['container_number'])
+                    <tr class="container-header">
+                        <td colspan="9">
+                            @if($group['container_number'])
+                                CONTAINER: {{ $group['container_number'] }}
+                            @else
+                                NO CONTAINER ASSIGNED
+                            @endif
+                        </td>
+                    </tr>
+                @endif
+
+                {{-- Item rows --}}
+                @foreach($group['lines'] as $line)
+                    <tr>
+                        <td>
+                            {{ $line['package_no'] }}
+                            @if($line['pallet'])
+                                <br><span class="pallet-badge">{{ $line['pallet'] }}</span>
+                            @endif
+                        </td>
+                        <td>{{ $line['model_no'] }}</td>
+                        <td>
+                            {{ $line['product_name'] }}
+                            @if($line['description'])
+                                <br><span style="font-size: 6pt; color: #6b7280;">{{ $line['description'] }}</span>
+                            @endif
+                        </td>
+                        <td class="text-center">{{ $line['equipment_qty'] ?: '' }}</td>
+                        <td class="text-center">{{ $line['package_qty'] ?: '' }}</td>
+                        <td class="text-right">{{ $line['net_weight'] }}</td>
+                        <td class="text-right">{{ $line['gross_weight'] }}</td>
+                        <td class="text-center">{{ $line['dimensions'] }}</td>
+                        <td class="text-right">{{ $line['volume'] }}</td>
+                    </tr>
+                @endforeach
+
+                {{-- Container subtotal row (only if multiple containers) --}}
+                @if($has_multiple_containers)
+                    <tr class="container-subtotal">
+                        <td colspan="3" class="text-right">
+                            Subtotal {{ $group['container_number'] ?? '' }}
+                        </td>
+                        <td class="text-center">{{ number_format($group['totals']['equipment_qty']) }}</td>
+                        <td class="text-center">{{ number_format($group['totals']['packages']) }}</td>
+                        <td class="text-right">{{ number_format($group['totals']['net_weight'], 1) }}</td>
+                        <td class="text-right">{{ number_format($group['totals']['gross_weight'], 1) }}</td>
+                        <td></td>
+                        <td class="text-right">{{ number_format($group['totals']['volume'], 2) }}</td>
+                    </tr>
+                @endif
             @endforeach
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="3" class="text-right">TOTALS</td>
+                <td colspan="3" class="text-right">GRAND TOTAL</td>
                 <td class="text-center">{{ number_format($totals['total_equipment_qty']) }}</td>
                 <td class="text-center">{{ number_format($totals['total_packages']) }}</td>
                 <td class="text-right">{{ number_format($totals['total_net_weight'], 1) }}</td>
