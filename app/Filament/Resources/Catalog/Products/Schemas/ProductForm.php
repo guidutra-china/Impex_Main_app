@@ -284,7 +284,23 @@ class ProductForm
                     TextInput::make('pcs_per_carton')
                         ->label('Pcs / Carton')
                         ->numeric()
-                        ->minValue(1),
+                        ->minValue(1)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(function (Set $set, ?string $state, $record) {
+                            if (! $state || ! $record) {
+                                return;
+                            }
+
+                            $product = $record instanceof \App\Domain\Catalog\Models\ProductPackaging
+                                ? $record->product
+                                : $record;
+
+                            $specNetWeight = $product?->specification?->net_weight;
+
+                            if ($specNetWeight && $specNetWeight > 0) {
+                                $set('carton_net_weight', round((float) $specNetWeight * (int) $state, 3));
+                            }
+                        }),
                     TextInput::make('inner_boxes_per_carton')
                         ->label('Inner Boxes / Carton')
                         ->numeric()
@@ -309,7 +325,7 @@ class ProductForm
                         ->numeric()
                         ->step(0.001)
                         ->minValue(0)
-                        ->helperText('Products weight only, no carton'),
+                        ->helperText('Auto-calculated from Spec NW × Pcs/Carton. Editable for override.'),
                     TextInput::make('carton_weight')
                         ->label('GW / Carton (kg)')
                         ->numeric()
