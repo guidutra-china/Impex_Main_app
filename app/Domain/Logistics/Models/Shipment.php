@@ -9,7 +9,7 @@ use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Infrastructure\Traits\HasDocuments;
 use App\Domain\Infrastructure\Traits\HasReference;
 use App\Domain\Infrastructure\Traits\HasStateMachine;
-use App\Domain\Logistics\Enums\ContainerType;
+
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Enums\TransportMode;
 use App\Models\User;
@@ -57,7 +57,7 @@ class Shipment extends Model
         return [
             'status' => ShipmentStatus::class,
             'transport_mode' => TransportMode::class,
-            'container_type' => ContainerType::class,
+
             'etd' => 'date',
             'eta' => 'date',
             'actual_departure' => 'date',

@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Shipments\Schemas;
 
-use App\Domain\Logistics\Enums\ContainerType;
+use App\Domain\Settings\Models\ContainerType;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Enums\TransportMode;
 use Filament\Forms\Components\DatePicker;
@@ -36,7 +36,12 @@ class ShipmentForm
                     Select::make('transport_mode')
                         ->options(TransportMode::class),
                     Select::make('container_type')
-                        ->options(ContainerType::class),
+                        ->options(
+                            ContainerType::active()
+                                ->pluck('name', 'code')
+                                ->toArray()
+                        )
+                        ->searchable(),
                 ])
                 ->columns(3),
 
