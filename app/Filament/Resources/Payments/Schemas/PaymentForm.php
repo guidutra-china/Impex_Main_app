@@ -30,7 +30,7 @@ class PaymentForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Payment Information')->columns(3)->schema([
+            Section::make('Payment Information')->columns(2)->schema([
                 Select::make('direction')
                     ->label('Direction')
                     ->options(PaymentDirection::class)
