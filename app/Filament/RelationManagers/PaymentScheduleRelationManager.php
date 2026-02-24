@@ -38,16 +38,21 @@ class PaymentScheduleRelationManager extends RelationManager
                     ->alignCenter(),
                 TextColumn::make('label')
                     ->label('Description')
-                    ->weight('bold'),
+                    ->weight('bold')
+                    ->description(fn ($record) => $record->is_credit ? 'CREDIT' : null)
+                    ->color(fn ($record) => $record->is_credit ? 'success' : null),
                 TextColumn::make('percentage')
                     ->label('%')
                     ->suffix('%')
                     ->alignCenter(),
                 TextColumn::make('amount')
                     ->label('Amount')
-                    ->formatStateUsing(fn ($state) => Money::format($state))
+                    ->formatStateUsing(fn ($state, $record) => $record->is_credit
+                        ? '-' . Money::format($state)
+                        : Money::format($state))
                     ->prefix('$ ')
-                    ->alignEnd(),
+                    ->alignEnd()
+                    ->color(fn ($record) => $record->is_credit ? 'success' : null),
                 TextColumn::make('paid_amount')
                     ->label('Paid')
                     ->getStateUsing(fn ($record) => $record->paid_amount)
@@ -79,7 +84,8 @@ class PaymentScheduleRelationManager extends RelationManager
                     ->alignCenter(),
                 TextColumn::make('status')
                     ->label('Status')
-                    ->badge(),
+                    ->badge()
+                    ->description(fn ($record) => $record->is_credit && $record->is_credit_applied ? 'Credit Applied' : null),
             ])
             ->headerActions([
                 $this->generateScheduleAction(),

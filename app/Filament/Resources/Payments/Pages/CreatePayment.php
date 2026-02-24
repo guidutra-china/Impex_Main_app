@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Payments\Pages;
 
+use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
@@ -17,27 +18,32 @@ class CreatePayment extends CreateRecord
 
     protected array $pendingAllocations = [];
 
+    protected array $pendingCreditApplications = [];
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $this->pendingAllocations = $data['allocations'] ?? [];
+        $this->pendingCreditApplications = $data['credit_applications'] ?? [];
 
         $data['amount'] = Money::toMinor((float) $data['amount']);
         $data['status'] = PaymentStatus::PENDING_APPROVAL->value;
 
-        unset($data['allocations']);
+        unset($data['allocations'], $data['credit_applications']);
 
         return $data;
     }
 
     protected function afterCreate(): void
     {
-        if (empty($this->pendingAllocations)) {
-            return;
-        }
-
         $payment = $this->record;
         $paymentCurrencyCode = $payment->currency_code;
 
+        $this->persistAllocations($payment, $paymentCurrencyCode);
+        $this->persistCreditApplications($payment);
+    }
+
+    protected function persistAllocations($payment, string $paymentCurrencyCode): void
+    {
         foreach ($this->pendingAllocations as $allocationData) {
             $scheduleItemId = $allocationData['payment_schedule_item_id'] ?? null;
 
@@ -89,6 +95,41 @@ class CreatePayment extends CreateRecord
                 'allocated_amount' => $allocatedMinor,
                 'exchange_rate' => $exchangeRate,
                 'allocated_amount_in_document_currency' => $allocatedInDocCurrency,
+            ]);
+        }
+    }
+
+    protected function persistCreditApplications($payment): void
+    {
+        foreach ($this->pendingCreditApplications as $creditData) {
+            $creditItemId = $creditData['credit_schedule_item_id'] ?? null;
+            $scheduleItemId = $creditData['payment_schedule_item_id'] ?? null;
+            $creditAmount = (float) ($creditData['credit_amount'] ?? 0);
+
+            if (! $creditItemId || ! $scheduleItemId || $creditAmount <= 0) {
+                continue;
+            }
+
+            $creditItem = PaymentScheduleItem::find($creditItemId);
+            $scheduleItem = PaymentScheduleItem::find($scheduleItemId);
+
+            if (! $creditItem || ! $scheduleItem) {
+                continue;
+            }
+
+            $creditMinor = Money::toMinor($creditAmount);
+
+            PaymentAllocation::create([
+                'payment_id' => $payment->id,
+                'payment_schedule_item_id' => $scheduleItemId,
+                'credit_schedule_item_id' => $creditItemId,
+                'allocated_amount' => 0,
+                'exchange_rate' => null,
+                'allocated_amount_in_document_currency' => $creditMinor,
+            ]);
+
+            $creditItem->update([
+                'status' => PaymentScheduleStatus::PAID->value,
             ]);
         }
     }

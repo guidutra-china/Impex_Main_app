@@ -67,6 +67,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'edit-proforma-invoices',
             'delete-proforma-invoices',
             'confirm-proforma-invoices',
+            'reopen-proforma-invoices',
 
             // Purchase Orders
             'view-purchase-orders',
@@ -152,6 +153,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'reject-payments',
             'waive-payments',
             'confirm-proforma-invoices',
+            'reopen-proforma-invoices',
             'view-costs',
             'view-margins',
             'manage-settings',

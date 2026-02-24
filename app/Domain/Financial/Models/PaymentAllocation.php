@@ -12,6 +12,7 @@ class PaymentAllocation extends Model
     protected $fillable = [
         'payment_id',
         'payment_schedule_item_id',
+        'credit_schedule_item_id',
         'allocated_amount',
         'exchange_rate',
         'allocated_amount_in_document_currency',
@@ -36,5 +37,15 @@ class PaymentAllocation extends Model
     public function scheduleItem(): BelongsTo
     {
         return $this->belongsTo(PaymentScheduleItem::class, 'payment_schedule_item_id');
+    }
+
+    public function creditItem(): BelongsTo
+    {
+        return $this->belongsTo(PaymentScheduleItem::class, 'credit_schedule_item_id');
+    }
+
+    public function isCreditApplication(): bool
+    {
+        return $this->credit_schedule_item_id !== null;
     }
 }

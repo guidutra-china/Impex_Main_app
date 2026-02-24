@@ -77,13 +77,43 @@ class PaymentScheduleItem extends Model
         return $this->hasMany(PaymentAllocation::class);
     }
 
+    public function creditAllocations(): HasMany
+    {
+        return $this->hasMany(PaymentAllocation::class, 'credit_schedule_item_id');
+    }
+
     // --- Accessors ---
 
     public function getPaidAmountAttribute(): int
     {
-        return (int) $this->allocations()
+        $paymentAmount = (int) $this->allocations()
+            ->whereNull('credit_schedule_item_id')
             ->whereHas('payment', fn ($q) => $q->where('status', PaymentStatus::APPROVED))
             ->sum('allocated_amount_in_document_currency');
+
+        $creditAmount = (int) $this->allocations()
+            ->whereNotNull('credit_schedule_item_id')
+            ->whereHas('payment', fn ($q) => $q->where('status', PaymentStatus::APPROVED))
+            ->sum('allocated_amount_in_document_currency');
+
+        return $paymentAmount + $creditAmount;
+    }
+
+    public function getCreditAppliedAmountAttribute(): int
+    {
+        return (int) $this->allocations()
+            ->whereNotNull('credit_schedule_item_id')
+            ->whereHas('payment', fn ($q) => $q->where('status', PaymentStatus::APPROVED))
+            ->sum('allocated_amount_in_document_currency');
+    }
+
+    public function getIsCreditAppliedAttribute(): bool
+    {
+        if (! $this->is_credit) {
+            return false;
+        }
+
+        return $this->creditAllocations()->exists();
     }
 
     public function getRemainingAmountAttribute(): int
@@ -103,7 +133,7 @@ class PaymentScheduleItem extends Model
     public function getIsPaidInFullAttribute(): bool
     {
         if ($this->is_credit) {
-            return true;
+            return $this->is_credit_applied || $this->isResolved();
         }
 
         return $this->remaining_amount <= 0;

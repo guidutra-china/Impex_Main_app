@@ -74,9 +74,16 @@ class PaymentInfolist
                             ->label('Document'),
                         TextEntry::make('scheduleItem.label')
                             ->label('Schedule Item'),
+                        TextEntry::make('type')
+                            ->label('Type')
+                            ->getStateUsing(fn ($record) => $record->isCreditApplication() ? 'Credit' : 'Payment')
+                            ->badge()
+                            ->color(fn ($record) => $record->isCreditApplication() ? 'success' : 'primary'),
                         TextEntry::make('allocated_amount')
                             ->label('Allocated')
-                            ->formatStateUsing(fn ($state) => Money::format($state)),
+                            ->formatStateUsing(fn ($state, $record) => $record->isCreditApplication()
+                                ? 'Credit: ' . Money::format($record->allocated_amount_in_document_currency)
+                                : Money::format($state)),
                         TextEntry::make('exchange_rate')
                             ->label('Exchange Rate')
                             ->placeholder('1:1'),
@@ -85,7 +92,7 @@ class PaymentInfolist
                             ->formatStateUsing(fn ($state) => Money::format($state))
                             ->placeholder('—'),
                     ])
-                    ->columns(5),
+                    ->columns(6),
             ]),
         ]);
     }

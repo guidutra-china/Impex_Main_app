@@ -39,6 +39,7 @@ class PaymentForm
                     ->afterStateUpdated(function (Set $set) {
                         $set('company_id', null);
                         $set('allocations', []);
+                        $set('credit_applications', []);
                         $set('amount', null);
                     })
                     ->columnSpan(1),
@@ -68,6 +69,7 @@ class PaymentForm
                     ->live()
                     ->afterStateUpdated(function (Set $set) {
                         $set('allocations', []);
+                        $set('credit_applications', []);
                         $set('amount', null);
                     })
                     ->columnSpan(1),
@@ -80,7 +82,7 @@ class PaymentForm
             ]),
 
             Section::make('Outstanding Schedule Items')
-                ->description('All pending schedule items for the selected company. Use this as reference when adding allocations below.')
+                ->description('Pending schedule items for the selected company. Credits are shown separately below.')
                 ->visible(fn (Get $get) => filled($get('company_id')))
                 ->schema([
                     Placeholder::make('pending_items_table')
@@ -146,6 +148,61 @@ class PaymentForm
                             $html .= '<tfoot><tr class="border-t-2 border-gray-300 dark:border-gray-600">';
                             $html .= '<td colspan="4" class="py-2 px-3 font-bold text-right">Total Remaining:</td>';
                             $html .= '<td class="py-2 px-3 text-right font-bold text-primary-600">' . Money::format($totalRemaining) . '</td>';
+                            $html .= '<td colspan="2"></td>';
+                            $html .= '</tr></tfoot>';
+                            $html .= '</table></div>';
+
+                            return new HtmlString($html);
+                        }),
+                ]),
+
+            Section::make('Available Credits')
+                ->description('Credits available to offset against schedule items. Apply them in the Credit Applications section below.')
+                ->visible(fn (Get $get) => filled($get('company_id'))
+                    && static::getCompanyCreditItems((int) $get('company_id'), $get('direction'))->isNotEmpty())
+                ->schema([
+                    Placeholder::make('credit_items_table')
+                        ->label('')
+                        ->content(function (Get $get) {
+                            $companyId = $get('company_id');
+                            $direction = $get('direction');
+
+                            if (! $companyId) {
+                                return '';
+                            }
+
+                            $credits = static::getCompanyCreditItems((int) $companyId, $direction);
+
+                            if ($credits->isEmpty()) {
+                                return '';
+                            }
+
+                            $html = '<div class="overflow-x-auto">';
+                            $html .= '<table class="w-full text-sm border-collapse">';
+                            $html .= '<thead><tr class="border-b border-gray-200 dark:border-gray-700">';
+                            $html .= '<th class="text-left py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Document</th>';
+                            $html .= '<th class="text-left py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Description</th>';
+                            $html .= '<th class="text-right py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Credit Amount</th>';
+                            $html .= '<th class="text-left py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Currency</th>';
+                            $html .= '<th class="text-left py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Status</th>';
+                            $html .= '</tr></thead><tbody>';
+
+                            foreach ($credits as $credit) {
+                                $docRef = $credit->payable?->reference ?? 'Unknown';
+                                $html .= '<tr class="border-b border-gray-100 dark:border-gray-800">';
+                                $html .= '<td class="py-2 px-3 font-medium">' . e($docRef) . '</td>';
+                                $html .= '<td class="py-2 px-3">' . e($credit->label) . '</td>';
+                                $html .= '<td class="py-2 px-3 text-right font-semibold text-green-600">' . Money::format($credit->amount) . '</td>';
+                                $html .= '<td class="py-2 px-3">' . e($credit->currency_code) . '</td>';
+                                $html .= '<td class="py-2 px-3 text-blue-600 capitalize">Available</td>';
+                                $html .= '</tr>';
+                            }
+
+                            $totalCredit = $credits->sum('amount');
+                            $html .= '</tbody>';
+                            $html .= '<tfoot><tr class="border-t-2 border-gray-300 dark:border-gray-600">';
+                            $html .= '<td colspan="2" class="py-2 px-3 font-bold text-right">Total Available Credit:</td>';
+                            $html .= '<td class="py-2 px-3 text-right font-bold text-green-600">' . Money::format($totalCredit) . '</td>';
                             $html .= '<td colspan="2"></td>';
                             $html .= '</tr></tfoot>';
                             $html .= '</table></div>';
@@ -225,7 +282,7 @@ class PaymentForm
 
                             if ($amount > 0 && abs($unallocated) > 0.001) {
                                 if ($unallocated > 0) {
-                                    $parts[] = '<span class="text-yellow-600 font-medium"> | Unallocated: ' . number_format($unallocated, 2) . ' (will be credit)</span>';
+                                    $parts[] = '<span class="text-yellow-600 font-medium"> | Unallocated: ' . number_format($unallocated, 2) . '</span>';
                                 } else {
                                     $parts[] = '<span class="text-red-600 font-medium"> | Over-allocated by: ' . number_format(abs($unallocated), 2) . '</span>';
                                 }
@@ -233,6 +290,67 @@ class PaymentForm
 
                             return new HtmlString(implode('', $parts));
                         }),
+                ]),
+
+            Section::make('Credit Applications')
+                ->description('Apply available credits to reduce the amount due on schedule items. This does not affect the wire transfer amount — it offsets the balance owed.')
+                ->visible(fn (Get $get) => filled($get('company_id'))
+                    && static::getCompanyCreditItems((int) $get('company_id'), $get('direction'))->isNotEmpty())
+                ->schema([
+                    Repeater::make('credit_applications')
+                        ->label('')
+                        ->schema([
+                            Select::make('credit_schedule_item_id')
+                                ->label('Credit to Apply')
+                                ->options(function (Get $get) {
+                                    $companyId = $get('../../company_id');
+                                    $direction = $get('../../direction');
+
+                                    if (! $companyId) {
+                                        return [];
+                                    }
+
+                                    return static::getCompanyCreditItems((int) $companyId, $direction)
+                                        ->mapWithKeys(fn ($item) => [
+                                            $item->id => static::formatCreditItemLabel($item),
+                                        ]);
+                                })
+                                ->required()
+                                ->distinct()
+                                ->searchable()
+                                ->columnSpan(4),
+                            Select::make('payment_schedule_item_id')
+                                ->label('Apply to Schedule Item')
+                                ->options(function (Get $get) {
+                                    $companyId = $get('../../company_id');
+                                    $direction = $get('../../direction');
+
+                                    if (! $companyId) {
+                                        return [];
+                                    }
+
+                                    return static::getCompanyScheduleItems((int) $companyId, $direction)
+                                        ->mapWithKeys(fn ($item) => [
+                                            $item->id => static::formatScheduleItemLabel($item),
+                                        ]);
+                                })
+                                ->required()
+                                ->searchable()
+                                ->columnSpan(4),
+                            TextInput::make('credit_amount')
+                                ->label('Credit Amount')
+                                ->numeric()
+                                ->step('0.01')
+                                ->minValue(0.01)
+                                ->required()
+                                ->helperText('Amount of credit to apply')
+                                ->columnSpan(2),
+                        ])
+                        ->columns(10)
+                        ->defaultItems(0)
+                        ->addActionLabel('+ Apply Credit')
+                        ->live()
+                        ->columnSpanFull(),
                 ]),
 
             Section::make('Payment Details')->columns(2)->schema([
@@ -243,7 +361,7 @@ class PaymentForm
                     ->minValue(0.01)
                     ->required()
                     ->live(onBlur: true)
-                    ->helperText('Auto-calculated from allocations. Adjust if payment includes unallocated credit.'),
+                    ->helperText('Wire transfer amount. Credits are applied separately and do not affect this value.'),
                 DatePicker::make('payment_date')
                     ->label('Payment Date')
                     ->default(now())
@@ -295,6 +413,32 @@ class PaymentForm
         $directionValue = $direction instanceof PaymentDirection ? $direction->value : $direction;
 
         $query = PaymentScheduleItem::query()
+            ->where('is_credit', false)
+            ->whereNotIn('status', [
+                PaymentScheduleStatus::PAID->value,
+                PaymentScheduleStatus::WAIVED->value,
+            ]);
+
+        if ($directionValue === PaymentDirection::INBOUND->value || $directionValue === 'inbound') {
+            $piIds = ProformaInvoice::where('company_id', $companyId)->pluck('id');
+            $query->where('payable_type', $piType)->whereIn('payable_id', $piIds);
+        } else {
+            $poIds = PurchaseOrder::where('supplier_company_id', $companyId)->pluck('id');
+            $query->where('payable_type', $poType)->whereIn('payable_id', $poIds);
+        }
+
+        return $query->with('payable')->get();
+    }
+
+    public static function getCompanyCreditItems(int $companyId, mixed $direction): \Illuminate\Support\Collection
+    {
+        $piType = ProformaInvoice::class;
+        $poType = PurchaseOrder::class;
+
+        $directionValue = $direction instanceof PaymentDirection ? $direction->value : $direction;
+
+        $query = PaymentScheduleItem::query()
+            ->where('is_credit', true)
             ->whereNotIn('status', [
                 PaymentScheduleStatus::PAID->value,
                 PaymentScheduleStatus::WAIVED->value,
@@ -319,5 +463,15 @@ class PaymentForm
         $currency = $item->currency_code;
 
         return "[{$docRef}] {$item->label} — {$currency} {$remaining} remaining";
+    }
+
+    protected static function formatCreditItemLabel(PaymentScheduleItem $item): string
+    {
+        $payable = $item->payable;
+        $docRef = $payable?->reference ?? 'Unknown';
+        $amount = Money::format($item->amount);
+        $currency = $item->currency_code;
+
+        return "[{$docRef}] {$item->label} — {$currency} {$amount} credit";
     }
 }
