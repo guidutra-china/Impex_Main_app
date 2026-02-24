@@ -76,6 +76,12 @@ class RolesAndPermissionsSeeder extends Seeder
             'delete-purchase-orders',
             'generate-purchase-orders',
 
+            // Shipments
+            'view-shipments',
+            'create-shipments',
+            'edit-shipments',
+            'delete-shipments',
+
             // Financial
             'view-payments',
             'create-payments',
@@ -130,6 +136,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'delete-quotations',
             'delete-proforma-invoices',
             'delete-purchase-orders',
+            'delete-shipments',
             'manage-settings',
             'view-users',
             'create-users',
@@ -149,6 +156,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'delete-quotations',
             'delete-proforma-invoices',
             'delete-purchase-orders',
+            'delete-shipments',
             'approve-payments',
             'reject-payments',
             'waive-payments',
