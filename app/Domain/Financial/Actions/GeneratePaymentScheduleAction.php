@@ -85,9 +85,10 @@ class GeneratePaymentScheduleAction
         $totalAmount = $payable->total;
         $currencyCode = $payable->currency_code;
 
-        // Delete items that have no allocations and are not resolved
+        // Delete only payment-term-based items (not additional cost items)
         PaymentScheduleItem::where('payable_type', get_class($payable))
             ->where('payable_id', $payable->getKey())
+            ->whereNull('source_type')
             ->whereNotIn('status', [
                 PaymentScheduleStatus::PAID->value,
                 PaymentScheduleStatus::WAIVED->value,
@@ -95,9 +96,10 @@ class GeneratePaymentScheduleAction
             ->whereDoesntHave('allocations')
             ->delete();
 
-        // Get remaining items (paid/waived or with allocations)
+        // Get remaining payment-term items (paid/waived or with allocations)
         $preservedItems = PaymentScheduleItem::where('payable_type', get_class($payable))
             ->where('payable_id', $payable->getKey())
+            ->whereNull('source_type')
             ->get()
             ->keyBy('payment_term_stage_id');
 
