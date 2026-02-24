@@ -107,6 +107,11 @@
         font-size: 6pt;
         font-weight: bold;
     }
+
+    .sub-item td {
+        border-bottom: 1px dashed #d1d5db;
+        color: #374151;
+    }
 @endsection
 
 @section('document-meta')
@@ -170,9 +175,10 @@
     <table class="packing-items-table">
         <thead>
             <tr>
-                <th style="width: 70px;">PKG NO.</th>
+                <th style="width: 55px;">PKG NO.</th>
                 <th style="width: 70px;">MODEL NO.</th>
                 <th>PRODUCT NAME</th>
+                <th class="text-center" style="width: 35px;">UNIT</th>
                 <th class="text-center" style="width: 50px;">EQUIP QTY</th>
                 <th class="text-center" style="width: 45px;">PKG QTY</th>
                 <th class="text-right" style="width: 55px;">NW (KG)</th>
@@ -183,10 +189,10 @@
         </thead>
         <tbody>
             @foreach($container_groups as $group)
-                {{-- Container header row (only if multiple containers or container is set) --}}
+                {{-- Container header row --}}
                 @if($has_multiple_containers || $group['container_number'])
                     <tr class="container-header">
-                        <td colspan="9">
+                        <td colspan="10">
                             @if($group['container_number'])
                                 CONTAINER: {{ $group['container_number'] }}
                             @else
@@ -198,9 +204,11 @@
 
                 {{-- Item rows --}}
                 @foreach($group['lines'] as $line)
-                    <tr>
+                    <tr class="{{ $line['is_sub_item'] ? 'sub-item' : '' }}">
                         <td>
-                            {{ $line['package_no'] }}
+                            @if($line['package_no'])
+                                <strong>{{ $line['package_no'] }}</strong>
+                            @endif
                             @if($line['pallet'])
                                 <br><span class="pallet-badge">{{ $line['pallet'] }}</span>
                             @endif
@@ -212,6 +220,7 @@
                                 <br><span style="font-size: 6pt; color: #6b7280;">{{ $line['description'] }}</span>
                             @endif
                         </td>
+                        <td class="text-center">{{ $line['unit'] }}</td>
                         <td class="text-center">{{ $line['equipment_qty'] ?: '' }}</td>
                         <td class="text-center">{{ $line['package_qty'] ?: '' }}</td>
                         <td class="text-right">{{ $line['net_weight'] }}</td>
@@ -224,7 +233,7 @@
                 {{-- Container subtotal row (only if multiple containers) --}}
                 @if($has_multiple_containers)
                     <tr class="container-subtotal">
-                        <td colspan="3" class="text-right">
+                        <td colspan="4" class="text-right">
                             Subtotal {{ $group['container_number'] ?? '' }}
                         </td>
                         <td class="text-center">{{ number_format($group['totals']['equipment_qty']) }}</td>
@@ -239,7 +248,7 @@
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="3" class="text-right">GRAND TOTAL</td>
+                <td colspan="4" class="text-right">GRAND TOTAL</td>
                 <td class="text-center">{{ number_format($totals['total_equipment_qty']) }}</td>
                 <td class="text-center">{{ number_format($totals['total_packages']) }}</td>
                 <td class="text-right">{{ number_format($totals['total_net_weight'], 1) }}</td>

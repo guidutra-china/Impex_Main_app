@@ -83,14 +83,17 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
 
     private function buildContainerGroups(Shipment $shipment): array
     {
-        $items = $shipment->packingListItems->sortBy('sort_order')->values();
+        $items = $shipment->packingListItems
+            ->sortBy('carton_from')
+            ->values();
 
         $grouped = $items->groupBy(fn ($item) => $item->container_number ?? '__none__');
 
         $containerGroups = [];
 
         foreach ($grouped as $containerNumber => $containerItems) {
-            $lines = [];
+            $lines = $this->buildMergedLines($containerItems);
+
             $containerTotals = [
                 'packages' => 0,
                 'equipment_qty' => 0,
@@ -100,25 +103,6 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
             ];
 
             foreach ($containerItems as $item) {
-                $product = $item->shipmentItem?->proformaInvoiceItem?->product;
-
-                $packagePrefix = $this->getPackagePrefix($item->packaging_type);
-                $packageNo = $this->formatPackageNumber($packagePrefix, $item->carton_from, $item->carton_to);
-
-                $lines[] = [
-                    'pallet' => $item->pallet_number ? 'PLT-' . str_pad($item->pallet_number, 2, '0', STR_PAD_LEFT) : null,
-                    'package_no' => $packageNo,
-                    'model_no' => $product?->sku ?? '',
-                    'product_name' => $item->product_name,
-                    'description' => $item->description,
-                    'equipment_qty' => $item->total_quantity,
-                    'package_qty' => $item->quantity,
-                    'net_weight' => $item->total_net_weight ? number_format((float) $item->total_net_weight, 1) : '',
-                    'gross_weight' => $item->total_gross_weight ? number_format((float) $item->total_gross_weight, 1) : '',
-                    'dimensions' => $this->formatDimensions($item),
-                    'volume' => $item->total_volume ? number_format((float) $item->total_volume, 2) : '',
-                ];
-
                 $containerTotals['packages'] += (int) $item->quantity;
                 $containerTotals['equipment_qty'] += (int) $item->total_quantity;
                 $containerTotals['gross_weight'] += (float) $item->total_gross_weight;
@@ -136,36 +120,107 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
         return $containerGroups;
     }
 
-    private function getPackagePrefix(?PackagingType $type): string
+    /**
+     * Merge items that share the same carton range (mixed cartons).
+     * For mixed cartons: package_no, pkg_qty, NW, GW, dimensions, volume appear only on the first row.
+     * Sub-items only show product info and equipment qty.
+     */
+    private function buildMergedLines(mixed $containerItems): array
     {
-        if (! $type) {
-            return 'PKG';
+        $sorted = $containerItems->sortBy('carton_from')->values();
+
+        // Group by carton_from + carton_to to detect mixed cartons
+        $cartonGroups = $sorted->groupBy(fn ($item) => $item->carton_from . '-' . $item->carton_to);
+
+        $lines = [];
+
+        foreach ($cartonGroups as $cartonKey => $groupItems) {
+            $isMixed = $groupItems->count() > 1;
+
+            if ($isMixed) {
+                // Sum weights and volume across all items in this carton group
+                $totalGW = $groupItems->sum(fn ($i) => (float) $i->total_gross_weight);
+                $totalNW = $groupItems->sum(fn ($i) => (float) $i->total_net_weight);
+                $totalVol = $groupItems->sum(fn ($i) => (float) $i->total_volume);
+                $totalPkgs = $groupItems->first()->quantity; // same carton = 1 package group
+
+                // First item in the mixed carton: shows package info
+                $firstItem = $groupItems->first();
+                $firstProduct = $firstItem->shipmentItem?->proformaInvoiceItem?->product;
+
+                $lines[] = [
+                    'package_no' => $this->formatPackageNumber($firstItem->carton_from, $firstItem->carton_to),
+                    'pallet' => $firstItem->pallet_number ? 'PLT-' . str_pad($firstItem->pallet_number, 2, '0', STR_PAD_LEFT) : null,
+                    'model_no' => $firstProduct?->sku ?? '',
+                    'product_name' => $firstItem->product_name,
+                    'description' => $firstItem->description,
+                    'unit' => $firstItem->shipmentItem?->unit ?? 'pcs',
+                    'equipment_qty' => $firstItem->total_quantity,
+                    'package_qty' => $totalPkgs,
+                    'net_weight' => $totalNW ? number_format($totalNW, 1) : '',
+                    'gross_weight' => $totalGW ? number_format($totalGW, 1) : '',
+                    'dimensions' => $this->formatDimensions($firstItem),
+                    'volume' => $totalVol ? number_format($totalVol, 2) : '',
+                    'is_sub_item' => false,
+                ];
+
+                // Remaining items in the mixed carton: only product info
+                foreach ($groupItems->skip(1) as $subItem) {
+                    $subProduct = $subItem->shipmentItem?->proformaInvoiceItem?->product;
+
+                    $lines[] = [
+                        'package_no' => '',
+                        'pallet' => null,
+                        'model_no' => $subProduct?->sku ?? '',
+                        'product_name' => $subItem->product_name,
+                        'description' => $subItem->description,
+                        'unit' => $subItem->shipmentItem?->unit ?? 'pcs',
+                        'equipment_qty' => $subItem->total_quantity,
+                        'package_qty' => '',
+                        'net_weight' => '',
+                        'gross_weight' => '',
+                        'dimensions' => '',
+                        'volume' => '',
+                        'is_sub_item' => true,
+                    ];
+                }
+            } else {
+                // Single product per carton range — normal row
+                $item = $groupItems->first();
+                $product = $item->shipmentItem?->proformaInvoiceItem?->product;
+
+                $lines[] = [
+                    'package_no' => $this->formatPackageNumber($item->carton_from, $item->carton_to),
+                    'pallet' => $item->pallet_number ? 'PLT-' . str_pad($item->pallet_number, 2, '0', STR_PAD_LEFT) : null,
+                    'model_no' => $product?->sku ?? '',
+                    'product_name' => $item->product_name,
+                    'description' => $item->description,
+                    'unit' => $item->shipmentItem?->unit ?? 'pcs',
+                    'equipment_qty' => $item->total_quantity,
+                    'package_qty' => $item->quantity,
+                    'net_weight' => $item->total_net_weight ? number_format((float) $item->total_net_weight, 1) : '',
+                    'gross_weight' => $item->total_gross_weight ? number_format((float) $item->total_gross_weight, 1) : '',
+                    'dimensions' => $this->formatDimensions($item),
+                    'volume' => $item->total_volume ? number_format((float) $item->total_volume, 2) : '',
+                    'is_sub_item' => false,
+                ];
+            }
         }
 
-        return match ($type) {
-            PackagingType::CARTON => 'CTN',
-            PackagingType::BAG => 'BAG',
-            PackagingType::DRUM => 'DRM',
-            PackagingType::WOOD_BOX => 'WB',
-            PackagingType::BULK => 'BLK',
-        };
+        return $lines;
     }
 
-    private function formatPackageNumber(string $prefix, ?int $from, ?int $to): string
+    private function formatPackageNumber(?int $from, ?int $to): string
     {
         if (! $from) {
             return '';
         }
 
-        $fromStr = $prefix . str_pad($from, 2, '0', STR_PAD_LEFT);
-
         if (! $to || $from === $to) {
-            return $fromStr;
+            return (string) $from;
         }
 
-        $toStr = $prefix . str_pad($to, 2, '0', STR_PAD_LEFT);
-
-        return $fromStr . '-' . $toStr;
+        return $from . '-' . $to;
     }
 
     private function formatDimensions($item): string
