@@ -135,6 +135,7 @@ class PaymentsRelationManager extends RelationManager
                     ->color('gray')
                     ->visible(fn ($record) => ! $record->is_credit)
                     ->modalHeading(fn ($record) => "Deposits for: {$record->label}")
+                    ->modalWidth('3xl')
                     ->modalContent(fn ($record) => new HtmlString($this->renderAllocationsDetail($record)))
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close'),
@@ -208,20 +209,29 @@ class PaymentsRelationManager extends RelationManager
             return '<p class="text-sm text-gray-500 py-4">No deposits recorded for this schedule item.</p>';
         }
 
-        $html = '<div class="space-y-4">';
+        $html = '<div style="min-width: 600px;" class="space-y-6 py-2">';
 
         if ($regularAllocations->isNotEmpty()) {
             $html .= '<div>';
-            $html .= '<div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Payments</div>';
-            $html .= '<table class="w-full text-sm border-collapse">';
-            $html .= '<thead><tr class="border-b border-gray-200 dark:border-gray-700">';
-            $html .= '<th class="text-left py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Date</th>';
-            $html .= '<th class="text-right py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Amount</th>';
-            $html .= '<th class="text-left py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Currency</th>';
-            $html .= '<th class="text-left py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Method</th>';
-            $html .= '<th class="text-left py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Reference</th>';
-            $html .= '<th class="text-left py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Status</th>';
-            $html .= '<th class="text-center py-2 px-3 font-medium text-gray-600 dark:text-gray-400"></th>';
+            $html .= '<div class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Payments</div>';
+            $html .= '<table class="w-full text-sm border-collapse" style="table-layout: fixed;">';
+            $html .= '<colgroup>';
+            $html .= '<col style="width: 15%;">';
+            $html .= '<col style="width: 18%;">';
+            $html .= '<col style="width: 10%;">';
+            $html .= '<col style="width: 17%;">';
+            $html .= '<col style="width: 17%;">';
+            $html .= '<col style="width: 14%;">';
+            $html .= '<col style="width: 9%;">';
+            $html .= '</colgroup>';
+            $html .= '<thead><tr class="border-b-2 border-gray-200 dark:border-gray-700">';
+            $html .= '<th class="text-left py-3 px-4 font-bold text-gray-600 dark:text-gray-400">Date</th>';
+            $html .= '<th class="text-right py-3 px-4 font-bold text-gray-600 dark:text-gray-400">Amount</th>';
+            $html .= '<th class="text-left py-3 px-4 font-bold text-gray-600 dark:text-gray-400">Cur.</th>';
+            $html .= '<th class="text-left py-3 px-4 font-bold text-gray-600 dark:text-gray-400">Method</th>';
+            $html .= '<th class="text-left py-3 px-4 font-bold text-gray-600 dark:text-gray-400">Reference</th>';
+            $html .= '<th class="text-left py-3 px-4 font-bold text-gray-600 dark:text-gray-400">Status</th>';
+            $html .= '<th class="text-center py-3 px-4 font-bold text-gray-600 dark:text-gray-400"></th>';
             $html .= '</tr></thead><tbody>';
 
             $totalPayments = 0;
@@ -244,33 +254,38 @@ class PaymentsRelationManager extends RelationManager
                 $statusLabel = $payment->status instanceof BackedEnum ? ucfirst($payment->status->value) : $payment->status;
                 $viewUrl = PaymentResource::getUrl('view', ['record' => $payment]);
 
-                $html .= '<tr class="border-b border-gray-100 dark:border-gray-800">';
-                $html .= "<td class=\"py-2 px-3\">{$date}</td>";
-                $html .= "<td class=\"py-2 px-3 text-right font-medium\">{$amount}</td>";
-                $html .= "<td class=\"py-2 px-3\">{$currency}</td>";
-                $html .= "<td class=\"py-2 px-3\">{$method}</td>";
-                $html .= "<td class=\"py-2 px-3\">{$ref}</td>";
-                $html .= "<td class=\"py-2 px-3 {$statusColor} font-medium\">{$statusLabel}</td>";
-                $html .= "<td class=\"py-2 px-3 text-center\"><a href=\"{$viewUrl}\" target=\"_blank\" class=\"text-primary-600 hover:underline text-xs\">View</a></td>";
+                $html .= '<tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">';
+                $html .= "<td class=\"py-3 px-4\">{$date}</td>";
+                $html .= "<td class=\"py-3 px-4 text-right font-semibold\">{$amount}</td>";
+                $html .= "<td class=\"py-3 px-4\">{$currency}</td>";
+                $html .= "<td class=\"py-3 px-4\">{$method}</td>";
+                $html .= "<td class=\"py-3 px-4\">{$ref}</td>";
+                $html .= "<td class=\"py-3 px-4 {$statusColor} font-semibold\">{$statusLabel}</td>";
+                $html .= "<td class=\"py-3 px-4 text-center\"><a href=\"{$viewUrl}\" target=\"_blank\" class=\"text-primary-600 hover:underline font-medium\">View</a></td>";
                 $html .= '</tr>';
             }
 
             $html .= '</tbody>';
             $html .= '<tfoot><tr class="border-t-2 border-gray-300 dark:border-gray-600">';
-            $html .= '<td class="py-2 px-3 font-bold text-right">Subtotal:</td>';
-            $html .= '<td class="py-2 px-3 text-right font-bold">' . Money::format($totalPayments) . '</td>';
+            $html .= '<td class="py-3 px-4 font-bold text-right">Subtotal:</td>';
+            $html .= '<td class="py-3 px-4 text-right font-bold">' . Money::format($totalPayments) . '</td>';
             $html .= '<td colspan="5"></td>';
             $html .= '</tr></tfoot></table></div>';
         }
 
         if ($creditAllocations->isNotEmpty()) {
             $html .= '<div>';
-            $html .= '<div class="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider mb-2">Credits Applied</div>';
-            $html .= '<table class="w-full text-sm border-collapse">';
-            $html .= '<thead><tr class="border-b border-gray-200 dark:border-gray-700">';
-            $html .= '<th class="text-left py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Credit Source</th>';
-            $html .= '<th class="text-right py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Amount</th>';
-            $html .= '<th class="text-left py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Currency</th>';
+            $html .= '<div class="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wider mb-3">Credits Applied</div>';
+            $html .= '<table class="w-full text-sm border-collapse" style="table-layout: fixed;">';
+            $html .= '<colgroup>';
+            $html .= '<col style="width: 55%;">';
+            $html .= '<col style="width: 30%;">';
+            $html .= '<col style="width: 15%;">';
+            $html .= '</colgroup>';
+            $html .= '<thead><tr class="border-b-2 border-gray-200 dark:border-gray-700">';
+            $html .= '<th class="text-left py-3 px-4 font-bold text-gray-600 dark:text-gray-400">Credit Source</th>';
+            $html .= '<th class="text-right py-3 px-4 font-bold text-gray-600 dark:text-gray-400">Amount</th>';
+            $html .= '<th class="text-left py-3 px-4 font-bold text-gray-600 dark:text-gray-400">Cur.</th>';
             $html .= '</tr></thead><tbody>';
 
             $totalCredits = 0;
@@ -280,36 +295,41 @@ class PaymentsRelationManager extends RelationManager
                 $creditAmount = $alloc->allocated_amount_in_document_currency;
                 $totalCredits += $creditAmount;
 
-                $html .= '<tr class="border-b border-gray-100 dark:border-gray-800">';
-                $html .= "<td class=\"py-2 px-3 text-green-600 font-medium\">{$creditLabel}</td>";
-                $html .= '<td class="py-2 px-3 text-right font-medium text-green-600">' . Money::format($creditAmount) . '</td>';
-                $html .= '<td class="py-2 px-3">' . e($item->currency_code) . '</td>';
+                $html .= '<tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">';
+                $html .= "<td class=\"py-3 px-4 text-green-600 font-semibold\">{$creditLabel}</td>";
+                $html .= '<td class="py-3 px-4 text-right font-semibold text-green-600">' . Money::format($creditAmount) . '</td>';
+                $html .= '<td class="py-3 px-4">' . e($item->currency_code) . '</td>';
                 $html .= '</tr>';
             }
 
             $html .= '</tbody>';
             $html .= '<tfoot><tr class="border-t-2 border-gray-300 dark:border-gray-600">';
-            $html .= '<td class="py-2 px-3 font-bold text-right">Subtotal:</td>';
-            $html .= '<td class="py-2 px-3 text-right font-bold text-green-600">' . Money::format($totalCredits) . '</td>';
+            $html .= '<td class="py-3 px-4 font-bold text-right">Subtotal:</td>';
+            $html .= '<td class="py-3 px-4 text-right font-bold text-green-600">' . Money::format($totalCredits) . '</td>';
             $html .= '<td></td>';
             $html .= '</tr></tfoot></table></div>';
         }
 
         $html .= '</div>';
 
-        $totalCovered = $regularAllocations->sum('allocated_amount') + $creditAllocations->sum('allocated_amount_in_document_currency');
         $remaining = $item->remaining_amount;
+        $totalPaid = $regularAllocations->sum('allocated_amount');
+        $totalCreditApplied = $creditAllocations->sum('allocated_amount_in_document_currency');
 
-        $html .= '<div class="mt-4 p-3 rounded-lg border ' . ($remaining > 0
+        $html .= '<div class="mt-4 p-4 rounded-lg border ' . ($remaining > 0
             ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
             : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800') . '">';
-        $html .= '<div class="flex justify-between text-sm">';
-        $html .= '<span class="font-medium">Due: ' . $item->currency_code . ' ' . Money::format($item->amount) . '</span>';
-        $html .= '<span class="font-bold ' . ($remaining > 0 ? 'text-yellow-700 dark:text-yellow-400' : 'text-green-700 dark:text-green-400') . '">';
+        $html .= '<div class="flex items-center justify-between gap-x-8">';
+        $html .= '<span class="text-sm"><span class="font-bold text-gray-700 dark:text-gray-300">Due:</span> <span class="font-bold">' . $item->currency_code . ' ' . Money::format($item->amount) . '</span></span>';
+        $html .= '<span class="text-sm"><span class="font-bold text-gray-700 dark:text-gray-300">Paid:</span> <span class="font-bold text-blue-600">' . $item->currency_code . ' ' . Money::format($totalPaid) . '</span></span>';
+        if ($totalCreditApplied > 0) {
+            $html .= '<span class="text-sm"><span class="font-bold text-gray-700 dark:text-gray-300">Credits:</span> <span class="font-bold text-green-600">' . $item->currency_code . ' ' . Money::format($totalCreditApplied) . '</span></span>';
+        }
+        $html .= '<span class="text-sm"><span class="font-bold ' . ($remaining > 0 ? 'text-yellow-700 dark:text-yellow-400' : 'text-green-700 dark:text-green-400') . '">';
         $html .= $remaining > 0
             ? 'Remaining: ' . $item->currency_code . ' ' . Money::format($remaining)
             : 'Fully Paid';
-        $html .= '</span></div></div>';
+        $html .= '</span></span></div></div>';
 
         return $html;
     }
