@@ -43,6 +43,12 @@ class PurchaseOrdersTable
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge(),
+                TextColumn::make('supplier_invoice_number')
+                    ->label('Supplier Invoice')
+                    ->searchable()
+                    ->sortable()
+                    ->copyable()
+                    ->placeholder('—'),
                 TextColumn::make('currency_code')
                     ->label('Currency')
                     ->badge()
