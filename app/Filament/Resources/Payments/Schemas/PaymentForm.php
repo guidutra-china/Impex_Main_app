@@ -30,7 +30,7 @@ class PaymentForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Payment Information')->columns(2)->schema([
+            Section::make('Payment Information')->columns(2)->columnSpanFull()->schema([
                 Select::make('direction')
                     ->label('Direction')
                     ->options(PaymentDirection::class)
@@ -143,7 +143,8 @@ class PaymentForm
 
                             return new HtmlString($html);
                         }),
-                ]),
+                ])
+                ->columnSpanFull(),
 
             Section::make('Allocations')
                 ->description('Allocate the wire transfer amount to schedule items.')
@@ -215,7 +216,8 @@ class PaymentForm
                             }
                             return new HtmlString(implode('', $parts));
                         }),
-                ]),
+                ])
+                ->columnSpanFull(),
 
             Section::make('Credit Applications')
                 ->description('Apply credits to offset schedule item balances. This does not affect the wire transfer amount.')
@@ -288,7 +290,8 @@ class PaymentForm
                         ->addActionLabel('+ Apply Credit')
                         ->live()
                         ->columnSpanFull(),
-                ]),
+                ])
+                ->columnSpanFull(),
         ]);
     }
 

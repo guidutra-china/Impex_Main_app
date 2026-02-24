@@ -13,7 +13,7 @@ class PaymentInfolist
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Payment Details')->columns(3)->schema([
+            Section::make('Payment Details')->columns(3)->columnSpanFull()->schema([
                 TextEntry::make('direction')
                     ->label('Direction')
                     ->badge(),
@@ -66,7 +66,7 @@ class PaymentInfolist
                     ->columnSpanFull(),
             ]),
 
-            Section::make('Allocations')->schema([
+            Section::make('Allocations')->columnSpanFull()->schema([
                 RepeatableEntry::make('allocations')
                     ->label('')
                     ->schema([
