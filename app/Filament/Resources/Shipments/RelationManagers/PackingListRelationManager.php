@@ -39,6 +39,7 @@ class PackingListRelationManager extends RelationManager
                     $shipment = $this->getOwnerRecord();
 
                     $packedQtyByItem = $shipment->packingListItems()
+                        ->reorder()
                         ->selectRaw('shipment_item_id, SUM(total_quantity) as packed_qty')
                         ->groupBy('shipment_item_id')
                         ->pluck('packed_qty', 'shipment_item_id');
