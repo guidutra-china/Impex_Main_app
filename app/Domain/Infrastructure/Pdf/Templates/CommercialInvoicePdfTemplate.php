@@ -58,7 +58,17 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
             ->first();
 
         $items = $this->buildInvoiceItems($shipment, $currencyCode);
-        $subtotal = $shipment->items->sum(fn ($item) => $item->line_total);
+
+        $subtotal = $shipment->items->sum(function ($item) {
+            $product = $item->proformaInvoiceItem?->product;
+            $pivot = $this->getClientPivot($product);
+
+            if ($pivot && filled($pivot->custom_price) && $pivot->custom_price > 0) {
+                return $pivot->custom_price * $item->quantity;
+            }
+
+            return $item->line_total;
+        });
 
         $freightCosts = $shipment->additionalCosts
             ->filter(fn ($cost) => strtolower($cost->type ?? '') === 'freight')
@@ -111,6 +121,14 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
                 $piItem = $item->proformaInvoiceItem;
                 $pivot = $this->getClientPivot($product);
 
+                $unitPrice = $item->unit_price;
+                $lineTotal = $item->line_total;
+
+                if ($pivot && filled($pivot->custom_price) && $pivot->custom_price > 0) {
+                    $unitPrice = $pivot->custom_price;
+                    $lineTotal = $unitPrice * $item->quantity;
+                }
+
                 return [
                     'index' => $index + 1,
                     'model_no' => $pivot?->external_code ?: ($product?->model_number ?: ($product?->sku ?? '—')),
@@ -118,8 +136,8 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
                     'description' => $pivot?->external_description ?: ($piItem?->description ?? $piItem?->specifications ?? ''),
                     'quantity' => $item->quantity,
                     'unit' => $piItem?->unit ?? 'pcs',
-                    'unit_price' => $this->formatMoney($item->unit_price, $currencyCode),
-                    'line_total' => $this->formatMoney($item->line_total, $currencyCode),
+                    'unit_price' => $this->formatMoney($unitPrice, $currencyCode),
+                    'line_total' => $this->formatMoney($lineTotal, $currencyCode),
                 ];
             })
             ->toArray();

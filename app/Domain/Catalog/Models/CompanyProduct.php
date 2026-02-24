@@ -21,6 +21,7 @@ class CompanyProduct extends Pivot
         'external_name',
         'external_description',
         'unit_price',
+        'custom_price',
         'currency_code',
         'incoterm',
         'lead_time_days',
@@ -33,6 +34,7 @@ class CompanyProduct extends Pivot
     {
         return [
             'unit_price' => 'integer',
+            'custom_price' => 'integer',
             'lead_time_days' => 'integer',
             'moq' => 'integer',
             'is_preferred' => 'boolean',

@@ -122,6 +122,7 @@ class Product extends Model
                 'external_name',
                 'external_description',
                 'unit_price',
+                'custom_price',
                 'currency_code',
                 'incoterm',
                 'lead_time_days',

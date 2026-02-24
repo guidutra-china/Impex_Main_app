@@ -53,6 +53,14 @@ class ClientsRelationManager extends RelationManager
                     ->step(0.0001)
                     ->prefix('$')
                     ->inputMode('decimal'),
+                TextInput::make('custom_price')
+                    ->label('Custom Price (CI Override)')
+                    ->numeric()
+                    ->minValue(0)
+                    ->step(0.0001)
+                    ->prefix('$')
+                    ->inputMode('decimal')
+                    ->helperText('If set, Commercial Invoice uses this instead of PI price.'),
                 Select::make('currency_code')
                     ->label('Currency')
                     ->options(fn () => \App\Domain\Settings\Models\Currency::pluck('code', 'code'))
@@ -83,6 +91,11 @@ class ClientsRelationManager extends RelationManager
                     ->placeholder('—'),
                 TextColumn::make('pivot.unit_price')
                     ->label('Selling Price')
+                    ->formatStateUsing(fn ($state) => $state ? Money::format($state, 4) : '—')
+                    ->prefix('$ ')
+                    ->alignEnd(),
+                TextColumn::make('pivot.custom_price')
+                    ->label('CI Price')
                     ->formatStateUsing(fn ($state) => $state ? Money::format($state, 4) : '—')
                     ->prefix('$ ')
                     ->alignEnd(),
@@ -122,6 +135,14 @@ class ClientsRelationManager extends RelationManager
                             ->prefix('$')
                             ->inputMode('decimal')
                             ->default(0),
+                        TextInput::make('custom_price')
+                            ->label('Custom Price (CI Override)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->step(0.0001)
+                            ->prefix('$')
+                            ->inputMode('decimal')
+                            ->helperText('If set, CI uses this price.'),
                         Select::make('currency_code')
                             ->label('Currency')
                             ->options(fn () => \App\Domain\Settings\Models\Currency::pluck('code', 'code'))
@@ -132,6 +153,9 @@ class ClientsRelationManager extends RelationManager
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['role'] = 'client';
                         $data['unit_price'] = Money::toMinor($data['unit_price'] ?? 0);
+                        $data['custom_price'] = filled($data['custom_price'] ?? null)
+                            ? Money::toMinor($data['custom_price'])
+                            : null;
                         return $data;
                     }),
             ])
@@ -140,10 +164,16 @@ class ClientsRelationManager extends RelationManager
                     ->mountUsing(function ($form, $record) {
                         $data = $record->pivot->toArray();
                         $data['unit_price'] = Money::toMajor($data['unit_price'] ?? 0);
+                        $data['custom_price'] = filled($data['custom_price'] ?? null)
+                            ? Money::toMajor($data['custom_price'])
+                            : null;
                         $form->fill($data);
                     })
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['unit_price'] = Money::toMinor($data['unit_price'] ?? 0);
+                        $data['custom_price'] = filled($data['custom_price'] ?? null)
+                            ? Money::toMinor($data['custom_price'])
+                            : null;
                         return $data;
                     }),
                 DetachAction::make(),
