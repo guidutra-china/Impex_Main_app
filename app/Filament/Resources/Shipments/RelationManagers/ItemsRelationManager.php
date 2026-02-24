@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Shipments\RelationManagers;
 
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\Logistics\Actions\RecalculateShipmentTotalsAction;
 use App\Domain\Logistics\Models\ShipmentItem;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
@@ -26,6 +27,7 @@ class ItemsRelationManager extends RelationManager
 {
     protected static string $relationship = 'items';
     protected static ?string $title = 'Shipment Items';
+
     protected static BackedEnum|string|null $icon = 'heroicon-o-cube';
 
     public function form(Schema $schema): Schema
@@ -46,6 +48,9 @@ class ItemsRelationManager extends RelationManager
                     $set('proforma_invoice_item_id', null);
                     $set('purchase_order_item_id', null);
                     $set('quantity', null);
+                    $set('unit_weight', null);
+                    $set('total_weight', null);
+                    $set('total_volume', null);
                 })
                 ->dehydrated(false)
                 ->columnSpanFull(),
@@ -79,7 +84,7 @@ class ItemsRelationManager extends RelationManager
                         return;
                     }
 
-                    $piItem = ProformaInvoiceItem::find($state);
+                    $piItem = ProformaInvoiceItem::with('product.packaging', 'product.specification')->find($state);
                     if (! $piItem) {
                         return;
                     }
@@ -94,6 +99,12 @@ class ItemsRelationManager extends RelationManager
                     }
 
                     $set('unit', $piItem->unit);
+
+                    $packaging = $piItem->product?->packaging;
+                    if ($packaging && $packaging->pcs_per_carton > 0 && $packaging->carton_weight > 0) {
+                        $unitWeight = round((float) $packaging->carton_weight / $packaging->pcs_per_carton, 3);
+                        $set('unit_weight', $unitWeight);
+                    }
                 })
                 ->columnSpanFull(),
 
@@ -106,7 +117,11 @@ class ItemsRelationManager extends RelationManager
                 ->integer()
                 ->minValue(1)
                 ->maxValue(fn (Get $get) => $get('max_quantity') ?: 999999)
-                ->helperText(fn (Get $get) => $get('max_quantity') ? 'Max available: ' . $get('max_quantity') : null),
+                ->helperText(fn (Get $get) => $get('max_quantity') ? 'Max available: ' . $get('max_quantity') : null)
+                ->live(onBlur: true)
+                ->afterStateUpdated(function (Get $get, Set $set) {
+                    static::recalculateTotals($get, $set);
+                }),
 
             TextInput::make('unit')
                 ->placeholder('pcs, sets, etc.')
@@ -117,20 +132,19 @@ class ItemsRelationManager extends RelationManager
                 ->numeric()
                 ->live(onBlur: true)
                 ->afterStateUpdated(function (Get $get, Set $set) {
-                    $unitWeight = (float) $get('unit_weight');
-                    $qty = (int) $get('quantity');
-                    if ($unitWeight && $qty) {
-                        $set('total_weight', round($unitWeight * $qty, 3));
-                    }
-                }),
+                    static::recalculateTotals($get, $set);
+                })
+                ->helperText('Auto-filled from product packaging data'),
 
             TextInput::make('total_weight')
                 ->label('Total Weight (kg)')
-                ->numeric(),
+                ->numeric()
+                ->helperText('Auto-calculated: unit weight × quantity'),
 
             TextInput::make('total_volume')
                 ->label('Total Volume (CBM)')
-                ->numeric(),
+                ->numeric()
+                ->helperText('Auto-calculated from product carton CBM'),
 
             Textarea::make('notes')
                 ->rows(2)
@@ -158,7 +172,8 @@ class ItemsRelationManager extends RelationManager
                 TextColumn::make('quantity')
                     ->label('Qty')
                     ->alignCenter()
-                    ->weight('bold'),
+                    ->weight('bold')
+                    ->summarize(Sum::make()->label('Total')),
                 TextColumn::make('unit')
                     ->placeholder('—'),
                 TextColumn::make('unit_price')
@@ -170,19 +185,28 @@ class ItemsRelationManager extends RelationManager
                     ->formatStateUsing(fn ($state) => Money::format($state))
                     ->alignEnd()
                     ->weight('bold'),
+                TextColumn::make('unit_weight')
+                    ->label('Unit Wt (kg)')
+                    ->placeholder('—')
+                    ->alignEnd()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('total_weight')
                     ->label('Weight (kg)')
                     ->placeholder('—')
-                    ->alignEnd(),
+                    ->alignEnd()
+                    ->summarize(Sum::make()->label('Total')->suffix(' kg')),
                 TextColumn::make('total_volume')
                     ->label('Vol. (CBM)')
                     ->placeholder('—')
                     ->alignEnd()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->summarize(Sum::make()->label('Total')->suffix(' CBM')),
             ])
             ->recordActions([
                 \Filament\Actions\EditAction::make(),
-                \Filament\Actions\DeleteAction::make(),
+                \Filament\Actions\DeleteAction::make()
+                    ->after(function () {
+                        app(RecalculateShipmentTotalsAction::class)->execute($this->getOwnerRecord());
+                    }),
             ])
             ->headerActions([
                 \Filament\Actions\CreateAction::make()
@@ -193,6 +217,8 @@ class ItemsRelationManager extends RelationManager
                         return $data;
                     })
                     ->after(function () {
+                        app(RecalculateShipmentTotalsAction::class)->execute($this->getOwnerRecord());
+
                         Notification::make()
                             ->success()
                             ->title('Item added to shipment')
@@ -204,5 +230,27 @@ class ItemsRelationManager extends RelationManager
             ->emptyStateIcon('heroicon-o-cube')
             ->reorderable('sort_order')
             ->defaultSort('sort_order');
+    }
+
+    protected static function recalculateTotals(Get $get, Set $set): void
+    {
+        $unitWeight = (float) $get('unit_weight');
+        $qty = (int) $get('quantity');
+
+        if ($unitWeight > 0 && $qty > 0) {
+            $set('total_weight', round($unitWeight * $qty, 3));
+        }
+
+        $piItemId = $get('proforma_invoice_item_id');
+        if ($piItemId && $qty > 0) {
+            $piItem = ProformaInvoiceItem::with('product.packaging')->find($piItemId);
+            $packaging = $piItem?->product?->packaging;
+
+            if ($packaging && $packaging->pcs_per_carton > 0 && $packaging->carton_cbm > 0) {
+                $numCartons = ceil($qty / $packaging->pcs_per_carton);
+                $totalVolume = round($numCartons * (float) $packaging->carton_cbm, 4);
+                $set('total_volume', $totalVolume);
+            }
+        }
     }
 }

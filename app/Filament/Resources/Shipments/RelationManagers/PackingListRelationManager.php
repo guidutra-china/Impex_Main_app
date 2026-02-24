@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Shipments\RelationManagers;
 
+use App\Domain\Logistics\Actions\GeneratePackingListAction;
+use App\Domain\Logistics\Actions\RecalculateShipmentTotalsAction;
 use App\Domain\Logistics\Models\PackingListItem;
 use App\Domain\Logistics\Models\ShipmentItem;
 use BackedEnum;
@@ -10,6 +12,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\Summarizers\Sum;
@@ -20,7 +23,9 @@ use UnitEnum;
 class PackingListRelationManager extends RelationManager
 {
     protected static string $relationship = 'packingListItems';
+
     protected static ?string $title = 'Packing List';
+
     protected static BackedEnum|string|null $icon = 'heroicon-o-archive-box';
 
     public function form(Schema $schema): Schema
@@ -44,7 +49,46 @@ class PackingListRelationManager extends RelationManager
                         ]);
                 })
                 ->searchable()
-                ->preload(),
+                ->preload()
+                ->live()
+                ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                    if (! $state) {
+                        return;
+                    }
+
+                    $shipmentItem = ShipmentItem::with('proformaInvoiceItem.product.packaging', 'proformaInvoiceItem.product.specification')->find($state);
+                    $packaging = $shipmentItem?->proformaInvoiceItem?->product?->packaging;
+
+                    if (! $packaging) {
+                        return;
+                    }
+
+                    if ($packaging->carton_weight > 0) {
+                        $set('gross_weight', (float) $packaging->carton_weight);
+                    }
+
+                    if ($packaging->pcs_per_carton > 0) {
+                        $set('quantity', $packaging->pcs_per_carton);
+
+                        $spec = $shipmentItem->proformaInvoiceItem?->product?->specification;
+                        if ($spec && $spec->net_weight > 0) {
+                            $set('net_weight', round((float) $spec->net_weight * $packaging->pcs_per_carton, 3));
+                        }
+                    }
+
+                    if ($packaging->carton_length > 0) {
+                        $set('length', (float) $packaging->carton_length);
+                    }
+                    if ($packaging->carton_width > 0) {
+                        $set('width', (float) $packaging->carton_width);
+                    }
+                    if ($packaging->carton_height > 0) {
+                        $set('height', (float) $packaging->carton_height);
+                    }
+                    if ($packaging->carton_cbm > 0) {
+                        $set('volume', (float) $packaging->carton_cbm);
+                    }
+                }),
 
             TextInput::make('description')
                 ->maxLength(255)
@@ -146,15 +190,40 @@ class PackingListRelationManager extends RelationManager
             ])
             ->recordActions([
                 \Filament\Actions\EditAction::make(),
-                \Filament\Actions\DeleteAction::make(),
+                \Filament\Actions\DeleteAction::make()
+                    ->after(function () {
+                        app(RecalculateShipmentTotalsAction::class)->execute($this->getOwnerRecord());
+                    }),
             ])
             ->headerActions([
+                \Filament\Actions\Action::make('generate_packing_list')
+                    ->label('Generate from Items')
+                    ->icon('heroicon-o-sparkles')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('Generate Packing List')
+                    ->modalDescription('This will delete all existing packing list entries and regenerate them from shipment items using product packaging data. Items without packaging data will get a single carton entry. Continue?')
+                    ->modalSubmitActionLabel('Generate')
+                    ->visible(fn () => $this->getOwnerRecord()->items()->count() > 0)
+                    ->action(function () {
+                        $shipment = $this->getOwnerRecord();
+                        $count = app(GeneratePackingListAction::class)->execute($shipment);
+
+                        Notification::make()
+                            ->success()
+                            ->title('Packing list generated')
+                            ->body("{$count} carton(s) created from shipment items.")
+                            ->send();
+                    }),
                 \Filament\Actions\CreateAction::make()
                     ->label('Add Carton')
-                    ->icon('heroicon-o-plus'),
+                    ->icon('heroicon-o-plus')
+                    ->after(function () {
+                        app(RecalculateShipmentTotalsAction::class)->execute($this->getOwnerRecord());
+                    }),
             ])
             ->emptyStateHeading('No packing details')
-            ->emptyStateDescription('Add carton/package details for the packing list.')
+            ->emptyStateDescription('Use "Generate from Items" to auto-create cartons from product packaging data, or add manually.')
             ->emptyStateIcon('heroicon-o-archive-box')
             ->reorderable('sort_order')
             ->defaultSort('sort_order');
