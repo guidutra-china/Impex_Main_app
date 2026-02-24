@@ -88,7 +88,7 @@ class Shipment extends Model
         return ShipmentStatus::class;
     }
 
-    public function getAllowedTransitions(): array
+    public static function allowedTransitions(): array
     {
         return [
             ShipmentStatus::DRAFT->value => [ShipmentStatus::BOOKED->value, ShipmentStatus::CANCELLED->value],
