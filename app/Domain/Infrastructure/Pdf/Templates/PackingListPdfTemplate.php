@@ -25,6 +25,13 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
         return 'packing_list_pdf';
     }
 
+    public function getFilename(): string
+    {
+        $reference = $this->model->reference ?? $this->model->getKey();
+
+        return 'PL-' . $reference . '-v' . $this->getNextVersion() . '.pdf';
+    }
+
     public function getOrientation(): string
     {
         return 'landscape';

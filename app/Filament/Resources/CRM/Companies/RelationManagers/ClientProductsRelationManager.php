@@ -2,10 +2,13 @@
 
 namespace App\Filament\Resources\CRM\Companies\RelationManagers;
 
+use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\CRM\Enums\CompanyRole;
+use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Settings\Models\Currency;
 use BackedEnum;
 use Filament\Actions\AttachAction;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DetachAction;
 use Filament\Actions\DetachBulkAction;
@@ -14,12 +17,13 @@ use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use App\Domain\Infrastructure\Support\Money;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
 class ClientProductsRelationManager extends RelationManager
@@ -199,11 +203,72 @@ class ClientProductsRelationManager extends RelationManager
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    $this->getBulkPriceUpdateAction('selling_price', 'unit_price', 'Adjust Selling Price'),
+                    $this->getBulkPriceUpdateAction('custom_price', 'custom_price', 'Adjust CI Price'),
                     DetachBulkAction::make(),
                 ]),
             ])
             ->emptyStateHeading('No products linked as client')
             ->emptyStateDescription('Link products to track selling prices and client-specific codes for this client.')
             ->emptyStateIcon('heroicon-o-cube');
+    }
+
+    private function getBulkPriceUpdateAction(string $name, string $column, string $label): BulkAction
+    {
+        return BulkAction::make($name)
+            ->label($label)
+            ->icon('heroicon-o-calculator')
+            ->form([
+                TextInput::make('formula')
+                    ->label('Formula')
+                    ->required()
+                    ->placeholder('e.g. *1.10 or +5 or -2.50')
+                    ->helperText('Apply to current value: *1.10 = +10%, /1.05 = -5%, +5 = add $5, -2.50 = subtract $2.50'),
+            ])
+            ->action(function (Collection $records, array $data) use ($column): void {
+                $formula = trim($data['formula']);
+
+                if (! preg_match('/^[\\*\\/\\+\\-]\\s*[\\d\\.]+$/', $formula)) {
+                    Notification::make()
+                        ->danger()
+                        ->title('Invalid formula')
+                        ->body('Use format: *1.10, /1.05, +5, or -2.50')
+                        ->send();
+                    return;
+                }
+
+                $operator = $formula[0];
+                $operand = (float) trim(substr($formula, 1));
+                $updated = 0;
+
+                foreach ($records as $record) {
+                    $currentMinor = $record->pivot->{$column} ?? 0;
+                    $currentMajor = Money::toMajor($currentMinor);
+
+                    $newMajor = match ($operator) {
+                        '*' => $currentMajor * $operand,
+                        '/' => $operand > 0 ? $currentMajor / $operand : $currentMajor,
+                        '+' => $currentMajor + $operand,
+                        '-' => $currentMajor - $operand,
+                    };
+
+                    $newMinor = Money::toMinor(max(0, $newMajor));
+
+                    CompanyProduct::where('company_id', $record->pivot->company_id)
+                        ->where('product_id', $record->pivot->product_id)
+                        ->update([$column => $newMinor]);
+
+                    $updated++;
+                }
+
+                Notification::make()
+                    ->success()
+                    ->title("Updated {$updated} records")
+                    ->body("Applied formula: {$formula}")
+                    ->send();
+            })
+            ->deselectRecordsAfterCompletion()
+            ->requiresConfirmation()
+            ->modalDescription('This will apply the formula to all selected records. This action cannot be undone.');
     }
 }

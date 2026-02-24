@@ -25,6 +25,13 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
         return 'commercial_invoice_pdf';
     }
 
+    public function getFilename(): string
+    {
+        $reference = $this->model->reference ?? $this->model->getKey();
+
+        return 'CI-' . $reference . '-v' . $this->getNextVersion() . '.pdf';
+    }
+
     protected function getDocumentData(): array
     {
         /** @var Shipment $shipment */
