@@ -8,6 +8,8 @@ class RecalculateShipmentTotalsAction
 {
     public function execute(Shipment $shipment): void
     {
+        $this->syncCurrencyCode($shipment);
+
         $packingTotals = $shipment->packingListItems()
             ->selectRaw('SUM(total_gross_weight) as total_gross, SUM(total_net_weight) as total_net, SUM(total_volume) as total_vol, SUM(quantity) as total_pkgs')
             ->first();
@@ -33,5 +35,22 @@ class RecalculateShipmentTotalsAction
             'total_volume' => $itemTotals->total_volume,
             'total_packages' => null,
         ]);
+    }
+
+    protected function syncCurrencyCode(Shipment $shipment): void
+    {
+        if ($shipment->currency_code) {
+            return;
+        }
+
+        $firstItem = $shipment->items()
+            ->with('proformaInvoiceItem.proformaInvoice')
+            ->first();
+
+        $currencyCode = $firstItem?->proformaInvoiceItem?->proformaInvoice?->currency_code;
+
+        if ($currencyCode) {
+            $shipment->updateQuietly(['currency_code' => $currencyCode]);
+        }
     }
 }

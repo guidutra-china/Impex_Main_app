@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Shipments\Schemas;
 
 use App\Domain\Settings\Models\ContainerType;
+use App\Domain\Settings\Models\Currency;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Enums\TransportMode;
 use Filament\Forms\Components\DatePicker;
@@ -29,10 +30,13 @@ class ShipmentForm
                         ->options(ShipmentStatus::class)
                         ->default(ShipmentStatus::DRAFT)
                         ->required(),
-                    TextInput::make('currency_code')
+                    Select::make('currency_code')
                         ->label('Currency')
-                        ->maxLength(3)
-                        ->placeholder('USD'),
+                        ->options(fn () => Currency::pluck('code', 'code'))
+                        ->default('USD')
+                        ->searchable()
+                        ->required()
+                        ->helperText('Auto-synced from PI when first item is added'),
                     Select::make('transport_mode')
                         ->options(TransportMode::class),
                     Select::make('container_type')
