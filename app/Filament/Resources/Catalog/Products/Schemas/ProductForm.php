@@ -184,19 +184,15 @@ class ProductForm
     protected static function specificationsTab(): array
     {
         return [
-            Section::make('Dimensions & Weight')
+            Section::make('Product Dimensions & Weight (unpackaged)')
                 ->relationship('specification')
                 ->schema([
                     TextInput::make('net_weight')
                         ->label('Net Weight (kg)')
                         ->numeric()
                         ->step(0.001)
-                        ->minValue(0),
-                    TextInput::make('gross_weight')
-                        ->label('Gross Weight (kg)')
-                        ->numeric()
-                        ->step(0.001)
-                        ->minValue(0),
+                        ->minValue(0)
+                        ->helperText('Weight of 1 piece, unpackaged'),
                     TextInput::make('length')
                         ->label('Length (cm)')
                         ->numeric()
@@ -274,10 +270,11 @@ class ProductForm
                         ->step(0.01)
                         ->minValue(0),
                     TextInput::make('inner_box_weight')
-                        ->label('Weight (kg)')
+                        ->label('GW / Inner Box (kg)')
                         ->numeric()
                         ->step(0.001)
-                        ->minValue(0),
+                        ->minValue(0)
+                        ->helperText('Products + inner box weight'),
                 ])
                 ->columns(5),
 
@@ -307,17 +304,24 @@ class ProductForm
                         ->numeric()
                         ->step(0.01)
                         ->minValue(0),
-                    TextInput::make('carton_weight')
-                        ->label('Weight (kg)')
+                    TextInput::make('carton_net_weight')
+                        ->label('NW / Carton (kg)')
                         ->numeric()
                         ->step(0.001)
-                        ->minValue(0),
+                        ->minValue(0)
+                        ->helperText('Products weight only, no carton'),
+                    TextInput::make('carton_weight')
+                        ->label('GW / Carton (kg)')
+                        ->numeric()
+                        ->step(0.001)
+                        ->minValue(0)
+                        ->helperText('Total: products + carton + filling'),
                     TextInput::make('carton_cbm')
-                        ->label('CBM')
+                        ->label('CBM / Carton')
                         ->numeric()
                         ->step(0.0001)
                         ->minValue(0)
-                        ->helperText('Cubic meters per carton.'),
+                        ->helperText('Cubic meters per carton'),
                 ])
                 ->columns(4),
 

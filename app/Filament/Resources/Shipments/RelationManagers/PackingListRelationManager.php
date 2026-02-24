@@ -66,7 +66,7 @@ class PackingListRelationManager extends RelationManager
                         return;
                     }
 
-                    $shipmentItem = ShipmentItem::with('proformaInvoiceItem.product.packaging', 'proformaInvoiceItem.product.specification')->find($state);
+                    $shipmentItem = ShipmentItem::with('proformaInvoiceItem.product.packaging')->find($state);
                     $packaging = $shipmentItem?->proformaInvoiceItem?->product?->packaging;
 
                     if (! $packaging) {
@@ -82,9 +82,8 @@ class PackingListRelationManager extends RelationManager
                         $set('gross_weight', (float) $packaging->carton_weight);
                     }
 
-                    $spec = $shipmentItem->proformaInvoiceItem?->product?->specification;
-                    if ($spec && $spec->net_weight > 0 && $packaging->pcs_per_carton > 0) {
-                        $set('net_weight', round((float) $spec->net_weight * $packaging->pcs_per_carton, 3));
+                    if ($packaging->carton_net_weight > 0) {
+                        $set('net_weight', (float) $packaging->carton_net_weight);
                     }
 
                     if ($packaging->carton_length > 0) {

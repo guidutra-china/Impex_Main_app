@@ -10,7 +10,6 @@ class ProductSpecification extends Model
     protected $fillable = [
         'product_id',
         'net_weight',
-        'gross_weight',
         'length',
         'width',
         'height',
@@ -24,7 +23,6 @@ class ProductSpecification extends Model
     {
         return [
             'net_weight' => 'decimal:3',
-            'gross_weight' => 'decimal:3',
             'length' => 'decimal:2',
             'width' => 'decimal:2',
             'height' => 'decimal:2',

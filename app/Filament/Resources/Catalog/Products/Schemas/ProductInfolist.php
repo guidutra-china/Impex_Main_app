@@ -129,15 +129,11 @@ class ProductInfolist
     protected static function specificationsTab(): array
     {
         return [
-            Section::make('Dimensions & Weight')
+            Section::make('Product Dimensions & Weight (unpackaged)')
                 ->relationship('specification')
                 ->schema([
                     TextEntry::make('net_weight')
-                        ->label('Net Weight')
-                        ->suffix(' kg')
-                        ->placeholder('—'),
-                    TextEntry::make('gross_weight')
-                        ->label('Gross Weight')
+                        ->label('Net Weight (1 pc)')
                         ->suffix(' kg')
                         ->placeholder('—'),
                     TextEntry::make('length')
@@ -208,7 +204,7 @@ class ProductInfolist
                         ->suffix(' cm')
                         ->placeholder('—'),
                     TextEntry::make('inner_box_weight')
-                        ->label('Weight')
+                        ->label('GW / Inner Box')
                         ->suffix(' kg')
                         ->placeholder('—'),
                 ])
@@ -235,12 +231,16 @@ class ProductInfolist
                         ->label('Height')
                         ->suffix(' cm')
                         ->placeholder('—'),
+                    TextEntry::make('carton_net_weight')
+                        ->label('NW / Carton')
+                        ->suffix(' kg')
+                        ->placeholder('—'),
                     TextEntry::make('carton_weight')
-                        ->label('Weight')
+                        ->label('GW / Carton')
                         ->suffix(' kg')
                         ->placeholder('—'),
                     TextEntry::make('carton_cbm')
-                        ->label('CBM')
+                        ->label('CBM / Carton')
                         ->suffix(' m³')
                         ->placeholder('—'),
                 ])

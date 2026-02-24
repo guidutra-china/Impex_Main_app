@@ -17,7 +17,7 @@ class GeneratePackingListAction
         $sortOrder = 0;
         $created = 0;
 
-        foreach ($shipment->items()->with('proformaInvoiceItem.product.packaging', 'proformaInvoiceItem.product.specification')->get() as $shipmentItem) {
+        foreach ($shipment->items()->with('proformaInvoiceItem.product.packaging')->get() as $shipmentItem) {
             $created += $this->generateForItem($shipment, $shipmentItem, $cartonCounter, $sortOrder);
         }
 
@@ -46,7 +46,7 @@ class GeneratePackingListAction
         $cartonWidth = (float) ($packaging->carton_width ?? 0);
         $cartonHeight = (float) ($packaging->carton_height ?? 0);
         $cartonCbm = (float) ($packaging->carton_cbm ?? 0);
-        $netWeightPerPiece = $this->getNetWeightPerPiece($shipmentItem);
+        $cartonNetWeight = (float) ($packaging->carton_net_weight ?? 0);
 
         if ($fullCartons > 0) {
             $cartonFrom = $cartonCounter + 1;
@@ -55,7 +55,7 @@ class GeneratePackingListAction
             $sortOrder++;
             $created++;
 
-            $netPerCarton = $netWeightPerPiece ? round($netWeightPerPiece * $pcsPerCarton, 3) : null;
+            $netPerCarton = $cartonNetWeight ?: null;
 
             PackingListItem::create([
                 'shipment_id' => $shipment->id,
@@ -86,7 +86,7 @@ class GeneratePackingListAction
 
             $partialRatio = $remainder / $pcsPerCarton;
             $partialGross = $cartonWeight ? round($cartonWeight * $partialRatio, 3) : null;
-            $partialNet = $netWeightPerPiece ? round($netWeightPerPiece * $remainder, 3) : null;
+            $partialNet = $cartonNetWeight ? round($cartonNetWeight * $partialRatio, 3) : null;
             $partialVolume = $cartonCbm ?: null;
 
             PackingListItem::create([
@@ -140,16 +140,6 @@ class GeneratePackingListAction
         return 1;
     }
 
-    protected function getNetWeightPerPiece(ShipmentItem $shipmentItem): ?float
-    {
-        $spec = $shipmentItem->proformaInvoiceItem?->product?->specification;
-
-        if ($spec && $spec->net_weight > 0) {
-            return (float) $spec->net_weight;
-        }
-
-        return null;
-    }
 
     protected function updateShipmentTotals(Shipment $shipment): void
     {
