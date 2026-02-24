@@ -6,8 +6,10 @@ use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Quotations\Models\QuotationItem;
+use App\Domain\Logistics\Models\ShipmentItem;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProformaInvoiceItem extends Model
 {
@@ -60,6 +62,11 @@ class ProformaInvoiceItem extends Model
         return $this->belongsTo(Company::class, 'supplier_company_id');
     }
 
+    public function shipmentItems(): HasMany
+    {
+        return $this->hasMany(ShipmentItem::class);
+    }
+
     // --- Accessors ---
 
     public function getLineTotalAttribute(): int
@@ -84,5 +91,20 @@ class ProformaInvoiceItem extends Model
     public function getProductNameAttribute(): string
     {
         return $this->product?->name ?? $this->description ?? '—';
+    }
+
+    public function getQuantityShippedAttribute(): int
+    {
+        return $this->shipmentItems()->sum('quantity');
+    }
+
+    public function getQuantityRemainingAttribute(): int
+    {
+        return max(0, $this->quantity - $this->quantity_shipped);
+    }
+
+    public function getIsFullyShippedAttribute(): bool
+    {
+        return $this->quantity_remaining <= 0;
     }
 }
