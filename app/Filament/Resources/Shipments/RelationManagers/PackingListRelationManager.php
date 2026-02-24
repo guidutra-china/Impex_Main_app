@@ -10,6 +10,7 @@ use BackedEnum;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Notifications\Notification;
@@ -89,103 +90,116 @@ class PackingListRelationManager extends RelationManager
                 ->placeholder('Additional description if needed')
                 ->columnSpanFull(),
 
-            TextInput::make('carton_from')
-                ->label('Carton From')
-                ->required()
-                ->numeric()
-                ->integer()
-                ->minValue(1)
-                ->live(onBlur: true)
-                ->afterStateUpdated(fn (Get $get, Set $set) => static::recalculateTotals($get, $set)),
+            Section::make('Quantity & Cartons')
+                ->schema([
+                    TextInput::make('total_quantity')
+                        ->label('Total Pieces')
+                        ->required()
+                        ->numeric()
+                        ->integer()
+                        ->minValue(1)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn (Get $get, Set $set) => $this->recalculateFromQuantity($get, $set)),
 
-            TextInput::make('carton_to')
-                ->label('Carton To')
-                ->required()
-                ->numeric()
-                ->integer()
-                ->minValue(1)
-                ->live(onBlur: true)
-                ->afterStateUpdated(fn (Get $get, Set $set) => static::recalculateTotals($get, $set)),
+                    TextInput::make('qty_per_carton')
+                        ->label('Qty per Carton')
+                        ->required()
+                        ->numeric()
+                        ->integer()
+                        ->minValue(1)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn (Get $get, Set $set) => $this->recalculateFromQuantity($get, $set))
+                        ->helperText('Auto-filled from product packaging'),
 
-            TextInput::make('qty_per_carton')
-                ->label('Qty per Carton')
-                ->numeric()
-                ->integer()
-                ->minValue(1)
-                ->live(onBlur: true)
-                ->afterStateUpdated(fn (Get $get, Set $set) => static::recalculateTotals($get, $set))
-                ->helperText('Auto-filled from product packaging'),
+                    TextInput::make('quantity')
+                        ->label('Number of Cartons')
+                        ->numeric()
+                        ->integer()
+                        ->disabled()
+                        ->dehydrated()
+                        ->helperText('Auto-calculated: total pieces ÷ qty per carton'),
 
-            TextInput::make('quantity')
-                ->label('Number of Cartons')
-                ->numeric()
-                ->integer()
-                ->helperText('Auto-calculated from carton range')
-                ->disabled()
-                ->dehydrated(),
+                    TextInput::make('carton_from')
+                        ->label('Carton From')
+                        ->numeric()
+                        ->integer()
+                        ->disabled()
+                        ->dehydrated()
+                        ->helperText('Auto-calculated from existing packing list'),
 
-            TextInput::make('total_quantity')
-                ->label('Total Pieces')
-                ->numeric()
-                ->integer()
-                ->helperText('Auto-calculated: cartons × qty per carton')
-                ->disabled()
-                ->dehydrated(),
+                    TextInput::make('carton_to')
+                        ->label('Carton To')
+                        ->numeric()
+                        ->integer()
+                        ->disabled()
+                        ->dehydrated()
+                        ->helperText('Auto-calculated from existing packing list'),
+                ])
+                ->columns(5),
 
-            TextInput::make('gross_weight')
-                ->label('Gross Weight / Carton (kg)')
-                ->numeric()
-                ->live(onBlur: true)
-                ->afterStateUpdated(fn (Get $get, Set $set) => static::recalculateTotals($get, $set)),
+            Section::make('Weight & Dimensions (per carton)')
+                ->schema([
+                    TextInput::make('gross_weight')
+                        ->label('Gross Weight (kg)')
+                        ->numeric()
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn (Get $get, Set $set) => static::recalculateWeightVolumeTotals($get, $set)),
 
-            TextInput::make('net_weight')
-                ->label('Net Weight / Carton (kg)')
-                ->numeric()
-                ->live(onBlur: true)
-                ->afterStateUpdated(fn (Get $get, Set $set) => static::recalculateTotals($get, $set)),
+                    TextInput::make('net_weight')
+                        ->label('Net Weight (kg)')
+                        ->numeric()
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn (Get $get, Set $set) => static::recalculateWeightVolumeTotals($get, $set)),
 
-            TextInput::make('total_gross_weight')
-                ->label('Total Gross Weight (kg)')
-                ->numeric()
-                ->disabled()
-                ->dehydrated(),
+                    TextInput::make('length')
+                        ->label('Length (cm)')
+                        ->numeric()
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn (Get $get, Set $set) => static::calculateVolume($get, $set)),
 
-            TextInput::make('total_net_weight')
-                ->label('Total Net Weight (kg)')
-                ->numeric()
-                ->disabled()
-                ->dehydrated(),
+                    TextInput::make('width')
+                        ->label('Width (cm)')
+                        ->numeric()
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn (Get $get, Set $set) => static::calculateVolume($get, $set)),
 
-            TextInput::make('length')
-                ->label('Length (cm)')
-                ->numeric()
-                ->live(onBlur: true)
-                ->afterStateUpdated(fn (Get $get, Set $set) => static::calculateVolume($get, $set)),
+                    TextInput::make('height')
+                        ->label('Height (cm)')
+                        ->numeric()
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn (Get $get, Set $set) => static::calculateVolume($get, $set)),
 
-            TextInput::make('width')
-                ->label('Width (cm)')
-                ->numeric()
-                ->live(onBlur: true)
-                ->afterStateUpdated(fn (Get $get, Set $set) => static::calculateVolume($get, $set)),
+                    TextInput::make('volume')
+                        ->label('Volume / Carton (CBM)')
+                        ->numeric()
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn (Get $get, Set $set) => static::recalculateWeightVolumeTotals($get, $set))
+                        ->helperText('Auto-calculated from dimensions'),
+                ])
+                ->columns(3)
+                ->collapsible(),
 
-            TextInput::make('height')
-                ->label('Height (cm)')
-                ->numeric()
-                ->live(onBlur: true)
-                ->afterStateUpdated(fn (Get $get, Set $set) => static::calculateVolume($get, $set)),
+            Section::make('Totals')
+                ->schema([
+                    TextInput::make('total_gross_weight')
+                        ->label('Total Gross Weight (kg)')
+                        ->numeric()
+                        ->disabled()
+                        ->dehydrated(),
 
-            TextInput::make('volume')
-                ->label('Volume / Carton (CBM)')
-                ->numeric()
-                ->live(onBlur: true)
-                ->afterStateUpdated(fn (Get $get, Set $set) => static::recalculateTotals($get, $set))
-                ->helperText('Auto-calculated from dimensions'),
+                    TextInput::make('total_net_weight')
+                        ->label('Total Net Weight (kg)')
+                        ->numeric()
+                        ->disabled()
+                        ->dehydrated(),
 
-            TextInput::make('total_volume')
-                ->label('Total Volume (CBM)')
-                ->numeric()
-                ->disabled()
-                ->dehydrated(),
+                    TextInput::make('total_volume')
+                        ->label('Total Volume (CBM)')
+                        ->numeric()
+                        ->disabled()
+                        ->dehydrated(),
+                ])
+                ->columns(3),
 
             Textarea::make('notes')
                 ->rows(2)
@@ -298,19 +312,51 @@ class PackingListRelationManager extends RelationManager
             ->defaultSort('sort_order');
     }
 
-    protected static function recalculateTotals(Get $get, Set $set): void
+    protected function getNextCartonStart(): int
     {
-        $cartonFrom = (int) $get('carton_from');
-        $cartonTo = (int) $get('carton_to');
+        $maxCartonTo = $this->getOwnerRecord()
+            ->packingListItems()
+            ->max('carton_to');
+
+        return ($maxCartonTo ?? 0) + 1;
+    }
+
+    protected function recalculateFromQuantity(Get $get, Set $set): void
+    {
+        $totalQty = (int) $get('total_quantity');
         $qtyPerCarton = (int) $get('qty_per_carton');
+
+        if ($totalQty <= 0 || $qtyPerCarton <= 0) {
+            $set('quantity', null);
+            $set('carton_from', null);
+            $set('carton_to', null);
+            $set('total_gross_weight', null);
+            $set('total_net_weight', null);
+            $set('total_volume', null);
+            return;
+        }
+
+        $numCartons = (int) ceil($totalQty / $qtyPerCarton);
+        $set('quantity', $numCartons);
+
+        $cartonFrom = $this->getNextCartonStart();
+        $cartonTo = $cartonFrom + $numCartons - 1;
+        $set('carton_from', $cartonFrom);
+        $set('carton_to', $cartonTo);
+
+        static::recalculateWeightVolumeTotals($get, $set, $numCartons);
+    }
+
+    protected static function recalculateWeightVolumeTotals(Get $get, Set $set, ?int $numCartons = null): void
+    {
+        if ($numCartons === null) {
+            $numCartons = (int) $get('quantity');
+        }
+
         $grossWeight = (float) $get('gross_weight');
         $netWeight = (float) $get('net_weight');
         $volume = (float) $get('volume');
 
-        $numCartons = ($cartonTo >= $cartonFrom && $cartonFrom > 0) ? ($cartonTo - $cartonFrom + 1) : 0;
-
-        $set('quantity', $numCartons ?: null);
-        $set('total_quantity', ($numCartons && $qtyPerCarton) ? $numCartons * $qtyPerCarton : null);
         $set('total_gross_weight', ($numCartons && $grossWeight) ? round($grossWeight * $numCartons, 3) : null);
         $set('total_net_weight', ($numCartons && $netWeight) ? round($netWeight * $numCartons, 3) : null);
         $set('total_volume', ($numCartons && $volume) ? round($volume * $numCartons, 4) : null);
@@ -327,6 +373,6 @@ class PackingListRelationManager extends RelationManager
             $set('volume', $volume);
         }
 
-        static::recalculateTotals($get, $set);
+        static::recalculateWeightVolumeTotals($get, $set);
     }
 }
