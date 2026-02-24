@@ -3,8 +3,6 @@
 namespace App\Filament\Resources\Shipments\Schemas;
 
 use App\Domain\Infrastructure\Support\Money;
-use Filament\Infolists\Components\Fieldset;
-use Filament\Infolists\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Schema;
@@ -15,65 +13,54 @@ class ShipmentInfolist
     {
         return $schema->components([
 
-            Grid::make(3)->schema([
-                Section::make('Shipment Information')
-                    ->schema([
-                        TextEntry::make('reference')
-                            ->copyable()
-                            ->weight('bold'),
-                        TextEntry::make('company.name')
-                            ->label('Client'),
-                        TextEntry::make('status')
-                            ->badge(),
-                        TextEntry::make('transport_mode')
-                            ->badge()
-                            ->placeholder('—'),
-                        TextEntry::make('container_type')
-                            ->badge()
-                            ->placeholder('—'),
-                        TextEntry::make('currency_code')
-                            ->label('Currency')
-                            ->badge()
-                            ->color('gray')
-                            ->placeholder('—'),
-                    ])
-                    ->columns(2)
-                    ->columnSpan(2),
-
-                Section::make('Document')
-                    ->schema([
-                        TextEntry::make('issue_date')
-                            ->label('Issue Date')
-                            ->date('d/m/Y')
-                            ->placeholder('Not set'),
-                    ])
-                    ->columnSpan(1),
-            ]),
+            Section::make('Shipment Information')
+                ->schema([
+                    TextEntry::make('reference')
+                        ->copyable()
+                        ->weight('bold'),
+                    TextEntry::make('company.name')
+                        ->label('Client'),
+                    TextEntry::make('status')
+                        ->badge(),
+                    TextEntry::make('transport_mode')
+                        ->badge()
+                        ->placeholder('—'),
+                    TextEntry::make('container_type')
+                        ->badge()
+                        ->placeholder('—'),
+                    TextEntry::make('currency_code')
+                        ->label('Currency')
+                        ->badge()
+                        ->color('gray')
+                        ->placeholder('—'),
+                    TextEntry::make('issue_date')
+                        ->label('Document Issue Date')
+                        ->date('d/m/Y')
+                        ->placeholder('Not set'),
+                ])
+                ->columns(3),
 
             Section::make('Route & Transport')
                 ->schema([
-                    Grid::make(3)->schema([
-                        TextEntry::make('origin_port')
-                            ->label('Port of Loading')
-                            ->placeholder('—'),
-                        TextEntry::make('destination_port')
-                            ->label('Port of Destination')
-                            ->placeholder('—'),
-                        TextEntry::make('vessel_name')
-                            ->placeholder('—'),
-                    ]),
-                    Grid::make(3)->schema([
-                        TextEntry::make('bl_number')
-                            ->label('B/L Number')
-                            ->copyable()
-                            ->placeholder('—'),
-                        TextEntry::make('container_number')
-                            ->copyable()
-                            ->placeholder('—'),
-                        TextEntry::make('voyage_number')
-                            ->placeholder('—'),
-                    ]),
+                    TextEntry::make('origin_port')
+                        ->label('Port of Loading')
+                        ->placeholder('—'),
+                    TextEntry::make('destination_port')
+                        ->label('Port of Destination')
+                        ->placeholder('—'),
+                    TextEntry::make('vessel_name')
+                        ->placeholder('—'),
+                    TextEntry::make('bl_number')
+                        ->label('B/L Number')
+                        ->copyable()
+                        ->placeholder('—'),
+                    TextEntry::make('container_number')
+                        ->copyable()
+                        ->placeholder('—'),
+                    TextEntry::make('voyage_number')
+                        ->placeholder('—'),
                 ])
+                ->columns(3)
                 ->collapsible(),
 
             Section::make('Carrier & Booking')
@@ -92,32 +79,24 @@ class ShipmentInfolist
 
             Section::make('Dates')
                 ->schema([
-                    Fieldset::make('Estimated')
-                        ->schema([
-                            TextEntry::make('etd')
-                                ->label('ETD (Departure)')
-                                ->date('d/m/Y')
-                                ->placeholder('—'),
-                            TextEntry::make('eta')
-                                ->label('ETA (Arrival)')
-                                ->date('d/m/Y')
-                                ->placeholder('—'),
-                        ])
-                        ->columns(2),
-                    Fieldset::make('Actual')
-                        ->schema([
-                            TextEntry::make('actual_departure')
-                                ->label('Departure')
-                                ->date('d/m/Y')
-                                ->placeholder('—'),
-                            TextEntry::make('actual_arrival')
-                                ->label('Arrival')
-                                ->date('d/m/Y')
-                                ->placeholder('—'),
-                        ])
-                        ->columns(2),
+                    TextEntry::make('etd')
+                        ->label('ETD (Estimated Departure)')
+                        ->date('d/m/Y')
+                        ->placeholder('—'),
+                    TextEntry::make('eta')
+                        ->label('ETA (Estimated Arrival)')
+                        ->date('d/m/Y')
+                        ->placeholder('—'),
+                    TextEntry::make('actual_departure')
+                        ->label('Actual Departure')
+                        ->date('d/m/Y')
+                        ->placeholder('—'),
+                    TextEntry::make('actual_arrival')
+                        ->label('Actual Arrival')
+                        ->date('d/m/Y')
+                        ->placeholder('—'),
                 ])
-                ->columns(2)
+                ->columns(4)
                 ->collapsible(),
 
             Section::make('Weight & Volume')

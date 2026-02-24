@@ -7,8 +7,6 @@ use App\Domain\Settings\Models\Currency;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Enums\TransportMode;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Fieldset;
-use Filament\Forms\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -21,69 +19,58 @@ class ShipmentForm
     {
         return $schema->components([
 
-            Grid::make(3)->schema([
-                Section::make('Shipment Information')
-                    ->schema([
-                        Select::make('company_id')
-                            ->label('Client')
-                            ->relationship('company', 'name')
-                            ->searchable()
-                            ->preload()
-                            ->required(),
-                        Select::make('status')
-                            ->options(ShipmentStatus::class)
-                            ->default(ShipmentStatus::DRAFT)
-                            ->required(),
-                        Select::make('currency_code')
-                            ->label('Currency')
-                            ->options(fn () => Currency::pluck('code', 'code'))
-                            ->default('USD')
-                            ->searchable()
-                            ->required(),
-                        Select::make('transport_mode')
-                            ->options(TransportMode::class),
-                        Select::make('container_type')
-                            ->options(
-                                ContainerType::active()
-                                    ->pluck('name', 'code')
-                                    ->toArray()
-                            )
-                            ->searchable(),
-                    ])
-                    ->columns(2)
-                    ->columnSpan(2),
-
-                Section::make('Document')
-                    ->schema([
-                        DatePicker::make('issue_date')
-                            ->label('Issue Date')
-                            ->helperText('Date printed on CI / PL'),
-                    ])
-                    ->columnSpan(1),
-            ]),
+            Section::make('Shipment Information')
+                ->schema([
+                    Select::make('company_id')
+                        ->label('Client')
+                        ->relationship('company', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->required(),
+                    Select::make('status')
+                        ->options(ShipmentStatus::class)
+                        ->default(ShipmentStatus::DRAFT)
+                        ->required(),
+                    Select::make('currency_code')
+                        ->label('Currency')
+                        ->options(fn () => Currency::pluck('code', 'code'))
+                        ->default('USD')
+                        ->searchable()
+                        ->required(),
+                    Select::make('transport_mode')
+                        ->options(TransportMode::class),
+                    Select::make('container_type')
+                        ->options(
+                            ContainerType::active()
+                                ->pluck('name', 'code')
+                                ->toArray()
+                        )
+                        ->searchable(),
+                    DatePicker::make('issue_date')
+                        ->label('Document Issue Date')
+                        ->helperText('Date printed on CI and Packing List'),
+                ])
+                ->columns(3),
 
             Section::make('Route & Transport')
                 ->schema([
-                    Grid::make(3)->schema([
-                        TextInput::make('origin_port')
-                            ->label('Port of Loading')
-                            ->maxLength(255),
-                        TextInput::make('destination_port')
-                            ->label('Port of Destination')
-                            ->maxLength(255),
-                        TextInput::make('vessel_name')
-                            ->maxLength(255),
-                    ]),
-                    Grid::make(3)->schema([
-                        TextInput::make('bl_number')
-                            ->label('B/L Number')
-                            ->maxLength(255),
-                        TextInput::make('container_number')
-                            ->maxLength(255),
-                        TextInput::make('voyage_number')
-                            ->maxLength(255),
-                    ]),
+                    TextInput::make('origin_port')
+                        ->label('Port of Loading')
+                        ->maxLength(255),
+                    TextInput::make('destination_port')
+                        ->label('Port of Destination')
+                        ->maxLength(255),
+                    TextInput::make('vessel_name')
+                        ->maxLength(255),
+                    TextInput::make('bl_number')
+                        ->label('B/L Number')
+                        ->maxLength(255),
+                    TextInput::make('container_number')
+                        ->maxLength(255),
+                    TextInput::make('voyage_number')
+                        ->maxLength(255),
                 ])
+                ->columns(3)
                 ->collapsible(),
 
             Section::make('Carrier & Booking')
@@ -101,24 +88,16 @@ class ShipmentForm
 
             Section::make('Dates')
                 ->schema([
-                    Fieldset::make('Estimated')
-                        ->schema([
-                            DatePicker::make('etd')
-                                ->label('ETD (Departure)'),
-                            DatePicker::make('eta')
-                                ->label('ETA (Arrival)'),
-                        ])
-                        ->columns(2),
-                    Fieldset::make('Actual')
-                        ->schema([
-                            DatePicker::make('actual_departure')
-                                ->label('Departure'),
-                            DatePicker::make('actual_arrival')
-                                ->label('Arrival'),
-                        ])
-                        ->columns(2),
+                    DatePicker::make('etd')
+                        ->label('ETD (Estimated Departure)'),
+                    DatePicker::make('eta')
+                        ->label('ETA (Estimated Arrival)'),
+                    DatePicker::make('actual_departure')
+                        ->label('Actual Departure'),
+                    DatePicker::make('actual_arrival')
+                        ->label('Actual Arrival'),
                 ])
-                ->columns(2)
+                ->columns(4)
                 ->collapsible(),
 
             Section::make('Weight & Volume')
