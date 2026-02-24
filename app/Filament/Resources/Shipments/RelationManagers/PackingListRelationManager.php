@@ -36,13 +36,24 @@ class PackingListRelationManager extends RelationManager
             Select::make('shipment_item_id')
                 ->label('Product')
                 ->options(function () {
-                    return $this->getOwnerRecord()
+                    $shipment = $this->getOwnerRecord();
+
+                    $packedQtyByItem = $shipment->packingListItems()
+                        ->selectRaw('shipment_item_id, SUM(total_quantity) as packed_qty')
+                        ->groupBy('shipment_item_id')
+                        ->pluck('packed_qty', 'shipment_item_id');
+
+                    return $shipment
                         ->items()
                         ->with('proformaInvoiceItem.product')
                         ->get()
-                        ->mapWithKeys(fn ($item) => [
-                            $item->id => $item->product_name . ' (Qty: ' . $item->quantity . ')',
-                        ]);
+                        ->mapWithKeys(function ($item) use ($packedQtyByItem) {
+                            $packed = (int) ($packedQtyByItem[$item->id] ?? 0);
+                            $remaining = $item->quantity - $packed;
+                            $label = $item->product_name . ' (Remaining: ' . $remaining . ' / ' . $item->quantity . ')';
+
+                            return [$item->id => $label];
+                        });
                 })
                 ->searchable()
                 ->preload()
