@@ -141,6 +141,31 @@ class PurchaseOrderInfolist
                         ->placeholder('—'),
                 ])
                 ->columns(2),
+
+            Section::make('Supplier Invoice')
+                ->schema([
+                    TextEntry::make('supplier_invoice_number')
+                        ->label('Invoice Number')
+                        ->weight(FontWeight::Bold)
+                        ->copyable()
+                        ->placeholder('—'),
+                    TextEntry::make('supplier_invoice_date')
+                        ->label('Invoice Date')
+                        ->date('d/m/Y')
+                        ->placeholder('—'),
+                    TextEntry::make('supplier_invoice_file')
+                        ->label('Invoice File')
+                        ->formatStateUsing(fn ($state) => $state ? 'Download' : null)
+                        ->url(fn ($record) => $record->supplier_invoice_file
+                            ? \Illuminate\Support\Facades\Storage::url($record->supplier_invoice_file)
+                            : null
+                        )
+                        ->openUrlInNewTab()
+                        ->color('primary')
+                        ->placeholder('No file uploaded'),
+                ])
+                ->columns(3)
+                ->description('Invoice received from the supplier for this purchase order.'),
         ];
     }
 

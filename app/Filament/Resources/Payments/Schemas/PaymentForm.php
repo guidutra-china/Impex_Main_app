@@ -265,6 +265,22 @@ class PaymentForm
                                 ->step('0.01')
                                 ->minValue(0.01)
                                 ->required()
+                                ->rules([
+                                    fn (Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
+                                        $creditItemId = $get('credit_schedule_item_id');
+                                        if (! $creditItemId) {
+                                            return;
+                                        }
+                                        $creditItem = PaymentScheduleItem::find($creditItemId);
+                                        if (! $creditItem) {
+                                            return;
+                                        }
+                                        $maxAmount = Money::toMajor($creditItem->amount);
+                                        if ((float) $value > $maxAmount) {
+                                            $fail("Amount cannot exceed the credit value of {$creditItem->currency_code} " . number_format($maxAmount, 2) . '.');
+                                        }
+                                    },
+                                ])
                                 ->columnSpan(2),
                         ])
                         ->columns(10)

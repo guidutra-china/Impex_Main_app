@@ -43,6 +43,9 @@ class PurchaseOrder extends Model
         'notes',
         'internal_notes',
         'shipping_instructions',
+        'supplier_invoice_number',
+        'supplier_invoice_date',
+        'supplier_invoice_file',
         'created_by',
     ];
 
@@ -55,6 +58,7 @@ class PurchaseOrder extends Model
             'issue_date' => 'date',
             'expected_delivery_date' => 'date',
             'confirmed_at' => 'datetime',
+            'supplier_invoice_date' => 'date',
         ];
     }
 
