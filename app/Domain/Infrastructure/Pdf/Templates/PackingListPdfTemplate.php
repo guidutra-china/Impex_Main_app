@@ -48,13 +48,7 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
 
         $containerGroups = $this->buildContainerGroups($shipment);
 
-        $totals = [
-            'total_packages' => $shipment->packingListItems->sum('quantity'),
-            'total_gross_weight' => $shipment->packingListItems->sum('total_gross_weight'),
-            'total_net_weight' => $shipment->packingListItems->sum('total_net_weight'),
-            'total_volume' => $shipment->packingListItems->sum('total_volume'),
-            'total_equipment_qty' => $shipment->packingListItems->sum('total_quantity'),
-        ];
+        $totals = $this->calculateDedupedTotals($shipment->packingListItems);
 
         return [
             'shipment' => [
@@ -94,21 +88,7 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
         foreach ($grouped as $containerNumber => $containerItems) {
             $lines = $this->buildMergedLines($containerItems);
 
-            $containerTotals = [
-                'packages' => 0,
-                'equipment_qty' => 0,
-                'gross_weight' => 0,
-                'net_weight' => 0,
-                'volume' => 0,
-            ];
-
-            foreach ($containerItems as $item) {
-                $containerTotals['packages'] += (int) $item->quantity;
-                $containerTotals['equipment_qty'] += (int) $item->total_quantity;
-                $containerTotals['gross_weight'] += (float) $item->total_gross_weight;
-                $containerTotals['net_weight'] += (float) $item->total_net_weight;
-                $containerTotals['volume'] += (float) $item->total_volume;
-            }
+            $containerTotals = $this->calculateDedupedTotals($containerItems);
 
             $containerGroups[] = [
                 'container_number' => $containerNumber === '__none__' ? null : $containerNumber,
@@ -234,6 +214,49 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
         $h = $item->height ? number_format((float) $item->height, 0) : '—';
 
         return "{$l} × {$w} × {$h}";
+    }
+
+    /**
+     * Calculate totals with deduplication for mixed cartons.
+     * PKG QTY: count only once per unique carton range (carton_from-carton_to).
+     * NW/GW/Volume/Equipment Qty: sum all rows (no dedup needed, values are per-product).
+     */
+    private function calculateDedupedTotals($items): array
+    {
+        $seenCartonRanges = [];
+        $totalPackages = 0;
+        $totalEquipmentQty = 0;
+        $totalGrossWeight = 0;
+        $totalNetWeight = 0;
+        $totalVolume = 0;
+
+        foreach ($items as $item) {
+            $rangeKey = $item->carton_from . '-' . $item->carton_to;
+
+            if (! isset($seenCartonRanges[$rangeKey])) {
+                $seenCartonRanges[$rangeKey] = true;
+                $totalPackages += (int) $item->quantity;
+            }
+
+            $totalEquipmentQty += (int) $item->total_quantity;
+            $totalGrossWeight += (float) $item->total_gross_weight;
+            $totalNetWeight += (float) $item->total_net_weight;
+            $totalVolume += (float) $item->total_volume;
+        }
+
+        return [
+            'total_packages' => $totalPackages,
+            'total_gross_weight' => $totalGrossWeight,
+            'total_net_weight' => $totalNetWeight,
+            'total_volume' => $totalVolume,
+            'total_equipment_qty' => $totalEquipmentQty,
+            // Aliases for container subtotals
+            'packages' => $totalPackages,
+            'equipment_qty' => $totalEquipmentQty,
+            'gross_weight' => $totalGrossWeight,
+            'net_weight' => $totalNetWeight,
+            'volume' => $totalVolume,
+        ];
     }
 
     private function labels(string $key): string
