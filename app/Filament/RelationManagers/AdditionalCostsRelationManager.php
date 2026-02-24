@@ -13,6 +13,7 @@ use App\Domain\Infrastructure\Pdf\PdfRenderer;
 use App\Domain\Infrastructure\Pdf\Templates\CostStatementPdfTemplate;
 use App\Domain\Infrastructure\Services\DocumentService;
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\Settings\Models\Currency;
@@ -362,7 +363,7 @@ class AdditionalCostsRelationManager extends RelationManager
             'label' => mb_substr($label, 0, 100),
             'percentage' => 0,
             'amount' => $cost->amount_in_document_currency,
-            'currency_code' => $payable->currency_code,
+            'currency_code' => $payable->currency_code ?? $cost->currency_code ?? 'USD',
             'status' => PaymentScheduleStatus::DUE->value,
             'is_blocking' => false,
             'is_credit' => $isCredit,
@@ -394,6 +395,10 @@ class AdditionalCostsRelationManager extends RelationManager
 
     protected function resolvePayableForCost(AdditionalCost $cost, $owner, BillableTo $billableTo)
     {
+        if ($owner instanceof Shipment) {
+            return $owner;
+        }
+
         if ($billableTo === BillableTo::CLIENT) {
             if ($owner instanceof ProformaInvoice) {
                 return $owner;

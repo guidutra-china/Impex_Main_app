@@ -4,6 +4,7 @@ namespace App\Domain\Logistics\Models;
 
 use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Traits\HasAdditionalCosts;
+use App\Domain\Financial\Traits\HasPaymentSchedule;
 use App\Domain\Infrastructure\Enums\DocumentType;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Infrastructure\Traits\HasDocuments;
@@ -21,7 +22,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Shipment extends Model
 {
-    use HasFactory, SoftDeletes, HasReference, HasStateMachine, HasDocuments, HasAdditionalCosts;
+    use HasFactory, SoftDeletes, HasReference, HasStateMachine, HasDocuments, HasAdditionalCosts, HasPaymentSchedule;
 
     protected $fillable = [
         'reference',
