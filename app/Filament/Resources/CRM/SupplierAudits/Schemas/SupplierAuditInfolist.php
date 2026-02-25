@@ -5,6 +5,7 @@ namespace App\Filament\Resources\CRM\SupplierAudits\Schemas;
 use App\Domain\SupplierAudits\Enums\AuditStatus;
 use App\Domain\SupplierAudits\Models\AuditCategory;
 use App\Domain\SupplierAudits\Models\SupplierAudit;
+use App\Filament\Resources\CRM\Companies\CompanyResource;
 use App\Domain\SupplierAudits\Services\AuditScoringService;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
@@ -28,7 +29,7 @@ class SupplierAuditInfolist
                         TextEntry::make('company.name')
                             ->label('Supplier')
                             ->weight(FontWeight::Bold)
-                            ->url(fn (SupplierAudit $record) => route('filament.admin.resources.crm/companies.view', $record->company_id)),
+                            ->url(fn (SupplierAudit $record) => CompanyResource::getUrl('view', ['record' => $record->company_id])),
                         TextEntry::make('audit_type')
                             ->label('Type')
                             ->badge(),
