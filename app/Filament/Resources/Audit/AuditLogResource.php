@@ -16,6 +16,8 @@ use Filament\Infolists\Components\KeyValueEntry;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\Models\Activity;
+use UnitEnum;
+use BackedEnum;
 
 class AuditLogResource extends Resource
 {
