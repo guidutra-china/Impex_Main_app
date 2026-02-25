@@ -154,7 +154,6 @@ class DevelopmentSeeder extends Seeder
         ProductSpecification::create([
             'product_id' => $product->id,
             'net_weight' => $this->randomFloat(3, 0.05, 50),
-            'gross_weight' => $this->randomFloat(3, 0.1, 55),
             'length' => $this->randomFloat(2, 5, 200),
             'width' => $this->randomFloat(2, 5, 150),
             'height' => $this->randomFloat(2, 1, 100),
