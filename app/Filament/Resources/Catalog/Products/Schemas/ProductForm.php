@@ -88,7 +88,7 @@ class ProductForm
                         ->label('Status')
                         ->options(ProductStatus::class)
                         ->required()
-                        ->default(ProductStatus::DRAFT),
+                        ->default(ProductStatus::DRAFT->value),
                     Select::make('parent_id')
                         ->label('Variant Of')
                         ->relationship('parent', 'name', fn ($query) => $query->whereNull('parent_id'))
@@ -242,7 +242,7 @@ class ProductForm
                     Select::make('packaging_type')
                         ->label('Packaging Type')
                         ->options(PackagingType::class)
-                        ->default(PackagingType::CARTON)
+                        ->default(PackagingType::CARTON->value)
                         ->helperText('Primary packaging type for this product'),
                 ])
                 ->columns(3),

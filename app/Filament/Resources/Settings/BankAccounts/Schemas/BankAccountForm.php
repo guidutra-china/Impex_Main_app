@@ -33,12 +33,12 @@ class BankAccountForm
                             ->label('Account Type')
                             ->options(BankAccountType::class)
                             ->required()
-                            ->default(BankAccountType::BUSINESS),
+                            ->default(BankAccountType::BUSINESS->value),
                         Select::make('status')
                             ->label('Status')
                             ->options(BankAccountStatus::class)
                             ->required()
-                            ->default(BankAccountStatus::ACTIVE),
+                            ->default(BankAccountStatus::ACTIVE->value),
                         Select::make('currency_id')
                             ->label('Currency')
                             ->relationship('currency', 'code')

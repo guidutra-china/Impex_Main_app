@@ -55,7 +55,7 @@ class CompanyForm
                             ->label('Status')
                             ->options(CompanyStatus::class)
                             ->required()
-                            ->default(CompanyStatus::ACTIVE),
+                            ->default(CompanyStatus::ACTIVE->value),
                         CheckboxList::make('roles')
                             ->label('Roles')
                             ->options(CompanyRole::class)
@@ -72,7 +72,7 @@ class CompanyForm
                             ->label('Status')
                             ->options(CompanyStatus::class)
                             ->required()
-                            ->default(CompanyStatus::ACTIVE),
+                            ->default(CompanyStatus::ACTIVE->value),
                         CheckboxList::make('roles')
                             ->label('Roles')
                             ->options(CompanyRole::class)

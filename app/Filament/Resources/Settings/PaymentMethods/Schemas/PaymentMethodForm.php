@@ -41,7 +41,7 @@ class PaymentMethodForm
                             ->label('Processing Time')
                             ->options(ProcessingTime::class)
                             ->required()
-                            ->default(ProcessingTime::IMMEDIATE),
+                            ->default(ProcessingTime::IMMEDIATE->value),
                         Toggle::make('is_active')
                             ->label('Active')
                             ->default(true)
@@ -54,7 +54,7 @@ class PaymentMethodForm
                             ->label('Fee Type')
                             ->options(FeeType::class)
                             ->required()
-                            ->default(FeeType::NONE)
+                            ->default(FeeType::NONE->value)
                             ->live(),
                         TextInput::make('fixed_fee_amount')
                             ->label('Fixed Fee')

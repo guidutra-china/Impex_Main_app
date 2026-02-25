@@ -62,7 +62,7 @@ class ExchangeRateForm
                             ->label('Source')
                             ->options(ExchangeRateSource::class)
                             ->required()
-                            ->default(ExchangeRateSource::MANUAL),
+                            ->default(ExchangeRateSource::MANUAL->value),
                         TextInput::make('source_name')
                             ->label('Source Name')
                             ->maxLength(255)
@@ -71,7 +71,7 @@ class ExchangeRateForm
                             ->label('Status')
                             ->options(ExchangeRateStatus::class)
                             ->required()
-                            ->default(ExchangeRateStatus::APPROVED),
+                            ->default(ExchangeRateStatus::APPROVED->value),
                         Textarea::make('notes')
                             ->label('Notes')
                             ->rows(3)

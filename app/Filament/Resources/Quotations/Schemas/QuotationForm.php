@@ -57,7 +57,7 @@ class QuotationForm
                         ->label('Status')
                         ->options(QuotationStatus::class)
                         ->required()
-                        ->default(QuotationStatus::DRAFT),
+                        ->default(QuotationStatus::DRAFT->value),
                 ])
                 ->columns(2),
 
@@ -109,7 +109,7 @@ class QuotationForm
                         ->label('Commission Model')
                         ->options(CommissionType::class)
                         ->required()
-                        ->default(CommissionType::EMBEDDED)
+                        ->default(CommissionType::EMBEDDED->value)
                         ->live()
                         ->helperText('Embedded: commission per item. Separate: commission on total.'),
                     TextInput::make('commission_rate')

@@ -61,7 +61,7 @@ class PaymentTermForm
                                     ->label('Calculation Base')
                                     ->options(CalculationBase::class)
                                     ->required()
-                                    ->default(CalculationBase::ORDER_DATE),
+                                    ->default(CalculationBase::ORDER_DATE->value),
                             ])
                             ->columns(3)
                             ->orderColumn('sort_order')

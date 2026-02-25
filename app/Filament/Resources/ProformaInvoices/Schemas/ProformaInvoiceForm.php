@@ -63,7 +63,7 @@ class ProformaInvoiceForm
                         ->label('Status')
                         ->options(ProformaInvoiceStatus::class)
                         ->required()
-                        ->default(ProformaInvoiceStatus::DRAFT),
+                        ->default(ProformaInvoiceStatus::DRAFT->value),
                     Select::make('inquiry_id')
                         ->label('Inquiry')
                         ->options(

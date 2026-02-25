@@ -52,12 +52,12 @@ class InquiryForm
                         ->label('Status')
                         ->options(InquiryStatus::class)
                         ->required()
-                        ->default(InquiryStatus::RECEIVED),
+                        ->default(InquiryStatus::RECEIVED->value),
                     Select::make('source')
                         ->label('Source')
                         ->options(InquirySource::class)
                         ->required()
-                        ->default(InquirySource::EMAIL),
+                        ->default(InquirySource::EMAIL->value),
                     Select::make('currency_code')
                         ->label('Currency')
                         ->options(fn () => Currency::where('is_active', true)->pluck('code', 'code'))

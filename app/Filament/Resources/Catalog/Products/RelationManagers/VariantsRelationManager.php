@@ -39,7 +39,7 @@ class VariantsRelationManager extends RelationManager
                     ->label('Status')
                     ->options(ProductStatus::class)
                     ->required()
-                    ->default(ProductStatus::DRAFT),
+                    ->default(ProductStatus::DRAFT->value),
                 Select::make('category_id')
                     ->label('Category')
                     ->relationship('category', 'name')

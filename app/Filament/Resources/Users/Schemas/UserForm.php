@@ -60,7 +60,7 @@ class UserForm
                     Select::make('type')
                         ->label('User Type')
                         ->options(UserType::class)
-                        ->default(UserType::INTERNAL)
+                        ->default(UserType::INTERNAL->value)
                         ->required()
                         ->live(),
                     Select::make('company_id')

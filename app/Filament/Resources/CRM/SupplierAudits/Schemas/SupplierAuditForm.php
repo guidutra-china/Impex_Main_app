@@ -43,7 +43,7 @@ class SupplierAuditForm
                             ->label('Audit Type')
                             ->options(AuditType::class)
                             ->required()
-                            ->default(AuditType::INITIAL),
+                            ->default(AuditType::INITIAL->value),
                         DatePicker::make('scheduled_date')
                             ->label('Scheduled Date')
                             ->required()

@@ -63,7 +63,7 @@ class PurchaseOrderForm
                         ->label('Status')
                         ->options(PurchaseOrderStatus::class)
                         ->required()
-                        ->default(PurchaseOrderStatus::DRAFT),
+                        ->default(PurchaseOrderStatus::DRAFT->value),
                     Select::make('proforma_invoice_id')
                         ->label('Proforma Invoice')
                         ->options(

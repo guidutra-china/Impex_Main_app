@@ -29,7 +29,7 @@ class ShipmentForm
                         ->required(),
                     Select::make('status')
                         ->options(ShipmentStatus::class)
-                        ->default(ShipmentStatus::DRAFT)
+                        ->default(ShipmentStatus::DRAFT->value)
                         ->required(),
                     Select::make('currency_code')
                         ->label('Currency')

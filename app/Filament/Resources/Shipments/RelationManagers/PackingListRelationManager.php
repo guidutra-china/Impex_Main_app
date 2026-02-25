@@ -110,7 +110,7 @@ class PackingListRelationManager extends RelationManager
                         Select::make('packaging_type')
                             ->label('Packaging Type')
                             ->options(PackagingType::class)
-                            ->default(PackagingType::CARTON)
+                            ->default(PackagingType::CARTON->value)
                             ->required()
                             ->helperText('Auto-filled from product packaging'),
 
