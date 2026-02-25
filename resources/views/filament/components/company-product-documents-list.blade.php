@@ -1,45 +1,42 @@
 @props(['documents'])
 
 @if($documents->isNotEmpty())
-    <div class="border-t pt-4 mt-2">
-        <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+    <div style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 8px;">
+        <h4 style="font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 12px;">
             Existing Documents ({{ $documents->count() }})
         </h4>
-        <div class="space-y-2">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
             @foreach($documents as $doc)
-                <div class="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm">
-                    <div class="flex items-center gap-3 min-w-0 flex-1">
-                        <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset
+                <div style="display: flex; align-items: center; justify-content: space-between; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 12px; font-size: 13px;">
+                    <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
+                        <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; white-space: nowrap;
                             @switch($doc->category->value)
-                                @case('certificate') bg-green-50 text-green-700 ring-green-600/20 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/20 @break
-                                @case('photo') bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20 @break
-                                @case('contract') bg-yellow-50 text-yellow-700 ring-yellow-600/20 dark:bg-yellow-500/10 dark:text-yellow-400 dark:ring-yellow-500/20 @break
-                                @case('license') bg-indigo-50 text-indigo-700 ring-indigo-600/20 dark:bg-indigo-500/10 dark:text-indigo-400 dark:ring-indigo-500/20 @break
-                                @case('price_list') bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/20 @break
-                                @default bg-gray-50 text-gray-700 ring-gray-600/20 dark:bg-gray-500/10 dark:text-gray-400 dark:ring-gray-500/20
+                                @case('certificate') background-color: #dcfce7; color: #15803d; @break
+                                @case('photo') background-color: #dbeafe; color: #1d4ed8; @break
+                                @case('contract') background-color: #fef3c7; color: #a16207; @break
+                                @case('license') background-color: #e0e7ff; color: #4338ca; @break
+                                @case('price_list') background-color: #fee2e2; color: #b91c1c; @break
+                                @default background-color: #f3f4f6; color: #4b5563;
                             @endswitch
-                        ">
-                            {{ $doc->category->getLabel() }}
-                        </span>
-                        <div class="min-w-0 flex-1">
-                            <p class="font-medium text-gray-900 dark:text-white truncate">{{ $doc->title }}</p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                        ">{{ $doc->category->getLabel() }}</span>
+                        <div style="min-width: 0; flex: 1;">
+                            <p style="font-weight: 500; color: #111827; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ $doc->title }}</p>
+                            <p style="font-size: 11px; color: #6b7280; margin: 2px 0 0 0;">
                                 {{ $doc->original_name }} &middot; {{ $doc->formatted_size }} &middot; {{ $doc->created_at->format('M d, Y') }}
                             </p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2 ml-3 shrink-0">
-                        <a href="{{ $doc->getUrl() }}" target="_blank"
-                           class="inline-flex items-center justify-center rounded-lg p-1 text-gray-400 hover:text-primary-500 transition">
-                            <x-heroicon-o-arrow-top-right-on-square class="w-4 h-4" />
-                        </a>
-                    </div>
+                    <a href="{{ $doc->getUrl() }}" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; padding: 4px; color: #6b7280; text-decoration: none; margin-left: 12px; flex-shrink: 0;" title="Open file">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                        </svg>
+                    </a>
                 </div>
             @endforeach
         </div>
     </div>
 @else
-    <div class="border-t pt-4 mt-2">
-        <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-2">No documents uploaded yet.</p>
+    <div style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 8px;">
+        <p style="font-size: 13px; color: #6b7280; text-align: center; padding: 8px 0;">No documents uploaded yet.</p>
     </div>
 @endif
