@@ -73,8 +73,17 @@ class PermissionSeeder extends Seeder
             'edit-users',
             'delete-users',
 
-            // Audit
+            // Audit Log
             'view-audit-log',
+
+            // Supplier Audits
+            'view-supplier-audits',
+            'create-supplier-audits',
+            'edit-supplier-audits',
+            'delete-supplier-audits',
+            'conduct-supplier-audits',
+            'review-supplier-audits',
+            'manage-audit-categories',
         ];
 
         foreach ($permissions as $permission) {

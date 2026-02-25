@@ -32,6 +32,7 @@ class AdminPanelProvider extends PanelProvider
             ->sidebarCollapsibleOnDesktop()
             ->sidebarFullyCollapsibleOnDesktop()
             ->brandName('TradingApp')
+            ->databaseNotifications()
             ->colors([
                 'primary' => Color::Indigo,
                 'danger' => Color::Red,

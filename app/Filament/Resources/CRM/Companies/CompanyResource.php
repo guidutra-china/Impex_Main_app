@@ -11,6 +11,7 @@ use App\Filament\Resources\CRM\Companies\RelationManagers\CategoriesRelationMana
 use App\Filament\Resources\CRM\Companies\RelationManagers\ClientProductsRelationManager;
 use App\Filament\Resources\CRM\Companies\RelationManagers\ContactsRelationManager;
 use App\Filament\Resources\CRM\Companies\RelationManagers\RolesRelationManager;
+use App\Filament\Resources\CRM\Companies\RelationManagers\SupplierAuditsRelationManager;
 use App\Filament\Resources\CRM\Companies\RelationManagers\SupplierProductsRelationManager;
 use App\Filament\Resources\CRM\Companies\Schemas\CompanyForm;
 use App\Filament\Resources\CRM\Companies\Schemas\CompanyInfolist;
@@ -70,6 +71,7 @@ class CompanyResource extends Resource
             CategoriesRelationManager::class,
             SupplierProductsRelationManager::class,
             ClientProductsRelationManager::class,
+            SupplierAuditsRelationManager::class,
         ];
     }
 

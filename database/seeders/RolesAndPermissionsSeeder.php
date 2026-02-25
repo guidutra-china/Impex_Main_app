@@ -106,6 +106,15 @@ class RolesAndPermissionsSeeder extends Seeder
             'generate-documents',
             'download-documents',
 
+            // Supplier Audits
+            'view-supplier-audits',
+            'create-supplier-audits',
+            'edit-supplier-audits',
+            'delete-supplier-audits',
+            'conduct-supplier-audits',
+            'review-supplier-audits',
+            'manage-audit-categories',
+
             // Settings
             'view-settings',
             'manage-settings',
@@ -138,6 +147,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'delete-purchase-orders',
             'delete-shipments',
             'manage-settings',
+            'manage-audit-categories',
             'view-users',
             'create-users',
             'edit-users',
@@ -165,6 +175,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'view-costs',
             'view-margins',
             'manage-settings',
+            'manage-audit-categories',
+            'delete-supplier-audits',
+            'review-supplier-audits',
             'view-users',
             'create-users',
             'edit-users',

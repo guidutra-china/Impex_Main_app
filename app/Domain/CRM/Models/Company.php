@@ -6,6 +6,7 @@ use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Enums\CompanyStatus;
+use App\Domain\SupplierAudits\Models\SupplierAudit;
 use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -100,6 +101,16 @@ class Company extends Model
         return $this->belongsToMany(Category::class, 'category_company')
             ->withPivot('notes')
             ->withTimestamps();
+    }
+
+    public function supplierAudits(): HasMany
+    {
+        return $this->hasMany(SupplierAudit::class, 'company_id');
+    }
+
+    public function latestAudit(): HasOne
+    {
+        return $this->hasOne(SupplierAudit::class, 'company_id')->latestOfMany('conducted_date');
     }
 
     // --- Scopes ---
