@@ -2,22 +2,22 @@
 
 namespace App\Filament\Resources\Audit;
 
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\Filter;
-use Filament\Forms\Components\DatePicker;
-use Filament\Infolists\Infolist;
-use Filament\Infolists\Components\Section;
-use Filament\Infolists\Components\TextEntry;
+use BackedEnum;
 use Filament\Infolists\Components\KeyValueEntry;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
+use Filament\Forms\Components\DatePicker;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\Models\Activity;
 use UnitEnum;
-use BackedEnum;
 
 class AuditLogResource extends Resource
 {
@@ -146,9 +146,9 @@ class AuditLogResource extends Resource
             ->bulkActions([]);
     }
 
-    public static function infolist(Infolist $infolist): Infolist
+    public static function infolist(Schema $schema): Schema
     {
-        return $infolist
+        return $schema
             ->schema([
                 Section::make('Event Details')
                     ->schema([
