@@ -17,11 +17,11 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Illuminate\Support\Facades\DB;
@@ -90,7 +90,7 @@ class ConductAudit extends Page implements HasForms
         }
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
         $categories = AuditCategory::where('is_active', true)
             ->with(['criteria' => fn ($q) => $q->where('is_active', true)->orderBy('sort_order')])
@@ -165,8 +165,8 @@ class ConductAudit extends Page implements HasForms
                     ->columnSpanFull(),
             ]);
 
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Tabs::make('Audit Evaluation')
                     ->tabs($tabs)
                     ->columnSpanFull(),
