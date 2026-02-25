@@ -47,7 +47,6 @@ class PurchaseOrder extends Model
         'shipping_instructions',
         'supplier_invoice_number',
         'supplier_invoice_date',
-        'supplier_invoice_file',
         'created_by',
     ];
 

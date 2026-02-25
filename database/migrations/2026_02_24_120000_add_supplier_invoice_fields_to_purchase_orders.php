@@ -11,7 +11,6 @@ return new class extends Migration
         Schema::table('purchase_orders', function (Blueprint $table) {
             $table->string('supplier_invoice_number')->nullable()->after('confirmation_reference');
             $table->date('supplier_invoice_date')->nullable()->after('supplier_invoice_number');
-            $table->string('supplier_invoice_file')->nullable()->after('supplier_invoice_date');
         });
     }
 
@@ -21,7 +20,6 @@ return new class extends Migration
             $table->dropColumn([
                 'supplier_invoice_number',
                 'supplier_invoice_date',
-                'supplier_invoice_file',
             ]);
         });
     }
