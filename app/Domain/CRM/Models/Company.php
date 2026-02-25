@@ -103,6 +103,11 @@ class Company extends Model
             ->withTimestamps();
     }
 
+    public function documents(): HasMany
+    {
+        return $this->hasMany(CompanyDocument::class);
+    }
+
     public function supplierAudits(): HasMany
     {
         return $this->hasMany(SupplierAudit::class, 'company_id');

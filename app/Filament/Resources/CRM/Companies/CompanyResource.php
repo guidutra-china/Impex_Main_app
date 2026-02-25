@@ -10,6 +10,7 @@ use App\Filament\Resources\CRM\Companies\Pages\ViewCompany;
 use App\Filament\Resources\CRM\Companies\RelationManagers\CategoriesRelationManager;
 use App\Filament\Resources\CRM\Companies\RelationManagers\ClientProductsRelationManager;
 use App\Filament\Resources\CRM\Companies\RelationManagers\ContactsRelationManager;
+use App\Filament\Resources\CRM\Companies\RelationManagers\DocumentsRelationManager;
 use App\Filament\Resources\CRM\Companies\RelationManagers\RolesRelationManager;
 use App\Filament\Resources\CRM\Companies\RelationManagers\SupplierAuditsRelationManager;
 use App\Filament\Resources\CRM\Companies\RelationManagers\SupplierProductsRelationManager;
@@ -72,6 +73,7 @@ class CompanyResource extends Resource
             SupplierProductsRelationManager::class,
             ClientProductsRelationManager::class,
             SupplierAuditsRelationManager::class,
+            DocumentsRelationManager::class,
         ];
     }
 
