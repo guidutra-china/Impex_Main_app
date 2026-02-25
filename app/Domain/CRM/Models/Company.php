@@ -71,6 +71,7 @@ class Company extends Model
         return $this->belongsToMany(\App\Domain\Catalog\Models\Product::class, 'company_product')
             ->using(CompanyProduct::class)
             ->withPivot([
+                'id',
                 'role',
                 'external_code',
                 'external_name',
