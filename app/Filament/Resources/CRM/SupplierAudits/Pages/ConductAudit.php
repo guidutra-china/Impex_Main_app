@@ -205,7 +205,6 @@ class ConductAudit extends Page implements HasForms
                             'audit_criterion_id' => $criterion->id,
                         ],
                         [
-                            'audit_category_id' => $category->id,
                             'score' => $criterion->type === CriterionType::SCORED ? ($responseData['score'] ?? null) : null,
                             'passed' => $criterion->type === CriterionType::PASS_FAIL ? ($responseData['passed'] ?? false) : null,
                             'notes' => $responseData['notes'] ?? null,
@@ -218,11 +217,12 @@ class ConductAudit extends Page implements HasForms
                 foreach ($this->documents as $path) {
                     AuditDocument::create([
                         'supplier_audit_id' => $this->record->id,
-                        'file_name' => basename($path),
-                        'file_path' => $path,
-                        'file_type' => $this->guessDocumentType($path),
-                        'file_size' => 0,
-                        'uploaded_by' => auth()->id(),
+                        'type' => $this->guessDocumentType($path),
+                        'title' => basename($path),
+                        'disk' => 'local',
+                        'path' => $path,
+                        'original_name' => basename($path),
+                        'size' => 0,
                     ]);
                 }
             }
@@ -247,9 +247,14 @@ class ConductAudit extends Page implements HasForms
             'conducted_date' => now(),
         ]);
 
+        $scoreText = $scoring['total_score'] !== null
+            ? number_format($scoring['total_score'], 2) . '/5.00'
+            : 'N/A';
+        $resultText = $scoring['result']?->getLabel() ?? 'Pending';
+
         Notification::make()
             ->title('Audit completed')
-            ->body("Final Score: " . number_format($scoring['total_score'], 2) . "/5.00 — Result: " . $scoring['result']->getLabel())
+            ->body("Final Score: {$scoreText} — Result: {$resultText}")
             ->success()
             ->send();
 

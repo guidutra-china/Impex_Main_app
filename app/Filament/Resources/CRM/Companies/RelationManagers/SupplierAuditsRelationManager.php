@@ -6,6 +6,7 @@ use App\Domain\SupplierAudits\Enums\AuditResult;
 use App\Domain\SupplierAudits\Enums\AuditStatus;
 use App\Domain\SupplierAudits\Enums\AuditType;
 use App\Filament\Resources\CRM\SupplierAudits\SupplierAuditResource;
+use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteBulkAction;
@@ -22,7 +23,7 @@ class SupplierAuditsRelationManager extends RelationManager
 
     protected static ?string $title = 'Supplier Audits';
 
-    protected static ?string $icon = 'heroicon-o-clipboard-document-check';
+    protected static string|BackedEnum|null $icon = 'heroicon-o-clipboard-document-check';
 
     public function table(Table $table): Table
     {

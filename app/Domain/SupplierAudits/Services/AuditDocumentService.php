@@ -21,13 +21,14 @@ class AuditDocumentService
 
         return AuditDocument::create([
             'supplier_audit_id' => $audit->id,
-            'file_name' => $file->getClientOriginalName(),
-            'file_path' => $path,
-            'file_type' => $type,
-            'file_size' => $file->getSize(),
+            'type' => $type,
+            'title' => $file->getClientOriginalName(),
+            'disk' => 'local',
+            'path' => $path,
+            'original_name' => $file->getClientOriginalName(),
+            'size' => $file->getSize(),
             'mime_type' => $file->getMimeType(),
-            'description' => $description,
-            'uploaded_by' => auth()->id(),
+            'notes' => $description,
         ]);
     }
 
@@ -42,24 +43,25 @@ class AuditDocumentService
 
         return AuditDocument::create([
             'supplier_audit_id' => $audit->id,
-            'file_name' => basename($storedPath),
-            'file_path' => $storedPath,
-            'file_type' => $type,
-            'file_size' => $size,
+            'type' => $type,
+            'title' => basename($storedPath),
+            'disk' => 'local',
+            'path' => $storedPath,
+            'original_name' => basename($storedPath),
+            'size' => $size,
             'mime_type' => $mimeType,
-            'uploaded_by' => auth()->id(),
         ]);
     }
 
     public function delete(AuditDocument $document): bool
     {
-        Storage::disk('local')->delete($document->file_path);
+        Storage::disk($document->disk)->delete($document->path);
 
         return $document->delete();
     }
 
     public function getUrl(AuditDocument $document): string
     {
-        return Storage::disk('local')->url($document->file_path);
+        return Storage::disk($document->disk)->url($document->path);
     }
 }
