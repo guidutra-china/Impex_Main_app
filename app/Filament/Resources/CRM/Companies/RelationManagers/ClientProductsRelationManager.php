@@ -31,6 +31,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\HtmlString;
 
 class ClientProductsRelationManager extends RelationManager
 {
@@ -258,6 +259,17 @@ class ClientProductsRelationManager extends RelationManager
             ->color('gray')
             ->modalHeading(fn (Model $record) => "Documents — {$record->name}")
             ->modalWidth('3xl')
+            ->modalContentFooter(function (Model $record): HtmlString {
+                $documents = CompanyProductDocument::where('company_product_id', $record->pivot->id)
+                    ->orderByDesc('created_at')
+                    ->get();
+
+                return new HtmlString(
+                    view('filament.components.company-product-documents-list', [
+                        'documents' => $documents,
+                    ])->render()
+                );
+            })
             ->form([
                 Select::make('category')
                     ->label('Category')
