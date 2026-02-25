@@ -82,6 +82,8 @@ class Company extends Model
                 'moq',
                 'notes',
                 'is_preferred',
+                'avatar_path',
+                'avatar_disk',
             ])
             ->withTimestamps();
     }

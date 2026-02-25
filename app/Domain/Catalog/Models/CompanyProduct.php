@@ -5,7 +5,9 @@ namespace App\Domain\Catalog\Models;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Quotations\Enums\Incoterm;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Support\Facades\Storage;
 
 class CompanyProduct extends Pivot
 {
@@ -28,6 +30,8 @@ class CompanyProduct extends Pivot
         'moq',
         'notes',
         'is_preferred',
+        'avatar_path',
+        'avatar_disk',
     ];
 
     protected function casts(): array
@@ -50,5 +54,19 @@ class CompanyProduct extends Pivot
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(CompanyProductDocument::class);
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if (! $this->avatar_path) {
+            return null;
+        }
+
+        return Storage::disk($this->avatar_disk ?? 'public')->url($this->avatar_path);
     }
 }
