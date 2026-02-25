@@ -35,7 +35,7 @@ class ConductAudit extends Page implements HasForms
 
     protected static string $resource = SupplierAuditResource::class;
 
-    protected static string $view = 'filament.resources.crm.supplier-audits.pages.conduct-audit';
+    protected string $view = 'filament.resources.crm.supplier-audits.pages.conduct-audit';
 
     protected static ?string $title = 'Conduct Audit';
 
