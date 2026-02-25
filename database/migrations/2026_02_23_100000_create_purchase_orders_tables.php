@@ -41,7 +41,7 @@ return new class extends Migration
             $table->index('status');
             $table->index('supplier_company_id');
             $table->index('proforma_invoice_id');
-            $table->unique(['proforma_invoice_id', 'supplier_company_id'], 'po_pi_supplier_unique');
+            $table->unique(['proforma_invoice_id', 'supplier_company_id', 'deleted_at'], 'po_pi_supplier_unique');
         });
 
         Schema::create('purchase_order_items', function (Blueprint $table) {
