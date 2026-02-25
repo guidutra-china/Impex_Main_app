@@ -44,7 +44,7 @@ class SupplierAuditInfolist
                         TextEntry::make('total_score')
                             ->label('Total Score')
                             ->weight(FontWeight::Bold)
-                            ->size(TextSize::ExtraLarge)
+                            ->size(TextSize::Large)
                             ->formatStateUsing(fn ($state) => $state !== null ? number_format($state, 2) . ' / 5.00' : '—')
                             ->color(fn ($state) => match (true) {
                                 $state === null => 'gray',
