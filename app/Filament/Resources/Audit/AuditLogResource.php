@@ -37,7 +37,7 @@ class AuditLogResource extends Resource
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasPermissionTo('view-audit-log') ?? false;
+        return auth()->user()?->can('view-audit-log') ?? false;
     }
 
     public static function canCreate(): bool

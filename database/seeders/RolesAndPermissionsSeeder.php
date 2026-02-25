@@ -115,6 +115,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'review-supplier-audits',
             'manage-audit-categories',
 
+            // Audit Log
+            'view-audit-log',
+
             // Settings
             'view-settings',
             'manage-settings',
