@@ -212,7 +212,9 @@ class EditInquiry extends EditRecord
                             ->lockForUpdate()
                             ->findOrFail($this->record->id);
 
-                        $commissionType = CommissionType::from($data['commission_type']);
+                        $commissionType = $data['commission_type'] instanceof CommissionType
+                            ? $data['commission_type']
+                            : CommissionType::from($data['commission_type']);
                         $commissionRate = (float) ($data['commission_rate'] ?? 0);
 
                         $quotation = Quotation::create([
