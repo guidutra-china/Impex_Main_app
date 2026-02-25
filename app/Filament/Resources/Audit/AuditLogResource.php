@@ -66,8 +66,7 @@ class AuditLogResource extends Resource
 
                 TextColumn::make('causer.name')
                     ->label('User')
-                    ->default('System')
-                    ->searchable(),
+                    ->default('System'),
 
                 TextColumn::make('log_name')
                     ->label('Module')
@@ -119,7 +118,11 @@ class AuditLogResource extends Resource
 
                 SelectFilter::make('causer_id')
                     ->label('User')
-                    ->relationship('causer', 'name'),
+                    ->options(fn () => \App\Models\User::query()
+                        ->whereIn('id', Activity::query()->distinct()->pluck('causer_id')->filter())
+                        ->pluck('name', 'id')
+                        ->toArray()
+                    ),
 
                 Filter::make('date_range')
                     ->form([
