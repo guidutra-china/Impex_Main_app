@@ -72,6 +72,9 @@ class PermissionSeeder extends Seeder
             'create-users',
             'edit-users',
             'delete-users',
+
+            // Audit
+            'view-audit-log',
         ];
 
         foreach ($permissions as $permission) {

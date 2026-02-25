@@ -20,10 +20,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class PurchaseOrder extends Model
 {
-    use HasFactory, SoftDeletes, HasReference, HasStateMachine, HasDocuments, HasPaymentSchedule;
+    use HasFactory, SoftDeletes, HasReference, HasStateMachine, HasDocuments, HasPaymentSchedule, LogsActivity;
 
     protected $fillable = [
         'reference',
@@ -60,6 +62,18 @@ class PurchaseOrder extends Model
             'confirmed_at' => 'datetime',
             'supplier_invoice_date' => 'date',
         ];
+    }
+
+    // --- Activity Log ---
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logAll()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('purchase_order')
+            ->setDescriptionForEvent(fn (string $eventName) => "Purchase Order {$this->reference} was {$eventName}");
     }
 
     // --- HasReference ---

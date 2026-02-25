@@ -19,10 +19,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Shipment extends Model
 {
-    use HasFactory, SoftDeletes, HasReference, HasStateMachine, HasDocuments, HasAdditionalCosts, HasPaymentSchedule;
+    use HasFactory, SoftDeletes, HasReference, HasStateMachine, HasDocuments, HasAdditionalCosts, HasPaymentSchedule, LogsActivity;
 
     protected $fillable = [
         'reference',
@@ -70,6 +72,18 @@ class Shipment extends Model
             'total_volume' => 'decimal:4',
             'total_packages' => 'integer',
         ];
+    }
+
+    // --- Activity Log ---
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logAll()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('shipment')
+            ->setDescriptionForEvent(fn (string $eventName) => "Shipment {$this->reference} was {$eventName}");
     }
 
     // --- HasReference ---

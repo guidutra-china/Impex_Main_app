@@ -25,10 +25,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class ProformaInvoice extends Model
 {
-    use HasFactory, SoftDeletes, HasReference, HasStateMachine, HasDocuments, HasPaymentSchedule, HasAdditionalCosts;
+    use HasFactory, SoftDeletes, HasReference, HasStateMachine, HasDocuments, HasPaymentSchedule, HasAdditionalCosts, LogsActivity;
 
     protected $fillable = [
         'reference',
@@ -62,6 +64,18 @@ class ProformaInvoice extends Model
             'confirmed_at' => 'datetime',
             'incoterm' => \App\Domain\Quotations\Enums\Incoterm::class,
         ];
+    }
+
+    // --- Activity Log ---
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logAll()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->useLogName('proforma_invoice')
+            ->setDescriptionForEvent(fn (string $eventName) => "Proforma Invoice {$this->reference} was {$eventName}");
     }
 
     // --- HasReference ---
