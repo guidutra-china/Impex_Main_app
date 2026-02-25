@@ -7,22 +7,19 @@ use App\Domain\SupplierAudits\Enums\CriterionType;
 use App\Domain\SupplierAudits\Models\AuditCategory;
 use App\Domain\SupplierAudits\Models\AuditDocument;
 use App\Domain\SupplierAudits\Models\AuditResponse;
-use App\Domain\SupplierAudits\Models\SupplierAudit;
 use App\Domain\SupplierAudits\Services\AuditScoringService;
 use App\Filament\Resources\CRM\SupplierAudits\SupplierAuditResource;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Radio;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
+use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
@@ -32,6 +29,7 @@ use Illuminate\Support\Facades\DB;
 class ConductAudit extends Page implements HasForms
 {
     use InteractsWithForms;
+    use InteractsWithRecord;
 
     protected static string $resource = SupplierAuditResource::class;
 
@@ -39,22 +37,21 @@ class ConductAudit extends Page implements HasForms
 
     protected static ?string $title = 'Conduct Audit';
 
-    public SupplierAudit $record;
-
     public array $responses = [];
     public array $documents = [];
 
     public function mount(int|string $record): void
     {
-        $this->record = SupplierAudit::findOrFail($record);
+        $this->record = $this->resolveRecord($record);
 
-        if (!in_array($this->record->status, [AuditStatus::SCHEDULED, AuditStatus::IN_PROGRESS])) {
+        if (! in_array($this->record->status, [AuditStatus::SCHEDULED, AuditStatus::IN_PROGRESS])) {
             Notification::make()
                 ->title('This audit cannot be modified')
                 ->warning()
                 ->send();
 
             $this->redirect(SupplierAuditResource::getUrl('view', ['record' => $this->record]));
+
             return;
         }
 
@@ -70,7 +67,7 @@ class ConductAudit extends Page implements HasForms
 
     protected function loadExistingResponses(): void
     {
-        $existingResponses = $this->record->responses()
+        $existingResponses = $this->getRecord()->responses()
             ->with('criterion')
             ->get()
             ->keyBy('audit_criterion_id');
@@ -156,7 +153,7 @@ class ConductAudit extends Page implements HasForms
                 FileUpload::make('documents')
                     ->label('Upload Documents & Photos')
                     ->multiple()
-                    ->directory('audit-documents/' . $this->record->id)
+                    ->directory('audit-documents/' . $this->getRecord()->id)
                     ->maxSize(10240)
                     ->acceptedFileTypes([
                         'image/jpeg', 'image/png', 'image/webp',
@@ -178,7 +175,9 @@ class ConductAudit extends Page implements HasForms
 
     public function save(): void
     {
-        DB::transaction(function () {
+        $record = $this->getRecord();
+
+        DB::transaction(function () use ($record) {
             $categories = AuditCategory::where('is_active', true)
                 ->with(['criteria' => fn ($q) => $q->where('is_active', true)])
                 ->get();
@@ -187,21 +186,21 @@ class ConductAudit extends Page implements HasForms
                 foreach ($category->criteria as $criterion) {
                     $responseData = $this->responses[$criterion->id] ?? null;
 
-                    if (!$responseData) {
+                    if (! $responseData) {
                         continue;
                     }
 
                     $hasData = ($responseData['score'] ?? null) !== null
                         || ($responseData['passed'] ?? null) !== null
-                        || !empty($responseData['notes']);
+                        || ! empty($responseData['notes']);
 
-                    if (!$hasData) {
+                    if (! $hasData) {
                         continue;
                     }
 
                     AuditResponse::updateOrCreate(
                         [
-                            'supplier_audit_id' => $this->record->id,
+                            'supplier_audit_id' => $record->id,
                             'audit_criterion_id' => $criterion->id,
                         ],
                         [
@@ -213,10 +212,10 @@ class ConductAudit extends Page implements HasForms
                 }
             }
 
-            if (!empty($this->documents)) {
+            if (! empty($this->documents)) {
                 foreach ($this->documents as $path) {
                     AuditDocument::create([
-                        'supplier_audit_id' => $this->record->id,
+                        'supplier_audit_id' => $record->id,
                         'type' => $this->guessDocumentType($path),
                         'title' => basename($path),
                         'disk' => 'local',
@@ -238,9 +237,10 @@ class ConductAudit extends Page implements HasForms
     {
         $this->save();
 
-        $scoring = app(AuditScoringService::class)->calculate($this->record->fresh());
+        $record = $this->getRecord()->fresh();
+        $scoring = app(AuditScoringService::class)->calculate($record);
 
-        $this->record->update([
+        $record->update([
             'status' => AuditStatus::COMPLETED,
             'total_score' => $scoring['total_score'],
             'result' => $scoring['result'],
@@ -258,7 +258,7 @@ class ConductAudit extends Page implements HasForms
             ->success()
             ->send();
 
-        $this->redirect(SupplierAuditResource::getUrl('view', ['record' => $this->record]));
+        $this->redirect(SupplierAuditResource::getUrl('view', ['record' => $record]));
     }
 
     protected function guessDocumentType(string $path): string
