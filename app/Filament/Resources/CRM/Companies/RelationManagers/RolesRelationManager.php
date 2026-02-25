@@ -46,14 +46,17 @@ class RolesRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make()
-                    ->label('Add Role'),
+                    ->label('Add Role')
+                    ->visible(fn () => auth()->user()?->can('edit-companies')),
             ])
             ->recordActions([
-                DeleteAction::make(),
+                DeleteAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-companies')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()?->can('edit-companies')),
                 ]),
             ]);
     }

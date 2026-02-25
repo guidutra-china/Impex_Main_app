@@ -166,6 +166,7 @@ class SupplierProductsRelationManager extends RelationManager
             ->headerActions([
                 AttachAction::make()
                     ->label('Add Product')
+                    ->visible(fn () => auth()->user()?->can('edit-companies'))
                     ->preloadRecordSelect()
                     ->recordSelectSearchColumns(['sku', 'name'])
                     ->form(fn (AttachAction $action): array => [
@@ -228,6 +229,7 @@ class SupplierProductsRelationManager extends RelationManager
             ->recordActions([
                 $this->getManageDocumentsAction(),
                 EditAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-companies'))
                     ->mountUsing(function ($form, $record) {
                         $data = $record->pivot->toArray();
                         $data['unit_price'] = Money::toMajor($data['unit_price'] ?? 0);
@@ -238,11 +240,13 @@ class SupplierProductsRelationManager extends RelationManager
                         $data['avatar_disk'] = 'public';
                         return $data;
                     }),
-                DetachAction::make(),
+                DetachAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-companies')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DetachBulkAction::make(),
+                    DetachBulkAction::make()
+                        ->visible(fn () => auth()->user()?->can('edit-companies')),
                 ]),
             ])
             ->emptyStateHeading('No products linked as supplier')

@@ -64,16 +64,20 @@ class CategoryAttributesRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make()
                     ->label('Add Attribute')
+                    ->visible(fn () => auth()->user()?->can('manage-categories'))
                     ->modalHeading('Add Attribute Template')
                     ->modalDescription('Define an attribute that will be automatically added to products in this category.'),
             ])
             ->actions([
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()
+                    ->visible(fn () => auth()->user()?->can('manage-categories')),
+                DeleteAction::make()
+                    ->visible(fn () => auth()->user()?->can('manage-categories')),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()?->can('manage-categories')),
                 ]),
             ])
             ->defaultSort('sort_order', 'asc')

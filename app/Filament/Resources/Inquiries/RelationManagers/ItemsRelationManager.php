@@ -192,17 +192,21 @@ class ItemsRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-inquiries'))
                     ->using(function (array $data, string $model) {
                         return $this->createItemWithDraftProduct($data);
                     }),
             ])
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-inquiries')),
+                DeleteAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-inquiries')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()?->can('edit-inquiries')),
                 ]),
             ])
             ->reorderable('sort_order')

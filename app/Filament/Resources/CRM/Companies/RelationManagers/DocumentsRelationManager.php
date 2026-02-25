@@ -133,6 +133,7 @@ class DocumentsRelationManager extends RelationManager
             ], layout: FiltersLayout::AboveContent)
             ->headerActions([
                 CreateAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-companies'))
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['disk'] = 'public';
                         $data['uploaded_by'] = auth()->id();
@@ -144,8 +145,10 @@ class DocumentsRelationManager extends RelationManager
                     }),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-companies')),
                 DeleteAction::make()
+                    ->visible(fn () => auth()->user()?->can('delete-companies'))
                     ->after(function (CompanyDocument $record) {
                         Storage::disk($record->disk)->delete($record->path);
                     }),
@@ -153,6 +156,7 @@ class DocumentsRelationManager extends RelationManager
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()?->can('delete-companies'))
                         ->after(function ($records) {
                             foreach ($records as $record) {
                                 Storage::disk($record->disk)->delete($record->path);

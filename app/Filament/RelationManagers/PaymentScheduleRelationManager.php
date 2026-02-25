@@ -182,7 +182,8 @@ class PaymentScheduleRelationManager extends RelationManager
                     ->label('Due Date')
                     ->required(),
             ])
-            ->visible(fn ($record) => ! $record->status->isResolved())
+            ->visible(fn ($record) => ! $record->status->isResolved()
+                && auth()->user()?->can('edit-payments'))
             ->action(function ($record, array $data) {
                 $record->update(['due_date' => $data['due_date']]);
 

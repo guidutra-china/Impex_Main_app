@@ -171,6 +171,7 @@ class ItemsRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-proforma-invoices'))
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['unit_cost'] = Money::toMinor($data['unit_cost'] ?? 0);
                         $data['unit_price'] = Money::toMinor($data['unit_price'] ?? 0);
@@ -183,6 +184,7 @@ class ItemsRelationManager extends RelationManager
             ])
             ->recordActions([
                 EditAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-proforma-invoices'))
                     ->mountUsing(function ($form, $record) {
                         $data = $record->toArray();
                         $data['unit_cost'] = Money::toMajor($data['unit_cost']);
@@ -195,11 +197,13 @@ class ItemsRelationManager extends RelationManager
 
                         return $data;
                     }),
-                DeleteAction::make(),
+                DeleteAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-proforma-invoices')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()?->can('edit-proforma-invoices')),
                 ]),
             ])
             ->reorderable('sort_order');
@@ -211,6 +215,7 @@ class ItemsRelationManager extends RelationManager
             ->label('Import from Quotations')
             ->icon('heroicon-o-arrow-down-tray')
             ->color('info')
+            ->visible(fn () => auth()->user()?->can('edit-proforma-invoices'))
             ->form(function () {
                 $pi = $this->getOwnerRecord();
 
@@ -307,6 +312,7 @@ class ItemsRelationManager extends RelationManager
             ->label('Import from Inquiry')
             ->icon('heroicon-o-clipboard-document-list')
             ->color('warning')
+            ->visible(fn () => auth()->user()?->can('edit-proforma-invoices'))
             ->form(function () {
                 $pi = $this->getOwnerRecord();
 

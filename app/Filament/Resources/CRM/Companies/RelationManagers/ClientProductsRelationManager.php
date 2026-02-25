@@ -160,6 +160,7 @@ class ClientProductsRelationManager extends RelationManager
             ->headerActions([
                 AttachAction::make()
                     ->label('Add Product')
+                    ->visible(fn () => auth()->user()?->can('edit-companies'))
                     ->preloadRecordSelect()
                     ->recordSelectSearchColumns(['sku', 'name'])
                     ->form(fn (AttachAction $action): array => [
@@ -221,6 +222,7 @@ class ClientProductsRelationManager extends RelationManager
             ->recordActions([
                 $this->getManageDocumentsAction(),
                 EditAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-companies'))
                     ->mountUsing(function ($form, $record) {
                         $data = $record->pivot->toArray();
                         $data['unit_price'] = Money::toMajor($data['unit_price'] ?? 0);
@@ -237,13 +239,15 @@ class ClientProductsRelationManager extends RelationManager
                         $data['avatar_disk'] = 'public';
                         return $data;
                     }),
-                DetachAction::make(),
+                DetachAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-companies')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     $this->getBulkPriceUpdateAction('selling_price', 'unit_price', 'Adjust Selling Price'),
                     $this->getBulkPriceUpdateAction('custom_price', 'custom_price', 'Adjust CI Price'),
-                    DetachBulkAction::make(),
+                    DetachBulkAction::make()
+                        ->visible(fn () => auth()->user()?->can('edit-companies')),
                 ]),
             ])
             ->emptyStateHeading('No products linked as client')

@@ -67,14 +67,17 @@ class VariantsRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make()
                     ->label('Add Variant')
+                    ->visible(fn () => auth()->user()?->can('edit-products'))
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['category_id'] = $data['category_id'] ?? $this->getOwnerRecord()->category_id;
                         return $data;
                     }),
             ])
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-products')),
+                DeleteAction::make()
+                    ->visible(fn () => auth()->user()?->can('delete-products')),
             ]);
     }
 }

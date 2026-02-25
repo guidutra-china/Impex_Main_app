@@ -209,15 +209,19 @@ class ItemsRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->headerActions([
-                CreateAction::make(),
+                CreateAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-supplier-quotations')),
             ])
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-supplier-quotations')),
+                DeleteAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-supplier-quotations')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()?->can('edit-supplier-quotations')),
                 ]),
             ])
             ->reorderable('sort_order')

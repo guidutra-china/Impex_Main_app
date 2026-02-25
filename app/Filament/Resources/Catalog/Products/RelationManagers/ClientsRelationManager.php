@@ -114,6 +114,7 @@ class ClientsRelationManager extends RelationManager
             ->headerActions([
                 AttachAction::make()
                     ->label('Add Client')
+                    ->visible(fn () => auth()->user()?->can('edit-products'))
                     ->preloadRecordSelect()
                     ->recordSelectSearchColumns(['name', 'legal_name'])
                     ->recordSelectOptionsQuery(
@@ -166,6 +167,7 @@ class ClientsRelationManager extends RelationManager
             ])
             ->recordActions([
                 EditAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-products'))
                     ->mountUsing(function ($form, $record) {
                         $data = $record->pivot->toArray();
                         $data['unit_price'] = Money::toMajor($data['unit_price'] ?? 0);
@@ -181,13 +183,15 @@ class ClientsRelationManager extends RelationManager
                             : null;
                         return $data;
                     }),
-                DetachAction::make(),
+                DetachAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-products')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     $this->getBulkPriceUpdateAction('selling_price', 'unit_price', 'Adjust Selling Price'),
                     $this->getBulkPriceUpdateAction('custom_price', 'custom_price', 'Adjust CI Price'),
-                    DetachBulkAction::make(),
+                    DetachBulkAction::make()
+                        ->visible(fn () => auth()->user()?->can('edit-products')),
                 ]),
             ]);
     }

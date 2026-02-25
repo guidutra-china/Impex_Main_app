@@ -138,6 +138,7 @@ class ItemsRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-purchase-orders'))
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['unit_cost'] = \App\Domain\Infrastructure\Support\Money::toMinor($data['unit_cost'] ?? 0);
                         $data['sort_order'] = $this->getOwnerRecord()->items()->max('sort_order') + 1;
@@ -147,6 +148,7 @@ class ItemsRelationManager extends RelationManager
             ])
             ->recordActions([
                 EditAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-purchase-orders'))
                     ->mountUsing(function ($form, $record) {
                         $data = $record->toArray();
                         $data['unit_cost'] = \App\Domain\Infrastructure\Support\Money::toMajor($data['unit_cost']);
@@ -157,11 +159,13 @@ class ItemsRelationManager extends RelationManager
 
                         return $data;
                     }),
-                DeleteAction::make(),
+                DeleteAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-purchase-orders')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()?->can('edit-purchase-orders')),
                 ]),
             ])
             ->reorderable('sort_order');

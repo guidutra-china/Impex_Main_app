@@ -290,6 +290,7 @@ class ItemsRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make()
                     ->label('Add Item')
+                    ->visible(fn () => auth()->user()?->can('edit-quotations'))
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['unit_cost'] = Money::toMinor($data['unit_cost'] ?? 0);
                         $data['unit_price'] = Money::toMinor($data['unit_price'] ?? 0);
@@ -298,6 +299,7 @@ class ItemsRelationManager extends RelationManager
             ])
             ->recordActions([
                 EditAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-quotations'))
                     ->mountUsing(function ($form, $record) {
                         $data = $record->toArray();
                         $data['unit_cost'] = Money::toMajor($data['unit_cost']);
@@ -309,11 +311,13 @@ class ItemsRelationManager extends RelationManager
                         $data['unit_price'] = Money::toMinor($data['unit_price'] ?? 0);
                         return $data;
                     }),
-                DeleteAction::make(),
+                DeleteAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-quotations')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()?->can('edit-quotations')),
                 ]),
             ]);
     }

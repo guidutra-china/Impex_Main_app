@@ -100,6 +100,7 @@ class DocumentsRelationManager extends RelationManager
                     ->label('Upload Document')
                     ->icon('heroicon-o-arrow-up-tray')
                     ->color('primary')
+                    ->visible(fn () => auth()->user()?->can('edit-purchase-orders'))
                     ->form([
                         Select::make('type')
                             ->label('Document Type')

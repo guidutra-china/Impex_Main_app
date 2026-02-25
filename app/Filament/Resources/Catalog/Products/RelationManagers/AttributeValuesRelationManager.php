@@ -70,20 +70,24 @@ class AttributeValuesRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make()
                     ->label('Add Attribute Value')
+                    ->visible(fn () => auth()->user()?->can('edit-products'))
                     ->mutateFormDataUsing(fn (array $data) => $this->normalizeValueField($data))
                     ->after(fn () => $this->afterAttributeSaved()),
             ])
             ->actions([
                 EditAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-products'))
                     ->mutateRecordDataUsing(fn (array $data) => $this->expandValueField($data))
                     ->mutateFormDataUsing(fn (array $data) => $this->normalizeValueField($data))
                     ->after(fn () => $this->afterAttributeSaved()),
                 DeleteAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-products'))
                     ->after(fn () => $this->afterAttributeSaved()),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()?->can('edit-products')),
                 ]),
             ])
             ->modifyQueryUsing(fn ($query) => $query

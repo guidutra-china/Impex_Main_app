@@ -45,6 +45,7 @@ class CategoriesRelationManager extends RelationManager
             ->headerActions([
                 AttachAction::make()
                     ->label('Add Category')
+                    ->visible(fn () => auth()->user()?->can('edit-companies'))
                     ->preloadRecordSelect()
                     ->recordSelectOptionsQuery(fn ($query) => $query->active()->orderBy('name'))
                     ->recordTitle(fn (Category $record): string => $record->full_path)
@@ -58,11 +59,13 @@ class CategoriesRelationManager extends RelationManager
                     ]),
             ])
             ->recordActions([
-                DetachAction::make(),
+                DetachAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-companies')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DetachBulkAction::make(),
+                    DetachBulkAction::make()
+                        ->visible(fn () => auth()->user()?->can('edit-companies')),
                 ]),
             ])
             ->emptyStateHeading('No categories assigned')

@@ -325,10 +325,12 @@ class PackingListRelationManager extends RelationManager
             ])
             ->recordActions([
                 \Filament\Actions\EditAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-shipments'))
                     ->after(function () {
                         app(RecalculateShipmentTotalsAction::class)->execute($this->getOwnerRecord());
                     }),
                 \Filament\Actions\DeleteAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-shipments'))
                     ->after(function () {
                         app(RecalculateShipmentTotalsAction::class)->execute($this->getOwnerRecord());
                     }),
@@ -342,7 +344,7 @@ class PackingListRelationManager extends RelationManager
                     ->modalHeading('Generate Packing List')
                     ->modalDescription('This will delete all existing packing list entries and regenerate them from shipment items using product packaging data. Continue?')
                     ->modalSubmitActionLabel('Generate')
-                    ->visible(fn () => $this->getOwnerRecord()->items()->count() > 0)
+                    ->visible(fn () => $this->getOwnerRecord()->items()->count() > 0 && auth()->user()?->can('edit-shipments'))
                     ->action(function () {
                         $shipment = $this->getOwnerRecord();
                         $count = app(GeneratePackingListAction::class)->execute($shipment);
@@ -356,6 +358,7 @@ class PackingListRelationManager extends RelationManager
                 \Filament\Actions\CreateAction::make()
                     ->label('Add Line')
                     ->icon('heroicon-o-plus')
+                    ->visible(fn () => auth()->user()?->can('edit-shipments'))
                     ->after(function () {
                         app(RecalculateShipmentTotalsAction::class)->execute($this->getOwnerRecord());
                     }),

@@ -71,6 +71,7 @@ class SupplierAuditsRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make()
+                    ->visible(fn () => auth()->user()?->can('create-supplier-audits'))
                     ->url(fn () => SupplierAuditResource::getUrl('create', [
                         'company_id' => $this->getOwnerRecord()->id,
                     ])),
@@ -81,7 +82,8 @@ class SupplierAuditsRelationManager extends RelationManager
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()?->can('delete-supplier-audits')),
                 ]),
             ])
             ->defaultSort('scheduled_date', 'desc')

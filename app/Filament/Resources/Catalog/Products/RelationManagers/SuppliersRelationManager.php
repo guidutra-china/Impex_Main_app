@@ -108,6 +108,7 @@ class SuppliersRelationManager extends RelationManager
             ->headerActions([
                 AttachAction::make()
                     ->label('Add Supplier')
+                    ->visible(fn () => auth()->user()?->can('edit-products'))
                     ->preloadRecordSelect()
                     ->recordSelectSearchColumns(['name', 'legal_name'])
                     ->recordSelectOptionsQuery(
@@ -157,6 +158,7 @@ class SuppliersRelationManager extends RelationManager
             ])
             ->recordActions([
                 EditAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-products'))
                     ->mountUsing(function ($form, $record) {
                         $data = $record->pivot->toArray();
                         $data['unit_price'] = Money::toMajor($data['unit_price'] ?? 0);
@@ -166,10 +168,12 @@ class SuppliersRelationManager extends RelationManager
                         $data['unit_price'] = Money::toMinor($data['unit_price'] ?? 0);
                         return $data;
                     }),
-                DetachAction::make(),
+                DetachAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-products')),
             ])
             ->toolbarActions([
-                DetachBulkAction::make(),
+                DetachBulkAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-products')),
             ]);
     }
 }

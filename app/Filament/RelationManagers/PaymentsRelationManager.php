@@ -125,6 +125,7 @@ class PaymentsRelationManager extends RelationManager
                     ->label('Record Payment')
                     ->icon('heroicon-o-plus-circle')
                     ->color('primary')
+                    ->visible(fn () => auth()->user()?->can('create-payments'))
                     ->url(fn () => PaymentResource::getUrl('create'))
                     ->openUrlInNewTab(),
             ])

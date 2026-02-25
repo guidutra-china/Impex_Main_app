@@ -125,6 +125,7 @@ class ContactsRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-companies'))
                     ->after(function (Contact $record) {
                         if ($record->is_primary) {
                             $this->ensureSinglePrimary($record);
@@ -133,16 +134,19 @@ class ContactsRelationManager extends RelationManager
             ])
             ->recordActions([
                 EditAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-companies'))
                     ->after(function (Contact $record) {
                         if ($record->is_primary) {
                             $this->ensureSinglePrimary($record);
                         }
                     }),
-                DeleteAction::make(),
+                DeleteAction::make()
+                    ->visible(fn () => auth()->user()?->can('delete-companies')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()?->can('delete-companies')),
                 ]),
             ])
             ->defaultSort('is_primary', 'desc');

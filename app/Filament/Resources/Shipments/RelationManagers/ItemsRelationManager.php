@@ -204,6 +204,7 @@ class ItemsRelationManager extends RelationManager
             ])
             ->recordActions([
                 \Filament\Actions\EditAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-shipments'))
                     ->mountUsing(function ($form, $record) {
                         $piItem = $record->proformaInvoiceItem;
                         $piId = $piItem?->proforma_invoice_id;
@@ -213,12 +214,14 @@ class ItemsRelationManager extends RelationManager
                         ]));
                     }),
                 \Filament\Actions\DeleteAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-shipments'))
                     ->after(function () {
                         app(RecalculateShipmentTotalsAction::class)->execute($this->getOwnerRecord());
                     }),
             ])
             ->headerActions([
                 \Filament\Actions\Action::make('import_from_pi')
+                    ->visible(fn () => auth()->user()?->can('edit-shipments'))
                     ->label('Import from PI')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('warning')
@@ -311,6 +314,7 @@ class ItemsRelationManager extends RelationManager
                 \Filament\Actions\CreateAction::make()
                     ->label('Add Item')
                     ->icon('heroicon-o-plus')
+                    ->visible(fn () => auth()->user()?->can('edit-shipments'))
                     ->mutateFormDataUsing(function (array $data): array {
                         unset($data['proforma_invoice_id'], $data['max_quantity']);
                         return $data;
