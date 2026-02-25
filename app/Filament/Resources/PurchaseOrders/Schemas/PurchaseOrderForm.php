@@ -13,7 +13,6 @@ use App\Domain\Settings\Models\Currency;
 use App\Domain\Settings\Models\PaymentTerm;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -189,21 +188,9 @@ class PurchaseOrderForm
                         ->label('Invoice Date')
                         ->native(false)
                         ->displayFormat('d/m/Y'),
-                    FileUpload::make('supplier_invoice_file')
-                        ->label('Invoice File')
-                        ->directory('supplier-invoices')
-                        ->acceptedFileTypes([
-                            'application/pdf',
-                            'application/vnd.ms-excel',
-                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                            'image/jpeg',
-                            'image/png',
-                        ])
-                        ->maxSize(10240)
-                        ->columnSpanFull(),
                 ])
                 ->columns(2)
-                ->description('Invoice received from the supplier for this purchase order.'),
+                ->description('Invoice details. Upload invoice files, packing lists, and other documents in the Documents tab.'),
         ];
     }
 

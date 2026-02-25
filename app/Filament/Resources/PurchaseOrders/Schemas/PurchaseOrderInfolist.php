@@ -153,19 +153,9 @@ class PurchaseOrderInfolist
                         ->label('Invoice Date')
                         ->date('d/m/Y')
                         ->placeholder('—'),
-                    TextEntry::make('supplier_invoice_file')
-                        ->label('Invoice File')
-                        ->formatStateUsing(fn ($state) => $state ? 'Download' : null)
-                        ->url(fn ($record) => $record->supplier_invoice_file
-                            ? \Illuminate\Support\Facades\URL::signedRoute('file.download', ['path' => $record->supplier_invoice_file])
-                            : null
-                        )
-                        ->openUrlInNewTab()
-                        ->color('primary')
-                        ->placeholder('No file uploaded'),
                 ])
-                ->columns(3)
-                ->description('Invoice received from the supplier for this purchase order.'),
+                ->columns(2)
+                ->description('Invoice details. Files are available in the Documents tab.'),
         ];
     }
 

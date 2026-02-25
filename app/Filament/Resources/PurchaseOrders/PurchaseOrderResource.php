@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\PurchaseOrders;
 
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
-use App\Filament\RelationManagers\DocumentsRelationManager;
+use App\Filament\Resources\PurchaseOrders\RelationManagers\DocumentsRelationManager;
 use App\Filament\Resources\PurchaseOrders\Pages\CreatePurchaseOrder;
 use App\Filament\Resources\PurchaseOrders\Pages\EditPurchaseOrder;
 use App\Filament\Resources\PurchaseOrders\Pages\ListPurchaseOrders;
