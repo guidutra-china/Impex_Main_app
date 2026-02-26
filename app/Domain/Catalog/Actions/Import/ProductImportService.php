@@ -75,11 +75,25 @@ class ProductImportService
         $errors = [];
         $hasCross = ! empty($rows[0]['_has_cross']);
 
+        $refCodes = [];
+        foreach ($rows as $row) {
+            if (! empty($row['reference_code'])) {
+                $refCodes[] = $row['reference_code'];
+            }
+        }
+
         foreach ($rows as $i => $row) {
             $rowNum = $row['_row'];
 
             if (empty($row['name'])) {
                 $errors[] = "Row {$rowNum}: Product Name is required.";
+            }
+
+            if (! empty($row['parent_ref'])) {
+                $parentRef = trim($row['parent_ref']);
+                if (! in_array($parentRef, $refCodes)) {
+                    $errors[] = "Row {$rowNum}: Parent Reference '{$parentRef}' not found in any row's Reference Code. Base product must be in the same file.";
+                }
             }
 
             if (! empty($row['moq']) && ! is_numeric($row['moq'])) {
@@ -97,10 +111,8 @@ class ProductImportService
                 }
             }
 
-            // Validate primary company link
             $this->validateCompanyLinkFields($row, $rowNum, 'company', $errors);
 
-            // Validate cross-company link if present
             if ($hasCross) {
                 $this->validateCompanyLinkFields($row, $rowNum, 'cross', $errors);
             }
@@ -155,7 +167,7 @@ class ProductImportService
         $conflicts = [];
 
         foreach ($rows as $row) {
-            if (! empty($row['parent_sku'])) {
+            if (! empty($row['parent_ref'])) {
                 continue;
             }
 
@@ -193,13 +205,15 @@ class ProductImportService
     ): array {
         $stats = ['created' => 0, 'updated' => 0, 'skipped' => 0, 'linked' => 0, 'errors' => []];
         $skuGenerator = app(GenerateProductSkuAction::class);
-        $createdSkuMap = [];
         $hasCross = ! empty($rows[0]['_has_cross']);
 
-        return DB::transaction(function () use ($rows, $category, $company, $role, $conflictResolutions, &$stats, $skuGenerator, &$createdSkuMap, $crossCompany, $crossRole, $hasCross) {
-            // First pass: base products (no parent_sku)
+        // Build a map of reference_code → row index for quick lookup
+        $refCodeMap = [];
+
+        return DB::transaction(function () use ($rows, $category, $company, $role, $conflictResolutions, &$stats, $skuGenerator, &$refCodeMap, $crossCompany, $crossRole, $hasCross) {
+            // First pass: base products (no parent_ref)
             foreach ($rows as $row) {
-                if (! empty($row['parent_sku'])) {
+                if (! empty($row['parent_ref'])) {
                     continue;
                 }
 
@@ -207,44 +221,42 @@ class ProductImportService
                     $result = $this->importRow($row, $category, $company, $role, $conflictResolutions, $skuGenerator, null);
                     $stats[$result['action']]++;
 
-                    if (isset($result['product'])) {
-                        $createdSkuMap[$result['product']->sku] = $result['product'];
-                        $createdSkuMap[$row['name']] = $result['product'];
+                    if (isset($result['product']) && ! empty($row['reference_code'])) {
+                        $refCodeMap[trim($row['reference_code'])] = $result['product'];
+                    }
 
-                        if ($crossCompany && $crossRole) {
-                            $this->ensureCrossCompanyLink($result['product'], $crossCompany, $crossRole, $row, $hasCross);
-                        }
+                    if (isset($result['product']) && $crossCompany && $crossRole) {
+                        $this->ensureCrossCompanyLink($result['product'], $crossCompany, $crossRole, $row, $hasCross);
                     }
                 } catch (\Throwable $e) {
                     $stats['errors'][] = "Row {$row['_row']}: {$e->getMessage()}";
                 }
             }
 
-            // Second pass: variants (with parent_sku)
+            // Second pass: variants (with parent_ref)
             foreach ($rows as $row) {
-                if (empty($row['parent_sku'])) {
+                if (empty($row['parent_ref'])) {
                     continue;
                 }
 
                 try {
-                    $parentSku = trim($row['parent_sku']);
-                    $parent = $createdSkuMap[$parentSku]
-                        ?? Product::where('sku', $parentSku)->first();
+                    $parentRef = trim($row['parent_ref']);
+                    $parent = $refCodeMap[$parentRef] ?? null;
 
                     if (! $parent) {
-                        $stats['errors'][] = "Row {$row['_row']}: Parent SKU '{$parentSku}' not found.";
+                        $stats['errors'][] = "Row {$row['_row']}: Parent Reference '{$parentRef}' not found. Ensure the base product has Reference Code '{$parentRef}' in this file.";
                         continue;
                     }
 
                     $result = $this->importRow($row, $category, $company, $role, $conflictResolutions, $skuGenerator, $parent);
                     $stats[$result['action']]++;
 
-                    if (isset($result['product'])) {
-                        $createdSkuMap[$result['product']->sku] = $result['product'];
+                    if (isset($result['product']) && ! empty($row['reference_code'])) {
+                        $refCodeMap[trim($row['reference_code'])] = $result['product'];
+                    }
 
-                        if ($crossCompany && $crossRole) {
-                            $this->ensureCrossCompanyLink($result['product'], $crossCompany, $crossRole, $row, $hasCross);
-                        }
+                    if (isset($result['product']) && $crossCompany && $crossRole) {
+                        $this->ensureCrossCompanyLink($result['product'], $crossCompany, $crossRole, $row, $hasCross);
                     }
                 } catch (\Throwable $e) {
                     $stats['errors'][] = "Row {$row['_row']}: {$e->getMessage()}";
@@ -475,7 +487,6 @@ class ProductImportService
         $reader->open($filePath);
 
         $singleColumnCount = count($this->templateGenerator->buildColumnMap($category, $role, false));
-        $dualColumnCount = count($this->templateGenerator->buildColumnMap($category, $role, true));
 
         $actualColumnCount = 0;
 
@@ -490,7 +501,7 @@ class ProductImportService
 
         $reader->close();
 
-        return $actualColumnCount >= $dualColumnCount;
+        return $actualColumnCount > $singleColumnCount;
     }
 
     private function cleanValue(mixed $value): ?string

@@ -13,7 +13,8 @@ class GenerateProductImportTemplate
 {
     private const PRODUCT_COLUMNS = [
         'name' => ['label' => 'Product Name', 'required' => true, 'hint' => 'e.g. Ceramic Mug 300ml'],
-        'parent_sku' => ['label' => 'Parent SKU', 'required' => false, 'hint' => 'Leave empty for base products. Fill with parent SKU for variants.'],
+        'reference_code' => ['label' => 'Reference Code', 'required' => false, 'hint' => 'Your code for this product (e.g. LED-001). Used to link variants to base products.'],
+        'parent_ref' => ['label' => 'Parent Reference', 'required' => false, 'hint' => 'Leave EMPTY for base products. For variants, enter the Reference Code of the base product.'],
         'hs_code' => ['label' => 'HS Code', 'required' => false, 'hint' => 'e.g. 6912.00'],
         'origin_country' => ['label' => 'Origin Country', 'required' => false, 'hint' => 'e.g. CN, BR, US'],
         'brand' => ['label' => 'Brand', 'required' => false, 'hint' => ''],
@@ -233,7 +234,8 @@ class GenerateProductImportTemplate
         foreach ($columns as $colKey => $col) {
             $row[] = match ($colKey) {
                 'name' => $isVariant ? 'Example Product - Blue' : 'Example Product',
-                'parent_sku' => $isVariant ? '(SKU from row above)' : '',
+                'reference_code' => $isVariant ? 'MX-100-BL' : 'MX-100',
+                'parent_ref' => $isVariant ? 'MX-100' : '',
                 'hs_code' => '6912.00',
                 'origin_country' => 'CN',
                 'brand' => 'BrandX',
@@ -274,9 +276,8 @@ class GenerateProductImportTemplate
 
     public function hasCrossCompanyColumns(Category $category, string $role, array $headerRow): bool
     {
-        $crossColumns = $this->buildColumnMap($category, $role, true);
-        $crossKeys = array_filter(array_keys($crossColumns), fn ($k) => str_starts_with($k, 'cross_'));
+        $singleCount = count($this->buildColumnMap($category, $role, false));
 
-        return ! empty($crossKeys) && count($headerRow) > count($this->buildColumnMap($category, $role, false));
+        return count($headerRow) > $singleCount;
     }
 }
