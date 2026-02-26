@@ -6,6 +6,7 @@ use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Quotations\Models\Quotation;
 use App\Filament\Portal\Resources\QuotationResource\Pages;
 use App\Filament\Portal\Resources\QuotationResource\Widgets\PortalQuotationSummary;
+use App\Filament\Portal\Widgets\QuotationsListStats;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use BackedEnum;
@@ -160,6 +161,7 @@ class QuotationResource extends Resource
     {
         return [
             PortalQuotationSummary::class,
+            QuotationsListStats::class,
         ];
     }
 

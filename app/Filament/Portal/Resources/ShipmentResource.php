@@ -7,6 +7,7 @@ use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\Shipment;
 use App\Filament\Portal\Resources\ShipmentResource\Pages;
 use App\Filament\Portal\Resources\ShipmentResource\Widgets\PortalShipmentOverview;
+use App\Filament\Portal\Widgets\ShipmentsListStats;
 use Filament\Infolists\Components\TextEntry;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -238,6 +239,7 @@ class ShipmentResource extends Resource
     {
         return [
             PortalShipmentOverview::class,
+            ShipmentsListStats::class,
         ];
     }
 
