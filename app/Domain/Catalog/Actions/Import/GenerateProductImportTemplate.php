@@ -3,9 +3,8 @@
 namespace App\Domain\Catalog\Actions\Import;
 
 use App\Domain\Catalog\Models\Category;
+use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Row;
-use OpenSpout\Common\Entity\Style\Border;
-use OpenSpout\Common\Entity\Style\BorderPart;
 use OpenSpout\Common\Entity\Style\Color;
 use OpenSpout\Common\Entity\Style\Style;
 use OpenSpout\Writer\XLSX\Writer;
@@ -53,9 +52,9 @@ class GenerateProductImportTemplate
         'markup_percentage' => ['label' => 'Markup %', 'required' => false, 'hint' => 'e.g. 30 for 30%'],
     ];
 
-    private const COMPANY_COLUMNS = [
-        'external_code' => ['label' => 'External Code', 'required' => false, 'hint' => "Client/Supplier's internal code"],
-        'external_name' => ['label' => 'External Product Name', 'required' => false, 'hint' => 'Name used by client/supplier'],
+    private const COMPANY_LINK_COLUMNS = [
+        'external_code' => ['label' => 'External Code', 'required' => false, 'hint' => "Company's internal code for this product"],
+        'external_name' => ['label' => 'External Product Name', 'required' => false, 'hint' => 'Name used by this company'],
         'external_description' => ['label' => 'External Description', 'required' => false, 'hint' => 'Description for invoices'],
         'unit_price' => ['label' => 'Unit Price', 'required' => false, 'hint' => 'Decimal (e.g. 12.50, NOT in cents)'],
         'custom_price' => ['label' => 'Custom Price (CI Override)', 'required' => false, 'hint' => 'Decimal. Overrides PI price on Commercial Invoice.'],
@@ -64,9 +63,11 @@ class GenerateProductImportTemplate
         'is_preferred' => ['label' => 'Is Preferred', 'required' => false, 'hint' => 'yes or no'],
     ];
 
-    public function execute(Category $category, string $role): string
+    public function execute(Category $category, string $role, bool $includeCrossRole = false): string
     {
-        $filename = 'product_import_template_' . str($category->name)->slug() . '_' . $role . '.xlsx';
+        $crossRole = $role === 'client' ? 'supplier' : 'client';
+        $suffix = $includeCrossRole ? "_{$role}_and_{$crossRole}" : "_{$role}";
+        $filename = 'product_import_template_' . str($category->name)->slug() . $suffix . '.xlsx';
         $path = storage_path('app/temp/' . $filename);
 
         if (! is_dir(dirname($path))) {
@@ -76,7 +77,7 @@ class GenerateProductImportTemplate
         $writer = new Writer();
         $writer->openToFile($path);
 
-        $allColumns = $this->buildColumnMap($category);
+        $allColumns = $this->buildColumnMap($category, $role, $includeCrossRole);
 
         $headerStyle = (new Style())
             ->setFontBold()
@@ -101,7 +102,7 @@ class GenerateProductImportTemplate
             $sectionCells[] = $col['section'];
         }
         $writer->addRow(new Row(
-            array_map(fn ($v) => \OpenSpout\Common\Entity\Cell::fromValue($v), $sectionCells),
+            array_map(fn ($v) => Cell::fromValue($v), $sectionCells),
             $sectionStyle
         ));
 
@@ -115,7 +116,7 @@ class GenerateProductImportTemplate
             $headerCells[] = $label;
         }
         $writer->addRow(new Row(
-            array_map(fn ($v) => \OpenSpout\Common\Entity\Cell::fromValue($v), $headerCells),
+            array_map(fn ($v) => Cell::fromValue($v), $headerCells),
             $headerStyle
         ));
 
@@ -125,20 +126,20 @@ class GenerateProductImportTemplate
             $hintCells[] = $col['hint'];
         }
         $writer->addRow(new Row(
-            array_map(fn ($v) => \OpenSpout\Common\Entity\Cell::fromValue($v), $hintCells),
+            array_map(fn ($v) => Cell::fromValue($v), $hintCells),
             $hintStyle
         ));
 
         // Row 4: Example base product
-        $exampleBase = $this->buildExampleRow($allColumns, isVariant: false);
+        $exampleBase = $this->buildExampleRow($allColumns, isVariant: false, role: $role, includeCrossRole: $includeCrossRole);
         $writer->addRow(new Row(
-            array_map(fn ($v) => \OpenSpout\Common\Entity\Cell::fromValue($v), $exampleBase)
+            array_map(fn ($v) => Cell::fromValue($v), $exampleBase)
         ));
 
         // Row 5: Example variant
-        $exampleVariant = $this->buildExampleRow($allColumns, isVariant: true);
+        $exampleVariant = $this->buildExampleRow($allColumns, isVariant: true, role: $role, includeCrossRole: $includeCrossRole);
         $writer->addRow(new Row(
-            array_map(fn ($v) => \OpenSpout\Common\Entity\Cell::fromValue($v), $exampleVariant)
+            array_map(fn ($v) => Cell::fromValue($v), $exampleVariant)
         ));
 
         $writer->close();
@@ -146,9 +147,12 @@ class GenerateProductImportTemplate
         return $path;
     }
 
-    public function buildColumnMap(Category $category): array
+    public function buildColumnMap(Category $category, ?string $role = null, bool $includeCrossRole = false): array
     {
         $columns = [];
+        $roleLabel = ucfirst($role ?? 'company');
+        $crossRole = ($role === 'client') ? 'supplier' : 'client';
+        $crossRoleLabel = ucfirst($crossRole);
 
         foreach (self::PRODUCT_COLUMNS as $key => $col) {
             $columns[$key] = array_merge($col, ['section' => 'PRODUCT', 'key' => $key, 'group' => 'product']);
@@ -166,10 +170,31 @@ class GenerateProductImportTemplate
             $columns["cost_{$key}"] = array_merge($col, ['section' => 'COSTING', 'key' => $key, 'group' => 'costing']);
         }
 
-        foreach (self::COMPANY_COLUMNS as $key => $col) {
-            $columns["company_{$key}"] = array_merge($col, ['section' => 'COMPANY LINK', 'key' => $key, 'group' => 'company']);
+        // Primary company link
+        $sectionName = strtoupper($roleLabel) . ' LINK';
+        foreach (self::COMPANY_LINK_COLUMNS as $key => $col) {
+            $columns["company_{$key}"] = array_merge($col, [
+                'section' => $sectionName,
+                'key' => $key,
+                'group' => 'company',
+                'link_role' => $role,
+            ]);
         }
 
+        // Cross-company link (optional)
+        if ($includeCrossRole) {
+            $crossSectionName = strtoupper($crossRoleLabel) . ' LINK';
+            foreach (self::COMPANY_LINK_COLUMNS as $key => $col) {
+                $columns["cross_{$key}"] = array_merge($col, [
+                    'section' => $crossSectionName,
+                    'key' => $key,
+                    'group' => 'cross_company',
+                    'link_role' => $crossRole,
+                ]);
+            }
+        }
+
+        // Category attributes
         $categoryAttributes = $category->getAllAttributes();
         foreach ($categoryAttributes as $attr) {
             $hint = '';
@@ -198,8 +223,12 @@ class GenerateProductImportTemplate
         return $columns;
     }
 
-    private function buildExampleRow(array $columns, bool $isVariant): array
+    private function buildExampleRow(array $columns, bool $isVariant, string $role = 'client', bool $includeCrossRole = false): array
     {
+        $rolePrefix = strtoupper(substr($role, 0, 3));
+        $crossRole = ($role === 'client') ? 'supplier' : 'client';
+        $crossPrefix = strtoupper(substr($crossRole, 0, 3));
+
         $row = [];
         foreach ($columns as $colKey => $col) {
             $row[] = match ($colKey) {
@@ -215,15 +244,22 @@ class GenerateProductImportTemplate
                 'spec_net_weight' => '0.350',
                 'spec_color' => $isVariant ? 'Blue' : 'White',
                 'spec_material' => 'Ceramic',
-                'company_external_code' => $isVariant ? 'CLI-MX100-BL' : 'CLI-MX100',
-                'company_unit_price' => '12.50',
-                'company_currency_code' => 'USD',
-                'company_incoterm' => 'FOB',
-                'company_is_preferred' => $isVariant ? 'no' : 'yes',
                 'pkg_packaging_type' => 'carton',
                 'pkg_pcs_per_carton' => '24',
                 'cost_base_price' => '8.00',
                 'cost_markup_percentage' => '30',
+                // Primary company link
+                'company_external_code' => $isVariant ? "{$rolePrefix}-MX100-BL" : "{$rolePrefix}-MX100",
+                'company_unit_price' => $role === 'client' ? '15.00' : '8.50',
+                'company_currency_code' => 'USD',
+                'company_incoterm' => 'FOB',
+                'company_is_preferred' => $isVariant ? 'no' : 'yes',
+                // Cross-company link
+                'cross_external_code' => $includeCrossRole ? ($isVariant ? "{$crossPrefix}-MX100-BL" : "{$crossPrefix}-MX100") : '',
+                'cross_unit_price' => $includeCrossRole ? ($crossRole === 'supplier' ? '8.50' : '15.00') : '',
+                'cross_currency_code' => $includeCrossRole ? 'USD' : '',
+                'cross_incoterm' => $includeCrossRole ? 'EXW' : '',
+                'cross_is_preferred' => $includeCrossRole ? ($isVariant ? 'no' : 'yes') : '',
                 default => '',
             };
         }
@@ -231,8 +267,16 @@ class GenerateProductImportTemplate
         return $row;
     }
 
-    public function getColumnKeys(Category $category): array
+    public function getColumnKeys(Category $category, ?string $role = null, bool $includeCrossRole = false): array
     {
-        return array_keys($this->buildColumnMap($category));
+        return array_keys($this->buildColumnMap($category, $role, $includeCrossRole));
+    }
+
+    public function hasCrossCompanyColumns(Category $category, string $role, array $headerRow): bool
+    {
+        $crossColumns = $this->buildColumnMap($category, $role, true);
+        $crossKeys = array_filter(array_keys($crossColumns), fn ($k) => str_starts_with($k, 'cross_'));
+
+        return ! empty($crossKeys) && count($headerRow) > count($this->buildColumnMap($category, $role, false));
     }
 }

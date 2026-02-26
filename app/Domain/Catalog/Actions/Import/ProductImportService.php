@@ -15,7 +15,6 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\Logistics\Enums\PackagingType;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Settings\Models\Currency;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use OpenSpout\Reader\XLSX\Reader;
 
@@ -28,9 +27,10 @@ class ProductImportService
         $this->templateGenerator = new GenerateProductImportTemplate();
     }
 
-    public function parseFile(string $filePath, Category $category): array
+    public function parseFile(string $filePath, Category $category, string $role = 'client'): array
     {
-        $columnMap = $this->templateGenerator->buildColumnMap($category);
+        $hasCross = $this->detectCrossColumns($filePath, $category, $role);
+        $columnMap = $this->templateGenerator->buildColumnMap($category, $role, $hasCross);
         $columnKeys = array_keys($columnMap);
 
         $reader = new Reader();
@@ -43,7 +43,7 @@ class ProductImportService
             foreach ($sheet->getRowIterator() as $row) {
                 $rowIndex++;
                 if ($rowIndex <= 3) {
-                    continue; // Skip section header, column header, hints rows
+                    continue;
                 }
 
                 $cells = $row->getCells();
@@ -58,10 +58,11 @@ class ProductImportService
                     $mapped[$key] = isset($values[$i]) ? $this->cleanValue($values[$i]) : null;
                 }
                 $mapped['_row'] = $rowIndex;
+                $mapped['_has_cross'] = $hasCross;
 
                 $rows[] = $mapped;
             }
-            break; // Only first sheet
+            break;
         }
 
         $reader->close();
@@ -72,7 +73,7 @@ class ProductImportService
     public function validate(array $rows, Category $category, Company $company, string $role): array
     {
         $errors = [];
-        $skuMap = [];
+        $hasCross = ! empty($rows[0]['_has_cross']);
 
         foreach ($rows as $i => $row) {
             $rowNum = $row['_row'];
@@ -96,17 +97,12 @@ class ProductImportService
                 }
             }
 
-            if (! empty($row['company_incoterm'])) {
-                $valid = array_column(Incoterm::cases(), 'value');
-                if (! in_array(strtoupper($row['company_incoterm']), $valid)) {
-                    $errors[] = "Row {$rowNum}: Invalid incoterm '{$row['company_incoterm']}'. Valid: " . implode(', ', $valid);
-                }
-            }
+            // Validate primary company link
+            $this->validateCompanyLinkFields($row, $rowNum, 'company', $errors);
 
-            if (! empty($row['company_currency_code'])) {
-                if (! Currency::where('code', strtoupper($row['company_currency_code']))->exists()) {
-                    $errors[] = "Row {$rowNum}: Currency '{$row['company_currency_code']}' not found in system.";
-                }
+            // Validate cross-company link if present
+            if ($hasCross) {
+                $this->validateCompanyLinkFields($row, $rowNum, 'cross', $errors);
             }
 
             $numericFields = [
@@ -118,15 +114,40 @@ class ProductImportService
                 'company_unit_price', 'company_custom_price',
             ];
 
+            if ($hasCross) {
+                $numericFields[] = 'cross_unit_price';
+                $numericFields[] = 'cross_custom_price';
+            }
+
             foreach ($numericFields as $field) {
                 if (! empty($row[$field]) && ! is_numeric($row[$field])) {
-                    $label = $field;
-                    $errors[] = "Row {$rowNum}: '{$label}' must be numeric, got '{$row[$field]}'.";
+                    $errors[] = "Row {$rowNum}: '{$field}' must be numeric, got '{$row[$field]}'.";
                 }
             }
         }
 
         return $errors;
+    }
+
+    private function validateCompanyLinkFields(array $row, int $rowNum, string $prefix, array &$errors): void
+    {
+        $incotermKey = "{$prefix}_incoterm";
+        $currencyKey = "{$prefix}_currency_code";
+
+        if (! empty($row[$incotermKey])) {
+            $valid = array_column(Incoterm::cases(), 'value');
+            if (! in_array(strtoupper($row[$incotermKey]), $valid)) {
+                $label = $prefix === 'cross' ? 'Cross-company incoterm' : 'Incoterm';
+                $errors[] = "Row {$rowNum}: Invalid {$label} '{$row[$incotermKey]}'. Valid: " . implode(', ', $valid);
+            }
+        }
+
+        if (! empty($row[$currencyKey])) {
+            if (! Currency::where('code', strtoupper($row[$currencyKey]))->exists()) {
+                $label = $prefix === 'cross' ? 'Cross-company currency' : 'Currency';
+                $errors[] = "Row {$rowNum}: {$label} '{$row[$currencyKey]}' not found in system.";
+            }
+        }
     }
 
     public function detectConflicts(array $rows, Company $company, string $role): array
@@ -135,7 +156,7 @@ class ProductImportService
 
         foreach ($rows as $row) {
             if (! empty($row['parent_sku'])) {
-                continue; // Variants checked separately
+                continue;
             }
 
             $existingByName = Product::where('name', $row['name'])
@@ -173,8 +194,9 @@ class ProductImportService
         $stats = ['created' => 0, 'updated' => 0, 'skipped' => 0, 'linked' => 0, 'errors' => []];
         $skuGenerator = app(GenerateProductSkuAction::class);
         $createdSkuMap = [];
+        $hasCross = ! empty($rows[0]['_has_cross']);
 
-        return DB::transaction(function () use ($rows, $category, $company, $role, $conflictResolutions, &$stats, $skuGenerator, &$createdSkuMap, $crossCompany, $crossRole) {
+        return DB::transaction(function () use ($rows, $category, $company, $role, $conflictResolutions, &$stats, $skuGenerator, &$createdSkuMap, $crossCompany, $crossRole, $hasCross) {
             // First pass: base products (no parent_sku)
             foreach ($rows as $row) {
                 if (! empty($row['parent_sku'])) {
@@ -184,14 +206,13 @@ class ProductImportService
                 try {
                     $result = $this->importRow($row, $category, $company, $role, $conflictResolutions, $skuGenerator, null);
                     $stats[$result['action']]++;
-                    if ($result['action'] === 'linked') {
-                        $stats['linked']++;
-                    }
+
                     if (isset($result['product'])) {
                         $createdSkuMap[$result['product']->sku] = $result['product'];
                         $createdSkuMap[$row['name']] = $result['product'];
+
                         if ($crossCompany && $crossRole) {
-                            $this->ensureCompanyLink($result['product'], $crossCompany, $crossRole, $row);
+                            $this->ensureCrossCompanyLink($result['product'], $crossCompany, $crossRole, $row, $hasCross);
                         }
                     }
                 } catch (\Throwable $e) {
@@ -217,10 +238,12 @@ class ProductImportService
 
                     $result = $this->importRow($row, $category, $company, $role, $conflictResolutions, $skuGenerator, $parent);
                     $stats[$result['action']]++;
+
                     if (isset($result['product'])) {
                         $createdSkuMap[$result['product']->sku] = $result['product'];
+
                         if ($crossCompany && $crossRole) {
-                            $this->ensureCompanyLink($result['product'], $crossCompany, $crossRole, $row);
+                            $this->ensureCrossCompanyLink($result['product'], $crossCompany, $crossRole, $row, $hasCross);
                         }
                     }
                 } catch (\Throwable $e) {
@@ -250,7 +273,7 @@ class ProductImportService
         }
 
         if ($existing && $resolution === 'skip') {
-            $this->ensureCompanyLink($existing, $company, $role, $row);
+            $this->ensurePrimaryCompanyLink($existing, $company, $role, $row);
             return ['action' => 'skipped', 'product' => $existing];
         }
 
@@ -260,11 +283,10 @@ class ProductImportService
             $this->upsertPackaging($existing, $row);
             $this->upsertCosting($existing, $row);
             $this->upsertAttributes($existing, $row, $category);
-            $this->ensureCompanyLink($existing, $company, $role, $row);
+            $this->ensurePrimaryCompanyLink($existing, $company, $role, $row);
             return ['action' => 'updated', 'product' => $existing];
         }
 
-        // Create new product
         $product = Product::create([
             'name' => $row['name'],
             'sku' => $skuGenerator->execute($category->id),
@@ -284,7 +306,7 @@ class ProductImportService
         $this->upsertPackaging($product, $row);
         $this->upsertCosting($product, $row);
         $this->upsertAttributes($product, $row, $category);
-        $this->ensureCompanyLink($product, $company, $role, $row);
+        $this->ensurePrimaryCompanyLink($product, $company, $role, $row);
 
         return ['action' => 'created', 'product' => $product];
     }
@@ -366,7 +388,6 @@ class ProductImportService
             return;
         }
 
-        // Calculate derived fields
         if (isset($data['bom_material_cost']) || isset($data['direct_labor_cost']) || isset($data['direct_overhead_cost'])) {
             $bom = $data['bom_material_cost'] ?? 0;
             $labor = $data['direct_labor_cost'] ?? 0;
@@ -406,18 +427,29 @@ class ProductImportService
         }
     }
 
-    private function ensureCompanyLink(Product $product, Company $company, string $role, array $row): void
+    private function ensurePrimaryCompanyLink(Product $product, Company $company, string $role, array $row): void
+    {
+        $this->upsertCompanyLink($product, $company, $role, $row, 'company');
+    }
+
+    private function ensureCrossCompanyLink(Product $product, Company $crossCompany, string $crossRole, array $row, bool $hasCrossColumns): void
+    {
+        $prefix = $hasCrossColumns ? 'cross' : 'company';
+        $this->upsertCompanyLink($product, $crossCompany, $crossRole, $row, $prefix);
+    }
+
+    private function upsertCompanyLink(Product $product, Company $company, string $role, array $row, string $prefix): void
     {
         $pivotData = [
             'role' => $role,
-            'external_code' => $row['company_external_code'] ?? null,
-            'external_name' => $row['company_external_name'] ?? null,
-            'external_description' => $row['company_external_description'] ?? null,
-            'unit_price' => $this->toCents($row['company_unit_price'] ?? null),
-            'custom_price' => $this->toCents($row['company_custom_price'] ?? null),
-            'currency_code' => ! empty($row['company_currency_code']) ? strtoupper($row['company_currency_code']) : null,
-            'incoterm' => ! empty($row['company_incoterm']) ? strtoupper($row['company_incoterm']) : null,
-            'is_preferred' => $this->toBool($row['company_is_preferred'] ?? null),
+            'external_code' => $row["{$prefix}_external_code"] ?? null,
+            'external_name' => $row["{$prefix}_external_name"] ?? null,
+            'external_description' => $row["{$prefix}_external_description"] ?? null,
+            'unit_price' => $this->toCents($row["{$prefix}_unit_price"] ?? null),
+            'custom_price' => $this->toCents($row["{$prefix}_custom_price"] ?? null),
+            'currency_code' => ! empty($row["{$prefix}_currency_code"]) ? strtoupper($row["{$prefix}_currency_code"]) : null,
+            'incoterm' => ! empty($row["{$prefix}_incoterm"]) ? strtoupper($row["{$prefix}_incoterm"]) : null,
+            'is_preferred' => $this->toBool($row["{$prefix}_is_preferred"] ?? null),
         ];
 
         $pivotData = array_filter($pivotData, fn ($v) => $v !== null);
@@ -435,6 +467,30 @@ class ProductImportService
                 'company_id' => $company->id,
             ]));
         }
+    }
+
+    private function detectCrossColumns(string $filePath, Category $category, string $role): bool
+    {
+        $reader = new Reader();
+        $reader->open($filePath);
+
+        $singleColumnCount = count($this->templateGenerator->buildColumnMap($category, $role, false));
+        $dualColumnCount = count($this->templateGenerator->buildColumnMap($category, $role, true));
+
+        $actualColumnCount = 0;
+
+        foreach ($reader->getSheetIterator() as $sheet) {
+            foreach ($sheet->getRowIterator() as $row) {
+                $cells = $row->getCells();
+                $actualColumnCount = count($cells);
+                break;
+            }
+            break;
+        }
+
+        $reader->close();
+
+        return $actualColumnCount >= $dualColumnCount;
     }
 
     private function cleanValue(mixed $value): ?string

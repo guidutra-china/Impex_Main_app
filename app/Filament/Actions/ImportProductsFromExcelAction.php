@@ -23,7 +23,6 @@ class ImportProductsFromExcelAction
     {
         $crossRole = $role === 'client' ? 'supplier' : 'client';
         $crossLabel = $role === 'client' ? 'Supplier' : 'Client';
-        $roleLabel = $role === 'client' ? 'Client' : 'Supplier';
 
         return Action::make('importProducts')
             ->label('Import from Excel')
@@ -37,8 +36,7 @@ class ImportProductsFromExcelAction
                     ->options(fn () => Category::active()->pluck('name', 'id'))
                     ->searchable()
                     ->required()
-                    ->helperText('All products must belong to the same category. The template will include category-specific columns.')
-                    ->live(),
+                    ->helperText('Must match the category used when downloading the template.'),
 
                 Placeholder::make('instructions')
                     ->label('')
@@ -46,11 +44,12 @@ class ImportProductsFromExcelAction
                         '<div style="padding: 12px; background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px;">'
                         . '<p style="font-weight: 600; color: #1E40AF; margin-bottom: 4px;">Instructions:</p>'
                         . '<ol style="color: #1E3A5F; font-size: 13px; padding-left: 20px; margin: 0;">'
-                        . '<li>Select category above, then <strong>Download Template</strong> below</li>'
+                        . '<li>Use the <strong>Download Template</strong> button to get the correct template</li>'
                         . '<li>Row 1 = sections, Row 2 = headers, Row 3 = hints. <strong>Data starts at Row 4.</strong></li>'
                         . '<li>Base products: leave <strong>Parent SKU</strong> empty</li>'
                         . '<li>Variants: fill <strong>Parent SKU</strong> with the base product SKU</li>'
                         . '<li>Prices in <strong>decimal format</strong> (12.50), NOT cents</li>'
+                        . '<li>If template has dual company columns, fill both sections with respective data</li>'
                         . '</ol>'
                         . '</div>'
                     )),
@@ -66,23 +65,17 @@ class ImportProductsFromExcelAction
                     ->directory('temp/imports')
                     ->helperText('Upload the filled template. Max 10MB.'),
 
-                Toggle::make('link_cross_company')
-                    ->label("Also link products to a {$crossLabel}")
-                    ->helperText("If enabled, imported products will be linked to both this {$roleLabel} and the selected {$crossLabel}.")
-                    ->live()
-                    ->default(false),
-
                 Select::make('cross_company_id')
-                    ->label("Select {$crossLabel}")
+                    ->label("Link to {$crossLabel} (if template has dual columns)")
                     ->options(function () use ($crossRole) {
                         $companyRole = $crossRole === 'client' ? CompanyRole::CLIENT : CompanyRole::SUPPLIER;
+
                         return Company::withRole($companyRole)
                             ->orderBy('name')
                             ->pluck('name', 'id');
                     })
                     ->searchable()
-                    ->visible(fn ($get) => $get('link_cross_company'))
-                    ->required(fn ($get) => $get('link_cross_company')),
+                    ->helperText("Select the {$crossLabel} if your template includes dual company link columns. Leave empty if single-company template."),
 
                 Radio::make('conflict_strategy')
                     ->label('If a product with the same name already exists:')
@@ -98,17 +91,12 @@ class ImportProductsFromExcelAction
                 $categoryId = $data['category_id'];
                 $filePath = $data['import_file'];
                 $conflictStrategy = $data['conflict_strategy'] ?? 'skip';
-                $linkCross = $data['link_cross_company'] ?? false;
                 $crossCompanyId = $data['cross_company_id'] ?? null;
 
                 $category = Category::findOrFail($categoryId);
 
                 /** @var Company $company */
                 $company = $getCompany();
-
-                $crossCompany = ($linkCross && $crossCompanyId)
-                    ? Company::find($crossCompanyId)
-                    : null;
 
                 $fullPath = Storage::disk('local')->path($filePath);
 
@@ -118,12 +106,13 @@ class ImportProductsFromExcelAction
                         ->body('The uploaded file could not be located. Please try again.')
                         ->danger()
                         ->send();
+
                     return;
                 }
 
                 $service = new ProductImportService();
 
-                $rows = $service->parseFile($fullPath, $category);
+                $rows = $service->parseFile($fullPath, $category, $role);
 
                 if (empty($rows)) {
                     Notification::make()
@@ -131,7 +120,28 @@ class ImportProductsFromExcelAction
                         ->body('No data rows found. Make sure data starts from row 4.')
                         ->warning()
                         ->send();
+
                     return;
+                }
+
+                $hasCross = ! empty($rows[0]['_has_cross']);
+
+                // Validate cross-company selection when template has dual columns
+                $crossCompany = null;
+                if ($hasCross) {
+                    if (empty($crossCompanyId)) {
+                        Notification::make()
+                            ->title('Cross-company required')
+                            ->body("This template has dual company link columns ({$role} + {$crossRole}). Please select the {$crossRole} company.")
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+                    $crossCompany = Company::find($crossCompanyId);
+                } elseif ($crossCompanyId) {
+                    // Template is single but user selected a cross-company — link with same data
+                    $crossCompany = Company::find($crossCompanyId);
                 }
 
                 $errors = $service->validate($rows, $category, $company, $role);
@@ -146,6 +156,7 @@ class ImportProductsFromExcelAction
                         ->danger()
                         ->persistent()
                         ->send();
+
                     return;
                 }
 
@@ -182,6 +193,9 @@ class ImportProductsFromExcelAction
 
                 if ($crossCompany) {
                     $body .= "\nAlso linked to {$crossCompany->name} as {$crossRole}.";
+                    if ($hasCross) {
+                        $body .= ' (with separate company link data)';
+                    }
                 }
 
                 if (! empty($stats['errors'])) {
@@ -199,6 +213,10 @@ class ImportProductsFromExcelAction
 
     public static function makeDownloadTemplate(string $role): Action
     {
+        $crossRole = $role === 'client' ? 'supplier' : 'client';
+        $crossLabel = $role === 'client' ? 'Supplier' : 'Client';
+        $roleLabel = $role === 'client' ? 'Client' : 'Supplier';
+
         return Action::make('downloadProductTemplate')
             ->label('Download Template')
             ->icon('heroicon-o-document-arrow-down')
@@ -212,11 +230,17 @@ class ImportProductsFromExcelAction
                     ->searchable()
                     ->required()
                     ->helperText('Select the category to generate the template with the correct attribute columns.'),
+
+                Toggle::make('include_cross_company')
+                    ->label("Include {$crossLabel} columns")
+                    ->helperText("If enabled, the template will have two sets of company link columns: one for {$roleLabel} data and one for {$crossLabel} data (external codes, prices, etc.).")
+                    ->default(false),
             ])
             ->action(function (array $data) use ($role) {
                 $category = Category::findOrFail($data['category_id']);
+                $includeCross = $data['include_cross_company'] ?? false;
                 $generator = new GenerateProductImportTemplate();
-                $path = $generator->execute($category, $role);
+                $path = $generator->execute($category, $role, $includeCross);
 
                 return response()->download($path)->deleteFileAfterSend();
             });
