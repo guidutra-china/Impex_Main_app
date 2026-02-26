@@ -101,7 +101,7 @@ class ViewPayment extends ViewRecord
                 PaymentStatus::PENDING_APPROVAL,
                 PaymentStatus::APPROVED,
                 PaymentStatus::REJECTED,
-            ]) && auth()->user()?->can('delete-payments'))
+            ]) && auth()->user()?->can('delete', $this->record))
             ->action(function (array $data) {
                 app(ApprovePaymentAction::class)->cancel($this->record, $data['reason'] ?? null);
 
