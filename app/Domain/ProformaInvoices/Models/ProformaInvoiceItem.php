@@ -4,9 +4,10 @@ namespace App\Domain\ProformaInvoices\Models;
 
 use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Models\Company;
+use App\Domain\Logistics\Enums\ShipmentStatus;
+use App\Domain\Logistics\Models\ShipmentItem;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Quotations\Models\QuotationItem;
-use App\Domain\Logistics\Models\ShipmentItem;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -95,7 +96,9 @@ class ProformaInvoiceItem extends Model
 
     public function getQuantityShippedAttribute(): int
     {
-        return $this->shipmentItems()->sum('quantity');
+        return $this->shipmentItems()
+            ->whereHas('shipment', fn ($q) => $q->where('status', '!=', ShipmentStatus::CANCELLED))
+            ->sum('quantity');
     }
 
     public function getQuantityRemainingAttribute(): int
@@ -106,5 +109,16 @@ class ProformaInvoiceItem extends Model
     public function getIsFullyShippedAttribute(): bool
     {
         return $this->quantity_remaining <= 0;
+    }
+
+    public function getShipmentReferencesAttribute(): string
+    {
+        return $this->shipmentItems()
+            ->whereHas('shipment', fn ($q) => $q->where('status', '!=', ShipmentStatus::CANCELLED))
+            ->with('shipment')
+            ->get()
+            ->pluck('shipment.reference')
+            ->unique()
+            ->implode(', ');
     }
 }

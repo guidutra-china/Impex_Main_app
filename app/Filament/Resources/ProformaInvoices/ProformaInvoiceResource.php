@@ -14,6 +14,7 @@ use App\Filament\Resources\ProformaInvoices\RelationManagers\PaymentScheduleRela
 use App\Filament\Resources\ProformaInvoices\RelationManagers\PaymentsRelationManager;
 use App\Filament\Resources\ProformaInvoices\Schemas\ProformaInvoiceForm;
 use App\Filament\Resources\ProformaInvoices\Widgets\ProformaInvoiceStats;
+use App\Filament\Resources\ProformaInvoices\Widgets\ShipmentFulfillmentWidget;
 use App\Filament\Resources\ProformaInvoices\Schemas\ProformaInvoiceInfolist;
 use App\Filament\Resources\ProformaInvoices\Tables\ProformaInvoicesTable;
 use BackedEnum;
@@ -74,6 +75,7 @@ class ProformaInvoiceResource extends Resource
     {
         return [
             ProformaInvoiceStats::class,
+            ShipmentFulfillmentWidget::class,
         ];
     }
 

@@ -242,11 +242,14 @@ class ProformaInvoice extends Model
             $blockers[] = "{$unresolvedCosts} additional cost(s) not yet paid or waived";
         }
 
-        // TODO: Check shipment status when Shipment module is implemented
-        // $unshippedItems = ...
-        // if ($unshippedItems > 0) {
-        //     $blockers[] = "{$unshippedItems} item(s) not yet shipped";
-        // }
+        $unshippedItems = $this->items()
+            ->get()
+            ->reject(fn ($item) => $item->is_fully_shipped)
+            ->count();
+
+        if ($unshippedItems > 0) {
+            $blockers[] = "{$unshippedItems} item(s) not yet fully shipped";
+        }
 
         return $blockers;
     }
@@ -254,6 +257,24 @@ class ProformaInvoice extends Model
     public function canFinalize(): bool
     {
         return empty($this->getFinalizationBlockers());
+    }
+
+    public function getShipmentProgressAttribute(): float
+    {
+        $items = $this->items;
+        if ($items->isEmpty()) {
+            return 0;
+        }
+
+        $totalQty = $items->sum('quantity');
+        $totalShipped = $items->sum('quantity_shipped');
+
+        return $totalQty > 0 ? round(($totalShipped / $totalQty) * 100, 1) : 0;
+    }
+
+    public function getIsFullyShippedAttribute(): bool
+    {
+        return $this->items->every(fn ($item) => $item->is_fully_shipped);
     }
 
     // --- Scopes ---

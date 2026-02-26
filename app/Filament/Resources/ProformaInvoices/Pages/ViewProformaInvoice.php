@@ -10,6 +10,7 @@ use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Actions\SendDocumentByEmailAction;
 use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
 use App\Filament\Resources\ProformaInvoices\Widgets\ProformaInvoiceStats;
+use App\Filament\Resources\ProformaInvoices\Widgets\ShipmentFulfillmentWidget;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Notifications\Notification;
@@ -23,6 +24,7 @@ class ViewProformaInvoice extends ViewRecord
     {
         return [
             ProformaInvoiceStats::class,
+            ShipmentFulfillmentWidget::class,
         ];
     }
 

@@ -6,6 +6,7 @@ use App\Domain\Infrastructure\Support\Money;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Filament\Portal\Resources\ProformaInvoiceResource\Pages;
 use App\Filament\Portal\Resources\ProformaInvoiceResource\Widgets\PortalProformaInvoiceStats;
+use App\Filament\Portal\Resources\ProformaInvoiceResource\Widgets\PortalShipmentFulfillmentWidget;
 use App\Filament\Portal\Widgets\ProformaInvoicesListStats;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
@@ -176,6 +177,7 @@ class ProformaInvoiceResource extends Resource
     {
         return [
             PortalProformaInvoiceStats::class,
+            PortalShipmentFulfillmentWidget::class,
             ProformaInvoicesListStats::class,
         ];
     }
