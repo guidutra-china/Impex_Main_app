@@ -81,9 +81,16 @@ class FinancialStatsOverview extends Widget
             ->groupBy('currency_code')
             ->pluck('total', 'currency_code');
 
-        $outstandingConverted = $this->convertToBase($outstandingItems, $baseCurrencyId);
-        $overdueConverted = $this->convertToBase($overdueItems, $baseCurrencyId);
-        $receivedConverted = $this->convertToBase($receivedByCurrency, $baseCurrencyId);
+        $outstandingResult = $this->convertToBase($outstandingItems, $baseCurrencyId);
+        $overdueResult = $this->convertToBase($overdueItems, $baseCurrencyId);
+        $receivedResult = $this->convertToBase($receivedByCurrency, $baseCurrencyId);
+
+        $hasWarning = $outstandingResult['has_warning'] || $overdueResult['has_warning'] || $receivedResult['has_warning'];
+        $unconverted = $this->mergeUnconverted(
+            $outstandingResult['unconverted'],
+            $overdueResult['unconverted'],
+            $receivedResult['unconverted'],
+        );
 
         $openPIs = ProformaInvoice::whereHas('paymentScheduleItems', function ($q) {
             $q->where('is_credit', false)
@@ -94,17 +101,19 @@ class FinancialStatsOverview extends Widget
         })->count();
 
         return [
-            'outstanding' => Money::format($outstandingConverted),
-            'outstanding_raw' => $outstandingConverted,
-            'overdue' => Money::format($overdueConverted),
-            'overdue_raw' => $overdueConverted,
-            'received' => Money::format($receivedConverted),
-            'received_raw' => $receivedConverted,
+            'outstanding' => Money::format($outstandingResult['total']),
+            'outstanding_raw' => $outstandingResult['total'],
+            'overdue' => Money::format($overdueResult['total']),
+            'overdue_raw' => $overdueResult['total'],
+            'received' => Money::format($receivedResult['total']),
+            'received_raw' => $receivedResult['total'],
             'open_documents' => $openPIs,
             'by_currency' => $outstandingItems->map(fn ($amount, $code) => [
                 'code' => $code,
                 'amount' => Money::format((int) $amount),
             ])->values()->all(),
+            'has_conversion_warning' => $hasWarning,
+            'unconverted' => $unconverted,
         ];
     }
 
@@ -137,9 +146,16 @@ class FinancialStatsOverview extends Widget
             ->groupBy('currency_code')
             ->pluck('total', 'currency_code');
 
-        $outstandingConverted = $this->convertToBase($outstandingItems, $baseCurrencyId);
-        $overdueConverted = $this->convertToBase($overdueItems, $baseCurrencyId);
-        $paidConverted = $this->convertToBase($paidByCurrency, $baseCurrencyId);
+        $outstandingResult = $this->convertToBase($outstandingItems, $baseCurrencyId);
+        $overdueResult = $this->convertToBase($overdueItems, $baseCurrencyId);
+        $paidResult = $this->convertToBase($paidByCurrency, $baseCurrencyId);
+
+        $hasWarning = $outstandingResult['has_warning'] || $overdueResult['has_warning'] || $paidResult['has_warning'];
+        $unconverted = $this->mergeUnconverted(
+            $outstandingResult['unconverted'],
+            $overdueResult['unconverted'],
+            $paidResult['unconverted'],
+        );
 
         $openPOs = PurchaseOrder::whereHas('paymentScheduleItems', function ($q) {
             $q->where('is_credit', false)
@@ -150,17 +166,19 @@ class FinancialStatsOverview extends Widget
         })->count();
 
         return [
-            'outstanding' => Money::format($outstandingConverted),
-            'outstanding_raw' => $outstandingConverted,
-            'overdue' => Money::format($overdueConverted),
-            'overdue_raw' => $overdueConverted,
-            'paid' => Money::format($paidConverted),
-            'paid_raw' => $paidConverted,
+            'outstanding' => Money::format($outstandingResult['total']),
+            'outstanding_raw' => $outstandingResult['total'],
+            'overdue' => Money::format($overdueResult['total']),
+            'overdue_raw' => $overdueResult['total'],
+            'paid' => Money::format($paidResult['total']),
+            'paid_raw' => $paidResult['total'],
             'open_documents' => $openPOs,
             'by_currency' => $outstandingItems->map(fn ($amount, $code) => [
                 'code' => $code,
                 'amount' => Money::format((int) $amount),
             ])->values()->all(),
+            'has_conversion_warning' => $hasWarning,
+            'unconverted' => $unconverted,
         ];
     }
 
@@ -215,6 +233,9 @@ class FinancialStatsOverview extends Widget
         $netPosition = $receivables['received_raw'] - $payables['paid_raw'];
         $netOutstanding = $receivables['outstanding_raw'] - $payables['outstanding_raw'];
 
+        $hasWarning = ($receivables['has_conversion_warning'] ?? false)
+            || ($payables['has_conversion_warning'] ?? false);
+
         return [
             'net_position' => Money::format(abs($netPosition)),
             'net_position_raw' => $netPosition,
@@ -222,6 +243,7 @@ class FinancialStatsOverview extends Widget
             'net_outstanding' => Money::format(abs($netOutstanding)),
             'net_outstanding_raw' => $netOutstanding,
             'net_outstanding_label' => $netOutstanding >= 0 ? __('widgets.financial_stats.net_to_receive') : __('widgets.financial_stats.net_to_pay'),
+            'has_conversion_warning' => $hasWarning,
         ];
     }
 
@@ -313,38 +335,54 @@ class FinancialStatsOverview extends Widget
         return ['amount' => $amountMinor, 'converted' => false];
     }
 
-    private function convertToBase($amountsByCurrency, ?int $baseCurrencyId): int
+    private function convertToBase($amountsByCurrency, ?int $baseCurrencyId): array
     {
-        if (! $baseCurrencyId) {
-            return (int) $amountsByCurrency->sum();
-        }
-
         $total = 0;
+        $hasWarning = false;
+        $unconverted = [];
+
+        if (! $baseCurrencyId) {
+            return [
+                'total' => (int) $amountsByCurrency->sum(),
+                'has_warning' => false,
+                'unconverted' => [],
+            ];
+        }
 
         foreach ($amountsByCurrency as $currencyCode => $amount) {
-            $currency = Currency::findByCode($currencyCode);
+            $result = $this->convertSingleToBase((int) $amount, $currencyCode, $baseCurrencyId);
 
-            if (! $currency) {
-                $total += (int) $amount;
-                continue;
+            if ($result['converted']) {
+                $total += $result['amount'];
+            } else {
+                $hasWarning = true;
+                $unconverted[$currencyCode] = ($unconverted[$currencyCode] ?? 0) + (int) $amount;
             }
-
-            if ($currency->id === $baseCurrencyId) {
-                $total += (int) $amount;
-                continue;
-            }
-
-            $converted = ExchangeRate::convert(
-                $currency->id,
-                $baseCurrencyId,
-                Money::toMajor((int) $amount),
-            );
-
-            $total += $converted !== null
-                ? Money::toMinor($converted)
-                : (int) $amount;
         }
 
-        return $total;
+        $unconvertedDisplay = [];
+        foreach ($unconverted as $code => $amountMinor) {
+            $unconvertedDisplay[] = $code . ' ' . Money::format($amountMinor);
+        }
+
+        return [
+            'total' => $total,
+            'has_warning' => $hasWarning,
+            'unconverted' => $unconvertedDisplay,
+        ];
+    }
+
+    private function mergeUnconverted(array ...$lists): array
+    {
+        $merged = [];
+        foreach ($lists as $list) {
+            foreach ($list as $item) {
+                if (! in_array($item, $merged, true)) {
+                    $merged[] = $item;
+                }
+            }
+        }
+
+        return $merged;
     }
 }

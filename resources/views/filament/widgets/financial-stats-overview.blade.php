@@ -28,6 +28,19 @@
             :description="__('widgets.financial_stats.from_clients')"
         >
             <div class="space-y-4">
+                {{-- Conversion Warning --}}
+                @if ($receivables['has_conversion_warning'] ?? false)
+                    <div class="flex items-start gap-2 rounded-lg border border-warning-300 bg-warning-50 px-3 py-2 dark:border-warning-500/30 dark:bg-warning-500/5">
+                        <x-filament::icon icon="heroicon-o-exclamation-triangle" class="mt-0.5 h-4 w-4 shrink-0 text-warning-500" />
+                        <div>
+                            <p class="text-xs font-medium text-warning-700 dark:text-warning-400">{{ __('widgets.expenses.missing_exchange_rate') }}</p>
+                            @foreach ($receivables['unconverted'] ?? [] as $line)
+                                <p class="text-xs text-warning-600 dark:text-warning-500">+ {{ $line }}</p>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 {{-- Cards --}}
                 <div class="grid grid-cols-2 gap-3">
                     {{-- Outstanding --}}
@@ -93,6 +106,19 @@
             :description="__('widgets.financial_stats.to_suppliers')"
         >
             <div class="space-y-4">
+                {{-- Conversion Warning --}}
+                @if ($payables['has_conversion_warning'] ?? false)
+                    <div class="flex items-start gap-2 rounded-lg border border-warning-300 bg-warning-50 px-3 py-2 dark:border-warning-500/30 dark:bg-warning-500/5">
+                        <x-filament::icon icon="heroicon-o-exclamation-triangle" class="mt-0.5 h-4 w-4 shrink-0 text-warning-500" />
+                        <div>
+                            <p class="text-xs font-medium text-warning-700 dark:text-warning-400">{{ __('widgets.expenses.missing_exchange_rate') }}</p>
+                            @foreach ($payables['unconverted'] ?? [] as $line)
+                                <p class="text-xs text-warning-600 dark:text-warning-500">+ {{ $line }}</p>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 {{-- Cards --}}
                 <div class="grid grid-cols-2 gap-3">
                     {{-- Outstanding --}}
@@ -155,6 +181,16 @@
     {{-- Cashflow Summary --}}
     <div class="mt-4">
         <x-filament::section>
+            {{-- Cashflow Conversion Warning --}}
+            @if ($cashflow['has_conversion_warning'] ?? false)
+                <div class="mb-4 flex items-start gap-2 rounded-lg border border-warning-300 bg-warning-50 px-3 py-2 dark:border-warning-500/30 dark:bg-warning-500/5">
+                    <x-filament::icon icon="heroicon-o-exclamation-triangle" class="mt-0.5 h-4 w-4 shrink-0 text-warning-500" />
+                    <p class="text-xs font-medium text-warning-700 dark:text-warning-400">
+                        {{ __('widgets.expenses.missing_exchange_rate') }} — Cashflow totals may be incomplete.
+                    </p>
+                </div>
+            @endif
+
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 {{-- Net Cash Position --}}
                 <div class="flex items-center justify-between rounded-lg border border-gray-200 p-3 dark:border-gray-700">

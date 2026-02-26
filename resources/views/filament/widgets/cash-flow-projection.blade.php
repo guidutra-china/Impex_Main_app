@@ -5,6 +5,21 @@
         :description="__('widgets.cash_flow.description')"
         collapsible
     >
+        {{-- Conversion Warning --}}
+        @if ($has_conversion_warning ?? false)
+            <div class="mb-4 flex items-start gap-2 rounded-lg border border-warning-300 bg-warning-50 px-3 py-2 dark:border-warning-500/30 dark:bg-warning-500/5">
+                <x-filament::icon icon="heroicon-o-exclamation-triangle" class="mt-0.5 h-4 w-4 shrink-0 text-warning-500" />
+                <div>
+                    <p class="text-xs font-medium text-warning-700 dark:text-warning-400">
+                        {{ __('widgets.expenses.missing_exchange_rate') }} — Some amounts excluded from totals.
+                    </p>
+                    <p class="text-xs text-warning-600 dark:text-warning-500">
+                        Missing rates for: {{ implode(', ', $unconverted_currencies ?? []) }}
+                    </p>
+                </div>
+            </div>
+        @endif
+
         {{-- Projection Table --}}
         <div class="overflow-x-auto">
             <table class="w-full text-sm">

@@ -51,6 +51,8 @@ class CashFlowProjection extends Widget
         $projection = [];
         $runningInflow = 0;
         $runningOutflow = 0;
+        $hasConversionWarning = false;
+        $allUnconverted = [];
 
         foreach ($periods as $period) {
             $periodItems = $pendingItems->filter(function ($item) use ($period) {
@@ -69,12 +71,19 @@ class CashFlowProjection extends Widget
                 ->groupBy('currency_code')
                 ->map(fn ($items) => $items->sum('amount'));
 
-            $inflowConverted = $this->convertToBase($inflowByCurrency, $baseCurrencyId);
-            $outflowConverted = $this->convertToBase($outflowByCurrency, $baseCurrencyId);
-            $net = $inflowConverted - $outflowConverted;
+            $inflowResult = $this->convertToBase($inflowByCurrency, $baseCurrencyId);
+            $outflowResult = $this->convertToBase($outflowByCurrency, $baseCurrencyId);
+            $net = $inflowResult['total'] - $outflowResult['total'];
 
-            $runningInflow += $inflowConverted;
-            $runningOutflow += $outflowConverted;
+            $runningInflow += $inflowResult['total'];
+            $runningOutflow += $outflowResult['total'];
+
+            if ($inflowResult['has_warning'] || $outflowResult['has_warning']) {
+                $hasConversionWarning = true;
+                foreach (array_merge($inflowResult['unconverted_codes'], $outflowResult['unconverted_codes']) as $code) {
+                    $allUnconverted[$code] = true;
+                }
+            }
 
             $overdueInflow = $periodItems
                 ->where('payable_type', $piMorphClass)
@@ -89,10 +98,10 @@ class CashFlowProjection extends Widget
             $projection[] = [
                 'label' => $period['label'],
                 'range' => $period['range'],
-                'inflow' => Money::format($inflowConverted),
-                'inflow_raw' => $inflowConverted,
-                'outflow' => Money::format($outflowConverted),
-                'outflow_raw' => $outflowConverted,
+                'inflow' => Money::format($inflowResult['total']),
+                'inflow_raw' => $inflowResult['total'],
+                'outflow' => Money::format($outflowResult['total']),
+                'outflow_raw' => $outflowResult['total'],
                 'net' => Money::format(abs($net)),
                 'net_raw' => $net,
                 'inflow_count' => $periodItems->where('payable_type', $piMorphClass)->count(),
@@ -103,14 +112,21 @@ class CashFlowProjection extends Widget
         }
 
         $noDateItems = $pendingItems->whereNull('due_date');
-        $noDateInflow = $this->convertToBase(
+        $noDateInflowResult = $this->convertToBase(
             $noDateItems->where('payable_type', $piMorphClass)->groupBy('currency_code')->map(fn ($items) => $items->sum('amount')),
             $baseCurrencyId
         );
-        $noDateOutflow = $this->convertToBase(
+        $noDateOutflowResult = $this->convertToBase(
             $noDateItems->where('payable_type', $poMorphClass)->groupBy('currency_code')->map(fn ($items) => $items->sum('amount')),
             $baseCurrencyId
         );
+
+        if ($noDateInflowResult['has_warning'] || $noDateOutflowResult['has_warning']) {
+            $hasConversionWarning = true;
+            foreach (array_merge($noDateInflowResult['unconverted_codes'], $noDateOutflowResult['unconverted_codes']) as $code) {
+                $allUnconverted[$code] = true;
+            }
+        }
 
         return [
             'baseCurrencyCode' => $baseCurrencyCode,
@@ -124,11 +140,13 @@ class CashFlowProjection extends Widget
                 'net_raw' => $runningInflow - $runningOutflow,
             ],
             'unscheduled' => [
-                'inflow' => Money::format($noDateInflow),
-                'inflow_raw' => $noDateInflow,
-                'outflow' => Money::format($noDateOutflow),
-                'outflow_raw' => $noDateOutflow,
+                'inflow' => Money::format($noDateInflowResult['total']),
+                'inflow_raw' => $noDateInflowResult['total'],
+                'outflow' => Money::format($noDateOutflowResult['total']),
+                'outflow_raw' => $noDateOutflowResult['total'],
             ],
+            'has_conversion_warning' => $hasConversionWarning,
+            'unconverted_currencies' => array_keys($allUnconverted),
         ];
     }
 
@@ -182,18 +200,31 @@ class CashFlowProjection extends Widget
         ];
     }
 
-    private function convertToBase($amountsByCurrency, ?int $baseCurrencyId): int
+    private function convertToBase($amountsByCurrency, ?int $baseCurrencyId): array
     {
         if (! $baseCurrencyId || $amountsByCurrency->isEmpty()) {
-            return (int) $amountsByCurrency->sum();
+            return [
+                'total' => (int) $amountsByCurrency->sum(),
+                'has_warning' => false,
+                'unconverted_codes' => [],
+            ];
         }
 
         $total = 0;
+        $hasWarning = false;
+        $unconvertedCodes = [];
 
         foreach ($amountsByCurrency as $currencyCode => $amount) {
             $currency = Currency::findByCode($currencyCode);
 
-            if (! $currency || $currency->id === $baseCurrencyId) {
+            if (! $currency) {
+                $hasWarning = true;
+                $unconvertedCodes[] = $currencyCode;
+
+                continue;
+            }
+
+            if ($currency->id === $baseCurrencyId) {
                 $total += (int) $amount;
 
                 continue;
@@ -205,11 +236,18 @@ class CashFlowProjection extends Widget
                 Money::toMajor((int) $amount),
             );
 
-            $total += $converted !== null
-                ? Money::toMinor($converted)
-                : (int) $amount;
+            if ($converted !== null) {
+                $total += Money::toMinor($converted);
+            } else {
+                $hasWarning = true;
+                $unconvertedCodes[] = $currencyCode;
+            }
         }
 
-        return $total;
+        return [
+            'total' => $total,
+            'has_warning' => $hasWarning,
+            'unconverted_codes' => $unconvertedCodes,
+        ];
     }
 }
