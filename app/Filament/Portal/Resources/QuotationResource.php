@@ -7,6 +7,7 @@ use App\Domain\Quotations\Models\Quotation;
 use App\Filament\Portal\Resources\QuotationResource\Pages;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
+use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -17,7 +18,7 @@ use Filament\Tables\Table;
 class QuotationResource extends Resource
 {
     protected static ?string $model = Quotation::class;
-    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+    protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-document-text';
     protected static ?int $navigationSort = 2;
     protected static ?string $slug = 'quotations';
     protected static ?string $recordTitleAttribute = 'reference';

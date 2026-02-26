@@ -7,6 +7,7 @@ use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Filament\Portal\Resources\ProformaInvoiceResource\Pages;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
+use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -17,7 +18,7 @@ use Filament\Tables\Table;
 class ProformaInvoiceResource extends Resource
 {
     protected static ?string $model = ProformaInvoice::class;
-    protected static ?string $navigationIcon = 'heroicon-o-document-check';
+    protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-document-check';
     protected static ?int $navigationSort = 3;
     protected static ?string $slug = 'proforma-invoices';
     protected static ?string $recordTitleAttribute = 'reference';

@@ -5,11 +5,12 @@ namespace App\Filament\Portal\Pages;
 use App\Filament\Portal\Widgets\ActiveShipmentsWidget;
 use App\Filament\Portal\Widgets\FinancialSummaryWidget;
 use App\Filament\Portal\Widgets\RecentDocumentsWidget;
+use BackedEnum;
 use Filament\Pages\Dashboard;
 
 class PortalDashboard extends Dashboard
 {
-    protected static ?string $navigationIcon = 'heroicon-o-home';
+    protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-home';
     protected static ?int $navigationSort = -2;
 
     public function getWidgets(): array

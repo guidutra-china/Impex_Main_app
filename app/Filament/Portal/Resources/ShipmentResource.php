@@ -7,6 +7,7 @@ use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\Shipment;
 use App\Filament\Portal\Resources\ShipmentResource\Pages;
 use Filament\Infolists\Components\TextEntry;
+use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -17,7 +18,7 @@ use Filament\Tables\Table;
 class ShipmentResource extends Resource
 {
     protected static ?string $model = Shipment::class;
-    protected static ?string $navigationIcon = 'heroicon-o-truck';
+    protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-truck';
     protected static ?int $navigationSort = 1;
     protected static ?string $slug = 'shipments';
     protected static ?string $recordTitleAttribute = 'reference';

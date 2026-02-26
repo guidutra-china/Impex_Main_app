@@ -8,6 +8,7 @@ use App\Domain\Financial\Models\Payment;
 use App\Domain\Infrastructure\Support\Money;
 use App\Filament\Portal\Resources\PaymentResource\Pages;
 use Filament\Infolists\Components\TextEntry;
+use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -18,7 +19,7 @@ use Filament\Tables\Table;
 class PaymentResource extends Resource
 {
     protected static ?string $model = Payment::class;
-    protected static ?string $navigationIcon = 'heroicon-o-banknotes';
+    protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-banknotes';
     protected static ?int $navigationSort = 1;
     protected static ?string $slug = 'payments';
     protected static ?string $recordTitleAttribute = 'reference';
