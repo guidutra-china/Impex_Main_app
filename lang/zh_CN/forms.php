@@ -491,8 +491,16 @@ return [
         'wire_transfer_amount' => '电汇金额',
         'zip_postal_code' => '邮编 / 邮政编码',
         'zip_postal_code_2' => '邮编 / 邮政编码',
+        'expense_date' => '费用日期',
+        'recurring_expense' => '周期性费用',
+        'recurring_day' => '每月日期',
+        'of_the_month' => '号',
+        'receipt_attachment' => '收据/附件',
+        'recurring' => '周期性',
+        'recurring_only' => '仅周期性',
+        'current_month' => '当月',
+        'month' => '月份',
     ],
-
     'sections' => [
         'access_role' => '访问与角色',
         'account_details' => '账户详情',
@@ -585,8 +593,9 @@ return [
         'totals' => '总计',
         'weight_dimensions_per_package' => '每包重量与尺寸',
         'weight_volume' => '重量与体积',
+        'expense_details' => '费用详情',
+        'recurrence' => '周期设置',
     ],
-
     'tabs' => [
         'bank_details_for_documents' => '文件银行信息',
         'commercial' => '商业',
@@ -601,7 +610,6 @@ return [
         'specifications' => '规格',
         'summary' => '摘要',
     ],
-
     'helpers' => [
         'a_descriptive_name_to_identify_this_account' => '用于识别此账户的描述性名称。',
         'actual_amount_transferred_credits_are_applied_separately' => '实际转账金额。信用单另行应用。',
@@ -728,13 +736,14 @@ return [
         'when_the_supplier_is_expected_to_deliver' => '供应商预计交货时间。',
         'which_supplier_provides_this_item' => '哪个供应商提供此项目。',
         'will_appear_on_invoices' => '将显示在发票上。',
+        'mark_as_recurring' => '如果此费用每月重复发生，请勾选',
+        'day_of_month' => '此费用每月重复发生的日期（1-31）',
     ],
-
     'placeholders' => [
         'no_location' => '无地点',
         'no_documents_uploaded_yet' => '尚未上传文件。',
         'own_category' => '（自有类别）',
-        '853950' => '8539.50',
+        853950 => '8539.50',
         'add_a_custom_message_to_the_email' => '添加自定义邮件消息...',
         'add_option_and_press_enter' => '添加选项并按回车',
         'additional_context_or_description' => '附加上下文或描述',
@@ -815,8 +824,8 @@ return [
         'eg_w_lm_kg_cm' => '例如，W，lm，kg，cm',
         'eg_watts_cct_material' => '例如，瓦特，CCT，材料',
         'pcs_sets_etc' => '件，套等',
+        'receipt_or_invoice_number' => '收据或发票编号',
     ],
-
     'descriptions' => [
         'a_new_product_will_be_created_in_the_catalog_with_draft' => '将在目录中创建一个新产品，状态为草稿。您可以稍后完善其详情。',
         'across_all_audits' => '跨所有审核',
@@ -838,5 +847,4 @@ return [
         'record_how_and_when_the_supplier_confirmed_this_purchase' => '记录供应商如何及何时确认此采购订单。',
         'this_text_will_appear_on_invoices_and_other_financial' => '此文本将显示在发票及其他财务文件上。请按打印格式编辑。',
     ],
-
 ];

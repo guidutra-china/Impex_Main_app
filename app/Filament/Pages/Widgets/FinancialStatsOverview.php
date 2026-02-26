@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages\Widgets;
 
+use App\Domain\Finance\Models\CompanyExpense;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\Payment;
@@ -11,6 +12,7 @@ use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\Settings\Models\Currency;
 use App\Domain\Settings\Models\ExchangeRate;
+use Carbon\Carbon;
 use Filament\Widgets\Widget;
 
 class FinancialStatsOverview extends Widget
@@ -38,6 +40,7 @@ class FinancialStatsOverview extends Widget
         $payables = $this->buildPayables($baseCurrencyId, $baseCurrencyCode);
         $alerts = $this->buildAlerts();
         $cashflow = $this->buildCashflow($receivables, $payables);
+        $operationalExpenses = $this->buildOperationalExpenses($baseCurrencyId);
 
         return [
             'baseCurrencyCode' => $baseCurrencyCode,
@@ -45,6 +48,7 @@ class FinancialStatsOverview extends Widget
             'payables' => $payables,
             'alerts' => $alerts,
             'cashflow' => $cashflow,
+            'operationalExpenses' => $operationalExpenses,
         ];
     }
 
@@ -219,6 +223,67 @@ class FinancialStatsOverview extends Widget
             'net_outstanding_raw' => $netOutstanding,
             'net_outstanding_label' => $netOutstanding >= 0 ? __('widgets.financial_stats.net_to_receive') : __('widgets.financial_stats.net_to_pay'),
         ];
+    }
+
+    private function buildOperationalExpenses(?int $baseCurrencyId): array
+    {
+        $now = Carbon::now();
+
+        $currentMonthExpenses = CompanyExpense::query()
+            ->inMonth($now->year, $now->month)
+            ->selectRaw('currency_code, SUM(amount) as total')
+            ->groupBy('currency_code')
+            ->get();
+
+        $currentTotal = 0;
+        foreach ($currentMonthExpenses as $row) {
+            $currentTotal += $this->convertSingleToBase((int) $row->total, $row->currency_code, $baseCurrencyId);
+        }
+
+        $previousMonth = $now->copy()->subMonth();
+        $previousMonthExpenses = CompanyExpense::query()
+            ->inMonth($previousMonth->year, $previousMonth->month)
+            ->selectRaw('currency_code, SUM(amount) as total')
+            ->groupBy('currency_code')
+            ->get();
+
+        $previousTotal = 0;
+        foreach ($previousMonthExpenses as $row) {
+            $previousTotal += $this->convertSingleToBase((int) $row->total, $row->currency_code, $baseCurrencyId);
+        }
+
+        $change = $previousTotal > 0
+            ? round((($currentTotal - $previousTotal) / $previousTotal) * 100, 1)
+            : ($currentTotal > 0 ? 100 : 0);
+
+        return [
+            'current_month' => Money::format($currentTotal),
+            'current_month_raw' => $currentTotal,
+            'previous_month' => Money::format($previousTotal),
+            'previous_month_raw' => $previousTotal,
+            'change' => $change,
+            'month_label' => $now->translatedFormat('F'),
+        ];
+    }
+
+    private function convertSingleToBase(int $amountMinor, string $currencyCode, ?int $baseCurrencyId): int
+    {
+        if (! $baseCurrencyId) {
+            return $amountMinor;
+        }
+
+        $currency = Currency::findByCode($currencyCode);
+        if (! $currency || $currency->id === $baseCurrencyId) {
+            return $amountMinor;
+        }
+
+        $converted = ExchangeRate::convert(
+            $currency->id,
+            $baseCurrencyId,
+            Money::toMajor($amountMinor),
+        );
+
+        return $converted !== null ? Money::toMinor($converted) : $amountMinor;
     }
 
     private function convertToBase($amountsByCurrency, ?int $baseCurrencyId): int

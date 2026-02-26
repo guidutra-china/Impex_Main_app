@@ -1,7 +1,6 @@
 <?php
 
 return [
-    // Financial Stats Overview
     'financial_stats' => [
         'receivables' => 'Receivables',
         'receivables_from_clients' => 'Receivables (from Clients)',
@@ -14,9 +13,9 @@ return [
         'net_negative' => 'Net Negative',
         'net_to_receive' => 'Net to Receive',
         'net_to_pay' => 'Net to Pay',
+        'operational_expenses' => 'Operational Expenses',
+        'vs_last_month' => 'vs last month',
     ],
-
-    // Cash Flow Projection
     'cash_flow' => [
         'heading' => 'Cash Flow Projection',
         'description' => 'Expected inflows and outflows based on payment schedule due dates',
@@ -32,8 +31,6 @@ return [
         'next_week' => 'Next Week',
         'no_due_date_warning' => 'These items have no due date set and are not included in the projection above.',
     ],
-
-    // Document Financial Summary (PI Stats / PO Stats)
     'document_summary' => [
         'financial_summary' => 'Financial Summary',
         'invoice_total' => 'Invoice Total',
@@ -51,15 +48,11 @@ return [
         'from_client_available' => 'From this client — available to allocate',
         'to_supplier_available' => 'To this supplier — available to allocate',
     ],
-
-    // Company Financial Statement
     'financial_statement' => [
         'client_receivables' => 'Client Statement — Receivables',
         'supplier_payables' => 'Supplier Statement — Payables',
         'overdue' => 'Overdue',
     ],
-
-    // Landed Cost Calculator
     'landed_cost' => [
         'heading' => 'Landed Cost Calculator',
         'description' => 'Complete cost analysis for this shipment',
@@ -71,8 +64,6 @@ return [
         'other_costs' => 'Other Costs',
         'gross_profit' => 'Gross Profit',
     ],
-
-    // Product Summary
     'product_summary' => [
         'suppliers' => 'Suppliers',
         'clients' => 'Clients',
@@ -91,13 +82,9 @@ return [
         'pcs_per_carton' => 'Pcs/Carton',
         'lead_time' => 'Lead Time',
     ],
-
-    // Pipeline Counts
     'pipeline' => [
         'operations_pipeline' => 'Operations Pipeline',
     ],
-
-    // Operational Alerts
     'alerts' => [
         'action_required' => 'Action Required',
         'all_clear' => 'All clear — no pending actions.',
@@ -114,8 +101,6 @@ return [
         'due_this_week_desc' => 'Schedule items due within the next 7 days',
         'view_schedule' => 'View Schedule',
     ],
-
-    // Supplier Audit Stats
     'audit_stats' => [
         'scheduled_audits' => 'Scheduled Audits',
         'in_progress' => 'in progress',
@@ -125,13 +110,17 @@ return [
         'overdue' => 'Overdue',
         'rejected_ytd' => 'Rejected (YTD)',
     ],
-
-    // Order Pipeline Kanban
     'kanban' => [
         'value' => 'Value',
         'paid' => 'Paid',
         'overdue_payment' => 'Overdue payment',
         'no_update_for' => 'No update for',
         'no_items' => 'No items',
+    ],
+    'expenses' => [
+        'entries' => 'entries',
+        'year_to_date' => 'Year to Date',
+        'monthly_average' => 'Monthly Average',
+        'category_breakdown' => 'Category Breakdown',
     ],
 ];

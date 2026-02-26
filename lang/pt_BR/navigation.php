@@ -1,7 +1,6 @@
 <?php
 
 return [
-    // Navigation Groups
     'groups' => [
         'crm' => 'CRM',
         'operations' => 'Operações',
@@ -11,8 +10,6 @@ return [
         'settings' => 'Configurações',
         'trade' => 'Comércio',
     ],
-
-    // Resource Navigation Labels
     'resources' => [
         'companies' => 'Empresas',
         'contacts' => 'Contatos',
@@ -37,9 +34,8 @@ return [
         'payment_terms' => 'Condições de Pagamento',
         'container_types' => 'Tipos de Contêiner',
         'audit_categories' => 'Categorias de Auditoria',
+        'company_expenses' => 'Despesas da Empresa',
     ],
-
-    // Model Labels (singular / plural)
     'models' => [
         'company' => 'Empresa',
         'companies' => 'Empresas',
@@ -87,9 +83,9 @@ return [
         'container_types' => 'Tipos de Contêiner',
         'audit_category' => 'Categoria de Auditoria',
         'audit_categories' => 'Categorias de Auditoria',
+        'company_expense' => 'Despesa',
+        'company_expenses' => 'Despesas',
     ],
-
-    // Page Titles
     'pages' => [
         'financial_overview' => 'Visão Financeira',
         'order_pipeline' => 'Pipeline de Pedidos',

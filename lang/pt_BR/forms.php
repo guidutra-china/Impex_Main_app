@@ -491,8 +491,16 @@ return [
         'wire_transfer_amount' => 'Valor da Transferência Bancária',
         'zip_postal_code' => 'CEP / Código Postal',
         'zip_postal_code_2' => 'CEP / Código Postal',
+        'expense_date' => 'Data da Despesa',
+        'recurring_expense' => 'Despesa Recorrente',
+        'recurring_day' => 'Dia do Mês',
+        'of_the_month' => 'do mês',
+        'receipt_attachment' => 'Recibo / Anexo',
+        'recurring' => 'Recorrente',
+        'recurring_only' => 'Somente Recorrentes',
+        'current_month' => 'Mês Atual',
+        'month' => 'Mês',
     ],
-
     'sections' => [
         'access_role' => 'Acesso & Função',
         'account_details' => 'Detalhes da Conta',
@@ -585,8 +593,9 @@ return [
         'totals' => 'Totais',
         'weight_dimensions_per_package' => 'Peso & Dimensões (por pacote)',
         'weight_volume' => 'Peso & Volume',
+        'expense_details' => 'Detalhes da Despesa',
+        'recurrence' => 'Recorrência',
     ],
-
     'tabs' => [
         'bank_details_for_documents' => 'Detalhes Bancários para Documentos',
         'commercial' => 'Comercial',
@@ -601,7 +610,6 @@ return [
         'specifications' => 'Especificações',
         'summary' => 'Resumo',
     ],
-
     'helpers' => [
         'a_descriptive_name_to_identify_this_account' => 'Um nome descritivo para identificar esta conta.',
         'actual_amount_transferred_credits_are_applied_separately' => 'Valor real transferido. Créditos são aplicados separadamente.',
@@ -728,13 +736,14 @@ return [
         'when_the_supplier_is_expected_to_deliver' => 'Quando se espera que o fornecedor entregue.',
         'which_supplier_provides_this_item' => 'Qual fornecedor fornece este item.',
         'will_appear_on_invoices' => 'Aparecerá nas faturas.',
+        'mark_as_recurring' => 'Marque se esta despesa se repete todo mês',
+        'day_of_month' => 'Dia do mês em que esta despesa se repete (1-31)',
     ],
-
     'placeholders' => [
         'no_location' => 'Sem localização',
         'no_documents_uploaded_yet' => 'Nenhum documento enviado ainda.',
         'own_category' => '(categoria própria)',
-        '853950' => '8539.50',
+        853950 => '8539.50',
         'add_a_custom_message_to_the_email' => 'Adicione uma mensagem personalizada ao email...',
         'add_option_and_press_enter' => 'Adicione opção e pressione Enter',
         'additional_context_or_description' => 'Contexto ou descrição adicional',
@@ -815,8 +824,8 @@ return [
         'eg_w_lm_kg_cm' => 'ex.: L, lm, kg, cm',
         'eg_watts_cct_material' => 'ex.: Watts, CCT, Material',
         'pcs_sets_etc' => 'pcs, conjuntos, etc.',
+        'receipt_or_invoice_number' => 'Número do recibo ou nota fiscal',
     ],
-
     'descriptions' => [
         'a_new_product_will_be_created_in_the_catalog_with_draft' => 'Um novo produto será criado no catálogo com status RASCUNHO. Você pode completar seus detalhes depois.',
         'across_all_audits' => 'Em todas as auditorias',
@@ -838,5 +847,4 @@ return [
         'record_how_and_when_the_supplier_confirmed_this_purchase' => 'Registre como e quando o fornecedor confirmou esta compra.',
         'this_text_will_appear_on_invoices_and_other_financial' => 'Este texto aparecerá em faturas e outros documentos financeiros. Formate como deseja que seja impresso.',
     ],
-
 ];

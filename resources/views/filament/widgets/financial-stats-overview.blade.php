@@ -155,7 +155,7 @@
     {{-- Cashflow Summary --}}
     <div class="mt-4">
         <x-filament::section>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 {{-- Net Cash Position --}}
                 <div class="flex items-center justify-between rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                     <div>
@@ -201,6 +201,28 @@
                         ])>
                             {{ $cashflow['net_outstanding_label'] }}
                         </p>
+                    </div>
+                </div>
+
+                {{-- Operational Expenses --}}
+                <div class="flex items-center justify-between rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                    <div>
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ __('widgets.financial_stats.operational_expenses') }}</p>
+                        <p class="text-xs text-gray-400 dark:text-gray-500">{{ $operationalExpenses['month_label'] }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-lg font-bold text-gray-700 dark:text-gray-300">
+                            {{ $baseCurrencyCode }} {{ $operationalExpenses['current_month'] }}
+                        </p>
+                        @if ($operationalExpenses['change'] != 0)
+                            <p @class([
+                                'text-xs font-medium',
+                                'text-danger-500' => $operationalExpenses['change'] > 0,
+                                'text-success-500' => $operationalExpenses['change'] < 0,
+                            ])>
+                                {{ $operationalExpenses['change'] > 0 ? '+' : '' }}{{ $operationalExpenses['change'] }}% {{ __('widgets.financial_stats.vs_last_month') }}
+                            </p>
+                        @endif
                     </div>
                 </div>
             </div>

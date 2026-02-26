@@ -491,8 +491,16 @@ return [
         'wire_transfer_amount' => 'Wire Transfer Amount',
         'zip_postal_code' => 'ZIP / Postal Code',
         'zip_postal_code_2' => 'Zip / Postal Code',
+        'expense_date' => 'Expense Date',
+        'recurring_expense' => 'Recurring Expense',
+        'recurring_day' => 'Day of Month',
+        'of_the_month' => 'of the month',
+        'receipt_attachment' => 'Receipt / Attachment',
+        'recurring' => 'Recurring',
+        'recurring_only' => 'Recurring Only',
+        'current_month' => 'Current Month',
+        'month' => 'Month',
     ],
-
     'sections' => [
         'access_role' => 'Access & Role',
         'account_details' => 'Account Details',
@@ -585,8 +593,9 @@ return [
         'totals' => 'Totals',
         'weight_dimensions_per_package' => 'Weight & Dimensions (per package)',
         'weight_volume' => 'Weight & Volume',
+        'expense_details' => 'Expense Details',
+        'recurrence' => 'Recurrence',
     ],
-
     'tabs' => [
         'bank_details_for_documents' => 'Bank Details for Documents',
         'commercial' => 'Commercial',
@@ -601,7 +610,6 @@ return [
         'specifications' => 'Specifications',
         'summary' => 'Summary',
     ],
-
     'helpers' => [
         'a_descriptive_name_to_identify_this_account' => 'A descriptive name to identify this account.',
         'actual_amount_transferred_credits_are_applied_separately' => 'Actual amount transferred. Credits are applied separately.',
@@ -728,13 +736,14 @@ return [
         'when_the_supplier_is_expected_to_deliver' => 'When the supplier is expected to deliver.',
         'which_supplier_provides_this_item' => 'Which supplier provides this item.',
         'will_appear_on_invoices' => 'Will appear on invoices.',
+        'mark_as_recurring' => 'Mark if this expense repeats every month',
+        'day_of_month' => 'Day of the month when this expense recurs (1-31)',
     ],
-
     'placeholders' => [
         'no_location' => 'No location',
         'no_documents_uploaded_yet' => 'No documents uploaded yet.',
         'own_category' => '(own category)',
-        '853950' => '8539.50',
+        853950 => '8539.50',
         'add_a_custom_message_to_the_email' => 'Add a custom message to the email...',
         'add_option_and_press_enter' => 'Add option and press Enter',
         'additional_context_or_description' => 'Additional context or description',
@@ -815,8 +824,8 @@ return [
         'eg_w_lm_kg_cm' => 'e.g., W, lm, kg, cm',
         'eg_watts_cct_material' => 'e.g., Watts, CCT, Material',
         'pcs_sets_etc' => 'pcs, sets, etc.',
+        'receipt_or_invoice_number' => 'Receipt or invoice number',
     ],
-
     'descriptions' => [
         'a_new_product_will_be_created_in_the_catalog_with_draft' => 'A new product will be created in the catalog with DRAFT status. You can complete its details later.',
         'across_all_audits' => 'Across all audits',
@@ -838,5 +847,4 @@ return [
         'record_how_and_when_the_supplier_confirmed_this_purchase' => 'Record how and when the supplier confirmed this purchase order.',
         'this_text_will_appear_on_invoices_and_other_financial' => 'This text will appear on invoices and other financial documents. Format it as you want it to be printed.',
     ],
-
 ];

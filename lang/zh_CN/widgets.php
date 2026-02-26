@@ -1,7 +1,6 @@
 <?php
 
 return [
-    // Financial Stats Overview
     'financial_stats' => [
         'receivables' => '应收款',
         'receivables_from_clients' => '应收款（来自客户）',
@@ -14,9 +13,9 @@ return [
         'net_negative' => '净负值',
         'net_to_receive' => '净应收',
         'net_to_pay' => '净应付',
+        'operational_expenses' => '运营费用',
+        'vs_last_month' => '较上月',
     ],
-
-    // Cash Flow Projection
     'cash_flow' => [
         'heading' => '现金流预测',
         'description' => '基于付款计划到期日的预计流入和流出',
@@ -32,8 +31,6 @@ return [
         'next_week' => '下周',
         'no_due_date_warning' => '这些项目未设置到期日，未包含在上述预测中。',
     ],
-
-    // Document Financial Summary (PI Stats / PO Stats)
     'document_summary' => [
         'financial_summary' => '财务摘要',
         'invoice_total' => '发票总额',
@@ -51,15 +48,11 @@ return [
         'from_client_available' => '来自该客户 — 可分配',
         'to_supplier_available' => '给该供应商 — 可分配',
     ],
-
-    // Company Financial Statement
     'financial_statement' => [
         'client_receivables' => '客户报表 — 应收款',
         'supplier_payables' => '供应商报表 — 应付款',
         'overdue' => '逾期',
     ],
-
-    // Landed Cost Calculator
     'landed_cost' => [
         'heading' => '到岸成本计算器',
         'description' => '本次货运的完整成本分析',
@@ -71,8 +64,6 @@ return [
         'other_costs' => '其他费用',
         'gross_profit' => '毛利润',
     ],
-
-    // Product Summary
     'product_summary' => [
         'suppliers' => '供应商',
         'clients' => '客户',
@@ -91,13 +82,9 @@ return [
         'pcs_per_carton' => '每箱件数',
         'lead_time' => '交货期',
     ],
-
-    // Pipeline Counts
     'pipeline' => [
         'operations_pipeline' => '运营管道',
     ],
-
-    // Operational Alerts
     'alerts' => [
         'action_required' => '需要操作',
         'all_clear' => '一切正常 — 无待处理事项。',
@@ -114,8 +101,6 @@ return [
         'due_this_week_desc' => '未来7天内到期的计划项目',
         'view_schedule' => '查看计划',
     ],
-
-    // Supplier Audit Stats
     'audit_stats' => [
         'scheduled_audits' => '计划审核',
         'in_progress' => '进行中',
@@ -125,13 +110,17 @@ return [
         'overdue' => '逾期',
         'rejected_ytd' => '年初至今拒绝',
     ],
-
-    // Order Pipeline Kanban
     'kanban' => [
         'value' => '价值',
         'paid' => '已付款',
         'overdue_payment' => '逾期付款',
         'no_update_for' => '无更新',
         'no_items' => '无项目',
+    ],
+    'expenses' => [
+        'entries' => '条记录',
+        'year_to_date' => '年度累计',
+        'monthly_average' => '月均',
+        'category_breakdown' => '分类明细',
     ],
 ];

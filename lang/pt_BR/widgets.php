@@ -1,7 +1,6 @@
 <?php
 
 return [
-    // Financial Stats Overview
     'financial_stats' => [
         'receivables' => 'Contas a Receber',
         'receivables_from_clients' => 'Contas a Receber (de Clientes)',
@@ -14,9 +13,9 @@ return [
         'net_negative' => 'Líquido Negativo',
         'net_to_receive' => 'Líquido a Receber',
         'net_to_pay' => 'Líquido a Pagar',
+        'operational_expenses' => 'Despesas Operacionais',
+        'vs_last_month' => 'vs mês anterior',
     ],
-
-    // Cash Flow Projection
     'cash_flow' => [
         'heading' => 'Projeção de Fluxo de Caixa',
         'description' => 'Entradas e saídas esperadas com base nas datas de vencimento do cronograma de pagamentos',
@@ -32,8 +31,6 @@ return [
         'next_week' => 'Próxima Semana',
         'no_due_date_warning' => 'Estes itens não têm data de vencimento definida e não estão incluídos na projeção acima.',
     ],
-
-    // Document Financial Summary (PI Stats / PO Stats)
     'document_summary' => [
         'financial_summary' => 'Resumo Financeiro',
         'invoice_total' => 'Total da Fatura',
@@ -51,15 +48,11 @@ return [
         'from_client_available' => 'Deste cliente — disponível para alocar',
         'to_supplier_available' => 'Para este fornecedor — disponível para alocar',
     ],
-
-    // Company Financial Statement
     'financial_statement' => [
         'client_receivables' => 'Extrato do Cliente — Contas a Receber',
         'supplier_payables' => 'Extrato do Fornecedor — Contas a Pagar',
         'overdue' => 'Atrasado',
     ],
-
-    // Landed Cost Calculator
     'landed_cost' => [
         'heading' => 'Calculadora de Custo CIF',
         'description' => 'Análise completa de custos para este embarque',
@@ -71,8 +64,6 @@ return [
         'other_costs' => 'Outros Custos',
         'gross_profit' => 'Lucro Bruto',
     ],
-
-    // Product Summary
     'product_summary' => [
         'suppliers' => 'Fornecedores',
         'clients' => 'Clientes',
@@ -91,13 +82,9 @@ return [
         'pcs_per_carton' => 'Peças/Cartão',
         'lead_time' => 'Prazo de Entrega',
     ],
-
-    // Pipeline Counts
     'pipeline' => [
         'operations_pipeline' => 'Pipeline de Operações',
     ],
-
-    // Operational Alerts
     'alerts' => [
         'action_required' => 'Ação Requerida',
         'all_clear' => 'Tudo certo — sem ações pendentes.',
@@ -114,8 +101,6 @@ return [
         'due_this_week_desc' => 'Itens do cronograma com vencimento nos próximos 7 dias',
         'view_schedule' => 'Ver Cronograma',
     ],
-
-    // Supplier Audit Stats
     'audit_stats' => [
         'scheduled_audits' => 'Auditorias Agendadas',
         'in_progress' => 'em andamento',
@@ -125,13 +110,17 @@ return [
         'overdue' => 'Atrasado',
         'rejected_ytd' => 'Rejeitadas (Ano até a Data)',
     ],
-
-    // Order Pipeline Kanban
     'kanban' => [
         'value' => 'Valor',
         'paid' => 'Pago',
         'overdue_payment' => 'Pagamento atrasado',
         'no_update_for' => 'Sem atualização por',
         'no_items' => 'Sem itens',
+    ],
+    'expenses' => [
+        'entries' => 'registros',
+        'year_to_date' => 'Acumulado no Ano',
+        'monthly_average' => 'Média Mensal',
+        'category_breakdown' => 'Detalhamento por Categoria',
     ],
 ];

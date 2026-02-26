@@ -1,7 +1,6 @@
 <?php
 
 return [
-    // Navigation Groups
     'groups' => [
         'crm' => '客户关系管理',
         'operations' => '运营',
@@ -11,8 +10,6 @@ return [
         'settings' => '设置',
         'trade' => '贸易',
     ],
-
-    // Resource Navigation Labels
     'resources' => [
         'companies' => '公司',
         'contacts' => '联系人',
@@ -37,9 +34,8 @@ return [
         'payment_terms' => '付款条款',
         'container_types' => '集装箱类型',
         'audit_categories' => '审核类别',
+        'company_expenses' => '公司费用',
     ],
-
-    // Model Labels (singular / plural)
     'models' => [
         'company' => '公司',
         'companies' => '公司',
@@ -87,9 +83,9 @@ return [
         'container_types' => '集装箱类型',
         'audit_category' => '审核类别',
         'audit_categories' => '审核类别',
+        'company_expense' => '费用',
+        'company_expenses' => '费用',
     ],
-
-    // Page Titles
     'pages' => [
         'financial_overview' => '财务概览',
         'order_pipeline' => '订单流程',
