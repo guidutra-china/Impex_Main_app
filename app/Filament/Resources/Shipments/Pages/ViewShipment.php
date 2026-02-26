@@ -29,44 +29,44 @@ class ViewShipment extends ViewRecord
             ActionGroup::make([
                 GeneratePdfAction::make(
                     templateClass: PackingListPdfTemplate::class,
-                    label: 'Generate Packing List',
+                    label: 'Generate PDF',
                 )->name('generatePackingListPdf'),
                 GeneratePdfAction::download(
                     documentType: 'packing_list_pdf',
-                    label: 'Download Packing List',
+                    label: 'Download PDF',
                 )->name('downloadPackingListPdf'),
                 GeneratePdfAction::preview(
                     templateClass: PackingListPdfTemplate::class,
-                    label: 'Preview Packing List',
+                    label: 'Preview PDF',
                 )->name('previewPackingListPdf'),
                 SendDocumentByEmailAction::make(
                     documentType: 'packing_list_pdf',
-                    label: 'Send Packing List by Email',
+                    label: 'Send by Email',
                 )->name('sendPackingListByEmail'),
             ])
-                ->label('Packing List PDF')
+                ->label('Packing List')
                 ->icon('heroicon-o-clipboard-document-list')
                 ->color('info'),
 
             ActionGroup::make([
                 GeneratePdfAction::make(
                     templateClass: CommercialInvoicePdfTemplate::class,
-                    label: 'Generate Commercial Invoice',
+                    label: 'Generate PDF',
                 )->name('generateCommercialInvoicePdf'),
                 GeneratePdfAction::download(
                     documentType: 'commercial_invoice_pdf',
-                    label: 'Download Commercial Invoice',
+                    label: 'Download PDF',
                 )->name('downloadCommercialInvoicePdf'),
                 GeneratePdfAction::preview(
                     templateClass: CommercialInvoicePdfTemplate::class,
-                    label: 'Preview Commercial Invoice',
+                    label: 'Preview PDF',
                 )->name('previewCommercialInvoicePdf'),
                 SendDocumentByEmailAction::make(
                     documentType: 'commercial_invoice_pdf',
-                    label: 'Send Commercial Invoice by Email',
+                    label: 'Send by Email',
                 )->name('sendCommercialInvoiceByEmail'),
             ])
-                ->label('Commercial Invoice PDF')
+                ->label('Commercial Invoice')
                 ->icon('heroicon-o-document-currency-dollar')
                 ->color('success'),
 
