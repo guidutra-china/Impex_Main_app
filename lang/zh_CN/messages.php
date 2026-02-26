@@ -70,4 +70,18 @@ return [
     'no_summary' => '未提供摘要',
     'no_quotations_linked' => '无关联报价。',
     'no_deadline' => '无截止日期',
+
+    // Exchange Rates
+    'exchange_rates.fetch_rates' => '获取汇率',
+    'exchange_rates.fetch_confirmation' => '将从欧洲央行（通过 Frankfurter API）获取最新汇率并自动审批。同一日期的现有汇率将被更新。',
+    'exchange_rates.fetch_now' => '立即获取',
+    'exchange_rates.no_base_currency' => '未设置基础货币',
+    'exchange_rates.no_base_currency_body' => '未配置基础货币。请先前往 设置 > 货币 设置基础货币。',
+    'exchange_rates.no_target_currencies' => '未找到活跃的目标货币。',
+    'exchange_rates.api_error' => 'API 错误',
+    'exchange_rates.api_empty' => 'API 返回空汇率数据。',
+    'exchange_rates.fetch_success' => '汇率已更新',
+    'exchange_rates.fetch_summary' => '日期: :date | 新建: :created | 更新: :updated | 跳过: :skipped',
+    'exchange_rates.fetch_failed' => '获取汇率失败',
+
 ];

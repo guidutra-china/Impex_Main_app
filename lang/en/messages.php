@@ -70,4 +70,18 @@ return [
     'no_summary' => 'No summary provided',
     'no_quotations_linked' => 'No quotations linked.',
     'no_deadline' => 'No deadline',
+
+    // Exchange Rates
+    'exchange_rates.fetch_rates' => 'Fetch Rates',
+    'exchange_rates.fetch_confirmation' => 'This will fetch the latest exchange rates from the European Central Bank (via Frankfurter API) and auto-approve them. Existing rates for the same date will be updated.',
+    'exchange_rates.fetch_now' => 'Fetch Now',
+    'exchange_rates.no_base_currency' => 'No Base Currency',
+    'exchange_rates.no_base_currency_body' => 'No base currency is configured. Go to Settings > Currencies and set a base currency first.',
+    'exchange_rates.no_target_currencies' => 'No active target currencies found.',
+    'exchange_rates.api_error' => 'API Error',
+    'exchange_rates.api_empty' => 'API returned empty rates.',
+    'exchange_rates.fetch_success' => 'Exchange Rates Updated',
+    'exchange_rates.fetch_summary' => 'Date: :date | Created: :created | Updated: :updated | Skipped: :skipped',
+    'exchange_rates.fetch_failed' => 'Failed to Fetch Rates',
+
 ];

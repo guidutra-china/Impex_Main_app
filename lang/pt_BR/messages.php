@@ -70,4 +70,18 @@ return [
     'no_summary' => 'Nenhum resumo fornecido',
     'no_quotations_linked' => 'Nenhuma cotação vinculada.',
     'no_deadline' => 'Sem prazo',
+
+    // Exchange Rates
+    'exchange_rates.fetch_rates' => 'Buscar Cotações',
+    'exchange_rates.fetch_confirmation' => 'Isso buscará as cotações mais recentes do Banco Central Europeu (via Frankfurter API) e as aprovará automaticamente. Cotações existentes para a mesma data serão atualizadas.',
+    'exchange_rates.fetch_now' => 'Buscar Agora',
+    'exchange_rates.no_base_currency' => 'Sem Moeda Base',
+    'exchange_rates.no_base_currency_body' => 'Nenhuma moeda base configurada. Vá em Configurações > Moedas e defina uma moeda base primeiro.',
+    'exchange_rates.no_target_currencies' => 'Nenhuma moeda alvo ativa encontrada.',
+    'exchange_rates.api_error' => 'Erro na API',
+    'exchange_rates.api_empty' => 'A API retornou cotações vazias.',
+    'exchange_rates.fetch_success' => 'Cotações Atualizadas',
+    'exchange_rates.fetch_summary' => 'Data: :date | Criadas: :created | Atualizadas: :updated | Ignoradas: :skipped',
+    'exchange_rates.fetch_failed' => 'Falha ao Buscar Cotações',
+
 ];
