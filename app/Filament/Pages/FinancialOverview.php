@@ -11,6 +11,7 @@ use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
+use App\Filament\Pages\Widgets\CashFlowProjection;
 use App\Filament\Pages\Widgets\FinancialStatsOverview;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -54,6 +55,7 @@ class FinancialOverview extends Page implements HasTable
     {
         return [
             FinancialStatsOverview::class,
+            CashFlowProjection::class,
         ];
     }
 
