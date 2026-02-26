@@ -32,7 +32,6 @@ class AdminPanelProvider extends PanelProvider
             ->sidebarCollapsibleOnDesktop()
             ->sidebarFullyCollapsibleOnDesktop()
             ->brandName('TradingApp')
-            ->viteTheme('resources/css/filament/admin/theme.css')
             ->databaseNotifications()
             ->colors([
                 'primary' => Color::Indigo,
@@ -74,8 +73,10 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ]);
 
-        // O auto-registro é habilitado apenas em ambiente local.
-        // Em produção, novos usuários admin devem ser criados via seeder ou Tinker.
+        if (file_exists(public_path('build/manifest.json'))) {
+            $panel->viteTheme('resources/css/filament/admin/theme.css');
+        }
+
         if (app()->isLocal()) {
             $panel->registration();
         }
