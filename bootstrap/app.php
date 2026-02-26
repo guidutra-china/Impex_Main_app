@@ -12,6 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withCommands([
         \App\Domain\Infrastructure\Console\ReconcileBalancesCommand::class,
+        \App\Domain\Settings\Console\FetchExchangeRatesCommand::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         //

@@ -119,6 +119,7 @@ return [
     ],
     'expenses' => [
         'entries' => 'registros',
+        'missing_exchange_rate' => 'Taxa de câmbio ausente — não incluído no total',
         'year_to_date' => 'Acumulado no Ano',
         'monthly_average' => 'Média Mensal',
         'category_breakdown' => 'Detalhamento por Categoria',

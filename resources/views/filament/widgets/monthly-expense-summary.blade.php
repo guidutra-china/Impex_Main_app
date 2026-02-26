@@ -24,6 +24,17 @@
                 <p class="text-2xl font-bold text-gray-900 dark:text-white">
                     {{ $baseCurrencyCode }} {{ $currentMonth['total'] }}
                 </p>
+                @if ($currentMonth['has_conversion_warning'])
+                    <div class="rounded-md bg-warning-50 px-2 py-1 dark:bg-warning-500/10">
+                        <p class="text-xs font-medium text-warning-600 dark:text-warning-400">
+                            <x-filament::icon icon="heroicon-m-exclamation-triangle" class="inline h-3 w-3" />
+                            {{ __('widgets.expenses.missing_exchange_rate') }}
+                        </p>
+                        @foreach ($currentMonth['unconverted'] as $line)
+                            <p class="text-xs text-warning-500 dark:text-warning-400">+ {{ $line }}</p>
+                        @endforeach
+                    </div>
+                @endif
                 <p class="text-xs text-gray-400 dark:text-gray-500">
                     {{ $currentMonth['count'] }} {{ __('widgets.expenses.entries') }}
                 </p>
@@ -39,6 +50,17 @@
                 <p class="text-2xl font-bold text-gray-900 dark:text-white">
                     {{ $baseCurrencyCode }} {{ $previousMonth['total'] }}
                 </p>
+                @if ($previousMonth['has_conversion_warning'])
+                    <div class="rounded-md bg-warning-50 px-2 py-1 dark:bg-warning-500/10">
+                        <p class="text-xs font-medium text-warning-600 dark:text-warning-400">
+                            <x-filament::icon icon="heroicon-m-exclamation-triangle" class="inline h-3 w-3" />
+                            {{ __('widgets.expenses.missing_exchange_rate') }}
+                        </p>
+                        @foreach ($previousMonth['unconverted'] as $line)
+                            <p class="text-xs text-warning-500 dark:text-warning-400">+ {{ $line }}</p>
+                        @endforeach
+                    </div>
+                @endif
                 <p class="text-xs text-gray-400 dark:text-gray-500">
                     {{ $previousMonth['count'] }} {{ __('widgets.expenses.entries') }}
                 </p>
@@ -54,6 +76,17 @@
                 <p class="text-2xl font-bold text-gray-900 dark:text-white">
                     {{ $baseCurrencyCode }} {{ $yearToDate['total'] }}
                 </p>
+                @if ($yearToDate['has_conversion_warning'])
+                    <div class="rounded-md bg-warning-50 px-2 py-1 dark:bg-warning-500/10">
+                        <p class="text-xs font-medium text-warning-600 dark:text-warning-400">
+                            <x-filament::icon icon="heroicon-m-exclamation-triangle" class="inline h-3 w-3" />
+                            {{ __('widgets.expenses.missing_exchange_rate') }}
+                        </p>
+                        @foreach ($yearToDate['unconverted'] as $line)
+                            <p class="text-xs text-warning-500 dark:text-warning-400">+ {{ $line }}</p>
+                        @endforeach
+                    </div>
+                @endif
                 <p class="text-xs text-gray-400 dark:text-gray-500">
                     {{ __('widgets.expenses.monthly_average') }}: {{ $baseCurrencyCode }} {{ $yearToDate['monthly_avg'] }}
                 </p>

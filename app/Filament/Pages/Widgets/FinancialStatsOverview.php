@@ -236,8 +236,17 @@ class FinancialStatsOverview extends Widget
             ->get();
 
         $currentTotal = 0;
+        $hasWarning = false;
+        $unconverted = [];
         foreach ($currentMonthExpenses as $row) {
-            $currentTotal += $this->convertSingleToBase((int) $row->total, $row->currency_code, $baseCurrencyId);
+            $result = $this->convertSingleToBase((int) $row->total, $row->currency_code, $baseCurrencyId);
+            if ($result['converted']) {
+                $currentTotal += $result['amount'];
+            } else {
+                $hasWarning = true;
+                $code = $row->currency_code;
+                $unconverted[$code] = ($unconverted[$code] ?? 0) + (int) $row->total;
+            }
         }
 
         $previousMonth = $now->copy()->subMonth();
@@ -249,12 +258,20 @@ class FinancialStatsOverview extends Widget
 
         $previousTotal = 0;
         foreach ($previousMonthExpenses as $row) {
-            $previousTotal += $this->convertSingleToBase((int) $row->total, $row->currency_code, $baseCurrencyId);
+            $result = $this->convertSingleToBase((int) $row->total, $row->currency_code, $baseCurrencyId);
+            if ($result['converted']) {
+                $previousTotal += $result['amount'];
+            }
         }
 
         $change = $previousTotal > 0
             ? round((($currentTotal - $previousTotal) / $previousTotal) * 100, 1)
             : ($currentTotal > 0 ? 100 : 0);
+
+        $unconvertedDisplay = [];
+        foreach ($unconverted as $code => $amountMinor) {
+            $unconvertedDisplay[] = $code . ' ' . Money::format($amountMinor);
+        }
 
         return [
             'current_month' => Money::format($currentTotal),
@@ -263,18 +280,24 @@ class FinancialStatsOverview extends Widget
             'previous_month_raw' => $previousTotal,
             'change' => $change,
             'month_label' => $now->translatedFormat('F'),
+            'has_conversion_warning' => $hasWarning,
+            'unconverted' => $unconvertedDisplay,
         ];
     }
 
-    private function convertSingleToBase(int $amountMinor, string $currencyCode, ?int $baseCurrencyId): int
+    private function convertSingleToBase(int $amountMinor, string $currencyCode, ?int $baseCurrencyId): array
     {
         if (! $baseCurrencyId) {
-            return $amountMinor;
+            return ['amount' => $amountMinor, 'converted' => true];
         }
 
         $currency = Currency::findByCode($currencyCode);
-        if (! $currency || $currency->id === $baseCurrencyId) {
-            return $amountMinor;
+        if (! $currency) {
+            return ['amount' => $amountMinor, 'converted' => false];
+        }
+
+        if ($currency->id === $baseCurrencyId) {
+            return ['amount' => $amountMinor, 'converted' => true];
         }
 
         $converted = ExchangeRate::convert(
@@ -283,7 +306,11 @@ class FinancialStatsOverview extends Widget
             Money::toMajor($amountMinor),
         );
 
-        return $converted !== null ? Money::toMinor($converted) : $amountMinor;
+        if ($converted !== null) {
+            return ['amount' => Money::toMinor($converted), 'converted' => true];
+        }
+
+        return ['amount' => $amountMinor, 'converted' => false];
     }
 
     private function convertToBase($amountsByCurrency, ?int $baseCurrencyId): int

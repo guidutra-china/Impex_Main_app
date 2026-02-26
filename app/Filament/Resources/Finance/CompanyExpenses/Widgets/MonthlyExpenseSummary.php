@@ -30,16 +30,20 @@ class MonthlyExpenseSummary extends Widget
         $baseCurrencyId = $baseCurrency?->id;
 
         $now = Carbon::now();
-        $currentMonth = $this->buildMonthData($now->year, $now->month, $baseCurrencyId);
+        $currentMonth = $this->buildMonthData($now->year, $now->month, $baseCurrencyId, $baseCurrencyCode);
         $previousMonth = $this->buildMonthData(
             $now->copy()->subMonth()->year,
             $now->copy()->subMonth()->month,
-            $baseCurrencyId
+            $baseCurrencyId,
+            $baseCurrencyCode,
         );
 
-        $monthOverMonth = $this->calculateMonthOverMonth($currentMonth['total_raw'], $previousMonth['total_raw']);
+        $monthOverMonth = $this->calculateMonthOverMonth(
+            $currentMonth['converted_total_raw'],
+            $previousMonth['converted_total_raw']
+        );
 
-        $yearToDate = $this->buildYearToDate($now->year, $baseCurrencyId);
+        $yearToDate = $this->buildYearToDate($now->year, $baseCurrencyId, $baseCurrencyCode);
 
         return [
             'baseCurrencyCode' => $baseCurrencyCode,
@@ -52,7 +56,7 @@ class MonthlyExpenseSummary extends Widget
         ];
     }
 
-    private function buildMonthData(int $year, int $month, ?int $baseCurrencyId): array
+    private function buildMonthData(int $year, int $month, ?int $baseCurrencyId, string $baseCurrencyCode): array
     {
         $expenses = CompanyExpense::query()
             ->inMonth($year, $month)
@@ -61,17 +65,32 @@ class MonthlyExpenseSummary extends Widget
             ->get();
 
         $byCategory = [];
-        $totalConverted = 0;
+        $convertedTotal = 0;
+        $unconvertedByCurrency = [];
+        $hasConversionWarning = false;
 
         foreach ($expenses as $row) {
-            $converted = $this->convertToBase((int) $row->total, $row->currency_code, $baseCurrencyId);
+            $result = $this->convertToBase((int) $row->total, $row->currency_code, $baseCurrencyId);
             $category = $row->category instanceof ExpenseCategory ? $row->category->value : $row->category;
 
-            if (! isset($byCategory[$category])) {
-                $byCategory[$category] = 0;
+            if ($result['converted']) {
+                if (! isset($byCategory[$category])) {
+                    $byCategory[$category] = 0;
+                }
+                $byCategory[$category] += $result['amount'];
+                $convertedTotal += $result['amount'];
+            } else {
+                $hasConversionWarning = true;
+                $code = $row->currency_code;
+                if (! isset($unconvertedByCurrency[$code])) {
+                    $unconvertedByCurrency[$code] = 0;
+                }
+                $unconvertedByCurrency[$code] += (int) $row->total;
+
+                if (! isset($byCategory[$category])) {
+                    $byCategory[$category] = 0;
+                }
             }
-            $byCategory[$category] += $converted;
-            $totalConverted += $converted;
         }
 
         $categoryBreakdown = [];
@@ -84,24 +103,32 @@ class MonthlyExpenseSummary extends Widget
                 'icon' => $categoryEnum?->getIcon() ?? 'heroicon-o-ellipsis-horizontal-circle',
                 'amount' => Money::format($amount),
                 'amount_raw' => $amount,
-                'percentage' => $totalConverted > 0 ? round(($amount / $totalConverted) * 100, 1) : 0,
+                'percentage' => $convertedTotal > 0 ? round(($amount / $convertedTotal) * 100, 1) : 0,
             ];
         }
 
         usort($categoryBreakdown, fn ($a, $b) => $b['amount_raw'] <=> $a['amount_raw']);
 
+        $unconvertedDisplay = [];
+        foreach ($unconvertedByCurrency as $code => $amountMinor) {
+            $unconvertedDisplay[] = $code . ' ' . Money::format($amountMinor);
+        }
+
         $expenseCount = CompanyExpense::query()->inMonth($year, $month)->count();
 
         return [
-            'total' => Money::format($totalConverted),
-            'total_raw' => $totalConverted,
+            'total' => Money::format($convertedTotal),
+            'total_raw' => $convertedTotal,
+            'converted_total_raw' => $convertedTotal,
             'count' => $expenseCount,
             'categories' => $categoryBreakdown,
             'top_category' => $categoryBreakdown[0] ?? null,
+            'has_conversion_warning' => $hasConversionWarning,
+            'unconverted' => $unconvertedDisplay,
         ];
     }
 
-    private function buildYearToDate(int $year, ?int $baseCurrencyId): array
+    private function buildYearToDate(int $year, ?int $baseCurrencyId, string $baseCurrencyCode): array
     {
         $expenses = CompanyExpense::query()
             ->inYear($year)
@@ -109,20 +136,40 @@ class MonthlyExpenseSummary extends Widget
             ->groupBy('currency_code')
             ->get();
 
-        $totalConverted = 0;
+        $convertedTotal = 0;
+        $unconvertedByCurrency = [];
+        $hasConversionWarning = false;
+
         foreach ($expenses as $row) {
-            $totalConverted += $this->convertToBase((int) $row->total, $row->currency_code, $baseCurrencyId);
+            $result = $this->convertToBase((int) $row->total, $row->currency_code, $baseCurrencyId);
+            if ($result['converted']) {
+                $convertedTotal += $result['amount'];
+            } else {
+                $hasConversionWarning = true;
+                $code = $row->currency_code;
+                if (! isset($unconvertedByCurrency[$code])) {
+                    $unconvertedByCurrency[$code] = 0;
+                }
+                $unconvertedByCurrency[$code] += (int) $row->total;
+            }
+        }
+
+        $unconvertedDisplay = [];
+        foreach ($unconvertedByCurrency as $code => $amountMinor) {
+            $unconvertedDisplay[] = $code . ' ' . Money::format($amountMinor);
         }
 
         $monthlyAvg = Carbon::now()->month > 0
-            ? (int) round($totalConverted / Carbon::now()->month)
+            ? (int) round($convertedTotal / Carbon::now()->month)
             : 0;
 
         return [
-            'total' => Money::format($totalConverted),
-            'total_raw' => $totalConverted,
+            'total' => Money::format($convertedTotal),
+            'total_raw' => $convertedTotal,
             'monthly_avg' => Money::format($monthlyAvg),
             'monthly_avg_raw' => $monthlyAvg,
+            'has_conversion_warning' => $hasConversionWarning,
+            'unconverted' => $unconvertedDisplay,
         ];
     }
 
@@ -145,15 +192,19 @@ class MonthlyExpenseSummary extends Widget
         ];
     }
 
-    private function convertToBase(int $amountMinor, string $currencyCode, ?int $baseCurrencyId): int
+    private function convertToBase(int $amountMinor, string $currencyCode, ?int $baseCurrencyId): array
     {
         if (! $baseCurrencyId) {
-            return $amountMinor;
+            return ['amount' => $amountMinor, 'converted' => true];
         }
 
         $currency = Currency::findByCode($currencyCode);
-        if (! $currency || $currency->id === $baseCurrencyId) {
-            return $amountMinor;
+        if (! $currency) {
+            return ['amount' => $amountMinor, 'converted' => false];
+        }
+
+        if ($currency->id === $baseCurrencyId) {
+            return ['amount' => $amountMinor, 'converted' => true];
         }
 
         $converted = ExchangeRate::convert(
@@ -162,6 +213,10 @@ class MonthlyExpenseSummary extends Widget
             Money::toMajor($amountMinor),
         );
 
-        return $converted !== null ? Money::toMinor($converted) : $amountMinor;
+        if ($converted !== null) {
+            return ['amount' => Money::toMinor($converted), 'converted' => true];
+        }
+
+        return ['amount' => $amountMinor, 'converted' => false];
     }
 }

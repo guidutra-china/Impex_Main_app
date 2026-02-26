@@ -119,6 +119,7 @@ return [
     ],
     'expenses' => [
         'entries' => '条记录',
+        'missing_exchange_rate' => '缺少汇率 — 未计入总计',
         'year_to_date' => '年度累计',
         'monthly_average' => '月均',
         'category_breakdown' => '分类明细',

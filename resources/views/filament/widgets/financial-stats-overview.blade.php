@@ -209,6 +209,14 @@
                     <div>
                         <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ __('widgets.financial_stats.operational_expenses') }}</p>
                         <p class="text-xs text-gray-400 dark:text-gray-500">{{ $operationalExpenses['month_label'] }}</p>
+                        @if ($operationalExpenses['has_conversion_warning'] ?? false)
+                            <p class="mt-1 text-xs font-medium text-warning-600 dark:text-warning-400">
+                                ⚠ {{ __('widgets.expenses.missing_exchange_rate') }}
+                            </p>
+                            @foreach ($operationalExpenses['unconverted'] ?? [] as $line)
+                                <p class="text-xs text-warning-500">+ {{ $line }}</p>
+                            @endforeach
+                        @endif
                     </div>
                     <div class="text-right">
                         <p class="text-lg font-bold text-gray-700 dark:text-gray-300">

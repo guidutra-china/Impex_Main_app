@@ -119,6 +119,7 @@ return [
     ],
     'expenses' => [
         'entries' => 'entries',
+        'missing_exchange_rate' => 'Missing exchange rate — not included in total',
         'year_to_date' => 'Year to Date',
         'monthly_average' => 'Monthly Average',
         'category_breakdown' => 'Category Breakdown',
