@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\CRM\Companies\Pages;
 
 use App\Filament\Resources\CRM\Companies\CompanyResource;
+use App\Filament\Resources\CRM\Companies\Widgets\CompanyFinancialStatement;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 
@@ -14,6 +15,13 @@ class ViewCompany extends ViewRecord
     {
         return [
             EditAction::make(),
+        ];
+    }
+
+    protected function getFooterWidgets(): array
+    {
+        return [
+            CompanyFinancialStatement::class,
         ];
     }
 }

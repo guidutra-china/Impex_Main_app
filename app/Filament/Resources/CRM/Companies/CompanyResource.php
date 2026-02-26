@@ -15,6 +15,7 @@ use App\Filament\Resources\CRM\Companies\RelationManagers\RolesRelationManager;
 use App\Filament\Resources\CRM\Companies\RelationManagers\SupplierAuditsRelationManager;
 use App\Filament\Resources\CRM\Companies\RelationManagers\SupplierProductsRelationManager;
 use App\Filament\Resources\CRM\Companies\Schemas\CompanyForm;
+use App\Filament\Resources\CRM\Companies\Widgets\CompanyFinancialStatement;
 use App\Filament\Resources\CRM\Companies\Schemas\CompanyInfolist;
 use App\Filament\Resources\CRM\Companies\Tables\CompaniesTable;
 use BackedEnum;
@@ -62,6 +63,13 @@ class CompanyResource extends Resource
     public static function table(Table $table): Table
     {
         return CompaniesTable::configure($table);
+    }
+
+    public static function getWidgets(): array
+    {
+        return [
+            CompanyFinancialStatement::class,
+        ];
     }
 
     public static function getRelations(): array
