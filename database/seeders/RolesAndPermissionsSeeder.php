@@ -93,6 +93,12 @@ class RolesAndPermissionsSeeder extends Seeder
             'view-payment-schedule',
             'generate-payment-schedule',
 
+            // Company Expenses
+            'view-company-expenses',
+            'create-company-expenses',
+            'edit-company-expenses',
+            'delete-company-expenses',
+
             // Additional Costs
             'view-additional-costs',
             'create-additional-costs',

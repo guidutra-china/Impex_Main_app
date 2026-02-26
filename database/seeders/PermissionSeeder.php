@@ -80,6 +80,12 @@ class PermissionSeeder extends Seeder
 
             // Financial
             'view-payments',
+
+            // Company Expenses
+            'view-company-expenses',
+            'create-company-expenses',
+            'edit-company-expenses',
+            'delete-company-expenses',
             'create-payments',
             'edit-payments',
             'delete-payments',
