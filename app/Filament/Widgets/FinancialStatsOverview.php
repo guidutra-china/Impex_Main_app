@@ -17,6 +17,13 @@ class FinancialStatsOverview extends BaseWidget
 {
     protected static bool $isLazy = false;
 
+    protected static ?int $sort = 3;
+
+    public static function canView(): bool
+    {
+        return auth()->user()?->can('view-financial-dashboard') ?? false;
+    }
+
     protected function getStats(): array
     {
         $outstandingReceivables = PaymentScheduleItem::query()

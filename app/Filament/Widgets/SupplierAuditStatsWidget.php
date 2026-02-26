@@ -10,9 +10,14 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class SupplierAuditStatsWidget extends BaseWidget
 {
-    protected static ?int $sort = 3;
+    protected static ?int $sort = 4;
 
     protected static bool $isLazy = true;
+
+    public static function canView(): bool
+    {
+        return auth()->user()?->can('view-supplier-audits') ?? false;
+    }
 
     protected function getStats(): array
     {
