@@ -40,6 +40,7 @@ class Company extends Model
         'address_country',
         'status',
         'notes',
+        'contracted_importer_details',
     ];
 
     protected function casts(): array

@@ -27,7 +27,7 @@ class CompanySettings extends Settings
     public string $packing_list_prefix;
     public string $commercial_invoice_prefix;
     public ?string $bank_details_for_documents;
-    public ?string $contracted_importer_details;
+
 
     public static function group(): string
     {

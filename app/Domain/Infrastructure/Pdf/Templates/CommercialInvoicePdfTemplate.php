@@ -5,7 +5,7 @@ namespace App\Domain\Infrastructure\Pdf\Templates;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Logistics\Enums\ImportModality;
 use App\Domain\Logistics\Models\Shipment;
-use App\Domain\Settings\DataTransferObjects\CompanySettings;
+
 
 class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
 {
@@ -210,12 +210,10 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
             ];
         }
 
-        $settings = app(CompanySettings::class);
-
         return [
             'is_conta_e_ordem' => true,
             'modality_label' => $modality->getEnglishLabel(),
-            'importer_details' => $settings->contracted_importer_details,
+            'importer_details' => $shipment->company?->contracted_importer_details,
             'notify_party' => [
                 'name' => $shipment->company?->name ?? '—',
                 'legal_name' => $shipment->company?->legal_name,
