@@ -65,7 +65,7 @@ class RecentDocumentsWidget extends BaseWidget
             ->recordActions([
                 \Filament\Actions\Action::make('download')
                     ->icon('heroicon-o-arrow-down-tray')
-                    ->url(fn (Document $record) => route('portal.document.download', $record))
+                    ->url(fn (Document $record) => route('portal.documents.download', $record))
                     ->openUrlInNewTab()
                     ->visible(fn () => auth()->user()?->can('portal:download-documents')),
             ])
