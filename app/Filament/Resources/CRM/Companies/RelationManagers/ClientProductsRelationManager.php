@@ -9,6 +9,7 @@ use App\Domain\CRM\Enums\DocumentCategory;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Settings\Models\Currency;
 use BackedEnum;
+use App\Filament\Actions\ImportProductsFromExcelAction;
 use Filament\Actions\Action;
 use Filament\Actions\AttachAction;
 use Filament\Actions\BulkAction;
@@ -158,6 +159,8 @@ class ClientProductsRelationManager extends RelationManager
                     ->alignCenter(),
             ])
             ->headerActions([
+                ImportProductsFromExcelAction::make('client', fn () => $this->getOwnerRecord())
+                    ->visible(fn () => auth()->user()?->can('edit-companies')),
                 AttachAction::make()
                     ->label('Add Product')
                     ->visible(fn () => auth()->user()?->can('edit-companies'))

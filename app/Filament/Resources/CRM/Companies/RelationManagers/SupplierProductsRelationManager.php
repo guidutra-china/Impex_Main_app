@@ -9,6 +9,7 @@ use App\Domain\CRM\Enums\DocumentCategory;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Settings\Models\Currency;
+use App\Filament\Actions\ImportProductsFromExcelAction;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\AttachAction;
@@ -164,6 +165,8 @@ class SupplierProductsRelationManager extends RelationManager
                     ->alignCenter(),
             ])
             ->headerActions([
+                ImportProductsFromExcelAction::make('supplier', fn () => $this->getOwnerRecord())
+                    ->visible(fn () => auth()->user()?->can('edit-companies')),
                 AttachAction::make()
                     ->label('Add Product')
                     ->visible(fn () => auth()->user()?->can('edit-companies'))
