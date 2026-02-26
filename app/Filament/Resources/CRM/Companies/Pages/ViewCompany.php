@@ -18,7 +18,7 @@ class ViewCompany extends ViewRecord
         ];
     }
 
-    protected function getFooterWidgets(): array
+    protected function getHeaderWidgets(): array
     {
         return [
             CompanyFinancialStatement::class,
