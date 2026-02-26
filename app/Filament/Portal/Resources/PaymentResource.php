@@ -8,6 +8,7 @@ use App\Domain\Financial\Models\Payment;
 use App\Domain\Infrastructure\Support\Money;
 use App\Filament\Portal\Resources\PaymentResource\Pages;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -119,6 +120,14 @@ class PaymentResource extends Resource
                         ->placeholder('—'),
                 ])
                 ->columns(3)
+                ->columnSpanFull(),
+
+            Section::make('Allocations')
+                ->schema([
+                    ViewEntry::make('allocations')
+                        ->view('portal.payment-allocations-table')
+                        ->columnSpanFull(),
+                ])
                 ->columnSpanFull(),
 
             Section::make('Notes')
