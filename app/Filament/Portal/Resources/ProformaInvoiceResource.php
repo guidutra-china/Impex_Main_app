@@ -157,6 +157,74 @@ class ProformaInvoiceResource extends Resource
                 ])
                 ->columnSpanFull(),
 
+            Section::make('Payment Schedule')
+                ->schema([
+                    TextEntry::make('schedule_total')
+                        ->label('Schedule Total')
+                        ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state))
+                        ->weight('bold'),
+                    TextEntry::make('schedule_paid_total')
+                        ->label('Paid')
+                        ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state))
+                        ->weight('bold')
+                        ->color('success'),
+                    TextEntry::make('schedule_remaining')
+                        ->label('Remaining')
+                        ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state))
+                        ->weight('bold')
+                        ->color(fn ($state) => $state > 0 ? 'danger' : 'success'),
+                    TextEntry::make('payment_progress')
+                        ->label('Progress')
+                        ->formatStateUsing(fn ($state) => $state . '%')
+                        ->badge()
+                        ->color(fn ($state) => match (true) {
+                            $state >= 100 => 'success',
+                            $state >= 50 => 'warning',
+                            default => 'danger',
+                        }),
+                    RepeatableEntry::make('paymentScheduleItems')
+                        ->label('Schedule Items')
+                        ->schema([
+                            TextEntry::make('label')
+                                ->label('Description')
+                                ->weight('bold'),
+                            TextEntry::make('percentage')
+                                ->label('%')
+                                ->suffix('%')
+                                ->alignCenter(),
+                            TextEntry::make('amount')
+                                ->label('Amount')
+                                ->formatStateUsing(fn ($state, $record) => $record->is_credit
+                                    ? '-' . Money::format($state)
+                                    : Money::format($state))
+                                ->alignEnd()
+                                ->color(fn ($record) => $record->is_credit ? 'success' : null),
+                            TextEntry::make('paid_amount')
+                                ->label('Paid')
+                                ->getStateUsing(fn ($record) => $record->paid_amount)
+                                ->formatStateUsing(fn ($state) => Money::format($state))
+                                ->alignEnd()
+                                ->color('success'),
+                            TextEntry::make('remaining_amount')
+                                ->label('Remaining')
+                                ->getStateUsing(fn ($record) => $record->remaining_amount)
+                                ->formatStateUsing(fn ($state) => Money::format($state))
+                                ->alignEnd()
+                                ->color(fn ($state) => $state > 0 ? 'danger' : 'success'),
+                            TextEntry::make('due_date')
+                                ->label('Due Date')
+                                ->date('d/m/Y')
+                                ->placeholder('TBD'),
+                            TextEntry::make('status')
+                                ->badge(),
+                        ])
+                        ->columns(7)
+                        ->columnSpanFull(),
+                ])
+                ->columns(4)
+                ->visible(fn () => auth()->user()?->can('portal:view-financial-summary'))
+                ->columnSpanFull(),
+
             Section::make('Notes')
                 ->schema([
                     TextEntry::make('notes')
