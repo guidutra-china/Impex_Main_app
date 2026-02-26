@@ -20,6 +20,7 @@ class GeneratePdfAction
             ->label($label)
             ->icon($icon)
             ->color('success')
+            ->visible(fn () => auth()->user()?->can('generate-documents'))
             ->requiresConfirmation()
             ->modalHeading('Generate PDF Document')
             ->modalDescription('This will generate a new PDF version. If a previous version exists, it will be archived.')
@@ -60,7 +61,8 @@ class GeneratePdfAction
             ->label($label)
             ->icon($icon)
             ->color('info')
-            ->visible(fn ($record) => $record->getLatestDocument($documentType) !== null)
+            ->visible(fn ($record) => $record->getLatestDocument($documentType) !== null
+                && auth()->user()?->can('download-documents'))
             ->action(function ($record) use ($documentType) {
                 $document = $record->getLatestDocument($documentType);
 
@@ -93,6 +95,7 @@ class GeneratePdfAction
             ->label($label)
             ->icon($icon)
             ->color('gray')
+            ->visible(fn () => auth()->user()?->can('generate-documents'))
             ->action(function ($record) use ($templateClass) {
                 try {
                     $template = new $templateClass($record);

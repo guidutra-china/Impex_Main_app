@@ -73,7 +73,7 @@ class ViewProformaInvoice extends ViewRecord
             ->visible(fn () => in_array($this->getRecord()->status, [
                 ProformaInvoiceStatus::CONFIRMED,
                 ProformaInvoiceStatus::REOPENED,
-            ]))
+            ]) && auth()->user()?->can('confirm-proforma-invoices'))
             ->action(function () {
                 $record = $this->getRecord();
                 $blockers = $record->getFinalizationBlockers();
