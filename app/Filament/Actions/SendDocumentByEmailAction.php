@@ -2,8 +2,11 @@
 
 namespace App\Filament\Actions;
 
+use App\Domain\CRM\Models\Contact;
 use App\Mail\DocumentMail;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -37,10 +40,18 @@ class SendDocumentByEmailAction
                 }
 
                 try {
-                    $mail = Mail::to($data['to']);
+                    $toEmail = $data['to'];
 
-                    if (! empty($data['cc'])) {
-                        $ccAddresses = array_map('trim', explode(',', $data['cc']));
+                    $mail = Mail::to($toEmail);
+
+                    $ccAddresses = collect($data['cc'] ?? [])
+                        ->map(fn ($email) => trim($email))
+                        ->filter(fn ($email) => filter_var($email, FILTER_VALIDATE_EMAIL))
+                        ->unique()
+                        ->values()
+                        ->all();
+
+                    if (! empty($ccAddresses)) {
                         $mail->cc($ccAddresses);
                     }
 
@@ -50,9 +61,11 @@ class SendDocumentByEmailAction
                         customMessage: $data['message'] ?? '',
                     ));
 
+                    $allRecipients = collect([$toEmail])->merge($ccAddresses)->join(', ');
+
                     Notification::make()
                         ->title('Email Sent')
-                        ->body("Document sent to {$data['to']}")
+                        ->body("Document sent to {$allRecipients}")
                         ->success()
                         ->send();
                 } catch (\Throwable $e) {
@@ -69,28 +82,120 @@ class SendDocumentByEmailAction
 
     private static function buildForm($record): array
     {
-        $contact = $record->contact;
+        $contact = $record->contact ?? null;
         $company = static::resolveCompany($record);
+        $emailOptions = static::buildEmailOptions($company, $contact);
+        $emailSuggestions = static::buildEmailSuggestions($company, $contact);
+        $defaultTo = static::resolveDefaultTo($contact, $emailOptions);
 
         return [
-            TextInput::make('to')
+            Select::make('to')
                 ->label('To')
-                ->email()
+                ->options($emailOptions)
+                ->default($defaultTo)
+                ->searchable()
+                ->allowHtml()
                 ->required()
-                ->default($contact?->email),
+                ->createOptionForm([
+                    TextInput::make('email')
+                        ->label('Email Address')
+                        ->email()
+                        ->required(),
+                ])
+                ->createOptionUsing(fn (array $data) => $data['email'])
+                ->helperText('Select a registered contact or add a new email'),
+
             TextInput::make('recipient_name')
                 ->label('Recipient Name')
                 ->required()
                 ->default($contact?->name ?? $company?->name),
-            TextInput::make('cc')
+
+            TagsInput::make('cc')
                 ->label('CC')
-                ->placeholder('email1@example.com, email2@example.com')
-                ->helperText('Separate multiple emails with commas'),
+                ->suggestions($emailSuggestions)
+                ->splitKeys(['Tab', ','])
+                ->placeholder('Select or type email addresses')
+                ->helperText('Pick from suggestions or type a new email and press Tab/Enter'),
+
             Textarea::make('message')
                 ->label('Message (optional)')
                 ->placeholder('Add a custom message to the email...')
                 ->rows(4),
         ];
+    }
+
+    private static function buildEmailOptions($company, $contact): array
+    {
+        $options = [];
+
+        if ($company) {
+            $contacts = $company->contacts()
+                ->whereNotNull('email')
+                ->where('email', '!=', '')
+                ->orderByDesc('is_primary')
+                ->orderBy('name')
+                ->get();
+
+            foreach ($contacts as $c) {
+                $label = $c->name;
+                if ($c->position) {
+                    $label .= " ({$c->position})";
+                }
+                if ($c->is_primary) {
+                    $label .= ' ★';
+                }
+                $options[$c->email] = "{$label} — {$c->email}";
+            }
+
+            if ($company->email && ! isset($options[$company->email])) {
+                $options[$company->email] = "{$company->name} (Company) — {$company->email}";
+            }
+        }
+
+        if ($contact?->email && ! isset($options[$contact->email])) {
+            $options[$contact->email] = "{$contact->name} — {$contact->email}";
+        }
+
+        return $options;
+    }
+
+    private static function buildEmailSuggestions($company, $contact): array
+    {
+        $suggestions = [];
+
+        if ($company) {
+            $contacts = $company->contacts()
+                ->whereNotNull('email')
+                ->where('email', '!=', '')
+                ->get();
+
+            foreach ($contacts as $c) {
+                $suggestions[] = $c->email;
+            }
+
+            if ($company->email) {
+                $suggestions[] = $company->email;
+            }
+        }
+
+        if ($contact?->email) {
+            $suggestions[] = $contact->email;
+        }
+
+        return array_unique($suggestions);
+    }
+
+    private static function resolveDefaultTo($contact, array $emailOptions): ?string
+    {
+        if ($contact?->email && isset($emailOptions[$contact->email])) {
+            return $contact->email;
+        }
+
+        if (! empty($emailOptions)) {
+            return array_key_first($emailOptions);
+        }
+
+        return null;
     }
 
     private static function resolveCompany($record)
