@@ -11,8 +11,9 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Wizard;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Actions as SchemaActions;
+use Filament\Schemas\Components\Wizard;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 
@@ -48,9 +49,9 @@ class ImportProductsFromExcelAction
                                     . '<ol style="color: #1E3A5F; font-size: 13px; padding-left: 20px; margin: 0;">'
                                     . '<li>Select the category above</li>'
                                     . '<li>Click <strong>Next</strong>, then use the <strong>Download Template</strong> button</li>'
-                                    . '<li>Row 1 = sections, Row 2 = headers, Row 3 = hints/examples. Data starts at Row 4.</li>'
+                                    . '<li>Row 1 = sections, Row 2 = headers, Row 3 = hints. Data starts at Row 4.</li>'
                                     . '<li>Base products: leave <strong>Parent SKU</strong> empty</li>'
-                                    . '<li>Variants: fill <strong>Parent SKU</strong> with the SKU of the base product (from a row above)</li>'
+                                    . '<li>Variants: fill <strong>Parent SKU</strong> with the SKU of the base product</li>'
                                     . '<li>Prices in <strong>decimal format</strong> (e.g. 12.50), NOT in cents</li>'
                                     . '</ol>'
                                     . '</div>'
@@ -61,12 +62,12 @@ class ImportProductsFromExcelAction
                         ->icon('heroicon-o-arrow-up-tray')
                         ->description('Download template and upload filled file')
                         ->schema([
-                            \Filament\Forms\Components\Actions::make([
-                                \Filament\Forms\Components\Actions\Action::make('downloadTemplate')
+                            SchemaActions::make([
+                                Action::make('downloadTemplate')
                                     ->label('Download Template')
                                     ->icon('heroicon-o-document-arrow-down')
                                     ->color('success')
-                                    ->action(function (\Filament\Forms\Components\Actions\Action $action, $livewire) use ($role) {
+                                    ->action(function (Action $action, $livewire) use ($role) {
                                         $categoryId = data_get($livewire->mountedActionsData, '0.category_id')
                                             ?? data_get($livewire->mountedActionsData, 'category_id');
 
