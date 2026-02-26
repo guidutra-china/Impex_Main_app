@@ -111,11 +111,15 @@ class UserForm
 
     private static function isExternalType(mixed $type): bool
     {
-        return in_array($type, [
+        if ($type instanceof UserType) {
+            return $type->isExternal();
+        }
+
+        $value = is_string($type) ? $type : null;
+
+        return in_array($value, [
             UserType::CLIENT->value,
             UserType::SUPPLIER->value,
-            'client',
-            'supplier',
         ]);
     }
 }
