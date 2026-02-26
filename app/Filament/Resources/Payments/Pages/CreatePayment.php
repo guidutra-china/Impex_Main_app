@@ -20,6 +20,21 @@ class CreatePayment extends CreateRecord
 
     protected array $pendingCreditApplications = [];
 
+    public function mount(): void
+    {
+        parent::mount();
+
+        $direction = request()->query('direction');
+        $companyId = request()->query('company_id');
+
+        if ($direction) {
+            $this->form->fill(array_filter([
+                'direction' => $direction,
+                'company_id' => $companyId ? (int) $companyId : null,
+            ]));
+        }
+    }
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $this->pendingAllocations = $data['allocations'] ?? [];

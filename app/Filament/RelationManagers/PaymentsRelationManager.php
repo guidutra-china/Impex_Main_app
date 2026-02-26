@@ -126,7 +126,20 @@ class PaymentsRelationManager extends RelationManager
                     ->icon('heroicon-o-plus-circle')
                     ->color('primary')
                     ->visible(fn () => auth()->user()?->can('create-payments'))
-                    ->url(fn () => PaymentResource::getUrl('create'))
+                    ->url(function () {
+                        $owner = $this->getOwnerRecord();
+                        $params = [];
+
+                        if ($owner instanceof \App\Domain\PurchaseOrders\Models\PurchaseOrder) {
+                            $params['direction'] = 'outbound';
+                            $params['company_id'] = $owner->supplier_company_id;
+                        } elseif ($owner instanceof \App\Domain\ProformaInvoices\Models\ProformaInvoice) {
+                            $params['direction'] = 'inbound';
+                            $params['company_id'] = $owner->company_id;
+                        }
+
+                        return PaymentResource::getUrl('create', $params);
+                    })
                     ->openUrlInNewTab(),
             ])
             ->recordActions([
