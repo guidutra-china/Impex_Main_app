@@ -76,8 +76,10 @@ class QuotationResource extends Resource
                 SelectFilter::make('status')
                     ->options(\App\Domain\Quotations\Enums\QuotationStatus::class),
             ])
+            ->recordUrl(fn (Quotation $record) => Pages\ViewQuotation::getUrl(['record' => $record]))
             ->recordActions([
-                \Filament\Actions\ViewAction::make(),
+                \Filament\Actions\ViewAction::make()
+                    ->url(fn (Quotation $record) => Pages\ViewQuotation::getUrl(['record' => $record])),
             ])
             ->persistFiltersInSession()
             ->defaultSort('created_at', 'desc')

@@ -85,8 +85,10 @@ class ProformaInvoiceResource extends Resource
                 SelectFilter::make('status')
                     ->options(\App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus::class),
             ])
+            ->recordUrl(fn (ProformaInvoice $record) => Pages\ViewProformaInvoice::getUrl(['record' => $record]))
             ->recordActions([
-                \Filament\Actions\ViewAction::make(),
+                \Filament\Actions\ViewAction::make()
+                    ->url(fn (ProformaInvoice $record) => Pages\ViewProformaInvoice::getUrl(['record' => $record])),
             ])
             ->persistFiltersInSession()
             ->defaultSort('created_at', 'desc')

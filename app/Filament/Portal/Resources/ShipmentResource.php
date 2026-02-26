@@ -96,8 +96,10 @@ class ShipmentResource extends Resource
                 SelectFilter::make('status')
                     ->options(ShipmentStatus::class),
             ])
+            ->recordUrl(fn (Shipment $record) => Pages\ViewShipment::getUrl(['record' => $record]))
             ->recordActions([
-                \Filament\Actions\ViewAction::make(),
+                \Filament\Actions\ViewAction::make()
+                    ->url(fn (Shipment $record) => Pages\ViewShipment::getUrl(['record' => $record])),
             ])
             ->persistFiltersInSession()
             ->defaultSort('created_at', 'desc')
