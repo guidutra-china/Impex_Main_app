@@ -18,5 +18,5 @@ Route::get('/files/download', FileDownloadController::class)
     ->middleware(['auth', 'signed']);
 
 Route::get('/portal/documents/{document}/download', PortalDocumentDownloadController::class)
-    ->name('portal.document.download')
+    ->name('portal.documents.download')
     ->middleware(['auth']);

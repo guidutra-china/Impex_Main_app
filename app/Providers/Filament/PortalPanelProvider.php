@@ -32,6 +32,7 @@ class PortalPanelProvider extends PanelProvider
             ->sidebarCollapsibleOnDesktop()
             ->brandName('Impex Portal')
             ->databaseNotifications()
+            ->viteTheme('resources/css/filament/portal/theme.css')
             ->colors([
                 'primary' => Color::Indigo,
                 'danger' => Color::Red,
