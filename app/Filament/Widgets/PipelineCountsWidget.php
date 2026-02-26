@@ -10,21 +10,24 @@ use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
-use Filament\Widgets\StatsOverviewWidget as BaseWidget;
-use Filament\Widgets\StatsOverviewWidget\Stat;
+use Filament\Widgets\Widget;
 
-class PipelineCountsWidget extends BaseWidget
+class PipelineCountsWidget extends Widget
 {
     protected static bool $isLazy = false;
 
     protected static ?int $sort = 2;
+
+    protected string $view = 'filament.widgets.pipeline-counts';
+
+    protected int | string | array $columnSpan = 'full';
 
     public static function canView(): bool
     {
         return auth()->user()?->can('view-operational-dashboard') ?? false;
     }
 
-    protected function getStats(): array
+    protected function getViewData(): array
     {
         $activeInquiries = Inquiry::query()
             ->whereIn('status', [InquiryStatus::RECEIVED, InquiryStatus::QUOTING, InquiryStatus::QUOTED])
@@ -65,26 +68,44 @@ class PipelineCountsWidget extends BaseWidget
             ->where('status', ShipmentStatus::IN_TRANSIT)
             ->count();
 
+        $totalActive = $activeInquiries + $activePIs + $activePOs + $activeShipments;
+
         return [
-            Stat::make('Active Inquiries', $activeInquiries)
-                ->description('Open client inquiries')
-                ->icon('heroicon-o-magnifying-glass')
-                ->color($activeInquiries > 0 ? 'info' : 'gray'),
-
-            Stat::make('Active PIs', $activePIs)
-                ->description('Proforma invoices in progress')
-                ->icon('heroicon-o-document-text')
-                ->color($activePIs > 0 ? 'primary' : 'gray'),
-
-            Stat::make('Active POs', $activePOs)
-                ->description($inProductionPOs > 0 ? $inProductionPOs . ' in production' : 'Purchase orders in progress')
-                ->icon('heroicon-o-shopping-cart')
-                ->color($activePOs > 0 ? 'warning' : 'gray'),
-
-            Stat::make('Active Shipments', $activeShipments)
-                ->description($inTransit > 0 ? $inTransit . ' in transit' : 'Shipments in progress')
-                ->icon('heroicon-o-truck')
-                ->color($activeShipments > 0 ? 'success' : 'gray'),
+            'stages' => [
+                [
+                    'label' => 'Inquiries',
+                    'count' => $activeInquiries,
+                    'detail' => 'Open client inquiries',
+                    'icon' => 'heroicon-o-magnifying-glass',
+                    'color' => 'info',
+                    'url' => route('filament.admin.resources.inquiries.index'),
+                ],
+                [
+                    'label' => 'Proforma Invoices',
+                    'count' => $activePIs,
+                    'detail' => 'In progress',
+                    'icon' => 'heroicon-o-document-text',
+                    'color' => 'primary',
+                    'url' => route('filament.admin.resources.proforma-invoices.index'),
+                ],
+                [
+                    'label' => 'Purchase Orders',
+                    'count' => $activePOs,
+                    'detail' => $inProductionPOs > 0 ? $inProductionPOs . ' in production' : 'In progress',
+                    'icon' => 'heroicon-o-shopping-cart',
+                    'color' => 'warning',
+                    'url' => route('filament.admin.resources.purchase-orders.index'),
+                ],
+                [
+                    'label' => 'Shipments',
+                    'count' => $activeShipments,
+                    'detail' => $inTransit > 0 ? $inTransit . ' in transit' : 'In progress',
+                    'icon' => 'heroicon-o-truck',
+                    'color' => 'success',
+                    'url' => route('filament.admin.resources.shipments.index'),
+                ],
+            ],
+            'totalActive' => $totalActive,
         ];
     }
 }

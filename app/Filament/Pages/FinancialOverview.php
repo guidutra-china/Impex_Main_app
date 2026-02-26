@@ -11,7 +11,7 @@ use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
-use App\Filament\Widgets\FinancialStatsOverview;
+use App\Filament\Pages\Widgets\FinancialStatsOverview;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
@@ -55,11 +55,6 @@ class FinancialOverview extends Page implements HasTable
         return [
             FinancialStatsOverview::class,
         ];
-    }
-
-    public function getHeaderWidgetsColumns(): int|array
-    {
-        return 6;
     }
 
     public function table(Table $table): Table
