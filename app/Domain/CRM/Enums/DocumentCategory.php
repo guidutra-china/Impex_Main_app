@@ -17,19 +17,11 @@ enum DocumentCategory: string implements HasLabel, HasColor, HasIcon
     case CATALOG = 'catalog';
     case OTHER = 'other';
 
-    public function getLabel(): string
+    public function getLabel(): ?string
     {
-        return match ($this) {
-            self::CERTIFICATE => 'Certificate',
-            self::PHOTO => 'Photo',
-            self::CONTRACT => 'Contract',
-            self::LICENSE => 'License',
-            self::REPORT => 'Report',
-            self::PRICE_LIST => 'Price List',
-            self::CATALOG => 'Catalog',
-            self::OTHER => 'Other',
-        };
+        return __('enums.document_category.' . $this->value);
     }
+
 
     public function getColor(): string
     {
@@ -56,6 +48,20 @@ enum DocumentCategory: string implements HasLabel, HasColor, HasIcon
             self::PRICE_LIST => 'heroicon-o-currency-dollar',
             self::CATALOG => 'heroicon-o-book-open',
             self::OTHER => 'heroicon-o-paper-clip',
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::CERTIFICATE => 'Certificate',
+            self::PHOTO => 'Photo',
+            self::CONTRACT => 'Contract',
+            self::LICENSE => 'License',
+            self::REPORT => 'Report',
+            self::PRICE_LIST => 'Price List',
+            self::CATALOG => 'Catalog',
+            self::OTHER => 'Other',
         };
     }
 }

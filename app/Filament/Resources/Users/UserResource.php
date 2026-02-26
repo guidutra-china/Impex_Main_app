@@ -20,17 +20,9 @@ class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Settings';
-
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-users';
 
     protected static ?int $navigationSort = 1;
-
-    protected static ?string $navigationLabel = 'Users';
-
-    protected static ?string $modelLabel = 'User';
-
-    protected static ?string $pluralModelLabel = 'Users';
 
     protected static ?string $slug = 'users';
 
@@ -74,5 +66,25 @@ class UserResource extends Resource
             'view' => ViewUser::route('/{record}'),
             'edit' => EditUser::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.settings');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.resources.users');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('navigation.models.user');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('navigation.models.users');
     }
 }

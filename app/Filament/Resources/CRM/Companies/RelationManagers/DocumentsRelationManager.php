@@ -38,21 +38,21 @@ class DocumentsRelationManager extends RelationManager
     {
         return $schema
             ->components([
-                Section::make('Document Details')
+                Section::make(__('forms.sections.document_details'))
                     ->schema([
                         Select::make('category')
-                            ->label('Category')
+                            ->label(__('forms.labels.category'))
                             ->options(DocumentCategory::class)
                             ->required()
                             ->searchable()
                             ->native(false),
                         TextInput::make('title')
-                            ->label('Title')
+                            ->label(__('forms.labels.title'))
                             ->required()
                             ->maxLength(255)
-                            ->placeholder('e.g. ISO 9001 Certificate, Factory Front Photo'),
+                            ->placeholder(__('forms.placeholders.eg_iso_9001_certificate_factory_front_photo')),
                         FileUpload::make('path')
-                            ->label('File')
+                            ->label(__('forms.labels.file'))
                             ->required()
                             ->disk('public')
                             ->directory(fn () => 'company-documents/' . $this->getOwnerRecord()->id)
@@ -67,19 +67,19 @@ class DocumentsRelationManager extends RelationManager
                                 'application/vnd.ms-powerpoint',
                                 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
                             ])
-                            ->helperText('Max 20MB. Accepts images, PDF, Word, Excel, PowerPoint.')
+                            ->helperText(__('forms.helpers.max_20mb_accepts_images_pdf_word_excel_powerpoint'))
                             ->columnSpanFull()
                             ->storeFileNamesIn('original_name')
                             ->visibility('public'),
                         DatePicker::make('expiry_date')
-                            ->label('Expiry Date')
-                            ->placeholder('Leave blank if not applicable')
-                            ->helperText('For certificates, licenses, or contracts with expiration'),
+                            ->label(__('forms.labels.expiry_date'))
+                            ->placeholder(__('forms.placeholders.leave_blank_if_not_applicable'))
+                            ->helperText(__('forms.helpers.for_certificates_licenses_or_contracts_with_expiration')),
                         Textarea::make('notes')
-                            ->label('Notes')
+                            ->label(__('forms.labels.notes'))
                             ->rows(2)
                             ->maxLength(1000)
-                            ->placeholder('Additional context or description')
+                            ->placeholder(__('forms.placeholders.additional_context_or_description'))
                             ->columnSpanFull(),
                     ])
                     ->columns(2),
@@ -91,24 +91,24 @@ class DocumentsRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('category')
-                    ->label('Category')
+                    ->label(__('forms.labels.category'))
                     ->badge()
                     ->sortable(),
                 TextColumn::make('title')
-                    ->label('Title')
+                    ->label(__('forms.labels.title'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->limit(40),
                 TextColumn::make('original_name')
-                    ->label('File')
+                    ->label(__('forms.labels.file'))
                     ->limit(30)
                     ->toggleable(),
                 TextColumn::make('formatted_size')
-                    ->label('Size')
+                    ->label(__('forms.labels.size'))
                     ->toggleable(),
                 TextColumn::make('expiry_date')
-                    ->label('Expires')
+                    ->label(__('forms.labels.expires'))
                     ->date('Y-m-d')
                     ->placeholder('—')
                     ->sortable()
@@ -118,10 +118,10 @@ class DocumentsRelationManager extends RelationManager
                         default => null,
                     }),
                 TextColumn::make('uploader.name')
-                    ->label('Uploaded By')
+                    ->label(__('forms.labels.uploaded_by'))
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')
-                    ->label('Uploaded')
+                    ->label(__('forms.labels.uploaded'))
                     ->dateTime('Y-m-d H:i')
                     ->sortable()
                     ->toggleable(),

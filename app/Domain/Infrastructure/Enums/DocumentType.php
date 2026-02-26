@@ -23,6 +23,11 @@ enum DocumentType: string
 
     public function label(): string
     {
+        return __('enums.document_type.' . $this->value);
+    }
+
+    public function englishLabel(): string
+    {
         return match ($this) {
             self::INQUIRY => 'Inquiry',
             self::SUPPLIER_QUOTATION => 'Supplier Quotation',

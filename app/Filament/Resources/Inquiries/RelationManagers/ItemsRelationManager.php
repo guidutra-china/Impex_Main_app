@@ -37,8 +37,8 @@ class ItemsRelationManager extends RelationManager
         return $schema
             ->components([
                 Toggle::make('create_new_product')
-                    ->label('Create new draft product')
-                    ->helperText('Enable to create a new product in the catalog as draft.')
+                    ->label(__('forms.labels.create_new_draft_product'))
+                    ->helperText(__('forms.helpers.enable_to_create_a_new_product_in_the_catalog_as_draft'))
                     ->live()
                     ->dehydrated(false)
                     ->default(false)
@@ -54,10 +54,10 @@ class ItemsRelationManager extends RelationManager
                     }),
 
                 // --- Existing product selection ---
-                Section::make('Select Existing Product')
+                Section::make(__('forms.sections.select_existing_product'))
                     ->schema([
                         Select::make('product_id')
-                            ->label('Product')
+                            ->label(__('forms.labels.product'))
                             ->options(function () {
                                 return Product::query()
                                     ->orderBy('name')
@@ -91,7 +91,7 @@ class ItemsRelationManager extends RelationManager
                                     }
                                 }
                             })
-                            ->helperText('Search by name, SKU, or supplier/client code.')
+                            ->helperText(__('forms.helpers.search_by_name_sku_or_supplierclient_code'))
                             ->columnSpanFull(),
                     ])
                     ->visible(fn (Get $get) => ! $get('create_new_product')),
@@ -99,60 +99,60 @@ class ItemsRelationManager extends RelationManager
                 // --- New draft product creation ---
                 // Fields use dehydrated(true) so they reach the CreateAction->using() callback.
                 // They are manually removed from $data before creating the InquiryItem.
-                Section::make('New Draft Product')
-                    ->description('A new product will be created in the catalog with DRAFT status. You can complete its details later.')
+                Section::make(__('forms.sections.new_draft_product'))
+                    ->description(__('forms.descriptions.a_new_product_will_be_created_in_the_catalog_with_draft'))
                     ->schema([
                         TextInput::make('new_product_name')
-                            ->label('Product Name')
+                            ->label(__('forms.labels.product_name'))
                             ->required(fn (Get $get) => (bool) $get('create_new_product'))
                             ->maxLength(255)
-                            ->helperText('Name as described by the client. Can be refined later.'),
+                            ->helperText(__('forms.helpers.name_as_described_by_the_client_can_be_refined_later')),
                         Select::make('new_product_category_id')
-                            ->label('Category (optional)')
+                            ->label(__('forms.labels.category_optional'))
                             ->options(fn () => Category::active()->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
-                            ->helperText('Assign a category if known. Affects SKU prefix generation.'),
+                            ->helperText(__('forms.helpers.assign_a_category_if_known_affects_sku_prefix_generation')),
                     ])
                     ->visible(fn (Get $get) => (bool) $get('create_new_product'))
                     ->columns(2),
 
                 // --- Common fields ---
-                Section::make('Item Details')
+                Section::make(__('forms.sections.item_details'))
                     ->schema([
                         TextInput::make('description')
-                            ->label('Item Description')
+                            ->label(__('forms.labels.item_description'))
                             ->maxLength(255)
-                            ->helperText('Description for this inquiry line item. Auto-filled from product.')
+                            ->helperText(__('forms.helpers.description_for_this_inquiry_line_item_autofilled_from'))
                             ->visible(fn (Get $get) => ! $get('create_new_product'))
                             ->columnSpanFull(),
                         TextInput::make('quantity')
-                            ->label('Quantity')
+                            ->label(__('forms.labels.quantity'))
                             ->numeric()
                             ->minValue(1)
                             ->default(1)
                             ->required(),
                         TextInput::make('unit')
-                            ->label('Unit')
+                            ->label(__('forms.labels.unit'))
                             ->default('pcs')
                             ->maxLength(20)
                             ->required(),
                         TextInput::make('target_price')
-                            ->label('Target Price')
+                            ->label(__('forms.labels.target_price'))
                             ->numeric()
                             ->minValue(0)
                             ->step(0.0001)
                             ->prefix('$')
-                            ->helperText('Client target price per unit, if provided.')
+                            ->helperText(__('forms.helpers.client_target_price_per_unit_if_provided'))
                             ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : null)
                             ->dehydrateStateUsing(fn ($state) => $state ? Money::toMinor($state) : null),
                         Textarea::make('specifications')
-                            ->label('Specifications')
+                            ->label(__('forms.labels.specifications'))
                             ->rows(3)
                             ->maxLength(2000)
-                            ->helperText('Client-provided specs, dimensions, certifications, etc.')
+                            ->helperText(__('forms.helpers.clientprovided_specs_dimensions_certifications_etc'))
                             ->columnSpanFull(),
                         Textarea::make('notes')
-                            ->label('Notes')
+                            ->label(__('forms.labels.notes'))
                             ->rows(2)
                             ->maxLength(1000)
                             ->columnSpanFull(),
@@ -166,27 +166,27 @@ class ItemsRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('product.sku')
-                    ->label('SKU')
+                    ->label(__('forms.labels.sku'))
                     ->placeholder('—')
                     ->searchable()
                     ->badge()
                     ->color(fn ($record) => $record->product?->status === ProductStatus::DRAFT ? 'warning' : 'gray'),
                 TextColumn::make('displayName')
-                    ->label('Item')
+                    ->label(__('forms.labels.item'))
                     ->searchable(['description'])
                     ->limit(40),
                 TextColumn::make('quantity')
-                    ->label('Qty')
+                    ->label(__('forms.labels.qty'))
                     ->alignCenter(),
                 TextColumn::make('unit')
-                    ->label('Unit')
+                    ->label(__('forms.labels.unit'))
                     ->alignCenter(),
                 TextColumn::make('target_price')
-                    ->label('Target Price')
+                    ->label(__('forms.labels.target_price'))
                     ->formatStateUsing(fn ($state) => $state ? '$ ' . Money::format($state) : '—')
                     ->alignEnd(),
                 TextColumn::make('specifications')
-                    ->label('Specs')
+                    ->label(__('forms.labels.specs'))
                     ->limit(30)
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -251,8 +251,8 @@ class ItemsRelationManager extends RelationManager
             }
 
             Notification::make()
-                ->title('Draft product created: ' . $product->sku)
-                ->body($product->name . ' — linked to ' . ($inquiry->company?->name ?? 'client'))
+                ->title(__('messages.draft_product_created') . ': ' . $product->sku)
+                ->body($product->name . ' — ' . __('messages.linked_to') . ' ' . ($inquiry->company?->name ?? __('messages.client')))
                 ->info()
                 ->send();
         }

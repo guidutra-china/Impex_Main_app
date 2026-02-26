@@ -30,7 +30,7 @@ class ProductsTable
                     ->size(48)
                     ->defaultImageUrl(fn () => 'https://ui-avatars.com/api/?background=e2e8f0&color=94a3b8&name=P&size=48'),
                 TextColumn::make('sku')
-                    ->label('SKU')
+                    ->label(__('forms.labels.sku'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
@@ -38,17 +38,17 @@ class ProductsTable
                     ->size('sm')
                     ->color('gray'),
                 TextColumn::make('name')
-                    ->label('Name')
+                    ->label(__('forms.labels.name'))
                     ->searchable()
                     ->sortable()
                     ->limit(50)
                     ->weight('bold')
                     ->description(fn ($record) => $record->category?->name),
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->badge(),
                 TextColumn::make('costing.base_price')
-                    ->label('Base Price')
+                    ->label(__('forms.labels.base_price'))
                     ->formatStateUsing(function ($state, $record) {
                         if (! $state) {
                             return '—';
@@ -60,41 +60,41 @@ class ProductsTable
                     ->alignEnd()
                     ->color(fn ($state) => $state ? null : 'gray'),
                 TextColumn::make('suppliers_count')
-                    ->label('Suppliers')
+                    ->label(__('forms.labels.suppliers'))
                     ->counts('suppliers')
                     ->alignCenter()
                     ->badge()
                     ->color(fn (int $state) => $state > 0 ? 'primary' : 'gray'),
                 TextColumn::make('clients_count')
-                    ->label('Clients')
+                    ->label(__('forms.labels.clients'))
                     ->counts('clients')
                     ->alignCenter()
                     ->badge()
                     ->color(fn (int $state) => $state > 0 ? 'success' : 'gray'),
                 TextColumn::make('variants_count')
-                    ->label('Variants')
+                    ->label(__('forms.labels.variants'))
                     ->counts('variants')
                     ->alignCenter()
                     ->badge()
                     ->color(fn (int $state) => $state > 0 ? 'info' : 'gray'),
                 TextColumn::make('parent.name')
-                    ->label('Variant Of')
-                    ->placeholder('Base Product')
+                    ->label(__('forms.labels.variant_of'))
+                    ->placeholder(__('forms.placeholders.base_product'))
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('hs_code')
-                    ->label('HS Code')
+                    ->label(__('forms.labels.hs_code'))
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('origin_country')
-                    ->label('Origin')
+                    ->label(__('forms.labels.origin'))
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('moq')
-                    ->label('MOQ')
+                    ->label(__('forms.labels.moq'))
                     ->numeric()
                     ->alignEnd()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')
-                    ->label('Updated')
+                    ->label(__('forms.labels.updated'))
                     ->dateTime('M d, Y')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -103,12 +103,12 @@ class ProductsTable
                 SelectFilter::make('status')
                     ->options(ProductStatus::class),
                 SelectFilter::make('category_id')
-                    ->label('Category')
+                    ->label(__('forms.labels.category'))
                     ->relationship('category', 'name')
                     ->searchable()
                     ->preload(),
                 SelectFilter::make('has_suppliers')
-                    ->label('Has Suppliers')
+                    ->label(__('forms.labels.has_suppliers'))
                     ->options([
                         'yes' => 'With Suppliers',
                         'no' => 'Without Suppliers',
@@ -124,10 +124,10 @@ class ProductsTable
             ])
             ->groups([
                 Group::make('category.name')
-                    ->label('Category')
+                    ->label(__('forms.labels.category'))
                     ->collapsible(),
                 Group::make('status')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->collapsible(),
             ])
             ->recordActions([

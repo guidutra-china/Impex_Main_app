@@ -24,13 +24,9 @@ class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Catalog';
-
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-cube';
 
     protected static ?int $navigationSort = 1;
-
-    protected static ?string $navigationLabel = 'Products';
 
     protected static ?string $slug = 'catalog/products';
 
@@ -79,5 +75,15 @@ class ProductResource extends Resource
             'view' => ViewProduct::route('/{record}'),
             'edit' => EditProduct::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.catalog');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.resources.products');
     }
 }

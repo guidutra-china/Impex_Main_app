@@ -21,51 +21,51 @@ class QuotationsTable
         return $table
             ->columns([
                 TextColumn::make('reference')
-                    ->label('Reference')
+                    ->label(__('forms.labels.reference'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->copyable(),
                 TextColumn::make('company.name')
-                    ->label('Client')
+                    ->label(__('forms.labels.client'))
                     ->searchable()
                     ->sortable()
                     ->limit(30),
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->badge(),
                 TextColumn::make('version')
-                    ->label('Version')
+                    ->label(__('forms.labels.version'))
                     ->prefix('v')
                     ->alignCenter(),
                 TextColumn::make('currency_code')
-                    ->label('Currency')
+                    ->label(__('forms.labels.currency'))
                     ->badge()
                     ->color('gray')
                     ->alignCenter(),
                 TextColumn::make('commission_type')
-                    ->label('Commission')
+                    ->label(__('forms.labels.commission'))
                     ->badge()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('items_count')
-                    ->label('Items')
+                    ->label(__('forms.labels.items'))
                     ->counts('items')
                     ->alignCenter(),
                 TextColumn::make('valid_until')
-                    ->label('Valid Until')
+                    ->label(__('forms.labels.valid_until'))
                     ->date('d/m/Y')
                     ->sortable()
                     ->color(fn ($record) => $record->valid_until && $record->valid_until->isPast() ? 'danger' : null),
                 TextColumn::make('creator.name')
-                    ->label('Created By')
+                    ->label(__('forms.labels.created_by'))
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('forms.labels.created'))
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')
-                    ->label('Updated')
+                    ->label(__('forms.labels.updated'))
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -74,10 +74,10 @@ class QuotationsTable
                 SelectFilter::make('status')
                     ->options(QuotationStatus::class),
                 SelectFilter::make('commission_type')
-                    ->label('Commission Model')
+                    ->label(__('forms.labels.commission_model'))
                     ->options(CommissionType::class),
                 SelectFilter::make('company_id')
-                    ->label('Client')
+                    ->label(__('forms.labels.client'))
                     ->relationship('company', 'name')
                     ->searchable()
                     ->preload(),

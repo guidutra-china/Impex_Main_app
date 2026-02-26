@@ -38,11 +38,11 @@ class InheritedAttributesRelationManager extends RelationManager
             )
             ->columns([
                 TextColumn::make('category.name')
-                    ->label('From Category')
+                    ->label(__('forms.labels.from_category'))
                     ->badge()
                     ->color('info'),
                 TextColumn::make('name')
-                    ->label('Attribute')
+                    ->label(__('forms.labels.attribute'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
@@ -50,15 +50,15 @@ class InheritedAttributesRelationManager extends RelationManager
                     ->badge()
                     ->sortable(),
                 TextColumn::make('default_value')
-                    ->label('Default')
+                    ->label(__('forms.labels.default'))
                     ->placeholder('(none)'),
                 TextColumn::make('unit')
-                    ->label('Unit')
+                    ->label(__('forms.labels.unit'))
                     ->badge()
                     ->color('gray')
                     ->placeholder('-'),
                 IconColumn::make('is_required')
-                    ->label('Required')
+                    ->label(__('forms.labels.required'))
                     ->boolean()
                     ->sortable(),
             ])

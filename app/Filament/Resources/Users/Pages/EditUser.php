@@ -25,7 +25,7 @@ class EditUser extends EditRecord
 
         if ($record->id === auth()->id() && ($this->data['status'] ?? null) === 'inactive') {
             Notification::make()
-                ->title('Cannot deactivate your own account')
+                ->title(__('messages.cannot_deactivate_own'))
                 ->danger()
                 ->send();
 

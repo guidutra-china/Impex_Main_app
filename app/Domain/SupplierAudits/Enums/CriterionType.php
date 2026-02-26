@@ -11,6 +11,12 @@ enum CriterionType: string implements HasLabel
 
     public function getLabel(): ?string
     {
+        return __('enums.criterion_type.' . $this->value);
+    }
+
+
+    public function getEnglishLabel(): string
+    {
         return match ($this) {
             self::SCORED => 'Scored (1-5)',
             self::PASS_FAIL => 'Pass / Fail',

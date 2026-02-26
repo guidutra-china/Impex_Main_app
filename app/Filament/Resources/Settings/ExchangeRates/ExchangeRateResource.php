@@ -18,13 +18,9 @@ class ExchangeRateResource extends Resource
 {
     protected static ?string $model = ExchangeRate::class;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Settings';
-
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-arrows-right-left';
 
     protected static ?int $navigationSort = 3;
-
-    protected static ?string $navigationLabel = 'Exchange Rates';
 
     public static function canAccess(): bool
     {
@@ -48,5 +44,15 @@ class ExchangeRateResource extends Resource
             'create' => CreateExchangeRate::route('/create'),
             'edit' => EditExchangeRate::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.settings');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.resources.exchange_rates');
     }
 }

@@ -72,7 +72,7 @@
                                 <div class="border-t border-gray-100 dark:border-gray-700 pt-2 mt-1">
                                     @if ($card['value'])
                                         <div class="flex items-center justify-between mb-1">
-                                            <span class="text-xs text-gray-500 dark:text-gray-400">Value</span>
+                                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ __('widgets.kanban.value') }}</span>
                                             <span class="text-xs font-semibold text-gray-900 dark:text-white">{{ $card['value'] }}</span>
                                         </div>
                                     @endif
@@ -80,7 +80,7 @@
                                     @if ($card['payment_progress'] !== null)
                                         <div class="mt-1">
                                             <div class="flex items-center justify-between mb-0.5">
-                                                <span class="text-xs text-gray-500 dark:text-gray-400">Paid</span>
+                                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ __('widgets.kanban.paid') }}</span>
                                                 <span @class([
                                                     'text-xs font-semibold',
                                                     'text-success-600 dark:text-success-400' => $card['payment_progress'] >= 100,
@@ -110,14 +110,14 @@
                             @if (!empty($card['has_overdue']))
                                 <div class="mt-2 flex items-center gap-1 text-danger-600 dark:text-danger-400">
                                     <x-filament::icon icon="heroicon-m-exclamation-triangle" class="h-3.5 w-3.5" />
-                                    <span class="text-xs font-medium">Overdue payment</span>
+                                    <span class="text-xs font-medium">{{ __('widgets.kanban.overdue_payment') }}</span>
                                 </div>
                             @endif
 
                             @if (isset($card['days_since_update']) && $card['days_since_update'] > 15)
                                 <div class="mt-1 flex items-center gap-1 text-warning-600 dark:text-warning-400">
                                     <x-filament::icon icon="heroicon-m-clock" class="h-3.5 w-3.5" />
-                                    <span class="text-xs font-medium">No update for {{ $card['days_since_update'] }}d</span>
+                                    <span class="text-xs font-medium">{{ __('widgets.kanban.no_update_for') }} {{ $card['days_since_update'] }}d</span>
                                 </div>
                             @endif
 
@@ -130,7 +130,7 @@
                         </a>
                     @empty
                         <div class="flex items-center justify-center py-8">
-                            <p class="text-xs text-gray-400 dark:text-gray-500">No items</p>
+                            <p class="text-xs text-gray-400 dark:text-gray-500">{{ __('widgets.kanban.no_items') }}</p>
                         </div>
                     @endforelse
                 </div>

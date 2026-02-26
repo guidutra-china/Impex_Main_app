@@ -23,9 +23,9 @@
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {{-- Receivables Section --}}
         <x-filament::section
-            heading="Receivables"
+            :heading="__('widgets.financial_stats.receivables')"
             icon="heroicon-o-arrow-down-left"
-            description="From clients"
+            :description="__('widgets.financial_stats.from_clients')"
         >
             <div class="space-y-4">
                 {{-- Cards --}}
@@ -88,9 +88,9 @@
 
         {{-- Payables Section --}}
         <x-filament::section
-            heading="Payables"
+            :heading="__('widgets.financial_stats.payables')"
             icon="heroicon-o-arrow-up-right"
-            description="To suppliers"
+            :description="__('widgets.financial_stats.to_suppliers')"
         >
             <div class="space-y-4">
                 {{-- Cards --}}

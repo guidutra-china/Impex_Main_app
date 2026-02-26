@@ -14,16 +14,11 @@ enum PackagingType: string implements HasLabel, HasColor, HasIcon
     case WOOD_BOX = 'wood_box';
     case BULK = 'bulk';
 
-    public function getLabel(): string
+    public function getLabel(): ?string
     {
-        return match ($this) {
-            self::CARTON => 'Carton',
-            self::BAG => 'Bag',
-            self::DRUM => 'Drum',
-            self::WOOD_BOX => 'Wood Box',
-            self::BULK => 'Bulk',
-        };
+        return __('enums.packaging_type.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -44,6 +39,17 @@ enum PackagingType: string implements HasLabel, HasColor, HasIcon
             self::DRUM => 'heroicon-o-circle-stack',
             self::WOOD_BOX => 'heroicon-o-archive-box',
             self::BULK => 'heroicon-o-squares-2x2',
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::CARTON => 'Carton',
+            self::BAG => 'Bag',
+            self::DRUM => 'Drum',
+            self::WOOD_BOX => 'Wood Box',
+            self::BULK => 'Bulk',
         };
     }
 }

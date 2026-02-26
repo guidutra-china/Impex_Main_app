@@ -34,7 +34,7 @@ class ItemsRelationManager extends RelationManager
     {
         return $schema->components([
             Select::make('product_id')
-                ->label('Product')
+                ->label(__('forms.labels.product'))
                 ->options(
                     fn () => Product::active()
                         ->orderBy('name')
@@ -55,28 +55,28 @@ class ItemsRelationManager extends RelationManager
                 ->columnSpanFull(),
 
             TextInput::make('description')
-                ->label('Description')
+                ->label(__('forms.labels.description'))
                 ->maxLength(255),
 
             Textarea::make('specifications')
-                ->label('Specifications')
+                ->label(__('forms.labels.specifications'))
                 ->rows(3)
                 ->columnSpanFull(),
 
             TextInput::make('quantity')
-                ->label('Quantity')
+                ->label(__('forms.labels.quantity'))
                 ->numeric()
                 ->required()
                 ->minValue(1)
                 ->default(1),
 
             TextInput::make('unit')
-                ->label('Unit')
+                ->label(__('forms.labels.unit'))
                 ->default('pcs')
                 ->maxLength(20),
 
             TextInput::make('unit_cost')
-                ->label('Unit Cost (Supplier)')
+                ->label(__('forms.labels.unit_cost_supplier'))
                 ->numeric()
                 ->required()
                 ->prefix('$')
@@ -84,12 +84,12 @@ class ItemsRelationManager extends RelationManager
                 ->minValue(0),
 
             Select::make('incoterm')
-                ->label('Incoterm')
+                ->label(__('forms.labels.incoterm'))
                 ->options(Incoterm::class)
                 ->searchable(),
 
             Textarea::make('notes')
-                ->label('Notes')
+                ->label(__('forms.labels.notes'))
                 ->rows(2)
                 ->columnSpanFull(),
         ]);
@@ -100,38 +100,38 @@ class ItemsRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('sort_order')
-                    ->label('#')
+                    ->label(__('forms.labels.hash'))
                     ->sortable()
                     ->alignCenter(),
                 TextColumn::make('product.name')
-                    ->label('Product')
+                    ->label(__('forms.labels.product'))
                     ->searchable()
                     ->limit(30)
-                    ->placeholder('Manual item'),
+                    ->placeholder(__('forms.placeholders.manual_item')),
                 TextColumn::make('description')
-                    ->label('Description')
+                    ->label(__('forms.labels.description'))
                     ->limit(40)
                     ->toggleable(),
                 TextColumn::make('quantity')
-                    ->label('Qty')
+                    ->label(__('forms.labels.qty'))
                     ->alignCenter(),
                 TextColumn::make('unit')
-                    ->label('Unit')
+                    ->label(__('forms.labels.unit'))
                     ->alignCenter(),
                 TextColumn::make('unit_cost')
-                    ->label('Unit Cost')
+                    ->label(__('forms.labels.unit_cost'))
                     ->formatStateUsing(fn ($state) => \App\Domain\Infrastructure\Support\Money::format($state, 4))
                     ->prefix('$ ')
                     ->alignEnd(),
                 TextColumn::make('line_total')
-                    ->label('Total')
+                    ->label(__('forms.labels.total'))
                     ->getStateUsing(fn ($record) => $record->line_total)
                     ->formatStateUsing(fn ($state) => \App\Domain\Infrastructure\Support\Money::format($state))
                     ->prefix('$ ')
                     ->alignEnd()
                     ->weight('bold'),
                 TextColumn::make('proformaInvoiceItem.id')
-                    ->label('PI Item')
+                    ->label(__('forms.labels.pi_item'))
                     ->formatStateUsing(fn ($state) => $state ? "#{$state}" : '—')
                     ->alignCenter()
                     ->toggleable(isToggledHiddenByDefault: true),

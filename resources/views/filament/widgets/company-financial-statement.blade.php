@@ -71,7 +71,7 @@
                                     'text-[0.65rem] font-semibold uppercase tracking-wide',
                                     'text-danger-600 dark:text-danger-400' => $hasOverdue,
                                     'text-gray-400 dark:text-gray-500' => !$hasOverdue,
-                                ])>Overdue</p>
+                                ])>{{ __('widgets.financial_statement.overdue') }}</p>
                                 <p @class([
                                     'truncate text-lg font-bold',
                                     'text-danger-700 dark:text-danger-300' => $hasOverdue,

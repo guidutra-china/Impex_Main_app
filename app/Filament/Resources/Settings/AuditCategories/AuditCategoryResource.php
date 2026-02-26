@@ -18,13 +18,9 @@ class AuditCategoryResource extends Resource
 {
     protected static ?string $model = AuditCategory::class;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Settings';
-
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-clipboard-document-check';
 
     protected static ?int $navigationSort = 10;
-
-    protected static ?string $navigationLabel = 'Audit Categories';
 
     public static function canAccess(): bool
     {
@@ -48,5 +44,15 @@ class AuditCategoryResource extends Resource
             'create' => CreateAuditCategory::route('/create'),
             'edit' => EditAuditCategory::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.settings');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.resources.audit_categories');
     }
 }

@@ -50,21 +50,21 @@ class ProductSummary extends Widget
     {
         return [
             [
-                'label' => 'Suppliers',
+                'label' => __('widgets.product_summary.suppliers'),
                 'value' => $product->suppliers->count(),
                 'icon' => 'heroicon-o-truck',
                 'color' => 'primary',
                 'url' => null,
             ],
             [
-                'label' => 'Clients',
+                'label' => __('widgets.product_summary.clients'),
                 'value' => $product->clients->count(),
                 'icon' => 'heroicon-o-building-office',
                 'color' => 'success',
                 'url' => null,
             ],
             [
-                'label' => 'Variants',
+                'label' => __('widgets.product_summary.variants'),
                 'value' => $product->variants->count(),
                 'icon' => 'heroicon-o-square-3-stack-3d',
                 'color' => 'info',
@@ -81,7 +81,7 @@ class ProductSummary extends Widget
 
         if ($costing?->base_price) {
             $pricing['base_price'] = [
-                'label' => 'Base Price',
+                'label' => __('widgets.product_summary.base_price'),
                 'value' => Money::format($costing->base_price),
                 'currency' => $currencyCode,
             ];
@@ -89,7 +89,7 @@ class ProductSummary extends Widget
 
         if ($costing?->total_manufacturing_cost) {
             $pricing['manufacturing_cost'] = [
-                'label' => 'Manufacturing Cost',
+                'label' => __('widgets.product_summary.manufacturing_cost'),
                 'value' => Money::format($costing->total_manufacturing_cost),
                 'currency' => $currencyCode,
             ];
@@ -97,7 +97,7 @@ class ProductSummary extends Widget
 
         if ($costing?->calculated_selling_price) {
             $pricing['selling_price'] = [
-                'label' => 'Selling Price',
+                'label' => __('widgets.product_summary.selling_price'),
                 'value' => Money::format($costing->calculated_selling_price),
                 'currency' => $currencyCode,
             ];
@@ -105,7 +105,7 @@ class ProductSummary extends Widget
 
         if ($costing?->markup_percentage) {
             $pricing['markup'] = [
-                'label' => 'Markup',
+                'label' => __('widgets.product_summary.markup'),
                 'value' => number_format($costing->markup_percentage, 1) . '%',
                 'currency' => null,
             ];
@@ -114,7 +114,7 @@ class ProductSummary extends Widget
         $preferredSupplier = $product->suppliers->firstWhere('pivot.is_preferred', true);
         if ($preferredSupplier && $preferredSupplier->pivot->unit_price) {
             $pricing['supplier_price'] = [
-                'label' => 'Preferred Supplier',
+                'label' => __('widgets.product_summary.preferred_supplier'),
                 'value' => Money::format($preferredSupplier->pivot->unit_price),
                 'currency' => $preferredSupplier->pivot->currency_code ?? $currencyCode,
                 'note' => $preferredSupplier->name,
@@ -124,7 +124,7 @@ class ProductSummary extends Widget
         $preferredClient = $product->clients->firstWhere('pivot.is_preferred', true);
         if ($preferredClient && $preferredClient->pivot->unit_price) {
             $pricing['client_price'] = [
-                'label' => 'Preferred Client',
+                'label' => __('widgets.product_summary.preferred_client'),
                 'value' => Money::format($preferredClient->pivot->unit_price),
                 'currency' => $preferredClient->pivot->currency_code ?? $currencyCode,
                 'note' => $preferredClient->name,
@@ -141,23 +141,23 @@ class ProductSummary extends Widget
         if ($product->specification) {
             $s = $product->specification;
             if ($s->net_weight) {
-                $specs[] = ['label' => 'Weight', 'value' => $s->net_weight . ' kg'];
+                $specs[] = ['label' => __('widgets.product_summary.weight'), 'value' => $s->net_weight . ' kg'];
             }
             if ($s->length && $s->width && $s->height) {
-                $specs[] = ['label' => 'Dimensions', 'value' => "{$s->length} × {$s->width} × {$s->height} cm"];
+                $specs[] = ['label' => __('widgets.product_summary.dimensions'), 'value' => "{$s->length} × {$s->width} × {$s->height} cm"];
             }
             if ($s->material) {
-                $specs[] = ['label' => 'Material', 'value' => $s->material];
+                $specs[] = ['label' => __('widgets.product_summary.material'), 'value' => $s->material];
             }
             if ($s->color) {
-                $specs[] = ['label' => 'Color', 'value' => $s->color];
+                $specs[] = ['label' => __('widgets.product_summary.color'), 'value' => $s->color];
             }
         }
 
         if ($product->packaging) {
             $p = $product->packaging;
             if ($p->pcs_per_carton) {
-                $specs[] = ['label' => 'Pcs/Carton', 'value' => $p->pcs_per_carton];
+                $specs[] = ['label' => __('widgets.product_summary.pcs_per_carton'), 'value' => $p->pcs_per_carton];
             }
             if ($p->carton_cbm) {
                 $specs[] = ['label' => 'CBM/Carton', 'value' => $p->carton_cbm . ' m³'];
@@ -172,7 +172,7 @@ class ProductSummary extends Widget
         }
 
         if ($product->lead_time_days) {
-            $specs[] = ['label' => 'Lead Time', 'value' => $product->lead_time_days . ' days'];
+            $specs[] = ['label' => __('widgets.product_summary.lead_time'), 'value' => $product->lead_time_days . ' days'];
         }
 
         return $specs;

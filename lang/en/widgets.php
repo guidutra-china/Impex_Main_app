@@ -1,0 +1,137 @@
+<?php
+
+return [
+    // Financial Stats Overview
+    'financial_stats' => [
+        'receivables' => 'Receivables',
+        'receivables_from_clients' => 'Receivables (from Clients)',
+        'from_clients' => 'From clients',
+        'payables' => 'Payables',
+        'payables_to_suppliers' => 'Payables (to Suppliers)',
+        'to_suppliers' => 'To suppliers',
+        'payment_schedule' => 'Payment Schedule',
+        'net_positive' => 'Net Positive',
+        'net_negative' => 'Net Negative',
+        'net_to_receive' => 'Net to Receive',
+        'net_to_pay' => 'Net to Pay',
+    ],
+
+    // Cash Flow Projection
+    'cash_flow' => [
+        'heading' => 'Cash Flow Projection',
+        'description' => 'Expected inflows and outflows based on payment schedule due dates',
+        'period' => 'Period',
+        'inflow_pi' => 'Inflow (PI)',
+        'outflow_po' => 'Outflow (PO)',
+        'inflow' => 'Inflow',
+        'outflow' => 'Outflow',
+        'net' => 'Net',
+        'overdue' => 'Overdue',
+        'before_today' => 'Before today',
+        'this_week' => 'This Week',
+        'next_week' => 'Next Week',
+        'no_due_date_warning' => 'These items have no due date set and are not included in the projection above.',
+    ],
+
+    // Document Financial Summary (PI Stats / PO Stats)
+    'document_summary' => [
+        'financial_summary' => 'Financial Summary',
+        'invoice_total' => 'Invoice Total',
+        'cost_margin' => 'Cost / Margin',
+        'margin' => 'Margin',
+        'paid' => 'Paid',
+        'remaining' => 'Remaining',
+        'credits' => 'Credits',
+        'total_due' => 'Total Due',
+        'net_due' => 'Net Due',
+        'overdue' => 'Overdue',
+        'next' => 'Next',
+        'outstanding' => 'Outstanding',
+        'fully_paid' => 'Fully paid',
+        'from_client_available' => 'From this client — available to allocate',
+        'to_supplier_available' => 'To this supplier — available to allocate',
+    ],
+
+    // Company Financial Statement
+    'financial_statement' => [
+        'client_receivables' => 'Client Statement — Receivables',
+        'supplier_payables' => 'Supplier Statement — Payables',
+        'overdue' => 'Overdue',
+    ],
+
+    // Landed Cost Calculator
+    'landed_cost' => [
+        'heading' => 'Landed Cost Calculator',
+        'description' => 'Complete cost analysis for this shipment',
+        'freight' => 'Freight',
+        'insurance' => 'Insurance',
+        'customs_duties' => 'Customs / Duties',
+        'inspection_testing' => 'Inspection / Testing',
+        'packaging' => 'Packaging',
+        'other_costs' => 'Other Costs',
+        'gross_profit' => 'Gross Profit',
+    ],
+
+    // Product Summary
+    'product_summary' => [
+        'suppliers' => 'Suppliers',
+        'clients' => 'Clients',
+        'variants' => 'Variants',
+        'variant' => 'Variant',
+        'base_price' => 'Base Price',
+        'manufacturing_cost' => 'Manufacturing Cost',
+        'selling_price' => 'Selling Price',
+        'markup' => 'Markup',
+        'preferred_supplier' => 'Preferred Supplier',
+        'preferred_client' => 'Preferred Client',
+        'weight' => 'Weight',
+        'dimensions' => 'Dimensions',
+        'material' => 'Material',
+        'color' => 'Color',
+        'pcs_per_carton' => 'Pcs/Carton',
+        'lead_time' => 'Lead Time',
+    ],
+
+    // Pipeline Counts
+    'pipeline' => [
+        'operations_pipeline' => 'Operations Pipeline',
+    ],
+
+    // Operational Alerts
+    'alerts' => [
+        'action_required' => 'Action Required',
+        'all_clear' => 'All clear — no pending actions.',
+        'overdue_payments_desc' => 'Schedule items past due date without full payment',
+        'view_payments' => 'View Payments',
+        'pending_approval_desc' => 'Payments submitted and waiting for manager review',
+        'review_payments' => 'Review Payments',
+        'finalized_pi_desc' => 'Proforma invoices confirmed but no purchase order created yet',
+        'view_pis' => 'View PIs',
+        'stalled_po_desc' => 'Purchase orders in production with no activity for over 15 days',
+        'view_pos' => 'View POs',
+        'open_inquiries_desc' => 'Client inquiries that may need follow-up',
+        'view_inquiries' => 'View Inquiries',
+        'due_this_week_desc' => 'Schedule items due within the next 7 days',
+        'view_schedule' => 'View Schedule',
+    ],
+
+    // Supplier Audit Stats
+    'audit_stats' => [
+        'scheduled_audits' => 'Scheduled Audits',
+        'in_progress' => 'in progress',
+        'pending_audits' => 'Pending audits',
+        'completed_this_month' => 'Completed This Month',
+        'average_score' => 'Average Score',
+        'overdue' => 'Overdue',
+        'rejected_ytd' => 'Rejected (YTD)',
+    ],
+
+    // Order Pipeline Kanban
+    'kanban' => [
+        'value' => 'Value',
+        'paid' => 'Paid',
+        'overdue_payment' => 'Overdue payment',
+        'no_update_for' => 'No update for',
+        'no_items' => 'No items',
+    ],
+];

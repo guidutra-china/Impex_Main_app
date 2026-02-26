@@ -48,7 +48,7 @@ class CostStatementPdfTemplate extends AbstractPdfTemplate
             ->values();
 
         $items = $clientCosts->map(function ($cost, $index) use ($currencyCode) {
-            $costTypeLabel = $cost->cost_type->getLabel();
+            $costTypeLabel = $cost->cost_type->getEnglishLabel();
             $isSameCurrency = $cost->currency_code === $currencyCode;
 
             return [
@@ -61,7 +61,7 @@ class CostStatementPdfTemplate extends AbstractPdfTemplate
                 'is_same_currency' => $isSameCurrency,
                 'exchange_rate' => $cost->exchange_rate ? number_format((float) $cost->exchange_rate, 4) : null,
                 'date' => $this->formatDate($cost->cost_date),
-                'status' => $cost->status->getLabel(),
+                'status' => $cost->status->getEnglishLabel(),
                 'status_value' => $cost->status->value,
                 'notes' => $cost->notes,
             ];

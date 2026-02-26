@@ -32,42 +32,42 @@ class ContactsRelationManager extends RelationManager
     {
         return $schema
             ->components([
-                Section::make('Personal Information')
+                Section::make(__('forms.sections.personal_information'))
                     ->schema([
                         TextInput::make('name')
-                            ->label('Name')
+                            ->label(__('forms.labels.name'))
                             ->required()
                             ->maxLength(255),
                         TextInput::make('position')
-                            ->label('Position')
-                            ->placeholder('e.g. Export Manager, Head of Procurement')
+                            ->label(__('forms.labels.position'))
+                            ->placeholder(__('forms.placeholders.eg_export_manager_head_of_procurement'))
                             ->maxLength(255),
                         Select::make('function')
-                            ->label('Department')
+                            ->label(__('forms.labels.department'))
                             ->options(ContactFunction::class)
                             ->searchable(),
                         Toggle::make('is_primary')
-                            ->label('Primary Contact')
-                            ->helperText('Only one primary contact per company. Setting this will unset any existing primary.'),
+                            ->label(__('forms.labels.primary_contact'))
+                            ->helperText(__('forms.helpers.only_one_primary_contact_per_company_setting_this_will')),
                     ])
                     ->columns(2),
 
-                Section::make('Contact Channels')
+                Section::make(__('forms.sections.contact_channels'))
                     ->schema([
                         TextInput::make('email')
-                            ->label('Email')
+                            ->label(__('forms.labels.email'))
                             ->email()
                             ->maxLength(255),
                         TextInput::make('phone')
-                            ->label('Phone')
+                            ->label(__('forms.labels.phone'))
                             ->tel()
                             ->maxLength(50),
                         TextInput::make('whatsapp')
-                            ->label('WhatsApp')
+                            ->label(__('forms.labels.whatsapp'))
                             ->tel()
                             ->maxLength(50),
                         TextInput::make('wechat')
-                            ->label('WeChat')
+                            ->label(__('forms.labels.wechat'))
                             ->maxLength(255),
                     ])
                     ->columns(2),
@@ -75,7 +75,7 @@ class ContactsRelationManager extends RelationManager
                 Section::make()
                     ->schema([
                         Textarea::make('notes')
-                            ->label('Notes')
+                            ->label(__('forms.labels.notes'))
                             ->rows(2)
                             ->maxLength(1000)
                             ->columnSpanFull(),
@@ -97,30 +97,30 @@ class ContactsRelationManager extends RelationManager
                     ->alignCenter()
                     ->width('40px'),
                 TextColumn::make('name')
-                    ->label('Name')
+                    ->label(__('forms.labels.name'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->description(fn (Contact $record) => $record->position),
                 TextColumn::make('function')
-                    ->label('Department')
+                    ->label(__('forms.labels.department'))
                     ->badge(),
                 TextColumn::make('email')
-                    ->label('Email')
+                    ->label(__('forms.labels.email'))
                     ->searchable()
                     ->copyable()
                     ->icon('heroicon-o-envelope'),
                 TextColumn::make('phone')
-                    ->label('Phone')
+                    ->label(__('forms.labels.phone'))
                     ->copyable()
                     ->icon('heroicon-o-phone'),
                 TextColumn::make('whatsapp')
-                    ->label('WhatsApp')
+                    ->label(__('forms.labels.whatsapp'))
                     ->copyable()
                     ->icon('heroicon-o-chat-bubble-left-ellipsis')
                     ->toggleable(),
                 TextColumn::make('wechat')
-                    ->label('WeChat')
+                    ->label(__('forms.labels.wechat'))
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->headerActions([

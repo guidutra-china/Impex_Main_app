@@ -15,23 +15,23 @@ class TagForm
     {
         return $schema
             ->components([
-                Section::make('Tag Details')
+                Section::make(__('forms.sections.tag_details'))
                     ->schema([
                         TextInput::make('name')
-                            ->label('Name')
+                            ->label(__('forms.labels.name'))
                             ->required()
                             ->maxLength(255)
                             ->unique(ignoreRecord: true)
                             ->live(onBlur: true)
                             ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state))),
                         TextInput::make('slug')
-                            ->label('Slug')
+                            ->label(__('forms.labels.slug'))
                             ->required()
                             ->maxLength(255)
                             ->unique(ignoreRecord: true),
                         ColorPicker::make('color')
-                            ->label('Color')
-                            ->helperText('Used for visual identification in badges.'),
+                            ->label(__('forms.labels.color'))
+                            ->helperText(__('forms.helpers.used_for_visual_identification_in_badges')),
                     ])
                     ->columns(3),
             ]);

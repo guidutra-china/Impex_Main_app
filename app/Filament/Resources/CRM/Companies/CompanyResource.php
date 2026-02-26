@@ -28,13 +28,9 @@ class CompanyResource extends Resource
 {
     protected static ?string $model = Company::class;
 
-    protected static UnitEnum|string|null $navigationGroup = 'CRM';
-
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-building-office-2';
 
     protected static ?int $navigationSort = 1;
-
-    protected static ?string $navigationLabel = 'Companies';
 
     protected static ?string $slug = 'crm/companies';
 
@@ -93,5 +89,15 @@ class CompanyResource extends Resource
             'view' => ViewCompany::route('/{record}'),
             'edit' => EditCompany::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.crm');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.resources.companies');
     }
 }

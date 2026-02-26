@@ -13,12 +13,9 @@ enum BankAccountStatus: string implements HasLabel, HasColor
 
     public function getLabel(): ?string
     {
-        return match ($this) {
-            self::ACTIVE => 'Active',
-            self::INACTIVE => 'Inactive',
-            self::CLOSED => 'Closed',
-        };
+        return __('enums.bank_account_status.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -26,6 +23,15 @@ enum BankAccountStatus: string implements HasLabel, HasColor
             self::ACTIVE => 'success',
             self::INACTIVE => 'warning',
             self::CLOSED => 'danger',
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::ACTIVE => 'Active',
+            self::INACTIVE => 'Inactive',
+            self::CLOSED => 'Closed',
         };
     }
 }

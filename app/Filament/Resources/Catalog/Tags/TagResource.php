@@ -18,13 +18,9 @@ class TagResource extends Resource
 {
     protected static ?string $model = Tag::class;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Catalog';
-
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-tag';
 
     protected static ?int $navigationSort = 3;
-
-    protected static ?string $navigationLabel = 'Tags';
 
     protected static ?string $slug = 'catalog/tags';
 
@@ -52,5 +48,15 @@ class TagResource extends Resource
             'create' => CreateTag::route('/create'),
             'edit' => EditTag::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.catalog');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.resources.tags');
     }
 }

@@ -23,13 +23,9 @@ class QuotationResource extends Resource
 {
     protected static ?string $model = Quotation::class;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Operations';
-
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-document-text';
 
     protected static ?int $navigationSort = 3;
-
-    protected static ?string $navigationLabel = 'Quotations';
 
     protected static ?string $slug = 'quotations';
 
@@ -77,5 +73,15 @@ class QuotationResource extends Resource
             'view' => ViewQuotation::route('/{record}'),
             'edit' => EditQuotation::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.operations');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.resources.quotations');
     }
 }

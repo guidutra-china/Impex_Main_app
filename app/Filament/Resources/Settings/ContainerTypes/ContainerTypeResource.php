@@ -18,13 +18,9 @@ class ContainerTypeResource extends Resource
 {
     protected static ?string $model = ContainerType::class;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Settings';
-
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-cube';
 
     protected static ?int $navigationSort = 7;
-
-    protected static ?string $navigationLabel = 'Container Types';
 
     public static function canAccess(): bool
     {
@@ -48,5 +44,15 @@ class ContainerTypeResource extends Resource
             'create' => CreateContainerType::route('/create'),
             'edit' => EditContainerType::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.settings');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.resources.container_types');
     }
 }

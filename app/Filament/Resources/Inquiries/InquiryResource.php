@@ -21,13 +21,9 @@ class InquiryResource extends Resource
 {
     protected static ?string $model = Inquiry::class;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Operations';
-
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-inbox-arrow-down';
 
     protected static ?int $navigationSort = 1;
-
-    protected static ?string $navigationLabel = 'Inquiries';
 
     protected static ?string $slug = 'inquiries';
 
@@ -73,5 +69,15 @@ class InquiryResource extends Resource
             'view' => ViewInquiry::route('/{record}'),
             'edit' => EditInquiry::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.operations');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.resources.inquiries');
     }
 }

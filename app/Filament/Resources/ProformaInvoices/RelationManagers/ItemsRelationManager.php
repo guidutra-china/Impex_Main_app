@@ -42,7 +42,7 @@ class ItemsRelationManager extends RelationManager
     {
         return $schema->components([
             Select::make('product_id')
-                ->label('Product')
+                ->label(__('forms.labels.product'))
                 ->options(
                     fn () => Product::active()
                         ->orderBy('name')
@@ -59,7 +59,7 @@ class ItemsRelationManager extends RelationManager
                 ->columnSpanFull(),
 
             Select::make('supplier_company_id')
-                ->label('Supplier')
+                ->label(__('forms.labels.supplier'))
                 ->options(
                     fn () => Company::query()
                         ->whereHas('companyRoles', fn ($q) => $q->where('role', CompanyRole::SUPPLIER))
@@ -67,31 +67,31 @@ class ItemsRelationManager extends RelationManager
                         ->pluck('name', 'id')
                 )
                 ->searchable()
-                ->helperText('Which supplier provides this item.'),
+                ->helperText(__('forms.helpers.which_supplier_provides_this_item')),
 
             TextInput::make('description')
-                ->label('Description')
+                ->label(__('forms.labels.description'))
                 ->maxLength(255),
 
             Textarea::make('specifications')
-                ->label('Specifications')
+                ->label(__('forms.labels.specifications'))
                 ->rows(3)
                 ->columnSpanFull(),
 
             TextInput::make('quantity')
-                ->label('Quantity')
+                ->label(__('forms.labels.quantity'))
                 ->numeric()
                 ->required()
                 ->minValue(1)
                 ->default(1),
 
             TextInput::make('unit')
-                ->label('Unit')
+                ->label(__('forms.labels.unit'))
                 ->default('pcs')
                 ->maxLength(20),
 
             TextInput::make('unit_price')
-                ->label('Unit Price (Client)')
+                ->label(__('forms.labels.unit_price_client'))
                 ->numeric()
                 ->required()
                 ->prefix('$')
@@ -99,7 +99,7 @@ class ItemsRelationManager extends RelationManager
                 ->minValue(0),
 
             TextInput::make('unit_cost')
-                ->label('Unit Cost (Internal)')
+                ->label(__('forms.labels.unit_cost_internal'))
                 ->numeric()
                 ->prefix('$')
                 ->step(0.0001)
@@ -107,12 +107,12 @@ class ItemsRelationManager extends RelationManager
                 ->default(0),
 
             Select::make('incoterm')
-                ->label('Incoterm')
+                ->label(__('forms.labels.incoterm'))
                 ->options(Incoterm::class)
                 ->searchable(),
 
             Textarea::make('notes')
-                ->label('Notes')
+                ->label(__('forms.labels.notes'))
                 ->rows(2)
                 ->columnSpanFull(),
         ]);
@@ -123,47 +123,47 @@ class ItemsRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('sort_order')
-                    ->label('#')
+                    ->label(__('forms.labels.hash'))
                     ->sortable()
                     ->alignCenter(),
                 TextColumn::make('product.name')
-                    ->label('Product')
+                    ->label(__('forms.labels.product'))
                     ->searchable()
                     ->limit(30)
-                    ->placeholder('Manual item'),
+                    ->placeholder(__('forms.placeholders.manual_item')),
                 TextColumn::make('description')
-                    ->label('Description')
+                    ->label(__('forms.labels.description'))
                     ->limit(40)
                     ->toggleable(),
                 TextColumn::make('supplierCompany.name')
-                    ->label('Supplier')
+                    ->label(__('forms.labels.supplier'))
                     ->limit(20)
                     ->placeholder('—'),
                 TextColumn::make('quantity')
-                    ->label('Qty')
+                    ->label(__('forms.labels.qty'))
                     ->alignCenter(),
                 TextColumn::make('unit')
-                    ->label('Unit')
+                    ->label(__('forms.labels.unit'))
                     ->alignCenter(),
                 TextColumn::make('unit_price')
-                    ->label('Price')
+                    ->label(__('forms.labels.price'))
                     ->formatStateUsing(fn ($state) => Money::format($state, 4))
                     ->prefix('$ ')
                     ->alignEnd(),
                 TextColumn::make('unit_cost')
-                    ->label('Cost')
+                    ->label(__('forms.labels.cost'))
                     ->formatStateUsing(fn ($state) => Money::format($state, 4))
                     ->prefix('$ ')
                     ->alignEnd(),
                 TextColumn::make('line_total')
-                    ->label('Total')
+                    ->label(__('forms.labels.total'))
                     ->getStateUsing(fn ($record) => $record->line_total)
                     ->formatStateUsing(fn ($state) => Money::format($state))
                     ->prefix('$ ')
                     ->alignEnd()
                     ->weight('bold'),
                 TextColumn::make('margin')
-                    ->label('Margin')
+                    ->label(__('forms.labels.margin'))
                     ->getStateUsing(fn ($record) => $record->margin)
                     ->suffix('%')
                     ->alignCenter()
@@ -212,7 +212,7 @@ class ItemsRelationManager extends RelationManager
     protected function importFromQuotationsAction(): Action
     {
         return Action::make('importFromQuotations')
-            ->label('Import from Quotations')
+            ->label(__('forms.labels.import_from_quotations'))
             ->icon('heroicon-o-arrow-down-tray')
             ->color('info')
             ->visible(fn () => auth()->user()?->can('edit-proforma-invoices'))
@@ -241,12 +241,12 @@ class ItemsRelationManager extends RelationManager
 
                 return [
                     \Filament\Forms\Components\CheckboxList::make('item_ids')
-                        ->label('Select Items to Import')
+                        ->label(__('forms.labels.select_items_to_import'))
                         ->options($options)
                         ->required()
                         ->searchable()
                         ->bulkToggleable()
-                        ->helperText('Items are grouped by quotation reference. Select which items to import.'),
+                        ->helperText(__('forms.helpers.items_are_grouped_by_quotation_reference_select_which_items')),
                 ];
             })
             ->action(function (array $data) {
@@ -299,8 +299,8 @@ class ItemsRelationManager extends RelationManager
                 $pi->quotations()->syncWithoutDetaching(array_unique($linkedQuotationIds));
 
                 Notification::make()
-                    ->title($imported . ' items imported')
-                    ->body('Items imported from ' . count(array_unique($linkedQuotationIds)) . ' quotation(s).')
+                    ->title($imported . ' ' . __('messages.items_imported'))
+                    ->body(__('messages.items_imported_from_quotations', ['count' => count(array_unique($linkedQuotationIds))]))
                     ->success()
                     ->send();
             });
@@ -309,7 +309,7 @@ class ItemsRelationManager extends RelationManager
     protected function importFromInquiryAction(): Action
     {
         return Action::make('importFromInquiry')
-            ->label('Import from Inquiry')
+            ->label(__('forms.labels.import_from_inquiry'))
             ->icon('heroicon-o-clipboard-document-list')
             ->color('warning')
             ->visible(fn () => auth()->user()?->can('edit-proforma-invoices'))
@@ -338,12 +338,12 @@ class ItemsRelationManager extends RelationManager
 
                 return [
                     \Filament\Forms\Components\CheckboxList::make('item_ids')
-                        ->label('Select Items to Import')
+                        ->label(__('forms.labels.select_items_to_import'))
                         ->options($options)
                         ->required()
                         ->searchable()
                         ->bulkToggleable()
-                        ->helperText('Import items directly from the inquiry. Use this for recurring purchases where no quotation is needed.'),
+                        ->helperText(__('forms.helpers.import_items_directly_from_the_inquiry_use_this_for')),
                 ];
             })
             ->action(function (array $data) {
@@ -410,8 +410,8 @@ class ItemsRelationManager extends RelationManager
                 }
 
                 Notification::make()
-                    ->title($imported . ' items imported from inquiry')
-                    ->body('Prices pre-filled from product catalog (supplier cost + client price). Review and adjust as needed.')
+                    ->title($imported . ' ' . __('messages.items_imported_from_inquiry'))
+                    ->body(__('messages.prices_prefilled'))
                     ->success()
                     ->send();
             });

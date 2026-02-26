@@ -15,17 +15,11 @@ enum ShipmentStatus: string implements HasLabel, HasColor, HasIcon
     case ARRIVED = 'arrived';
     case CANCELLED = 'cancelled';
 
-    public function getLabel(): string
+    public function getLabel(): ?string
     {
-        return match ($this) {
-            self::DRAFT => 'Draft',
-            self::BOOKED => 'Booked',
-            self::CUSTOMS => 'Customs',
-            self::IN_TRANSIT => 'In Transit',
-            self::ARRIVED => 'Arrived',
-            self::CANCELLED => 'Cancelled',
-        };
+        return __('enums.shipment_status.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -48,6 +42,18 @@ enum ShipmentStatus: string implements HasLabel, HasColor, HasIcon
             self::IN_TRANSIT => 'heroicon-o-truck',
             self::ARRIVED => 'heroicon-o-check-badge',
             self::CANCELLED => 'heroicon-o-x-circle',
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::DRAFT => 'Draft',
+            self::BOOKED => 'Booked',
+            self::CUSTOMS => 'Customs',
+            self::IN_TRANSIT => 'In Transit',
+            self::ARRIVED => 'Arrived',
+            self::CANCELLED => 'Cancelled',
         };
     }
 }

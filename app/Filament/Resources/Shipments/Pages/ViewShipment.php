@@ -44,7 +44,7 @@ class ViewShipment extends ViewRecord
                     label: 'Send by Email',
                 )->name('sendPackingListByEmail'),
             ])
-                ->label('Packing List')
+                ->label(__('forms.labels.packing_list'))
                 ->icon('heroicon-o-clipboard-document-list')
                 ->color('info')
                 ->button(),
@@ -67,7 +67,7 @@ class ViewShipment extends ViewRecord
                     label: 'Send by Email',
                 )->name('sendCommercialInvoiceByEmail'),
             ])
-                ->label('Commercial Invoice')
+                ->label(__('forms.labels.commercial_invoice'))
                 ->icon('heroicon-o-document-currency-dollar')
                 ->color('success')
                 ->button(),

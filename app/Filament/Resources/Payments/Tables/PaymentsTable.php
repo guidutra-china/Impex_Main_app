@@ -18,55 +18,55 @@ class PaymentsTable
         return $table
             ->columns([
                 TextColumn::make('payment_date')
-                    ->label('Date')
+                    ->label(__('forms.labels.date'))
                     ->date('d/m/Y')
                     ->sortable(),
                 TextColumn::make('direction')
-                    ->label('Direction')
+                    ->label(__('forms.labels.direction'))
                     ->badge()
                     ->sortable(),
                 TextColumn::make('company.name')
-                    ->label('Company')
+                    ->label(__('forms.labels.company'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('amount')
-                    ->label('Amount')
+                    ->label(__('forms.labels.amount'))
                     ->formatStateUsing(fn ($state) => Money::format($state))
                     ->alignEnd()
                     ->sortable(),
                 TextColumn::make('currency_code')
-                    ->label('Currency'),
+                    ->label(__('forms.labels.currency')),
                 TextColumn::make('allocated_total')
-                    ->label('Allocated')
+                    ->label(__('forms.labels.allocated'))
                     ->getStateUsing(fn ($record) => $record->allocated_total)
                     ->formatStateUsing(fn ($state) => Money::format($state))
                     ->alignEnd()
                     ->color('success'),
                 TextColumn::make('unallocated_amount')
-                    ->label('Unallocated')
+                    ->label(__('forms.labels.unallocated'))
                     ->getStateUsing(fn ($record) => $record->unallocated_amount)
                     ->formatStateUsing(fn ($state) => Money::format($state))
                     ->alignEnd()
                     ->color(fn ($state) => $state > 0 ? 'warning' : 'gray'),
                 TextColumn::make('paymentMethod.name')
-                    ->label('Method')
+                    ->label(__('forms.labels.method'))
                     ->placeholder('—'),
                 TextColumn::make('reference')
-                    ->label('Reference')
+                    ->label(__('forms.labels.reference'))
                     ->placeholder('—')
                     ->limit(20)
                     ->tooltip(fn ($record) => $record->reference)
                     ->searchable(),
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->badge()
                     ->sortable(),
                 TextColumn::make('creator.name')
-                    ->label('Created By')
+                    ->label(__('forms.labels.created_by'))
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('approvedByUser.name')
-                    ->label('Approved By')
+                    ->label(__('forms.labels.approved_by'))
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -79,7 +79,7 @@ class PaymentsTable
                 SelectFilter::make('status')
                     ->options(PaymentStatus::class),
                 SelectFilter::make('company_id')
-                    ->label('Company')
+                    ->label(__('forms.labels.company'))
                     ->relationship('company', 'name')
                     ->searchable()
                     ->preload(),

@@ -16,22 +16,22 @@ class ListRoles extends ListRecords
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label('Role')
+                    ->label(__('forms.labels.role'))
                     ->formatStateUsing(fn (string $state) => ucfirst($state))
                     ->weight('bold')
                     ->searchable(),
                 TextColumn::make('permissions_count')
-                    ->label('Permissions')
+                    ->label(__('forms.labels.permissions'))
                     ->counts('permissions')
                     ->badge()
                     ->color('primary'),
                 TextColumn::make('users_count')
-                    ->label('Users')
+                    ->label(__('forms.labels.users'))
                     ->counts('users')
                     ->badge()
                     ->color('gray'),
                 TextColumn::make('updated_at')
-                    ->label('Last Updated')
+                    ->label(__('forms.labels.last_updated'))
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
             ])

@@ -30,19 +30,19 @@ class SupplierAuditsRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('reference')
-                    ->label('Reference')
+                    ->label(__('forms.labels.reference'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->color('primary'),
                 TextColumn::make('audit_type')
-                    ->label('Type')
+                    ->label(__('forms.labels.type'))
                     ->badge(),
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->badge(),
                 TextColumn::make('total_score')
-                    ->label('Score')
+                    ->label(__('forms.labels.score'))
                     ->formatStateUsing(fn ($state) => $state !== null ? number_format($state, 2) . '/5.00' : '—')
                     ->color(fn ($state) => match (true) {
                         $state === null => 'gray',
@@ -52,15 +52,15 @@ class SupplierAuditsRelationManager extends RelationManager
                     })
                     ->badge(),
                 TextColumn::make('result')
-                    ->label('Result')
+                    ->label(__('forms.labels.result'))
                     ->badge()
                     ->placeholder('—'),
                 TextColumn::make('scheduled_date')
-                    ->label('Scheduled')
+                    ->label(__('forms.labels.scheduled'))
                     ->date('Y-m-d')
                     ->sortable(),
                 TextColumn::make('conductor.name')
-                    ->label('Auditor')
+                    ->label(__('forms.labels.auditor'))
                     ->placeholder('—'),
             ])
             ->filters([

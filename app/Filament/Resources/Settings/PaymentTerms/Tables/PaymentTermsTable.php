@@ -17,37 +17,37 @@ class PaymentTermsTable
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label('Name')
+                    ->label(__('forms.labels.name'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
                 TextColumn::make('description')
-                    ->label('Description')
+                    ->label(__('forms.labels.description'))
                     ->limit(60)
                     ->toggleable(),
                 TextColumn::make('stages_count')
-                    ->label('Stages')
+                    ->label(__('forms.labels.stages'))
                     ->counts('stages')
                     ->alignCenter()
                     ->badge()
                     ->color('info'),
                 IconColumn::make('is_default')
-                    ->label('Default')
+                    ->label(__('forms.labels.default'))
                     ->boolean()
                     ->alignCenter(),
                 IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label(__('forms.labels.active'))
                     ->boolean()
                     ->alignCenter(),
                 TextColumn::make('updated_at')
-                    ->label('Updated')
+                    ->label(__('forms.labels.updated'))
                     ->dateTime('Y-m-d H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('is_active')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->options([
                         '1' => 'Active',
                         '0' => 'Inactive',

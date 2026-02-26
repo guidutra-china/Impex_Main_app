@@ -15,17 +15,11 @@ enum ProformaInvoiceStatus: string implements HasLabel, HasColor, HasIcon
     case REOPENED = 'reopened';
     case CANCELLED = 'cancelled';
 
-    public function getLabel(): string
+    public function getLabel(): ?string
     {
-        return match ($this) {
-            self::DRAFT => 'Draft',
-            self::SENT => 'Sent',
-            self::CONFIRMED => 'Confirmed',
-            self::FINALIZED => 'Finalized',
-            self::REOPENED => 'Reopened',
-            self::CANCELLED => 'Cancelled',
-        };
+        return __('enums.proforma_invoice_status.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -48,6 +42,18 @@ enum ProformaInvoiceStatus: string implements HasLabel, HasColor, HasIcon
             self::FINALIZED => 'heroicon-o-lock-closed',
             self::REOPENED => 'heroicon-o-lock-open',
             self::CANCELLED => 'heroicon-o-x-circle',
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::DRAFT => 'Draft',
+            self::SENT => 'Sent',
+            self::CONFIRMED => 'Confirmed',
+            self::FINALIZED => 'Finalized',
+            self::REOPENED => 'Reopened',
+            self::CANCELLED => 'Cancelled',
         };
     }
 }

@@ -23,13 +23,8 @@ use UnitEnum;
 class ShipmentResource extends Resource
 {
     protected static ?string $model = Shipment::class;
-
-    protected static UnitEnum|string|null $navigationGroup = 'Operations';
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-truck';
     protected static ?int $navigationSort = 6;
-    protected static ?string $navigationLabel = 'Shipments';
-    protected static ?string $modelLabel = 'Shipment';
-    protected static ?string $pluralModelLabel = 'Shipments';
     protected static ?string $slug = 'shipments';
     protected static ?string $recordTitleAttribute = 'reference';
 
@@ -76,5 +71,25 @@ class ShipmentResource extends Resource
             'view' => ViewShipment::route('/{record}'),
             'edit' => EditShipment::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.operations');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.resources.shipments');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('navigation.models.shipment');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('navigation.models.shipments');
     }
 }

@@ -14,13 +14,9 @@ enum ProductStatus: string implements HasLabel, HasColor
 
     public function getLabel(): ?string
     {
-        return match ($this) {
-            self::DRAFT => 'Draft',
-            self::ACTIVE => 'Active',
-            self::DISCONTINUED => 'Discontinued',
-            self::OUT_OF_STOCK => 'Out of Stock',
-        };
+        return __('enums.product_status.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -29,6 +25,16 @@ enum ProductStatus: string implements HasLabel, HasColor
             self::ACTIVE => 'success',
             self::DISCONTINUED => 'danger',
             self::OUT_OF_STOCK => 'warning',
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::DRAFT => 'Draft',
+            self::ACTIVE => 'Active',
+            self::DISCONTINUED => 'Discontinued',
+            self::OUT_OF_STOCK => 'Out of Stock',
         };
     }
 }

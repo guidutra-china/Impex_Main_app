@@ -43,18 +43,18 @@ class SupplierAuditStatsWidget extends BaseWidget
             ->count();
 
         return [
-            Stat::make('Scheduled Audits', $scheduled + $inProgress)
-                ->description($inProgress > 0 ? "{$inProgress} in progress" : 'Pending audits')
+            Stat::make(__('widgets.audit_stats.scheduled_audits'), $scheduled + $inProgress)
+                ->description($inProgress > 0 ? "{$inProgress} " . __('widgets.audit_stats.in_progress') : __('widgets.audit_stats.pending_audits'))
                 ->color($scheduled + $inProgress > 0 ? 'info' : 'gray')
                 ->icon('heroicon-o-clipboard-document-check'),
 
-            Stat::make('Completed This Month', $completedThisMonth)
-                ->description('Audits completed')
+            Stat::make(__('widgets.audit_stats.completed_this_month'), $completedThisMonth)
+                ->description(__('forms.descriptions.audits_completed'))
                 ->color($completedThisMonth > 0 ? 'success' : 'gray')
                 ->icon('heroicon-o-check-circle'),
 
-            Stat::make('Average Score', $averageScore ? number_format($averageScore, 2) . '/5.00' : '—')
-                ->description('Across all audits')
+            Stat::make(__('widgets.audit_stats.average_score'), $averageScore ? number_format($averageScore, 2) . '/5.00' : '—')
+                ->description(__('forms.descriptions.across_all_audits'))
                 ->color(match (true) {
                     $averageScore === null => 'gray',
                     $averageScore >= 4.0 => 'success',
@@ -63,13 +63,13 @@ class SupplierAuditStatsWidget extends BaseWidget
                 })
                 ->icon('heroicon-o-chart-bar'),
 
-            Stat::make('Overdue', $overdue)
-                ->description('Past scheduled date')
+            Stat::make(__('widgets.audit_stats.overdue'), $overdue)
+                ->description(__('forms.descriptions.past_scheduled_date'))
                 ->color($overdue > 0 ? 'danger' : 'success')
                 ->icon('heroicon-o-exclamation-triangle'),
 
-            Stat::make('Rejected (YTD)', $rejectedCount)
-                ->description('Failed audits this year')
+            Stat::make(__('widgets.audit_stats.rejected_ytd'), $rejectedCount)
+                ->description(__('forms.descriptions.failed_audits_this_year'))
                 ->color($rejectedCount > 0 ? 'danger' : 'success')
                 ->icon('heroicon-o-x-circle'),
         ];

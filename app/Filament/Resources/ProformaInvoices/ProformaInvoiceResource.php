@@ -26,17 +26,9 @@ class ProformaInvoiceResource extends Resource
 {
     protected static ?string $model = ProformaInvoice::class;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Operations';
-
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-document-check';
 
     protected static ?int $navigationSort = 4;
-
-    protected static ?string $navigationLabel = 'Proforma Invoices';
-
-    protected static ?string $modelLabel = 'Proforma Invoice';
-
-    protected static ?string $pluralModelLabel = 'Proforma Invoices';
 
     protected static ?string $slug = 'proforma-invoices';
 
@@ -93,5 +85,25 @@ class ProformaInvoiceResource extends Resource
             'view' => ViewProformaInvoice::route('/{record}'),
             'edit' => EditProformaInvoice::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.operations');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.resources.proforma_invoices');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('navigation.models.proforma_invoice');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('navigation.models.proforma_invoices');
     }
 }

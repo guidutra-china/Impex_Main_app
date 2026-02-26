@@ -14,13 +14,9 @@ enum CompanyStatus: string implements HasLabel, HasColor
 
     public function getLabel(): ?string
     {
-        return match ($this) {
-            self::ACTIVE => 'Active',
-            self::INACTIVE => 'Inactive',
-            self::PROSPECT => 'Prospect',
-            self::BLOCKED => 'Blocked',
-        };
+        return __('enums.company_status.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -29,6 +25,16 @@ enum CompanyStatus: string implements HasLabel, HasColor
             self::INACTIVE => 'gray',
             self::PROSPECT => 'info',
             self::BLOCKED => 'danger',
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::ACTIVE => 'Active',
+            self::INACTIVE => 'Inactive',
+            self::PROSPECT => 'Prospect',
+            self::BLOCKED => 'Blocked',
         };
     }
 }

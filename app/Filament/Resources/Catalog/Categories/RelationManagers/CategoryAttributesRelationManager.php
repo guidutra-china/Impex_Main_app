@@ -32,7 +32,7 @@ class CategoryAttributesRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label('Attribute')
+                    ->label(__('forms.labels.attribute'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
@@ -40,30 +40,30 @@ class CategoryAttributesRelationManager extends RelationManager
                     ->badge()
                     ->sortable(),
                 TextColumn::make('default_value')
-                    ->label('Default')
+                    ->label(__('forms.labels.default'))
                     ->placeholder('(none)'),
                 TextColumn::make('unit')
-                    ->label('Unit')
+                    ->label(__('forms.labels.unit'))
                     ->badge()
                     ->color('gray')
                     ->placeholder('-'),
                 TextColumn::make('options')
-                    ->label('Options')
+                    ->label(__('forms.labels.options'))
                     ->formatStateUsing(fn ($state) => is_array($state) ? implode(', ', $state) : '-')
                     ->limit(40)
                     ->toggleable(isToggledHiddenByDefault: true),
                 IconColumn::make('is_required')
-                    ->label('Required')
+                    ->label(__('forms.labels.required'))
                     ->boolean()
                     ->sortable(),
                 TextColumn::make('sort_order')
-                    ->label('Order')
+                    ->label(__('forms.labels.order'))
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->headerActions([
                 CreateAction::make()
-                    ->label('Add Attribute')
+                    ->label(__('forms.labels.add_attribute'))
                     ->visible(fn () => auth()->user()?->can('manage-categories'))
                     ->modalHeading('Add Attribute Template')
                     ->modalDescription('Define an attribute that will be automatically added to products in this category.'),
@@ -92,35 +92,35 @@ class CategoryAttributesRelationManager extends RelationManager
         return $schema
             ->components([
                 TextInput::make('name')
-                    ->label('Attribute Name')
+                    ->label(__('forms.labels.attribute_name'))
                     ->required()
                     ->maxLength(255)
-                    ->placeholder('e.g., Watts, CCT, Material'),
+                    ->placeholder(__('forms.placeholders.eg_watts_cct_material')),
                 Select::make('type')
-                    ->label('Field Type')
+                    ->label(__('forms.labels.field_type'))
                     ->options(AttributeType::class)
                     ->default('text')
                     ->required()
                     ->live(),
                 TextInput::make('default_value')
-                    ->label('Default Value')
+                    ->label(__('forms.labels.default_value'))
                     ->maxLength(255)
-                    ->placeholder('e.g., 100, 6500K, Aluminum')
+                    ->placeholder(__('forms.placeholders.eg_100_6500k_aluminum'))
                     ->visible(fn (Get $get) => in_array($this->resolveTypeValue($get), ['text', 'number'])),
                 TagsInput::make('options')
-                    ->label('Options')
-                    ->placeholder('Add option and press Enter')
-                    ->helperText('Define the selectable options for this attribute.')
+                    ->label(__('forms.labels.options'))
+                    ->placeholder(__('forms.placeholders.add_option_and_press_enter'))
+                    ->helperText(__('forms.helpers.define_the_selectable_options_for_this_attribute'))
                     ->visible(fn (Get $get) => $this->resolveTypeValue($get) === 'select'),
                 TextInput::make('unit')
-                    ->label('Unit of Measure')
+                    ->label(__('forms.labels.unit_of_measure'))
                     ->maxLength(50)
-                    ->placeholder('e.g., W, lm, kg, cm'),
+                    ->placeholder(__('forms.placeholders.eg_w_lm_kg_cm')),
                 Checkbox::make('is_required')
-                    ->label('Required Attribute')
+                    ->label(__('forms.labels.required_attribute'))
                     ->default(false),
                 TextInput::make('sort_order')
-                    ->label('Sort Order')
+                    ->label(__('forms.labels.sort_order'))
                     ->numeric()
                     ->default(0)
                     ->minValue(0),

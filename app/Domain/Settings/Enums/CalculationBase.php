@@ -18,6 +18,12 @@ enum CalculationBase: string implements HasLabel
 
     public function getLabel(): ?string
     {
+        return __('enums.calculation_base.' . $this->value);
+    }
+
+
+    public function getEnglishLabel(): string
+    {
         return match ($this) {
             self::ORDER_DATE => 'Order Date',
             self::INVOICE_DATE => 'Invoice Date',

@@ -17,73 +17,73 @@ class AuditCategoryForm
     {
         return $schema
             ->components([
-                Section::make('Category Details')
+                Section::make(__('forms.sections.category_details'))
                     ->schema([
                         TextInput::make('name')
-                            ->label('Category Name')
+                            ->label(__('forms.labels.category_name'))
                             ->required()
                             ->maxLength(255)
-                            ->placeholder('e.g., Quality Management'),
+                            ->placeholder(__('forms.placeholders.eg_quality_management')),
                         Textarea::make('description')
-                            ->label('Description')
+                            ->label(__('forms.labels.description'))
                             ->rows(2)
                             ->maxLength(1000)
-                            ->placeholder('Brief description of what this category evaluates')
+                            ->placeholder(__('forms.placeholders.brief_description_of_what_this_category_evaluates'))
                             ->columnSpanFull(),
                         TextInput::make('weight')
-                            ->label('Weight (%)')
+                            ->label(__('forms.labels.weight_2'))
                             ->numeric()
                             ->required()
                             ->default(0)
                             ->minValue(0)
                             ->maxValue(100)
                             ->suffix('%')
-                            ->helperText('Percentage weight for scoring. All active categories should total 100%.'),
+                            ->helperText(__('forms.helpers.percentage_weight_for_scoring_all_active_categories_should')),
                         TextInput::make('sort_order')
-                            ->label('Sort Order')
+                            ->label(__('forms.labels.sort_order'))
                             ->numeric()
                             ->required()
                             ->default(0)
                             ->minValue(0),
                         Toggle::make('is_active')
-                            ->label('Active')
+                            ->label(__('forms.labels.active'))
                             ->default(true)
-                            ->helperText('Inactive categories will not appear in new audits.'),
+                            ->helperText(__('forms.helpers.inactive_categories_will_not_appear_in_new_audits')),
                     ])
                     ->columns(2),
 
-                Section::make('Evaluation Criteria')
-                    ->description('Define the specific criteria that will be evaluated under this category.')
+                Section::make(__('forms.sections.evaluation_criteria'))
+                    ->description(__('forms.descriptions.define_the_specific_criteria_that_will_be_evaluated_under'))
                     ->schema([
                         Repeater::make('criteria')
                             ->relationship('criteria')
                             ->schema([
                                 TextInput::make('name')
-                                    ->label('Criterion')
+                                    ->label(__('forms.labels.criterion'))
                                     ->required()
                                     ->maxLength(255)
                                     ->columnSpan(2),
                                 Textarea::make('description')
-                                    ->label('Guidance Notes')
+                                    ->label(__('forms.labels.guidance_notes'))
                                     ->rows(1)
                                     ->maxLength(500)
-                                    ->placeholder('Optional guidance for the auditor')
+                                    ->placeholder(__('forms.placeholders.optional_guidance_for_the_auditor'))
                                     ->columnSpan(2),
                                 Select::make('type')
-                                    ->label('Evaluation Type')
+                                    ->label(__('forms.labels.evaluation_type'))
                                     ->options(CriterionType::class)
                                     ->required()
                                     ->default('scored'),
                                 Toggle::make('is_critical')
-                                    ->label('Critical')
-                                    ->helperText('Failing a critical criterion auto-rejects the supplier.'),
+                                    ->label(__('forms.labels.critical'))
+                                    ->helperText(__('forms.helpers.failing_a_critical_criterion_autorejects_the_supplier')),
                                 TextInput::make('sort_order')
-                                    ->label('Order')
+                                    ->label(__('forms.labels.order'))
                                     ->numeric()
                                     ->default(0)
                                     ->minValue(0),
                                 Toggle::make('is_active')
-                                    ->label('Active')
+                                    ->label(__('forms.labels.active'))
                                     ->default(true),
                             ])
                             ->columns(4)

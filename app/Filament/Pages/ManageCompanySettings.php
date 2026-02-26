@@ -33,17 +33,17 @@ class ManageCompanySettings extends SettingsPage
             ->components([
                 Tabs::make('Settings')
                     ->tabs([
-                        Tabs\Tab::make('Company Information')
+                        Tabs\Tab::make(__('forms.tabs.company_information'))
                             ->icon('heroicon-o-building-office')
                             ->schema([
-                                Section::make('General')
+                                Section::make(__('forms.sections.general'))
                                     ->schema([
                                         TextInput::make('company_name')
-                                            ->label('Company Name')
+                                            ->label(__('forms.labels.company_name'))
                                             ->required()
                                             ->maxLength(255),
                                         FileUpload::make('logo_path')
-                                            ->label('Company Logo')
+                                            ->label(__('forms.labels.company_logo'))
                                             ->image()
                                             ->directory('logos')
                                             ->disk('public')
@@ -51,110 +51,110 @@ class ManageCompanySettings extends SettingsPage
                                             ->columnSpanFull(),
                                     ])
                                     ->columns(2),
-                                Section::make('Address')
+                                Section::make(__('forms.sections.address'))
                                     ->schema([
                                         TextInput::make('address')
-                                            ->label('Address')
+                                            ->label(__('forms.labels.address'))
                                             ->maxLength(500)
                                             ->columnSpanFull(),
                                         TextInput::make('city')
-                                            ->label('City')
+                                            ->label(__('forms.labels.city'))
                                             ->maxLength(255),
                                         TextInput::make('state')
-                                            ->label('State / Province')
+                                            ->label(__('forms.labels.state_province'))
                                             ->maxLength(255),
                                         TextInput::make('zip_code')
-                                            ->label('Zip / Postal Code')
+                                            ->label(__('forms.labels.zip_postal_code_2'))
                                             ->maxLength(20),
                                         TextInput::make('country')
-                                            ->label('Country')
+                                            ->label(__('forms.labels.country'))
                                             ->maxLength(255),
                                     ])
                                     ->columns(2),
-                                Section::make('Contact')
+                                Section::make(__('forms.sections.contact'))
                                     ->schema([
                                         TextInput::make('phone')
-                                            ->label('Phone')
+                                            ->label(__('forms.labels.phone'))
                                             ->tel()
                                             ->maxLength(50),
                                         TextInput::make('email')
-                                            ->label('Email')
+                                            ->label(__('forms.labels.email'))
                                             ->email()
                                             ->maxLength(255),
                                         TextInput::make('website')
-                                            ->label('Website')
+                                            ->label(__('forms.labels.website'))
                                             ->url()
                                             ->maxLength(255),
                                     ])
                                     ->columns(3),
-                                Section::make('Legal')
+                                Section::make(__('forms.sections.legal'))
                                     ->schema([
                                         TextInput::make('tax_id')
-                                            ->label('Tax ID')
+                                            ->label(__('forms.labels.tax_id'))
                                             ->maxLength(100),
                                         TextInput::make('registration_number')
-                                            ->label('Registration Number')
+                                            ->label(__('forms.labels.registration_number'))
                                             ->maxLength(100),
                                     ])
                                     ->columns(2),
                             ]),
-                        Tabs\Tab::make('Document Settings')
+                        Tabs\Tab::make(__('forms.tabs.document_settings'))
                             ->icon('heroicon-o-document-text')
                             ->schema([
-                                Section::make('Document Prefixes')
-                                    ->description('Prefixes used for auto-generating document numbers.')
+                                Section::make(__('forms.sections.document_prefixes'))
+                                    ->description(__('forms.descriptions.prefixes_used_for_autogenerating_document_numbers'))
                                     ->schema([
                                         TextInput::make('invoice_prefix')
-                                            ->label('Invoice Prefix')
+                                            ->label(__('forms.labels.invoice_prefix'))
                                             ->required()
                                             ->maxLength(10),
                                         TextInput::make('quote_prefix')
-                                            ->label('Quote Prefix')
+                                            ->label(__('forms.labels.quote_prefix'))
                                             ->required()
                                             ->maxLength(10),
                                         TextInput::make('po_prefix')
-                                            ->label('Purchase Order Prefix')
+                                            ->label(__('forms.labels.purchase_order_prefix'))
                                             ->required()
                                             ->maxLength(10),
                                         TextInput::make('packing_list_prefix')
-                                            ->label('Packing List Prefix')
+                                            ->label(__('forms.labels.packing_list_prefix'))
                                             ->required()
                                             ->maxLength(10),
                                         TextInput::make('commercial_invoice_prefix')
-                                            ->label('Commercial Invoice Prefix')
+                                            ->label(__('forms.labels.commercial_invoice_prefix'))
                                             ->required()
                                             ->maxLength(10),
                                     ])
                                     ->columns(3),
-                                Section::make('Default Texts')
+                                Section::make(__('forms.sections.default_texts'))
                                     ->schema([
                                         Textarea::make('footer_text')
-                                            ->label('Document Footer Text')
+                                            ->label(__('forms.labels.document_footer_text'))
                                             ->rows(3)
                                             ->columnSpanFull(),
                                         Textarea::make('rfq_default_instructions')
-                                            ->label('Default RFQ Instructions')
+                                            ->label(__('forms.labels.default_rfq_instructions'))
                                             ->rows(6)
-                                            ->helperText('Default instructions included in RFQ documents sent to suppliers.')
+                                            ->helperText(__('forms.helpers.default_instructions_included_in_rfq_documents_sent_to'))
                                             ->columnSpanFull(),
                                         Textarea::make('po_terms')
-                                            ->label('Default PO Terms & Conditions')
+                                            ->label(__('forms.labels.default_po_terms_conditions'))
                                             ->rows(6)
-                                            ->helperText('Default terms and conditions for purchase orders.')
+                                            ->helperText(__('forms.helpers.default_terms_and_conditions_for_purchase_orders'))
                                             ->columnSpanFull(),
                                     ]),
                             ]),
-                        Tabs\Tab::make('Bank Details for Documents')
+                        Tabs\Tab::make(__('forms.tabs.bank_details_for_documents'))
                             ->icon('heroicon-o-building-library')
                             ->schema([
-                                Section::make('Bank Information')
-                                    ->description('This text will appear on invoices and other financial documents. Format it as you want it to be printed.')
+                                Section::make(__('forms.sections.bank_information'))
+                                    ->description(__('forms.descriptions.this_text_will_appear_on_invoices_and_other_financial'))
                                     ->schema([
                                         Textarea::make('bank_details_for_documents')
-                                            ->label('Bank Details')
+                                            ->label(__('forms.labels.bank_details'))
                                             ->rows(8)
                                             ->placeholder("Bank: HSBC Shanghai\nAccount: 1234567890\nSWIFT: HSBCCNSH\nIBAN: CN12345678901234")
-                                            ->helperText('Enter the bank details exactly as they should appear on printed documents.')
+                                            ->helperText(__('forms.helpers.enter_the_bank_details_exactly_as_they_should_appear_on'))
                                             ->columnSpanFull(),
                                     ]),
                             ]),

@@ -19,10 +19,10 @@ class ShipmentForm
     {
         return $schema->components([
 
-            Section::make('Shipment Information')
+            Section::make(__('forms.sections.shipment_information'))
                 ->schema([
                     Select::make('company_id')
-                        ->label('Client')
+                        ->label(__('forms.labels.client'))
                         ->relationship('company', 'name')
                         ->searchable()
                         ->preload()
@@ -32,7 +32,7 @@ class ShipmentForm
                         ->default(ShipmentStatus::DRAFT->value)
                         ->required(),
                     Select::make('currency_code')
-                        ->label('Currency')
+                        ->label(__('forms.labels.currency'))
                         ->options(fn () => Currency::pluck('code', 'code'))
                         ->default('USD')
                         ->searchable()
@@ -47,24 +47,24 @@ class ShipmentForm
                         )
                         ->searchable(),
                     DatePicker::make('issue_date')
-                        ->label('Document Issue Date')
-                        ->helperText('Date printed on CI and Packing List'),
+                        ->label(__('forms.labels.document_issue_date'))
+                        ->helperText(__('forms.helpers.date_printed_on_ci_and_packing_list')),
                 ])
                 ->columns(3)
                 ->columnSpanFull(),
 
-            Section::make('Route & Transport')
+            Section::make(__('forms.sections.route_transport'))
                 ->schema([
                     TextInput::make('origin_port')
-                        ->label('Port of Loading')
+                        ->label(__('forms.labels.port_of_loading'))
                         ->maxLength(255),
                     TextInput::make('destination_port')
-                        ->label('Port of Destination')
+                        ->label(__('forms.labels.port_of_destination'))
                         ->maxLength(255),
                     TextInput::make('vessel_name')
                         ->maxLength(255),
                     TextInput::make('bl_number')
-                        ->label('B/L Number')
+                        ->label(__('forms.labels.bl_number'))
                         ->maxLength(255),
                     TextInput::make('container_number')
                         ->maxLength(255),
@@ -75,7 +75,7 @@ class ShipmentForm
                 ->collapsible()
                 ->columnSpanFull(),
 
-            Section::make('Carrier & Booking')
+            Section::make(__('forms.sections.carrier_booking'))
                 ->schema([
                     TextInput::make('carrier')
                         ->maxLength(255),
@@ -89,38 +89,38 @@ class ShipmentForm
                 ->collapsed()
                 ->columnSpanFull(),
 
-            Section::make('Dates')
+            Section::make(__('forms.sections.dates'))
                 ->schema([
                     DatePicker::make('etd')
-                        ->label('ETD (Estimated Departure)'),
+                        ->label(__('forms.labels.etd_estimated_departure')),
                     DatePicker::make('eta')
-                        ->label('ETA (Estimated Arrival)'),
+                        ->label(__('forms.labels.eta_estimated_arrival')),
                     DatePicker::make('actual_departure')
-                        ->label('Actual Departure'),
+                        ->label(__('forms.labels.actual_departure')),
                     DatePicker::make('actual_arrival')
-                        ->label('Actual Arrival'),
+                        ->label(__('forms.labels.actual_arrival')),
                 ])
                 ->columns(4)
                 ->collapsible()
                 ->columnSpanFull(),
 
-            Section::make('Weight & Volume')
-                ->description('Auto-calculated from Packing List. Manual override available.')
+            Section::make(__('forms.sections.weight_volume'))
+                ->description(__('forms.descriptions.autocalculated_from_packing_list_manual_override_available'))
                 ->schema([
                     TextInput::make('total_gross_weight')
-                        ->label('Gross Weight')
+                        ->label(__('forms.labels.gross_weight'))
                         ->numeric()
                         ->suffix('kg'),
                     TextInput::make('total_net_weight')
-                        ->label('Net Weight')
+                        ->label(__('forms.labels.net_weight'))
                         ->numeric()
                         ->suffix('kg'),
                     TextInput::make('total_volume')
-                        ->label('Volume')
+                        ->label(__('forms.labels.volume'))
                         ->numeric()
                         ->suffix('CBM'),
                     TextInput::make('total_packages')
-                        ->label('Packages')
+                        ->label(__('forms.labels.packages'))
                         ->numeric()
                         ->integer(),
                 ])
@@ -129,7 +129,7 @@ class ShipmentForm
                 ->collapsed()
                 ->columnSpanFull(),
 
-            Section::make('Notes')
+            Section::make(__('forms.sections.notes'))
                 ->schema([
                     Textarea::make('notes')
                         ->rows(3)

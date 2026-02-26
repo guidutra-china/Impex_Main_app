@@ -18,7 +18,7 @@ class UserForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Account Information')
+            Section::make(__('forms.sections.account_information'))
                 ->columns(2)
                 ->schema([
                     TextInput::make('name')
@@ -36,7 +36,7 @@ class UserForm
                         ->maxLength(100),
                 ]),
 
-            Section::make('Authentication')
+            Section::make(__('forms.sections.authentication'))
                 ->columns(2)
                 ->schema([
                     TextInput::make('password')
@@ -54,17 +54,17 @@ class UserForm
                         ->dehydrated(false),
                 ]),
 
-            Section::make('Access & Role')
+            Section::make(__('forms.sections.access_role'))
                 ->columns(2)
                 ->schema([
                     Select::make('type')
-                        ->label('User Type')
+                        ->label(__('forms.labels.user_type'))
                         ->options(UserType::class)
                         ->default(UserType::INTERNAL->value)
                         ->required()
                         ->live(),
                     Select::make('company_id')
-                        ->label('Company')
+                        ->label(__('forms.labels.company'))
                         ->relationship('company', 'name')
                         ->searchable()
                         ->preload()
@@ -81,7 +81,7 @@ class UserForm
                             'supplier',
                         ])),
                     Select::make('roles')
-                        ->label('Role')
+                        ->label(__('forms.labels.role'))
                         ->relationship('roles', 'name')
                         ->options(fn () => Role::where('guard_name', 'web')->pluck('name', 'id'))
                         ->preload()
@@ -94,7 +94,7 @@ class UserForm
                         ->default('active')
                         ->required(),
                     Select::make('locale')
-                        ->label('Language')
+                        ->label(__('forms.labels.language'))
                         ->options([
                             'en' => 'English',
                             'pt_BR' => 'Portuguese (Brazil)',

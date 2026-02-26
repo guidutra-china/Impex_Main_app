@@ -58,7 +58,7 @@ class ViewProformaInvoice extends ViewRecord
     protected function finalizeAction(): Action
     {
         return Action::make('finalize')
-            ->label('Finalize')
+            ->label(__('forms.labels.finalize'))
             ->icon('heroicon-o-lock-closed')
             ->color('primary')
             ->requiresConfirmation()
@@ -85,8 +85,8 @@ class ViewProformaInvoice extends ViewRecord
 
                 if (! empty($blockers)) {
                     Notification::make()
-                        ->title('Cannot Finalize')
-                        ->body('Not all conditions are met. Check outstanding payments, additional costs, and shipments.')
+                        ->title(__('messages.cannot_finalize'))
+                        ->body(__('messages.finalize_conditions_not_met'))
                         ->danger()
                         ->send();
 
@@ -97,7 +97,7 @@ class ViewProformaInvoice extends ViewRecord
 
                 if (! $record->canTransitionTo($targetStatus)) {
                     Notification::make()
-                        ->title('Invalid Transition')
+                        ->title(__('messages.invalid_transition'))
                         ->body("Cannot transition from {$record->status->getLabel()} to Finalized.")
                         ->danger()
                         ->send();
@@ -108,8 +108,8 @@ class ViewProformaInvoice extends ViewRecord
                 $record->transitionTo($targetStatus);
 
                 Notification::make()
-                    ->title('Invoice Finalized')
-                    ->body('The proforma invoice has been locked.')
+                    ->title(__('messages.invoice_finalized'))
+                    ->body(__('messages.pi_locked'))
                     ->success()
                     ->send();
 
@@ -120,7 +120,7 @@ class ViewProformaInvoice extends ViewRecord
     protected function reopenAction(): Action
     {
         return Action::make('reopen')
-            ->label('Reopen')
+            ->label(__('forms.labels.reopen'))
             ->icon('heroicon-o-lock-open')
             ->color('warning')
             ->requiresConfirmation()
@@ -135,7 +135,7 @@ class ViewProformaInvoice extends ViewRecord
 
                 if (! $record->canTransitionTo($targetStatus)) {
                     Notification::make()
-                        ->title('Invalid Transition')
+                        ->title(__('messages.invalid_transition'))
                         ->danger()
                         ->send();
 
@@ -145,8 +145,8 @@ class ViewProformaInvoice extends ViewRecord
                 $record->transitionTo($targetStatus);
 
                 Notification::make()
-                    ->title('Invoice Reopened')
-                    ->body('The proforma invoice has been unlocked for modifications.')
+                    ->title(__('messages.invoice_reopened'))
+                    ->body(__('messages.pi_unlocked'))
                     ->warning()
                     ->send();
 
@@ -157,7 +157,7 @@ class ViewProformaInvoice extends ViewRecord
     protected function generatePurchaseOrdersAction(): Action
     {
         return Action::make('generatePurchaseOrders')
-            ->label('Generate POs')
+            ->label(__('forms.labels.generate_pos'))
             ->icon('heroicon-o-shopping-cart')
             ->color('warning')
             ->requiresConfirmation()
@@ -220,8 +220,8 @@ class ViewProformaInvoice extends ViewRecord
 
                 if (count($blockers) > 0) {
                     Notification::make()
-                        ->title('Blocked by Payment Requirements')
-                        ->body('Resolve upfront/deposit payments before generating POs.')
+                        ->title(__('messages.blocked_by_payment'))
+                        ->body(__('messages.resolve_payments_first'))
                         ->danger()
                         ->send();
 
@@ -233,8 +233,8 @@ class ViewProformaInvoice extends ViewRecord
 
                 if ($created->isEmpty()) {
                     Notification::make()
-                        ->title('No POs Created')
-                        ->body('All supplier POs already exist or no items have suppliers assigned.')
+                        ->title(__('messages.no_pos_created'))
+                        ->body(__('messages.all_pos_exist'))
                         ->warning()
                         ->send();
 
@@ -244,7 +244,7 @@ class ViewProformaInvoice extends ViewRecord
                 $refs = $created->pluck('reference')->implode(', ');
 
                 Notification::make()
-                    ->title($created->count() . ' Purchase Order(s) Generated')
+                    ->title($created->count() . ' ' . __('messages.pos_generated'))
                     ->body("Created: {$refs}")
                     ->success()
                     ->send();

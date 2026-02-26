@@ -3,7 +3,7 @@
 @if($documents->isNotEmpty())
     <div style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 8px;">
         <h4 style="font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 12px;">
-            Existing Documents ({{ $documents->count() }})
+            {{ __('forms.labels.existing_documents') }} ({{ $documents->count() }})
         </h4>
         <div style="display: flex; flex-direction: column; gap: 8px;">
             @foreach($documents as $doc)
@@ -37,6 +37,6 @@
     </div>
 @else
     <div style="border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 8px;">
-        <p style="font-size: 13px; color: #6b7280; text-align: center; padding: 8px 0;">No documents uploaded yet.</p>
+        <p style="font-size: 13px; color: #6b7280; text-align: center; padding: 8px 0;">{{ __('forms.placeholders.no_documents_uploaded_yet') }}</p>
     </div>
 @endif

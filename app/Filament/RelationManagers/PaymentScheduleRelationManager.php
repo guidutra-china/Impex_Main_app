@@ -33,20 +33,20 @@ class PaymentScheduleRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('sort_order')
-                    ->label('#')
+                    ->label(__('forms.labels.hash'))
                     ->sortable()
                     ->alignCenter(),
                 TextColumn::make('label')
-                    ->label('Description')
+                    ->label(__('forms.labels.description'))
                     ->weight('bold')
                     ->description(fn ($record) => $record->is_credit ? 'CREDIT' : null)
                     ->color(fn ($record) => $record->is_credit ? 'success' : null),
                 TextColumn::make('percentage')
-                    ->label('%')
+                    ->label(__('forms.labels.percent'))
                     ->suffix('%')
                     ->alignCenter(),
                 TextColumn::make('amount')
-                    ->label('Amount')
+                    ->label(__('forms.labels.amount'))
                     ->formatStateUsing(fn ($state, $record) => $record->is_credit
                         ? '-' . Money::format($state)
                         : Money::format($state))
@@ -54,36 +54,36 @@ class PaymentScheduleRelationManager extends RelationManager
                     ->alignEnd()
                     ->color(fn ($record) => $record->is_credit ? 'success' : null),
                 TextColumn::make('paid_amount')
-                    ->label('Paid')
+                    ->label(__('forms.labels.paid'))
                     ->getStateUsing(fn ($record) => $record->paid_amount)
                     ->formatStateUsing(fn ($state) => Money::format($state))
                     ->prefix('$ ')
                     ->alignEnd()
                     ->color('success'),
                 TextColumn::make('remaining_amount')
-                    ->label('Remaining')
+                    ->label(__('forms.labels.remaining'))
                     ->getStateUsing(fn ($record) => $record->remaining_amount)
                     ->formatStateUsing(fn ($state) => Money::format($state))
                     ->prefix('$ ')
                     ->alignEnd()
                     ->color(fn ($state) => $state > 0 ? 'danger' : 'success'),
                 TextColumn::make('due_condition')
-                    ->label('Condition')
+                    ->label(__('forms.labels.condition'))
                     ->badge()
                     ->color('gray'),
                 TextColumn::make('due_date')
-                    ->label('Due Date')
+                    ->label(__('forms.labels.due_date'))
                     ->date('d/m/Y')
-                    ->placeholder('TBD')
+                    ->placeholder(__('forms.placeholders.tbd'))
                     ->color(fn ($record) => $record->due_date?->isPast() && ! $record->status->isResolved() ? 'danger' : null),
                 TextColumn::make('is_blocking')
-                    ->label('Blocking')
+                    ->label(__('forms.labels.blocking'))
                     ->formatStateUsing(fn ($state) => $state ? 'Yes' : 'No')
                     ->badge()
                     ->color(fn ($state) => $state ? 'danger' : 'gray')
                     ->alignCenter(),
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->badge()
                     ->description(fn ($record) => $record->is_credit && $record->is_credit_applied ? 'Credit Applied' : null),
             ])
@@ -103,7 +103,7 @@ class PaymentScheduleRelationManager extends RelationManager
     protected function generateScheduleAction(): Action
     {
         return Action::make('generateSchedule')
-            ->label('Generate Schedule')
+            ->label(__('forms.labels.generate_schedule'))
             ->icon('heroicon-o-sparkles')
             ->color('primary')
             ->visible(fn () => auth()->user()?->can('generate-payment-schedule'))
@@ -153,7 +153,7 @@ class PaymentScheduleRelationManager extends RelationManager
     protected function regenerateScheduleAction(): Action
     {
         return Action::make('regenerateSchedule')
-            ->label('Regenerate')
+            ->label(__('forms.labels.regenerate'))
             ->icon('heroicon-o-arrow-path')
             ->color('warning')
             ->requiresConfirmation()
@@ -174,12 +174,12 @@ class PaymentScheduleRelationManager extends RelationManager
     protected function setDueDateAction(): Action
     {
         return Action::make('setDueDate')
-            ->label('Set Due Date')
+            ->label(__('forms.labels.set_due_date'))
             ->icon('heroicon-o-calendar')
             ->color('info')
             ->form([
                 DatePicker::make('due_date')
-                    ->label('Due Date')
+                    ->label(__('forms.labels.due_date'))
                     ->required(),
             ])
             ->visible(fn ($record) => ! $record->status->isResolved()
@@ -194,7 +194,7 @@ class PaymentScheduleRelationManager extends RelationManager
     protected function waiveAction(): Action
     {
         return Action::make('waive')
-            ->label('Waive')
+            ->label(__('forms.labels.waive'))
             ->icon('heroicon-o-arrow-uturn-right')
             ->color('warning')
             ->requiresConfirmation()
@@ -202,7 +202,7 @@ class PaymentScheduleRelationManager extends RelationManager
             ->modalDescription(fn ($record) => 'This will waive the payment "' . $record->label . '" (' . Money::format($record->amount) . ' ' . $record->currency_code . '). The blocking condition will be removed.')
             ->form([
                 Textarea::make('reason')
-                    ->label('Reason for Waiving')
+                    ->label(__('forms.labels.reason_for_waiving'))
                     ->rows(2)
                     ->maxLength(500),
             ])

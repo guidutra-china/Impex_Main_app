@@ -54,7 +54,7 @@ class EditInquiry extends EditRecord
     protected function requestSupplierQuotationAction(): Action
     {
         return Action::make('requestSupplierQuotation')
-            ->label('Request Supplier Quotation')
+            ->label(__('forms.labels.request_supplier_quotation'))
             ->icon('heroicon-o-paper-airplane')
             ->color('info')
             ->visible(fn () => in_array($this->record->status, [
@@ -63,7 +63,7 @@ class EditInquiry extends EditRecord
             ]))
             ->form([
                 Select::make('company_ids')
-                    ->label('Suppliers')
+                    ->label(__('forms.labels.suppliers'))
                     ->options(
                         fn () => Company::query()
                             ->whereHas('companyRoles', fn ($q) => $q->where('role', CompanyRole::SUPPLIER))
@@ -73,7 +73,7 @@ class EditInquiry extends EditRecord
                     ->multiple()
                     ->searchable()
                     ->required()
-                    ->helperText('Select one or more suppliers to request quotations from.'),
+                    ->helperText(__('forms.helpers.select_one_or_more_suppliers_to_request_quotations_from')),
             ])
             ->action(function (array $data) {
                 try {
@@ -118,7 +118,7 @@ class EditInquiry extends EditRecord
                     });
 
                     Notification::make()
-                        ->title(count($created) . ' supplier quotation(s) created')
+                        ->title(count($created) . ' ' . __('messages.sq_created'))
                         ->body(implode("\n", $created))
                         ->success()
                         ->send();
@@ -126,7 +126,7 @@ class EditInquiry extends EditRecord
                     $this->refreshFormData(['status']);
                 } catch (\Throwable $e) {
                     Notification::make()
-                        ->title('Error creating supplier quotations')
+                        ->title(__('messages.error_creating_sq'))
                         ->body($e->getMessage())
                         ->danger()
                         ->send();
@@ -146,7 +146,7 @@ class EditInquiry extends EditRecord
             ->exists();
 
         return Action::make('createQuotation')
-            ->label('Create Quotation')
+            ->label(__('forms.labels.create_quotation'))
             ->icon('heroicon-o-document-plus')
             ->color('success')
             ->visible(fn () => in_array($this->record->status, [
@@ -176,11 +176,11 @@ class EditInquiry extends EditRecord
                         ->columnSpanFull();
 
                     $fields[] = Select::make('supplier_quotation_ids')
-                        ->label('Source Supplier Quotations')
+                        ->label(__('forms.labels.source_supplier_quotations'))
                         ->options($sqOptions)
                         ->multiple()
                         ->required()
-                        ->helperText('Select one or more supplier quotations. For each product, the system will use the price from the first matching SQ in order.');
+                        ->helperText(__('forms.helpers.select_one_or_more_supplier_quotations_for_each_product_the'));
                 } else {
                     $fields[] = Placeholder::make('info')
                         ->content('No supplier quotations available. Items will be created with zero cost. You can fill prices manually in the quotation.')
@@ -188,20 +188,20 @@ class EditInquiry extends EditRecord
                 }
 
                 $fields[] = Select::make('commission_type')
-                    ->label('Commission Type')
+                    ->label(__('forms.labels.commission_type'))
                     ->options(CommissionType::class)
                     ->default(CommissionType::EMBEDDED->value)
                     ->required();
 
                 $fields[] = TextInput::make('commission_rate')
-                    ->label('Default Commission Rate (%)')
+                    ->label(__('forms.labels.default_commission_rate'))
                     ->numeric()
                     ->minValue(0)
                     ->maxValue(100)
                     ->step(0.01)
                     ->suffix('%')
                     ->default(10)
-                    ->helperText('Applied to items where the client has no catalog price.');
+                    ->helperText(__('forms.helpers.applied_to_items_where_the_client_has_no_catalog_price'));
 
                 return $fields;
             })
@@ -304,15 +304,15 @@ class EditInquiry extends EditRecord
                     });
 
                     Notification::make()
-                        ->title('Quotation created: ' . $quotation->reference)
-                        ->body('Items populated from supplier quotations. Redirecting...')
+                        ->title(__('messages.quotation_created') . ': ' . $quotation->reference)
+                        ->body(__('messages.items_populated_redirecting'))
                         ->success()
                         ->send();
 
                     return redirect(QuotationResource::getUrl('edit', ['record' => $quotation]));
                 } catch (\Throwable $e) {
                     Notification::make()
-                        ->title('Error creating quotation')
+                        ->title(__('messages.error_creating_quotation'))
                         ->body($e->getMessage())
                         ->danger()
                         ->send();
@@ -323,7 +323,7 @@ class EditInquiry extends EditRecord
     protected function createProformaInvoiceAction(): Action
     {
         return Action::make('createProformaInvoice')
-            ->label('Create Proforma Invoice')
+            ->label(__('forms.labels.create_proforma_invoice'))
             ->icon('heroicon-o-document-text')
             ->color('success')
             ->requiresConfirmation()
@@ -331,7 +331,7 @@ class EditInquiry extends EditRecord
             ->modalDescription('This will create a new Proforma Invoice linked to this inquiry. You can then import items from quotations or add them manually.')
             ->form([
                 Select::make('quotation_ids')
-                    ->label('Link Quotations (optional)')
+                    ->label(__('forms.labels.link_quotations_optional'))
                     ->multiple()
                     ->options(function () {
                         return Quotation::query()
@@ -342,7 +342,7 @@ class EditInquiry extends EditRecord
                                 $q->id => $q->reference . ' (' . $q->status->getLabel() . ')',
                             ]);
                     })
-                    ->helperText('Optionally link existing quotations. Items can be imported after creation.'),
+                    ->helperText(__('forms.helpers.optionally_link_existing_quotations_items_can_be_imported')),
             ])
             ->action(function (array $data) {
                 try {
@@ -367,15 +367,15 @@ class EditInquiry extends EditRecord
                     });
 
                     Notification::make()
-                        ->title('Proforma Invoice created: ' . $pi->reference)
-                        ->body('Redirecting to edit. Use "Import from Quotations" to add items.')
+                        ->title(__('messages.pi_created') . ': ' . $pi->reference)
+                        ->body(__('messages.redirect_import_quotations'))
                         ->success()
                         ->send();
 
                     return redirect(ProformaInvoiceResource::getUrl('edit', ['record' => $pi]));
                 } catch (\Throwable $e) {
                     Notification::make()
-                        ->title('Error creating Proforma Invoice')
+                        ->title(__('messages.error_creating_pi'))
                         ->body($e->getMessage())
                         ->danger()
                         ->send();
@@ -386,7 +386,7 @@ class EditInquiry extends EditRecord
     protected function transitionStatusAction(): Action
     {
         return Action::make('transitionStatus')
-            ->label('Change Status')
+            ->label(__('forms.labels.change_status'))
             ->icon('heroicon-o-arrow-path')
             ->color('warning')
             ->visible(fn () => ! empty($this->record->getAllowedNextStatuses()))
@@ -399,11 +399,11 @@ class EditInquiry extends EditRecord
 
                 return [
                     Select::make('new_status')
-                        ->label('New Status')
+                        ->label(__('forms.labels.new_status'))
                         ->options($options)
                         ->required(),
                     Textarea::make('notes')
-                        ->label('Transition Notes')
+                        ->label(__('forms.labels.transition_notes'))
                         ->rows(2)
                         ->maxLength(1000),
                 ];
@@ -417,14 +417,14 @@ class EditInquiry extends EditRecord
                     );
 
                     Notification::make()
-                        ->title('Status changed to ' . InquiryStatus::from($data['new_status'])->getLabel())
+                        ->title(__('messages.status_changed_to') . ' ' . InquiryStatus::from($data['new_status'])->getLabel())
                         ->success()
                         ->send();
 
                     $this->refreshFormData(['status']);
                 } catch (\Throwable $e) {
                     Notification::make()
-                        ->title('Status transition failed')
+                        ->title(__('messages.status_transition_failed'))
                         ->body($e->getMessage())
                         ->danger()
                         ->send();

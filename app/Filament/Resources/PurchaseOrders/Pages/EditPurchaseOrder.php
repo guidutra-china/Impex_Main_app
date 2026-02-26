@@ -34,7 +34,7 @@ class EditPurchaseOrder extends EditRecord
                 $labels = collect($blockers)->pluck('label')->implode(', ');
 
                 Notification::make()
-                    ->title('Status Change Blocked')
+                    ->title(__('messages.status_change_blocked'))
                     ->body("The following payments must be resolved before transitioning to this status: {$labels}")
                     ->danger()
                     ->persistent()

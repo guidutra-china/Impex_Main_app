@@ -14,16 +14,11 @@ enum PaymentScheduleStatus: string implements HasLabel, HasColor, HasIcon
     case OVERDUE = 'overdue';
     case WAIVED = 'waived';
 
-    public function getLabel(): string
+    public function getLabel(): ?string
     {
-        return match ($this) {
-            self::PENDING => 'Pending',
-            self::DUE => 'Due',
-            self::PAID => 'Paid',
-            self::OVERDUE => 'Overdue',
-            self::WAIVED => 'Waived',
-        };
+        return __('enums.payment_schedule_status.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -50,5 +45,16 @@ enum PaymentScheduleStatus: string implements HasLabel, HasColor, HasIcon
     public function isResolved(): bool
     {
         return in_array($this, [self::PAID, self::WAIVED]);
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::PENDING => 'Pending',
+            self::DUE => 'Due',
+            self::PAID => 'Paid',
+            self::OVERDUE => 'Overdue',
+            self::WAIVED => 'Waived',
+        };
     }
 }

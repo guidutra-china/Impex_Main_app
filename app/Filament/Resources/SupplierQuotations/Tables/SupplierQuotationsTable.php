@@ -15,12 +15,12 @@ class SupplierQuotationsTable
         return $table
             ->columns([
                 TextColumn::make('reference')
-                    ->label('Reference')
+                    ->label(__('forms.labels.reference'))
                     ->searchable()
                     ->sortable()
                     ->copyable(),
                 TextColumn::make('inquiry.reference')
-                    ->label('Inquiry')
+                    ->label(__('forms.labels.inquiry'))
                     ->searchable()
                     ->sortable()
                     ->url(fn ($record) => $record->inquiry
@@ -28,49 +28,49 @@ class SupplierQuotationsTable
                         : null
                     ),
                 TextColumn::make('company.name')
-                    ->label('Supplier')
+                    ->label(__('forms.labels.supplier'))
                     ->searchable()
                     ->sortable()
                     ->limit(30),
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->badge()
                     ->sortable(),
                 TextColumn::make('currency_code')
-                    ->label('Currency')
+                    ->label(__('forms.labels.currency'))
                     ->alignCenter()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('supplier_reference')
-                    ->label('Supplier Ref.')
+                    ->label(__('forms.labels.supplier_ref'))
                     ->searchable()
                     ->limit(20)
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('lead_time_days')
-                    ->label('Lead Time')
+                    ->label(__('forms.labels.lead_time'))
                     ->suffix(' days')
                     ->alignCenter()
                     ->placeholder('—'),
                 TextColumn::make('requested_at')
-                    ->label('Requested')
+                    ->label(__('forms.labels.requested'))
                     ->date('d/m/Y')
                     ->sortable(),
                 TextColumn::make('received_at')
-                    ->label('Received')
+                    ->label(__('forms.labels.received'))
                     ->date('d/m/Y')
                     ->sortable()
-                    ->placeholder('Pending'),
+                    ->placeholder(__('forms.placeholders.pending')),
                 TextColumn::make('valid_until')
-                    ->label('Valid Until')
+                    ->label(__('forms.labels.valid_until'))
                     ->date('d/m/Y')
                     ->sortable()
                     ->placeholder('—')
                     ->color(fn ($record) => $record->valid_until && $record->valid_until->isPast() ? 'danger' : null),
                 TextColumn::make('items_count')
-                    ->label('Items')
+                    ->label(__('forms.labels.items'))
                     ->counts('items')
                     ->alignCenter(),
                 TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('forms.labels.created'))
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -80,12 +80,12 @@ class SupplierQuotationsTable
                     ->options(SupplierQuotationStatus::class)
                     ->multiple(),
                 SelectFilter::make('inquiry_id')
-                    ->label('Inquiry')
+                    ->label(__('forms.labels.inquiry'))
                     ->relationship('inquiry', 'reference')
                     ->searchable()
                     ->preload(),
                 SelectFilter::make('company_id')
-                    ->label('Supplier')
+                    ->label(__('forms.labels.supplier'))
                     ->relationship('company', 'name')
                     ->searchable()
                     ->preload(),

@@ -18,39 +18,39 @@ class CurrenciesTable
         return $table
             ->columns([
                 TextColumn::make('code')
-                    ->label('Code')
+                    ->label(__('forms.labels.code'))
                     ->searchable()
                     ->sortable()
                     ->badge()
                     ->color('primary')
                     ->weight('bold'),
                 TextColumn::make('name')
-                    ->label('Name')
+                    ->label(__('forms.labels.name'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('symbol')
-                    ->label('Symbol')
+                    ->label(__('forms.labels.symbol'))
                     ->alignCenter(),
                 TextColumn::make('decimal_places')
-                    ->label('Decimals')
+                    ->label(__('forms.labels.decimals'))
                     ->alignCenter(),
                 IconColumn::make('is_base')
-                    ->label('Base')
+                    ->label(__('forms.labels.base'))
                     ->boolean()
                     ->alignCenter(),
                 IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label(__('forms.labels.active'))
                     ->boolean()
                     ->alignCenter(),
                 TextColumn::make('updated_at')
-                    ->label('Updated')
+                    ->label(__('forms.labels.updated'))
                     ->dateTime('Y-m-d H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('is_active')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->options([
                         '1' => 'Active',
                         '0' => 'Inactive',

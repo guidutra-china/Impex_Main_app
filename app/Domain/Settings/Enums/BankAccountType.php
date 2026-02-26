@@ -14,6 +14,12 @@ enum BankAccountType: string implements HasLabel
 
     public function getLabel(): ?string
     {
+        return __('enums.bank_account_type.' . $this->value);
+    }
+
+
+    public function getEnglishLabel(): string
+    {
         return match ($this) {
             self::CHECKING => 'Checking',
             self::SAVINGS => 'Savings',

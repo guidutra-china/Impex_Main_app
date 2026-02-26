@@ -19,43 +19,43 @@ class PaymentMethodsTable
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label('Name')
+                    ->label(__('forms.labels.name'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
                 TextColumn::make('type')
-                    ->label('Type')
+                    ->label(__('forms.labels.type'))
                     ->badge()
                     ->sortable(),
                 TextColumn::make('bankAccount.account_name')
-                    ->label('Bank Account')
+                    ->label(__('forms.labels.bank_account'))
                     ->placeholder('—')
                     ->toggleable(),
                 TextColumn::make('fee_type')
-                    ->label('Fee Type')
+                    ->label(__('forms.labels.fee_type'))
                     ->badge(),
                 TextColumn::make('processing_time')
-                    ->label('Processing')
+                    ->label(__('forms.labels.processing'))
                     ->badge(),
                 IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label(__('forms.labels.active'))
                     ->boolean()
                     ->alignCenter(),
                 TextColumn::make('updated_at')
-                    ->label('Updated')
+                    ->label(__('forms.labels.updated'))
                     ->dateTime('Y-m-d H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('type')
-                    ->label('Type')
+                    ->label(__('forms.labels.type'))
                     ->options(PaymentMethodType::class),
                 SelectFilter::make('fee_type')
-                    ->label('Fee Type')
+                    ->label(__('forms.labels.fee_type'))
                     ->options(FeeType::class),
                 SelectFilter::make('is_active')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->options([
                         '1' => 'Active',
                         '0' => 'Inactive',

@@ -21,13 +21,9 @@ class SupplierAuditResource extends Resource
 {
     protected static ?string $model = SupplierAudit::class;
 
-    protected static UnitEnum|string|null $navigationGroup = 'CRM';
-
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-clipboard-document-check';
 
     protected static ?int $navigationSort = 2;
-
-    protected static ?string $navigationLabel = 'Supplier Audits';
 
     protected static ?string $slug = 'crm/supplier-audits';
 
@@ -67,5 +63,15 @@ class SupplierAuditResource extends Resource
             'edit' => EditSupplierAudit::route('/{record}/edit'),
             'conduct' => ConductAudit::route('/{record}/conduct'),
         ];
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.crm');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.resources.supplier_audits');
     }
 }

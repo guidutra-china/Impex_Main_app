@@ -17,63 +17,63 @@ class ExchangeRateForm
     {
         return $schema
             ->components([
-                Section::make('Currency Pair')
+                Section::make(__('forms.sections.currency_pair'))
                     ->schema([
                         Select::make('base_currency_id')
-                            ->label('Base Currency')
+                            ->label(__('forms.labels.base_currency'))
                             ->relationship('baseCurrency', 'code')
                             ->required()
                             ->searchable()
                             ->preload(),
                         Select::make('target_currency_id')
-                            ->label('Target Currency')
+                            ->label(__('forms.labels.target_currency'))
                             ->relationship('targetCurrency', 'code')
                             ->required()
                             ->searchable()
                             ->preload()
                             ->different('base_currency_id'),
                         DatePicker::make('date')
-                            ->label('Rate Date')
+                            ->label(__('forms.labels.rate_date'))
                             ->required()
                             ->default(now()),
                     ])
                     ->columns(3),
-                Section::make('Rate')
+                Section::make(__('forms.sections.rate'))
                     ->schema([
                         TextInput::make('rate')
-                            ->label('Rate')
+                            ->label(__('forms.labels.rate'))
                             ->required()
                             ->numeric()
                             ->minValue(0.00000001)
                             ->step(0.00000001)
-                            ->helperText('How many units of target currency per 1 unit of base currency.'),
+                            ->helperText(__('forms.helpers.how_many_units_of_target_currency_per_1_unit_of_base')),
                         TextInput::make('inverse_rate')
-                            ->label('Inverse Rate')
+                            ->label(__('forms.labels.inverse_rate'))
                             ->numeric()
                             ->minValue(0.00000001)
                             ->step(0.00000001)
-                            ->helperText('Automatically calculated if left empty.')
-                            ->placeholder('Auto-calculated'),
+                            ->helperText(__('forms.helpers.automatically_calculated_if_left_empty'))
+                            ->placeholder(__('forms.placeholders.autocalculated')),
                     ])
                     ->columns(2),
-                Section::make('Source & Status')
+                Section::make(__('forms.sections.source_status'))
                     ->schema([
                         Select::make('source')
-                            ->label('Source')
+                            ->label(__('forms.labels.source'))
                             ->options(ExchangeRateSource::class)
                             ->required()
                             ->default(ExchangeRateSource::MANUAL->value),
                         TextInput::make('source_name')
-                            ->label('Source Name')
+                            ->label(__('forms.labels.source_name'))
                             ->maxLength(255)
-                            ->placeholder('e.g., Central Bank, Reuters'),
+                            ->placeholder(__('forms.placeholders.eg_central_bank_reuters')),
                         Select::make('status')
-                            ->label('Status')
+                            ->label(__('forms.labels.status'))
                             ->options(ExchangeRateStatus::class)
                             ->required()
                             ->default(ExchangeRateStatus::APPROVED->value),
                         Textarea::make('notes')
-                            ->label('Notes')
+                            ->label(__('forms.labels.notes'))
                             ->rows(3)
                             ->columnSpanFull(),
                     ])

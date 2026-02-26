@@ -25,17 +25,9 @@ class PurchaseOrderResource extends Resource
 {
     protected static ?string $model = PurchaseOrder::class;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Operations';
-
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-shopping-cart';
 
     protected static ?int $navigationSort = 5;
-
-    protected static ?string $navigationLabel = 'Purchase Orders';
-
-    protected static ?string $modelLabel = 'Purchase Order';
-
-    protected static ?string $pluralModelLabel = 'Purchase Orders';
 
     protected static ?string $slug = 'purchase-orders';
 
@@ -91,5 +83,25 @@ class PurchaseOrderResource extends Resource
             'view' => ViewPurchaseOrder::route('/{record}'),
             'edit' => EditPurchaseOrder::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.operations');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.resources.purchase_orders');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('navigation.models.purchase_order');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('navigation.models.purchase_orders');
     }
 }

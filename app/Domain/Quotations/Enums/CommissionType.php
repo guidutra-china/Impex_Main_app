@@ -11,6 +11,12 @@ enum CommissionType: string implements HasLabel
 
     public function getLabel(): ?string
     {
+        return __('enums.commission_type.' . $this->value);
+    }
+
+
+    public function getEnglishLabel(): string
+    {
         return match ($this) {
             self::EMBEDDED => 'Embedded in Price',
             self::SEPARATE => 'Separate Line',

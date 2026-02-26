@@ -23,25 +23,25 @@ class SupplierAuditsTable
         return $table
             ->columns([
                 TextColumn::make('reference')
-                    ->label('Reference')
+                    ->label(__('forms.labels.reference'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->color('primary'),
                 TextColumn::make('company.name')
-                    ->label('Supplier')
+                    ->label(__('forms.labels.supplier'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('audit_type')
-                    ->label('Type')
+                    ->label(__('forms.labels.type'))
                     ->badge()
                     ->sortable(),
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->badge()
                     ->sortable(),
                 TextColumn::make('total_score')
-                    ->label('Score')
+                    ->label(__('forms.labels.score'))
                     ->formatStateUsing(fn ($state) => $state !== null ? number_format($state, 2) : '—')
                     ->color(fn ($state) => match (true) {
                         $state === null => 'gray',
@@ -53,20 +53,20 @@ class SupplierAuditsTable
                     ->sortable()
                     ->alignCenter(),
                 TextColumn::make('result')
-                    ->label('Result')
+                    ->label(__('forms.labels.result'))
                     ->badge()
                     ->placeholder('—')
                     ->sortable(),
                 TextColumn::make('scheduled_date')
-                    ->label('Scheduled')
+                    ->label(__('forms.labels.scheduled'))
                     ->date('Y-m-d')
                     ->sortable(),
                 TextColumn::make('conductor.name')
-                    ->label('Auditor')
+                    ->label(__('forms.labels.auditor'))
                     ->placeholder('—')
                     ->toggleable(),
                 TextColumn::make('conducted_date')
-                    ->label('Conducted')
+                    ->label(__('forms.labels.conducted'))
                     ->date('Y-m-d')
                     ->sortable()
                     ->placeholder('—')
@@ -74,19 +74,19 @@ class SupplierAuditsTable
             ])
             ->filters([
                 SelectFilter::make('status')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->options(AuditStatus::class),
                 SelectFilter::make('audit_type')
-                    ->label('Type')
+                    ->label(__('forms.labels.type'))
                     ->options(AuditType::class),
                 SelectFilter::make('result')
-                    ->label('Result')
+                    ->label(__('forms.labels.result'))
                     ->options(AuditResult::class),
             ])
             ->recordActions([
                 ViewAction::make(),
                 Action::make('conduct')
-                    ->label('Conduct')
+                    ->label(__('forms.labels.conduct'))
                     ->icon('heroicon-o-pencil-square')
                     ->color('success')
                     ->url(fn ($record) => SupplierAuditResource::getUrl('conduct', ['record' => $record]))

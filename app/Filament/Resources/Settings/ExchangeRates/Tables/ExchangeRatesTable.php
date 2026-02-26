@@ -19,58 +19,58 @@ class ExchangeRatesTable
         return $table
             ->columns([
                 TextColumn::make('baseCurrency.code')
-                    ->label('Base')
+                    ->label(__('forms.labels.base'))
                     ->badge()
                     ->color('primary')
                     ->sortable(),
                 TextColumn::make('targetCurrency.code')
-                    ->label('Target')
+                    ->label(__('forms.labels.target'))
                     ->badge()
                     ->color('info')
                     ->sortable(),
                 TextColumn::make('rate')
-                    ->label('Rate')
+                    ->label(__('forms.labels.rate'))
                     ->numeric(8)
                     ->sortable(),
                 TextColumn::make('inverse_rate')
-                    ->label('Inverse')
+                    ->label(__('forms.labels.inverse'))
                     ->numeric(8)
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('date')
-                    ->label('Date')
+                    ->label(__('forms.labels.date'))
                     ->date('Y-m-d')
                     ->sortable(),
                 TextColumn::make('source')
-                    ->label('Source')
+                    ->label(__('forms.labels.source'))
                     ->badge(),
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->badge(),
                 TextColumn::make('source_name')
-                    ->label('Source Name')
+                    ->label(__('forms.labels.source_name'))
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('createdBy.name')
-                    ->label('Created By')
+                    ->label(__('forms.labels.created_by'))
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('forms.labels.created'))
                     ->dateTime('Y-m-d H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('status')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->options(ExchangeRateStatus::class),
                 SelectFilter::make('source')
-                    ->label('Source')
+                    ->label(__('forms.labels.source'))
                     ->options(ExchangeRateSource::class),
                 SelectFilter::make('base_currency_id')
-                    ->label('Base Currency')
+                    ->label(__('forms.labels.base_currency'))
                     ->relationship('baseCurrency', 'code'),
                 SelectFilter::make('target_currency_id')
-                    ->label('Target Currency')
+                    ->label(__('forms.labels.target_currency'))
                     ->relationship('targetCurrency', 'code'),
             ])
             ->recordActions([

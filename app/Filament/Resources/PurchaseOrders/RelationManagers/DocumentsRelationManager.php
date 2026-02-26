@@ -48,7 +48,7 @@ class DocumentsRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('type')
-                    ->label('Type')
+                    ->label(__('forms.labels.type'))
                     ->badge()
                     ->formatStateUsing(fn (string $state) => self::PO_DOCUMENT_TYPES[$state] ?? ucfirst(str_replace('_', ' ', $state)))
                     ->color(fn (string $state) => match ($state) {
@@ -60,61 +60,61 @@ class DocumentsRelationManager extends RelationManager
                     })
                     ->sortable(),
                 TextColumn::make('name')
-                    ->label('Name')
+                    ->label(__('forms.labels.name'))
                     ->searchable()
                     ->limit(40)
                     ->weight('bold'),
                 TextColumn::make('version')
-                    ->label('Version')
+                    ->label(__('forms.labels.version'))
                     ->prefix('v')
                     ->alignCenter()
                     ->sortable(),
                 TextColumn::make('source')
-                    ->label('Source')
+                    ->label(__('forms.labels.source'))
                     ->badge()
                     ->color(fn (DocumentSourceType $state) => match ($state) {
                         DocumentSourceType::GENERATED => 'success',
                         DocumentSourceType::UPLOADED => 'info',
                     }),
                 TextColumn::make('size')
-                    ->label('Size')
+                    ->label(__('forms.labels.size'))
                     ->formatStateUsing(fn (?int $state) => $state ? self::formatBytes($state) : '—')
                     ->alignCenter(),
                 TextColumn::make('creator.name')
-                    ->label('Uploaded By')
-                    ->placeholder('System')
+                    ->label(__('forms.labels.uploaded_by'))
+                    ->placeholder(__('forms.placeholders.system'))
                     ->toggleable(),
                 TextColumn::make('updated_at')
-                    ->label('Date')
+                    ->label(__('forms.labels.date'))
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
             ])
             ->filters([
                 SelectFilter::make('type')
-                    ->label('Document Type')
+                    ->label(__('forms.labels.document_type'))
                     ->options(self::PO_DOCUMENT_TYPES)
                     ->multiple(),
             ], layout: FiltersLayout::AboveContent)
             ->headerActions([
                 Action::make('upload')
-                    ->label('Upload Document')
+                    ->label(__('forms.labels.upload_document'))
                     ->icon('heroicon-o-arrow-up-tray')
                     ->color('primary')
                     ->visible(fn () => auth()->user()?->can('edit-purchase-orders'))
                     ->form([
                         Select::make('type')
-                            ->label('Document Type')
+                            ->label(__('forms.labels.document_type'))
                             ->options(self::PO_DOCUMENT_TYPES)
                             ->required()
                             ->searchable()
                             ->native(false),
                         TextInput::make('name')
-                            ->label('Document Name')
+                            ->label(__('forms.labels.document_name'))
                             ->required()
                             ->maxLength(255)
-                            ->placeholder('e.g. Supplier Invoice v2, Final Packing List'),
+                            ->placeholder(__('forms.placeholders.eg_supplier_invoice_v2_final_packing_list')),
                         FileUpload::make('file')
-                            ->label('File')
+                            ->label(__('forms.labels.file'))
                             ->required()
                             ->disk('local')
                             ->directory(fn () => 'purchase-orders/' . $this->getOwnerRecord()->id . '/documents')
@@ -129,7 +129,7 @@ class DocumentsRelationManager extends RelationManager
                                 'image/png',
                                 'image/webp',
                             ])
-                            ->helperText('Max 20MB. PDF, Excel, Word, or images.')
+                            ->helperText(__('forms.helpers.max_20mb_pdf_excel_word_or_images'))
                             ->columnSpanFull(),
                     ])
                     ->action(function (array $data): void {
@@ -162,7 +162,7 @@ class DocumentsRelationManager extends RelationManager
                             ]);
 
                             Notification::make()
-                                ->title('Document updated')
+                                ->title(__('messages.document_updated'))
                                 ->body("Version {$existing->version} uploaded successfully.")
                                 ->success()
                                 ->send();
@@ -181,7 +181,7 @@ class DocumentsRelationManager extends RelationManager
                             ]);
 
                             Notification::make()
-                                ->title('Document uploaded')
+                                ->title(__('messages.document_uploaded'))
                                 ->success()
                                 ->send();
                         }
@@ -189,7 +189,7 @@ class DocumentsRelationManager extends RelationManager
             ])
             ->recordActions([
                 Action::make('download')
-                    ->label('Download')
+                    ->label(__('forms.labels.download'))
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('info')
                     ->action(function (Document $record) {
@@ -197,8 +197,8 @@ class DocumentsRelationManager extends RelationManager
 
                         if (! file_exists($fullPath)) {
                             Notification::make()
-                                ->title('File not found')
-                                ->body('The file could not be found on disk.')
+                                ->title(__('messages.file_not_found'))
+                                ->body(__('messages.file_not_found_disk'))
                                 ->danger()
                                 ->send();
 
@@ -214,35 +214,35 @@ class DocumentsRelationManager extends RelationManager
                         );
                     }),
                 ViewAction::make('version_history')
-                    ->label('History')
+                    ->label(__('forms.labels.history'))
                     ->icon('heroicon-o-clock')
                     ->color('gray')
                     ->modalHeading(fn (Document $record) => "Version History — {$record->name}")
                     ->infolist(fn (Schema $schema) => $schema->components([
                         TextEntry::make('version')
-                            ->label('Current Version')
+                            ->label(__('forms.labels.current_version'))
                             ->prefix('v')
                             ->badge()
                             ->color('success'),
                         TextEntry::make('updated_at')
-                            ->label('Last Updated')
+                            ->label(__('forms.labels.last_updated'))
                             ->dateTime('d/m/Y H:i'),
                         RepeatableEntry::make('versions')
-                            ->label('Previous Versions')
+                            ->label(__('forms.labels.previous_versions'))
                             ->schema([
                                 TextEntry::make('version')
-                                    ->label('Version')
+                                    ->label(__('forms.labels.version'))
                                     ->prefix('v')
                                     ->badge()
                                     ->color('gray'),
                                 TextEntry::make('size')
-                                    ->label('Size')
+                                    ->label(__('forms.labels.size'))
                                     ->formatStateUsing(fn (?int $state) => $state ? self::formatBytes($state) : '—'),
                                 TextEntry::make('created_at')
-                                    ->label('Date')
+                                    ->label(__('forms.labels.date'))
                                     ->dateTime('d/m/Y H:i'),
                                 TextEntry::make('id')
-                                    ->label('Download')
+                                    ->label(__('forms.labels.download'))
                                     ->formatStateUsing(function ($state) {
                                         $url = URL::signedRoute('document-version.download', ['version' => $state]);
 

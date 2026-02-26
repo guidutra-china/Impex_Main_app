@@ -1,6 +1,6 @@
 <x-filament-widgets::widget>
     <x-filament::section
-        heading="Operations Pipeline"
+        :heading="__('widgets.pipeline.operations_pipeline')"
         icon="heroicon-o-arrows-right-left"
         :description="$totalActive . ' active item' . ($totalActive !== 1 ? 's' : '') . ' across all stages'"
     >

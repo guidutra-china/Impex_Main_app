@@ -20,13 +20,9 @@ class CategoryResource extends Resource
 {
     protected static ?string $model = Category::class;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Catalog';
-
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-squares-2x2';
 
     protected static ?int $navigationSort = 2;
-
-    protected static ?string $navigationLabel = 'Categories';
 
     protected static ?string $slug = 'catalog/categories';
 
@@ -62,5 +58,15 @@ class CategoryResource extends Resource
             'create' => CreateCategory::route('/create'),
             'edit' => EditCategory::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.catalog');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.resources.categories');
     }
 }

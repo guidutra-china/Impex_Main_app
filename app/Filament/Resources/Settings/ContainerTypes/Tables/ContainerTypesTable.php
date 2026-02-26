@@ -17,44 +17,44 @@ class ContainerTypesTable
         return $table
             ->columns([
                 TextColumn::make('code')
-                    ->label('Code')
+                    ->label(__('forms.labels.code'))
                     ->searchable()
                     ->sortable()
                     ->badge()
                     ->color('primary')
                     ->weight('bold'),
                 TextColumn::make('name')
-                    ->label('Name')
+                    ->label(__('forms.labels.name'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('length_ft')
-                    ->label('L (ft)')
+                    ->label(__('forms.labels.l_ft'))
                     ->numeric(2)
                     ->alignCenter(),
                 TextColumn::make('width_ft')
-                    ->label('W (ft)')
+                    ->label(__('forms.labels.w_ft'))
                     ->numeric(2)
                     ->alignCenter(),
                 TextColumn::make('height_ft')
-                    ->label('H (ft)')
+                    ->label(__('forms.labels.h_ft'))
                     ->numeric(2)
                     ->alignCenter(),
                 TextColumn::make('max_weight_kg')
-                    ->label('Max Weight (kg)')
+                    ->label(__('forms.labels.max_weight_kg'))
                     ->numeric(0)
                     ->alignEnd(),
                 TextColumn::make('cubic_capacity_cbm')
-                    ->label('CBM')
+                    ->label(__('forms.labels.cbm'))
                     ->numeric(2)
                     ->alignEnd(),
                 IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label(__('forms.labels.active'))
                     ->boolean()
                     ->alignCenter(),
             ])
             ->filters([
                 SelectFilter::make('is_active')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->options([
                         '1' => 'Active',
                         '0' => 'Inactive',

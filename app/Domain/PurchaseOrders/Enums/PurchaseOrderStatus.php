@@ -16,18 +16,11 @@ enum PurchaseOrderStatus: string implements HasLabel, HasColor, HasIcon
     case COMPLETED = 'completed';
     case CANCELLED = 'cancelled';
 
-    public function getLabel(): string
+    public function getLabel(): ?string
     {
-        return match ($this) {
-            self::DRAFT => 'Draft',
-            self::SENT => 'Sent',
-            self::CONFIRMED => 'Confirmed',
-            self::IN_PRODUCTION => 'In Production',
-            self::SHIPPED => 'Shipped',
-            self::COMPLETED => 'Completed',
-            self::CANCELLED => 'Cancelled',
-        };
+        return __('enums.purchase_order_status.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -52,6 +45,19 @@ enum PurchaseOrderStatus: string implements HasLabel, HasColor, HasIcon
             self::SHIPPED => 'heroicon-o-truck',
             self::COMPLETED => 'heroicon-o-check-badge',
             self::CANCELLED => 'heroicon-o-x-circle',
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::DRAFT => 'Draft',
+            self::SENT => 'Sent',
+            self::CONFIRMED => 'Confirmed',
+            self::IN_PRODUCTION => 'In Production',
+            self::SHIPPED => 'Shipped',
+            self::COMPLETED => 'Completed',
+            self::CANCELLED => 'Cancelled',
         };
     }
 }

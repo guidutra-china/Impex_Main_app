@@ -18,40 +18,40 @@ class AuditCategoriesTable
         return $table
             ->columns([
                 TextColumn::make('sort_order')
-                    ->label('#')
+                    ->label(__('forms.labels.hash'))
                     ->sortable()
                     ->alignCenter()
                     ->width('50px'),
                 TextColumn::make('name')
-                    ->label('Category')
+                    ->label(__('forms.labels.category'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->description(fn ($record) => $record->description),
                 TextColumn::make('weight')
-                    ->label('Weight')
+                    ->label(__('forms.labels.weight'))
                     ->suffix('%')
                     ->sortable()
                     ->alignCenter()
                     ->badge()
                     ->color('primary'),
                 TextColumn::make('criteria_count')
-                    ->label('Criteria')
+                    ->label(__('forms.labels.criteria'))
                     ->counts('criteria')
                     ->alignCenter(),
                 IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label(__('forms.labels.active'))
                     ->boolean()
                     ->alignCenter(),
                 TextColumn::make('updated_at')
-                    ->label('Updated')
+                    ->label(__('forms.labels.updated'))
                     ->dateTime('Y-m-d H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('is_active')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->options([
                         '1' => 'Active',
                         '0' => 'Inactive',

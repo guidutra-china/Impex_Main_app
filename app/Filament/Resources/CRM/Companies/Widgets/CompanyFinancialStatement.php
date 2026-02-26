@@ -93,7 +93,7 @@ class CompanyFinancialStatement extends Widget
         $unallocatedPayments = $this->getUnallocatedPayments($company->id, PaymentDirection::INBOUND);
 
         return [
-            'title' => 'Client Statement — Receivables',
+            'title' => __('widgets.financial_statement.client_receivables'),
             'icon' => 'heroicon-o-arrow-down-left',
             'color' => 'success',
             'rows' => $rows,
@@ -151,7 +151,7 @@ class CompanyFinancialStatement extends Widget
         $unallocatedPayments = $this->getUnallocatedPayments($company->id, PaymentDirection::OUTBOUND);
 
         return [
-            'title' => 'Supplier Statement — Payables',
+            'title' => __('widgets.financial_statement.supplier_payables'),
             'icon' => 'heroicon-o-arrow-up-right',
             'color' => 'danger',
             'rows' => $rows,

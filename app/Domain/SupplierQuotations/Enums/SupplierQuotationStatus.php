@@ -14,17 +14,11 @@ enum SupplierQuotationStatus: string implements HasLabel, HasColor
     case REJECTED = 'rejected';
     case EXPIRED = 'expired';
 
-    public function getLabel(): string
+    public function getLabel(): ?string
     {
-        return match ($this) {
-            self::REQUESTED => 'Requested',
-            self::RECEIVED => 'Received',
-            self::UNDER_ANALYSIS => 'Under Analysis',
-            self::SELECTED => 'Selected',
-            self::REJECTED => 'Rejected',
-            self::EXPIRED => 'Expired',
-        };
+        return __('enums.supplier_quotation_status.' . $this->value);
     }
+
 
     public function getColor(): string
     {
@@ -35,6 +29,18 @@ enum SupplierQuotationStatus: string implements HasLabel, HasColor
             self::SELECTED => 'success',
             self::REJECTED => 'danger',
             self::EXPIRED => 'gray',
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::REQUESTED => 'Requested',
+            self::RECEIVED => 'Received',
+            self::UNDER_ANALYSIS => 'Under Analysis',
+            self::SELECTED => 'Selected',
+            self::REJECTED => 'Rejected',
+            self::EXPIRED => 'Expired',
         };
     }
 }

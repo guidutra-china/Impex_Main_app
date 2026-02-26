@@ -21,13 +21,13 @@ class PurchaseOrdersTable
         return $table
             ->columns([
                 TextColumn::make('reference')
-                    ->label('Reference')
+                    ->label(__('forms.labels.reference'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->copyable(),
                 TextColumn::make('proformaInvoice.reference')
-                    ->label('Proforma Invoice')
+                    ->label(__('forms.labels.proforma_invoice'))
                     ->searchable()
                     ->sortable()
                     ->url(fn ($record) => $record->proforma_invoice_id
@@ -36,29 +36,29 @@ class PurchaseOrdersTable
                     )
                     ->color('primary'),
                 TextColumn::make('supplierCompany.name')
-                    ->label('Supplier')
+                    ->label(__('forms.labels.supplier'))
                     ->searchable()
                     ->sortable()
                     ->limit(30),
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->badge(),
                 TextColumn::make('supplier_invoice_number')
-                    ->label('Supplier Invoice')
+                    ->label(__('forms.labels.supplier_invoice'))
                     ->searchable()
                     ->sortable()
                     ->copyable()
                     ->placeholder('—'),
                 TextColumn::make('currency_code')
-                    ->label('Currency')
+                    ->label(__('forms.labels.currency'))
                     ->badge()
                     ->color('gray')
                     ->alignCenter(),
                 TextColumn::make('incoterm')
-                    ->label('Incoterm')
+                    ->label(__('forms.labels.incoterm'))
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('total')
-                    ->label('Total')
+                    ->label(__('forms.labels.total'))
                     ->getStateUsing(fn ($record) => $record->total)
                     ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state))
                     ->sortable(query: fn ($query, $direction) => $query->orderByRaw(
@@ -67,28 +67,28 @@ class PurchaseOrdersTable
                     ->alignEnd()
                     ->weight('bold'),
                 TextColumn::make('items_count')
-                    ->label('Items')
+                    ->label(__('forms.labels.items'))
                     ->counts('items')
                     ->alignCenter()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('issue_date')
-                    ->label('Issue Date')
+                    ->label(__('forms.labels.issue_date'))
                     ->date('d/m/Y')
                     ->sortable(),
                 TextColumn::make('expected_delivery_date')
-                    ->label('Expected Delivery')
+                    ->label(__('forms.labels.expected_delivery'))
                     ->date('d/m/Y')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('confirmation_method')
-                    ->label('Confirmed Via')
+                    ->label(__('forms.labels.confirmed_via'))
                     ->badge()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('creator.name')
-                    ->label('Created By')
+                    ->label(__('forms.labels.created_by'))
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('forms.labels.created'))
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -97,7 +97,7 @@ class PurchaseOrdersTable
                 SelectFilter::make('status')
                     ->options(PurchaseOrderStatus::class),
                 SelectFilter::make('supplier_company_id')
-                    ->label('Supplier')
+                    ->label(__('forms.labels.supplier'))
                     ->relationship('supplierCompany', 'name')
                     ->searchable()
                     ->preload(),

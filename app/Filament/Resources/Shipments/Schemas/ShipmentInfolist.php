@@ -13,13 +13,13 @@ class ShipmentInfolist
     {
         return $schema->components([
 
-            Section::make('Shipment Information')
+            Section::make(__('forms.sections.shipment_information'))
                 ->schema([
                     TextEntry::make('reference')
                         ->copyable()
                         ->weight('bold'),
                     TextEntry::make('company.name')
-                        ->label('Client'),
+                        ->label(__('forms.labels.client')),
                     TextEntry::make('status')
                         ->badge(),
                     TextEntry::make('transport_mode')
@@ -29,30 +29,30 @@ class ShipmentInfolist
                         ->badge()
                         ->placeholder('—'),
                     TextEntry::make('currency_code')
-                        ->label('Currency')
+                        ->label(__('forms.labels.currency'))
                         ->badge()
                         ->color('gray')
                         ->placeholder('—'),
                     TextEntry::make('issue_date')
-                        ->label('Document Issue Date')
+                        ->label(__('forms.labels.document_issue_date'))
                         ->date('d/m/Y')
-                        ->placeholder('Not set'),
+                        ->placeholder(__('forms.placeholders.not_set')),
                 ])
                 ->columns(3)
                 ->columnSpanFull(),
 
-            Section::make('Route & Transport')
+            Section::make(__('forms.sections.route_transport'))
                 ->schema([
                     TextEntry::make('origin_port')
-                        ->label('Port of Loading')
+                        ->label(__('forms.labels.port_of_loading'))
                         ->placeholder('—'),
                     TextEntry::make('destination_port')
-                        ->label('Port of Destination')
+                        ->label(__('forms.labels.port_of_destination'))
                         ->placeholder('—'),
                     TextEntry::make('vessel_name')
                         ->placeholder('—'),
                     TextEntry::make('bl_number')
-                        ->label('B/L Number')
+                        ->label(__('forms.labels.bl_number'))
                         ->copyable()
                         ->placeholder('—'),
                     TextEntry::make('container_number')
@@ -65,7 +65,7 @@ class ShipmentInfolist
                 ->collapsible()
                 ->columnSpanFull(),
 
-            Section::make('Carrier & Booking')
+            Section::make(__('forms.sections.carrier_booking'))
                 ->schema([
                     TextEntry::make('carrier')
                         ->placeholder('—'),
@@ -80,22 +80,22 @@ class ShipmentInfolist
                 ->collapsed()
                 ->columnSpanFull(),
 
-            Section::make('Dates')
+            Section::make(__('forms.sections.dates'))
                 ->schema([
                     TextEntry::make('etd')
-                        ->label('ETD (Estimated Departure)')
+                        ->label(__('forms.labels.etd_estimated_departure'))
                         ->date('d/m/Y')
                         ->placeholder('—'),
                     TextEntry::make('eta')
-                        ->label('ETA (Estimated Arrival)')
+                        ->label(__('forms.labels.eta_estimated_arrival'))
                         ->date('d/m/Y')
                         ->placeholder('—'),
                     TextEntry::make('actual_departure')
-                        ->label('Actual Departure')
+                        ->label(__('forms.labels.actual_departure'))
                         ->date('d/m/Y')
                         ->placeholder('—'),
                     TextEntry::make('actual_arrival')
-                        ->label('Actual Arrival')
+                        ->label(__('forms.labels.actual_arrival'))
                         ->date('d/m/Y')
                         ->placeholder('—'),
                 ])
@@ -103,45 +103,45 @@ class ShipmentInfolist
                 ->collapsible()
                 ->columnSpanFull(),
 
-            Section::make('Weight & Volume')
+            Section::make(__('forms.sections.weight_volume'))
                 ->schema([
                     TextEntry::make('total_gross_weight')
-                        ->label('Gross Weight')
+                        ->label(__('forms.labels.gross_weight'))
                         ->suffix(' kg')
                         ->placeholder('—'),
                     TextEntry::make('total_net_weight')
-                        ->label('Net Weight')
+                        ->label(__('forms.labels.net_weight'))
                         ->suffix(' kg')
                         ->placeholder('—'),
                     TextEntry::make('total_volume')
-                        ->label('Volume')
+                        ->label(__('forms.labels.volume'))
                         ->suffix(' CBM')
                         ->placeholder('—'),
                     TextEntry::make('total_packages')
-                        ->label('Packages')
+                        ->label(__('forms.labels.packages'))
                         ->placeholder('—'),
                 ])
                 ->columns(4)
                 ->collapsible()
                 ->columnSpanFull(),
 
-            Section::make('References')
+            Section::make(__('forms.sections.references'))
                 ->schema([
                     TextEntry::make('proforma_invoice_references')
-                        ->label('Proforma Invoices')
-                        ->placeholder('No items added yet'),
+                        ->label(__('forms.labels.proforma_invoices'))
+                        ->placeholder(__('forms.placeholders.no_items_added_yet')),
                     TextEntry::make('purchase_order_references')
-                        ->label('Purchase Orders')
-                        ->placeholder('No items added yet'),
+                        ->label(__('forms.labels.purchase_orders'))
+                        ->placeholder(__('forms.placeholders.no_items_added_yet')),
                     TextEntry::make('total_value')
-                        ->label('Total Value')
+                        ->label(__('forms.labels.total_value'))
                         ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state))
                         ->weight('bold'),
                 ])
                 ->columns(3)
                 ->columnSpanFull(),
 
-            Section::make('Notes')
+            Section::make(__('forms.sections.notes'))
                 ->schema([
                     TextEntry::make('notes')
                         ->placeholder('—')

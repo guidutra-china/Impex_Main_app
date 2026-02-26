@@ -14,53 +14,53 @@ class ContainerTypeForm
     {
         return $schema
             ->components([
-                Section::make('Container Information')
+                Section::make(__('forms.sections.container_information'))
                     ->schema([
                         TextInput::make('name')
-                            ->label('Name')
+                            ->label(__('forms.labels.name'))
                             ->required()
                             ->maxLength(255)
                             ->placeholder("e.g., 20' Standard, 40' High Cube"),
                         TextInput::make('code')
-                            ->label('Code')
+                            ->label(__('forms.labels.code'))
                             ->required()
                             ->maxLength(20)
                             ->unique(ignoreRecord: true)
-                            ->placeholder('e.g., 20ST, 40HC'),
+                            ->placeholder(__('forms.placeholders.eg_20st_40hc')),
                         Textarea::make('description')
-                            ->label('Description')
+                            ->label(__('forms.labels.description'))
                             ->rows(3)
                             ->columnSpanFull(),
                         Toggle::make('is_active')
-                            ->label('Active')
+                            ->label(__('forms.labels.active'))
                             ->default(true),
                     ])
                     ->columns(2),
-                Section::make('Dimensions & Capacity')
-                    ->description('Physical dimensions and weight capacity of the container.')
+                Section::make(__('forms.sections.dimensions_capacity'))
+                    ->description(__('forms.descriptions.physical_dimensions_and_weight_capacity_of_the_container'))
                     ->schema([
                         TextInput::make('length_ft')
-                            ->label('Length (ft)')
+                            ->label(__('forms.labels.length_ft'))
                             ->numeric()
                             ->step(0.01)
                             ->suffix('ft'),
                         TextInput::make('width_ft')
-                            ->label('Width (ft)')
+                            ->label(__('forms.labels.width_ft'))
                             ->numeric()
                             ->step(0.01)
                             ->suffix('ft'),
                         TextInput::make('height_ft')
-                            ->label('Height (ft)')
+                            ->label(__('forms.labels.height_ft'))
                             ->numeric()
                             ->step(0.01)
                             ->suffix('ft'),
                         TextInput::make('max_weight_kg')
-                            ->label('Max Weight')
+                            ->label(__('forms.labels.max_weight'))
                             ->numeric()
                             ->step(0.01)
                             ->suffix('kg'),
                         TextInput::make('cubic_capacity_cbm')
-                            ->label('Cubic Capacity')
+                            ->label(__('forms.labels.cubic_capacity'))
                             ->numeric()
                             ->step(0.01)
                             ->suffix('CBM'),

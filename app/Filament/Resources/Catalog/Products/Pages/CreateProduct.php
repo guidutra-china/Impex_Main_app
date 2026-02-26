@@ -45,7 +45,7 @@ class CreateProduct extends CreateRecord
         ProductNameGenerator::updateProductName($product);
 
         Notification::make()
-            ->title('Attributes Added')
+            ->title(__('messages.attributes_added'))
             ->body("Added {$count} attributes from category hierarchy. Edit them in the Attributes tab.")
             ->success()
             ->send();

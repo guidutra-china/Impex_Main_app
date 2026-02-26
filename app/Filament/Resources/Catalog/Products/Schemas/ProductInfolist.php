@@ -21,16 +21,16 @@ class ProductInfolist
             ->components([
                 Tabs::make('Product')
                     ->tabs([
-                        Tabs\Tab::make('General')
+                        Tabs\Tab::make(__('forms.tabs.general'))
                             ->icon('heroicon-o-information-circle')
                             ->schema(static::generalTab()),
-                        Tabs\Tab::make('Specifications')
+                        Tabs\Tab::make(__('forms.tabs.specifications'))
                             ->icon('heroicon-o-cog-6-tooth')
                             ->schema(static::specificationsTab()),
-                        Tabs\Tab::make('Packaging')
+                        Tabs\Tab::make(__('forms.tabs.packaging'))
                             ->icon('heroicon-o-archive-box')
                             ->schema(static::packagingTab()),
-                        Tabs\Tab::make('Costing')
+                        Tabs\Tab::make(__('forms.tabs.costing'))
                             ->icon('heroicon-o-calculator')
                             ->schema(static::costingTab()),
                     ])
@@ -42,83 +42,83 @@ class ProductInfolist
     protected static function generalTab(): array
     {
         return [
-            Section::make('Product Identity')
+            Section::make(__('forms.sections.product_identity'))
                 ->schema([
                     TextEntry::make('category.full_path')
-                        ->label('Category')
+                        ->label(__('forms.labels.category'))
                         ->icon('heroicon-o-folder')
                         ->placeholder('—'),
                     TextEntry::make('name')
-                        ->label('Product Name')
+                        ->label(__('forms.labels.product_name'))
                         ->weight(FontWeight::Bold)
                         ->size(TextSize::Large),
                     TextEntry::make('sku')
-                        ->label('SKU')
+                        ->label(__('forms.labels.sku'))
                         ->badge()
                         ->color('gray')
                         ->copyable(),
                     TextEntry::make('status')
-                        ->label('Status')
+                        ->label(__('forms.labels.status'))
                         ->badge(),
                     TextEntry::make('parent.name')
-                        ->label('Variant Of')
-                        ->placeholder('Base product')
+                        ->label(__('forms.labels.variant_of'))
+                        ->placeholder(__('forms.placeholders.base_product_2'))
                         ->icon('heroicon-o-link'),
                 ])
                 ->columns(2),
 
-            Section::make('International Trade')
+            Section::make(__('forms.sections.international_trade'))
                 ->schema([
                     TextEntry::make('hs_code')
-                        ->label('HS Code')
+                        ->label(__('forms.labels.hs_code'))
                         ->placeholder('—')
                         ->copyable(),
                     TextEntry::make('origin_country')
-                        ->label('Country of Origin')
+                        ->label(__('forms.labels.country_of_origin'))
                         ->placeholder('—'),
                     TextEntry::make('brand')
-                        ->label('Brand')
+                        ->label(__('forms.labels.brand'))
                         ->placeholder('—'),
                     TextEntry::make('model_number')
-                        ->label('Model Number')
+                        ->label(__('forms.labels.model_number'))
                         ->placeholder('—'),
                     TextEntry::make('certifications')
-                        ->label('Certifications')
+                        ->label(__('forms.labels.certifications'))
                         ->placeholder('—'),
                 ])
                 ->columns(3)
                 ->collapsible(),
 
-            Section::make('Order Defaults')
+            Section::make(__('forms.sections.order_defaults'))
                 ->schema([
                     TextEntry::make('moq')
-                        ->label('MOQ')
+                        ->label(__('forms.labels.moq'))
                         ->placeholder('—'),
                     TextEntry::make('moq_unit')
-                        ->label('MOQ Unit')
+                        ->label(__('forms.labels.moq_unit'))
                         ->placeholder('—'),
                     TextEntry::make('lead_time_days')
-                        ->label('Lead Time')
+                        ->label(__('forms.labels.lead_time'))
                         ->suffix(' days')
                         ->placeholder('—'),
                 ])
                 ->columns(3)
                 ->collapsible(),
 
-            Section::make('Tags & Notes')
+            Section::make(__('forms.sections.tags_notes'))
                 ->schema([
                     TextEntry::make('tags.name')
-                        ->label('Tags')
+                        ->label(__('forms.labels.tags'))
                         ->badge()
                         ->color('info')
-                        ->placeholder('No tags'),
+                        ->placeholder(__('forms.placeholders.no_tags')),
                     TextEntry::make('description')
-                        ->label('Description')
+                        ->label(__('forms.labels.description'))
                         ->placeholder('—')
                         ->columnSpanFull()
                         ->markdown(),
                     TextEntry::make('internal_notes')
-                        ->label('Internal Notes')
+                        ->label(__('forms.labels.internal_notes'))
                         ->placeholder('—')
                         ->columnSpanFull(),
                 ])
@@ -129,42 +129,42 @@ class ProductInfolist
     protected static function specificationsTab(): array
     {
         return [
-            Section::make('Product Dimensions & Weight (unpackaged)')
+            Section::make(__('forms.sections.product_dimensions_weight_unpackaged'))
                 ->relationship('specification')
                 ->schema([
                     TextEntry::make('net_weight')
-                        ->label('Net Weight (1 pc)')
+                        ->label(__('forms.labels.net_weight_1_pc'))
                         ->suffix(' kg')
                         ->placeholder('—'),
                     TextEntry::make('length')
-                        ->label('Length')
+                        ->label(__('forms.labels.length'))
                         ->suffix(' cm')
                         ->placeholder('—'),
                     TextEntry::make('width')
-                        ->label('Width')
+                        ->label(__('forms.labels.width'))
                         ->suffix(' cm')
                         ->placeholder('—'),
                     TextEntry::make('height')
-                        ->label('Height')
+                        ->label(__('forms.labels.height'))
                         ->suffix(' cm')
                         ->placeholder('—'),
                 ])
                 ->columns(3),
 
-            Section::make('Material & Finish')
+            Section::make(__('forms.sections.material_finish'))
                 ->relationship('specification')
                 ->schema([
                     TextEntry::make('material')
-                        ->label('Material')
+                        ->label(__('forms.labels.material'))
                         ->placeholder('—'),
                     TextEntry::make('color')
-                        ->label('Color')
+                        ->label(__('forms.labels.color'))
                         ->placeholder('—'),
                     TextEntry::make('finish')
-                        ->label('Finish')
+                        ->label(__('forms.labels.finish'))
                         ->placeholder('—'),
                     TextEntry::make('notes')
-                        ->label('Specification Notes')
+                        ->label(__('forms.labels.specification_notes'))
                         ->placeholder('—')
                         ->columnSpanFull(),
                 ])
@@ -175,78 +175,78 @@ class ProductInfolist
     protected static function packagingTab(): array
     {
         return [
-            Section::make('Packaging Type')
+            Section::make(__('forms.sections.packaging_type'))
                 ->relationship('packaging')
                 ->schema([
                     TextEntry::make('packaging_type')
-                        ->label('Packaging Type')
+                        ->label(__('forms.labels.packaging_type'))
                         ->badge()
                         ->placeholder('—'),
                 ])
                 ->columns(3),
 
-            Section::make('Inner Box')
+            Section::make(__('forms.sections.inner_box'))
                 ->relationship('packaging')
                 ->schema([
                     TextEntry::make('pcs_per_inner_box')
-                        ->label('Pcs / Inner Box')
+                        ->label(__('forms.labels.pcs_inner_box'))
                         ->placeholder('—'),
                     TextEntry::make('inner_box_length')
-                        ->label('Length')
+                        ->label(__('forms.labels.length'))
                         ->suffix(' cm')
                         ->placeholder('—'),
                     TextEntry::make('inner_box_width')
-                        ->label('Width')
+                        ->label(__('forms.labels.width'))
                         ->suffix(' cm')
                         ->placeholder('—'),
                     TextEntry::make('inner_box_height')
-                        ->label('Height')
+                        ->label(__('forms.labels.height'))
                         ->suffix(' cm')
                         ->placeholder('—'),
                     TextEntry::make('inner_box_weight')
-                        ->label('GW / Inner Box')
+                        ->label(__('forms.labels.gw_inner_box'))
                         ->suffix(' kg')
                         ->placeholder('—'),
                 ])
                 ->columns(5),
 
-            Section::make('Master Carton')
+            Section::make(__('forms.sections.master_carton'))
                 ->relationship('packaging')
                 ->schema([
                     TextEntry::make('pcs_per_carton')
-                        ->label('Pcs / Carton')
+                        ->label(__('forms.labels.pcs_carton'))
                         ->placeholder('—'),
                     TextEntry::make('inner_boxes_per_carton')
-                        ->label('Inner Boxes / Carton')
+                        ->label(__('forms.labels.inner_boxes_carton'))
                         ->placeholder('—'),
                     TextEntry::make('carton_length')
-                        ->label('Length')
+                        ->label(__('forms.labels.length'))
                         ->suffix(' cm')
                         ->placeholder('—'),
                     TextEntry::make('carton_width')
-                        ->label('Width')
+                        ->label(__('forms.labels.width'))
                         ->suffix(' cm')
                         ->placeholder('—'),
                     TextEntry::make('carton_height')
-                        ->label('Height')
+                        ->label(__('forms.labels.height'))
                         ->suffix(' cm')
                         ->placeholder('—'),
                     TextEntry::make('carton_net_weight')
-                        ->label('NW / Carton')
+                        ->label(__('forms.labels.nw_carton'))
                         ->suffix(' kg')
                         ->placeholder('—'),
                     TextEntry::make('carton_weight')
-                        ->label('GW / Carton')
+                        ->label(__('forms.labels.gw_carton'))
                         ->suffix(' kg')
                         ->placeholder('—'),
                     TextEntry::make('carton_cbm')
-                        ->label('CBM / Carton')
+                        ->label(__('forms.labels.cbm_carton'))
                         ->suffix(' m³')
                         ->placeholder('—'),
                 ])
                 ->columns(4),
 
-            Section::make('Container Loading')
+            Section::make(__('forms.sections.container_loading'))
                 ->relationship('packaging')
                 ->schema([
                     TextEntry::make('cartons_per_20ft')
@@ -259,7 +259,7 @@ class ProductInfolist
                         ->label("Cartons / 40' HC")
                         ->placeholder('—'),
                     TextEntry::make('packing_notes')
-                        ->label('Packing Notes')
+                        ->label(__('forms.labels.packing_notes'))
                         ->placeholder('—')
                         ->columnSpanFull(),
                 ])
@@ -270,45 +270,45 @@ class ProductInfolist
     protected static function costingTab(): array
     {
         return [
-            Section::make('Cost Breakdown')
+            Section::make(__('forms.sections.cost_breakdown'))
                 ->relationship('costing')
                 ->schema([
                     TextEntry::make('currency.code')
-                        ->label('Currency')
+                        ->label(__('forms.labels.currency'))
                         ->badge()
                         ->placeholder('—'),
                     TextEntry::make('base_price')
-                        ->label('Base Price')
+                        ->label(__('forms.labels.base_price'))
                         ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
                         ->prefix('$ ')
                         ->placeholder('—'),
                     TextEntry::make('bom_material_cost')
-                        ->label('BOM Material Cost')
+                        ->label(__('forms.labels.bom_material_cost'))
                         ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
                         ->prefix('$ ')
                         ->placeholder('—'),
                     TextEntry::make('direct_labor_cost')
-                        ->label('Direct Labor Cost')
+                        ->label(__('forms.labels.direct_labor_cost'))
                         ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
                         ->prefix('$ ')
                         ->placeholder('—'),
                     TextEntry::make('direct_overhead_cost')
-                        ->label('Direct Overhead Cost')
+                        ->label(__('forms.labels.direct_overhead_cost'))
                         ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
                         ->prefix('$ ')
                         ->placeholder('—'),
                     TextEntry::make('total_manufacturing_cost')
-                        ->label('Total Manufacturing Cost')
+                        ->label(__('forms.labels.total_manufacturing_cost'))
                         ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
                         ->prefix('$ ')
                         ->placeholder('—')
                         ->weight(FontWeight::Bold),
                     TextEntry::make('markup_percentage')
-                        ->label('Markup')
+                        ->label(__('forms.labels.markup'))
                         ->suffix(' %')
                         ->placeholder('—'),
                     TextEntry::make('calculated_selling_price')
-                        ->label('Calculated Selling Price')
+                        ->label(__('forms.labels.calculated_selling_price'))
                         ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
                         ->prefix('$ ')
                         ->placeholder('—')

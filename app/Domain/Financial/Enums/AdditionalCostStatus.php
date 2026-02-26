@@ -12,15 +12,11 @@ enum AdditionalCostStatus: string implements HasLabel, HasColor
     case PAID = 'paid';
     case WAIVED = 'waived';
 
-    public function getLabel(): string
+    public function getLabel(): ?string
     {
-        return match ($this) {
-            self::PENDING => 'Pending',
-            self::INVOICED => 'Invoiced',
-            self::PAID => 'Paid',
-            self::WAIVED => 'Waived',
-        };
+        return __('enums.additional_cost_status.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -29,6 +25,16 @@ enum AdditionalCostStatus: string implements HasLabel, HasColor
             self::INVOICED => 'info',
             self::PAID => 'success',
             self::WAIVED => 'gray',
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::PENDING => 'Pending',
+            self::INVOICED => 'Invoiced',
+            self::PAID => 'Paid',
+            self::WAIVED => 'Waived',
         };
     }
 }

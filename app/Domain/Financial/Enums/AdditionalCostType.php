@@ -21,23 +21,11 @@ enum AdditionalCostType: string implements HasLabel, HasColor, HasIcon
     case COMMISSION = 'commission';
     case OTHER = 'other';
 
-    public function getLabel(): string
+    public function getLabel(): ?string
     {
-        return match ($this) {
-            self::TESTING => 'Lab Testing',
-            self::INSPECTION => 'Inspection',
-            self::SAMPLES => 'Samples',
-            self::SAMPLE_SHIPPING => 'Sample Shipping',
-            self::FREIGHT => 'Freight',
-            self::CUSTOMS => 'Customs / Duties',
-            self::INSURANCE => 'Insurance',
-            self::PACKAGING => 'Packaging',
-            self::CERTIFICATION => 'Certification',
-            self::TRAVEL => 'Travel Expenses',
-            self::COMMISSION => 'Commission',
-            self::OTHER => 'Other',
-        };
+        return __('enums.additional_cost_type.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -67,6 +55,24 @@ enum AdditionalCostType: string implements HasLabel, HasColor, HasIcon
             self::TRAVEL => 'heroicon-o-paper-airplane',
             self::COMMISSION => 'heroicon-o-currency-dollar',
             self::OTHER => 'heroicon-o-ellipsis-horizontal-circle',
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::TESTING => 'Lab Testing',
+            self::INSPECTION => 'Inspection',
+            self::SAMPLES => 'Samples',
+            self::SAMPLE_SHIPPING => 'Sample Shipping',
+            self::FREIGHT => 'Freight',
+            self::CUSTOMS => 'Customs / Duties',
+            self::INSURANCE => 'Insurance',
+            self::PACKAGING => 'Packaging',
+            self::CERTIFICATION => 'Certification',
+            self::TRAVEL => 'Travel Expenses',
+            self::COMMISSION => 'Commission',
+            self::OTHER => 'Other',
         };
     }
 }

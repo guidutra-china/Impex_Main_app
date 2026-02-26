@@ -18,13 +18,9 @@ class CurrencyResource extends Resource
 {
     protected static ?string $model = Currency::class;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Settings';
-
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-currency-dollar';
 
     protected static ?int $navigationSort = 2;
-
-    protected static ?string $navigationLabel = 'Currencies';
 
     public static function canAccess(): bool
     {
@@ -48,5 +44,15 @@ class CurrencyResource extends Resource
             'create' => CreateCurrency::route('/create'),
             'edit' => EditCurrency::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.settings');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.resources.currencies');
     }
 }

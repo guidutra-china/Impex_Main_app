@@ -17,16 +17,9 @@ enum QuotationStatus: string implements HasLabel, HasColor
 
     public function getLabel(): ?string
     {
-        return match ($this) {
-            self::DRAFT => 'Draft',
-            self::SENT => 'Sent',
-            self::NEGOTIATING => 'Negotiating',
-            self::APPROVED => 'Approved',
-            self::REJECTED => 'Rejected',
-            self::EXPIRED => 'Expired',
-            self::CANCELLED => 'Cancelled',
-        };
+        return __('enums.quotation_status.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -38,6 +31,19 @@ enum QuotationStatus: string implements HasLabel, HasColor
             self::REJECTED => 'danger',
             self::EXPIRED => 'gray',
             self::CANCELLED => 'danger',
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::DRAFT => 'Draft',
+            self::SENT => 'Sent',
+            self::NEGOTIATING => 'Negotiating',
+            self::APPROVED => 'Approved',
+            self::REJECTED => 'Rejected',
+            self::EXPIRED => 'Expired',
+            self::CANCELLED => 'Cancelled',
         };
     }
 }

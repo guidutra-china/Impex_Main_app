@@ -36,7 +36,7 @@ class PackingListRelationManager extends RelationManager
     {
         return $schema->components([
             Select::make('shipment_item_id')
-                ->label('Product')
+                ->label(__('forms.labels.product'))
                 ->options(function () {
                     $shipment = $this->getOwnerRecord();
 
@@ -102,37 +102,37 @@ class PackingListRelationManager extends RelationManager
 
             TextInput::make('description')
                 ->maxLength(255)
-                ->placeholder('Additional description if needed'),
+                ->placeholder(__('forms.placeholders.additional_description_if_needed')),
 
-            Section::make('Packaging & Container')
+            Section::make(__('forms.sections.packaging_container'))
                 ->schema([
                     Grid::make(3)->schema([
                         Select::make('packaging_type')
-                            ->label('Packaging Type')
+                            ->label(__('forms.labels.packaging_type'))
                             ->options(PackagingType::class)
                             ->default(PackagingType::CARTON->value)
                             ->required()
-                            ->helperText('Auto-filled from product packaging'),
+                            ->helperText(__('forms.helpers.autofilled_from_product_packaging')),
 
                         TextInput::make('container_number')
-                            ->label('Container #')
+                            ->label(__('forms.labels.container_2'))
                             ->maxLength(50)
-                            ->placeholder('e.g. CCLU7730065'),
+                            ->placeholder(__('forms.placeholders.eg_cclu7730065')),
 
                         TextInput::make('pallet_number')
-                            ->label('Pallet #')
+                            ->label(__('forms.labels.pallet_2'))
                             ->numeric()
                             ->integer()
                             ->minValue(1)
-                            ->placeholder('Leave empty if not palletized'),
+                            ->placeholder(__('forms.placeholders.leave_empty_if_not_palletized')),
                     ]),
                 ]),
 
-            Section::make('Quantity & Cartons')
+            Section::make(__('forms.sections.quantity_cartons'))
                 ->schema([
                     Grid::make(2)->schema([
                         TextInput::make('total_quantity')
-                            ->label('Total Pieces')
+                            ->label(__('forms.labels.total_pieces'))
                             ->required()
                             ->numeric()
                             ->integer()
@@ -141,53 +141,53 @@ class PackingListRelationManager extends RelationManager
                             ->afterStateUpdated(fn (Get $get, Set $set) => $this->recalculateFromQuantity($get, $set)),
 
                         TextInput::make('qty_per_carton')
-                            ->label('Qty per Package')
+                            ->label(__('forms.labels.qty_per_package'))
                             ->required()
                             ->numeric()
                             ->integer()
                             ->minValue(1)
                             ->live(onBlur: true)
                             ->afterStateUpdated(fn (Get $get, Set $set) => $this->recalculateFromQuantity($get, $set))
-                            ->helperText('Auto-filled from product packaging'),
+                            ->helperText(__('forms.helpers.autofilled_from_product_packaging')),
                     ]),
 
                     Grid::make(3)->schema([
                         TextInput::make('quantity')
-                            ->label('Number of Packages')
+                            ->label(__('forms.labels.number_of_packages'))
                             ->numeric()
                             ->integer()
                             ->minValue(1)
                             ->live(onBlur: true)
                             ->afterStateUpdated(fn (Get $get, Set $set) => static::recalculateWeightVolumeTotals($get, $set))
-                            ->helperText('Auto-calculated, editable for mixed cartons'),
+                            ->helperText(__('forms.helpers.autocalculated_editable_for_mixed_cartons')),
 
                         TextInput::make('carton_from')
-                            ->label('Package From')
+                            ->label(__('forms.labels.package_from'))
                             ->numeric()
                             ->integer()
                             ->minValue(1)
-                            ->helperText('Auto-calculated, editable for mixed cartons'),
+                            ->helperText(__('forms.helpers.autocalculated_editable_for_mixed_cartons')),
 
                         TextInput::make('carton_to')
-                            ->label('Package To')
+                            ->label(__('forms.labels.package_to'))
                             ->numeric()
                             ->integer()
                             ->minValue(1)
-                            ->helperText('Auto-calculated, editable for mixed cartons'),
+                            ->helperText(__('forms.helpers.autocalculated_editable_for_mixed_cartons')),
                     ]),
                 ]),
 
-            Section::make('Weight & Dimensions (per package)')
+            Section::make(__('forms.sections.weight_dimensions_per_package'))
                 ->schema([
                     Grid::make(2)->schema([
                         TextInput::make('gross_weight')
-                            ->label('Gross Weight (kg)')
+                            ->label(__('forms.labels.gross_weight_kg'))
                             ->numeric()
                             ->live(onBlur: true)
                             ->afterStateUpdated(fn (Get $get, Set $set) => static::recalculateWeightVolumeTotals($get, $set)),
 
                         TextInput::make('net_weight')
-                            ->label('Net Weight (kg)')
+                            ->label(__('forms.labels.net_weight_kg'))
                             ->numeric()
                             ->live(onBlur: true)
                             ->afterStateUpdated(fn (Get $get, Set $set) => static::recalculateWeightVolumeTotals($get, $set)),
@@ -195,25 +195,25 @@ class PackingListRelationManager extends RelationManager
 
                     Grid::make(4)->schema([
                         TextInput::make('length')
-                            ->label('L (cm)')
+                            ->label(__('forms.labels.l_cm'))
                             ->numeric()
                             ->live(onBlur: true)
                             ->afterStateUpdated(fn (Get $get, Set $set) => static::calculateVolume($get, $set)),
 
                         TextInput::make('width')
-                            ->label('W (cm)')
+                            ->label(__('forms.labels.w_cm'))
                             ->numeric()
                             ->live(onBlur: true)
                             ->afterStateUpdated(fn (Get $get, Set $set) => static::calculateVolume($get, $set)),
 
                         TextInput::make('height')
-                            ->label('H (cm)')
+                            ->label(__('forms.labels.h_cm'))
                             ->numeric()
                             ->live(onBlur: true)
                             ->afterStateUpdated(fn (Get $get, Set $set) => static::calculateVolume($get, $set)),
 
                         TextInput::make('volume')
-                            ->label('CBM/Pkg')
+                            ->label(__('forms.labels.cbmpkg'))
                             ->numeric()
                             ->live(onBlur: true)
                             ->afterStateUpdated(fn (Get $get, Set $set) => static::recalculateWeightVolumeTotals($get, $set)),
@@ -221,23 +221,23 @@ class PackingListRelationManager extends RelationManager
                 ])
                 ->collapsible(),
 
-            Section::make('Totals')
+            Section::make(__('forms.sections.totals'))
                 ->schema([
                     Grid::make(3)->schema([
                         TextInput::make('total_gross_weight')
-                            ->label('Total GW (kg)')
+                            ->label(__('forms.labels.total_gw_kg'))
                             ->numeric()
                             ->disabled()
                             ->dehydrated(),
 
                         TextInput::make('total_net_weight')
-                            ->label('Total NW (kg)')
+                            ->label(__('forms.labels.total_nw_kg'))
                             ->numeric()
                             ->disabled()
                             ->dehydrated(),
 
                         TextInput::make('total_volume')
-                            ->label('Total CBM')
+                            ->label(__('forms.labels.total_cbm'))
                             ->numeric()
                             ->disabled()
                             ->dehydrated(),
@@ -254,58 +254,58 @@ class PackingListRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('container_number')
-                    ->label('Container')
+                    ->label(__('forms.labels.container'))
                     ->placeholder('—')
                     ->badge()
                     ->color('gray')
                     ->toggleable(),
                 TextColumn::make('pallet_number')
-                    ->label('Pallet')
+                    ->label(__('forms.labels.pallet'))
                     ->formatStateUsing(fn ($state) => $state ? 'PLT-' . str_pad($state, 2, '0', STR_PAD_LEFT) : '—')
                     ->badge()
                     ->color(fn ($state) => $state ? 'primary' : 'gray')
                     ->alignCenter()
                     ->toggleable(),
                 TextColumn::make('packaging_type')
-                    ->label('Type')
+                    ->label(__('forms.labels.type'))
                     ->badge(),
                 TextColumn::make('carton_range')
-                    ->label('Packages')
+                    ->label(__('forms.labels.packages'))
                     ->weight('bold'),
                 TextColumn::make('product_name')
-                    ->label('Product')
+                    ->label(__('forms.labels.product'))
                     ->limit(30),
                 TextColumn::make('quantity')
-                    ->label('# Pkgs')
+                    ->label(__('forms.labels.pkgs'))
                     ->alignCenter()
-                    ->summarize(Sum::make()->label('Total')),
+                    ->summarize(Sum::make()->label(__('forms.labels.total'))),
                 TextColumn::make('qty_per_carton')
-                    ->label('Pcs/Pkg')
+                    ->label(__('forms.labels.pcspkg'))
                     ->alignCenter()
                     ->placeholder('—'),
                 TextColumn::make('total_quantity')
-                    ->label('Total Pcs')
+                    ->label(__('forms.labels.total_pcs'))
                     ->alignCenter()
                     ->weight('bold')
-                    ->summarize(Sum::make()->label('Total')),
+                    ->summarize(Sum::make()->label(__('forms.labels.total'))),
                 TextColumn::make('total_gross_weight')
-                    ->label('Total GW (kg)')
+                    ->label(__('forms.labels.total_gw_kg'))
                     ->alignEnd()
                     ->placeholder('—')
                     ->weight('bold')
-                    ->summarize(Sum::make()->label('Total')->suffix(' kg')),
+                    ->summarize(Sum::make()->label(__('forms.labels.total'))->suffix(' kg')),
                 TextColumn::make('total_net_weight')
-                    ->label('Total NW (kg)')
+                    ->label(__('forms.labels.total_nw_kg'))
                     ->alignEnd()
                     ->placeholder('—')
-                    ->summarize(Sum::make()->label('Total')->suffix(' kg'))
+                    ->summarize(Sum::make()->label(__('forms.labels.total'))->suffix(' kg'))
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('total_volume')
-                    ->label('Total CBM')
+                    ->label(__('forms.labels.total_cbm'))
                     ->alignEnd()
                     ->placeholder('—')
                     ->weight('bold')
-                    ->summarize(Sum::make()->label('Total')->suffix(' CBM')),
+                    ->summarize(Sum::make()->label(__('forms.labels.total'))->suffix(' CBM')),
                 TextColumn::make('description')
                     ->limit(30)
                     ->placeholder('—')
@@ -313,12 +313,12 @@ class PackingListRelationManager extends RelationManager
             ])
             ->groups([
                 Group::make('container_number')
-                    ->label('Container')
+                    ->label(__('forms.labels.container'))
                     ->getTitleFromRecordUsing(fn ($record) => $record->container_number
                         ? 'Container: ' . $record->container_number
                         : 'No Container'),
                 Group::make('pallet_number')
-                    ->label('Pallet')
+                    ->label(__('forms.labels.pallet'))
                     ->getTitleFromRecordUsing(fn ($record) => $record->pallet_number
                         ? 'Pallet ' . str_pad($record->pallet_number, 2, '0', STR_PAD_LEFT)
                         : 'No Pallet'),
@@ -337,7 +337,7 @@ class PackingListRelationManager extends RelationManager
             ])
             ->headerActions([
                 \Filament\Actions\Action::make('generate_packing_list')
-                    ->label('Generate from Items')
+                    ->label(__('forms.labels.generate_from_items'))
                     ->icon('heroicon-o-sparkles')
                     ->color('warning')
                     ->requiresConfirmation()
@@ -356,7 +356,7 @@ class PackingListRelationManager extends RelationManager
                             ->send();
                     }),
                 \Filament\Actions\CreateAction::make()
-                    ->label('Add Line')
+                    ->label(__('forms.labels.add_line'))
                     ->icon('heroicon-o-plus')
                     ->visible(fn () => auth()->user()?->can('edit-shipments'))
                     ->after(function () {

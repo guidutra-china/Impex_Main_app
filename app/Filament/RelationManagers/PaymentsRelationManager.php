@@ -30,14 +30,14 @@ class PaymentsRelationManager extends RelationManager
             ->query(fn () => $this->getScheduleItemsQuery())
             ->columns([
                 TextColumn::make('label')
-                    ->label('Schedule Stage')
+                    ->label(__('forms.labels.schedule_stage'))
                     ->weight('bold')
                     ->icon(fn ($record) => $record->is_credit ? 'heroicon-o-arrow-uturn-left' : null)
                     ->color(fn ($record) => $record->is_credit ? 'info' : null)
                     ->description(fn ($record) => $record->is_credit ? 'Credit' : null)
                     ->searchable(),
                 TextColumn::make('percentage')
-                    ->label('%')
+                    ->label(__('forms.labels.percent'))
                     ->suffix('%')
                     ->alignCenter()
                     ->placeholder('—'),
@@ -50,24 +50,24 @@ class PaymentsRelationManager extends RelationManager
                     ->color(fn ($record) => $record->is_credit ? 'info' : null)
                     ->alignEnd(),
                 TextColumn::make('paid_amount')
-                    ->label('Paid')
+                    ->label(__('forms.labels.paid'))
                     ->getStateUsing(fn ($record) => $record->paid_amount)
                     ->formatStateUsing(fn ($state, $record) => $record->currency_code . ' ' . Money::format($state))
                     ->alignEnd()
                     ->color(fn ($record) => $record->is_paid_in_full ? 'success' : ($record->paid_amount > 0 ? 'info' : 'gray'))
                     ->visible(fn () => ! $this->hasOnlyCredits()),
                 TextColumn::make('remaining_amount')
-                    ->label('Remaining')
+                    ->label(__('forms.labels.remaining'))
                     ->getStateUsing(fn ($record) => $record->remaining_amount)
                     ->formatStateUsing(fn ($state, $record) => $record->currency_code . ' ' . Money::format(abs($state)))
                     ->alignEnd()
                     ->color(fn ($state) => $state > 0 ? 'warning' : 'success')
                     ->visible(fn () => ! $this->hasOnlyCredits()),
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->badge(),
                 TextColumn::make('allocations_detail')
-                    ->label('Deposits')
+                    ->label(__('forms.labels.deposits'))
                     ->wrap()
                     ->getStateUsing(function ($record) {
                         if ($record->is_credit) {
@@ -122,7 +122,7 @@ class PaymentsRelationManager extends RelationManager
             )
             ->headerActions([
                 Action::make('recordPayment')
-                    ->label('Record Payment')
+                    ->label(__('forms.labels.record_payment'))
                     ->icon('heroicon-o-plus-circle')
                     ->color('primary')
                     ->visible(fn () => auth()->user()?->can('create-payments'))
@@ -144,7 +144,7 @@ class PaymentsRelationManager extends RelationManager
             ])
             ->recordActions([
                 Action::make('viewPayments')
-                    ->label('View Deposits')
+                    ->label(__('forms.labels.view_deposits'))
                     ->icon('heroicon-o-eye')
                     ->color('gray')
                     ->visible(fn ($record) => ! $record->is_credit)

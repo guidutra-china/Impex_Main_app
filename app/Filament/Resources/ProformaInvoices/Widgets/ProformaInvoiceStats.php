@@ -58,30 +58,30 @@ class ProformaInvoiceStats extends Widget
 
         $cards = [
             [
-                'label' => 'Invoice Total',
+                'label' => __('widgets.document_summary.invoice_total'),
                 'value' => $currency . ' ' . Money::format($total),
                 'description' => $totalCredits > 0
-                    ? 'Credits: ' . $currency . ' ' . Money::format($totalCredits)
+                    ? __('widgets.document_summary.credits') . ': ' . $currency . ' ' . Money::format($totalCredits)
                     : $pi->items->count() . ' item(s)',
                 'icon' => 'heroicon-o-document-currency-dollar',
                 'color' => 'primary',
             ],
             [
-                'label' => 'Cost / Margin',
+                'label' => __('widgets.document_summary.cost_margin'),
                 'value' => $currency . ' ' . Money::format($costTotal),
-                'description' => 'Margin: ' . $margin . '%',
+                'description' => __('widgets.document_summary.margin') . ': ' . $margin . '%',
                 'icon' => 'heroicon-o-calculator',
                 'color' => $margin > 0 ? 'success' : 'danger',
             ],
             [
-                'label' => 'Paid',
+                'label' => __('widgets.document_summary.paid'),
                 'value' => $currency . ' ' . Money::format($totalPaid),
                 'description' => $progress . '% received',
                 'icon' => 'heroicon-o-banknotes',
                 'color' => $progress >= 100 ? 'success' : ($progress > 0 ? 'info' : 'gray'),
             ],
             [
-                'label' => 'Remaining',
+                'label' => __('widgets.document_summary.remaining'),
                 'value' => $currency . ' ' . Money::format($netRemaining),
                 'description' => $this->buildRemainingDescription($overdueAmount, $regularItems, $netRemaining, $currency),
                 'icon' => 'heroicon-o-clock',
@@ -107,7 +107,7 @@ class ProformaInvoiceStats extends Widget
         $totalScheduleRemaining = max(0, $totalScheduleAmount - $totalSchedulePaid);
 
         return [
-            'heading' => 'Financial Summary',
+            'heading' => __('widgets.document_summary.financial_summary'),
             'icon' => 'heroicon-o-banknotes',
             'currency' => $currency,
             'cards' => $cards,
@@ -121,20 +121,20 @@ class ProformaInvoiceStats extends Widget
             ],
             'unallocatedTotal' => $unallocatedTotal,
             'unallocatedFormatted' => Money::format($unallocatedTotal),
-            'unallocatedLabel' => 'From this client — available to allocate',
+            'unallocatedLabel' => __('widgets.document_summary.from_client_available'),
         ];
     }
 
     private function buildRemainingDescription(int $overdueAmount, $regularItems, int $netRemaining, string $currency): string
     {
         if ($netRemaining <= 0) {
-            return 'Fully paid';
+            return __('widgets.document_summary.fully_paid');
         }
 
         $parts = [];
 
         if ($overdueAmount > 0) {
-            $parts[] = 'Overdue: ' . $currency . ' ' . Money::format($overdueAmount);
+            $parts[] = __('widgets.document_summary.overdue') . ': ' . $currency . ' ' . Money::format($overdueAmount);
         }
 
         $nextDue = $regularItems
@@ -143,10 +143,10 @@ class ProformaInvoiceStats extends Widget
             ->first();
 
         if ($nextDue?->due_date) {
-            $parts[] = 'Next: ' . $nextDue->due_date->format('M d, Y');
+            $parts[] = __('widgets.document_summary.next') . ': ' . $nextDue->due_date->format('M d, Y');
         }
 
-        return implode(' | ', $parts) ?: 'Outstanding';
+        return implode(' | ', $parts) ?: __('widgets.document_summary.outstanding');
     }
 
     private function getUnallocatedPaymentsTotal(int $companyId, PaymentDirection $direction, string $currency): int

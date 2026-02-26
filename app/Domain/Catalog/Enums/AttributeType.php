@@ -13,6 +13,12 @@ enum AttributeType: string implements HasLabel
 
     public function getLabel(): ?string
     {
+        return __('enums.attribute_type.' . $this->value);
+    }
+
+
+    public function getEnglishLabel(): string
+    {
         return match ($this) {
             self::TEXT => 'Text',
             self::NUMBER => 'Number',

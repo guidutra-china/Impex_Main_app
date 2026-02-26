@@ -13,12 +13,9 @@ enum ExchangeRateStatus: string implements HasLabel, HasColor
 
     public function getLabel(): ?string
     {
-        return match ($this) {
-            self::PENDING => 'Pending',
-            self::APPROVED => 'Approved',
-            self::REJECTED => 'Rejected',
-        };
+        return __('enums.exchange_rate_status.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -26,6 +23,15 @@ enum ExchangeRateStatus: string implements HasLabel, HasColor
             self::PENDING => 'warning',
             self::APPROVED => 'success',
             self::REJECTED => 'danger',
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::PENDING => 'Pending',
+            self::APPROVED => 'Approved',
+            self::REJECTED => 'Rejected',
         };
     }
 }

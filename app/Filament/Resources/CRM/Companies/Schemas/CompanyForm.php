@@ -18,30 +18,30 @@ class CompanyForm
     {
         return $schema
             ->components([
-                Section::make('Company Information')
+                Section::make(__('forms.sections.company_information'))
                     ->schema([
                         TextInput::make('name')
-                            ->label('Company Name')
+                            ->label(__('forms.labels.company_name'))
                             ->required()
                             ->maxLength(255),
                         TextInput::make('legal_name')
-                            ->label('Legal Name')
+                            ->label(__('forms.labels.legal_name'))
                             ->maxLength(255)
-                            ->helperText('Official registered name for legal documents.'),
+                            ->helperText(__('forms.helpers.official_registered_name_for_legal_documents')),
                         TextInput::make('tax_number')
-                            ->label('Tax Number')
+                            ->label(__('forms.labels.tax_number'))
                             ->maxLength(50)
-                            ->helperText('CNPJ, VAT, EIN, etc.'),
+                            ->helperText(__('forms.helpers.cnpj_vat_ein_etc')),
                         TextInput::make('email')
-                            ->label('Email')
+                            ->label(__('forms.labels.email'))
                             ->email()
                             ->maxLength(255),
                         TextInput::make('phone')
-                            ->label('Phone')
+                            ->label(__('forms.labels.phone'))
                             ->tel()
                             ->maxLength(50),
                         TextInput::make('website')
-                            ->label('Website')
+                            ->label(__('forms.labels.website'))
                             ->url()
                             ->maxLength(255)
                             ->prefix('https://'),
@@ -49,74 +49,74 @@ class CompanyForm
                     ->columns(2)
                     ->columnSpan(['lg' => fn (?Company $record) => $record === null ? 3 : 2]),
 
-                Section::make('Status & Roles')
+                Section::make(__('forms.sections.status_roles'))
                     ->schema([
                         Select::make('status')
-                            ->label('Status')
+                            ->label(__('forms.labels.status'))
                             ->options(CompanyStatus::class)
                             ->required()
                             ->default(CompanyStatus::ACTIVE->value),
                         CheckboxList::make('roles')
-                            ->label('Roles')
+                            ->label(__('forms.labels.roles'))
                             ->options(CompanyRole::class)
                             ->required()
-                            ->helperText('Select all roles this company plays in your business.')
+                            ->helperText(__('forms.helpers.select_all_roles_this_company_plays_in_your_business'))
                             ->columns(1),
                     ])
                     ->columnSpan(['lg' => 1])
                     ->hidden(fn (?Company $record) => $record === null),
 
-                Section::make('Status & Roles')
+                Section::make(__('forms.sections.status_roles'))
                     ->schema([
                         Select::make('status')
-                            ->label('Status')
+                            ->label(__('forms.labels.status'))
                             ->options(CompanyStatus::class)
                             ->required()
                             ->default(CompanyStatus::ACTIVE->value),
                         CheckboxList::make('roles')
-                            ->label('Roles')
+                            ->label(__('forms.labels.roles'))
                             ->options(CompanyRole::class)
                             ->required()
-                            ->helperText('Select all roles this company plays in your business.')
+                            ->helperText(__('forms.helpers.select_all_roles_this_company_plays_in_your_business'))
                             ->columns(2),
                     ])
                     ->columnSpan(['lg' => 3])
                     ->visible(fn (?Company $record) => $record === null),
 
-                Section::make('Address')
+                Section::make(__('forms.sections.address'))
                     ->schema([
                         TextInput::make('address_street')
-                            ->label('Street')
+                            ->label(__('forms.labels.street'))
                             ->maxLength(255),
                         TextInput::make('address_number')
-                            ->label('Number')
+                            ->label(__('forms.labels.number'))
                             ->maxLength(20),
                         TextInput::make('address_complement')
-                            ->label('Complement')
+                            ->label(__('forms.labels.complement'))
                             ->maxLength(255),
                         TextInput::make('address_city')
-                            ->label('City')
+                            ->label(__('forms.labels.city'))
                             ->maxLength(255),
                         TextInput::make('address_state')
-                            ->label('State / Province')
+                            ->label(__('forms.labels.state_province'))
                             ->maxLength(255),
                         TextInput::make('address_zip')
-                            ->label('ZIP / Postal Code')
+                            ->label(__('forms.labels.zip_postal_code'))
                             ->maxLength(20),
                         TextInput::make('address_country')
-                            ->label('Country Code')
+                            ->label(__('forms.labels.country_code'))
                             ->maxLength(2)
-                            ->placeholder('US')
-                            ->helperText('ISO 3166-1 alpha-2 code (e.g., US, CN, BR, DE).'),
+                            ->placeholder(__('forms.placeholders.us'))
+                            ->helperText(__('forms.helpers.iso_31661_alpha2_code_eg_us_cn_br_de')),
                     ])
                     ->columns(3)
                     ->columnSpan(['lg' => 3])
                     ->collapsible(),
 
-                Section::make('Notes')
+                Section::make(__('forms.sections.notes'))
                     ->schema([
                         Textarea::make('notes')
-                            ->label('Internal Notes')
+                            ->label(__('forms.labels.internal_notes'))
                             ->rows(3)
                             ->maxLength(5000),
                     ])

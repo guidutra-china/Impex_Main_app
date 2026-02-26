@@ -214,10 +214,10 @@ class FinancialStatsOverview extends Widget
         return [
             'net_position' => Money::format(abs($netPosition)),
             'net_position_raw' => $netPosition,
-            'net_position_label' => $netPosition >= 0 ? 'Net Positive' : 'Net Negative',
+            'net_position_label' => $netPosition >= 0 ? __('widgets.financial_stats.net_positive') : __('widgets.financial_stats.net_negative'),
             'net_outstanding' => Money::format(abs($netOutstanding)),
             'net_outstanding_raw' => $netOutstanding,
-            'net_outstanding_label' => $netOutstanding >= 0 ? 'Net to Receive' : 'Net to Pay',
+            'net_outstanding_label' => $netOutstanding >= 0 ? __('widgets.financial_stats.net_to_receive') : __('widgets.financial_stats.net_to_pay'),
         ];
     }
 

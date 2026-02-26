@@ -1,8 +1,8 @@
 <x-filament-widgets::widget>
     <x-filament::section
-        heading="Cash Flow Projection"
+        :heading="__('widgets.cash_flow.heading')"
         icon="heroicon-o-chart-bar"
-        description="Expected inflows and outflows based on payment schedule due dates"
+        :description="__('widgets.cash_flow.description')"
         collapsible
     >
         {{-- Projection Table --}}
@@ -11,22 +11,22 @@
                 <thead>
                     <tr class="border-b border-gray-200 dark:border-gray-700">
                         <th class="pb-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                            Period
+                            {{ __('widgets.cash_flow.period') }}
                         </th>
                         <th class="pb-3 text-right text-xs font-semibold uppercase tracking-wider text-success-600 dark:text-success-400">
                             <div class="flex items-center justify-end gap-1">
                                 <x-filament::icon icon="heroicon-o-arrow-down-left" class="h-3.5 w-3.5" />
-                                Inflow (PI)
+                                {{ __('widgets.cash_flow.inflow_pi') }}
                             </div>
                         </th>
                         <th class="pb-3 text-right text-xs font-semibold uppercase tracking-wider text-danger-600 dark:text-danger-400">
                             <div class="flex items-center justify-end gap-1">
                                 <x-filament::icon icon="heroicon-o-arrow-up-right" class="h-3.5 w-3.5" />
-                                Outflow (PO)
+                                {{ __('widgets.cash_flow.outflow_po') }}
                             </div>
                         </th>
                         <th class="pb-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                            Net
+                            {{ __('widgets.cash_flow.net') }}
                         </th>
                     </tr>
                 </thead>
@@ -147,17 +147,17 @@
                 <div class="mt-2 flex gap-6 text-xs">
                     @if ($unscheduled['inflow_raw'] > 0)
                         <span class="text-success-600 dark:text-success-400">
-                            Inflow: {{ $baseCurrencyCode }} {{ $unscheduled['inflow'] }}
+                            {{ __('widgets.cash_flow.inflow') }}: {{ $baseCurrencyCode }} {{ $unscheduled['inflow'] }}
                         </span>
                     @endif
                     @if ($unscheduled['outflow_raw'] > 0)
                         <span class="text-danger-600 dark:text-danger-400">
-                            Outflow: {{ $baseCurrencyCode }} {{ $unscheduled['outflow'] }}
+                            {{ __('widgets.cash_flow.outflow') }}: {{ $baseCurrencyCode }} {{ $unscheduled['outflow'] }}
                         </span>
                     @endif
                 </div>
                 <p class="mt-1 text-xs text-warning-600 dark:text-warning-400">
-                    These items have no due date set and are not included in the projection above.
+                    {{ __('widgets.cash_flow.no_due_date_warning') }}
                 </p>
             </div>
         @endif

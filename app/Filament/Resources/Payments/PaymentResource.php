@@ -20,17 +20,9 @@ class PaymentResource extends Resource
 {
     protected static ?string $model = Payment::class;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Finance';
-
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-banknotes';
 
     protected static ?int $navigationSort = 1;
-
-    protected static ?string $navigationLabel = 'Payments';
-
-    protected static ?string $modelLabel = 'Payment';
-
-    protected static ?string $pluralModelLabel = 'Payments';
 
     protected static ?string $slug = 'payments';
 
@@ -74,5 +66,25 @@ class PaymentResource extends Resource
             'view' => ViewPayment::route('/{record}'),
             'edit' => EditPayment::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.finance');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.resources.payments');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('navigation.models.payment');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('navigation.models.payments');
     }
 }

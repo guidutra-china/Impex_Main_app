@@ -20,20 +20,20 @@ class CompaniesTable
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label('Company')
+                    ->label(__('forms.labels.company'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
                 TextColumn::make('companyRoles.role')
-                    ->label('Roles')
+                    ->label(__('forms.labels.roles'))
                     ->badge()
                     ->separator(','),
                 TextColumn::make('address_city')
-                    ->label('City')
+                    ->label(__('forms.labels.city'))
                     ->searchable()
                     ->toggleable(),
                 TextColumn::make('address_country')
-                    ->label('Country')
+                    ->label(__('forms.labels.country'))
                     ->searchable()
                     ->badge()
                     ->color('gray')
@@ -42,20 +42,20 @@ class CompaniesTable
                     ->badge()
                     ->sortable(),
                 TextColumn::make('contacts_count')
-                    ->label('Contacts')
+                    ->label(__('forms.labels.contacts'))
                     ->counts('contacts')
                     ->alignCenter()
                     ->toggleable(),
                 TextColumn::make('phone')
-                    ->label('Phone')
+                    ->label(__('forms.labels.phone'))
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('email')
-                    ->label('Email')
+                    ->label(__('forms.labels.email'))
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')
-                    ->label('Updated')
+                    ->label(__('forms.labels.updated'))
                     ->dateTime('Y-m-d H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -64,7 +64,7 @@ class CompaniesTable
                 SelectFilter::make('status')
                     ->options(CompanyStatus::class),
                 SelectFilter::make('roles')
-                    ->label('Role')
+                    ->label(__('forms.labels.role'))
                     ->options(CompanyRole::class)
                     ->query(function ($query, array $data) {
                         if ($data['value']) {

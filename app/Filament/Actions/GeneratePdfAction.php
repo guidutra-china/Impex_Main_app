@@ -69,7 +69,7 @@ class GeneratePdfAction
                 if (! $document || ! $document->exists()) {
                     Notification::make()
                         ->title('PDF Not Found')
-                        ->body('No PDF has been generated yet. Please generate one first.')
+                        ->body(__('messages.no_pdf_generated'))
                         ->warning()
                         ->send();
 

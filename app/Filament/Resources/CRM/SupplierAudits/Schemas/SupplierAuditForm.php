@@ -20,17 +20,17 @@ class SupplierAuditForm
     {
         return $schema
             ->components([
-                Section::make('Audit Details')
+                Section::make(__('forms.sections.audit_details'))
                     ->schema([
                         TextInput::make('reference')
-                            ->label('Reference')
+                            ->label(__('forms.labels.reference'))
                             ->default(fn () => AuditReferenceService::generate())
                             ->disabled()
                             ->dehydrated()
                             ->required()
                             ->unique(ignoreRecord: true),
                         Select::make('company_id')
-                            ->label('Supplier')
+                            ->label(__('forms.labels.supplier'))
                             ->relationship(
                                 'company',
                                 'name',
@@ -40,39 +40,39 @@ class SupplierAuditForm
                             ->preload()
                             ->required(),
                         Select::make('audit_type')
-                            ->label('Audit Type')
+                            ->label(__('forms.labels.audit_type'))
                             ->options(AuditType::class)
                             ->required()
                             ->default(AuditType::INITIAL->value),
                         DatePicker::make('scheduled_date')
-                            ->label('Scheduled Date')
+                            ->label(__('forms.labels.scheduled_date'))
                             ->required()
                             ->default(now()),
                     ])
                     ->columns(2),
 
-                Section::make('Assignment')
+                Section::make(__('forms.sections.assignment'))
                     ->schema([
                         Select::make('conducted_by')
-                            ->label('Auditor')
+                            ->label(__('forms.labels.auditor'))
                             ->options(fn () => User::where('status', 'active')->pluck('name', 'id'))
                             ->searchable()
                             ->preload()
-                            ->helperText('The person who will conduct the audit.'),
+                            ->helperText(__('forms.helpers.the_person_who_will_conduct_the_audit')),
                         TextInput::make('location')
-                            ->label('Location')
+                            ->label(__('forms.labels.location'))
                             ->maxLength(255)
-                            ->placeholder('Factory address or location name'),
+                            ->placeholder(__('forms.placeholders.factory_address_or_location_name')),
                     ])
                     ->columns(2),
 
-                Section::make('Notes')
+                Section::make(__('forms.sections.notes'))
                     ->schema([
                         Textarea::make('summary')
-                            ->label('Summary / Objective')
+                            ->label(__('forms.labels.summary_objective'))
                             ->rows(3)
                             ->maxLength(2000)
-                            ->placeholder('Purpose and scope of this audit')
+                            ->placeholder(__('forms.placeholders.purpose_and_scope_of_this_audit'))
                             ->columnSpanFull(),
                     ]),
             ]);

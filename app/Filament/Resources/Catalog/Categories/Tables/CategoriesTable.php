@@ -19,14 +19,14 @@ class CategoriesTable
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label('Category')
+                    ->label(__('forms.labels.category'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->description(fn ($record) => $record->parent ? $record->full_path : null),
                 TextColumn::make('parent.name')
-                    ->label('Parent')
-                    ->placeholder('Root')
+                    ->label(__('forms.labels.parent'))
+                    ->placeholder(__('forms.placeholders.root'))
                     ->sortable(query: function (Builder $query, string $direction): Builder {
                         return $query
                             ->leftJoin('categories as parent', 'categories.parent_id', '=', 'parent.id')
@@ -35,41 +35,41 @@ class CategoriesTable
                     })
                     ->searchable(),
                 TextColumn::make('sku_prefix')
-                    ->label('SKU Prefix')
+                    ->label(__('forms.labels.sku_prefix'))
                     ->badge()
                     ->color('primary')
                     ->placeholder('—'),
                 TextColumn::make('children_count')
-                    ->label('Subcategories')
+                    ->label(__('forms.labels.subcategories'))
                     ->counts('children')
                     ->alignCenter(),
                 TextColumn::make('products_count')
-                    ->label('Products')
+                    ->label(__('forms.labels.products'))
                     ->counts('products')
                     ->alignCenter(),
                 TextColumn::make('companies_count')
-                    ->label('Companies')
+                    ->label(__('forms.labels.companies'))
                     ->counts('companies')
                     ->alignCenter(),
                 IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label(__('forms.labels.active'))
                     ->boolean()
                     ->alignCenter(),
                 TextColumn::make('sort_order')
-                    ->label('Order')
+                    ->label(__('forms.labels.order'))
                     ->alignCenter()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('is_active')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->options([
                         '1' => 'Active',
                         '0' => 'Inactive',
                     ]),
                 SelectFilter::make('parent_id')
-                    ->label('Parent')
+                    ->label(__('forms.labels.parent'))
                     ->relationship('parent', 'name')
                     ->searchable()
                     ->preload(),

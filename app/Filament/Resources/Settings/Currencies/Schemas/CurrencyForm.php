@@ -13,50 +13,50 @@ class CurrencyForm
     {
         return $schema
             ->components([
-                Section::make('Currency Details')
+                Section::make(__('forms.sections.currency_details'))
                     ->schema([
                         TextInput::make('code')
-                            ->label('ISO Code')
+                            ->label(__('forms.labels.iso_code'))
                             ->required()
                             ->maxLength(3)
                             ->minLength(3)
                             ->unique(ignoreRecord: true)
-                            ->placeholder('USD')
-                            ->helperText('ISO 4217 currency code (e.g., USD, EUR, CNY).'),
+                            ->placeholder(__('forms.placeholders.usd'))
+                            ->helperText(__('forms.helpers.iso_4217_currency_code_eg_usd_eur_cny')),
                         TextInput::make('name')
-                            ->label('Name')
+                            ->label(__('forms.labels.name'))
                             ->required()
                             ->maxLength(255)
-                            ->placeholder('US Dollar'),
+                            ->placeholder(__('forms.placeholders.us_dollar')),
                         TextInput::make('name_plural')
-                            ->label('Plural Name')
+                            ->label(__('forms.labels.plural_name'))
                             ->required()
                             ->maxLength(255)
-                            ->placeholder('US Dollars'),
+                            ->placeholder(__('forms.placeholders.us_dollars')),
                         TextInput::make('symbol')
-                            ->label('Symbol')
+                            ->label(__('forms.labels.symbol'))
                             ->required()
                             ->maxLength(10)
                             ->placeholder('$'),
                         TextInput::make('decimal_places')
-                            ->label('Decimal Places')
+                            ->label(__('forms.labels.decimal_places'))
                             ->numeric()
                             ->required()
                             ->default(2)
                             ->minValue(0)
                             ->maxValue(8)
-                            ->helperText('Number of decimal places for this currency.'),
+                            ->helperText(__('forms.helpers.number_of_decimal_places_for_this_currency')),
                     ])
                     ->columns(3),
-                Section::make('Status')
+                Section::make(__('forms.sections.status'))
                     ->schema([
                         Toggle::make('is_base')
-                            ->label('Base Currency')
-                            ->helperText('Only one currency can be the base. Setting this will unset the current base currency.')
+                            ->label(__('forms.labels.base_currency'))
+                            ->helperText(__('forms.helpers.only_one_currency_can_be_the_base_setting_this_will_unset'))
                             ->default(false),
                         Toggle::make('is_active')
-                            ->label('Active')
-                            ->helperText('Inactive currencies will not be available for selection.')
+                            ->label(__('forms.labels.active'))
+                            ->helperText(__('forms.helpers.inactive_currencies_will_not_be_available_for_selection'))
                             ->default(true),
                     ])
                     ->columns(2),

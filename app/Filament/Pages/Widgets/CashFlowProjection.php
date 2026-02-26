@@ -138,19 +138,19 @@ class CashFlowProjection extends Widget
 
         return [
             [
-                'label' => 'Overdue',
-                'range' => 'Before today',
+                'label' => __('widgets.cash_flow.overdue'),
+                'range' => __('widgets.cash_flow.before_today'),
                 'start' => Carbon::create(2000, 1, 1),
                 'end' => $today->copy()->subDay()->endOfDay(),
             ],
             [
-                'label' => 'This Week',
+                'label' => __('widgets.cash_flow.this_week'),
                 'range' => $today->format('d/m') . ' – ' . $today->copy()->endOfWeek()->format('d/m'),
                 'start' => $today->copy(),
                 'end' => $today->copy()->endOfWeek()->endOfDay(),
             ],
             [
-                'label' => 'Next Week',
+                'label' => __('widgets.cash_flow.next_week'),
                 'range' => $today->copy()->addWeek()->startOfWeek()->format('d/m') . ' – ' . $today->copy()->addWeek()->endOfWeek()->format('d/m'),
                 'start' => $today->copy()->addWeek()->startOfWeek(),
                 'end' => $today->copy()->addWeek()->endOfWeek()->endOfDay(),

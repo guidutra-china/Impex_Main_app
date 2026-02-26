@@ -37,42 +37,42 @@ class ClientsRelationManager extends RelationManager
         return $schema
             ->components([
                 TextInput::make('external_code')
-                    ->label('Client Code')
+                    ->label(__('forms.labels.client_code'))
                     ->maxLength(100)
                     ->helperText("Client's internal code for this product."),
                 TextInput::make('external_name')
-                    ->label('Client Name for Product')
+                    ->label(__('forms.labels.client_name_for_product'))
                     ->maxLength(255)
                     ->helperText("How the client calls this product."),
                 Textarea::make('external_description')
-                    ->label('Client Product Description')
+                    ->label(__('forms.labels.client_product_description'))
                     ->rows(3)
                     ->maxLength(2000)
-                    ->helperText('Product description as used by the client. Will appear on invoices.')
+                    ->helperText(__('forms.helpers.product_description_as_used_by_the_client_will_appear_on'))
                     ->columnSpanFull(),
                 TextInput::make('unit_price')
-                    ->label('Selling Price')
+                    ->label(__('forms.labels.selling_price'))
                     ->numeric()
                     ->minValue(0)
                     ->step(0.0001)
                     ->prefix('$')
                     ->inputMode('decimal'),
                 TextInput::make('custom_price')
-                    ->label('Custom Price (CI Override)')
+                    ->label(__('forms.labels.custom_price_ci_override'))
                     ->numeric()
                     ->minValue(0)
                     ->step(0.0001)
                     ->prefix('$')
                     ->inputMode('decimal')
-                    ->helperText('If set, Commercial Invoice uses this instead of PI price.'),
+                    ->helperText(__('forms.helpers.if_set_commercial_invoice_uses_this_instead_of_pi_price')),
                 Select::make('currency_code')
-                    ->label('Currency')
+                    ->label(__('forms.labels.currency'))
                     ->options(fn () => \App\Domain\Settings\Models\Currency::pluck('code', 'code'))
                     ->searchable(),
                 Checkbox::make('is_preferred')
-                    ->label('Primary Client'),
+                    ->label(__('forms.labels.primary_client')),
                 Textarea::make('notes')
-                    ->label('Notes')
+                    ->label(__('forms.labels.notes'))
                     ->rows(2)
                     ->maxLength(2000)
                     ->columnSpanFull(),
@@ -84,29 +84,29 @@ class ClientsRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label('Client')
+                    ->label(__('forms.labels.client'))
                     ->searchable()
                     ->weight('bold'),
                 TextColumn::make('pivot.external_code')
-                    ->label('Client Code')
+                    ->label(__('forms.labels.client_code'))
                     ->placeholder('—'),
                 TextColumn::make('pivot.external_name')
-                    ->label('Client Product Name')
+                    ->label(__('forms.labels.client_product_name'))
                     ->placeholder('—'),
                 TextColumn::make('pivot.unit_price')
-                    ->label('Selling Price')
+                    ->label(__('forms.labels.selling_price'))
                     ->formatStateUsing(fn ($state) => $state ? Money::format($state, 4) : '—')
                     ->prefix('$ ')
                     ->alignEnd(),
                 TextColumn::make('pivot.custom_price')
-                    ->label('CI Price')
+                    ->label(__('forms.labels.ci_price'))
                     ->formatStateUsing(fn ($state) => $state ? Money::format($state, 4) : '—')
                     ->prefix('$ ')
                     ->alignEnd(),
                 TextColumn::make('pivot.currency_code')
-                    ->label('Currency'),
+                    ->label(__('forms.labels.currency')),
                 TextColumn::make('pivot.is_preferred')
-                    ->label('Primary')
+                    ->label(__('forms.labels.primary'))
                     ->formatStateUsing(fn ($state) => $state ? '★ Primary' : '')
                     ->badge()
                     ->color(fn ($state) => $state ? 'warning' : 'gray')
@@ -114,7 +114,7 @@ class ClientsRelationManager extends RelationManager
             ])
             ->headerActions([
                 AttachAction::make()
-                    ->label('Add Client')
+                    ->label(__('forms.labels.add_client'))
                     ->visible(fn () => auth()->user()?->can('edit-products'))
                     ->preloadRecordSelect()
                     ->recordSelectSearchColumns(['name', 'legal_name'])
@@ -124,18 +124,18 @@ class ClientsRelationManager extends RelationManager
                     ->form(fn (AttachAction $action): array => [
                         $action->getRecordSelect(),
                         TextInput::make('external_code')
-                            ->label('Client Code')
+                            ->label(__('forms.labels.client_code'))
                             ->maxLength(100),
                         TextInput::make('external_name')
-                            ->label('Client Product Name')
+                            ->label(__('forms.labels.client_product_name'))
                             ->maxLength(255),
                         Textarea::make('external_description')
-                            ->label('Client Product Description')
+                            ->label(__('forms.labels.client_product_description'))
                             ->rows(3)
                             ->maxLength(2000)
-                            ->helperText('Will appear on invoices.'),
+                            ->helperText(__('forms.helpers.will_appear_on_invoices')),
                         TextInput::make('unit_price')
-                            ->label('Selling Price')
+                            ->label(__('forms.labels.selling_price'))
                             ->numeric()
                             ->minValue(0)
                             ->step(0.0001)
@@ -143,19 +143,19 @@ class ClientsRelationManager extends RelationManager
                             ->inputMode('decimal')
                             ->default(0),
                         TextInput::make('custom_price')
-                            ->label('Custom Price (CI Override)')
+                            ->label(__('forms.labels.custom_price_ci_override'))
                             ->numeric()
                             ->minValue(0)
                             ->step(0.0001)
                             ->prefix('$')
                             ->inputMode('decimal')
-                            ->helperText('If set, CI uses this price.'),
+                            ->helperText(__('forms.helpers.if_set_ci_uses_this_price')),
                         Select::make('currency_code')
-                            ->label('Currency')
+                            ->label(__('forms.labels.currency'))
                             ->options(fn () => \App\Domain\Settings\Models\Currency::pluck('code', 'code'))
                             ->searchable(),
                         Checkbox::make('is_preferred')
-                            ->label('Primary Client'),
+                            ->label(__('forms.labels.primary_client')),
                     ])
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['role'] = 'client';
@@ -204,10 +204,10 @@ class ClientsRelationManager extends RelationManager
             ->icon('heroicon-o-calculator')
             ->form([
                 TextInput::make('formula')
-                    ->label('Formula')
+                    ->label(__('forms.labels.formula'))
                     ->required()
-                    ->placeholder('e.g. *1.10 or +5 or -2.50')
-                    ->helperText('Apply to current value: *1.10 = +10%, /1.05 = -5%, +5 = add $5, -2.50 = subtract $2.50'),
+                    ->placeholder(__('forms.placeholders.eg_110_or_5_or_250'))
+                    ->helperText(__('forms.helpers.apply_to_current_value_110_10_105_5_5_add_5_250_subtract_250')),
             ])
             ->action(function (Collection $records, array $data) use ($column): void {
                 $formula = trim($data['formula']);
@@ -215,8 +215,8 @@ class ClientsRelationManager extends RelationManager
                 if (! preg_match('/^[\*\/\+\-]\s*[\d\.]+$/', $formula)) {
                     Notification::make()
                         ->danger()
-                        ->title('Invalid formula')
-                        ->body('Use format: *1.10, /1.05, +5, or -2.50')
+                        ->title(__('messages.invalid_formula'))
+                        ->body(__('messages.formula_format_help'))
                         ->send();
                     return;
                 }

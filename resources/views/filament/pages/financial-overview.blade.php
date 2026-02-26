@@ -6,7 +6,7 @@
             wire:click="switchTab('receivables')"
             icon="heroicon-o-arrow-down-left"
         >
-            Receivables (from Clients)
+            {{ __('widgets.financial_stats.receivables_from_clients') }}
         </x-filament::tabs.item>
 
         <x-filament::tabs.item
@@ -14,7 +14,7 @@
             wire:click="switchTab('payables')"
             icon="heroicon-o-arrow-up-right"
         >
-            Payables (to Suppliers)
+            {{ __('widgets.financial_stats.payables_to_suppliers') }}
         </x-filament::tabs.item>
 
         <x-filament::tabs.item
@@ -22,7 +22,7 @@
             wire:click="switchTab('schedule')"
             icon="heroicon-o-calendar-days"
         >
-            Payment Schedule
+            {{ __('widgets.financial_stats.payment_schedule') }}
         </x-filament::tabs.item>
     </x-filament::tabs>
 

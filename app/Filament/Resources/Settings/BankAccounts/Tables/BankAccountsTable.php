@@ -18,49 +18,49 @@ class BankAccountsTable
         return $table
             ->columns([
                 TextColumn::make('account_name')
-                    ->label('Account Name')
+                    ->label(__('forms.labels.account_name'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
                 TextColumn::make('bank_name')
-                    ->label('Bank')
+                    ->label(__('forms.labels.bank'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('currency.code')
-                    ->label('Currency')
+                    ->label(__('forms.labels.currency'))
                     ->badge()
                     ->color('primary'),
                 TextColumn::make('account_type')
-                    ->label('Type')
+                    ->label(__('forms.labels.type'))
                     ->badge(),
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->badge(),
                 TextColumn::make('formatted_current_balance')
-                    ->label('Current Balance')
+                    ->label(__('forms.labels.current_balance'))
                     ->alignEnd(),
                 TextColumn::make('formatted_available_balance')
-                    ->label('Available Balance')
+                    ->label(__('forms.labels.available_balance'))
                     ->alignEnd()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('swift_code')
-                    ->label('SWIFT')
+                    ->label(__('forms.labels.swift'))
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')
-                    ->label('Updated')
+                    ->label(__('forms.labels.updated'))
                     ->dateTime('Y-m-d H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('status')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->options(BankAccountStatus::class),
                 SelectFilter::make('account_type')
-                    ->label('Type')
+                    ->label(__('forms.labels.type'))
                     ->options(BankAccountType::class),
                 SelectFilter::make('currency_id')
-                    ->label('Currency')
+                    ->label(__('forms.labels.currency'))
                     ->relationship('currency', 'code'),
             ])
             ->recordActions([

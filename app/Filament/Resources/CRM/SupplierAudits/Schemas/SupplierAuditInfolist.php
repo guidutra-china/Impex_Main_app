@@ -19,31 +19,31 @@ class SupplierAuditInfolist
     {
         return $schema
             ->components([
-                Section::make('Audit Information')
+                Section::make(__('forms.sections.audit_information'))
                     ->schema([
                         TextEntry::make('reference')
-                            ->label('Reference')
+                            ->label(__('forms.labels.reference'))
                             ->weight(FontWeight::Bold)
                             ->size(TextSize::Large)
                             ->copyable(),
                         TextEntry::make('company.name')
-                            ->label('Supplier')
+                            ->label(__('forms.labels.supplier'))
                             ->weight(FontWeight::Bold)
                             ->url(fn (SupplierAudit $record) => CompanyResource::getUrl('view', ['record' => $record->company_id])),
                         TextEntry::make('audit_type')
-                            ->label('Type')
+                            ->label(__('forms.labels.type'))
                             ->badge(),
                         TextEntry::make('status')
-                            ->label('Status')
+                            ->label(__('forms.labels.status'))
                             ->badge(),
                     ])
                     ->columns(2)
                     ->columnSpan(['lg' => 2]),
 
-                Section::make('Score & Result')
+                Section::make(__('forms.sections.score_result'))
                     ->schema([
                         TextEntry::make('total_score')
-                            ->label('Total Score')
+                            ->label(__('forms.labels.total_score'))
                             ->weight(FontWeight::Bold)
                             ->size(TextSize::Large)
                             ->formatStateUsing(fn ($state) => $state !== null ? number_format($state, 2) . ' / 5.00' : '—')
@@ -54,54 +54,54 @@ class SupplierAuditInfolist
                                 default => 'danger',
                             }),
                         TextEntry::make('result')
-                            ->label('Result')
+                            ->label(__('forms.labels.result'))
                             ->badge()
-                            ->placeholder('Pending'),
+                            ->placeholder(__('forms.placeholders.pending')),
                     ])
                     ->columnSpan(['lg' => 1]),
 
-                Section::make('Schedule & Assignment')
+                Section::make(__('forms.sections.schedule_assignment'))
                     ->schema([
                         TextEntry::make('scheduled_date')
-                            ->label('Scheduled Date')
+                            ->label(__('forms.labels.scheduled_date'))
                             ->date('Y-m-d'),
                         TextEntry::make('conducted_date')
-                            ->label('Conducted Date')
+                            ->label(__('forms.labels.conducted_date'))
                             ->date('Y-m-d')
                             ->placeholder('—'),
                         TextEntry::make('conductor.name')
-                            ->label('Auditor')
-                            ->placeholder('Not assigned'),
+                            ->label(__('forms.labels.auditor'))
+                            ->placeholder(__('forms.placeholders.not_assigned')),
                         TextEntry::make('location')
-                            ->label('Location')
+                            ->label(__('forms.labels.location'))
                             ->placeholder('—'),
                         TextEntry::make('reviewer.name')
-                            ->label('Reviewed By')
+                            ->label(__('forms.labels.reviewed_by'))
                             ->placeholder('—'),
                         TextEntry::make('reviewed_at')
-                            ->label('Reviewed At')
+                            ->label(__('forms.labels.reviewed_at'))
                             ->dateTime('Y-m-d H:i')
                             ->placeholder('—'),
                     ])
                     ->columns(3),
 
-                Section::make('Summary & Actions')
+                Section::make(__('forms.sections.summary_actions'))
                     ->schema([
                         TextEntry::make('summary')
-                            ->label('Summary')
-                            ->placeholder('No summary provided')
+                            ->label(__('forms.labels.summary'))
+                            ->placeholder(__('forms.placeholders.no_summary_provided'))
                             ->columnSpanFull(),
                         TextEntry::make('corrective_actions')
-                            ->label('Corrective Actions Required')
-                            ->placeholder('None')
+                            ->label(__('forms.labels.corrective_actions_required'))
+                            ->placeholder(__('forms.placeholders.none'))
                             ->columnSpanFull(),
                         TextEntry::make('next_audit_date')
-                            ->label('Next Audit Date')
+                            ->label(__('forms.labels.next_audit_date'))
                             ->date('Y-m-d')
-                            ->placeholder('Not scheduled'),
+                            ->placeholder(__('forms.placeholders.not_scheduled')),
                     ]),
 
-                Section::make('Category Scores')
+                Section::make(__('forms.sections.category_scores'))
                     ->schema(fn (SupplierAudit $record) => static::buildCategoryScoreEntries($record))
                     ->columns(3)
                     ->visible(fn (SupplierAudit $record) => $record->status !== AuditStatus::SCHEDULED),

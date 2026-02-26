@@ -43,9 +43,9 @@ class OperationalAlertsWidget extends Widget
                 'type' => 'danger',
                 'icon' => 'heroicon-o-exclamation-circle',
                 'title' => $overduePayments . ' overdue payment' . ($overduePayments > 1 ? 's' : ''),
-                'description' => 'Schedule items past due date without full payment',
+                'description' => __('widgets.alerts.overdue_payments_desc'),
                 'url' => route('filament.admin.resources.payments.index'),
-                'action' => 'View Payments',
+                'action' => __('widgets.alerts.view_payments'),
             ];
         }
 
@@ -58,9 +58,9 @@ class OperationalAlertsWidget extends Widget
                 'type' => 'warning',
                 'icon' => 'heroicon-o-clock',
                 'title' => $pendingApproval . ' payment' . ($pendingApproval > 1 ? 's' : '') . ' awaiting approval',
-                'description' => 'Payments submitted and waiting for manager review',
+                'description' => __('widgets.alerts.pending_approval_desc'),
                 'url' => route('filament.admin.resources.payments.index'),
-                'action' => 'Review Payments',
+                'action' => __('widgets.alerts.review_payments'),
             ];
         }
 
@@ -74,9 +74,9 @@ class OperationalAlertsWidget extends Widget
                 'type' => 'info',
                 'icon' => 'heroicon-o-document-text',
                 'title' => $finalizedPIsWithoutPO . ' finalized PI' . ($finalizedPIsWithoutPO > 1 ? 's' : '') . ' without PO',
-                'description' => 'Proforma invoices confirmed but no purchase order created yet',
+                'description' => __('widgets.alerts.finalized_pi_desc'),
                 'url' => route('filament.admin.resources.proforma-invoices.index'),
-                'action' => 'View PIs',
+                'action' => __('widgets.alerts.view_pis'),
             ];
         }
 
@@ -93,9 +93,9 @@ class OperationalAlertsWidget extends Widget
                 'type' => 'warning',
                 'icon' => 'heroicon-o-pause-circle',
                 'title' => $stalledPOs . ' PO' . ($stalledPOs > 1 ? 's' : '') . ' with no updates (15+ days)',
-                'description' => 'Purchase orders in production with no activity for over 15 days',
+                'description' => __('widgets.alerts.stalled_po_desc'),
                 'url' => route('filament.admin.resources.purchase-orders.index'),
-                'action' => 'View POs',
+                'action' => __('widgets.alerts.view_pos'),
             ];
         }
 
@@ -109,9 +109,9 @@ class OperationalAlertsWidget extends Widget
                 'type' => 'info',
                 'icon' => 'heroicon-o-magnifying-glass',
                 'title' => $openInquiries . ' inquir' . ($openInquiries > 1 ? 'ies' : 'y') . ' open for 7+ days',
-                'description' => 'Client inquiries that may need follow-up',
+                'description' => __('widgets.alerts.open_inquiries_desc'),
                 'url' => route('filament.admin.resources.inquiries.index'),
-                'action' => 'View Inquiries',
+                'action' => __('widgets.alerts.view_inquiries'),
             ];
         }
 
@@ -126,9 +126,9 @@ class OperationalAlertsWidget extends Widget
                 'type' => 'primary',
                 'icon' => 'heroicon-o-calendar',
                 'title' => $dueThisWeek . ' payment' . ($dueThisWeek > 1 ? 's' : '') . ' due this week',
-                'description' => 'Schedule items due within the next 7 days',
+                'description' => __('widgets.alerts.due_this_week_desc'),
                 'url' => route('filament.admin.resources.payments.index'),
-                'action' => 'View Schedule',
+                'action' => __('widgets.alerts.view_schedule'),
             ];
         }
 

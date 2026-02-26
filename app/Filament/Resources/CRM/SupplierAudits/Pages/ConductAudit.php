@@ -46,7 +46,7 @@ class ConductAudit extends Page implements HasForms
 
         if (! in_array($this->record->status, [AuditStatus::SCHEDULED, AuditStatus::IN_PROGRESS])) {
             Notification::make()
-                ->title('This audit cannot be modified')
+                ->title(__('messages.audit_cannot_modify'))
                 ->warning()
                 ->send();
 
@@ -112,7 +112,7 @@ class ConductAudit extends Page implements HasForms
 
                 if ($criterion->type === CriterionType::SCORED) {
                     $fields[] = Radio::make("responses.{$criterion->id}.score")
-                        ->label('Score')
+                        ->label(__('forms.labels.score'))
                         ->options([
                             1 => '1 - Critical Non-Conformance',
                             2 => '2 - Major Non-Conformance',
@@ -123,15 +123,15 @@ class ConductAudit extends Page implements HasForms
                         ->inline();
                 } else {
                     $fields[] = Toggle::make("responses.{$criterion->id}.passed")
-                        ->label('Pass')
+                        ->label(__('forms.labels.pass'))
                         ->onColor('success')
                         ->offColor('danger');
                 }
 
                 $fields[] = Textarea::make("responses.{$criterion->id}.notes")
-                    ->label('Notes / Evidence')
+                    ->label(__('forms.labels.notes_evidence'))
                     ->rows(2)
-                    ->placeholder('Observations, evidence, or findings')
+                    ->placeholder(__('forms.placeholders.observations_evidence_or_findings'))
                     ->columnSpanFull();
 
                 $criteriaFields[] = Section::make($criterion->name . ($criterion->is_critical ? ' ⚠️ CRITICAL' : ''))
@@ -147,11 +147,11 @@ class ConductAudit extends Page implements HasForms
                 ->schema($criteriaFields);
         }
 
-        $tabs[] = Tab::make('Documents & Photos')
+        $tabs[] = Tab::make(__('forms.tabs.documents_photos'))
             ->icon('heroicon-o-photo')
             ->schema([
                 FileUpload::make('documents')
-                    ->label('Upload Documents & Photos')
+                    ->label(__('forms.labels.upload_documents_photos'))
                     ->multiple()
                     ->directory('audit-documents/' . $this->getRecord()->id)
                     ->maxSize(10240)
@@ -161,7 +161,7 @@ class ConductAudit extends Page implements HasForms
                         'application/msword',
                         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                     ])
-                    ->helperText('Upload photos, certificates, reports, or any supporting documents. Max 10MB per file.')
+                    ->helperText(__('forms.helpers.upload_photos_certificates_reports_or_any_supporting'))
                     ->columnSpanFull(),
             ]);
 
@@ -228,7 +228,7 @@ class ConductAudit extends Page implements HasForms
         });
 
         Notification::make()
-            ->title('Audit responses saved')
+            ->title(__('messages.audit_responses_saved'))
             ->success()
             ->send();
     }
@@ -253,7 +253,7 @@ class ConductAudit extends Page implements HasForms
         $resultText = $scoring['result']?->getLabel() ?? 'Pending';
 
         Notification::make()
-            ->title('Audit completed')
+            ->title(__('messages.audit_completed'))
             ->body("Final Score: {$scoreText} — Result: {$resultText}")
             ->success()
             ->send();
@@ -277,13 +277,13 @@ class ConductAudit extends Page implements HasForms
     {
         return [
             Action::make('save')
-                ->label('Save Progress')
+                ->label(__('forms.labels.save_progress'))
                 ->icon('heroicon-o-bookmark')
                 ->color('gray')
                 ->action('save'),
 
             Action::make('saveAndComplete')
-                ->label('Save & Complete Audit')
+                ->label(__('forms.labels.save_complete_audit'))
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
                 ->requiresConfirmation()

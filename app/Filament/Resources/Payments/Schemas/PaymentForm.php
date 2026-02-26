@@ -30,9 +30,9 @@ class PaymentForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Payment Information')->columns(2)->columnSpanFull()->schema([
+            Section::make(__('forms.sections.payment_information'))->columns(2)->columnSpanFull()->schema([
                 Select::make('direction')
-                    ->label('Direction')
+                    ->label(__('forms.labels.direction'))
                     ->options(PaymentDirection::class)
                     ->required()
                     ->live()
@@ -43,7 +43,7 @@ class PaymentForm
                         $set('amount', null);
                     }),
                 Select::make('company_id')
-                    ->label('Company')
+                    ->label(__('forms.labels.company'))
                     ->options(function (Get $get) {
                         $direction = $get('direction');
                         if (! $direction) {
@@ -67,47 +67,47 @@ class PaymentForm
                         $set('amount', null);
                     }),
                 Select::make('currency_code')
-                    ->label('Payment Currency')
+                    ->label(__('forms.labels.payment_currency'))
                     ->options(fn () => Currency::pluck('code', 'code'))
                     ->required()
                     ->live(),
                 TextInput::make('amount')
-                    ->label('Wire Transfer Amount')
+                    ->label(__('forms.labels.wire_transfer_amount'))
                     ->numeric()
                     ->step('0.01')
                     ->minValue(0.01)
                     ->required()
                     ->live(onBlur: true)
-                    ->helperText('Actual amount transferred. Credits are applied separately.'),
+                    ->helperText(__('forms.helpers.actual_amount_transferred_credits_are_applied_separately')),
                 DatePicker::make('payment_date')
-                    ->label('Payment Date')
+                    ->label(__('forms.labels.payment_date'))
                     ->default(now())
                     ->required(),
                 Select::make('payment_method_id')
-                    ->label('Payment Method')
+                    ->label(__('forms.labels.payment_method'))
                     ->options(fn () => PaymentMethod::active()->pluck('name', 'id')),
                 Select::make('bank_account_id')
-                    ->label('Bank Account')
+                    ->label(__('forms.labels.bank_account'))
                     ->options(fn () => BankAccount::active()->get()->mapWithKeys(fn ($ba) => [
                         $ba->id => $ba->bank_name . ' — ' . $ba->account_name . ' (' . $ba->currency?->code . ')',
                     ])),
                 TextInput::make('reference')
-                    ->label('Reference (SWIFT, Transfer #)')
+                    ->label(__('forms.labels.reference_swift_transfer'))
                     ->maxLength(255),
                 Textarea::make('notes')
-                    ->label('Notes')
+                    ->label(__('forms.labels.notes'))
                     ->rows(2)
                     ->columnSpanFull(),
                 FileUpload::make('attachment_path')
-                    ->label('Attachment (Receipt/SWIFT)')
+                    ->label(__('forms.labels.attachment_receiptswift'))
                     ->directory('payment-attachments')
                     ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                     ->maxSize(5120)
                     ->columnSpanFull(),
             ]),
 
-            Section::make('Outstanding Items & Credits')
-                ->description('Overview of pending schedule items and available credits for the selected company.')
+            Section::make(__('forms.sections.outstanding_items_credits'))
+                ->description(__('forms.descriptions.overview_of_pending_schedule_items_and_available_credits'))
                 ->visible(fn (Get $get) => filled($get('company_id')))
                 ->collapsible()
                 ->schema([
@@ -146,15 +146,15 @@ class PaymentForm
                 ])
                 ->columnSpanFull(),
 
-            Section::make('Allocations')
-                ->description('Allocate the wire transfer amount to schedule items.')
+            Section::make(__('forms.sections.allocations'))
+                ->description(__('forms.descriptions.allocate_the_wire_transfer_amount_to_schedule_items'))
                 ->visible(fn (Get $get) => filled($get('company_id')))
                 ->schema([
                     Repeater::make('allocations')
                         ->label('')
                         ->schema([
                             Select::make('payment_schedule_item_id')
-                                ->label('Schedule Item')
+                                ->label(__('forms.labels.schedule_item'))
                                 ->options(function (Get $get) {
                                     $companyId = $get('../../company_id');
                                     $direction = $get('../../direction');
@@ -171,7 +171,7 @@ class PaymentForm
                                 ->searchable()
                                 ->columnSpan(5),
                             TextInput::make('allocated_amount')
-                                ->label('Amount')
+                                ->label(__('forms.labels.amount'))
                                 ->numeric()
                                 ->step('0.01')
                                 ->minValue(0.01)
@@ -182,10 +182,10 @@ class PaymentForm
                                 })
                                 ->columnSpan(3),
                             TextInput::make('exchange_rate')
-                                ->label('Exchange Rate')
+                                ->label(__('forms.labels.exchange_rate'))
                                 ->numeric()
                                 ->step('0.00000001')
-                                ->placeholder('Auto')
+                                ->placeholder(__('forms.placeholders.auto'))
                                 ->columnSpan(2),
                         ])
                         ->columns(10)
@@ -219,8 +219,8 @@ class PaymentForm
                 ])
                 ->columnSpanFull(),
 
-            Section::make('Credit Applications')
-                ->description('Apply credits to offset schedule item balances. This does not affect the wire transfer amount.')
+            Section::make(__('forms.sections.credit_applications'))
+                ->description(__('forms.descriptions.apply_credits_to_offset_schedule_item_balances_this_does'))
                 ->visible(fn (Get $get) => filled($get('company_id'))
                     && static::getCompanyCreditItems((int) $get('company_id'), $get('direction'))->isNotEmpty())
                 ->collapsed()
@@ -229,7 +229,7 @@ class PaymentForm
                         ->label('')
                         ->schema([
                             Select::make('credit_schedule_item_id')
-                                ->label('Credit')
+                                ->label(__('forms.labels.credit'))
                                 ->options(function (Get $get) {
                                     $companyId = $get('../../company_id');
                                     $direction = $get('../../direction');
@@ -246,7 +246,7 @@ class PaymentForm
                                 ->searchable()
                                 ->columnSpan(4),
                             Select::make('payment_schedule_item_id')
-                                ->label('Apply to')
+                                ->label(__('forms.labels.apply_to'))
                                 ->options(function (Get $get) {
                                     $companyId = $get('../../company_id');
                                     $direction = $get('../../direction');
@@ -262,7 +262,7 @@ class PaymentForm
                                 ->searchable()
                                 ->columnSpan(4),
                             TextInput::make('credit_amount')
-                                ->label('Amount')
+                                ->label(__('forms.labels.amount'))
                                 ->numeric()
                                 ->step('0.01')
                                 ->minValue(0.01)

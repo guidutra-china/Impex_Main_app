@@ -48,55 +48,55 @@ class AdditionalCostsRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('cost_type')
-                    ->label('Type')
+                    ->label(__('forms.labels.type'))
                     ->badge()
                     ->sortable(),
                 TextColumn::make('description')
-                    ->label('Description')
+                    ->label(__('forms.labels.description'))
                     ->limit(40)
                     ->tooltip(fn ($record) => $record->description),
                 TextColumn::make('amount')
-                    ->label('Amount')
+                    ->label(__('forms.labels.amount'))
                     ->formatStateUsing(fn ($state) => Money::format($state))
                     ->alignEnd(),
                 TextColumn::make('currency_code')
-                    ->label('Currency'),
+                    ->label(__('forms.labels.currency')),
                 TextColumn::make('amount_in_document_currency')
-                    ->label('Doc. Amount')
+                    ->label(__('forms.labels.doc_amount'))
                     ->formatStateUsing(fn ($state) => Money::format($state))
                     ->alignEnd()
                     ->summarize(Sum::make()
-                        ->label('Total')
+                        ->label(__('forms.labels.total'))
                         ->formatStateUsing(fn ($state) => Money::format((int) $state))),
                 TextColumn::make('billable_to')
-                    ->label('Billable To')
+                    ->label(__('forms.labels.billable_to'))
                     ->badge(),
                 TextColumn::make('supplierCompany.name')
-                    ->label('Supplier')
+                    ->label(__('forms.labels.supplier'))
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('cost_date')
-                    ->label('Date')
+                    ->label(__('forms.labels.date'))
                     ->date('d/m/Y')
                     ->sortable(),
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->badge(),
                 TextColumn::make('creator.name')
-                    ->label('Created By')
+                    ->label(__('forms.labels.created_by'))
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('cost_date', 'desc')
             ->filters([
                 SelectFilter::make('cost_type')
                     ->options(AdditionalCostType::class)
-                    ->label('Type'),
+                    ->label(__('forms.labels.type')),
                 SelectFilter::make('billable_to')
                     ->options(BillableTo::class)
-                    ->label('Billable To'),
+                    ->label(__('forms.labels.billable_to')),
                 SelectFilter::make('status')
                     ->options(AdditionalCostStatus::class)
-                    ->label('Status'),
+                    ->label(__('forms.labels.status')),
             ])
             ->headerActions([
                 $this->addCostAction(),
@@ -112,7 +112,7 @@ class AdditionalCostsRelationManager extends RelationManager
     protected function addCostAction(): Action
     {
         return Action::make('addCost')
-            ->label('Add Cost')
+            ->label(__('forms.labels.add_cost'))
             ->icon('heroicon-o-plus-circle')
             ->color('primary')
             ->visible(fn () => auth()->user()?->can('create-payments'))
@@ -131,7 +131,7 @@ class AdditionalCostsRelationManager extends RelationManager
     protected function editCostAction(): Action
     {
         return Action::make('edit')
-            ->label('Edit')
+            ->label(__('forms.labels.edit'))
             ->icon('heroicon-o-pencil-square')
             ->color('gray')
             ->visible(fn ($record) => $record->status === AdditionalCostStatus::PENDING && auth()->user()?->can('create-payments'))
@@ -162,7 +162,7 @@ class AdditionalCostsRelationManager extends RelationManager
     protected function waiveCostAction(): Action
     {
         return Action::make('waive')
-            ->label('Waive')
+            ->label(__('forms.labels.waive'))
             ->icon('heroicon-o-arrow-uturn-right')
             ->color('warning')
             ->requiresConfirmation()
@@ -190,7 +190,7 @@ class AdditionalCostsRelationManager extends RelationManager
     protected function deleteCostAction(): Action
     {
         return Action::make('delete')
-            ->label('Delete')
+            ->label(__('forms.labels.delete'))
             ->icon('heroicon-o-trash')
             ->color('danger')
             ->requiresConfirmation()
@@ -211,55 +211,55 @@ class AdditionalCostsRelationManager extends RelationManager
     protected function costFormSchema(): array
     {
         return [
-            Section::make('Cost Details')->columns(2)->schema([
+            Section::make(__('forms.sections.cost_details'))->columns(2)->schema([
                 Select::make('cost_type')
-                    ->label('Cost Type')
+                    ->label(__('forms.labels.cost_type'))
                     ->options(AdditionalCostType::class)
                     ->required()
                     ->searchable(),
                 TextInput::make('description')
-                    ->label('Description')
+                    ->label(__('forms.labels.description'))
                     ->required()
                     ->maxLength(255)
                     ->columnSpanFull(),
                 TextInput::make('amount')
-                    ->label('Amount')
+                    ->label(__('forms.labels.amount'))
                     ->numeric()
                     ->step('0.01')
                     ->minValue(0.01)
                     ->required(),
                 Select::make('currency_code')
-                    ->label('Currency')
+                    ->label(__('forms.labels.currency'))
                     ->options(fn () => Currency::pluck('code', 'code'))
                     ->default(fn () => $this->getOwnerRecord()->currency_code)
                     ->required()
                     ->live(),
                 TextInput::make('exchange_rate')
-                    ->label('Exchange Rate')
+                    ->label(__('forms.labels.exchange_rate'))
                     ->numeric()
                     ->step('0.00000001')
-                    ->helperText('Rate to convert to document currency. Leave empty if same currency.')
+                    ->helperText(__('forms.helpers.rate_to_convert_to_document_currency_leave_empty_if_same'))
                     ->visible(fn ($get) => $get('currency_code') && $get('currency_code') !== $this->getOwnerRecord()->currency_code),
                 Select::make('billable_to')
-                    ->label('Billable To')
+                    ->label(__('forms.labels.billable_to'))
                     ->options(BillableTo::class)
                     ->default(BillableTo::CLIENT->value)
                     ->required(),
                 Select::make('supplier_company_id')
-                    ->label('Supplier (if applicable)')
+                    ->label(__('forms.labels.supplier_if_applicable'))
                     ->relationship('supplierCompany', 'name')
                     ->searchable()
                     ->preload()
                     ->placeholder('—'),
                 DatePicker::make('cost_date')
-                    ->label('Date')
+                    ->label(__('forms.labels.date'))
                     ->default(now()),
                 Textarea::make('notes')
-                    ->label('Notes')
+                    ->label(__('forms.labels.notes'))
                     ->rows(2)
                     ->columnSpanFull(),
                 FileUpload::make('attachment_path')
-                    ->label('Attachment (Invoice/Receipt)')
+                    ->label(__('forms.labels.attachment_invoicereceipt'))
                     ->directory('additional-cost-attachments')
                     ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                     ->maxSize(5120)
@@ -427,7 +427,7 @@ class AdditionalCostsRelationManager extends RelationManager
     protected function costStatementAction(): Action
     {
         return Action::make('costStatement')
-            ->label('Cost Statement')
+            ->label(__('forms.labels.cost_statement'))
             ->icon('heroicon-o-document-text')
             ->color('info')
             ->visible(fn () => $this->getOwnerRecord() instanceof ProformaInvoice

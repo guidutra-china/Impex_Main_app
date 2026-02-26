@@ -26,7 +26,7 @@ class RolesRelationManager extends RelationManager
         return $schema
             ->components([
                 Select::make('role')
-                    ->label('Role')
+                    ->label(__('forms.labels.role'))
                     ->options(CompanyRole::class)
                     ->required(),
             ]);
@@ -37,16 +37,16 @@ class RolesRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('role')
-                    ->label('Role')
+                    ->label(__('forms.labels.role'))
                     ->badge(),
                 TextColumn::make('created_at')
-                    ->label('Assigned At')
+                    ->label(__('forms.labels.assigned_at'))
                     ->dateTime('Y-m-d H:i')
                     ->sortable(),
             ])
             ->headerActions([
                 CreateAction::make()
-                    ->label('Add Role')
+                    ->label(__('forms.labels.add_role'))
                     ->visible(fn () => auth()->user()?->can('edit-companies')),
             ])
             ->recordActions([

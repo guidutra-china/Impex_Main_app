@@ -20,6 +20,12 @@ enum Incoterm: string implements HasLabel
 
     public function getLabel(): ?string
     {
+        return __('enums.incoterm.' . $this->value);
+    }
+
+
+    public function getEnglishLabel(): string
+    {
         return match ($this) {
             self::EXW => 'EXW - Ex Works',
             self::FCA => 'FCA - Free Carrier',

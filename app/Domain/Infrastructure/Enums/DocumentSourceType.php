@@ -11,6 +11,12 @@ enum DocumentSourceType: string implements HasLabel
 
     public function getLabel(): ?string
     {
+        return __('enums.document_source_type.' . $this->value);
+    }
+
+
+    public function getEnglishLabel(): string
+    {
         return match ($this) {
             self::GENERATED => 'Generated',
             self::UPLOADED => 'Uploaded',

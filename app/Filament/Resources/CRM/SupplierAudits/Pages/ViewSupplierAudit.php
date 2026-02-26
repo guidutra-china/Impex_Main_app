@@ -22,14 +22,14 @@ class ViewSupplierAudit extends ViewRecord
     {
         return [
             Action::make('conduct')
-                ->label('Conduct Audit')
+                ->label(__('forms.labels.conduct_audit'))
                 ->icon('heroicon-o-pencil-square')
                 ->color('success')
                 ->url(fn () => SupplierAuditResource::getUrl('conduct', ['record' => $this->record]))
                 ->visible(fn () => in_array($this->record->status, [AuditStatus::SCHEDULED, AuditStatus::IN_PROGRESS])),
 
             Action::make('complete')
-                ->label('Complete Audit')
+                ->label(__('forms.labels.complete_audit'))
                 ->icon('heroicon-o-check-circle')
                 ->color('warning')
                 ->requiresConfirmation()
@@ -46,7 +46,7 @@ class ViewSupplierAudit extends ViewRecord
                     ]);
 
                     Notification::make()
-                        ->title('Audit completed')
+                        ->title(__('messages.audit_completed'))
                         ->body("Score: {$scoring['total_score']}/5.00 — Result: {$scoring['result']->getLabel()}")
                         ->success()
                         ->send();
@@ -56,21 +56,21 @@ class ViewSupplierAudit extends ViewRecord
                 ->visible(fn () => $this->record->status === AuditStatus::IN_PROGRESS),
 
             Action::make('review')
-                ->label('Review & Approve')
+                ->label(__('forms.labels.review_approve'))
                 ->icon('heroicon-o-shield-check')
                 ->color('primary')
                 ->form([
                     Select::make('result')
-                        ->label('Final Result')
+                        ->label(__('forms.labels.final_result'))
                         ->options(AuditResult::class)
                         ->required()
                         ->default(fn () => $this->record->result),
                     Textarea::make('corrective_actions')
-                        ->label('Corrective Actions Required')
+                        ->label(__('forms.labels.corrective_actions_required'))
                         ->rows(3)
                         ->default(fn () => $this->record->corrective_actions),
                     DatePicker::make('next_audit_date')
-                        ->label('Next Audit Date')
+                        ->label(__('forms.labels.next_audit_date'))
                         ->default(fn () => $this->record->next_audit_date),
                 ])
                 ->action(function (array $data) {

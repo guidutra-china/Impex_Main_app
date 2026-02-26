@@ -1,6 +1,6 @@
 <x-filament-widgets::widget>
     <x-filament::section
-        heading="Action Required"
+        :heading="__('widgets.alerts.action_required')"
         icon="heroicon-o-bell-alert"
         :description="count($alerts) > 0 ? count($alerts) . ' item' . (count($alerts) > 1 ? 's' : '') . ' need attention' : null"
     >
@@ -53,7 +53,7 @@
         @else
             <div class="flex items-center gap-3 rounded-lg bg-success-50 p-4 dark:bg-success-500/5">
                 <x-filament::icon icon="heroicon-o-check-circle" class="h-6 w-6 text-success-500" />
-                <p class="text-sm font-medium text-success-700 dark:text-success-400">All clear — no pending actions.</p>
+                <p class="text-sm font-medium text-success-700 dark:text-success-400">{{ __('widgets.alerts.all_clear') }}</p>
             </div>
         @endif
     </x-filament::section>

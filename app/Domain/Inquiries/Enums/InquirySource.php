@@ -16,15 +16,9 @@ enum InquirySource: string implements HasLabel, HasColor
 
     public function getLabel(): ?string
     {
-        return match ($this) {
-            self::EMAIL => 'Email',
-            self::WHATSAPP => 'WhatsApp',
-            self::PHONE => 'Phone',
-            self::RFQ => 'Formal RFQ',
-            self::WEBSITE => 'Website',
-            self::OTHER => 'Other',
-        };
+        return __('enums.inquiry_source.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -35,6 +29,18 @@ enum InquirySource: string implements HasLabel, HasColor
             self::RFQ => 'primary',
             self::WEBSITE => 'gray',
             self::OTHER => 'gray',
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::EMAIL => 'Email',
+            self::WHATSAPP => 'WhatsApp',
+            self::PHONE => 'Phone',
+            self::RFQ => 'Formal RFQ',
+            self::WEBSITE => 'Website',
+            self::OTHER => 'Other',
         };
     }
 }

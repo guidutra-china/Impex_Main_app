@@ -34,10 +34,10 @@ class ItemsRelationManager extends RelationManager
     {
         return $schema
             ->components([
-                Section::make('Product')
+                Section::make(__('forms.sections.product'))
                     ->schema([
                         Select::make('product_id')
-                            ->label('Product')
+                            ->label(__('forms.labels.product'))
                             ->options(function () {
                                 return Product::query()
                                     ->orderBy('name')
@@ -84,20 +84,20 @@ class ItemsRelationManager extends RelationManager
                                     }
                                 }
                             })
-                            ->helperText('Search by name or SKU. Price auto-fills from supplier catalog if available.')
+                            ->helperText(__('forms.helpers.search_by_name_or_sku_price_autofills_from_supplier_catalog'))
                             ->columnSpanFull(),
                         TextInput::make('description')
-                            ->label('Description')
+                            ->label(__('forms.labels.description'))
                             ->maxLength(500)
-                            ->helperText('Item description as provided by the supplier.')
+                            ->helperText(__('forms.helpers.item_description_as_provided_by_the_supplier'))
                             ->columnSpanFull(),
                     ])
                     ->columnSpanFull(),
 
-                Section::make('Pricing')
+                Section::make(__('forms.sections.pricing'))
                     ->schema([
                         TextInput::make('quantity')
-                            ->label('Quantity')
+                            ->label(__('forms.labels.quantity'))
                             ->numeric()
                             ->minValue(1)
                             ->default(1)
@@ -107,12 +107,12 @@ class ItemsRelationManager extends RelationManager
                                 static::recalculateTotal($set, $get);
                             }),
                         TextInput::make('unit')
-                            ->label('Unit')
+                            ->label(__('forms.labels.unit'))
                             ->default('pcs')
                             ->maxLength(20)
                             ->required(),
                         TextInput::make('unit_cost')
-                            ->label('Unit Cost')
+                            ->label(__('forms.labels.unit_cost'))
                             ->numeric()
                             ->minValue(0)
                             ->step(0.0001)
@@ -126,7 +126,7 @@ class ItemsRelationManager extends RelationManager
                             ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : '0.0000')
                             ->dehydrateStateUsing(fn ($state) => Money::toMinor($state)),
                         TextInput::make('total_cost')
-                            ->label('Total Cost')
+                            ->label(__('forms.labels.total_cost'))
                             ->numeric()
                             ->prefix('$')
                             ->disabled()
@@ -137,26 +137,26 @@ class ItemsRelationManager extends RelationManager
                     ->columns(4)
                     ->columnSpanFull(),
 
-                Section::make('Additional Info')
+                Section::make(__('forms.sections.additional_info'))
                     ->schema([
                         TextInput::make('moq')
-                            ->label('Item MOQ')
+                            ->label(__('forms.labels.item_moq'))
                             ->numeric()
                             ->minValue(0)
-                            ->helperText('Item-specific MOQ if different from header.'),
+                            ->helperText(__('forms.helpers.itemspecific_moq_if_different_from_header')),
                         TextInput::make('lead_time_days')
-                            ->label('Item Lead Time (days)')
+                            ->label(__('forms.labels.item_lead_time_days'))
                             ->numeric()
                             ->minValue(0)
-                            ->helperText('Item-specific lead time if different from header.'),
+                            ->helperText(__('forms.helpers.itemspecific_lead_time_if_different_from_header')),
                         Textarea::make('specifications')
-                            ->label('Specifications')
+                            ->label(__('forms.labels.specifications'))
                             ->rows(3)
                             ->maxLength(2000)
-                            ->helperText('Supplier-provided specs, certifications, materials, etc.')
+                            ->helperText(__('forms.helpers.supplierprovided_specs_certifications_materials_etc'))
                             ->columnSpanFull(),
                         Textarea::make('notes')
-                            ->label('Notes')
+                            ->label(__('forms.labels.notes'))
                             ->rows(2)
                             ->maxLength(1000)
                             ->columnSpanFull(),
@@ -172,38 +172,38 @@ class ItemsRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('product.sku')
-                    ->label('SKU')
+                    ->label(__('forms.labels.sku'))
                     ->placeholder('—')
                     ->searchable()
                     ->badge()
                     ->color(fn ($record) => $record->product?->status === ProductStatus::DRAFT ? 'warning' : 'gray'),
                 TextColumn::make('displayName')
-                    ->label('Item')
+                    ->label(__('forms.labels.item'))
                     ->searchable(['description'])
                     ->limit(40),
                 TextColumn::make('quantity')
-                    ->label('Qty')
+                    ->label(__('forms.labels.qty'))
                     ->alignCenter(),
                 TextColumn::make('unit')
-                    ->label('Unit')
+                    ->label(__('forms.labels.unit'))
                     ->alignCenter(),
                 TextColumn::make('unit_cost')
-                    ->label('Unit Cost')
+                    ->label(__('forms.labels.unit_cost'))
                     ->formatStateUsing(fn ($state) => $state ? '$ ' . Money::format($state, 4) : '—')
                     ->alignEnd(),
                 TextColumn::make('total_cost')
-                    ->label('Total')
+                    ->label(__('forms.labels.total'))
                     ->formatStateUsing(fn ($state) => $state ? '$ ' . Money::format($state) : '—')
                     ->alignEnd()
                     ->weight('bold'),
                 TextColumn::make('lead_time_days')
-                    ->label('Lead Time')
+                    ->label(__('forms.labels.lead_time'))
                     ->suffix(' d')
                     ->alignCenter()
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('moq')
-                    ->label('MOQ')
+                    ->label(__('forms.labels.moq'))
                     ->alignCenter()
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),

@@ -18,13 +18,9 @@ class PaymentMethodResource extends Resource
 {
     protected static ?string $model = PaymentMethod::class;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Settings';
-
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-credit-card';
 
     protected static ?int $navigationSort = 5;
-
-    protected static ?string $navigationLabel = 'Payment Methods';
 
     public static function canAccess(): bool
     {
@@ -48,5 +44,15 @@ class PaymentMethodResource extends Resource
             'create' => CreatePaymentMethod::route('/create'),
             'edit' => EditPaymentMethod::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.settings');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.resources.payment_methods');
     }
 }

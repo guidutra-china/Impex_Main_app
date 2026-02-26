@@ -15,14 +15,9 @@ enum CompanyRole: string implements HasLabel, HasColor
 
     public function getLabel(): ?string
     {
-        return match ($this) {
-            self::CLIENT => 'Client',
-            self::SUPPLIER => 'Supplier',
-            self::FORWARDER => 'Forwarder',
-            self::AGENT => 'Agent',
-            self::MANUFACTURER => 'Manufacturer',
-        };
+        return __('enums.company_role.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -32,6 +27,17 @@ enum CompanyRole: string implements HasLabel, HasColor
             self::FORWARDER => 'warning',
             self::AGENT => 'primary',
             self::MANUFACTURER => 'gray',
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::CLIENT => 'Client',
+            self::SUPPLIER => 'Supplier',
+            self::FORWARDER => 'Forwarder',
+            self::AGENT => 'Agent',
+            self::MANUFACTURER => 'Manufacturer',
         };
     }
 }

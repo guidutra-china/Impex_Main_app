@@ -35,7 +35,7 @@ class ItemsRelationManager extends RelationManager
     {
         return $schema->components([
             Select::make('proforma_invoice_id')
-                ->label('Proforma Invoice')
+                ->label(__('forms.labels.proforma_invoice'))
                 ->options(function () {
                     $companyId = $this->getOwnerRecord()->company_id;
                     return ProformaInvoice::where('company_id', $companyId)
@@ -57,7 +57,7 @@ class ItemsRelationManager extends RelationManager
                 ->columnSpanFull(),
 
             Select::make('proforma_invoice_item_id')
-                ->label('Product / Item')
+                ->label(__('forms.labels.product_item'))
                 ->options(function (Get $get) {
                     $piId = $get('proforma_invoice_id');
                     if (! $piId) {
@@ -125,27 +125,27 @@ class ItemsRelationManager extends RelationManager
                 }),
 
             TextInput::make('unit')
-                ->placeholder('pcs, sets, etc.')
+                ->placeholder(__('forms.placeholders.pcs_sets_etc'))
                 ->maxLength(20),
 
             TextInput::make('unit_weight')
-                ->label('Unit Weight (kg)')
+                ->label(__('forms.labels.unit_weight_kg'))
                 ->numeric()
                 ->live(onBlur: true)
                 ->afterStateUpdated(function (Get $get, Set $set) {
                     static::recalculateTotals($get, $set);
                 })
-                ->helperText('Auto-filled from product packaging data'),
+                ->helperText(__('forms.helpers.autofilled_from_product_packaging_data')),
 
             TextInput::make('total_weight')
-                ->label('Total Weight (kg)')
+                ->label(__('forms.labels.total_weight_kg'))
                 ->numeric()
-                ->helperText('Auto-calculated: unit weight × quantity'),
+                ->helperText(__('forms.helpers.autocalculated_unit_weight_quantity')),
 
             TextInput::make('total_volume')
-                ->label('Total Volume (CBM)')
+                ->label(__('forms.labels.total_volume_cbm'))
                 ->numeric()
-                ->helperText('Auto-calculated from product carton CBM'),
+                ->helperText(__('forms.helpers.autocalculated_from_product_carton_cbm')),
 
             Textarea::make('notes')
                 ->rows(2)
@@ -158,12 +158,12 @@ class ItemsRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('proformaInvoiceItem.proformaInvoice.reference')
-                    ->label('PI Ref')
+                    ->label(__('forms.labels.pi_ref'))
                     ->sortable()
                     ->badge()
                     ->color('gray'),
                 TextColumn::make('product_name')
-                    ->label('Product')
+                    ->label(__('forms.labels.product'))
                     ->searchable(query: function ($query, string $search) {
                         $query->whereHas('proformaInvoiceItem.product', function ($q) use ($search) {
                             $q->where('name', 'like', "%{$search}%");
@@ -171,36 +171,36 @@ class ItemsRelationManager extends RelationManager
                     })
                     ->limit(40),
                 TextColumn::make('quantity')
-                    ->label('Qty')
+                    ->label(__('forms.labels.qty'))
                     ->alignCenter()
                     ->weight('bold')
-                    ->summarize(Sum::make()->label('Total')),
+                    ->summarize(Sum::make()->label(__('forms.labels.total'))),
                 TextColumn::make('unit')
                     ->placeholder('—'),
                 TextColumn::make('unit_price')
-                    ->label('Unit Price')
+                    ->label(__('forms.labels.unit_price'))
                     ->formatStateUsing(fn ($state) => Money::format($state))
                     ->alignEnd(),
                 TextColumn::make('line_total')
-                    ->label('Total')
+                    ->label(__('forms.labels.total'))
                     ->formatStateUsing(fn ($state) => Money::format($state))
                     ->alignEnd()
                     ->weight('bold'),
                 TextColumn::make('unit_weight')
-                    ->label('Unit Wt (kg)')
+                    ->label(__('forms.labels.unit_wt_kg'))
                     ->placeholder('—')
                     ->alignEnd()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('total_weight')
-                    ->label('Weight (kg)')
+                    ->label(__('forms.labels.weight_kg'))
                     ->placeholder('—')
                     ->alignEnd()
-                    ->summarize(Sum::make()->label('Total')->suffix(' kg')),
+                    ->summarize(Sum::make()->label(__('forms.labels.total'))->suffix(' kg')),
                 TextColumn::make('total_volume')
-                    ->label('Vol. (CBM)')
+                    ->label(__('forms.labels.vol_cbm'))
                     ->placeholder('—')
                     ->alignEnd()
-                    ->summarize(Sum::make()->label('Total')->suffix(' CBM')),
+                    ->summarize(Sum::make()->label(__('forms.labels.total'))->suffix(' CBM')),
             ])
             ->recordActions([
                 \Filament\Actions\EditAction::make()
@@ -222,12 +222,12 @@ class ItemsRelationManager extends RelationManager
             ->headerActions([
                 \Filament\Actions\Action::make('import_from_pi')
                     ->visible(fn () => auth()->user()?->can('edit-shipments'))
-                    ->label('Import from PI')
+                    ->label(__('forms.labels.import_from_pi'))
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('warning')
                     ->form([
                         Select::make('proforma_invoice_id')
-                            ->label('Proforma Invoice')
+                            ->label(__('forms.labels.proforma_invoice'))
                             ->options(function () {
                                 $companyId = $this->getOwnerRecord()->company_id;
                                 return ProformaInvoice::where('company_id', $companyId)
@@ -239,7 +239,7 @@ class ItemsRelationManager extends RelationManager
                             ->live(),
 
                         Checkbox::make('only_remaining')
-                            ->label('Only import remaining quantities (exclude already shipped)')
+                            ->label(__('forms.labels.only_import_remaining_quantities_exclude_already_shipped'))
                             ->default(true),
                     ])
                     ->action(function (array $data) {
@@ -312,7 +312,7 @@ class ItemsRelationManager extends RelationManager
                     }),
 
                 \Filament\Actions\CreateAction::make()
-                    ->label('Add Item')
+                    ->label(__('forms.labels.add_item'))
                     ->icon('heroicon-o-plus')
                     ->visible(fn () => auth()->user()?->can('edit-shipments'))
                     ->mutateFormDataUsing(function (array $data): array {

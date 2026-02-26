@@ -27,7 +27,7 @@ class EditSupplierQuotation extends EditRecord
             ViewAction::make(),
 
             Action::make('importInquiryItems')
-                ->label('Import Inquiry Items')
+                ->label(__('forms.labels.import_inquiry_items'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('info')
                 ->visible(fn () => $this->record->inquiry_id && $this->record->items()->count() === 0)
@@ -69,7 +69,7 @@ class EditSupplierQuotation extends EditRecord
                         $this->redirect($this->getResource()::getUrl('edit', ['record' => $this->record]));
                     } catch (\Throwable $e) {
                         Notification::make()
-                            ->title('Import failed')
+                            ->title(__('messages.import_failed'))
                             ->body($e->getMessage())
                             ->danger()
                             ->send();
@@ -77,7 +77,7 @@ class EditSupplierQuotation extends EditRecord
                 }),
 
             Action::make('transitionStatus')
-                ->label('Change Status')
+                ->label(__('forms.labels.change_status'))
                 ->icon('heroicon-o-arrow-path')
                 ->color('warning')
                 ->visible(fn () => ! empty($this->record->getAllowedNextStatuses()))
@@ -91,11 +91,11 @@ class EditSupplierQuotation extends EditRecord
 
                     return [
                         \Filament\Forms\Components\Select::make('new_status')
-                            ->label('New Status')
+                            ->label(__('forms.labels.new_status'))
                             ->options($options)
                             ->required(),
                         \Filament\Forms\Components\Textarea::make('notes')
-                            ->label('Transition Notes')
+                            ->label(__('forms.labels.transition_notes'))
                             ->rows(2)
                             ->maxLength(1000),
                     ];
@@ -109,14 +109,14 @@ class EditSupplierQuotation extends EditRecord
                         );
 
                         Notification::make()
-                            ->title('Status changed to ' . SupplierQuotationStatus::from($data['new_status'])->getLabel())
+                            ->title(__('messages.status_changed_to') . ' ' . SupplierQuotationStatus::from($data['new_status'])->getLabel())
                             ->success()
                             ->send();
 
                         $this->refreshFormData(['status']);
                     } catch (\Throwable $e) {
                         Notification::make()
-                            ->title('Status transition failed')
+                            ->title(__('messages.status_transition_failed'))
                             ->body($e->getMessage())
                             ->danger()
                             ->send();

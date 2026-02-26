@@ -19,18 +19,9 @@ enum ContactFunction: string implements HasLabel, HasColor
 
     public function getLabel(): ?string
     {
-        return match ($this) {
-            self::MANAGEMENT => 'Management',
-            self::SALES => 'Sales',
-            self::PURCHASING => 'Purchasing',
-            self::LOGISTICS => 'Logistics',
-            self::FINANCE => 'Finance',
-            self::QUALITY => 'Quality',
-            self::ENGINEERING => 'Engineering',
-            self::OPERATIONS => 'Operations',
-            self::OTHER => 'Other',
-        };
+        return __('enums.contact_function.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -44,6 +35,21 @@ enum ContactFunction: string implements HasLabel, HasColor
             self::ENGINEERING => 'gray',
             self::OPERATIONS => 'info',
             self::OTHER => 'gray',
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::MANAGEMENT => 'Management',
+            self::SALES => 'Sales',
+            self::PURCHASING => 'Purchasing',
+            self::LOGISTICS => 'Logistics',
+            self::FINANCE => 'Finance',
+            self::QUALITY => 'Quality',
+            self::ENGINEERING => 'Engineering',
+            self::OPERATIONS => 'Operations',
+            self::OTHER => 'Other',
         };
     }
 }

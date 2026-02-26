@@ -54,7 +54,7 @@ class SupplierProductsRelationManager extends RelationManager
             ->columns(2)
             ->components([
                 FileUpload::make('avatar_path')
-                    ->label('Product Photo')
+                    ->label(__('forms.labels.product_photo'))
                     ->image()
                     ->disk('public')
                     ->directory(fn () => 'company-product-avatars/' . $this->getOwnerRecord()->id)
@@ -65,46 +65,46 @@ class SupplierProductsRelationManager extends RelationManager
                     ->maxSize(5120)
                     ->columnSpanFull(),
                 TextInput::make('external_code')
-                    ->label('Supplier Code')
+                    ->label(__('forms.labels.supplier_code'))
                     ->maxLength(100)
                     ->helperText("Supplier's internal code for this product."),
                 TextInput::make('external_name')
-                    ->label('Supplier Product Name')
+                    ->label(__('forms.labels.supplier_product_name'))
                     ->maxLength(255),
                 Textarea::make('external_description')
-                    ->label('Supplier Product Description')
+                    ->label(__('forms.labels.supplier_product_description'))
                     ->rows(3)
                     ->maxLength(2000)
-                    ->helperText('Will appear on invoices.')
+                    ->helperText(__('forms.helpers.will_appear_on_invoices'))
                     ->columnSpanFull(),
                 TextInput::make('unit_price')
-                    ->label('Purchase Price')
+                    ->label(__('forms.labels.purchase_price'))
                     ->numeric()
                     ->minValue(0)
                     ->step(0.0001)
                     ->prefix('$')
                     ->inputMode('decimal'),
                 Select::make('currency_code')
-                    ->label('Currency')
+                    ->label(__('forms.labels.currency'))
                     ->options(fn () => Currency::pluck('code', 'code'))
                     ->searchable(),
                 Select::make('incoterm')
-                    ->label('Incoterm')
+                    ->label(__('forms.labels.incoterm'))
                     ->options(Incoterm::class)
                     ->searchable(),
                 TextInput::make('lead_time_days')
-                    ->label('Lead Time (days)')
+                    ->label(__('forms.labels.lead_time_days'))
                     ->numeric()
                     ->minValue(0),
                 TextInput::make('moq')
-                    ->label('MOQ')
+                    ->label(__('forms.labels.moq'))
                     ->numeric()
                     ->minValue(1),
                 Checkbox::make('is_preferred')
-                    ->label('Preferred Supplier')
+                    ->label(__('forms.labels.preferred_supplier'))
                     ->columnSpanFull(),
                 Textarea::make('notes')
-                    ->label('Notes')
+                    ->label(__('forms.labels.notes'))
                     ->rows(2)
                     ->maxLength(2000)
                     ->columnSpanFull(),
@@ -123,44 +123,44 @@ class SupplierProductsRelationManager extends RelationManager
                     ->defaultImageUrl(fn () => 'https://ui-avatars.com/api/?name=P&background=e2e8f0&color=64748b&size=40')
                     ->width('50px'),
                 TextColumn::make('sku')
-                    ->label('SKU')
+                    ->label(__('forms.labels.sku'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->copyable(),
                 TextColumn::make('name')
-                    ->label('Product')
+                    ->label(__('forms.labels.product'))
                     ->searchable()
                     ->limit(40),
                 TextColumn::make('category.name')
-                    ->label('Category')
+                    ->label(__('forms.labels.category'))
                     ->badge()
                     ->color('primary'),
                 TextColumn::make('pivot.external_code')
-                    ->label('Supplier Code')
+                    ->label(__('forms.labels.supplier_code'))
                     ->placeholder('—'),
                 TextColumn::make('pivot.unit_price')
-                    ->label('Purchase Price')
+                    ->label(__('forms.labels.purchase_price'))
                     ->formatStateUsing(fn ($state) => $state ? Money::format($state, 4) : '—')
                     ->prefix('$ ')
                     ->alignEnd(),
                 TextColumn::make('pivot.currency_code')
-                    ->label('Currency')
+                    ->label(__('forms.labels.currency'))
                     ->placeholder('—'),
                 TextColumn::make('pivot.incoterm')
-                    ->label('Incoterm')
+                    ->label(__('forms.labels.incoterm'))
                     ->placeholder('—'),
                 TextColumn::make('pivot.moq')
-                    ->label('MOQ')
+                    ->label(__('forms.labels.moq'))
                     ->numeric()
                     ->alignEnd()
                     ->placeholder('—'),
                 TextColumn::make('pivot.lead_time_days')
-                    ->label('Lead Time')
+                    ->label(__('forms.labels.lead_time'))
                     ->suffix(' days')
                     ->placeholder('—'),
                 IconColumn::make('pivot.is_preferred')
-                    ->label('Preferred')
+                    ->label(__('forms.labels.preferred'))
                     ->boolean()
                     ->alignCenter(),
             ])
@@ -170,14 +170,14 @@ class SupplierProductsRelationManager extends RelationManager
                 ImportProductsFromExcelAction::makeDownloadTemplate('supplier')
                     ->visible(fn () => auth()->user()?->can('edit-companies')),
                 AttachAction::make()
-                    ->label('Add Product')
+                    ->label(__('forms.labels.add_product'))
                     ->visible(fn () => auth()->user()?->can('edit-companies'))
                     ->preloadRecordSelect()
                     ->recordSelectSearchColumns(['sku', 'name'])
                     ->form(fn (AttachAction $action): array => [
                         $action->getRecordSelect(),
                         FileUpload::make('avatar_path')
-                            ->label('Product Photo')
+                            ->label(__('forms.labels.product_photo'))
                             ->image()
                             ->disk('public')
                             ->directory(fn () => 'company-product-avatars/' . $this->getOwnerRecord()->id)
@@ -187,18 +187,18 @@ class SupplierProductsRelationManager extends RelationManager
                             ->imageResizeTargetHeight('400')
                             ->maxSize(5120),
                         TextInput::make('external_code')
-                            ->label('Supplier Code')
+                            ->label(__('forms.labels.supplier_code'))
                             ->maxLength(100),
                         TextInput::make('external_name')
-                            ->label('Supplier Product Name')
+                            ->label(__('forms.labels.supplier_product_name'))
                             ->maxLength(255),
                         Textarea::make('external_description')
-                            ->label('Supplier Product Description')
+                            ->label(__('forms.labels.supplier_product_description'))
                             ->rows(3)
                             ->maxLength(2000)
-                            ->helperText('Will appear on invoices.'),
+                            ->helperText(__('forms.helpers.will_appear_on_invoices')),
                         TextInput::make('unit_price')
-                            ->label('Purchase Price')
+                            ->label(__('forms.labels.purchase_price'))
                             ->numeric()
                             ->minValue(0)
                             ->step(0.0001)
@@ -206,23 +206,23 @@ class SupplierProductsRelationManager extends RelationManager
                             ->inputMode('decimal')
                             ->default(0),
                         Select::make('currency_code')
-                            ->label('Currency')
+                            ->label(__('forms.labels.currency'))
                             ->options(fn () => Currency::pluck('code', 'code'))
                             ->searchable(),
                         Select::make('incoterm')
-                            ->label('Incoterm')
+                            ->label(__('forms.labels.incoterm'))
                             ->options(Incoterm::class)
                             ->searchable(),
                         TextInput::make('moq')
-                            ->label('MOQ')
+                            ->label(__('forms.labels.moq'))
                             ->numeric()
                             ->minValue(1),
                         TextInput::make('lead_time_days')
-                            ->label('Lead Time (days)')
+                            ->label(__('forms.labels.lead_time_days'))
                             ->numeric()
                             ->minValue(0),
                         Checkbox::make('is_preferred')
-                            ->label('Preferred Supplier'),
+                            ->label(__('forms.labels.preferred_supplier')),
                     ])
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['role'] = 'supplier';
@@ -262,7 +262,7 @@ class SupplierProductsRelationManager extends RelationManager
     protected function getManageDocumentsAction(): Action
     {
         return Action::make('documents')
-            ->label('Docs')
+            ->label(__('forms.labels.docs'))
             ->icon('heroicon-o-paper-clip')
             ->color('gray')
             ->modalHeading(fn (Model $record) => "Documents — {$record->name}")
@@ -280,17 +280,17 @@ class SupplierProductsRelationManager extends RelationManager
             })
             ->form([
                 Select::make('category')
-                    ->label('Category')
+                    ->label(__('forms.labels.category'))
                     ->options(DocumentCategory::class)
                     ->required()
                     ->searchable()
                     ->native(false),
                 TextInput::make('title')
-                    ->label('Title')
+                    ->label(__('forms.labels.title'))
                     ->required()
                     ->maxLength(255),
                 FileUpload::make('file_path')
-                    ->label('File')
+                    ->label(__('forms.labels.file'))
                     ->required()
                     ->disk('public')
                     ->directory(fn (Model $record) => 'company-product-docs/' . $record->pivot->id)
@@ -304,9 +304,9 @@ class SupplierProductsRelationManager extends RelationManager
                         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                     ])
                     ->storeFileNamesIn('original_name')
-                    ->helperText('Max 20MB. Images, PDF, Word, Excel.'),
+                    ->helperText(__('forms.helpers.max_20mb_images_pdf_word_excel')),
                 Textarea::make('notes')
-                    ->label('Notes')
+                    ->label(__('forms.labels.notes'))
                     ->rows(2)
                     ->maxLength(1000),
             ])

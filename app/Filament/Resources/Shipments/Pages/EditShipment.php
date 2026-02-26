@@ -32,7 +32,7 @@ class EditShipment extends EditRecord
                     label: 'Preview Packing List',
                 )->name('previewPackingListPdf'),
             ])
-                ->label('Packing List PDF')
+                ->label(__('forms.labels.packing_list_pdf'))
                 ->icon('heroicon-o-clipboard-document-list')
                 ->color('info'),
 
@@ -50,7 +50,7 @@ class EditShipment extends EditRecord
                     label: 'Preview Commercial Invoice',
                 )->name('previewCommercialInvoicePdf'),
             ])
-                ->label('Commercial Invoice PDF')
+                ->label(__('forms.labels.commercial_invoice_pdf'))
                 ->icon('heroicon-o-document-currency-dollar')
                 ->color('success'),
 

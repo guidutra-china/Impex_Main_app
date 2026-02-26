@@ -15,17 +15,9 @@ class RoleResource extends Resource
 {
     protected static ?string $model = Role::class;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Settings';
-
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-shield-check';
 
     protected static ?int $navigationSort = 2;
-
-    protected static ?string $navigationLabel = 'Roles & Permissions';
-
-    protected static ?string $modelLabel = 'Role';
-
-    protected static ?string $pluralModelLabel = 'Roles';
 
     protected static ?string $slug = 'roles';
 
@@ -45,5 +37,25 @@ class RoleResource extends Resource
             'index' => ListRoles::route('/'),
             'edit' => EditRole::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.settings');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.resources.roles');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('navigation.models.role');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('navigation.models.roles');
     }
 }

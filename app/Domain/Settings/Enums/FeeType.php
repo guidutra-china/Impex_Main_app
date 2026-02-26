@@ -13,6 +13,12 @@ enum FeeType: string implements HasLabel
 
     public function getLabel(): ?string
     {
+        return __('enums.fee_type.' . $this->value);
+    }
+
+
+    public function getEnglishLabel(): string
+    {
         return match ($this) {
             self::NONE => 'No Fee',
             self::FIXED => 'Fixed Fee',

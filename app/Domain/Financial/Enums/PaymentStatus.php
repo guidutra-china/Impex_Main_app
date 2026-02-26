@@ -13,15 +13,11 @@ enum PaymentStatus: string implements HasLabel, HasColor, HasIcon
     case REJECTED = 'rejected';
     case CANCELLED = 'cancelled';
 
-    public function getLabel(): string
+    public function getLabel(): ?string
     {
-        return match ($this) {
-            self::PENDING_APPROVAL => 'Pending Approval',
-            self::APPROVED => 'Approved',
-            self::REJECTED => 'Rejected',
-            self::CANCELLED => 'Cancelled',
-        };
+        return __('enums.payment_status.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -40,6 +36,16 @@ enum PaymentStatus: string implements HasLabel, HasColor, HasIcon
             self::APPROVED => 'heroicon-o-check-circle',
             self::REJECTED => 'heroicon-o-x-circle',
             self::CANCELLED => 'heroicon-o-minus-circle',
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::PENDING_APPROVAL => 'Pending Approval',
+            self::APPROVED => 'Approved',
+            self::REJECTED => 'Rejected',
+            self::CANCELLED => 'Cancelled',
         };
     }
 }

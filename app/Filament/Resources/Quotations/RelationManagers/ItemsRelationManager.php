@@ -37,7 +37,7 @@ class ItemsRelationManager extends RelationManager
         return $schema
             ->components([
                 Select::make('product_id')
-                    ->label('Product')
+                    ->label(__('forms.labels.product'))
                     ->searchable()
                     ->getSearchResultsUsing(function (string $search) {
                         return Product::query()
@@ -72,7 +72,7 @@ class ItemsRelationManager extends RelationManager
                     ->columnSpanFull(),
 
                 Select::make('supplier_quotation_item_id')
-                    ->label('Source (Supplier Quotation)')
+                    ->label(__('forms.labels.source_supplier_quotation'))
                     ->options(function (Get $get) {
                         $productId = $get('product_id');
                         $quotation = $this->getOwnerRecord();
@@ -101,8 +101,8 @@ class ItemsRelationManager extends RelationManager
                             ->toArray();
                     })
                     ->searchable()
-                    ->placeholder('Select supplier quotation source...')
-                    ->helperText('Optional. Link this item to a specific supplier quotation for traceability.')
+                    ->placeholder(__('forms.placeholders.select_supplier_quotation_source'))
+                    ->helperText(__('forms.helpers.optional_link_this_item_to_a_specific_supplier_quotation'))
                     ->live()
                     ->afterStateUpdated(function ($state, Get $get, Set $set) {
                         if (! $state) {
@@ -138,7 +138,7 @@ class ItemsRelationManager extends RelationManager
                     }),
 
                 Select::make('selected_supplier_id')
-                    ->label('Selected Supplier')
+                    ->label(__('forms.labels.selected_supplier'))
                     ->options(function (Get $get) {
                         $productId = $get('product_id');
                         if (! $productId) {
@@ -151,7 +151,7 @@ class ItemsRelationManager extends RelationManager
                             ->toArray() ?? [];
                     })
                     ->searchable()
-                    ->placeholder('Select supplier...')
+                    ->placeholder(__('forms.placeholders.select_supplier'))
                     ->live()
                     ->afterStateUpdated(function ($state, Get $get, Set $set) {
                         if (! $state || ! $get('product_id')) {
@@ -162,14 +162,14 @@ class ItemsRelationManager extends RelationManager
                     }),
 
                 TextInput::make('quantity')
-                    ->label('Quantity')
+                    ->label(__('forms.labels.quantity'))
                     ->numeric()
                     ->required()
                     ->minValue(1)
                     ->default(1),
 
                 TextInput::make('unit_cost')
-                    ->label('Unit Cost')
+                    ->label(__('forms.labels.unit_cost'))
                     ->numeric()
                     ->minValue(0)
                     ->step(0.0001)
@@ -182,7 +182,7 @@ class ItemsRelationManager extends RelationManager
                     }),
 
                 TextInput::make('commission_rate')
-                    ->label('Commission Rate (%)')
+                    ->label(__('forms.labels.commission_rate_2'))
                     ->numeric()
                     ->minValue(0)
                     ->maxValue(100)
@@ -194,25 +194,25 @@ class ItemsRelationManager extends RelationManager
                     ->afterStateUpdated(function (Get $get, Set $set) {
                         $this->recalculateUnitPrice($get, $set);
                     })
-                    ->helperText('Commission embedded in the unit price.'),
+                    ->helperText(__('forms.helpers.commission_embedded_in_the_unit_price')),
 
                 TextInput::make('unit_price')
-                    ->label('Unit Price (to Client)')
+                    ->label(__('forms.labels.unit_price_to_client'))
                     ->numeric()
                     ->minValue(0)
                     ->step(0.0001)
                     ->prefix('$')
                     ->inputMode('decimal')
                     ->default(0)
-                    ->helperText('Auto-filled from catalog, supplier quotation, or calculated from cost + commission.'),
+                    ->helperText(__('forms.helpers.autofilled_from_catalog_supplier_quotation_or_calculated')),
 
                 Select::make('incoterm')
-                    ->label('Incoterm')
+                    ->label(__('forms.labels.incoterm'))
                     ->options(Incoterm::class)
-                    ->placeholder('Select incoterm...'),
+                    ->placeholder(__('forms.placeholders.select_incoterm')),
 
                 Textarea::make('notes')
-                    ->label('Item Notes')
+                    ->label(__('forms.labels.item_notes'))
                     ->rows(2)
                     ->maxLength(2000)
                     ->columnSpanFull(),
@@ -225,51 +225,51 @@ class ItemsRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('product.sku')
-                    ->label('SKU')
+                    ->label(__('forms.labels.sku'))
                     ->searchable()
                     ->badge()
                     ->color(fn ($record) => $record->product?->status?->value === 'draft' ? 'warning' : 'gray'),
                 TextColumn::make('product.name')
-                    ->label('Product')
+                    ->label(__('forms.labels.product'))
                     ->searchable()
                     ->limit(30)
                     ->weight('bold'),
                 TextColumn::make('quantity')
-                    ->label('Qty')
+                    ->label(__('forms.labels.qty'))
                     ->numeric()
                     ->alignCenter(),
                 TextColumn::make('selectedSupplier.name')
-                    ->label('Supplier')
+                    ->label(__('forms.labels.supplier'))
                     ->placeholder('—')
                     ->limit(20),
                 TextColumn::make('supplierQuotationItem.supplierQuotation.reference')
-                    ->label('SQ Source')
+                    ->label(__('forms.labels.sq_source'))
                     ->badge()
                     ->color('info')
-                    ->placeholder('Manual')
+                    ->placeholder(__('forms.placeholders.manual'))
                     ->toggleable(isToggledHiddenByDefault: false),
                 TextColumn::make('unit_cost')
-                    ->label('Unit Cost')
+                    ->label(__('forms.labels.unit_cost'))
                     ->formatStateUsing(fn ($state) => $state ? Money::format($state, 4) : '—')
                     ->alignEnd(),
                 TextColumn::make('commission_rate')
-                    ->label('Comm. %')
+                    ->label(__('forms.labels.comm'))
                     ->suffix('%')
                     ->alignCenter()
                     ->visible(fn () => $this->getOwnerRecord()->commission_type === CommissionType::EMBEDDED),
                 TextColumn::make('unit_price')
-                    ->label('Unit Price')
+                    ->label(__('forms.labels.unit_price'))
                     ->formatStateUsing(fn ($state) => $state ? Money::format($state, 4) : '—')
                     ->alignEnd()
                     ->weight('bold'),
                 TextColumn::make('line_total')
-                    ->label('Line Total')
+                    ->label(__('forms.labels.line_total'))
                     ->getStateUsing(fn ($record) => Money::format($record->unit_price * $record->quantity))
                     ->alignEnd()
                     ->weight('bold')
                     ->color('success'),
                 TextColumn::make('margin')
-                    ->label('Margin')
+                    ->label(__('forms.labels.margin'))
                     ->getStateUsing(fn ($record) => $record->margin > 0 ? number_format($record->margin, 1) . '%' : '—')
                     ->alignCenter()
                     ->color(fn ($record) => match (true) {
@@ -280,7 +280,7 @@ class ItemsRelationManager extends RelationManager
                     })
                     ->toggleable(isToggledHiddenByDefault: false),
                 TextColumn::make('incoterm')
-                    ->label('Incoterm')
+                    ->label(__('forms.labels.incoterm'))
                     ->badge()
                     ->color('info')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -289,7 +289,7 @@ class ItemsRelationManager extends RelationManager
             ->defaultSort('sort_order')
             ->headerActions([
                 CreateAction::make()
-                    ->label('Add Item')
+                    ->label(__('forms.labels.add_item'))
                     ->visible(fn () => auth()->user()?->can('edit-quotations'))
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['unit_cost'] = Money::toMinor($data['unit_cost'] ?? 0);

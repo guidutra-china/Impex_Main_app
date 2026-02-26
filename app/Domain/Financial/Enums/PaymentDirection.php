@@ -11,13 +11,11 @@ enum PaymentDirection: string implements HasLabel, HasColor, HasIcon
     case INBOUND = 'inbound';
     case OUTBOUND = 'outbound';
 
-    public function getLabel(): string
+    public function getLabel(): ?string
     {
-        return match ($this) {
-            self::INBOUND => 'Inbound (from Client)',
-            self::OUTBOUND => 'Outbound (to Supplier)',
-        };
+        return __('enums.payment_direction.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -32,6 +30,14 @@ enum PaymentDirection: string implements HasLabel, HasColor, HasIcon
         return match ($this) {
             self::INBOUND => 'heroicon-o-arrow-down-left',
             self::OUTBOUND => 'heroicon-o-arrow-up-right',
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::INBOUND => 'Inbound (from Client)',
+            self::OUTBOUND => 'Outbound (to Supplier)',
         };
     }
 }

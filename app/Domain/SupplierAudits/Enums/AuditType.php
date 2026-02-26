@@ -14,13 +14,9 @@ enum AuditType: string implements HasLabel, HasColor
 
     public function getLabel(): ?string
     {
-        return match ($this) {
-            self::INITIAL => 'Initial Qualification',
-            self::PERIODIC => 'Periodic Review',
-            self::REQUALIFICATION => 'Re-qualification',
-            self::FOR_CAUSE => 'For Cause',
-        };
+        return __('enums.audit_type.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -29,6 +25,16 @@ enum AuditType: string implements HasLabel, HasColor
             self::PERIODIC => 'gray',
             self::REQUALIFICATION => 'warning',
             self::FOR_CAUSE => 'danger',
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::INITIAL => 'Initial Qualification',
+            self::PERIODIC => 'Periodic Review',
+            self::REQUALIFICATION => 'Re-qualification',
+            self::FOR_CAUSE => 'For Cause',
         };
     }
 }

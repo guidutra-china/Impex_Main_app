@@ -12,6 +12,12 @@ enum ExchangeRateSource: string implements HasLabel
 
     public function getLabel(): ?string
     {
+        return __('enums.exchange_rate_source.' . $this->value);
+    }
+
+
+    public function getEnglishLabel(): string
+    {
         return match ($this) {
             self::MANUAL => 'Manual',
             self::API => 'API',

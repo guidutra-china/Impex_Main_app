@@ -32,7 +32,7 @@ class EditQuotation extends EditRecord
                 label: 'Download PDF',
             ),
             Action::make('createVersion')
-                ->label('Save Version')
+                ->label(__('forms.labels.save_version'))
                 ->icon('heroicon-o-clock')
                 ->color('info')
                 ->requiresConfirmation()
@@ -40,8 +40,8 @@ class EditQuotation extends EditRecord
                 ->modalDescription('This will create a snapshot of the current quotation state. All items and pricing will be preserved.')
                 ->form([
                     Textarea::make('change_notes')
-                        ->label('Change Notes')
-                        ->placeholder('Describe what changed in this version...')
+                        ->label(__('forms.labels.change_notes'))
+                        ->placeholder(__('forms.placeholders.describe_what_changed_in_this_version'))
                         ->rows(3)
                         ->maxLength(2000),
                 ])
@@ -79,8 +79,8 @@ class EditQuotation extends EditRecord
                         });
 
                         Notification::make()
-                            ->title('Version v' . $savedVersion . ' saved')
-                            ->body('Snapshot created. Now working on v' . ($savedVersion + 1) . '.')
+                            ->title(__('messages.version_saved', ['version' => $savedVersion]))
+                            ->body(__('messages.snapshot_created', ['version' => $savedVersion + 1]))
                             ->success()
                             ->send();
                     } catch (\Throwable $e) {

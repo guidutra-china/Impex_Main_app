@@ -55,7 +55,7 @@ class ClientProductsRelationManager extends RelationManager
             ->columns(2)
             ->components([
                 FileUpload::make('avatar_path')
-                    ->label('Product Photo')
+                    ->label(__('forms.labels.product_photo'))
                     ->image()
                     ->disk('public')
                     ->directory(fn () => 'company-product-avatars/' . $this->getOwnerRecord()->id)
@@ -66,42 +66,42 @@ class ClientProductsRelationManager extends RelationManager
                     ->maxSize(5120)
                     ->columnSpanFull(),
                 TextInput::make('external_code')
-                    ->label('Client Code')
+                    ->label(__('forms.labels.client_code'))
                     ->maxLength(100)
                     ->helperText("Client's internal code for this product."),
                 TextInput::make('external_name')
-                    ->label('Client Product Name')
+                    ->label(__('forms.labels.client_product_name'))
                     ->maxLength(255),
                 Textarea::make('external_description')
-                    ->label('Client Product Description')
+                    ->label(__('forms.labels.client_product_description'))
                     ->rows(3)
                     ->maxLength(2000)
-                    ->helperText('Will appear on invoices.')
+                    ->helperText(__('forms.helpers.will_appear_on_invoices'))
                     ->columnSpanFull(),
                 TextInput::make('unit_price')
-                    ->label('Selling Price')
+                    ->label(__('forms.labels.selling_price'))
                     ->numeric()
                     ->minValue(0)
                     ->step(0.0001)
                     ->prefix('$')
                     ->inputMode('decimal'),
                 TextInput::make('custom_price')
-                    ->label('Custom Price (CI Override)')
+                    ->label(__('forms.labels.custom_price_ci_override'))
                     ->numeric()
                     ->minValue(0)
                     ->step(0.0001)
                     ->prefix('$')
                     ->inputMode('decimal')
-                    ->helperText('If set, Commercial Invoice uses this instead of PI price.'),
+                    ->helperText(__('forms.helpers.if_set_commercial_invoice_uses_this_instead_of_pi_price')),
                 Select::make('currency_code')
-                    ->label('Currency')
+                    ->label(__('forms.labels.currency'))
                     ->options(fn () => Currency::pluck('code', 'code'))
                     ->searchable(),
                 Checkbox::make('is_preferred')
-                    ->label('Primary Client')
+                    ->label(__('forms.labels.primary_client'))
                     ->columnSpanFull(),
                 Textarea::make('notes')
-                    ->label('Notes')
+                    ->label(__('forms.labels.notes'))
                     ->rows(2)
                     ->maxLength(2000)
                     ->columnSpanFull(),
@@ -120,41 +120,41 @@ class ClientProductsRelationManager extends RelationManager
                     ->defaultImageUrl(fn () => 'https://ui-avatars.com/api/?name=P&background=e2e8f0&color=64748b&size=40')
                     ->width('50px'),
                 TextColumn::make('sku')
-                    ->label('SKU')
+                    ->label(__('forms.labels.sku'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->copyable(),
                 TextColumn::make('name')
-                    ->label('Product')
+                    ->label(__('forms.labels.product'))
                     ->searchable()
                     ->limit(40),
                 TextColumn::make('category.name')
-                    ->label('Category')
+                    ->label(__('forms.labels.category'))
                     ->badge()
                     ->color('primary'),
                 TextColumn::make('pivot.external_code')
-                    ->label('Client Code')
+                    ->label(__('forms.labels.client_code'))
                     ->placeholder('—'),
                 TextColumn::make('pivot.external_name')
-                    ->label('Client Product Name')
+                    ->label(__('forms.labels.client_product_name'))
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('pivot.unit_price')
-                    ->label('Selling Price')
+                    ->label(__('forms.labels.selling_price'))
                     ->formatStateUsing(fn ($state) => $state ? Money::format($state, 4) : '—')
                     ->prefix('$ ')
                     ->alignEnd(),
                 TextColumn::make('pivot.custom_price')
-                    ->label('CI Price')
+                    ->label(__('forms.labels.ci_price'))
                     ->formatStateUsing(fn ($state) => $state ? Money::format($state, 4) : '—')
                     ->prefix('$ ')
                     ->alignEnd(),
                 TextColumn::make('pivot.currency_code')
-                    ->label('Currency')
+                    ->label(__('forms.labels.currency'))
                     ->placeholder('—'),
                 IconColumn::make('pivot.is_preferred')
-                    ->label('Primary')
+                    ->label(__('forms.labels.primary'))
                     ->boolean()
                     ->alignCenter(),
             ])
@@ -164,14 +164,14 @@ class ClientProductsRelationManager extends RelationManager
                 ImportProductsFromExcelAction::makeDownloadTemplate('client')
                     ->visible(fn () => auth()->user()?->can('edit-companies')),
                 AttachAction::make()
-                    ->label('Add Product')
+                    ->label(__('forms.labels.add_product'))
                     ->visible(fn () => auth()->user()?->can('edit-companies'))
                     ->preloadRecordSelect()
                     ->recordSelectSearchColumns(['sku', 'name'])
                     ->form(fn (AttachAction $action): array => [
                         $action->getRecordSelect(),
                         FileUpload::make('avatar_path')
-                            ->label('Product Photo')
+                            ->label(__('forms.labels.product_photo'))
                             ->image()
                             ->disk('public')
                             ->directory(fn () => 'company-product-avatars/' . $this->getOwnerRecord()->id)
@@ -181,18 +181,18 @@ class ClientProductsRelationManager extends RelationManager
                             ->imageResizeTargetHeight('400')
                             ->maxSize(5120),
                         TextInput::make('external_code')
-                            ->label('Client Code')
+                            ->label(__('forms.labels.client_code'))
                             ->maxLength(100),
                         TextInput::make('external_name')
-                            ->label('Client Product Name')
+                            ->label(__('forms.labels.client_product_name'))
                             ->maxLength(255),
                         Textarea::make('external_description')
-                            ->label('Client Product Description')
+                            ->label(__('forms.labels.client_product_description'))
                             ->rows(3)
                             ->maxLength(2000)
-                            ->helperText('Will appear on invoices.'),
+                            ->helperText(__('forms.helpers.will_appear_on_invoices')),
                         TextInput::make('unit_price')
-                            ->label('Selling Price')
+                            ->label(__('forms.labels.selling_price'))
                             ->numeric()
                             ->minValue(0)
                             ->step(0.0001)
@@ -200,19 +200,19 @@ class ClientProductsRelationManager extends RelationManager
                             ->inputMode('decimal')
                             ->default(0),
                         TextInput::make('custom_price')
-                            ->label('Custom Price (CI Override)')
+                            ->label(__('forms.labels.custom_price_ci_override'))
                             ->numeric()
                             ->minValue(0)
                             ->step(0.0001)
                             ->prefix('$')
                             ->inputMode('decimal')
-                            ->helperText('If set, CI uses this price.'),
+                            ->helperText(__('forms.helpers.if_set_ci_uses_this_price')),
                         Select::make('currency_code')
-                            ->label('Currency')
+                            ->label(__('forms.labels.currency'))
                             ->options(fn () => Currency::pluck('code', 'code'))
                             ->searchable(),
                         Checkbox::make('is_preferred')
-                            ->label('Primary Client'),
+                            ->label(__('forms.labels.primary_client')),
                     ])
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['role'] = 'client';
@@ -263,7 +263,7 @@ class ClientProductsRelationManager extends RelationManager
     protected function getManageDocumentsAction(): Action
     {
         return Action::make('documents')
-            ->label('Docs')
+            ->label(__('forms.labels.docs'))
             ->icon('heroicon-o-paper-clip')
             ->color('gray')
             ->modalHeading(fn (Model $record) => "Documents — {$record->name}")
@@ -281,17 +281,17 @@ class ClientProductsRelationManager extends RelationManager
             })
             ->form([
                 Select::make('category')
-                    ->label('Category')
+                    ->label(__('forms.labels.category'))
                     ->options(DocumentCategory::class)
                     ->required()
                     ->searchable()
                     ->native(false),
                 TextInput::make('title')
-                    ->label('Title')
+                    ->label(__('forms.labels.title'))
                     ->required()
                     ->maxLength(255),
                 FileUpload::make('file_path')
-                    ->label('File')
+                    ->label(__('forms.labels.file'))
                     ->required()
                     ->disk('public')
                     ->directory(fn (Model $record) => 'company-product-docs/' . $record->pivot->id)
@@ -305,9 +305,9 @@ class ClientProductsRelationManager extends RelationManager
                         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                     ])
                     ->storeFileNamesIn('original_name')
-                    ->helperText('Max 20MB. Images, PDF, Word, Excel.'),
+                    ->helperText(__('forms.helpers.max_20mb_images_pdf_word_excel')),
                 Textarea::make('notes')
-                    ->label('Notes')
+                    ->label(__('forms.labels.notes'))
                     ->rows(2)
                     ->maxLength(1000),
             ])
@@ -336,10 +336,10 @@ class ClientProductsRelationManager extends RelationManager
             ->icon('heroicon-o-calculator')
             ->form([
                 TextInput::make('formula')
-                    ->label('Formula')
+                    ->label(__('forms.labels.formula'))
                     ->required()
-                    ->placeholder('e.g. *1.10 or +5 or -2.50')
-                    ->helperText('Apply to current value: *1.10 = +10%, /1.05 = -5%, +5 = add $5, -2.50 = subtract $2.50'),
+                    ->placeholder(__('forms.placeholders.eg_110_or_5_or_250'))
+                    ->helperText(__('forms.helpers.apply_to_current_value_110_10_105_5_5_add_5_250_subtract_250')),
             ])
             ->action(function (Collection $records, array $data) use ($column): void {
                 $formula = trim($data['formula']);
@@ -347,8 +347,8 @@ class ClientProductsRelationManager extends RelationManager
                 if (! preg_match('/^[\\*\\/\\+\\-]\\s*[\\d\\.]+$/', $formula)) {
                     Notification::make()
                         ->danger()
-                        ->title('Invalid formula')
-                        ->body('Use format: *1.10, /1.05, +5, or -2.50')
+                        ->title(__('messages.invalid_formula'))
+                        ->body(__('messages.formula_format_help'))
                         ->send();
                     return;
                 }

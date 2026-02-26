@@ -1,0 +1,137 @@
+<?php
+
+return [
+    // Financial Stats Overview
+    'financial_stats' => [
+        'receivables' => 'Contas a Receber',
+        'receivables_from_clients' => 'Contas a Receber (de Clientes)',
+        'from_clients' => 'De clientes',
+        'payables' => 'Contas a Pagar',
+        'payables_to_suppliers' => 'Contas a Pagar (a Fornecedores)',
+        'to_suppliers' => 'A fornecedores',
+        'payment_schedule' => 'Cronograma de Pagamentos',
+        'net_positive' => 'Líquido Positivo',
+        'net_negative' => 'Líquido Negativo',
+        'net_to_receive' => 'Líquido a Receber',
+        'net_to_pay' => 'Líquido a Pagar',
+    ],
+
+    // Cash Flow Projection
+    'cash_flow' => [
+        'heading' => 'Projeção de Fluxo de Caixa',
+        'description' => 'Entradas e saídas esperadas com base nas datas de vencimento do cronograma de pagamentos',
+        'period' => 'Período',
+        'inflow_pi' => 'Entrada (PI)',
+        'outflow_po' => 'Saída (PO)',
+        'inflow' => 'Entrada',
+        'outflow' => 'Saída',
+        'net' => 'Líquido',
+        'overdue' => 'Atrasado',
+        'before_today' => 'Antes de hoje',
+        'this_week' => 'Esta Semana',
+        'next_week' => 'Próxima Semana',
+        'no_due_date_warning' => 'Estes itens não têm data de vencimento definida e não estão incluídos na projeção acima.',
+    ],
+
+    // Document Financial Summary (PI Stats / PO Stats)
+    'document_summary' => [
+        'financial_summary' => 'Resumo Financeiro',
+        'invoice_total' => 'Total da Fatura',
+        'cost_margin' => 'Custo / Margem',
+        'margin' => 'Margem',
+        'paid' => 'Pago',
+        'remaining' => 'Restante',
+        'credits' => 'Créditos',
+        'total_due' => 'Total a Pagar',
+        'net_due' => 'Líquido a Pagar',
+        'overdue' => 'Atrasado',
+        'next' => 'Próximo',
+        'outstanding' => 'Em Aberto',
+        'fully_paid' => 'Totalmente pago',
+        'from_client_available' => 'Deste cliente — disponível para alocar',
+        'to_supplier_available' => 'Para este fornecedor — disponível para alocar',
+    ],
+
+    // Company Financial Statement
+    'financial_statement' => [
+        'client_receivables' => 'Extrato do Cliente — Contas a Receber',
+        'supplier_payables' => 'Extrato do Fornecedor — Contas a Pagar',
+        'overdue' => 'Atrasado',
+    ],
+
+    // Landed Cost Calculator
+    'landed_cost' => [
+        'heading' => 'Calculadora de Custo CIF',
+        'description' => 'Análise completa de custos para este embarque',
+        'freight' => 'Frete',
+        'insurance' => 'Seguro',
+        'customs_duties' => 'Alfândega / Impostos',
+        'inspection_testing' => 'Inspeção / Testes',
+        'packaging' => 'Embalagem',
+        'other_costs' => 'Outros Custos',
+        'gross_profit' => 'Lucro Bruto',
+    ],
+
+    // Product Summary
+    'product_summary' => [
+        'suppliers' => 'Fornecedores',
+        'clients' => 'Clientes',
+        'variants' => 'Variantes',
+        'variant' => 'Variante',
+        'base_price' => 'Preço Base',
+        'manufacturing_cost' => 'Custo de Fabricação',
+        'selling_price' => 'Preço de Venda',
+        'markup' => 'Margem de Lucro',
+        'preferred_supplier' => 'Fornecedor Preferencial',
+        'preferred_client' => 'Cliente Preferencial',
+        'weight' => 'Peso',
+        'dimensions' => 'Dimensões',
+        'material' => 'Material',
+        'color' => 'Cor',
+        'pcs_per_carton' => 'Peças/Cartão',
+        'lead_time' => 'Prazo de Entrega',
+    ],
+
+    // Pipeline Counts
+    'pipeline' => [
+        'operations_pipeline' => 'Pipeline de Operações',
+    ],
+
+    // Operational Alerts
+    'alerts' => [
+        'action_required' => 'Ação Requerida',
+        'all_clear' => 'Tudo certo — sem ações pendentes.',
+        'overdue_payments_desc' => 'Itens do cronograma com data de vencimento passada sem pagamento completo',
+        'view_payments' => 'Ver Pagamentos',
+        'pending_approval_desc' => 'Pagamentos enviados e aguardando revisão do gerente',
+        'review_payments' => 'Revisar Pagamentos',
+        'finalized_pi_desc' => 'Faturas proforma confirmadas, mas nenhuma ordem de compra criada ainda',
+        'view_pis' => 'Ver PIs',
+        'stalled_po_desc' => 'Ordens de compra em produção sem atividade por mais de 15 dias',
+        'view_pos' => 'Ver POs',
+        'open_inquiries_desc' => 'Consultas de clientes que podem precisar de acompanhamento',
+        'view_inquiries' => 'Ver Consultas',
+        'due_this_week_desc' => 'Itens do cronograma com vencimento nos próximos 7 dias',
+        'view_schedule' => 'Ver Cronograma',
+    ],
+
+    // Supplier Audit Stats
+    'audit_stats' => [
+        'scheduled_audits' => 'Auditorias Agendadas',
+        'in_progress' => 'em andamento',
+        'pending_audits' => 'Auditorias pendentes',
+        'completed_this_month' => 'Concluídas Este Mês',
+        'average_score' => 'Pontuação Média',
+        'overdue' => 'Atrasado',
+        'rejected_ytd' => 'Rejeitadas (Ano até a Data)',
+    ],
+
+    // Order Pipeline Kanban
+    'kanban' => [
+        'value' => 'Valor',
+        'paid' => 'Pago',
+        'overdue_payment' => 'Pagamento atrasado',
+        'no_update_for' => 'Sem atualização por',
+        'no_items' => 'Sem itens',
+    ],
+];

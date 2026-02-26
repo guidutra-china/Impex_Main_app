@@ -25,18 +25,18 @@ class ImportProductsFromExcelAction
         $crossLabel = $role === 'client' ? 'Supplier' : 'Client';
 
         return Action::make('importProducts')
-            ->label('Import from Excel')
+            ->label(__('forms.labels.import_from_excel'))
             ->icon('heroicon-o-arrow-up-tray')
             ->color('info')
             ->modalHeading('Import Products from Excel')
             ->modalWidth('3xl')
             ->form([
                 Select::make('category_id')
-                    ->label('Product Category')
+                    ->label(__('forms.labels.product_category'))
                     ->options(fn () => Category::active()->pluck('name', 'id'))
                     ->searchable()
                     ->required()
-                    ->helperText('Must match the category used when downloading the template.'),
+                    ->helperText(__('forms.helpers.must_match_the_category_used_when_downloading_the_template')),
 
                 Placeholder::make('instructions')
                     ->label('')
@@ -55,7 +55,7 @@ class ImportProductsFromExcelAction
                     )),
 
                 FileUpload::make('import_file')
-                    ->label('Excel File (.xlsx)')
+                    ->label(__('forms.labels.excel_file_xlsx'))
                     ->acceptedFileTypes([
                         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                     ])
@@ -63,7 +63,7 @@ class ImportProductsFromExcelAction
                     ->required()
                     ->disk('local')
                     ->directory('temp/imports')
-                    ->helperText('Upload the filled template. Max 10MB.'),
+                    ->helperText(__('forms.helpers.upload_the_filled_template_max_10mb')),
 
                 Select::make('cross_company_id')
                     ->label("Link to {$crossLabel} (if template has dual columns)")
@@ -78,7 +78,7 @@ class ImportProductsFromExcelAction
                     ->helperText("Select the {$crossLabel} if your template includes dual company link columns. Leave empty if single-company template."),
 
                 Radio::make('conflict_strategy')
-                    ->label('If a product with the same name already exists:')
+                    ->label(__('forms.labels.if_a_product_with_the_same_name_already_exists'))
                     ->options([
                         'skip' => 'Skip — keep existing, just link to this company',
                         'update' => 'Update — overwrite existing data with Excel values',
@@ -102,8 +102,8 @@ class ImportProductsFromExcelAction
 
                 if (! file_exists($fullPath)) {
                     Notification::make()
-                        ->title('File not found')
-                        ->body('The uploaded file could not be located. Please try again.')
+                        ->title(__('messages.file_not_found'))
+                        ->body(__('messages.file_upload_failed'))
                         ->danger()
                         ->send();
 
@@ -117,7 +117,7 @@ class ImportProductsFromExcelAction
                 if (empty($rows)) {
                     Notification::make()
                         ->title('Empty file')
-                        ->body('No data rows found. Make sure data starts from row 4.')
+                        ->body(__('messages.no_data_rows'))
                         ->warning()
                         ->send();
 
@@ -218,18 +218,18 @@ class ImportProductsFromExcelAction
         $roleLabel = $role === 'client' ? 'Client' : 'Supplier';
 
         return Action::make('downloadProductTemplate')
-            ->label('Download Template')
+            ->label(__('forms.labels.download_template'))
             ->icon('heroicon-o-document-arrow-down')
             ->color('gray')
             ->modalHeading('Download Product Import Template')
             ->modalWidth('md')
             ->form([
                 Select::make('category_id')
-                    ->label('Product Category')
+                    ->label(__('forms.labels.product_category'))
                     ->options(fn () => Category::active()->pluck('name', 'id'))
                     ->searchable()
                     ->required()
-                    ->helperText('Select the category to generate the template with the correct attribute columns.'),
+                    ->helperText(__('forms.helpers.select_the_category_to_generate_the_template_with_the')),
 
                 Toggle::make('include_cross_company')
                     ->label("Include {$crossLabel} columns")

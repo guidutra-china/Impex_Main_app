@@ -10,7 +10,7 @@
                     {{ $audit->reference }} — {{ $audit->company->name }}
                 </h3>
                 <p class="text-sm text-gray-500 dark:text-gray-400">
-                    {{ $audit->audit_type->getLabel() }} | {{ $audit->location ?? 'No location' }} | Scheduled: {{ $audit->scheduled_date->format('Y-m-d') }}
+                    {{ $audit->audit_type->getLabel() }} | {{ $audit->location ?? __('forms.placeholders.no_location') }} | {{ __('forms.labels.scheduled') }}: {{ $audit->scheduled_date->format('Y-m-d') }}
                 </p>
             </div>
             <div>

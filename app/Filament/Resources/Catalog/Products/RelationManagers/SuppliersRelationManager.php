@@ -32,42 +32,42 @@ class SuppliersRelationManager extends RelationManager
         return $schema
             ->components([
                 TextInput::make('external_code')
-                    ->label('Supplier Code')
+                    ->label(__('forms.labels.supplier_code'))
                     ->maxLength(100)
                     ->helperText("Supplier's internal code for this product."),
                 TextInput::make('external_name')
-                    ->label('Supplier Name for Product')
+                    ->label(__('forms.labels.supplier_name_for_product'))
                     ->maxLength(255)
                     ->helperText("How the supplier calls this product."),
                 Textarea::make('external_description')
-                    ->label('Supplier Product Description')
+                    ->label(__('forms.labels.supplier_product_description'))
                     ->rows(3)
                     ->maxLength(2000)
-                    ->helperText('Product description as used by the supplier. Will appear on invoices.')
+                    ->helperText(__('forms.helpers.product_description_as_used_by_the_supplier_will_appear_on'))
                     ->columnSpanFull(),
                 TextInput::make('unit_price')
-                    ->label('Unit Price')
+                    ->label(__('forms.labels.unit_price'))
                     ->numeric()
                     ->minValue(0)
                     ->step(0.0001)
                     ->prefix('$')
                     ->inputMode('decimal'),
                 Select::make('currency_code')
-                    ->label('Currency')
+                    ->label(__('forms.labels.currency'))
                     ->options(fn () => \App\Domain\Settings\Models\Currency::pluck('code', 'code'))
                     ->searchable(),
                 TextInput::make('lead_time_days')
-                    ->label('Lead Time (days)')
+                    ->label(__('forms.labels.lead_time_days'))
                     ->numeric()
                     ->minValue(0),
                 TextInput::make('moq')
-                    ->label('MOQ')
+                    ->label(__('forms.labels.moq'))
                     ->numeric()
                     ->minValue(1),
                 Checkbox::make('is_preferred')
-                    ->label('Preferred Supplier'),
+                    ->label(__('forms.labels.preferred_supplier')),
                 Textarea::make('notes')
-                    ->label('Notes')
+                    ->label(__('forms.labels.notes'))
                     ->rows(2)
                     ->maxLength(2000)
                     ->columnSpanFull(),
@@ -79,28 +79,28 @@ class SuppliersRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label('Supplier')
+                    ->label(__('forms.labels.supplier'))
                     ->searchable()
                     ->weight('bold'),
                 TextColumn::make('pivot.external_code')
-                    ->label('Supplier Code')
+                    ->label(__('forms.labels.supplier_code'))
                     ->placeholder('—'),
                 TextColumn::make('pivot.unit_price')
-                    ->label('Unit Price')
+                    ->label(__('forms.labels.unit_price'))
                     ->formatStateUsing(fn ($state) => $state ? Money::format($state, 4) : '—')
                     ->prefix('$ ')
                     ->alignEnd(),
                 TextColumn::make('pivot.currency_code')
-                    ->label('Currency'),
+                    ->label(__('forms.labels.currency')),
                 TextColumn::make('pivot.moq')
-                    ->label('MOQ')
+                    ->label(__('forms.labels.moq'))
                     ->numeric()
                     ->alignEnd(),
                 TextColumn::make('pivot.lead_time_days')
-                    ->label('Lead Time')
+                    ->label(__('forms.labels.lead_time'))
                     ->suffix(' days'),
                 TextColumn::make('pivot.is_preferred')
-                    ->label('Preferred')
+                    ->label(__('forms.labels.preferred'))
                     ->formatStateUsing(fn ($state) => $state ? '★ Preferred' : '')
                     ->badge()
                     ->color(fn ($state) => $state ? 'warning' : 'gray')
@@ -108,7 +108,7 @@ class SuppliersRelationManager extends RelationManager
             ])
             ->headerActions([
                 AttachAction::make()
-                    ->label('Add Supplier')
+                    ->label(__('forms.labels.add_supplier'))
                     ->visible(fn () => auth()->user()?->can('edit-products'))
                     ->preloadRecordSelect()
                     ->recordSelectSearchColumns(['name', 'legal_name'])
@@ -118,18 +118,18 @@ class SuppliersRelationManager extends RelationManager
                     ->form(fn (AttachAction $action): array => [
                         $action->getRecordSelect(),
                         TextInput::make('external_code')
-                            ->label('Supplier Code')
+                            ->label(__('forms.labels.supplier_code'))
                             ->maxLength(100),
                         TextInput::make('external_name')
-                            ->label('Supplier Product Name')
+                            ->label(__('forms.labels.supplier_product_name'))
                             ->maxLength(255),
                         Textarea::make('external_description')
-                            ->label('Supplier Product Description')
+                            ->label(__('forms.labels.supplier_product_description'))
                             ->rows(3)
                             ->maxLength(2000)
-                            ->helperText('Will appear on invoices.'),
+                            ->helperText(__('forms.helpers.will_appear_on_invoices')),
                         TextInput::make('unit_price')
-                            ->label('Unit Price')
+                            ->label(__('forms.labels.unit_price'))
                             ->numeric()
                             ->minValue(0)
                             ->step(0.0001)
@@ -137,19 +137,19 @@ class SuppliersRelationManager extends RelationManager
                             ->inputMode('decimal')
                             ->default(0),
                         Select::make('currency_code')
-                            ->label('Currency')
+                            ->label(__('forms.labels.currency'))
                             ->options(fn () => \App\Domain\Settings\Models\Currency::pluck('code', 'code'))
                             ->searchable(),
                         TextInput::make('moq')
-                            ->label('MOQ')
+                            ->label(__('forms.labels.moq'))
                             ->numeric()
                             ->minValue(1),
                         TextInput::make('lead_time_days')
-                            ->label('Lead Time (days)')
+                            ->label(__('forms.labels.lead_time_days'))
                             ->numeric()
                             ->minValue(0),
                         Checkbox::make('is_preferred')
-                            ->label('Preferred Supplier'),
+                            ->label(__('forms.labels.preferred_supplier')),
                     ])
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['role'] = 'supplier';

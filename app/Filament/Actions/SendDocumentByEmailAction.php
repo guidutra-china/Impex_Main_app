@@ -32,7 +32,7 @@ class SendDocumentByEmailAction
                 if (! $document || ! $document->exists()) {
                     Notification::make()
                         ->title('Document Not Found')
-                        ->body('No PDF has been generated yet. Please generate one first.')
+                        ->body(__('messages.no_pdf_generated'))
                         ->warning()
                         ->send();
 
@@ -90,7 +90,7 @@ class SendDocumentByEmailAction
 
         return [
             Select::make('to')
-                ->label('To')
+                ->label(__('forms.labels.to'))
                 ->options($emailOptions)
                 ->default($defaultTo)
                 ->searchable()
@@ -98,28 +98,28 @@ class SendDocumentByEmailAction
                 ->required()
                 ->createOptionForm([
                     TextInput::make('email')
-                        ->label('Email Address')
+                        ->label(__('forms.labels.email_address'))
                         ->email()
                         ->required(),
                 ])
                 ->createOptionUsing(fn (array $data) => $data['email'])
-                ->helperText('Select a registered contact or add a new email'),
+                ->helperText(__('forms.helpers.select_a_registered_contact_or_add_a_new_email')),
 
             TextInput::make('recipient_name')
-                ->label('Recipient Name')
+                ->label(__('forms.labels.recipient_name'))
                 ->required()
                 ->default($contact?->name ?? $company?->name),
 
             TagsInput::make('cc')
-                ->label('CC')
+                ->label(__('forms.labels.cc'))
                 ->suggestions($emailSuggestions)
                 ->splitKeys(['Tab', ','])
-                ->placeholder('Select or type email addresses')
-                ->helperText('Pick from suggestions or type a new email and press Tab/Enter'),
+                ->placeholder(__('forms.placeholders.select_or_type_email_addresses'))
+                ->helperText(__('forms.helpers.pick_from_suggestions_or_type_a_new_email_and_press_tabenter')),
 
             Textarea::make('message')
-                ->label('Message (optional)')
-                ->placeholder('Add a custom message to the email...')
+                ->label(__('forms.labels.message_optional'))
+                ->placeholder(__('forms.placeholders.add_a_custom_message_to_the_email'))
                 ->rows(4),
         ];
     }

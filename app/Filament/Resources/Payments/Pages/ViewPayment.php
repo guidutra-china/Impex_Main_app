@@ -33,7 +33,7 @@ class ViewPayment extends ViewRecord
     protected function approveAction(): Action
     {
         return Action::make('approve')
-            ->label('Approve')
+            ->label(__('forms.labels.approve'))
             ->icon('heroicon-o-check-circle')
             ->color('success')
             ->requiresConfirmation()
@@ -47,7 +47,7 @@ class ViewPayment extends ViewRecord
             ->action(function () {
                 app(ApprovePaymentAction::class)->approve($this->record);
 
-                Notification::make()->title('Payment approved')->success()->send();
+                Notification::make()->title(__('messages.payment_approved'))->success()->send();
 
                 $this->refreshFormData(['status', 'approved_by', 'approved_at']);
             });
@@ -56,14 +56,14 @@ class ViewPayment extends ViewRecord
     protected function rejectAction(): Action
     {
         return Action::make('reject')
-            ->label('Reject')
+            ->label(__('forms.labels.reject'))
             ->icon('heroicon-o-x-circle')
             ->color('danger')
             ->requiresConfirmation()
             ->modalHeading('Reject Payment')
             ->form([
                 Textarea::make('reason')
-                    ->label('Rejection Reason')
+                    ->label(__('forms.labels.rejection_reason'))
                     ->rows(2)
                     ->required(),
             ])
@@ -72,7 +72,7 @@ class ViewPayment extends ViewRecord
             ->action(function (array $data) {
                 app(ApprovePaymentAction::class)->reject($this->record, $data['reason']);
 
-                Notification::make()->title('Payment rejected')->danger()->send();
+                Notification::make()->title(__('messages.payment_rejected'))->danger()->send();
 
                 $this->refreshFormData(['status', 'notes']);
             });
@@ -81,7 +81,7 @@ class ViewPayment extends ViewRecord
     protected function cancelAction(): Action
     {
         return Action::make('cancel')
-            ->label('Cancel Payment')
+            ->label(__('forms.labels.cancel_payment'))
             ->icon('heroicon-o-trash')
             ->color('danger')
             ->requiresConfirmation()
@@ -94,7 +94,7 @@ class ViewPayment extends ViewRecord
                     : ''))
             ->form([
                 Textarea::make('reason')
-                    ->label('Cancellation Reason')
+                    ->label(__('forms.labels.cancellation_reason'))
                     ->rows(2),
             ])
             ->visible(fn () => in_array($this->record->status, [

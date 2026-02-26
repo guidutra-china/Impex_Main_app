@@ -18,16 +18,16 @@ class QuotationInfolist
             ->components([
                 Tabs::make('Quotation')
                     ->tabs([
-                        Tabs\Tab::make('General')
+                        Tabs\Tab::make(__('forms.tabs.general'))
                             ->icon('heroicon-o-information-circle')
                             ->schema(static::generalTab()),
-                        Tabs\Tab::make('Commercial')
+                        Tabs\Tab::make(__('forms.tabs.commercial'))
                             ->icon('heroicon-o-currency-dollar')
                             ->schema(static::commercialTab()),
-                        Tabs\Tab::make('Summary')
+                        Tabs\Tab::make(__('forms.tabs.summary'))
                             ->icon('heroicon-o-calculator')
                             ->schema(static::summaryTab()),
-                        Tabs\Tab::make('Notes')
+                        Tabs\Tab::make(__('forms.tabs.notes'))
                             ->icon('heroicon-o-chat-bubble-left-right')
                             ->schema(static::notesTab()),
                     ])
@@ -39,43 +39,43 @@ class QuotationInfolist
     protected static function generalTab(): array
     {
         return [
-            Section::make('Quotation Identity')
+            Section::make(__('forms.sections.quotation_identity'))
                 ->schema([
                     TextEntry::make('reference')
-                        ->label('Reference')
+                        ->label(__('forms.labels.reference'))
                         ->weight(FontWeight::Bold)
                         ->copyable(),
                     TextEntry::make('status')
-                        ->label('Status')
+                        ->label(__('forms.labels.status'))
                         ->badge(),
                     TextEntry::make('version')
-                        ->label('Version')
+                        ->label(__('forms.labels.version'))
                         ->prefix('v')
                         ->badge()
                         ->color('info'),
                     TextEntry::make('creator.name')
-                        ->label('Created By')
+                        ->label(__('forms.labels.created_by'))
                         ->placeholder('—'),
                 ])
                 ->columns(4),
 
-            Section::make('Client')
+            Section::make(__('forms.sections.client'))
                 ->schema([
                     TextEntry::make('company.name')
-                        ->label('Company')
+                        ->label(__('forms.labels.company'))
                         ->weight(FontWeight::Bold)
                         ->icon('heroicon-o-building-office-2'),
                     TextEntry::make('contact.name')
-                        ->label('Contact')
+                        ->label(__('forms.labels.contact'))
                         ->icon('heroicon-o-user')
                         ->placeholder('—'),
                     TextEntry::make('contact.email')
-                        ->label('Email')
+                        ->label(__('forms.labels.email'))
                         ->icon('heroicon-o-envelope')
                         ->placeholder('—')
                         ->copyable(),
                     TextEntry::make('contact.phone')
-                        ->label('Phone')
+                        ->label(__('forms.labels.phone'))
                         ->icon('heroicon-o-phone')
                         ->placeholder('—'),
                 ])
@@ -86,36 +86,36 @@ class QuotationInfolist
     protected static function commercialTab(): array
     {
         return [
-            Section::make('Pricing & Commission')
+            Section::make(__('forms.sections.pricing_commission'))
                 ->schema([
                     TextEntry::make('currency_code')
-                        ->label('Currency')
+                        ->label(__('forms.labels.currency'))
                         ->badge()
                         ->color('gray'),
                     TextEntry::make('commission_type')
-                        ->label('Commission Model')
+                        ->label(__('forms.labels.commission_model'))
                         ->badge(),
                     TextEntry::make('commission_rate')
-                        ->label('Commission Rate')
+                        ->label(__('forms.labels.commission_rate'))
                         ->suffix('%')
                         ->placeholder('—'),
                     IconEntry::make('show_suppliers')
-                        ->label('Show Suppliers to Client')
+                        ->label(__('forms.labels.show_suppliers_to_client'))
                         ->boolean(),
                 ])
                 ->columns(4),
 
-            Section::make('Terms & Validity')
+            Section::make(__('forms.sections.terms_validity'))
                 ->schema([
                     TextEntry::make('paymentTerm.name')
-                        ->label('Payment Terms')
+                        ->label(__('forms.labels.payment_terms'))
                         ->placeholder('—'),
                     TextEntry::make('validity_days')
-                        ->label('Validity')
+                        ->label(__('forms.labels.validity'))
                         ->suffix(' days')
                         ->placeholder('—'),
                     TextEntry::make('valid_until')
-                        ->label('Valid Until')
+                        ->label(__('forms.labels.valid_until'))
                         ->date('d/m/Y')
                         ->placeholder('—')
                         ->color(fn ($record) => $record->valid_until && $record->valid_until->isPast() ? 'danger' : null),
@@ -127,26 +127,26 @@ class QuotationInfolist
     protected static function summaryTab(): array
     {
         return [
-            Section::make('Financial Summary')
+            Section::make(__('forms.sections.financial_summary'))
                 ->schema([
                     TextEntry::make('subtotal')
-                        ->label('Subtotal')
+                        ->label(__('forms.labels.subtotal'))
                         ->formatStateUsing(fn ($state) => Money::format($state))
                         ->prefix('$ ')
                         ->weight(FontWeight::Bold),
                     TextEntry::make('commission_amount')
-                        ->label('Commission (Separate)')
+                        ->label(__('forms.labels.commission_separate'))
                         ->formatStateUsing(fn ($state) => Money::format($state))
                         ->prefix('$ ')
                         ->visible(fn ($record) => $record->commission_amount > 0),
                     TextEntry::make('total')
-                        ->label('Total')
+                        ->label(__('forms.labels.total'))
                         ->formatStateUsing(fn ($state) => Money::format($state))
                         ->prefix('$ ')
                         ->weight(FontWeight::Bold)
                         ->color('success'),
                     TextEntry::make('items_count')
-                        ->label('Total Items')
+                        ->label(__('forms.labels.total_items'))
                         ->state(fn ($record) => $record->items->count()),
                 ])
                 ->columns(2),
@@ -156,16 +156,16 @@ class QuotationInfolist
     protected static function notesTab(): array
     {
         return [
-            Section::make('Notes')
+            Section::make(__('forms.sections.notes'))
                 ->schema([
                     TextEntry::make('notes')
-                        ->label('Client Notes')
-                        ->placeholder('No client notes.')
+                        ->label(__('forms.labels.client_notes'))
+                        ->placeholder(__('forms.placeholders.no_client_notes'))
                         ->columnSpanFull()
                         ->markdown(),
                     TextEntry::make('internal_notes')
-                        ->label('Internal Notes')
-                        ->placeholder('No internal notes.')
+                        ->label(__('forms.labels.internal_notes'))
+                        ->placeholder(__('forms.placeholders.no_internal_notes'))
                         ->columnSpanFull(),
                 ]),
         ];

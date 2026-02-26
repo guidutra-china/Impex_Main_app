@@ -25,12 +25,12 @@ class UsersTable
                     ->badge()
                     ->sortable(),
                 TextColumn::make('roles.name')
-                    ->label('Role')
+                    ->label(__('forms.labels.role'))
                     ->badge()
                     ->color('info')
                     ->separator(', '),
                 TextColumn::make('company.name')
-                    ->label('Company')
+                    ->label(__('forms.labels.company'))
                     ->placeholder('—')
                     ->sortable(),
                 TextColumn::make('status')
@@ -41,7 +41,7 @@ class UsersTable
                         default => 'gray',
                     }),
                 TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('forms.labels.created'))
                     ->dateTime('d/m/Y')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

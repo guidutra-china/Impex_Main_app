@@ -24,15 +24,7 @@ class SupplierQuotationResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-check';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Operations';
-
     protected static ?int $navigationSort = 2;
-
-    protected static ?string $navigationLabel = 'Supplier Quotations';
-
-    protected static ?string $modelLabel = 'Supplier Quotation';
-
-    protected static ?string $pluralModelLabel = 'Supplier Quotations';
 
     protected static ?string $slug = 'supplier-quotations';
 
@@ -72,5 +64,25 @@ class SupplierQuotationResource extends Resource
             'edit' => EditSupplierQuotation::route('/{record}/edit'),
             'view' => ViewSupplierQuotation::route('/{record}'),
         ];
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.operations');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.resources.supplier_quotations');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('navigation.models.supplier_quotation');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('navigation.models.supplier_quotations');
     }
 }

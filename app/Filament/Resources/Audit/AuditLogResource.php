@@ -25,14 +25,6 @@ class AuditLogResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static UnitEnum|string|null $navigationGroup = 'Settings';
-
-    protected static ?string $navigationLabel = 'Audit Log';
-
-    protected static ?string $modelLabel = 'Audit Entry';
-
-    protected static ?string $pluralModelLabel = 'Audit Log';
-
     protected static ?int $navigationSort = 99;
 
     public static function canAccess(): bool
@@ -60,16 +52,16 @@ class AuditLogResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('created_at')
-                    ->label('Date/Time')
+                    ->label(__('forms.labels.datetime'))
                     ->dateTime('M d, Y H:i:s')
                     ->sortable(),
 
                 TextColumn::make('causer.name')
-                    ->label('User')
+                    ->label(__('forms.labels.user'))
                     ->default('System'),
 
                 TextColumn::make('log_name')
-                    ->label('Module')
+                    ->label(__('forms.labels.module'))
                     ->badge()
                     ->formatStateUsing(fn (string $state) => ucfirst($state))
                     ->color(fn (string $state) => match ($state) {
@@ -81,11 +73,11 @@ class AuditLogResource extends Resource
                     }),
 
                 TextColumn::make('description')
-                    ->label('Action')
+                    ->label(__('forms.labels.action'))
                     ->searchable(),
 
                 TextColumn::make('subject_type')
-                    ->label('Entity')
+                    ->label(__('forms.labels.entity'))
                     ->formatStateUsing(function (?string $state) {
                         if (! $state) {
                             return '-';
@@ -95,12 +87,12 @@ class AuditLogResource extends Resource
                     }),
 
                 TextColumn::make('subject_id')
-                    ->label('ID'),
+                    ->label(__('forms.labels.id')),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
                 SelectFilter::make('log_name')
-                    ->label('Module')
+                    ->label(__('forms.labels.module'))
                     ->options(fn () => Activity::query()
                         ->distinct()
                         ->pluck('log_name', 'log_name')
@@ -109,7 +101,7 @@ class AuditLogResource extends Resource
                     ),
 
                 SelectFilter::make('description')
-                    ->label('Action')
+                    ->label(__('forms.labels.action'))
                     ->options([
                         'created' => 'Created',
                         'updated' => 'Updated',
@@ -117,7 +109,7 @@ class AuditLogResource extends Resource
                     ]),
 
                 SelectFilter::make('causer_id')
-                    ->label('User')
+                    ->label(__('forms.labels.user'))
                     ->options(fn () => \App\Models\User::query()
                         ->whereIn('id', Activity::query()->distinct()->pluck('causer_id')->filter())
                         ->pluck('name', 'id')
@@ -127,9 +119,9 @@ class AuditLogResource extends Resource
                 Filter::make('date_range')
                     ->form([
                         DatePicker::make('from')
-                            ->label('From'),
+                            ->label(__('forms.labels.from')),
                         DatePicker::make('until')
-                            ->label('Until'),
+                            ->label(__('forms.labels.until')),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -153,35 +145,35 @@ class AuditLogResource extends Resource
     {
         return $schema
             ->schema([
-                Section::make('Event Details')
+                Section::make(__('forms.sections.event_details'))
                     ->schema([
                         TextEntry::make('created_at')
-                            ->label('Date/Time')
+                            ->label(__('forms.labels.datetime'))
                             ->dateTime('M d, Y H:i:s'),
 
                         TextEntry::make('causer.name')
-                            ->label('User')
+                            ->label(__('forms.labels.user'))
                             ->default('System'),
 
                         TextEntry::make('log_name')
-                            ->label('Module')
+                            ->label(__('forms.labels.module'))
                             ->badge()
                             ->formatStateUsing(fn (string $state) => ucfirst($state)),
 
                         TextEntry::make('description')
-                            ->label('Action'),
+                            ->label(__('forms.labels.action')),
 
                         TextEntry::make('subject_type')
-                            ->label('Entity Type')
+                            ->label(__('forms.labels.entity_type'))
                             ->formatStateUsing(fn (?string $state) => $state ? class_basename($state) : '-'),
 
                         TextEntry::make('subject_id')
-                            ->label('Entity ID'),
+                            ->label(__('forms.labels.entity_id')),
                     ])
                     ->columns(3)
                     ->columnSpanFull(),
 
-                Section::make('Old Values')
+                Section::make(__('forms.sections.old_values'))
                     ->schema([
                         KeyValueEntry::make('properties.old')
                             ->label('')
@@ -190,7 +182,7 @@ class AuditLogResource extends Resource
                     ->columnSpanFull()
                     ->visible(fn (Activity $record) => ! empty($record->properties->get('old'))),
 
-                Section::make('New Values')
+                Section::make(__('forms.sections.new_values'))
                     ->schema([
                         KeyValueEntry::make('properties.attributes')
                             ->label('')
@@ -207,5 +199,25 @@ class AuditLogResource extends Resource
             'index' => \App\Filament\Resources\Audit\Pages\ListAuditLogs::route('/'),
             'view' => \App\Filament\Resources\Audit\Pages\ViewAuditLog::route('/{record}'),
         ];
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.settings');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.resources.audit_log');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('navigation.models.audit_entry');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('navigation.models.audit_log');
     }
 }

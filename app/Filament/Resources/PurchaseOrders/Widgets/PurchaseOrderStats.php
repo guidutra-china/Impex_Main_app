@@ -59,20 +59,20 @@ class PurchaseOrderStats extends Widget
                 'label' => 'PO Total',
                 'value' => $currency . ' ' . Money::format($total),
                 'description' => $totalCredits > 0
-                    ? 'Credits: ' . $currency . ' ' . Money::format($totalCredits)
+                    ? __('widgets.document_summary.credits') . ': ' . $currency . ' ' . Money::format($totalCredits)
                     : $po->items->count() . ' item(s)',
                 'icon' => 'heroicon-o-shopping-cart',
                 'color' => 'primary',
             ],
             [
-                'label' => 'Paid',
+                'label' => __('widgets.document_summary.paid'),
                 'value' => $currency . ' ' . Money::format($totalPaid),
                 'description' => $progress . '% paid',
                 'icon' => 'heroicon-o-banknotes',
                 'color' => $progress >= 100 ? 'success' : ($progress > 0 ? 'info' : 'gray'),
             ],
             [
-                'label' => 'Remaining',
+                'label' => __('widgets.document_summary.remaining'),
                 'value' => $currency . ' ' . Money::format($netRemaining),
                 'description' => $this->buildRemainingDescription($overdueAmount, $regularItems, $netRemaining, $currency),
                 'icon' => 'heroicon-o-clock',
@@ -98,7 +98,7 @@ class PurchaseOrderStats extends Widget
         $totalScheduleRemaining = max(0, $totalScheduleAmount - $totalSchedulePaid);
 
         return [
-            'heading' => 'Financial Summary',
+            'heading' => __('widgets.document_summary.financial_summary'),
             'icon' => 'heroicon-o-banknotes',
             'currency' => $currency,
             'cards' => $cards,
@@ -112,20 +112,20 @@ class PurchaseOrderStats extends Widget
             ],
             'unallocatedTotal' => $unallocatedTotal,
             'unallocatedFormatted' => Money::format($unallocatedTotal),
-            'unallocatedLabel' => 'To this supplier — available to allocate',
+            'unallocatedLabel' => __('widgets.document_summary.to_supplier_available'),
         ];
     }
 
     private function buildRemainingDescription(int $overdueAmount, $regularItems, int $netRemaining, string $currency): string
     {
         if ($netRemaining <= 0) {
-            return 'Fully paid';
+            return __('widgets.document_summary.fully_paid');
         }
 
         $parts = [];
 
         if ($overdueAmount > 0) {
-            $parts[] = 'Overdue: ' . $currency . ' ' . Money::format($overdueAmount);
+            $parts[] = __('widgets.document_summary.overdue') . ': ' . $currency . ' ' . Money::format($overdueAmount);
         }
 
         $nextDue = $regularItems
@@ -134,10 +134,10 @@ class PurchaseOrderStats extends Widget
             ->first();
 
         if ($nextDue?->due_date) {
-            $parts[] = 'Next: ' . $nextDue->due_date->format('M d, Y');
+            $parts[] = __('widgets.document_summary.next') . ': ' . $nextDue->due_date->format('M d, Y');
         }
 
-        return implode(' | ', $parts) ?: 'Outstanding';
+        return implode(' | ', $parts) ?: __('widgets.document_summary.outstanding');
     }
 
     private function getUnallocatedPaymentsTotal(int $companyId, PaymentDirection $direction, string $currency): int

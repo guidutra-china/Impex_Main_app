@@ -21,51 +21,51 @@ class InquiriesTable
         return $table
             ->columns([
                 TextColumn::make('reference')
-                    ->label('Reference')
+                    ->label(__('forms.labels.reference'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->copyable(),
                 TextColumn::make('company.name')
-                    ->label('Client')
+                    ->label(__('forms.labels.client'))
                     ->searchable()
                     ->sortable()
                     ->limit(30),
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->badge(),
                 TextColumn::make('source')
-                    ->label('Source')
+                    ->label(__('forms.labels.source'))
                     ->badge()
                     ->toggleable(isToggledHiddenByDefault: false),
                 TextColumn::make('currency_code')
-                    ->label('Currency')
+                    ->label(__('forms.labels.currency'))
                     ->badge()
                     ->color('gray')
                     ->alignCenter(),
                 TextColumn::make('items_count')
-                    ->label('Items')
+                    ->label(__('forms.labels.items'))
                     ->counts('items')
                     ->alignCenter(),
                 TextColumn::make('received_at')
-                    ->label('Received')
+                    ->label(__('forms.labels.received'))
                     ->date('d/m/Y')
                     ->sortable(),
                 TextColumn::make('deadline')
-                    ->label('Deadline')
+                    ->label(__('forms.labels.deadline'))
                     ->date('d/m/Y')
                     ->sortable()
                     ->color(fn ($record) => $record->deadline && $record->deadline->isPast() ? 'danger' : null),
                 TextColumn::make('quotations_count')
-                    ->label('Quotations')
+                    ->label(__('forms.labels.quotations'))
                     ->counts('quotations')
                     ->alignCenter()
                     ->toggleable(isToggledHiddenByDefault: false),
                 TextColumn::make('creator.name')
-                    ->label('Created By')
+                    ->label(__('forms.labels.created_by'))
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('forms.labels.created'))
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -76,7 +76,7 @@ class InquiriesTable
                 SelectFilter::make('source')
                     ->options(InquirySource::class),
                 SelectFilter::make('company_id')
-                    ->label('Client')
+                    ->label(__('forms.labels.client'))
                     ->relationship('company', 'name')
                     ->searchable()
                     ->preload(),

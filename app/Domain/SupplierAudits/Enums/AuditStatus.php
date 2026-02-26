@@ -15,13 +15,9 @@ enum AuditStatus: string implements HasLabel, HasColor, HasIcon
 
     public function getLabel(): ?string
     {
-        return match ($this) {
-            self::SCHEDULED => 'Scheduled',
-            self::IN_PROGRESS => 'In Progress',
-            self::COMPLETED => 'Completed',
-            self::REVIEWED => 'Reviewed',
-        };
+        return __('enums.audit_status.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -50,6 +46,16 @@ enum AuditStatus: string implements HasLabel, HasColor, HasIcon
             self::IN_PROGRESS => in_array($target, [self::COMPLETED]),
             self::COMPLETED => in_array($target, [self::REVIEWED]),
             self::REVIEWED => false,
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::SCHEDULED => 'Scheduled',
+            self::IN_PROGRESS => 'In Progress',
+            self::COMPLETED => 'Completed',
+            self::REVIEWED => 'Reviewed',
         };
     }
 }

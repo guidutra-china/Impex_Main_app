@@ -12,14 +12,11 @@ enum BillableTo: string implements HasLabel, HasColor, HasIcon
     case SUPPLIER = 'supplier';
     case COMPANY = 'company';
 
-    public function getLabel(): string
+    public function getLabel(): ?string
     {
-        return match ($this) {
-            self::CLIENT => 'Client (Repass)',
-            self::SUPPLIER => 'Supplier (Repass)',
-            self::COMPANY => 'Company (Internal)',
-        };
+        return __('enums.billable_to.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -36,6 +33,15 @@ enum BillableTo: string implements HasLabel, HasColor, HasIcon
             self::CLIENT => 'heroicon-o-arrow-up-right',
             self::SUPPLIER => 'heroicon-o-arrow-down-left',
             self::COMPANY => 'heroicon-o-building-office',
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::CLIENT => 'Client (Repass)',
+            self::SUPPLIER => 'Supplier (Repass)',
+            self::COMPANY => 'Company (Internal)',
         };
     }
 }

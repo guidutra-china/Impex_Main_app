@@ -13,7 +13,13 @@ enum ConfirmationMethod: string implements HasLabel
     case SIGNED_DOCUMENT = 'signed_document';
     case OTHER = 'other';
 
-    public function getLabel(): string
+    public function getLabel(): ?string
+    {
+        return __('enums.confirmation_method.' . $this->value);
+    }
+
+
+    public function getEnglishLabel(): string
     {
         return match ($this) {
             self::EMAIL => 'Email',

@@ -1,8 +1,8 @@
 <x-filament-widgets::widget>
     <x-filament::section
-        heading="Landed Cost Calculator"
+        :heading="__('widgets.landed_cost.heading')"
         icon="heroicon-o-calculator"
-        description="Complete cost analysis for this shipment"
+        :description="__('widgets.landed_cost.description')"
         collapsible
     >
         {{-- Summary Cards --}}
@@ -62,7 +62,7 @@
                         'text-xs font-medium',
                         'text-success-600 dark:text-success-400' => $margin['gross_profit_raw'] >= 0,
                         'text-danger-600 dark:text-danger-400' => $margin['gross_profit_raw'] < 0,
-                    ])>Gross Profit</span>
+                    ])>{{ __('widgets.landed_cost.gross_profit') }}</span>
                 </div>
                 <p @class([
                     'mt-1 text-lg font-bold',

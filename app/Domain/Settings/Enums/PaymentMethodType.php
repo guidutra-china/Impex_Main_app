@@ -19,6 +19,12 @@ enum PaymentMethodType: string implements HasLabel
 
     public function getLabel(): ?string
     {
+        return __('enums.payment_method_type.' . $this->value);
+    }
+
+
+    public function getEnglishLabel(): string
+    {
         return match ($this) {
             self::BANK_TRANSFER => 'Bank Transfer',
             self::WIRE_TRANSFER => 'Wire Transfer',

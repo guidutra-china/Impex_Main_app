@@ -18,13 +18,9 @@ class PaymentTermResource extends Resource
 {
     protected static ?string $model = PaymentTerm::class;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Settings';
-
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-clock';
 
     protected static ?int $navigationSort = 4;
-
-    protected static ?string $navigationLabel = 'Payment Terms';
 
     public static function canAccess(): bool
     {
@@ -48,5 +44,15 @@ class PaymentTermResource extends Resource
             'create' => CreatePaymentTerm::route('/create'),
             'edit' => EditPaymentTerm::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.settings');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.resources.payment_terms');
     }
 }

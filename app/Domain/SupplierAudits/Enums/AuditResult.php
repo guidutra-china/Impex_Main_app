@@ -14,12 +14,9 @@ enum AuditResult: string implements HasLabel, HasColor, HasIcon
 
     public function getLabel(): ?string
     {
-        return match ($this) {
-            self::APPROVED => 'Approved',
-            self::CONDITIONAL => 'Conditional',
-            self::REJECTED => 'Rejected',
-        };
+        return __('enums.audit_result.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -36,6 +33,15 @@ enum AuditResult: string implements HasLabel, HasColor, HasIcon
             self::APPROVED => 'heroicon-o-check-circle',
             self::CONDITIONAL => 'heroicon-o-exclamation-triangle',
             self::REJECTED => 'heroicon-o-x-circle',
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::APPROVED => 'Approved',
+            self::CONDITIONAL => 'Conditional',
+            self::REJECTED => 'Rejected',
         };
     }
 }

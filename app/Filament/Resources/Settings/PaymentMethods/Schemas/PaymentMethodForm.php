@@ -18,46 +18,46 @@ class PaymentMethodForm
     {
         return $schema
             ->components([
-                Section::make('Payment Method Information')
+                Section::make(__('forms.sections.payment_method_information'))
                     ->schema([
                         TextInput::make('name')
-                            ->label('Name')
+                            ->label(__('forms.labels.name'))
                             ->required()
                             ->maxLength(255)
-                            ->placeholder('e.g., PayPal Business, Bank Transfer USD'),
+                            ->placeholder(__('forms.placeholders.eg_paypal_business_bank_transfer_usd')),
                         Select::make('type')
-                            ->label('Type')
+                            ->label(__('forms.labels.type'))
                             ->options(PaymentMethodType::class)
                             ->required()
                             ->searchable(),
                         Select::make('bank_account_id')
-                            ->label('Linked Bank Account')
+                            ->label(__('forms.labels.linked_bank_account'))
                             ->relationship('bankAccount', 'account_name')
                             ->searchable()
                             ->preload()
                             ->nullable()
-                            ->helperText('Optional: Link this payment method to a specific bank account.'),
+                            ->helperText(__('forms.helpers.optional_link_this_payment_method_to_a_specific_bank_account')),
                         Select::make('processing_time')
-                            ->label('Processing Time')
+                            ->label(__('forms.labels.processing_time'))
                             ->options(ProcessingTime::class)
                             ->required()
                             ->default(ProcessingTime::IMMEDIATE->value),
                         Toggle::make('is_active')
-                            ->label('Active')
+                            ->label(__('forms.labels.active'))
                             ->default(true)
-                            ->helperText('Inactive payment methods will not be available for selection.'),
+                            ->helperText(__('forms.helpers.inactive_payment_methods_will_not_be_available_for_selection')),
                     ])
                     ->columns(2),
-                Section::make('Fee Configuration')
+                Section::make(__('forms.sections.fee_configuration'))
                     ->schema([
                         Select::make('fee_type')
-                            ->label('Fee Type')
+                            ->label(__('forms.labels.fee_type'))
                             ->options(FeeType::class)
                             ->required()
                             ->default(FeeType::NONE->value)
                             ->live(),
                         TextInput::make('fixed_fee_amount')
-                            ->label('Fixed Fee')
+                            ->label(__('forms.labels.fixed_fee'))
                             ->numeric()
                             ->default(0)
                             ->step(0.0001)
@@ -71,7 +71,7 @@ class PaymentMethodForm
                                 FeeType::FIXED_PLUS_PERCENTAGE,
                             ])),
                         Select::make('fixed_fee_currency_id')
-                            ->label('Fee Currency')
+                            ->label(__('forms.labels.fee_currency'))
                             ->relationship('fixedFeeCurrency', 'code')
                             ->searchable()
                             ->preload()
@@ -82,7 +82,7 @@ class PaymentMethodForm
                                 FeeType::FIXED_PLUS_PERCENTAGE,
                             ])),
                         TextInput::make('percentage_fee')
-                            ->label('Percentage Fee')
+                            ->label(__('forms.labels.percentage_fee'))
                             ->numeric()
                             ->default(0)
                             ->suffix('%')
@@ -97,10 +97,10 @@ class PaymentMethodForm
                             ])),
                     ])
                     ->columns(2),
-                Section::make('Additional Information')
+                Section::make(__('forms.sections.additional_information'))
                     ->schema([
                         Textarea::make('notes')
-                            ->label('Notes')
+                            ->label(__('forms.labels.notes'))
                             ->rows(3)
                             ->maxLength(65535)
                             ->columnSpanFull(),

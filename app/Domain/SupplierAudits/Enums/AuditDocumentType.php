@@ -14,6 +14,12 @@ enum AuditDocumentType: string implements HasLabel
 
     public function getLabel(): ?string
     {
+        return __('enums.audit_document_type.' . $this->value);
+    }
+
+
+    public function getEnglishLabel(): string
+    {
         return match ($this) {
             self::PHOTO => 'Photo',
             self::CERTIFICATE => 'Certificate',

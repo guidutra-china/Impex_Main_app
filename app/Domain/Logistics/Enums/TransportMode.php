@@ -14,16 +14,11 @@ enum TransportMode: string implements HasLabel, HasColor, HasIcon
     case RAIL = 'rail';
     case MULTIMODAL = 'multimodal';
 
-    public function getLabel(): string
+    public function getLabel(): ?string
     {
-        return match ($this) {
-            self::SEA => 'Sea Freight',
-            self::AIR => 'Air Freight',
-            self::LAND => 'Land Freight',
-            self::RAIL => 'Rail Freight',
-            self::MULTIMODAL => 'Multimodal',
-        };
+        return __('enums.transport_mode.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -44,6 +39,17 @@ enum TransportMode: string implements HasLabel, HasColor, HasIcon
             self::LAND => 'heroicon-o-truck',
             self::RAIL => 'heroicon-o-arrow-long-right',
             self::MULTIMODAL => 'heroicon-o-arrows-right-left',
+        };
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::SEA => 'Sea Freight',
+            self::AIR => 'Air Freight',
+            self::LAND => 'Land Freight',
+            self::RAIL => 'Rail Freight',
+            self::MULTIMODAL => 'Multimodal',
         };
     }
 }

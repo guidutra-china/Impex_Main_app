@@ -17,18 +17,18 @@ class TagsTable
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label('Name')
+                    ->label(__('forms.labels.name'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
                 TextColumn::make('slug')
-                    ->label('Slug')
+                    ->label(__('forms.labels.slug'))
                     ->color('gray')
                     ->toggleable(isToggledHiddenByDefault: true),
                 ColorColumn::make('color')
-                    ->label('Color'),
+                    ->label(__('forms.labels.color')),
                 TextColumn::make('products_count')
-                    ->label('Products')
+                    ->label(__('forms.labels.products'))
                     ->counts('products')
                     ->alignCenter(),
             ])

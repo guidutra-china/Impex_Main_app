@@ -21,7 +21,7 @@
                     </x-filament::badge>
                     @if ($product->is_variant)
                         <x-filament::badge color="info" icon="heroicon-o-link">
-                            Variant
+                            {{ __('widgets.product_summary.variant') }}
                         </x-filament::badge>
                     @endif
                 </div>

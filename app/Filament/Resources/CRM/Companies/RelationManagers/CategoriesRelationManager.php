@@ -26,25 +26,25 @@ class CategoriesRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('full_path')
-                    ->label('Category')
+                    ->label(__('forms.labels.category'))
                     ->weight('bold'),
                 TextColumn::make('sku_prefix')
-                    ->label('SKU Prefix')
+                    ->label(__('forms.labels.sku_prefix'))
                     ->badge()
                     ->color('primary')
                     ->placeholder('—'),
                 TextColumn::make('products_count')
-                    ->label('Products')
+                    ->label(__('forms.labels.products'))
                     ->counts('products')
                     ->alignCenter(),
                 TextColumn::make('pivot.notes')
-                    ->label('Notes')
+                    ->label(__('forms.labels.notes'))
                     ->limit(50)
                     ->placeholder('—'),
             ])
             ->headerActions([
                 AttachAction::make()
-                    ->label('Add Category')
+                    ->label(__('forms.labels.add_category'))
                     ->visible(fn () => auth()->user()?->can('edit-companies'))
                     ->preloadRecordSelect()
                     ->recordSelectOptionsQuery(fn ($query) => $query->active()->orderBy('name'))
@@ -52,10 +52,10 @@ class CategoriesRelationManager extends RelationManager
                     ->form(fn (AttachAction $action): array => [
                         $action->getRecordSelect(),
                         Textarea::make('notes')
-                            ->label('Notes')
+                            ->label(__('forms.labels.notes'))
                             ->rows(2)
                             ->maxLength(1000)
-                            ->placeholder('E.g., Primary specialty, certified manufacturer, etc.'),
+                            ->placeholder(__('forms.placeholders.eg_primary_specialty_certified_manufacturer_etc')),
                     ]),
             ])
             ->recordActions([

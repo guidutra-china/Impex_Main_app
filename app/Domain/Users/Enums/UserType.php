@@ -12,14 +12,11 @@ enum UserType: string implements HasLabel, HasColor, HasIcon
     case CLIENT = 'client';
     case SUPPLIER = 'supplier';
 
-    public function getLabel(): string
+    public function getLabel(): ?string
     {
-        return match ($this) {
-            self::INTERNAL => 'Internal',
-            self::CLIENT => 'Client',
-            self::SUPPLIER => 'Supplier',
-        };
+        return __('enums.user_type.' . $this->value);
     }
+
 
     public function getColor(): string|array|null
     {
@@ -47,5 +44,14 @@ enum UserType: string implements HasLabel, HasColor, HasIcon
     public function isExternal(): bool
     {
         return ! $this->isInternal();
+    }
+
+    public function getEnglishLabel(): string
+    {
+        return match ($this) {
+            self::INTERNAL => 'Internal',
+            self::CLIENT => 'Client',
+            self::SUPPLIER => 'Supplier',
+        };
     }
 }

@@ -11,7 +11,7 @@ class UserInfolist
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Account Information')
+            Section::make(__('forms.sections.account_information'))
                 ->columns(3)
                 ->schema([
                     TextEntry::make('name')
@@ -24,7 +24,7 @@ class UserInfolist
                     TextEntry::make('job_title')
                         ->placeholder('—'),
                     TextEntry::make('locale')
-                        ->label('Language')
+                        ->label(__('forms.labels.language'))
                         ->formatStateUsing(fn (string $state) => match ($state) {
                             'en' => 'English',
                             'pt_BR' => 'Portuguese (Brazil)',
@@ -32,18 +32,18 @@ class UserInfolist
                             default => $state,
                         }),
                     TextEntry::make('created_at')
-                        ->label('Member Since')
+                        ->label(__('forms.labels.member_since'))
                         ->dateTime('d/m/Y'),
                 ]),
 
-            Section::make('Access & Role')
+            Section::make(__('forms.sections.access_role'))
                 ->columns(3)
                 ->schema([
                     TextEntry::make('type')
-                        ->label('User Type')
+                        ->label(__('forms.labels.user_type'))
                         ->badge(),
                     TextEntry::make('roles.name')
-                        ->label('Role')
+                        ->label(__('forms.labels.role'))
                         ->badge()
                         ->color('info'),
                     TextEntry::make('status')
@@ -54,7 +54,7 @@ class UserInfolist
                             default => 'gray',
                         }),
                     TextEntry::make('company.name')
-                        ->label('Company')
+                        ->label(__('forms.labels.company'))
                         ->placeholder('—')
                         ->visible(fn ($record) => $record->company_id !== null),
                 ]),

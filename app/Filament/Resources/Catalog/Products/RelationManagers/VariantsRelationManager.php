@@ -30,21 +30,21 @@ class VariantsRelationManager extends RelationManager
         return $schema
             ->components([
                 TextInput::make('name')
-                    ->label('Variant Name')
+                    ->label(__('forms.labels.variant_name'))
                     ->required()
                     ->maxLength(255),
                 TextInput::make('sku')
-                    ->label('SKU')
+                    ->label(__('forms.labels.sku'))
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(50),
                 Select::make('status')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->options(ProductStatus::class)
                     ->required()
                     ->default(ProductStatus::DRAFT->value),
                 Select::make('category_id')
-                    ->label('Category')
+                    ->label(__('forms.labels.category'))
                     ->relationship('category', 'name')
                     ->searchable()
                     ->preload()
@@ -62,26 +62,26 @@ class VariantsRelationManager extends RelationManager
                     ->size(40)
                     ->defaultImageUrl(fn () => 'https://ui-avatars.com/api/?name=P&background=e2e8f0&color=64748b&size=40'),
                 TextColumn::make('sku')
-                    ->label('SKU')
+                    ->label(__('forms.labels.sku'))
                     ->searchable()
                     ->weight('bold')
                     ->copyable()
                     ->size('sm'),
                 TextColumn::make('name')
-                    ->label('Name')
+                    ->label(__('forms.labels.name'))
                     ->searchable()
                     ->limit(40)
                     ->tooltip(fn ($record) => $record->name),
                 TextColumn::make('specification.color')
-                    ->label('Color')
+                    ->label(__('forms.labels.color'))
                     ->placeholder('—')
                     ->size('sm'),
                 TextColumn::make('specification.material')
-                    ->label('Material')
+                    ->label(__('forms.labels.material'))
                     ->placeholder('—')
                     ->size('sm'),
                 TextColumn::make('costing.base_price')
-                    ->label('Base Price')
+                    ->label(__('forms.labels.base_price'))
                     ->formatStateUsing(function ($state, $record) {
                         if (! $state) {
                             return '—';
@@ -91,24 +91,24 @@ class VariantsRelationManager extends RelationManager
                     })
                     ->size('sm'),
                 TextColumn::make('suppliers_count')
-                    ->label('Suppliers')
+                    ->label(__('forms.labels.suppliers'))
                     ->counts('suppliers')
                     ->badge()
                     ->color('warning')
                     ->size('sm'),
                 TextColumn::make('clients_count')
-                    ->label('Clients')
+                    ->label(__('forms.labels.clients'))
                     ->counts('clients')
                     ->badge()
                     ->color('info')
                     ->size('sm'),
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->badge(),
             ])
             ->headerActions([
                 CreateAction::make()
-                    ->label('Add Variant')
+                    ->label(__('forms.labels.add_variant'))
                     ->visible(fn () => auth()->user()?->can('edit-products'))
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['category_id'] = $data['category_id'] ?? $this->getOwnerRecord()->category_id;

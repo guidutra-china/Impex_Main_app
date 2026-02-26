@@ -78,16 +78,16 @@ class FinancialOverview extends Page implements HasTable
             )
             ->columns([
                 TextColumn::make('payment_date')
-                    ->label('Date')
+                    ->label(__('forms.labels.date'))
                     ->date('d/m/Y')
                     ->sortable(),
                 TextColumn::make('company.name')
-                    ->label('Client')
+                    ->label(__('forms.labels.client'))
                     ->placeholder('—')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('allocations_summary')
-                    ->label('Allocated To')
+                    ->label(__('forms.labels.allocated_to'))
                     ->state(function ($record) {
                         $allocations = $record->allocations;
                         if ($allocations->isEmpty()) {
@@ -103,32 +103,32 @@ class FinancialOverview extends Page implements HasTable
                     ->wrap()
                     ->limit(80),
                 TextColumn::make('amount')
-                    ->label('Amount')
+                    ->label(__('forms.labels.amount'))
                     ->formatStateUsing(fn ($state) => Money::formatDisplay($state))
                     ->alignEnd()
                     ->sortable()
                     ->summarize(Sum::make()
-                        ->label('Total')
+                        ->label(__('forms.labels.total'))
                         ->formatStateUsing(fn ($state) => Money::formatDisplay((int) $state))),
                 TextColumn::make('currency_code')
-                    ->label('Currency'),
+                    ->label(__('forms.labels.currency')),
                 TextColumn::make('paymentMethod.name')
-                    ->label('Method')
+                    ->label(__('forms.labels.method'))
                     ->placeholder('—')
                     ->sortable(),
                 TextColumn::make('reference')
-                    ->label('Reference')
+                    ->label(__('forms.labels.reference'))
                     ->placeholder('—')
                     ->limit(20),
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->badge()
                     ->sortable(),
                 TextColumn::make('approvedByUser.name')
-                    ->label('Approved By')
+                    ->label(__('forms.labels.approved_by'))
                     ->placeholder('—'),
                 TextColumn::make('creator.name')
-                    ->label('Created By')
+                    ->label(__('forms.labels.created_by'))
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('payment_date', 'desc')
@@ -152,16 +152,16 @@ class FinancialOverview extends Page implements HasTable
             )
             ->columns([
                 TextColumn::make('payment_date')
-                    ->label('Date')
+                    ->label(__('forms.labels.date'))
                     ->date('d/m/Y')
                     ->sortable(),
                 TextColumn::make('company.name')
-                    ->label('Supplier')
+                    ->label(__('forms.labels.supplier'))
                     ->placeholder('—')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('allocations_summary')
-                    ->label('Allocated To')
+                    ->label(__('forms.labels.allocated_to'))
                     ->state(function ($record) {
                         $allocations = $record->allocations;
                         if ($allocations->isEmpty()) {
@@ -177,29 +177,29 @@ class FinancialOverview extends Page implements HasTable
                     ->wrap()
                     ->limit(80),
                 TextColumn::make('amount')
-                    ->label('Amount')
+                    ->label(__('forms.labels.amount'))
                     ->formatStateUsing(fn ($state) => Money::formatDisplay($state))
                     ->alignEnd()
                     ->sortable()
                     ->summarize(Sum::make()
-                        ->label('Total')
+                        ->label(__('forms.labels.total'))
                         ->formatStateUsing(fn ($state) => Money::formatDisplay((int) $state))),
                 TextColumn::make('currency_code')
-                    ->label('Currency'),
+                    ->label(__('forms.labels.currency')),
                 TextColumn::make('paymentMethod.name')
-                    ->label('Method')
+                    ->label(__('forms.labels.method'))
                     ->placeholder('—')
                     ->sortable(),
                 TextColumn::make('reference')
-                    ->label('Reference')
+                    ->label(__('forms.labels.reference'))
                     ->placeholder('—')
                     ->limit(20),
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->badge()
                     ->sortable(),
                 TextColumn::make('approvedByUser.name')
-                    ->label('Approved By')
+                    ->label(__('forms.labels.approved_by'))
                     ->placeholder('—'),
             ])
             ->defaultSort('payment_date', 'desc')
@@ -222,7 +222,7 @@ class FinancialOverview extends Page implements HasTable
             )
             ->columns([
                 TextColumn::make('company_name')
-                    ->label('Client / Supplier')
+                    ->label(__('forms.labels.client_supplier'))
                     ->state(function ($record) {
                         $payable = $record->payable;
                         if ($payable instanceof ProformaInvoice) {
@@ -260,7 +260,7 @@ class FinancialOverview extends Page implements HasTable
                         ", [(new ProformaInvoice)->getMorphClass(), (new PurchaseOrder)->getMorphClass()]);
                     }),
                 TextColumn::make('payable')
-                    ->label('Document')
+                    ->label(__('forms.labels.document'))
                     ->formatStateUsing(function ($record) {
                         $payable = $record->payable;
                         if (! $payable) {
@@ -272,39 +272,39 @@ class FinancialOverview extends Page implements HasTable
                         return "{$type}: {$ref}";
                     }),
                 TextColumn::make('label')
-                    ->label('Label')
+                    ->label(__('forms.labels.label'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('percentage')
-                    ->label('%')
+                    ->label(__('forms.labels.percent'))
                     ->suffix('%')
                     ->alignCenter()
                     ->sortable(),
                 TextColumn::make('amount')
-                    ->label('Amount')
+                    ->label(__('forms.labels.amount'))
                     ->formatStateUsing(fn ($state) => Money::formatDisplay($state))
                     ->alignEnd()
                     ->sortable(),
                 TextColumn::make('currency_code')
-                    ->label('Currency')
+                    ->label(__('forms.labels.currency'))
                     ->sortable(),
                 TextColumn::make('due_condition')
-                    ->label('Condition')
+                    ->label(__('forms.labels.condition'))
                     ->badge()
                     ->sortable(),
                 TextColumn::make('due_date')
-                    ->label('Due Date')
+                    ->label(__('forms.labels.due_date'))
                     ->date('d/m/Y')
                     ->placeholder('—')
                     ->sortable(),
                 TextColumn::make('is_blocking')
-                    ->label('Blocking')
+                    ->label(__('forms.labels.blocking'))
                     ->formatStateUsing(fn ($state) => $state ? 'Yes' : 'No')
                     ->badge()
                     ->color(fn ($state) => $state ? 'danger' : 'gray')
                     ->sortable(),
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('forms.labels.status'))
                     ->badge()
                     ->sortable(),
             ])
@@ -318,34 +318,34 @@ class FinancialOverview extends Page implements HasTable
     protected function approvePaymentAction(): Action
     {
         return Action::make('approve')
-            ->label('Approve')
+            ->label(__('forms.labels.approve'))
             ->icon('heroicon-o-check-circle')
             ->color('success')
             ->requiresConfirmation()
             ->visible(fn ($record) => $record->status === PaymentStatus::PENDING_APPROVAL && auth()->user()?->can('approve-payments'))
             ->action(function ($record) {
                 app(ApprovePaymentAction::class)->approve($record);
-                Notification::make()->title('Payment approved')->success()->send();
+                Notification::make()->title(__('messages.payment_approved'))->success()->send();
             });
     }
 
     protected function rejectPaymentAction(): Action
     {
         return Action::make('reject')
-            ->label('Reject')
+            ->label(__('forms.labels.reject'))
             ->icon('heroicon-o-x-circle')
             ->color('danger')
             ->requiresConfirmation()
             ->form([
                 Textarea::make('reason')
-                    ->label('Rejection Reason')
+                    ->label(__('forms.labels.rejection_reason'))
                     ->rows(2)
                     ->required(),
             ])
             ->visible(fn ($record) => $record->status === PaymentStatus::PENDING_APPROVAL && auth()->user()?->can('reject-payments'))
             ->action(function ($record, array $data) {
                 app(ApprovePaymentAction::class)->reject($record, $data['reason']);
-                Notification::make()->title('Payment rejected')->danger()->send();
+                Notification::make()->title(__('messages.payment_rejected'))->danger()->send();
             });
     }
 

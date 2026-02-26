@@ -18,13 +18,9 @@ class BankAccountResource extends Resource
 {
     protected static ?string $model = BankAccount::class;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Settings';
-
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-building-library';
 
     protected static ?int $navigationSort = 6;
-
-    protected static ?string $navigationLabel = 'Bank Accounts';
 
     public static function canAccess(): bool
     {
@@ -48,5 +44,15 @@ class BankAccountResource extends Resource
             'create' => CreateBankAccount::route('/create'),
             'edit' => EditBankAccount::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.settings');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.resources.bank_accounts');
     }
 }

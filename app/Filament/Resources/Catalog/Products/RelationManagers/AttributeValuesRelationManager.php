@@ -34,11 +34,11 @@ class AttributeValuesRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('categoryAttribute.name')
-                    ->label('Attribute')
+                    ->label(__('forms.labels.attribute'))
                     ->weight('bold')
                     ->sortable(),
                 TextColumn::make('value')
-                    ->label('Value')
+                    ->label(__('forms.labels.value'))
                     ->formatStateUsing(function ($state, $record) {
                         $attr = $record->categoryAttribute;
                         if (!$attr) {
@@ -53,23 +53,23 @@ class AttributeValuesRelationManager extends RelationManager
                     })
                     ->searchable(),
                 TextColumn::make('categoryAttribute.unit')
-                    ->label('Unit')
+                    ->label(__('forms.labels.unit'))
                     ->badge()
                     ->color('gray')
                     ->placeholder('-'),
                 TextColumn::make('categoryAttribute.type')
-                    ->label('Type')
+                    ->label(__('forms.labels.type'))
                     ->badge()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('categoryAttribute.category.name')
-                    ->label('Inherited From')
-                    ->placeholder('(own category)')
+                    ->label(__('forms.labels.inherited_from'))
+                    ->placeholder(__('forms.placeholders.own_category'))
                     ->color('gray')
                     ->toggleable(),
             ])
             ->headerActions([
                 CreateAction::make()
-                    ->label('Add Attribute Value')
+                    ->label(__('forms.labels.add_attribute_value'))
                     ->visible(fn () => auth()->user()?->can('edit-products'))
                     ->mutateFormDataUsing(fn (array $data) => $this->normalizeValueField($data))
                     ->after(fn () => $this->afterAttributeSaved()),
@@ -116,7 +116,7 @@ class AttributeValuesRelationManager extends RelationManager
         return $schema
             ->components([
                 Select::make('category_attribute_id')
-                    ->label('Attribute')
+                    ->label(__('forms.labels.attribute'))
                     ->options(function (?string $operation, $record) use ($availableAttributes, $product) {
                         $existingIds = $product->attributeValues()
                             ->pluck('category_attribute_id')
@@ -148,7 +148,7 @@ class AttributeValuesRelationManager extends RelationManager
                     ->disabledOn('edit'),
 
                 TextInput::make('value_text')
-                    ->label('Value')
+                    ->label(__('forms.labels.value'))
                     ->maxLength(255)
                     ->dehydratedWhenHidden()
                     ->visible(fn (Get $get) => $this->resolveType($get) === AttributeType::TEXT)
@@ -156,7 +156,7 @@ class AttributeValuesRelationManager extends RelationManager
                     ->suffix(fn (Get $get) => $this->resolveUnit($get)),
 
                 TextInput::make('value_number')
-                    ->label('Value')
+                    ->label(__('forms.labels.value'))
                     ->numeric()
                     ->dehydratedWhenHidden()
                     ->visible(fn (Get $get) => $this->resolveType($get) === AttributeType::NUMBER)
@@ -164,7 +164,7 @@ class AttributeValuesRelationManager extends RelationManager
                     ->suffix(fn (Get $get) => $this->resolveUnit($get)),
 
                 Select::make('value_select')
-                    ->label('Value')
+                    ->label(__('forms.labels.value'))
                     ->options(function (Get $get) {
                         $attr = $this->resolveAttr($get);
                         if (!$attr || !is_array($attr->options)) {
@@ -178,7 +178,7 @@ class AttributeValuesRelationManager extends RelationManager
                     ->required(fn (Get $get) => $this->resolveType($get) === AttributeType::SELECT),
 
                 Toggle::make('value_boolean')
-                    ->label('Value')
+                    ->label(__('forms.labels.value'))
                     ->dehydratedWhenHidden()
                     ->visible(fn (Get $get) => $this->resolveType($get) === AttributeType::BOOLEAN),
             ]);
@@ -281,7 +281,7 @@ class AttributeValuesRelationManager extends RelationManager
             $names = $duplicates->pluck('name')->implode(', ');
 
             Notification::make()
-                ->title('Possible Duplicate Detected')
+                ->title(__('messages.possible_duplicate'))
                 ->body("Products with matching attributes already exist: {$names}. Consider adding a supplier to the existing product instead.")
                 ->warning()
                 ->persistent()

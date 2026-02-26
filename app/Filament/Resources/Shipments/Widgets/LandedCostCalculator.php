@@ -111,12 +111,12 @@ class LandedCostCalculator extends Widget
     private function buildCostBreakdown(Shipment $shipment, string $shipmentCurrency, ?int $baseCurrencyId): array
     {
         $costGroups = [
-            'freight' => ['types' => [AdditionalCostType::FREIGHT], 'label' => 'Freight', 'icon' => 'heroicon-o-globe-alt', 'total' => 0],
-            'insurance' => ['types' => [AdditionalCostType::INSURANCE], 'label' => 'Insurance', 'icon' => 'heroicon-o-shield-exclamation', 'total' => 0],
-            'customs' => ['types' => [AdditionalCostType::CUSTOMS], 'label' => 'Customs / Duties', 'icon' => 'heroicon-o-shield-check', 'total' => 0],
-            'inspection' => ['types' => [AdditionalCostType::INSPECTION, AdditionalCostType::TESTING, AdditionalCostType::CERTIFICATION], 'label' => 'Inspection / Testing', 'icon' => 'heroicon-o-magnifying-glass', 'total' => 0],
-            'packaging' => ['types' => [AdditionalCostType::PACKAGING], 'label' => 'Packaging', 'icon' => 'heroicon-o-archive-box', 'total' => 0],
-            'other' => ['types' => [AdditionalCostType::SAMPLES, AdditionalCostType::SAMPLE_SHIPPING, AdditionalCostType::TRAVEL, AdditionalCostType::COMMISSION, AdditionalCostType::OTHER], 'label' => 'Other Costs', 'icon' => 'heroicon-o-ellipsis-horizontal-circle', 'total' => 0],
+            'freight' => ['types' => [AdditionalCostType::FREIGHT], 'label' => __('widgets.landed_cost.freight'), 'icon' => 'heroicon-o-globe-alt', 'total' => 0],
+            'insurance' => ['types' => [AdditionalCostType::INSURANCE], 'label' => __('widgets.landed_cost.insurance'), 'icon' => 'heroicon-o-shield-exclamation', 'total' => 0],
+            'customs' => ['types' => [AdditionalCostType::CUSTOMS], 'label' => __('widgets.landed_cost.customs_duties'), 'icon' => 'heroicon-o-shield-check', 'total' => 0],
+            'inspection' => ['types' => [AdditionalCostType::INSPECTION, AdditionalCostType::TESTING, AdditionalCostType::CERTIFICATION], 'label' => __('widgets.landed_cost.inspection_testing'), 'icon' => 'heroicon-o-magnifying-glass', 'total' => 0],
+            'packaging' => ['types' => [AdditionalCostType::PACKAGING], 'label' => __('widgets.landed_cost.packaging'), 'icon' => 'heroicon-o-archive-box', 'total' => 0],
+            'other' => ['types' => [AdditionalCostType::SAMPLES, AdditionalCostType::SAMPLE_SHIPPING, AdditionalCostType::TRAVEL, AdditionalCostType::COMMISSION, AdditionalCostType::OTHER], 'label' => __('widgets.landed_cost.other_costs'), 'icon' => 'heroicon-o-ellipsis-horizontal-circle', 'total' => 0],
         ];
 
         $costDetails = [];

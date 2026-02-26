@@ -27,7 +27,7 @@ class ShipmentsTable
                     ->weight('bold')
                     ->copyable(),
                 TextColumn::make('company.name')
-                    ->label('Client')
+                    ->label(__('forms.labels.client'))
                     ->searchable()
                     ->sortable()
                     ->limit(30),
@@ -40,13 +40,13 @@ class ShipmentsTable
                     ->badge()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('bl_number')
-                    ->label('B/L')
+                    ->label(__('forms.labels.bl'))
                     ->searchable()
                     ->copyable()
                     ->placeholder('—')
                     ->toggleable(),
                 TextColumn::make('container_number')
-                    ->label('Container')
+                    ->label(__('forms.labels.container'))
                     ->searchable()
                     ->copyable()
                     ->placeholder('—')
@@ -58,17 +58,17 @@ class ShipmentsTable
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('etd')
-                    ->label('ETD')
+                    ->label(__('forms.labels.etd'))
                     ->date('d/m/Y')
                     ->sortable()
                     ->placeholder('—'),
                 TextColumn::make('eta')
-                    ->label('ETA')
+                    ->label(__('forms.labels.eta'))
                     ->date('d/m/Y')
                     ->sortable()
                     ->placeholder('—'),
                 TextColumn::make('items_count')
-                    ->label('Items')
+                    ->label(__('forms.labels.items'))
                     ->counts('items')
                     ->alignCenter()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -83,7 +83,7 @@ class ShipmentsTable
                 SelectFilter::make('transport_mode')
                     ->options(TransportMode::class),
                 SelectFilter::make('company_id')
-                    ->label('Client')
+                    ->label(__('forms.labels.client'))
                     ->relationship('company', 'name')
                     ->searchable()
                     ->preload(),
