@@ -46,7 +46,8 @@ class ViewShipment extends ViewRecord
             ])
                 ->label('Packing List')
                 ->icon('heroicon-o-clipboard-document-list')
-                ->color('info'),
+                ->color('info')
+                ->button(),
 
             ActionGroup::make([
                 GeneratePdfAction::make(
@@ -68,7 +69,8 @@ class ViewShipment extends ViewRecord
             ])
                 ->label('Commercial Invoice')
                 ->icon('heroicon-o-document-currency-dollar')
-                ->color('success'),
+                ->color('success')
+                ->button(),
 
             EditAction::make(),
         ];
