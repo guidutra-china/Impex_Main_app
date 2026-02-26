@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Settings\Roles\Schemas;
 
 use Filament\Forms\Components\CheckboxList;
-use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Spatie\Permission\Models\Permission;
@@ -13,17 +12,6 @@ class RoleForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Role Information')
-                ->schema([
-                    TextInput::make('name')
-                        ->label('Role Name')
-                        ->required()
-                        ->maxLength(255)
-                        ->disabled()
-                        ->dehydrated(false)
-                        ->helperText('Role names are managed via code. Only permissions can be changed here.'),
-                ]),
-
             ...static::buildPermissionSections(),
         ]);
     }

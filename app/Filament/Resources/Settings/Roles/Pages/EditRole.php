@@ -9,6 +9,11 @@ class EditRole extends EditRecord
 {
     protected static string $resource = RoleResource::class;
 
+    public function getTitle(): string
+    {
+        return 'Edit Role — ' . ucfirst($this->record->name);
+    }
+
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
