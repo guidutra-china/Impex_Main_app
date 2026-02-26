@@ -5,14 +5,17 @@ namespace App\Models;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Users\Enums\UserType;
 use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasTenants;
 use Filament\Panel;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable implements FilamentUser, HasTenants
 {
     use HasFactory, HasRoles, Notifiable;
 
@@ -50,12 +53,29 @@ class User extends Authenticatable implements FilamentUser
             return $this->type->isInternal() && $this->status === 'active';
         }
 
-        // Future portal panel
         if ($panel->getId() === 'portal') {
-            return $this->type->isExternal() && $this->status === 'active';
+            return $this->type->isExternal()
+                && $this->status === 'active'
+                && $this->company_id !== null;
         }
 
         return false;
+    }
+
+    // --- Tenancy (Filament) ---
+
+    public function getTenants(Panel $panel): array|Collection
+    {
+        if ($panel->getId() === 'portal') {
+            return Company::where('id', $this->company_id)->get();
+        }
+
+        return collect();
+    }
+
+    public function canAccessTenant(Model $tenant): bool
+    {
+        return $this->company_id === $tenant->getKey();
     }
 
     // --- Relationships ---

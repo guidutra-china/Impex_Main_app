@@ -15,6 +15,9 @@ use Spatie\Permission\Models\Role;
 
 class UserForm
 {
+    private const INTERNAL_ROLES = ['admin', 'manager', 'operator', 'viewer'];
+    private const CLIENT_ROLES = ['client_full', 'client_operations'];
+
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
@@ -62,28 +65,28 @@ class UserForm
                         ->options(UserType::class)
                         ->default(UserType::INTERNAL->value)
                         ->required()
-                        ->live(),
+                        ->live()
+                        ->afterStateUpdated(fn (callable $set) => $set('roles', null)),
                     Select::make('company_id')
                         ->label(__('forms.labels.company'))
                         ->relationship('company', 'name')
                         ->searchable()
                         ->preload()
-                        ->visible(fn (Get $get) => in_array($get('type'), [
-                            UserType::CLIENT->value,
-                            UserType::SUPPLIER->value,
-                            'client',
-                            'supplier',
-                        ]))
-                        ->required(fn (Get $get) => in_array($get('type'), [
-                            UserType::CLIENT->value,
-                            UserType::SUPPLIER->value,
-                            'client',
-                            'supplier',
-                        ])),
+                        ->visible(fn (Get $get) => self::isExternalType($get('type')))
+                        ->required(fn (Get $get) => self::isExternalType($get('type'))),
                     Select::make('roles')
                         ->label(__('forms.labels.role'))
                         ->relationship('roles', 'name')
-                        ->options(fn () => Role::where('guard_name', 'web')->pluck('name', 'id'))
+                        ->options(function (Get $get) {
+                            $type = $get('type');
+                            $allowedRoles = self::isExternalType($type)
+                                ? self::CLIENT_ROLES
+                                : self::INTERNAL_ROLES;
+
+                            return Role::where('guard_name', 'web')
+                                ->whereIn('name', $allowedRoles)
+                                ->pluck('name', 'id');
+                        })
                         ->preload()
                         ->required(),
                     Select::make('status')
@@ -103,6 +106,16 @@ class UserForm
                         ->default('en')
                         ->required(),
                 ]),
+        ]);
+    }
+
+    private static function isExternalType(mixed $type): bool
+    {
+        return in_array($type, [
+            UserType::CLIENT->value,
+            UserType::SUPPLIER->value,
+            'client',
+            'supplier',
         ]);
     }
 }
