@@ -8,29 +8,32 @@ use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\Payment;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
-use Filament\Widgets\StatsOverviewWidget as BaseWidget;
-use Filament\Widgets\StatsOverviewWidget\Stat;
+use Filament\Widgets\Widget;
 use Illuminate\Database\Eloquent\Model;
 
-class PurchaseOrderStats extends BaseWidget
+class PurchaseOrderStats extends Widget
 {
     protected static bool $isLazy = false;
 
+    protected string $view = 'filament.widgets.document-financial-summary';
+
+    protected int | string | array $columnSpan = 'full';
+
     public ?Model $record = null;
 
-    protected function getStats(): array
+    protected function getViewData(): array
     {
         if (! $this->record instanceof PurchaseOrder) {
-            return [];
+            return $this->emptyState();
         }
 
         $po = $this->record;
-        $po->loadMissing(['items', 'paymentScheduleItems']);
+        $po->loadMissing(['items', 'paymentScheduleItems.allocations.payment']);
 
         $currency = $po->currency_code ?? 'USD';
         $total = $po->total;
 
-        $scheduleItems = $po->paymentScheduleItems;
+        $scheduleItems = $po->paymentScheduleItems->sortBy('sort_order');
         $regularItems = $scheduleItems->where('is_credit', false);
         $creditItems = $scheduleItems->where('is_credit', true);
 
@@ -39,48 +42,81 @@ class PurchaseOrderStats extends BaseWidget
         $netDue = $totalDue - $totalCredits;
         $totalPaid = $regularItems->sum(fn ($i) => $i->paid_amount);
         $netRemaining = max(0, $netDue - $totalPaid);
-        $progress = $netDue > 0 ? round(($totalPaid / $netDue) * 100) : 0;
+        $progress = $netDue > 0 ? (int) round(($totalPaid / $netDue) * 100) : 0;
 
-        $overdueItems = $regularItems->where('status', PaymentScheduleStatus::OVERDUE);
-        $overdueAmount = $overdueItems->sum(fn ($i) => $i->remaining_amount);
+        $overdueAmount = $regularItems
+            ->where('status', PaymentScheduleStatus::OVERDUE)
+            ->sum(fn ($i) => $i->remaining_amount);
 
-        $nextDue = $regularItems
-            ->whereIn('status', [PaymentScheduleStatus::PENDING, PaymentScheduleStatus::DUE])
-            ->sortBy('due_date')
-            ->first();
+        $unallocatedTotal = $this->getUnallocatedPaymentsTotal(
+            $po->supplier_company_id,
+            PaymentDirection::OUTBOUND,
+            $currency,
+        );
 
-        $unallocatedTotal = $this->getUnallocatedPaymentsTotal($po->supplier_company_id, PaymentDirection::OUTBOUND, $currency);
-
-        $stats = [
-            Stat::make('PO Total', $currency . ' ' . Money::format($total))
-                ->description($totalCredits > 0
+        $cards = [
+            [
+                'label' => 'PO Total',
+                'value' => $currency . ' ' . Money::format($total),
+                'description' => $totalCredits > 0
                     ? 'Credits: ' . $currency . ' ' . Money::format($totalCredits)
-                    : $po->items->count() . ' item(s)')
-                ->icon('heroicon-o-shopping-cart')
-                ->color('primary'),
-
-            Stat::make('Paid', $currency . ' ' . Money::format($totalPaid))
-                ->description($progress . '% paid')
-                ->icon('heroicon-o-banknotes')
-                ->color($progress >= 100 ? 'success' : ($progress > 0 ? 'info' : 'gray')),
-
-            Stat::make('Remaining', $currency . ' ' . Money::format($netRemaining))
-                ->description($this->buildRemainingDescription($overdueAmount, $nextDue, $netRemaining, $currency))
-                ->icon('heroicon-o-clock')
-                ->color($overdueAmount > 0 ? 'danger' : ($netRemaining <= 0 ? 'success' : 'warning')),
+                    : $po->items->count() . ' item(s)',
+                'icon' => 'heroicon-o-shopping-cart',
+                'color' => 'primary',
+            ],
+            [
+                'label' => 'Paid',
+                'value' => $currency . ' ' . Money::format($totalPaid),
+                'description' => $progress . '% paid',
+                'icon' => 'heroicon-o-banknotes',
+                'color' => $progress >= 100 ? 'success' : ($progress > 0 ? 'info' : 'gray'),
+            ],
+            [
+                'label' => 'Remaining',
+                'value' => $currency . ' ' . Money::format($netRemaining),
+                'description' => $this->buildRemainingDescription($overdueAmount, $regularItems, $netRemaining, $currency),
+                'icon' => 'heroicon-o-clock',
+                'color' => $overdueAmount > 0 ? 'danger' : ($netRemaining <= 0 ? 'success' : 'warning'),
+            ],
         ];
 
-        if ($unallocatedTotal > 0) {
-            $stats[] = Stat::make('Unallocated Payments', $currency . ' ' . Money::format($unallocatedTotal))
-                ->description('To this supplier — available to allocate')
-                ->icon('heroicon-o-exclamation-triangle')
-                ->color('warning');
-        }
+        $mappedSchedule = $scheduleItems->values()->map(fn ($item) => [
+            'label' => $item->label,
+            'status' => $item->status,
+            'due_date' => $item->due_date?->format('M d, Y'),
+            'percentage' => $item->percentage,
+            'amount' => Money::format(abs($item->amount)),
+            'paid' => Money::format($item->paid_amount),
+            'remaining' => Money::format($item->remaining_amount),
+            'remaining_raw' => $item->remaining_amount,
+            'is_credit' => $item->is_credit,
+            'is_blocking' => $item->is_blocking,
+        ])->all();
 
-        return $stats;
+        $totalScheduleAmount = $regularItems->sum('amount');
+        $totalSchedulePaid = $regularItems->sum(fn ($i) => $i->paid_amount);
+        $totalScheduleRemaining = max(0, $totalScheduleAmount - $totalSchedulePaid);
+
+        return [
+            'heading' => 'Financial Summary',
+            'icon' => 'heroicon-o-banknotes',
+            'currency' => $currency,
+            'cards' => $cards,
+            'progress' => $progress,
+            'scheduleItems' => $mappedSchedule,
+            'totals' => [
+                'amount' => Money::format($totalScheduleAmount),
+                'paid' => Money::format($totalSchedulePaid),
+                'remaining' => Money::format($totalScheduleRemaining),
+                'remaining_raw' => $totalScheduleRemaining,
+            ],
+            'unallocatedTotal' => $unallocatedTotal,
+            'unallocatedFormatted' => Money::format($unallocatedTotal),
+            'unallocatedLabel' => 'To this supplier — available to allocate',
+        ];
     }
 
-    private function buildRemainingDescription(int $overdueAmount, ?object $nextDue, int $netRemaining, string $currency): string
+    private function buildRemainingDescription(int $overdueAmount, $regularItems, int $netRemaining, string $currency): string
     {
         if ($netRemaining <= 0) {
             return 'Fully paid';
@@ -91,6 +127,11 @@ class PurchaseOrderStats extends BaseWidget
         if ($overdueAmount > 0) {
             $parts[] = 'Overdue: ' . $currency . ' ' . Money::format($overdueAmount);
         }
+
+        $nextDue = $regularItems
+            ->whereIn('status', [PaymentScheduleStatus::PENDING, PaymentScheduleStatus::DUE])
+            ->sortBy('due_date')
+            ->first();
 
         if ($nextDue?->due_date) {
             $parts[] = 'Next: ' . $nextDue->due_date->format('M d, Y');
@@ -107,5 +148,21 @@ class PurchaseOrderStats extends BaseWidget
             ->where('currency_code', $currency)
             ->get()
             ->sum(fn ($p) => $p->unallocated_amount);
+    }
+
+    private function emptyState(): array
+    {
+        return [
+            'heading' => 'Financial Summary',
+            'icon' => 'heroicon-o-banknotes',
+            'currency' => 'USD',
+            'cards' => [],
+            'progress' => null,
+            'scheduleItems' => [],
+            'totals' => ['amount' => '0.00', 'paid' => '0.00', 'remaining' => '0.00', 'remaining_raw' => 0],
+            'unallocatedTotal' => 0,
+            'unallocatedFormatted' => '0.00',
+            'unallocatedLabel' => '',
+        ];
     }
 }
