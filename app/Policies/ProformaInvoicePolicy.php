@@ -9,12 +9,12 @@ class ProformaInvoicePolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->can('view-proforma-invoices');
+        return $user->can('view-proforma-invoices') || $user->can('portal:view-proforma-invoices');
     }
 
     public function view(User $user, ProformaInvoice $proformaInvoice): bool
     {
-        return $user->can('view-proforma-invoices');
+        return $user->can('view-proforma-invoices') || $user->can('portal:view-proforma-invoices');
     }
 
     public function create(User $user): bool

@@ -10,12 +10,12 @@ class PaymentPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->can('view-payments');
+        return $user->can('view-payments') || $user->can('portal:view-payments');
     }
 
     public function view(User $user, Payment $payment): bool
     {
-        return $user->can('view-payments');
+        return $user->can('view-payments') || $user->can('portal:view-payments');
     }
 
     public function create(User $user): bool
