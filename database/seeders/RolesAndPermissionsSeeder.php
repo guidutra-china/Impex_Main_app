@@ -173,6 +173,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'delete-proforma-invoices',
             'delete-purchase-orders',
             'delete-shipments',
+            'edit-payments',
             'delete-payments',
             'approve-payments',
             'reject-payments',
