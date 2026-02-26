@@ -323,10 +323,14 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
             ];
         }
 
+        $importerParsed = $this->parseImporterDetails(
+            $shipment->company?->contracted_importer_details
+        );
+
         return [
             'is_conta_e_ordem' => true,
             'modality_label' => $modality->getEnglishLabel(),
-            'importer_details' => $shipment->company?->contracted_importer_details,
+            'importer' => $importerParsed,
             'notify_party' => [
                 'name' => $shipment->company?->name ?? '—',
                 'legal_name' => $shipment->company?->legal_name,
@@ -335,6 +339,25 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
                 'email' => $shipment->company?->email,
                 'tax_id' => $shipment->company?->tax_number,
             ],
+        ];
+    }
+
+    private function parseImporterDetails(?string $raw): array
+    {
+        if (empty($raw)) {
+            return [
+                'name' => 'Not configured',
+                'details' => '',
+            ];
+        }
+
+        $lines = preg_split('/\r?\n/', trim($raw));
+        $name = array_shift($lines);
+        $details = implode("\n", array_filter(array_map('trim', $lines)));
+
+        return [
+            'name' => $name,
+            'details' => $details,
         ];
     }
 

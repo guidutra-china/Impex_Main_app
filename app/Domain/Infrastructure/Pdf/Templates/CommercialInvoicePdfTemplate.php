@@ -108,9 +108,9 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
             ],
             'items' => $items,
             'totals' => [
-                'subtotal' => $this->formatMoney($subtotal, $currencyCode),
-                'freight' => $freightCosts > 0 ? $this->formatMoney($freightCosts, $currencyCode) : null,
-                'grand_total' => $this->formatMoney($grandTotal, $currencyCode),
+                'subtotal' => $this->formatMoney($subtotal, $currencyCode, 2),
+                'freight' => $freightCosts > 0 ? $this->formatMoney($freightCosts, $currencyCode, 2) : null,
+                'grand_total' => $this->formatMoney($grandTotal, $currencyCode, 2),
             ],
             'payment_term' => [
                 'name' => $paymentTerm?->name,
@@ -147,7 +147,7 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
                     'quantity' => $item->quantity,
                     'unit' => $piItem?->unit ?? 'pcs',
                     'unit_price' => $this->formatMoney($unitPrice, $currencyCode),
-                    'line_total' => $this->formatMoney($lineTotal, $currencyCode),
+                    'line_total' => $this->formatMoney($lineTotal, $currencyCode, 2),
                 ];
             })
             ->toArray();
@@ -210,10 +210,14 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
             ];
         }
 
+        $importerParsed = $this->parseImporterDetails(
+            $shipment->company?->contracted_importer_details
+        );
+
         return [
             'is_conta_e_ordem' => true,
             'modality_label' => $modality->getEnglishLabel(),
-            'importer_details' => $shipment->company?->contracted_importer_details,
+            'importer' => $importerParsed,
             'notify_party' => [
                 'name' => $shipment->company?->name ?? '—',
                 'legal_name' => $shipment->company?->legal_name,
@@ -222,6 +226,25 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
                 'email' => $shipment->company?->email,
                 'tax_id' => $shipment->company?->tax_number,
             ],
+        ];
+    }
+
+    private function parseImporterDetails(?string $raw): array
+    {
+        if (empty($raw)) {
+            return [
+                'name' => 'Not configured',
+                'details' => '',
+            ];
+        }
+
+        $lines = preg_split('/\r?\n/', trim($raw));
+        $name = array_shift($lines);
+        $details = implode("\n", array_filter(array_map('trim', $lines)));
+
+        return [
+            'name' => $name,
+            'details' => $details,
         ];
     }
 

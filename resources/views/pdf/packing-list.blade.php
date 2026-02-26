@@ -141,9 +141,10 @@
                 <td style="width: 50%; vertical-align: top; padding-right: 10px;">
                     <div class="client-box">
                         <div class="client-label">IMPORTER</div>
-                        <div class="client-detail" style="white-space: pre-line;">
-                            {!! nl2br(e($import_modality['importer_details'] ?? 'Not configured')) !!}
-                        </div>
+                        <div class="client-name">{{ $import_modality['importer']['name'] }}</div>
+                        @if($import_modality['importer']['details'])
+                            <div class="client-detail">{!! nl2br(e($import_modality['importer']['details'])) !!}</div>
+                        @endif
                     </div>
                 </td>
                 <td style="width: 50%; vertical-align: top; padding-left: 10px;">
