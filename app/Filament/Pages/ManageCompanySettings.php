@@ -158,6 +158,20 @@ class ManageCompanySettings extends SettingsPage
                                             ->columnSpanFull(),
                                     ]),
                             ]),
+                        Tabs\Tab::make(__('forms.tabs.import_settings'))
+                            ->icon('heroicon-o-globe-americas')
+                            ->schema([
+                                Section::make(__('forms.sections.contracted_importer'))
+                                    ->description(__('forms.descriptions.contracted_importer_details_for_conta_e_ordem'))
+                                    ->schema([
+                                        Textarea::make('contracted_importer_details')
+                                            ->label(__('forms.labels.contracted_importer_details'))
+                                            ->rows(8)
+                                            ->placeholder("Company Name\nCNPJ: 00.000.000/0001-00\nAddress: Rua Example, 123\nCity/State - CEP\nPhone: +55 11 0000-0000")
+                                            ->helperText(__('forms.helpers.enter_all_contracted_importer_details_as_they_should_appear'))
+                                            ->columnSpanFull(),
+                                    ]),
+                            ]),
                     ])
                     ->columnSpanFull(),
             ]);

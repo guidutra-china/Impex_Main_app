@@ -11,6 +11,7 @@ use App\Domain\Infrastructure\Traits\HasDocuments;
 use App\Domain\Infrastructure\Traits\HasReference;
 use App\Domain\Infrastructure\Traits\HasStateMachine;
 
+use App\Domain\Logistics\Enums\ImportModality;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Enums\TransportMode;
 use App\Models\User;
@@ -34,6 +35,7 @@ class Shipment extends Model
         'transport_mode',
         'container_type',
         'currency_code',
+        'import_modality',
         'carrier',
         'freight_forwarder',
         'booking_number',
@@ -61,6 +63,7 @@ class Shipment extends Model
         return [
             'status' => ShipmentStatus::class,
             'transport_mode' => TransportMode::class,
+            'import_modality' => ImportModality::class,
 
             'issue_date' => 'date',
             'etd' => 'date',

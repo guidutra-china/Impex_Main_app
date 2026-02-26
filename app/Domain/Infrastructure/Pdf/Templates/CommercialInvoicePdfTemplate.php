@@ -3,7 +3,9 @@
 namespace App\Domain\Infrastructure\Pdf\Templates;
 
 use App\Domain\Catalog\Models\Product;
+use App\Domain\Logistics\Enums\ImportModality;
 use App\Domain\Logistics\Models\Shipment;
+use App\Domain\Settings\DataTransferObjects\CompanySettings;
 
 class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
 {
@@ -115,6 +117,7 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
                 'description' => $paymentTerm?->description,
             ],
             'shipping_details' => $this->buildShippingDetails($shipment, $incoterm),
+            'import_modality' => $this->buildImportModalityData($shipment),
         ];
     }
 
@@ -195,6 +198,33 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
         }
 
         return $this->clientPivotCache[$product->id] ?? null;
+    }
+
+    private function buildImportModalityData(Shipment $shipment): array
+    {
+        $modality = $shipment->import_modality ?? ImportModality::DIRECT;
+
+        if (! $modality->requiresNotifyParty()) {
+            return [
+                'is_conta_e_ordem' => false,
+            ];
+        }
+
+        $settings = app(CompanySettings::class);
+
+        return [
+            'is_conta_e_ordem' => true,
+            'modality_label' => $modality->getEnglishLabel(),
+            'importer_details' => $settings->contracted_importer_details,
+            'notify_party' => [
+                'name' => $shipment->company?->name ?? '—',
+                'legal_name' => $shipment->company?->legal_name,
+                'address' => $shipment->company?->full_address ?? '—',
+                'phone' => $shipment->company?->phone,
+                'email' => $shipment->company?->email,
+                'tax_id' => $shipment->company?->tax_number,
+            ],
+        ];
     }
 
     private function labels(string $key): string

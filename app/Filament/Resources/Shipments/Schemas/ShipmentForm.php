@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Shipments\Schemas;
 
 use App\Domain\Settings\Models\ContainerType;
 use App\Domain\Settings\Models\Currency;
+use App\Domain\Logistics\Enums\ImportModality;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Enums\TransportMode;
 use Filament\Forms\Components\DatePicker;
@@ -46,6 +47,11 @@ class ShipmentForm
                                 ->toArray()
                         )
                         ->searchable(),
+                    Select::make('import_modality')
+                        ->label(__('forms.labels.import_modality'))
+                        ->options(ImportModality::class)
+                        ->default(ImportModality::DIRECT->value)
+                        ->helperText(__('forms.helpers.import_modality_affects_ci_and_packing_list')),
                     DatePicker::make('issue_date')
                         ->label(__('forms.labels.document_issue_date'))
                         ->helperText(__('forms.helpers.date_printed_on_ci_and_packing_list')),

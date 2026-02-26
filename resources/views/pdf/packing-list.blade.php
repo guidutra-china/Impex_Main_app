@@ -134,21 +134,53 @@
 @endsection
 
 @section('client-info')
-    <div class="client-section">
-        <div class="client-box">
-            <div class="client-label">{{ $labels['to'] }}</div>
-            <div class="client-name">{{ $client['name'] }}</div>
-            <div class="client-detail">
-                @if($client['legal_name'] && $client['legal_name'] !== $client['name'])
-                    {{ $client['legal_name'] }}<br>
-                @endif
-                @if($client['address'] && $client['address'] !== '—'){{ $client['address'] }}<br>@endif
-                @if($client['tax_id']){{ $labels['tax_id'] }}: {{ $client['tax_id'] }}<br>@endif
-                @if($client['phone']){{ $labels['phone'] }}: {{ $client['phone'] }}<br>@endif
-                @if($client['email']){{ $labels['email'] }}: {{ $client['email'] }}@endif
+    @if(! empty($import_modality['is_conta_e_ordem']))
+        {{-- === CONTA E ORDEM: Show Importer + Notify Party side by side === --}}
+        <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+            <tr>
+                <td style="width: 50%; vertical-align: top; padding-right: 10px;">
+                    <div class="client-box">
+                        <div class="client-label">IMPORTER</div>
+                        <div class="client-detail" style="white-space: pre-line;">
+                            {!! nl2br(e($import_modality['importer_details'] ?? 'Not configured')) !!}
+                        </div>
+                    </div>
+                </td>
+                <td style="width: 50%; vertical-align: top; padding-left: 10px;">
+                    <div class="client-box">
+                        <div class="client-label">NOTIFY PARTY</div>
+                        <div class="client-name">{{ $import_modality['notify_party']['name'] }}</div>
+                        <div class="client-detail">
+                            @if($import_modality['notify_party']['legal_name'] && $import_modality['notify_party']['legal_name'] !== $import_modality['notify_party']['name'])
+                                {{ $import_modality['notify_party']['legal_name'] }}<br>
+                            @endif
+                            @if($import_modality['notify_party']['address'] && $import_modality['notify_party']['address'] !== '—'){{ $import_modality['notify_party']['address'] }}<br>@endif
+                            @if($import_modality['notify_party']['tax_id']){{ $labels['tax_id'] }}: {{ $import_modality['notify_party']['tax_id'] }}<br>@endif
+                            @if($import_modality['notify_party']['phone']){{ $labels['phone'] }}: {{ $import_modality['notify_party']['phone'] }}<br>@endif
+                            @if($import_modality['notify_party']['email']){{ $labels['email'] }}: {{ $import_modality['notify_party']['email'] }}@endif
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    @else
+        {{-- === DIRECT IMPORT: Show single client (original behavior) === --}}
+        <div class="client-section">
+            <div class="client-box">
+                <div class="client-label">{{ $labels['to'] }}</div>
+                <div class="client-name">{{ $client['name'] }}</div>
+                <div class="client-detail">
+                    @if($client['legal_name'] && $client['legal_name'] !== $client['name'])
+                        {{ $client['legal_name'] }}<br>
+                    @endif
+                    @if($client['address'] && $client['address'] !== '—'){{ $client['address'] }}<br>@endif
+                    @if($client['tax_id']){{ $labels['tax_id'] }}: {{ $client['tax_id'] }}<br>@endif
+                    @if($client['phone']){{ $labels['phone'] }}: {{ $client['phone'] }}<br>@endif
+                    @if($client['email']){{ $labels['email'] }}: {{ $client['email'] }}@endif
+                </div>
             </div>
         </div>
-    </div>
+    @endif
 
     {{-- Shipping details --}}
     <table class="packing-meta-table">
