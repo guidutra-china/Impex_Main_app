@@ -166,13 +166,15 @@ class ProductImportService
         Category $category,
         Company $company,
         string $role,
-        array $conflictResolutions = []
+        array $conflictResolutions = [],
+        ?Company $crossCompany = null,
+        ?string $crossRole = null,
     ): array {
         $stats = ['created' => 0, 'updated' => 0, 'skipped' => 0, 'linked' => 0, 'errors' => []];
         $skuGenerator = app(GenerateProductSkuAction::class);
         $createdSkuMap = [];
 
-        return DB::transaction(function () use ($rows, $category, $company, $role, $conflictResolutions, &$stats, $skuGenerator, &$createdSkuMap) {
+        return DB::transaction(function () use ($rows, $category, $company, $role, $conflictResolutions, &$stats, $skuGenerator, &$createdSkuMap, $crossCompany, $crossRole) {
             // First pass: base products (no parent_sku)
             foreach ($rows as $row) {
                 if (! empty($row['parent_sku'])) {
@@ -188,6 +190,9 @@ class ProductImportService
                     if (isset($result['product'])) {
                         $createdSkuMap[$result['product']->sku] = $result['product'];
                         $createdSkuMap[$row['name']] = $result['product'];
+                        if ($crossCompany && $crossRole) {
+                            $this->ensureCompanyLink($result['product'], $crossCompany, $crossRole, $row);
+                        }
                     }
                 } catch (\Throwable $e) {
                     $stats['errors'][] = "Row {$row['_row']}: {$e->getMessage()}";
@@ -214,6 +219,9 @@ class ProductImportService
                     $stats[$result['action']]++;
                     if (isset($result['product'])) {
                         $createdSkuMap[$result['product']->sku] = $result['product'];
+                        if ($crossCompany && $crossRole) {
+                            $this->ensureCompanyLink($result['product'], $crossCompany, $crossRole, $row);
+                        }
                     }
                 } catch (\Throwable $e) {
                     $stats['errors'][] = "Row {$row['_row']}: {$e->getMessage()}";

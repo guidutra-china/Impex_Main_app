@@ -161,6 +161,8 @@ class ClientProductsRelationManager extends RelationManager
             ->headerActions([
                 ImportProductsFromExcelAction::make('client', fn () => $this->getOwnerRecord())
                     ->visible(fn () => auth()->user()?->can('edit-companies')),
+                ImportProductsFromExcelAction::makeDownloadTemplate('client')
+                    ->visible(fn () => auth()->user()?->can('edit-companies')),
                 AttachAction::make()
                     ->label('Add Product')
                     ->visible(fn () => auth()->user()?->can('edit-companies'))

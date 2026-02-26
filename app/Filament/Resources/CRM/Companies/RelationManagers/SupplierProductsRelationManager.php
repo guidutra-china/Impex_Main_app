@@ -167,6 +167,8 @@ class SupplierProductsRelationManager extends RelationManager
             ->headerActions([
                 ImportProductsFromExcelAction::make('supplier', fn () => $this->getOwnerRecord())
                     ->visible(fn () => auth()->user()?->can('edit-companies')),
+                ImportProductsFromExcelAction::makeDownloadTemplate('supplier')
+                    ->visible(fn () => auth()->user()?->can('edit-companies')),
                 AttachAction::make()
                     ->label('Add Product')
                     ->visible(fn () => auth()->user()?->can('edit-companies'))
