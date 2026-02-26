@@ -4,6 +4,7 @@ namespace App\Filament\Resources\SupplierQuotations\Pages;
 
 use App\Domain\Infrastructure\Pdf\Templates\RfqPdfTemplate;
 use App\Filament\Actions\GeneratePdfAction;
+use App\Filament\Actions\SendDocumentByEmailAction;
 use App\Filament\Resources\SupplierQuotations\SupplierQuotationResource;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
@@ -27,6 +28,10 @@ class ViewSupplierQuotation extends ViewRecord
             GeneratePdfAction::preview(
                 templateClass: RfqPdfTemplate::class,
                 label: 'Preview RFQ',
+            ),
+            SendDocumentByEmailAction::make(
+                documentType: 'rfq_pdf',
+                label: 'Send by Email',
             ),
             EditAction::make(),
         ];

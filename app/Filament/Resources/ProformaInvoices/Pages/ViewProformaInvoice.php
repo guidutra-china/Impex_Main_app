@@ -7,6 +7,7 @@ use App\Domain\Infrastructure\Pdf\Templates\ProformaInvoicePdfTemplate;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Domain\PurchaseOrders\Actions\GeneratePurchaseOrdersAction;
 use App\Filament\Actions\GeneratePdfAction;
+use App\Filament\Actions\SendDocumentByEmailAction;
 use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
 use App\Filament\Resources\ProformaInvoices\Widgets\ProformaInvoiceStats;
 use Filament\Actions\Action;
@@ -42,6 +43,10 @@ class ViewProformaInvoice extends ViewRecord
             GeneratePdfAction::preview(
                 templateClass: ProformaInvoicePdfTemplate::class,
                 label: 'Preview PDF',
+            ),
+            SendDocumentByEmailAction::make(
+                documentType: 'proforma_invoice_pdf',
+                label: 'Send by Email',
             ),
             EditAction::make()
                 ->visible(fn () => ! in_array($this->getRecord()->status, [

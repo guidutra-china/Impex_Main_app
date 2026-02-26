@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Shipments\Pages;
 use App\Domain\Infrastructure\Pdf\Templates\CommercialInvoicePdfTemplate;
 use App\Domain\Infrastructure\Pdf\Templates\PackingListPdfTemplate;
 use App\Filament\Actions\GeneratePdfAction;
+use App\Filament\Actions\SendDocumentByEmailAction;
 use App\Filament\Resources\Shipments\ShipmentResource;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
@@ -30,6 +31,10 @@ class ViewShipment extends ViewRecord
                     templateClass: PackingListPdfTemplate::class,
                     label: 'Preview Packing List',
                 )->name('previewPackingListPdf'),
+                SendDocumentByEmailAction::make(
+                    documentType: 'packing_list_pdf',
+                    label: 'Send Packing List by Email',
+                )->name('sendPackingListByEmail'),
             ])
                 ->label('Packing List PDF')
                 ->icon('heroicon-o-clipboard-document-list')
@@ -48,6 +53,10 @@ class ViewShipment extends ViewRecord
                     templateClass: CommercialInvoicePdfTemplate::class,
                     label: 'Preview Commercial Invoice',
                 )->name('previewCommercialInvoicePdf'),
+                SendDocumentByEmailAction::make(
+                    documentType: 'commercial_invoice_pdf',
+                    label: 'Send Commercial Invoice by Email',
+                )->name('sendCommercialInvoiceByEmail'),
             ])
                 ->label('Commercial Invoice PDF')
                 ->icon('heroicon-o-document-currency-dollar')
