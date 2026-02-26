@@ -7,6 +7,7 @@ use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\Payment;
 use App\Domain\Infrastructure\Support\Money;
 use App\Filament\Portal\Resources\PaymentResource\Pages;
+use App\Filament\Portal\Resources\PaymentResource\Widgets\PortalPaymentAllocations;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ViewEntry;
 use BackedEnum;
@@ -122,14 +123,6 @@ class PaymentResource extends Resource
                 ->columns(3)
                 ->columnSpanFull(),
 
-            Section::make('Allocations')
-                ->schema([
-                    ViewEntry::make('allocations')
-                        ->view('portal.payment-allocations-table')
-                        ->columnSpanFull(),
-                ])
-                ->columnSpanFull(),
-
             Section::make('Notes')
                 ->schema([
                     TextEntry::make('notes')
@@ -140,6 +133,13 @@ class PaymentResource extends Resource
                 ->collapsed()
                 ->columnSpanFull(),
         ]);
+    }
+
+    public static function getWidgets(): array
+    {
+        return [
+            PortalPaymentAllocations::class,
+        ];
     }
 
     public static function getPages(): array

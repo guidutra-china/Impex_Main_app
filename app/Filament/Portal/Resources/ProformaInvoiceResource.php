@@ -5,6 +5,7 @@ namespace App\Filament\Portal\Resources;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Filament\Portal\Resources\ProformaInvoiceResource\Pages;
+use App\Filament\Portal\Resources\ProformaInvoiceResource\Widgets\PortalProformaInvoiceStats;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ViewEntry;
@@ -158,15 +159,6 @@ class ProformaInvoiceResource extends Resource
                 ])
                 ->columnSpanFull(),
 
-            Section::make('Payment Schedule')
-                ->schema([
-                    ViewEntry::make('paymentScheduleItems')
-                        ->view('portal.payment-schedule-table')
-                        ->columnSpanFull(),
-                ])
-                ->visible(fn () => auth()->user()?->can('portal:view-financial-summary'))
-                ->columnSpanFull(),
-
             Section::make('Notes')
                 ->schema([
                     TextEntry::make('notes')
@@ -177,6 +169,13 @@ class ProformaInvoiceResource extends Resource
                 ->collapsed()
                 ->columnSpanFull(),
         ]);
+    }
+
+    public static function getWidgets(): array
+    {
+        return [
+            PortalProformaInvoiceStats::class,
+        ];
     }
 
     public static function getPages(): array

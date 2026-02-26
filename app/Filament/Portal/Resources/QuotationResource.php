@@ -5,6 +5,7 @@ namespace App\Filament\Portal\Resources;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Quotations\Models\Quotation;
 use App\Filament\Portal\Resources\QuotationResource\Pages;
+use App\Filament\Portal\Resources\QuotationResource\Widgets\PortalQuotationSummary;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use BackedEnum;
@@ -153,6 +154,13 @@ class QuotationResource extends Resource
                 ->collapsed()
                 ->columnSpanFull(),
         ]);
+    }
+
+    public static function getWidgets(): array
+    {
+        return [
+            PortalQuotationSummary::class,
+        ];
     }
 
     public static function getPages(): array

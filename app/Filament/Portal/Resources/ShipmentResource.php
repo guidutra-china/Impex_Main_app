@@ -6,6 +6,7 @@ use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\Shipment;
 use App\Filament\Portal\Resources\ShipmentResource\Pages;
+use App\Filament\Portal\Resources\ShipmentResource\Widgets\PortalShipmentOverview;
 use Filament\Infolists\Components\TextEntry;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -231,6 +232,13 @@ class ShipmentResource extends Resource
                 ->collapsed()
                 ->columnSpanFull(),
         ]);
+    }
+
+    public static function getWidgets(): array
+    {
+        return [
+            PortalShipmentOverview::class,
+        ];
     }
 
     public static function getPages(): array
