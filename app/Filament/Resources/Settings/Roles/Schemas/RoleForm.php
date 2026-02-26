@@ -222,6 +222,18 @@ class RoleForm
                 ],
             ],
             [
+                'key' => 'dashboard_pipeline',
+                'label' => 'Dashboard & Pipeline',
+                'icon' => 'heroicon-o-chart-bar-square',
+                'description' => 'Dashboard widgets, order pipeline, and email capabilities',
+                'permissions' => [
+                    'view-financial-dashboard',
+                    'view-operational-dashboard',
+                    'view-order-pipeline',
+                    'send-documents-by-email',
+                ],
+            ],
+            [
                 'key' => 'supplier_audits',
                 'label' => 'Supplier Audits',
                 'icon' => 'heroicon-o-clipboard-document-check',

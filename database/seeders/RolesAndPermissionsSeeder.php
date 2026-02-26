@@ -117,6 +117,12 @@ class RolesAndPermissionsSeeder extends Seeder
             'review-supplier-audits',
             'manage-audit-categories',
 
+            // Dashboard & Pipeline
+            'view-financial-dashboard',
+            'view-operational-dashboard',
+            'view-order-pipeline',
+            'send-documents-by-email',
+
             // Audit Log
             'view-audit-log',
 
@@ -182,6 +188,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'reopen-proforma-invoices',
             'view-costs',
             'view-margins',
+            'view-financial-dashboard',
             'manage-settings',
             'manage-audit-categories',
             'delete-supplier-audits',
@@ -198,6 +205,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $viewer->syncPermissions(array_filter($allPermissions, fn ($p) => str_starts_with($p, 'view-') && ! in_array($p, [
             'view-costs',
             'view-margins',
+            'view-financial-dashboard',
             'view-users',
             'view-settings',
         ])));

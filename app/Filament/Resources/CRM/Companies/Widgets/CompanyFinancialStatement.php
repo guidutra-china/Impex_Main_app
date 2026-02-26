@@ -20,6 +20,11 @@ class CompanyFinancialStatement extends Widget
 
     protected static bool $isLazy = false;
 
+    public static function canView(): bool
+    {
+        return auth()->user()?->can('view-financial-dashboard') ?? false;
+    }
+
     protected int|string|array $columnSpan = 'full';
 
     public ?Model $record = null;

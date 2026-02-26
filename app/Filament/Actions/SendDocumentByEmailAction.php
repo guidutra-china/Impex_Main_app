@@ -21,7 +21,7 @@ class SendDocumentByEmailAction
             ->icon($icon)
             ->color('warning')
             ->visible(fn ($record) => $record->getLatestDocument($documentType) !== null
-                && auth()->user()?->can('download-documents'))
+                && auth()->user()?->can('send-documents-by-email'))
             ->form(fn ($record): array => static::buildForm($record))
             ->action(function (array $data, $record) use ($documentType) {
                 $document = $record->getLatestDocument($documentType);
