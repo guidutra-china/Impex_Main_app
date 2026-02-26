@@ -3,14 +3,17 @@
 namespace App\Filament\Resources\Catalog\Products\RelationManagers;
 
 use App\Domain\Catalog\Enums\ProductStatus;
+use App\Domain\Infrastructure\Support\Money;
 use BackedEnum;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -53,13 +56,52 @@ class VariantsRelationManager extends RelationManager
     {
         return $table
             ->columns([
+                ImageColumn::make('avatar')
+                    ->label('')
+                    ->circular()
+                    ->size(40)
+                    ->defaultImageUrl(fn () => 'https://ui-avatars.com/api/?name=P&background=e2e8f0&color=64748b&size=40'),
                 TextColumn::make('sku')
                     ->label('SKU')
                     ->searchable()
-                    ->weight('bold'),
+                    ->weight('bold')
+                    ->copyable()
+                    ->size('sm'),
                 TextColumn::make('name')
                     ->label('Name')
-                    ->searchable(),
+                    ->searchable()
+                    ->limit(40)
+                    ->tooltip(fn ($record) => $record->name),
+                TextColumn::make('specification.color')
+                    ->label('Color')
+                    ->placeholder('—')
+                    ->size('sm'),
+                TextColumn::make('specification.material')
+                    ->label('Material')
+                    ->placeholder('—')
+                    ->size('sm'),
+                TextColumn::make('costing.base_price')
+                    ->label('Base Price')
+                    ->formatStateUsing(function ($state, $record) {
+                        if (! $state) {
+                            return '—';
+                        }
+                        $symbol = $record->costing?->currency?->symbol ?? '$';
+                        return $symbol . ' ' . number_format(Money::toMajor($state), 2);
+                    })
+                    ->size('sm'),
+                TextColumn::make('suppliers_count')
+                    ->label('Suppliers')
+                    ->counts('suppliers')
+                    ->badge()
+                    ->color('warning')
+                    ->size('sm'),
+                TextColumn::make('clients_count')
+                    ->label('Clients')
+                    ->counts('clients')
+                    ->badge()
+                    ->color('info')
+                    ->size('sm'),
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge(),
@@ -74,6 +116,8 @@ class VariantsRelationManager extends RelationManager
                     }),
             ])
             ->recordActions([
+                ViewAction::make()
+                    ->url(fn ($record) => route('filament.admin.resources.catalog.products.view', $record)),
                 EditAction::make()
                     ->visible(fn () => auth()->user()?->can('edit-products')),
                 DeleteAction::make()

@@ -13,7 +13,6 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use App\Domain\Infrastructure\Support\Money;
 use Filament\Tables\Table;
@@ -100,9 +99,11 @@ class SuppliersRelationManager extends RelationManager
                 TextColumn::make('pivot.lead_time_days')
                     ->label('Lead Time')
                     ->suffix(' days'),
-                IconColumn::make('pivot.is_preferred')
+                TextColumn::make('pivot.is_preferred')
                     ->label('Preferred')
-                    ->boolean()
+                    ->formatStateUsing(fn ($state) => $state ? '★ Preferred' : '')
+                    ->badge()
+                    ->color(fn ($state) => $state ? 'warning' : 'gray')
                     ->alignCenter(),
             ])
             ->headerActions([

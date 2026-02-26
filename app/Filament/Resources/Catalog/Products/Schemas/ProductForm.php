@@ -9,6 +9,8 @@ use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Actions\GenerateProductSkuAction;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\Tag;
+use App\Domain\Settings\Models\Currency;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -309,17 +311,23 @@ class ProductForm
                         ->label('Length (cm)')
                         ->numeric()
                         ->step(0.01)
-                        ->minValue(0),
+                        ->minValue(0)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn (Get $get, Set $set) => static::calculateCbm($get, $set)),
                     TextInput::make('carton_width')
                         ->label('Width (cm)')
                         ->numeric()
                         ->step(0.01)
-                        ->minValue(0),
+                        ->minValue(0)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn (Get $get, Set $set) => static::calculateCbm($get, $set)),
                     TextInput::make('carton_height')
                         ->label('Height (cm)')
                         ->numeric()
                         ->step(0.01)
-                        ->minValue(0),
+                        ->minValue(0)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn (Get $get, Set $set) => static::calculateCbm($get, $set)),
                     TextInput::make('carton_net_weight')
                         ->label('NW / Carton (kg)')
                         ->numeric()
@@ -335,9 +343,9 @@ class ProductForm
                     TextInput::make('carton_cbm')
                         ->label('CBM / Carton')
                         ->numeric()
-                        ->step(0.0001)
+                        ->step(0.000001)
                         ->minValue(0)
-                        ->helperText('Cubic meters per carton'),
+                        ->helperText('Auto-calculated from L × W × H / 1,000,000. Editable for override.'),
                 ])
                 ->columns(4),
 
@@ -377,13 +385,14 @@ class ProductForm
                         ->relationship('currency', 'code')
                         ->searchable()
                         ->preload()
+                        ->live()
                         ->helperText('Currency for all cost values below.'),
                     TextInput::make('base_price')
                         ->label('Base Price')
                         ->numeric()
                         ->minValue(0)
                         ->step(0.0001)
-                        ->prefix('$')
+                        ->prefix(fn (Get $get) => static::getCurrencySymbol($get))
                         ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : null)
                         ->dehydrateStateUsing(fn ($state) => $state ? Money::toMinor($state) : null),
                     TextInput::make('bom_material_cost')
@@ -391,7 +400,7 @@ class ProductForm
                         ->numeric()
                         ->minValue(0)
                         ->step(0.0001)
-                        ->prefix('$')
+                        ->prefix(fn (Get $get) => static::getCurrencySymbol($get))
                         ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : null)
                         ->dehydrateStateUsing(fn ($state) => $state ? Money::toMinor($state) : null),
                     TextInput::make('direct_labor_cost')
@@ -399,7 +408,7 @@ class ProductForm
                         ->numeric()
                         ->minValue(0)
                         ->step(0.0001)
-                        ->prefix('$')
+                        ->prefix(fn (Get $get) => static::getCurrencySymbol($get))
                         ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : null)
                         ->dehydrateStateUsing(fn ($state) => $state ? Money::toMinor($state) : null),
                     TextInput::make('direct_overhead_cost')
@@ -407,7 +416,7 @@ class ProductForm
                         ->numeric()
                         ->minValue(0)
                         ->step(0.0001)
-                        ->prefix('$')
+                        ->prefix(fn (Get $get) => static::getCurrencySymbol($get))
                         ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : null)
                         ->dehydrateStateUsing(fn ($state) => $state ? Money::toMinor($state) : null),
                     TextInput::make('total_manufacturing_cost')
@@ -415,7 +424,7 @@ class ProductForm
                         ->numeric()
                         ->minValue(0)
                         ->step(0.0001)
-                        ->prefix('$')
+                        ->prefix(fn (Get $get) => static::getCurrencySymbol($get))
                         ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : null)
                         ->dehydrateStateUsing(fn ($state) => $state ? Money::toMinor($state) : null)
                         ->helperText('Sum of BOM + Labor + Overhead.'),
@@ -430,12 +439,42 @@ class ProductForm
                         ->numeric()
                         ->minValue(0)
                         ->step(0.0001)
-                        ->prefix('$')
+                        ->prefix(fn (Get $get) => static::getCurrencySymbol($get))
                         ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : null)
                         ->dehydrateStateUsing(fn ($state) => $state ? Money::toMinor($state) : null)
                         ->helperText('Manufacturing cost × (1 + markup%).'),
                 ])
                 ->columns(2),
         ];
+    }
+
+    protected static function getCurrencySymbol(Get $get): string
+    {
+        $currencyId = $get('currency_id');
+
+        if (! $currencyId) {
+            return '$';
+        }
+
+        static $cache = [];
+
+        if (! isset($cache[$currencyId])) {
+            $currency = Currency::find($currencyId);
+            $cache[$currencyId] = $currency?->symbol ?? $currency?->code ?? '$';
+        }
+
+        return $cache[$currencyId];
+    }
+
+    protected static function calculateCbm(Get $get, Set $set): void
+    {
+        $length = (float) $get('carton_length');
+        $width = (float) $get('carton_width');
+        $height = (float) $get('carton_height');
+
+        if ($length > 0 && $width > 0 && $height > 0) {
+            $cbm = ($length * $width * $height) / 1_000_000;
+            $set('carton_cbm', round($cbm, 6));
+        }
     }
 }

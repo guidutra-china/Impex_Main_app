@@ -18,7 +18,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Collection;
@@ -106,9 +105,11 @@ class ClientsRelationManager extends RelationManager
                     ->alignEnd(),
                 TextColumn::make('pivot.currency_code')
                     ->label('Currency'),
-                IconColumn::make('pivot.is_preferred')
+                TextColumn::make('pivot.is_preferred')
                     ->label('Primary')
-                    ->boolean()
+                    ->formatStateUsing(fn ($state) => $state ? '★ Primary' : '')
+                    ->badge()
+                    ->color(fn ($state) => $state ? 'warning' : 'gray')
                     ->alignCenter(),
             ])
             ->headerActions([
