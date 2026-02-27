@@ -58,6 +58,9 @@
                 <th style="width: 30px;">{{ $labels['item'] }}</th>
                 <th style="width: 80px;">{{ $labels['product_code'] }}</th>
                 <th>{{ $labels['description'] }}</th>
+                @if($show_suppliers)
+                    <th style="width: 100px;">{{ $labels['supplier'] }}</th>
+                @endif
                 <th class="text-center" style="width: 55px;">{{ $labels['quantity'] }}</th>
                 <th class="text-center" style="width: 45px;">{{ $labels['unit'] }}</th>
                 <th class="text-right" style="width: 85px;">{{ $labels['unit_price'] }}</th>
@@ -75,6 +78,9 @@
                             <br><span style="font-size: 7.5pt; color: #6b7280;">{{ $labels['incoterm'] }}: {{ $item['incoterm'] }}</span>
                         @endif
                     </td>
+                    @if($show_suppliers)
+                        <td>{{ $item['supplier_name'] ?? '—' }}</td>
+                    @endif
                     <td class="text-center">{{ number_format($item['quantity']) }}</td>
                     <td class="text-center">{{ $item['unit'] }}</td>
                     <td class="text-right">{{ $item['unit_price'] }}</td>
@@ -120,16 +126,6 @@
             <div class="section-title">{{ $labels['notes'] }}</div>
             <div class="section-content">
                 {!! nl2br(e($quotation['notes'])) !!}
-            </div>
-        </div>
-    @endif
-
-    {{-- === BANK DETAILS === --}}
-    @if(! empty($company['bank_details']))
-        <div class="section">
-            <div class="section-title">{{ $labels['bank_details'] }}</div>
-            <div class="section-content">
-                {!! nl2br(e($company['bank_details'])) !!}
             </div>
         </div>
     @endif

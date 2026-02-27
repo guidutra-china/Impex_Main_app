@@ -33,22 +33,27 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
             'inquiry',
             'paymentTerm',
             'items.product',
+            'items.selectedSupplier',
             'creator',
         ]);
 
         $currencyCode = $quotation->currency_code ?? 'USD';
+        $showSuppliers = (bool) $quotation->show_suppliers;
 
-        $items = $quotation->items->map(function ($item, $index) use ($currencyCode) {
-            return [
+        $items = $quotation->items->map(function ($item, $index) use ($currencyCode, $showSuppliers) {
+            $data = [
                 'index' => $index + 1,
                 'product_code' => $item->product?->sku ?? '—',
                 'description' => $item->product?->name ?? $item->notes ?? '—',
                 'quantity' => $item->quantity,
                 'unit' => $item->product?->unit ?? 'pcs',
-                'unit_price' => $this->formatMoney($item->unit_price, $currencyCode),
-                'line_total' => $this->formatMoney($item->line_total, $currencyCode),
+                'unit_price' => $this->formatMoney($item->unit_price, $currencyCode, 2),
+                'line_total' => $this->formatMoney($item->line_total, $currencyCode, 2),
                 'incoterm' => $item->incoterm instanceof \BackedEnum ? $item->incoterm->value : $item->incoterm,
+                'supplier_name' => $showSuppliers ? ($item->selectedSupplier?->name ?? null) : null,
             ];
+
+            return $data;
         });
 
         $showCommission = $quotation->commission_type === CommissionType::SEPARATE
@@ -65,6 +70,7 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
                 'notes' => $quotation->notes,
                 'created_by' => $quotation->creator?->name,
             ],
+            'show_suppliers' => $showSuppliers,
             'client' => [
                 'name' => $quotation->company?->name ?? '—',
                 'legal_name' => $quotation->company?->legal_name,
@@ -77,13 +83,13 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
             ],
             'items' => $items->toArray(),
             'totals' => [
-                'subtotal' => $this->formatMoney($quotation->subtotal, $currencyCode),
+                'subtotal' => $this->formatMoney($quotation->subtotal, $currencyCode, 2),
                 'show_commission' => $showCommission,
                 'commission_rate' => $showCommission ? $quotation->commission_rate . '%' : null,
                 'commission_amount' => $showCommission
-                    ? $this->formatMoney($quotation->commission_amount, $currencyCode)
+                    ? $this->formatMoney($quotation->commission_amount, $currencyCode, 2)
                     : null,
-                'grand_total' => $this->formatMoney($quotation->total, $currencyCode),
+                'grand_total' => $this->formatMoney($quotation->total, $currencyCode, 2),
             ],
             'payment_term' => [
                 'name' => $quotation->paymentTerm?->name,
