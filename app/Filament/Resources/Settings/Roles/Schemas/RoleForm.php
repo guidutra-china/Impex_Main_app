@@ -18,19 +18,22 @@ class RoleForm
 
     protected static function buildPermissionSections(): array
     {
-        $groups = static::getPermissionGroups();
+        $groups = static::getGroups();
         $sections = [];
 
         foreach ($groups as $group) {
-            $permissionIds = Permission::where('guard_name', 'web')
+            $permissionRecords = Permission::where('guard_name', 'web')
                 ->whereIn('name', $group['permissions'])
                 ->orderByRaw('FIELD(name, ' . collect($group['permissions'])->map(fn ($p) => "'{$p}'")->join(',') . ')')
-                ->pluck('name', 'id')
-                ->toArray();
+                ->get();
 
-            if (empty($permissionIds)) {
+            if ($permissionRecords->isEmpty()) {
                 continue;
             }
+
+            $options = $permissionRecords->pluck('name', 'id')
+                ->map(fn ($name) => static::formatLabel($name))
+                ->toArray();
 
             $sections[] = Section::make($group['label'])
                 ->icon($group['icon'])
@@ -40,10 +43,7 @@ class RoleForm
                 ->schema([
                     CheckboxList::make('permissions_' . $group['key'])
                         ->label('')
-                        ->relationship('permissions', 'name')
-                        ->options(
-                            collect($permissionIds)->map(fn ($name) => static::formatLabel($name))->toArray()
-                        )
+                        ->options($options)
                         ->bulkToggleable()
                         ->columns(2),
                 ]);
@@ -52,7 +52,7 @@ class RoleForm
         return $sections;
     }
 
-    protected static function getPermissionGroups(): array
+    public static function getGroups(): array
     {
         return [
             [
