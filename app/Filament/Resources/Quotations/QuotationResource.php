@@ -36,6 +36,11 @@ class QuotationResource extends Resource
         return auth()->user()?->can('view-quotations') ?? false;
     }
 
+    public static function canCreate(): bool
+    {
+        return false;
+    }
+
     public static function getGloballySearchableAttributes(): array
     {
         return ['reference', 'company.name', 'notes'];
