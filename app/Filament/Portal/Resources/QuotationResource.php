@@ -175,21 +175,21 @@ class QuotationResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Operations';
+        return __('navigation.groups.operations');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Quotations';
+        return __('navigation.resources.quotations');
     }
 
     public static function getModelLabel(): string
     {
-        return 'Quotation';
+        return __('navigation.models.quotation');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return 'Quotations';
+        return __('navigation.models.quotations');
     }
 }

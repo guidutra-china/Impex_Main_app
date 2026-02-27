@@ -12,9 +12,13 @@ use Filament\Widgets\TableWidget as BaseWidget;
 
 class RecentDocumentsWidget extends BaseWidget
 {
-    protected static ?string $heading = 'Recent Documents';
     protected int|string|array $columnSpan = 'full';
     protected static ?int $sort = 3;
+
+    public function getHeading(): string
+    {
+        return __('widgets.portal.recent_documents');
+    }
 
     public function table(Table $table): Table
     {
@@ -46,19 +50,19 @@ class RecentDocumentsWidget extends BaseWidget
             )
             ->columns([
                 TextColumn::make('name')
-                    ->label('Document')
+                    ->label(__('widgets.portal.document'))
                     ->weight('bold'),
                 TextColumn::make('type')
-                    ->label('Type')
+                    ->label(__('widgets.portal.type'))
                     ->badge()
                     ->formatStateUsing(fn (string $state) => match ($state) {
-                        'commercial_invoice_pdf' => 'Commercial Invoice',
-                        'packing_list_pdf' => 'Packing List',
-                        'proforma_invoice_pdf' => 'Proforma Invoice',
+                        'commercial_invoice_pdf' => __('widgets.portal.commercial_invoice'),
+                        'packing_list_pdf' => __('widgets.portal.packing_list'),
+                        'proforma_invoice_pdf' => __('navigation.models.proforma_invoice'),
                         default => $state,
                     }),
                 TextColumn::make('created_at')
-                    ->label('Generated')
+                    ->label(__('widgets.portal.generated'))
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
             ])
@@ -70,7 +74,7 @@ class RecentDocumentsWidget extends BaseWidget
                     ->visible(fn () => auth()->user()?->can('portal:download-documents')),
             ])
             ->paginated(false)
-            ->emptyStateHeading('No documents yet')
+            ->emptyStateHeading(__('widgets.portal.no_documents_yet'))
             ->emptyStateIcon('heroicon-o-document');
     }
 }

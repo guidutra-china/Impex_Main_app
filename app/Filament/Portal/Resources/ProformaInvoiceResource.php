@@ -192,21 +192,21 @@ class ProformaInvoiceResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Operations';
+        return __('navigation.groups.operations');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Proforma Invoices';
+        return __('navigation.resources.proforma_invoices');
     }
 
     public static function getModelLabel(): string
     {
-        return 'Proforma Invoice';
+        return __('navigation.models.proforma_invoice');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return 'Proforma Invoices';
+        return __('navigation.models.proforma_invoices');
     }
 }

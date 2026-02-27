@@ -46,16 +46,16 @@ class FinancialSummaryWidget extends BaseWidget
             ->sum('amount');
 
         return [
-            Stat::make('Total PI Value', 'USD ' . Money::format($totalPiValue))
-                ->description('Confirmed proforma invoices')
+            Stat::make(__('widgets.portal.total_pi_value'), 'USD ' . Money::format($totalPiValue))
+                ->description(__('widgets.portal.confirmed_proforma_invoices'))
                 ->icon('heroicon-o-document-check')
                 ->color('primary'),
-            Stat::make('Total Paid', 'USD ' . Money::format($totalPaid))
-                ->description('Payments received')
+            Stat::make(__('widgets.portal.total_paid'), 'USD ' . Money::format($totalPaid))
+                ->description(__('widgets.portal.payments_received'))
                 ->icon('heroicon-o-check-circle')
                 ->color('success'),
-            Stat::make('Pending Balance', 'USD ' . Money::format($totalPending))
-                ->description('Outstanding payments')
+            Stat::make(__('widgets.portal.pending_balance'), 'USD ' . Money::format($totalPending))
+                ->description(__('widgets.portal.outstanding_payments'))
                 ->icon('heroicon-o-clock')
                 ->color($totalPending > 0 ? 'warning' : 'success'),
         ];

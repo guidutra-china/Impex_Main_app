@@ -31,19 +31,19 @@ class PortalShipmentOverview extends Widget
 
         $cards = [
             [
-                'label' => 'Status',
+                'label' => __('widgets.portal.status'),
                 'value' => $shipment->status->getLabel(),
                 'icon' => $shipment->status->getIcon() ?? 'heroicon-o-information-circle',
                 'color' => is_string($shipment->status->getColor()) ? $shipment->status->getColor() : 'gray',
             ],
             [
-                'label' => 'Transport',
+                'label' => __('widgets.portal.transport'),
                 'value' => $shipment->transport_mode?->getLabel() ?? '—',
                 'icon' => 'heroicon-o-truck',
                 'color' => 'info',
             ],
             [
-                'label' => 'Container',
+                'label' => __('widgets.portal.container'),
                 'value' => $shipment->container_number ?: '—',
                 'icon' => 'heroicon-o-cube',
                 'color' => 'gray',
@@ -52,7 +52,7 @@ class PortalShipmentOverview extends Widget
 
         if (auth()->user()?->can('portal:view-financial-summary')) {
             $cards[] = [
-                'label' => 'Total Value',
+                'label' => __('widgets.portal.total_value'),
                 'value' => $currency . ' ' . Money::format($shipment->total_value),
                 'icon' => 'heroicon-o-currency-dollar',
                 'color' => 'primary',
@@ -62,7 +62,7 @@ class PortalShipmentOverview extends Widget
         $timeline = [];
         if ($shipment->etd) {
             $timeline[] = [
-                'label' => 'ETD',
+                'label' => __('widgets.portal.etd'),
                 'date' => $shipment->etd->format('M d, Y'),
                 'actual' => $shipment->actual_departure?->format('M d, Y'),
                 'icon' => 'heroicon-o-arrow-up-tray',
@@ -71,7 +71,7 @@ class PortalShipmentOverview extends Widget
         }
         if ($shipment->eta) {
             $timeline[] = [
-                'label' => 'ETA',
+                'label' => __('widgets.portal.eta'),
                 'date' => $shipment->eta->format('M d, Y'),
                 'actual' => $shipment->actual_arrival?->format('M d, Y'),
                 'icon' => 'heroicon-o-arrow-down-tray',
@@ -82,20 +82,20 @@ class PortalShipmentOverview extends Widget
         $documents = $shipment->documents
             ->map(fn ($doc) => [
                 'id' => $doc->id,
-                'name' => $doc->name ?? 'Document',
-                'type' => is_object($doc->type) ? $doc->type->getLabel() : ($doc->type ?? 'Document'),
+                'name' => $doc->name ?? __('widgets.portal.document'),
+                'type' => is_object($doc->type) ? $doc->type->getLabel() : ($doc->type ?? __('widgets.portal.document')),
                 'created_at' => $doc->created_at?->format('M d, Y'),
                 'download_url' => route('portal.documents.download', $doc),
             ])
             ->all();
 
         $logistics = [
-            ['label' => 'Origin Port', 'value' => $shipment->origin_port ?: '—'],
-            ['label' => 'Destination Port', 'value' => $shipment->destination_port ?: '—'],
-            ['label' => 'Carrier', 'value' => $shipment->carrier ?: '—'],
-            ['label' => 'Vessel', 'value' => $shipment->vessel_name ?: '—'],
-            ['label' => 'BL Number', 'value' => $shipment->bl_number ?: '—'],
-            ['label' => 'Booking Number', 'value' => $shipment->booking_number ?: '—'],
+            ['label' => __('widgets.portal.origin_port'), 'value' => $shipment->origin_port ?: '—'],
+            ['label' => __('widgets.portal.destination_port'), 'value' => $shipment->destination_port ?: '—'],
+            ['label' => __('widgets.portal.carrier'), 'value' => $shipment->carrier ?: '—'],
+            ['label' => __('widgets.portal.vessel'), 'value' => $shipment->vessel_name ?: '—'],
+            ['label' => __('widgets.portal.bl_number'), 'value' => $shipment->bl_number ?: '—'],
+            ['label' => __('widgets.portal.booking_number'), 'value' => $shipment->booking_number ?: '—'],
         ];
 
         $piRefs = $shipment->proforma_invoice_references;

@@ -32,19 +32,19 @@ class PortalQuotationSummary extends Widget
 
         $cards = [
             [
-                'label' => 'Status',
+                'label' => __('widgets.portal.status'),
                 'value' => $quotation->status?->getLabel() ?? '—',
                 'icon' => $quotation->status?->getIcon() ?? 'heroicon-o-document',
                 'color' => $quotation->status?->getColor() ?? 'gray',
             ],
             [
-                'label' => 'Currency',
+                'label' => __('widgets.portal.currency'),
                 'value' => $currency,
                 'icon' => 'heroicon-o-currency-dollar',
                 'color' => 'info',
             ],
             [
-                'label' => 'Items',
+                'label' => __('widgets.portal.items'),
                 'value' => (string) $itemCount,
                 'icon' => 'heroicon-o-squares-2x2',
                 'color' => 'gray',
@@ -53,7 +53,7 @@ class PortalQuotationSummary extends Widget
 
         if (auth()->user()?->can('portal:view-financial-summary')) {
             $cards[] = [
-                'label' => 'Total Value',
+                'label' => __('widgets.portal.total_value'),
                 'value' => $currency . ' ' . Money::format($total),
                 'icon' => 'heroicon-o-banknotes',
                 'color' => 'primary',

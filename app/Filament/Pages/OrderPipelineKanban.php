@@ -26,11 +26,20 @@ class OrderPipelineKanban extends Page
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-view-columns';
 
-    protected static UnitEnum|string|null $navigationGroup = 'Trade';
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.trade');
+    }
 
-    protected static ?string $navigationLabel = 'Order Pipeline';
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.pages.order_pipeline');
+    }
 
-    protected static ?string $title = 'Order Pipeline';
+    public function getTitle(): string
+    {
+        return __('navigation.pages.order_pipeline');
+    }
 
     protected static ?int $navigationSort = 0;
 

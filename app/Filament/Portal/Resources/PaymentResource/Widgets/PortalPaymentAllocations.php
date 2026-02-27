@@ -34,10 +34,10 @@ class PortalPaymentAllocations extends Widget
             $payable = $scheduleItem?->payable;
 
             $documentType = match (true) {
-                $payable instanceof \App\Domain\ProformaInvoices\Models\ProformaInvoice => 'Proforma Invoice',
-                $payable instanceof \App\Domain\Logistics\Models\Shipment => 'Shipment',
-                $payable instanceof \App\Domain\PurchaseOrders\Models\PurchaseOrder => 'Purchase Order',
-                default => 'Document',
+                $payable instanceof \App\Domain\ProformaInvoices\Models\ProformaInvoice => __('navigation.models.proforma_invoice'),
+                $payable instanceof \App\Domain\Logistics\Models\Shipment => __('navigation.models.shipment'),
+                $payable instanceof \App\Domain\PurchaseOrders\Models\PurchaseOrder => __('navigation.models.purchase_order'),
+                default => __('widgets.portal.document'),
             };
 
             $allocations[] = [

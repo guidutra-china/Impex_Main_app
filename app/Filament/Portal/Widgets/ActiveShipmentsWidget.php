@@ -11,9 +11,13 @@ use Filament\Widgets\TableWidget as BaseWidget;
 
 class ActiveShipmentsWidget extends BaseWidget
 {
-    protected static ?string $heading = 'Active Shipments';
     protected int|string|array $columnSpan = 'full';
     protected static ?int $sort = 1;
+
+    public function getHeading(): string
+    {
+        return __('widgets.portal.active_shipments');
+    }
 
     public function table(Table $table): Table
     {
@@ -42,20 +46,20 @@ class ActiveShipmentsWidget extends BaseWidget
                 TextColumn::make('destination_port')
                     ->placeholder('—'),
                 TextColumn::make('etd')
-                    ->label('ETD')
+                    ->label(__('widgets.portal.etd'))
                     ->date('d/m/Y')
                     ->placeholder('—'),
                 TextColumn::make('eta')
-                    ->label('ETA')
+                    ->label(__('widgets.portal.eta'))
                     ->date('d/m/Y')
                     ->placeholder('—'),
                 TextColumn::make('container_number')
-                    ->label('Container')
+                    ->label(__('widgets.portal.container'))
                     ->copyable()
                     ->placeholder('—'),
             ])
             ->paginated(false)
-            ->emptyStateHeading('No active shipments')
+            ->emptyStateHeading(__('widgets.portal.no_active_shipments'))
             ->emptyStateIcon('heroicon-o-truck');
     }
 }

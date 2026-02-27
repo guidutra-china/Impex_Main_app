@@ -82,23 +82,23 @@ class PortalShipmentFulfillmentWidget extends Widget
 
         $cards = [
             [
-                'label' => 'Total Items',
+                'label' => __('widgets.fulfillment.total_items'),
                 'value' => count($mappedItems),
-                'description' => $totalQty . ' units total',
+                'description' => $totalQty . ' ' . __('widgets.fulfillment.units_total'),
                 'icon' => 'heroicon-o-cube',
                 'color' => 'primary',
             ],
             [
-                'label' => 'Fully Shipped',
+                'label' => __('widgets.fulfillment.fully_shipped'),
                 'value' => $fullyShippedCount . ' / ' . count($mappedItems),
-                'description' => number_format($totalShipped) . ' units shipped',
+                'description' => number_format($totalShipped) . ' ' . __('widgets.fulfillment.units_shipped'),
                 'icon' => 'heroicon-o-check-circle',
                 'color' => $isFullyShipped ? 'success' : ($fullyShippedCount > 0 ? 'info' : 'gray'),
             ],
             [
-                'label' => 'Remaining',
-                'value' => number_format($totalRemaining) . ' units',
-                'description' => $pendingCount . ' item(s) pending',
+                'label' => __('widgets.fulfillment.remaining'),
+                'value' => number_format($totalRemaining) . ' ' . __('widgets.fulfillment.units'),
+                'description' => $pendingCount . ' ' . __('widgets.fulfillment.items_pending'),
                 'icon' => 'heroicon-o-clock',
                 'color' => $totalRemaining > 0 ? 'warning' : 'success',
             ],
@@ -106,9 +106,9 @@ class PortalShipmentFulfillmentWidget extends Widget
 
         if ($partialCount > 0) {
             $cards[] = [
-                'label' => 'Partial Shipments',
+                'label' => __('widgets.fulfillment.partial_shipments'),
                 'value' => $partialCount,
-                'description' => 'Items partially shipped',
+                'description' => __('widgets.fulfillment.items_partially_shipped'),
                 'icon' => 'heroicon-o-arrow-path',
                 'color' => 'warning',
             ];

@@ -1,6 +1,6 @@
 <x-filament-widgets::widget>
     <x-filament::section
-        heading="Shipment Fulfillment"
+        :heading="__('widgets.fulfillment.shipment_fulfillment')"
         icon="heroicon-o-truck"
     >
         {{-- Summary Cards --}}
@@ -93,7 +93,7 @@
         @if ($progress !== null)
             <div class="mb-6">
                 <div class="flex items-center justify-between mb-1.5">
-                    <span class="text-xs font-semibold text-gray-600 dark:text-gray-400">Fulfillment Progress</span>
+                    <span class="text-xs font-semibold text-gray-600 dark:text-gray-400">{{ __('widgets.fulfillment.fulfillment_progress') }}</span>
                     <span @class([
                         'text-xs font-bold',
                         'text-success-600 dark:text-success-400' => $progress >= 100,
@@ -119,12 +119,12 @@
                     <thead>
                         <tr class="border-b-2 border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/5">
                             <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">#</th>
-                            <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Product</th>
-                            <th class="px-4 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">PI Qty</th>
-                            <th class="px-4 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Shipped</th>
-                            <th class="px-4 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Remaining</th>
-                            <th class="px-4 py-3 text-center text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</th>
-                            <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Shipments</th>
+                            <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.fulfillment.product') }}</th>
+                            <th class="px-4 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.fulfillment.pi_qty') }}</th>
+                            <th class="px-4 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.fulfillment.shipped') }}</th>
+                            <th class="px-4 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.fulfillment.remaining') }}</th>
+                            <th class="px-4 py-3 text-center text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.fulfillment.status') }}</th>
+                            <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.fulfillment.shipments') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -160,17 +160,17 @@
                                     @if ($item['status'] === 'fully_shipped')
                                         <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.65rem] font-semibold bg-success-100 text-success-700 dark:bg-success-500/20 dark:text-success-400">
                                             <x-filament::icon icon="heroicon-m-check-circle" class="h-3.5 w-3.5" />
-                                            Shipped
+                                            {{ __('widgets.fulfillment.shipped') }}
                                         </span>
                                     @elseif ($item['status'] === 'partial')
                                         <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.65rem] font-semibold bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400">
                                             <x-filament::icon icon="heroicon-m-arrow-path" class="h-3.5 w-3.5" />
-                                            Partial
+                                            {{ __('widgets.fulfillment.partial') }}
                                         </span>
                                     @else
                                         <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.65rem] font-semibold bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-400">
                                             <x-filament::icon icon="heroicon-m-clock" class="h-3.5 w-3.5" />
-                                            Pending
+                                            {{ __('widgets.fulfillment.pending_status') }}
                                         </span>
                                     @endif
                                 </td>
@@ -193,7 +193,7 @@
                     <tfoot>
                         <tr class="border-t-2 border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/5">
                             <td colspan="2" class="px-4 py-3 text-sm font-bold text-gray-700 dark:text-gray-300">
-                                Total ({{ count($items) }} {{ count($items) === 1 ? 'item' : 'items' }})
+                                {{ __('widgets.portal.total') }} ({{ count($items) }} {{ count($items) === 1 ? __('widgets.fulfillment.item') : __('widgets.fulfillment.items') }})
                             </td>
                             <td class="whitespace-nowrap px-4 py-3 text-right font-mono font-bold text-gray-900 dark:text-white">
                                 {{ number_format($totals['quantity']) }}
@@ -216,7 +216,7 @@
         @else
             <div class="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-10 dark:border-gray-700 dark:bg-white/5">
                 <x-filament::icon icon="heroicon-o-cube" class="h-8 w-8 text-gray-300 dark:text-gray-600" />
-                <span class="text-sm text-gray-500 dark:text-gray-400">No items in this Proforma Invoice.</span>
+                <span class="text-sm text-gray-500 dark:text-gray-400">{{ __('widgets.fulfillment.no_items') }}</span>
             </div>
         @endif
 
@@ -245,11 +245,11 @@
                         'text-success-800 dark:text-success-300' => $isFullyShipped,
                         'text-warning-800 dark:text-warning-300' => !$isFullyShipped,
                     ])>
-                        {{ $isFullyShipped ? 'All items shipped — ready for finalization' : 'Shipment fulfillment incomplete' }}
+                        {{ $isFullyShipped ? __('widgets.fulfillment.ready_for_finalization') : __('widgets.fulfillment.fulfillment_incomplete') }}
                     </p>
                     @if (!$isFullyShipped)
                         <p class="text-xs text-warning-600 dark:text-warning-400">
-                            {{ $totals['remaining'] }} unit(s) still pending shipment across {{ $pendingItemsCount }} item(s)
+                            {{ __('widgets.fulfillment.units_pending_shipment', ['units' => $totals['remaining'], 'items' => $pendingItemsCount]) }}
                         </p>
                     @endif
                 </div>

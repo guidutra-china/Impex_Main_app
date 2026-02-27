@@ -253,21 +253,21 @@ class ShipmentResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Operations';
+        return __('navigation.groups.operations');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Shipments';
+        return __('navigation.resources.shipments');
     }
 
     public static function getModelLabel(): string
     {
-        return 'Shipment';
+        return __('navigation.models.shipment');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return 'Shipments';
+        return __('navigation.models.shipments');
     }
 }

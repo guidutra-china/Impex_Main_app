@@ -32,11 +32,20 @@ class FinancialOverview extends Page implements HasTable
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-banknotes';
 
-    protected static UnitEnum|string|null $navigationGroup = 'Finance';
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.finance');
+    }
 
-    protected static ?string $navigationLabel = 'Financial Overview';
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.pages.financial_overview');
+    }
 
-    protected static ?string $title = 'Financial Overview';
+    public function getTitle(): string
+    {
+        return __('navigation.pages.financial_overview');
+    }
 
     protected static ?int $navigationSort = 1;
 

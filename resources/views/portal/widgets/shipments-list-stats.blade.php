@@ -4,7 +4,7 @@
             <div class="space-y-2">
                 <div class="flex items-center gap-2">
                     <x-filament::icon icon="heroicon-o-cube" class="h-5 w-5 text-gray-400" />
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Shipments</p>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('widgets.list_stats.total_shipments') }}</p>
                 </div>
                 <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ $total }}</p>
             </div>
@@ -14,7 +14,7 @@
             <div class="space-y-2">
                 <div class="flex items-center gap-2">
                     <x-filament::icon icon="heroicon-o-arrow-path" class="h-5 w-5 text-primary-500" />
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Active</p>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('widgets.list_stats.active') }}</p>
                 </div>
                 <p class="text-3xl font-bold text-primary-600 dark:text-primary-400">{{ $active }}</p>
             </div>
@@ -24,7 +24,7 @@
             <div class="space-y-2">
                 <div class="flex items-center gap-2">
                     <x-filament::icon icon="heroicon-o-truck" class="h-5 w-5 text-info-500" />
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">In Transit</p>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('widgets.list_stats.in_transit') }}</p>
                 </div>
                 <p class="text-3xl font-bold text-info-600 dark:text-info-400">{{ $inTransit }}</p>
             </div>
@@ -34,7 +34,7 @@
             <div class="space-y-2">
                 <div class="flex items-center gap-2">
                     <x-filament::icon icon="heroicon-o-check-badge" class="h-5 w-5 text-success-500" />
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Arrived</p>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('widgets.list_stats.arrived') }}</p>
                 </div>
                 <p class="text-3xl font-bold text-success-600 dark:text-success-400">{{ $arrived }}</p>
             </div>
@@ -44,7 +44,7 @@
     @if (count($statusBreakdown) > 0)
         <div class="mt-4">
             <x-filament::section>
-                <x-slot name="heading">Status Breakdown</x-slot>
+                <x-slot name="heading">{{ __('widgets.list_stats.status_breakdown') }}</x-slot>
                 <div class="space-y-3">
                     @foreach ($statusBreakdown as $status)
                         <div class="flex items-center gap-3">

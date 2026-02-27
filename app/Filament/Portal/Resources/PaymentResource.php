@@ -154,21 +154,21 @@ class PaymentResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Finance';
+        return __('navigation.groups.finance');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Payments';
+        return __('navigation.resources.payments');
     }
 
     public static function getModelLabel(): string
     {
-        return 'Payment';
+        return __('navigation.models.payment');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return 'Payments';
+        return __('navigation.models.payments');
     }
 }

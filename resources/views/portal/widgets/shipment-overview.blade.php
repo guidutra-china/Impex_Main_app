@@ -42,7 +42,7 @@
 
     <div class="grid gap-4 lg:grid-cols-2">
         {{-- Logistics Details --}}
-        <x-filament::section heading="Logistics Details" icon="heroicon-o-globe-alt">
+        <x-filament::section :heading="__('widgets.portal.logistics_details')" icon="heroicon-o-globe-alt">
             <div class="grid grid-cols-2 gap-4">
                 @foreach ($logistics as $item)
                     <div>
@@ -55,15 +55,15 @@
             <div class="mt-4 border-t border-gray-100 pt-4 dark:border-white/5">
                 <div class="grid grid-cols-3 gap-4">
                     <div>
-                        <p class="text-[0.65rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Packages</p>
+                        <p class="text-[0.65rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.portal.packages') }}</p>
                         <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $totalPackages }}</p>
                     </div>
                     <div>
-                        <p class="text-[0.65rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Gross Weight</p>
+                        <p class="text-[0.65rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.portal.gross_weight') }}</p>
                         <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $totalGrossWeight }}</p>
                     </div>
                     <div>
-                        <p class="text-[0.65rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Volume</p>
+                        <p class="text-[0.65rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.portal.volume') }}</p>
                         <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $totalVolume }}</p>
                     </div>
                 </div>
@@ -71,7 +71,7 @@
 
             @if ($piReferences !== '—')
                 <div class="mt-4 border-t border-gray-100 pt-4 dark:border-white/5">
-                    <p class="text-[0.65rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Proforma Invoices</p>
+                    <p class="text-[0.65rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('navigation.models.proforma_invoices') }}</p>
                     <p class="text-sm font-semibold text-primary-600 dark:text-primary-400">{{ $piReferences }}</p>
                 </div>
             @endif
@@ -81,7 +81,7 @@
         <div class="space-y-4">
             {{-- Timeline --}}
             @if (count($timeline) > 0)
-                <x-filament::section heading="Shipping Timeline" icon="heroicon-o-clock">
+                <x-filament::section :heading="__('widgets.portal.shipping_timeline')" icon="heroicon-o-clock">
                     <div class="space-y-4">
                         @foreach ($timeline as $event)
                             <div class="flex items-start gap-3">
@@ -99,9 +99,9 @@
                                 <div>
                                     <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ $event['label'] }}</p>
                                     <p class="text-xs text-gray-500 dark:text-gray-400">
-                                        Estimated: {{ $event['date'] }}
+                                        {{ __('widgets.portal.estimated') }}: {{ $event['date'] }}
                                         @if ($event['actual'])
-                                            <span class="ml-1 font-semibold text-success-600 dark:text-success-400">Actual: {{ $event['actual'] }}</span>
+                                            <span class="ml-1 font-semibold text-success-600 dark:text-success-400">{{ __('widgets.portal.actual') }}: {{ $event['actual'] }}</span>
                                         @endif
                                     </p>
                                 </div>
@@ -112,7 +112,7 @@
             @endif
 
             {{-- Documents --}}
-            <x-filament::section heading="Documents" icon="heroicon-o-document-arrow-down">
+            <x-filament::section :heading="__('widgets.portal.documents')" icon="heroicon-o-document-arrow-down">
                 @if (count($documents) > 0)
                     <div class="space-y-2">
                         @foreach ($documents as $doc)
@@ -126,7 +126,7 @@
                                 </div>
                                 <a href="{{ $doc['download_url'] }}" class="inline-flex items-center gap-1 rounded-lg bg-primary-50 px-3 py-1.5 text-xs font-semibold text-primary-600 transition hover:bg-primary-100 dark:bg-primary-500/10 dark:text-primary-400 dark:hover:bg-primary-500/20">
                                     <x-filament::icon icon="heroicon-o-arrow-down-tray" class="h-3.5 w-3.5" />
-                                    Download
+                                    {{ __('widgets.portal.download') }}
                                 </a>
                             </div>
                         @endforeach
@@ -134,7 +134,7 @@
                 @else
                     <div class="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-8 dark:border-gray-700 dark:bg-white/5">
                         <x-filament::icon icon="heroicon-o-document" class="h-8 w-8 text-gray-300 dark:text-gray-600" />
-                        <span class="text-sm text-gray-500 dark:text-gray-400">No documents available yet.</span>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">{{ __('widgets.portal.no_documents_available') }}</span>
                     </div>
                 @endif
             </x-filament::section>

@@ -19,11 +19,20 @@ class ManageCompanySettings extends SettingsPage
 
     protected static string $settings = CompanySettings::class;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Settings';
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.settings');
+    }
 
-    protected static ?string $navigationLabel = 'Company Settings';
+    public static function getNavigationLabel(): string
+    {
+        return __('navigation.pages.company_settings');
+    }
 
-    protected static ?string $title = 'Company Settings';
+    public function getTitle(): string
+    {
+        return __('navigation.pages.company_settings');
+    }
 
     protected static ?int $navigationSort = 0;
 

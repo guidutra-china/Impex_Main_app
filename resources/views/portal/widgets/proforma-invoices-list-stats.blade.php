@@ -4,15 +4,15 @@
             <div class="space-y-2">
                 <div class="flex items-center gap-2">
                     <x-filament::icon icon="heroicon-o-document-duplicate" class="h-5 w-5 text-gray-400" />
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Invoices</p>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('widgets.list_stats.total_invoices') }}</p>
                 </div>
                 <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ $total }}</p>
                 <div class="flex gap-3 text-xs text-gray-400 dark:text-gray-500">
-                    <span>{{ $pending }} pending</span>
+                    <span>{{ $pending }} {{ __('widgets.list_stats.pending') }}</span>
                     <span>&middot;</span>
-                    <span>{{ $confirmed }} confirmed</span>
+                    <span>{{ $confirmed }} {{ __('widgets.list_stats.confirmed') }}</span>
                     <span>&middot;</span>
-                    <span>{{ $finalized }} finalized</span>
+                    <span>{{ $finalized }} {{ __('widgets.list_stats.finalized') }}</span>
                 </div>
             </div>
         </x-filament::section>
@@ -22,7 +22,7 @@
                 <div class="space-y-2">
                     <div class="flex items-center gap-2">
                         <x-filament::icon icon="heroicon-o-banknotes" class="h-5 w-5 text-primary-500" />
-                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Value</p>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('widgets.list_stats.total_value') }}</p>
                     </div>
                     <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $currency }} {{ $totalValue }}</p>
                 </div>
@@ -33,7 +33,7 @@
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <x-filament::icon icon="heroicon-o-credit-card" class="h-5 w-5 text-success-500" />
-                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Payment Progress</p>
+                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('widgets.list_stats.payment_progress') }}</p>
                         </div>
                         <span class="inline-flex items-center rounded-full bg-primary-50 px-2 py-0.5 text-xs font-semibold text-primary-700 dark:bg-primary-500/10 dark:text-primary-400">
                             {{ $paymentProgress }}%
@@ -43,8 +43,8 @@
                         <div class="h-full rounded-full bg-success-500 transition-all duration-500" style="width: {{ min($paymentProgress, 100) }}%"></div>
                     </div>
                     <div class="flex justify-between text-xs">
-                        <span class="text-success-600 dark:text-success-400">Paid: {{ $currency }} {{ $totalPaid }}</span>
-                        <span class="text-danger-600 dark:text-danger-400">Remaining: {{ $currency }} {{ $totalRemaining }}</span>
+                        <span class="text-success-600 dark:text-success-400">{{ __('widgets.list_stats.paid') }}: {{ $currency }} {{ $totalPaid }}</span>
+                        <span class="text-danger-600 dark:text-danger-400">{{ __('widgets.list_stats.remaining') }}: {{ $currency }} {{ $totalRemaining }}</span>
                     </div>
                 </div>
             </x-filament::section>
@@ -53,7 +53,7 @@
                 <div class="space-y-2">
                     <div class="flex items-center gap-2">
                         <x-filament::icon icon="heroicon-o-check-circle" class="h-5 w-5 text-success-500" />
-                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Confirmed</p>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('widgets.list_stats.confirmed') }}</p>
                     </div>
                     <p class="text-3xl font-bold text-success-600 dark:text-success-400">{{ $confirmed }}</p>
                 </div>
@@ -63,7 +63,7 @@
                 <div class="space-y-2">
                     <div class="flex items-center gap-2">
                         <x-filament::icon icon="heroicon-o-lock-closed" class="h-5 w-5 text-primary-500" />
-                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Finalized</p>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ __('widgets.list_stats.finalized') }}</p>
                     </div>
                     <p class="text-3xl font-bold text-primary-600 dark:text-primary-400">{{ $finalized }}</p>
                 </div>

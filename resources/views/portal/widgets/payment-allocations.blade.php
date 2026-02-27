@@ -1,6 +1,6 @@
 <x-filament-widgets::widget>
     <x-filament::section
-        heading="Payment Allocations"
+        :heading="__('widgets.portal.payment_allocations')"
         icon="heroicon-o-arrows-right-left"
     >
         {{-- Summary Cards --}}
@@ -12,7 +12,7 @@
                         <x-filament::icon icon="heroicon-o-banknotes" class="h-5 w-5 text-gray-500 dark:text-gray-400" />
                     </div>
                     <div class="min-w-0">
-                        <p class="text-[0.65rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Payment Amount</p>
+                        <p class="text-[0.65rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.portal.payment_amount') }}</p>
                         <p class="truncate text-lg font-bold text-gray-900 dark:text-white">{{ $currency }} {{ $paymentAmount }}</p>
                     </div>
                 </div>
@@ -25,7 +25,7 @@
                         <x-filament::icon icon="heroicon-o-check-circle" class="h-5 w-5 text-success-600 dark:text-success-400" />
                     </div>
                     <div class="min-w-0">
-                        <p class="text-[0.65rem] font-semibold uppercase tracking-wide text-success-600 dark:text-success-400">Allocated</p>
+                        <p class="text-[0.65rem] font-semibold uppercase tracking-wide text-success-600 dark:text-success-400">{{ __('widgets.list_stats.allocated') }}</p>
                         <p class="truncate text-lg font-bold text-success-700 dark:text-success-300">{{ $currency }} {{ $totalAllocated }}</p>
                     </div>
                 </div>
@@ -54,7 +54,7 @@
                             'text-[0.65rem] font-semibold uppercase tracking-wide',
                             'text-warning-600 dark:text-warning-400' => $totalUnallocatedRaw > 0,
                             'text-gray-400 dark:text-gray-500' => $totalUnallocatedRaw <= 0,
-                        ])>Unallocated</p>
+                        ])>{{ __('widgets.list_stats.unallocated') }}</p>
                         <p @class([
                             'truncate text-lg font-bold',
                             'text-warning-700 dark:text-warning-300' => $totalUnallocatedRaw > 0,
@@ -72,10 +72,10 @@
                     <thead>
                         <tr class="border-b-2 border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/5">
                             <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">#</th>
-                            <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Document</th>
-                            <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Reference</th>
-                            <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Schedule Item</th>
-                            <th class="px-4 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Allocated Amount</th>
+                            <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.portal.document') }}</th>
+                            <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.portal.reference') }}</th>
+                            <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.portal.schedule_item') }}</th>
+                            <th class="px-4 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.portal.allocated_amount') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -107,7 +107,7 @@
                     <tfoot>
                         <tr class="border-t-2 border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/5">
                             <td colspan="4" class="px-4 py-3 text-sm font-bold text-gray-700 dark:text-gray-300">
-                                Total ({{ count($allocations) }} {{ count($allocations) === 1 ? 'allocation' : 'allocations' }})
+                                {{ __('widgets.portal.total') }} ({{ count($allocations) }} {{ count($allocations) === 1 ? __('widgets.portal.allocation') : __('widgets.portal.allocations') }})
                             </td>
                             <td class="whitespace-nowrap px-4 py-3 text-right font-mono font-bold text-success-600 dark:text-success-400">
                                 {{ $currency }} {{ $totalAllocated }}
@@ -119,7 +119,7 @@
         @else
             <div class="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-10 dark:border-gray-700 dark:bg-white/5">
                 <x-filament::icon icon="heroicon-o-arrows-right-left" class="h-8 w-8 text-gray-300 dark:text-gray-600" />
-                <span class="text-sm text-gray-500 dark:text-gray-400">No allocations recorded yet.</span>
+                <span class="text-sm text-gray-500 dark:text-gray-400">{{ __('widgets.portal.no_allocations_yet') }}</span>
             </div>
         @endif
     </x-filament::section>
