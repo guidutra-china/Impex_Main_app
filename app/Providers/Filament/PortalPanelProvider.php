@@ -8,6 +8,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use App\Filament\Auth\EditProfile;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -27,7 +28,7 @@ class PortalPanelProvider extends PanelProvider
             ->path('portal')
             ->login()
             ->passwordReset()
-            ->profile()
+            ->profile(EditProfile::class)
             ->tenant(Company::class)
             ->tenantRoutePrefix('')
             ->sidebarCollapsibleOnDesktop()
