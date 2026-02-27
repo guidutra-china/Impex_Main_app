@@ -75,30 +75,40 @@ class ItemsRelationManager extends RelationManager
                     ->label(__('forms.labels.source_supplier_quotation'))
                     ->options(function (Get $get) {
                         $productId = $get('product_id');
-                        $quotation = $this->getOwnerRecord();
-                        $inquiryId = $quotation->inquiry_id;
-
-                        if (! $productId || ! $inquiryId) {
+                        if (! $productId) {
                             return [];
                         }
 
-                        return SupplierQuotationItem::query()
+                        $quotation = $this->getOwnerRecord();
+                        $inquiryId = $quotation->inquiry_id;
+
+                        $query = SupplierQuotationItem::query()
                             ->where('product_id', $productId)
                             ->where('unit_cost', '>', 0)
                             ->whereHas('supplierQuotation', function ($q) use ($inquiryId) {
-                                $q->where('inquiry_id', $inquiryId)
-                                    ->whereIn('status', [
-                                        SupplierQuotationStatus::RECEIVED,
-                                        SupplierQuotationStatus::UNDER_ANALYSIS,
-                                        SupplierQuotationStatus::SELECTED,
-                                    ]);
+                                if ($inquiryId) {
+                                    $q->where('inquiry_id', $inquiryId);
+                                }
+                                $q->whereIn('status', [
+                                    SupplierQuotationStatus::RECEIVED,
+                                    SupplierQuotationStatus::UNDER_ANALYSIS,
+                                    SupplierQuotationStatus::SELECTED,
+                                ]);
                             })
-                            ->with('supplierQuotation.company')
-                            ->get()
+                            ->with('supplierQuotation.company');
+
+                        return $query->get()
                             ->mapWithKeys(fn ($sqItem) => [
                                 $sqItem->id => "{$sqItem->supplierQuotation->reference} — {$sqItem->supplierQuotation->company->name} — $" . Money::format($sqItem->unit_cost, 4),
                             ])
                             ->toArray();
+                    })
+                    ->getOptionLabelUsing(function ($value) {
+                        $sqItem = SupplierQuotationItem::with('supplierQuotation.company')->find($value);
+                        if (! $sqItem) {
+                            return null;
+                        }
+                        return "{$sqItem->supplierQuotation->reference} — {$sqItem->supplierQuotation->company->name} — $" . Money::format($sqItem->unit_cost, 4);
                     })
                     ->searchable()
                     ->placeholder(__('forms.placeholders.select_supplier_quotation_source'))
@@ -145,10 +155,23 @@ class ItemsRelationManager extends RelationManager
                             return [];
                         }
 
-                        return Product::find($productId)
+                        $suppliers = Product::find($productId)
                             ?->suppliers()
                             ->pluck('companies.name', 'companies.id')
                             ->toArray() ?? [];
+
+                        $currentSupplierId = $get('selected_supplier_id');
+                        if ($currentSupplierId && ! isset($suppliers[$currentSupplierId])) {
+                            $company = Company::find($currentSupplierId);
+                            if ($company) {
+                                $suppliers[$currentSupplierId] = $company->name;
+                            }
+                        }
+
+                        return $suppliers;
+                    })
+                    ->getOptionLabelUsing(function ($value) {
+                        return Company::find($value)?->name;
                     })
                     ->searchable()
                     ->placeholder(__('forms.placeholders.select_supplier'))
