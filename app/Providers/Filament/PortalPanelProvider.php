@@ -27,6 +27,7 @@ class PortalPanelProvider extends PanelProvider
             ->path('portal')
             ->login()
             ->passwordReset()
+            ->profile()
             ->tenant(Company::class)
             ->tenantRoutePrefix('')
             ->sidebarCollapsibleOnDesktop()
