@@ -57,7 +57,9 @@ class QuotationForm
                         ->label(__('forms.labels.status'))
                         ->options(QuotationStatus::class)
                         ->required()
-                        ->default(QuotationStatus::DRAFT->value),
+                        ->default(QuotationStatus::DRAFT->value)
+                        ->disabled(fn (?\Illuminate\Database\Eloquent\Model $record) => $record !== null)
+                        ->dehydrated(),
                 ])
                 ->columns(2),
 

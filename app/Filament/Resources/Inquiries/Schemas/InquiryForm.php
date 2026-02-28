@@ -52,7 +52,9 @@ class InquiryForm
                         ->label(__('forms.labels.status'))
                         ->options(InquiryStatus::class)
                         ->required()
-                        ->default(InquiryStatus::RECEIVED->value),
+                        ->default(InquiryStatus::RECEIVED->value)
+                        ->disabled(fn (?\Illuminate\Database\Eloquent\Model $record) => $record !== null)
+                        ->dehydrated(),
                     Select::make('source')
                         ->label(__('forms.labels.source'))
                         ->options(InquirySource::class)

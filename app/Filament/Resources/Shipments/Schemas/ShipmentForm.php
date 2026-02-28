@@ -31,7 +31,9 @@ class ShipmentForm
                     Select::make('status')
                         ->options(ShipmentStatus::class)
                         ->default(ShipmentStatus::DRAFT->value)
-                        ->required(),
+                        ->required()
+                        ->disabled(fn (?\Illuminate\Database\Eloquent\Model $record) => $record !== null)
+                        ->dehydrated(),
                     Select::make('currency_code')
                         ->label(__('forms.labels.currency'))
                         ->options(fn () => Currency::pluck('code', 'code'))

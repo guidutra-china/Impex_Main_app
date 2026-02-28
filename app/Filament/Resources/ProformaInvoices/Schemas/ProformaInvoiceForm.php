@@ -63,7 +63,9 @@ class ProformaInvoiceForm
                         ->label(__('forms.labels.status'))
                         ->options(ProformaInvoiceStatus::class)
                         ->required()
-                        ->default(ProformaInvoiceStatus::DRAFT->value),
+                        ->default(ProformaInvoiceStatus::DRAFT->value)
+                        ->disabled(fn (?\Illuminate\Database\Eloquent\Model $record) => $record !== null)
+                        ->dehydrated(),
                     Select::make('inquiry_id')
                         ->label(__('forms.labels.inquiry'))
                         ->options(

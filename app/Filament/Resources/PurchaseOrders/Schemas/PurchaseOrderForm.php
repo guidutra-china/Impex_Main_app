@@ -63,7 +63,9 @@ class PurchaseOrderForm
                         ->label(__('forms.labels.status'))
                         ->options(PurchaseOrderStatus::class)
                         ->required()
-                        ->default(PurchaseOrderStatus::DRAFT->value),
+                        ->default(PurchaseOrderStatus::DRAFT->value)
+                        ->disabled(fn (?\Illuminate\Database\Eloquent\Model $record) => $record !== null)
+                        ->dehydrated(),
                     Select::make('proforma_invoice_id')
                         ->label(__('forms.labels.proforma_invoice'))
                         ->options(

@@ -62,7 +62,9 @@ class SupplierQuotationForm
                         ->label(__('forms.labels.status'))
                         ->options(SupplierQuotationStatus::class)
                         ->required()
-                        ->default(SupplierQuotationStatus::REQUESTED->value),
+                        ->default(SupplierQuotationStatus::REQUESTED->value)
+                        ->disabled(fn (?\Illuminate\Database\Eloquent\Model $record) => $record !== null)
+                        ->dehydrated(),
                     Select::make('inquiry_id')
                         ->label(__('forms.labels.inquiry'))
                         ->options(
