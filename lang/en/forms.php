@@ -616,6 +616,11 @@ return array (
     'specifications' => 'Specifications',
     'summary' => 'Summary',
     'import_settings' => 'Import Settings',
+    'select_existing_product' => 'Select Existing Product',
+    'new_draft_product' => 'New Draft Product',
+    'item_details' => 'Item Details',
+    'filter_by_category' => 'Filter by Category',
+    'filter_by_supplier' => 'Filter by Supplier',
     ),
     'helpers' => 
     array (
@@ -747,6 +752,7 @@ return array (
     'mark_as_recurring' => 'Mark if this expense repeats every month',
     'day_of_month' => 'Day of the month when this expense recurs (1-31)',
     'enter_all_contracted_importer_details_as_they_should_appear' => 'Enter all details as they should appear on documents (name, CNPJ, address, phone)',
+    'type_to_search_by_name_sku_or_code_use_filters_above' => 'Type to search by name, SKU, or supplier/client code. Use filters above to narrow results. ★ = client product.',
     ),
     'placeholders' => 
     array (
@@ -835,6 +841,8 @@ return array (
     'eg_watts_cct_material' => 'e.g., Watts, CCT, Material',
     'pcs_sets_etc' => 'pcs, sets, etc.',
     'receipt_or_invoice_number' => 'Receipt or invoice number',
+    'all_categories' => 'All categories',
+    'all_suppliers' => 'All suppliers',
     ),
     'descriptions' => 
     array (

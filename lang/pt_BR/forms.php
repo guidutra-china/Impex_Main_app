@@ -616,6 +616,11 @@ return array (
     'specifications' => 'Especificações',
     'summary' => 'Resumo',
     'import_settings' => 'Configurações de Importação',
+    'select_existing_product' => 'Selecionar Produto Existente',
+    'new_draft_product' => 'Novo Produto Rascunho',
+    'item_details' => 'Detalhes do Item',
+    'filter_by_category' => 'Filtrar por Categoria',
+    'filter_by_supplier' => 'Filtrar por Fornecedor',
     ),
     'helpers' => 
     array (
@@ -747,6 +752,7 @@ return array (
     'mark_as_recurring' => 'Marque se esta despesa se repete todo mês',
     'day_of_month' => 'Dia do mês em que esta despesa se repete (1-31)',
     'enter_all_contracted_importer_details_as_they_should_appear' => 'Informe todos os dados como devem aparecer nos documentos (nome, CNPJ, endereço, telefone)',
+    'type_to_search_by_name_sku_or_code_use_filters_above' => 'Digite para buscar por nome, SKU ou código do fornecedor/cliente. Use os filtros acima para refinar. ★ = produto do cliente.',
     ),
     'placeholders' => 
     array (
@@ -835,6 +841,8 @@ return array (
     'eg_watts_cct_material' => 'ex.: Watts, CCT, Material',
     'pcs_sets_etc' => 'pcs, conjuntos, etc.',
     'receipt_or_invoice_number' => 'Número do recibo ou nota fiscal',
+    'all_categories' => 'Todas as categorias',
+    'all_suppliers' => 'Todos os fornecedores',
     ),
     'descriptions' => 
     array (

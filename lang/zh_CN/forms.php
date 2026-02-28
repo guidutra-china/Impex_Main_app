@@ -616,6 +616,11 @@ return array (
     'specifications' => '规格',
     'summary' => '摘要',
     'import_settings' => '进口设置',
+    'select_existing_product' => '选择现有产品',
+    'new_draft_product' => '新建草稿产品',
+    'item_details' => '项目详情',
+    'filter_by_category' => '按类别筛选',
+    'filter_by_supplier' => '按供应商筛选',
     ),
     'helpers' => 
     array (
@@ -747,6 +752,7 @@ return array (
     'mark_as_recurring' => '如果此费用每月重复发生，请勾选',
     'day_of_month' => '此费用每月重复发生的日期（1-31）',
     'enter_all_contracted_importer_details_as_they_should_appear' => '输入所有信息，格式与文件上显示的一致（名称、CNPJ、地址、电话）',
+    'type_to_search_by_name_sku_or_code_use_filters_above' => '输入名称、SKU或供应商/客户代码进行搜索。使用上方筛选器缩小范围。★ = 客户产品。',
     ),
     'placeholders' => 
     array (
@@ -835,6 +841,8 @@ return array (
     'eg_watts_cct_material' => '例如，瓦特，CCT，材料',
     'pcs_sets_etc' => '件，套等',
     'receipt_or_invoice_number' => '收据或发票编号',
+    'all_categories' => '所有类别',
+    'all_suppliers' => '所有供应商',
     ),
     'descriptions' => 
     array (

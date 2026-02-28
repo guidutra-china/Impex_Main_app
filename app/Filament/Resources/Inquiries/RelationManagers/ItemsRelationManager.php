@@ -5,6 +5,8 @@ namespace App\Filament\Resources\Inquiries\RelationManagers;
 use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
+use App\Domain\CRM\Enums\CompanyRole;
+use App\Domain\CRM\Models\Company;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -53,34 +55,47 @@ class ItemsRelationManager extends RelationManager
                         }
                     }),
 
-                // --- Existing product selection ---
+                // --- Existing product selection with filters ---
                 Section::make(__('forms.sections.select_existing_product'))
                     ->schema([
-                        Select::make('product_id')
-                            ->label(__('forms.labels.product'))
+                        Select::make('filter_category_id')
+                            ->label(__('forms.labels.filter_by_category'))
                             ->options(function () {
-                                return Product::query()
+                                return Category::active()
                                     ->orderBy('name')
                                     ->get()
-                                    ->mapWithKeys(fn ($p) => [
-                                        $p->id => ($p->status === ProductStatus::DRAFT ? '[DRAFT] ' : '') . $p->sku . ' — ' . $p->name,
-                                    ]);
+                                    ->mapWithKeys(fn ($c) => [$c->id => $c->full_path]);
                             })
                             ->searchable()
-                            ->getSearchResultsUsing(function (string $search) {
-                                return Product::query()
-                                    ->where(function ($query) use ($search) {
-                                        $query->where('name', 'like', "%{$search}%")
-                                            ->orWhere('sku', 'like', "%{$search}%")
-                                            ->orWhereHas('companies', function ($q) use ($search) {
-                                                $q->where('company_product.external_code', 'like', "%{$search}%");
-                                            });
-                                    })
-                                    ->limit(50)
-                                    ->get()
-                                    ->mapWithKeys(fn ($p) => [
-                                        $p->id => ($p->status === ProductStatus::DRAFT ? '[DRAFT] ' : '') . $p->sku . ' — ' . $p->name,
-                                    ]);
+                            ->placeholder(__('forms.placeholders.all_categories'))
+                            ->live()
+                            ->dehydrated(false)
+                            ->afterStateUpdated(fn (Set $set) => $set('product_id', null)),
+
+                        Select::make('filter_supplier_id')
+                            ->label(__('forms.labels.filter_by_supplier'))
+                            ->options(function () {
+                                return Company::withRole(CompanyRole::SUPPLIER)
+                                    ->orderBy('name')
+                                    ->pluck('name', 'id');
+                            })
+                            ->searchable()
+                            ->placeholder(__('forms.placeholders.all_suppliers'))
+                            ->live()
+                            ->dehydrated(false)
+                            ->afterStateUpdated(fn (Set $set) => $set('product_id', null)),
+
+                        Select::make('product_id')
+                            ->label(__('forms.labels.product'))
+                            ->searchable()
+                            ->getSearchResultsUsing(function (string $search, Get $get) {
+                                return $this->buildProductQuery($search, $get);
+                            })
+                            ->getOptionLabelUsing(function ($value) {
+                                $product = Product::find($value);
+                                return $product
+                                    ? ($product->status === ProductStatus::DRAFT ? '[DRAFT] ' : '') . $product->sku . ' — ' . $product->name
+                                    : null;
                             })
                             ->live()
                             ->afterStateUpdated(function (Set $set, ?string $state) {
@@ -91,14 +106,13 @@ class ItemsRelationManager extends RelationManager
                                     }
                                 }
                             })
-                            ->helperText(__('forms.helpers.search_by_name_sku_or_supplierclient_code'))
+                            ->helperText(__('forms.helpers.type_to_search_by_name_sku_or_code_use_filters_above'))
                             ->columnSpanFull(),
                     ])
+                    ->columns(2)
                     ->visible(fn (Get $get) => ! $get('create_new_product')),
 
                 // --- New draft product creation ---
-                // Fields use dehydrated(true) so they reach the CreateAction->using() callback.
-                // They are manually removed from $data before creating the InquiryItem.
                 Section::make(__('forms.sections.new_draft_product'))
                     ->description(__('forms.descriptions.a_new_product_will_be_created_in_the_catalog_with_draft'))
                     ->schema([
@@ -161,6 +175,74 @@ class ItemsRelationManager extends RelationManager
             ]);
     }
 
+    protected function buildProductQuery(string $search, Get $get): array
+    {
+        $categoryId = $get('filter_category_id');
+        $supplierId = $get('filter_supplier_id');
+        $clientId = $this->getOwnerRecord()->company_id;
+
+        $query = Product::query()
+            ->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('sku', 'like', "%{$search}%")
+                    ->orWhereHas('companies', function ($sub) use ($search) {
+                        $sub->where('company_product.external_code', 'like', "%{$search}%")
+                            ->orWhere('company_product.external_name', 'like', "%{$search}%");
+                    });
+            });
+
+        if ($categoryId) {
+            $categoryIds = $this->getCategoryWithDescendantIds((int) $categoryId);
+            $query->whereIn('category_id', $categoryIds);
+        }
+
+        if ($supplierId) {
+            $query->whereHas('suppliers', fn ($q) => $q->where('companies.id', $supplierId));
+        }
+
+        $products = $query->limit(50)->get();
+
+        // Prioritize client products
+        if ($clientId) {
+            $clientProductIds = $products
+                ->filter(fn ($p) => $p->clients()->where('companies.id', $clientId)->exists())
+                ->pluck('id')
+                ->toArray();
+
+            $products = $products->sortBy(function ($p) use ($clientProductIds) {
+                return in_array($p->id, $clientProductIds) ? 0 : 1;
+            });
+        }
+
+        return $products->mapWithKeys(function ($p) use ($clientId) {
+            $prefix = '';
+            if ($p->status === ProductStatus::DRAFT) {
+                $prefix = '[DRAFT] ';
+            }
+
+            $isClientProduct = false;
+            if ($clientId) {
+                $isClientProduct = $p->clients()->where('companies.id', $clientId)->exists();
+            }
+
+            $clientBadge = $isClientProduct ? ' ★' : '';
+
+            return [$p->id => $prefix . $p->sku . ' — ' . $p->name . $clientBadge];
+        })->toArray();
+    }
+
+    protected function getCategoryWithDescendantIds(int $categoryId): array
+    {
+        $ids = [$categoryId];
+        $children = Category::where('parent_id', $categoryId)->pluck('id')->toArray();
+
+        foreach ($children as $childId) {
+            $ids = array_merge($ids, $this->getCategoryWithDescendantIds($childId));
+        }
+
+        return $ids;
+    }
+
     public function table(Table $table): Table
     {
         return $table
@@ -217,15 +299,18 @@ class ItemsRelationManager extends RelationManager
 
     protected function createItemWithDraftProduct(array $data): \Illuminate\Database\Eloquent\Model
     {
-        // Extract draft product fields from data (they are NOT InquiryItem columns)
         $newName = $data['new_product_name'] ?? null;
         $newCategoryId = $data['new_product_category_id'] ?? null;
         $newDescription = $data['new_product_description'] ?? null;
 
-        // Remove non-InquiryItem fields before creating the record
-        unset($data['new_product_name'], $data['new_product_category_id'], $data['new_product_description']);
+        unset(
+            $data['new_product_name'],
+            $data['new_product_category_id'],
+            $data['new_product_description'],
+            $data['filter_category_id'],
+            $data['filter_supplier_id'],
+        );
 
-        // If we have draft product data, create the product first
         if ($newName && empty($data['product_id'])) {
             $product = Product::create([
                 'name' => $newName,
@@ -240,7 +325,6 @@ class ItemsRelationManager extends RelationManager
                 $data['description'] = $newName;
             }
 
-            // Auto-associate the Inquiry's client with this product
             $inquiry = $this->getOwnerRecord();
             if ($inquiry->company_id) {
                 $product->companies()->attach($inquiry->company_id, [
