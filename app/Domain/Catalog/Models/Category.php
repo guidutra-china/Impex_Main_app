@@ -87,6 +87,23 @@ class Category extends Model
         return $path->implode(' > ');
     }
 
+    public function getReversePathAttribute(): string
+    {
+        $parents = collect();
+        $parent = $this->parent;
+
+        while ($parent) {
+            $parents->push($parent->name);
+            $parent = $parent->parent;
+        }
+
+        if ($parents->isEmpty()) {
+            return '<strong>' . e($this->name) . '</strong>';
+        }
+
+        return '<strong>' . e($this->name) . '</strong> <span style="color:#6b7280;font-size:0.85em">‹ ' . e($parents->implode(' ‹ ')) . '</span>';
+    }
+
     /**
      * Get all attributes including inherited from parent categories.
      * Own attributes come last (higher priority for display).

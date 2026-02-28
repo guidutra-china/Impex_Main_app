@@ -64,8 +64,9 @@ class ItemsRelationManager extends RelationManager
                                 return Category::active()
                                     ->orderBy('name')
                                     ->get()
-                                    ->mapWithKeys(fn ($c) => [$c->id => $c->full_path]);
+                                    ->mapWithKeys(fn ($c) => [$c->id => $c->reverse_path]);
                             })
+                            ->allowHtml()
                             ->searchable()
                             ->placeholder(__('forms.placeholders.all_categories'))
                             ->live()
