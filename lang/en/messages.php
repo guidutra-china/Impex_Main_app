@@ -26,6 +26,7 @@ return [
     'cannot_deactivate_own' => 'Cannot deactivate your own account',
     'payment_approved' => 'Payment approved',
     'payment_rejected' => 'Payment rejected',
+    'confirm_transition' => 'Change status from :from to :to?',
 
     // Dynamic notification titles
     'sq_created' => 'supplier quotation(s) created',

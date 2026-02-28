@@ -26,6 +26,7 @@ return [
     'cannot_deactivate_own' => 'Não é possível desativar sua própria conta',
     'payment_approved' => 'Pagamento aprovado',
     'payment_rejected' => 'Pagamento rejeitado',
+    'confirm_transition' => 'Alterar status de :from para :to?',
 
     // Dynamic notification titles
     'sq_created' => 'cotação(ões) de fornecedor criada(s)',
