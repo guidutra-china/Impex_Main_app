@@ -88,6 +88,16 @@ class ItemsRelationManager extends RelationManager
                         Select::make('product_id')
                             ->label(__('forms.labels.product'))
                             ->searchable()
+                            ->options(function (Get $get) {
+                                $categoryId = $get('filter_category_id');
+                                $supplierId = $get('filter_supplier_id');
+
+                                if (! $categoryId && ! $supplierId) {
+                                    return [];
+                                }
+
+                                return $this->buildProductQuery(null, $get);
+                            })
                             ->getSearchResultsUsing(function (string $search, Get $get) {
                                 return $this->buildProductQuery($search, $get);
                             })
@@ -175,14 +185,16 @@ class ItemsRelationManager extends RelationManager
             ]);
     }
 
-    protected function buildProductQuery(string $search, Get $get): array
+    protected function buildProductQuery(?string $search, Get $get): array
     {
         $categoryId = $get('filter_category_id');
         $supplierId = $get('filter_supplier_id');
         $clientId = $this->getOwnerRecord()->company_id;
 
-        $query = Product::query()
-            ->where(function ($q) use ($search) {
+        $query = Product::query();
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('sku', 'like', "%{$search}%")
                     ->orWhereHas('companies', function ($sub) use ($search) {
@@ -190,6 +202,7 @@ class ItemsRelationManager extends RelationManager
                             ->orWhere('company_product.external_name', 'like', "%{$search}%");
                     });
             });
+        }
 
         if ($categoryId) {
             $categoryIds = $this->getCategoryWithDescendantIds((int) $categoryId);
