@@ -6,9 +6,11 @@ use App\Domain\Catalog\Models\Category;
 use App\Filament\Resources\Catalog\Categories\Pages\CreateCategory;
 use App\Filament\Resources\Catalog\Categories\Pages\EditCategory;
 use App\Filament\Resources\Catalog\Categories\Pages\ListCategories;
+use App\Filament\Resources\Catalog\Categories\Pages\ViewCategory;
 use App\Filament\Resources\Catalog\Categories\RelationManagers\CategoryAttributesRelationManager;
 use App\Filament\Resources\Catalog\Categories\RelationManagers\InheritedAttributesRelationManager;
 use App\Filament\Resources\Catalog\Categories\Schemas\CategoryForm;
+use App\Filament\Resources\Catalog\Categories\Schemas\CategoryInfolist;
 use App\Filament\Resources\Catalog\Categories\Tables\CategoriesTable;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -43,6 +45,11 @@ class CategoryResource extends Resource
         return CategoriesTable::configure($table);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return CategoryInfolist::configure($schema);
+    }
+
     public static function getRelations(): array
     {
         return [
@@ -56,6 +63,7 @@ class CategoryResource extends Resource
         return [
             'index' => ListCategories::route('/'),
             'create' => CreateCategory::route('/create'),
+            'view' => ViewCategory::route('/{record}'),
             'edit' => EditCategory::route('/{record}/edit'),
         ];
     }
