@@ -13,7 +13,8 @@ class CategoryInfolist
     {
         return $schema->components([
             Section::make(__('forms.sections.category_details'))
-                ->columns(3)
+                ->columns(4)
+                ->columnSpanFull()
                 ->schema([
                     TextEntry::make('name')
                         ->label(__('forms.labels.name'))
@@ -27,14 +28,15 @@ class CategoryInfolist
                         ->badge()
                         ->color('primary')
                         ->placeholder('—'),
+                    IconEntry::make('is_active')
+                        ->label(__('forms.labels.active'))
+                        ->boolean(),
                     TextEntry::make('parent.name')
                         ->label(__('forms.labels.parent_category'))
                         ->placeholder(__('forms.placeholders.root')),
                     TextEntry::make('full_path')
-                        ->label(__('forms.labels.full_path')),
-                    IconEntry::make('is_active')
-                        ->label(__('forms.labels.active'))
-                        ->boolean(),
+                        ->label(__('forms.labels.full_path'))
+                        ->columnSpan(2),
                     TextEntry::make('sort_order')
                         ->label(__('forms.labels.sort_order')),
                     TextEntry::make('products_count')
