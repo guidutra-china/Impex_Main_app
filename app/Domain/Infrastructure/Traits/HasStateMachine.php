@@ -2,6 +2,7 @@
 
 namespace App\Domain\Infrastructure\Traits;
 
+use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Infrastructure\Models\StateTransition;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
@@ -57,5 +58,16 @@ trait HasStateMachine
         $allowed = static::allowedTransitions();
 
         return $allowed[$currentStatus] ?? [];
+    }
+
+    /**
+     * Convenience method to transition the model's status.
+     * Delegates to TransitionStatusAction for validation, persistence, and audit logging.
+     */
+    public function transitionTo(string|\BackedEnum $toStatus, ?string $notes = null, array $metadata = []): static
+    {
+        app(TransitionStatusAction::class)->execute($this, $toStatus, $notes, $metadata);
+
+        return $this;
     }
 }
