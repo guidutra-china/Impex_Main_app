@@ -8,7 +8,10 @@ use App\Filament\Resources\Catalog\Categories\Pages\EditCategory;
 use App\Filament\Resources\Catalog\Categories\Pages\ListCategories;
 use App\Filament\Resources\Catalog\Categories\Pages\ViewCategory;
 use App\Filament\Resources\Catalog\Categories\RelationManagers\CategoryAttributesRelationManager;
+use App\Filament\Resources\Catalog\Categories\RelationManagers\CompaniesRelationManager;
 use App\Filament\Resources\Catalog\Categories\RelationManagers\InheritedAttributesRelationManager;
+use App\Filament\Resources\Catalog\Categories\RelationManagers\ProductsRelationManager;
+use App\Filament\Resources\Catalog\Categories\RelationManagers\SubcategoriesRelationManager;
 use App\Filament\Resources\Catalog\Categories\Schemas\CategoryForm;
 use App\Filament\Resources\Catalog\Categories\Schemas\CategoryInfolist;
 use App\Filament\Resources\Catalog\Categories\Tables\CategoriesTable;
@@ -53,6 +56,9 @@ class CategoryResource extends Resource
     public static function getRelations(): array
     {
         return [
+            CompaniesRelationManager::class,
+            ProductsRelationManager::class,
+            SubcategoriesRelationManager::class,
             CategoryAttributesRelationManager::class,
             InheritedAttributesRelationManager::class,
         ];

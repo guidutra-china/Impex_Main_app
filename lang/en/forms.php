@@ -18,6 +18,7 @@ return array (
     'add_attribute_value' => 'Add Attribute Value',
     'add_category' => 'Add Category',
     'add_client' => 'Add Client',
+    'add_company' => 'Add Company',
     'add_cost' => 'Add Cost',
     'add_item' => 'Add Item',
     'add_line' => 'Add Line',

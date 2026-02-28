@@ -18,6 +18,7 @@ return array (
     'add_attribute_value' => 'Adicionar Valor de Atributo',
     'add_category' => 'Adicionar Categoria',
     'add_client' => 'Adicionar Cliente',
+    'add_company' => 'Adicionar Empresa',
     'add_cost' => 'Adicionar Custo',
     'add_item' => 'Adicionar Item',
     'add_line' => 'Adicionar Linha',
