@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\Quotations\Pages;
 
+use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Infrastructure\Pdf\Templates\QuotationPdfTemplate;
+use App\Domain\Quotations\Enums\QuotationStatus;
 use App\Domain\Quotations\Models\Quotation;
 use App\Domain\Quotations\Models\QuotationVersion;
 use App\Filament\Actions\GeneratePdfAction;
@@ -11,6 +13,7 @@ use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
@@ -93,10 +96,60 @@ class EditQuotation extends EditRecord
 
                     $this->refreshFormData(['version']);
                 }),
+            $this->transitionStatusAction(),
             DeleteAction::make(),
             RestoreAction::make(),
             ForceDeleteAction::make(),
         ];
+    }
+
+    protected function transitionStatusAction(): Action
+    {
+        return Action::make('transitionStatus')
+            ->label(__('forms.labels.change_status'))
+            ->icon('heroicon-o-arrow-path')
+            ->color('warning')
+            ->visible(fn () => ! empty($this->record->getAllowedNextStatuses()))
+            ->form(function () {
+                $allowed = $this->record->getAllowedNextStatuses();
+                $options = collect($allowed)->mapWithKeys(function ($status) {
+                    $enum = QuotationStatus::from($status);
+                    return [$status => $enum->getLabel()];
+                })->toArray();
+
+                return [
+                    Select::make('new_status')
+                        ->label(__('forms.labels.new_status'))
+                        ->options($options)
+                        ->required(),
+                    Textarea::make('notes')
+                        ->label(__('forms.labels.transition_notes'))
+                        ->rows(2)
+                        ->maxLength(1000),
+                ];
+            })
+            ->action(function (array $data) {
+                try {
+                    app(TransitionStatusAction::class)->execute(
+                        $this->record,
+                        QuotationStatus::from($data['new_status']),
+                        $data['notes'] ?? null,
+                    );
+
+                    Notification::make()
+                        ->title(__('messages.status_changed_to') . ' ' . QuotationStatus::from($data['new_status'])->getLabel())
+                        ->success()
+                        ->send();
+
+                    $this->refreshFormData(['status']);
+                } catch (\Throwable $e) {
+                    Notification::make()
+                        ->title(__('messages.status_transition_failed'))
+                        ->body($e->getMessage())
+                        ->danger()
+                        ->send();
+                }
+            });
     }
 
     protected function getRedirectUrl(): string
