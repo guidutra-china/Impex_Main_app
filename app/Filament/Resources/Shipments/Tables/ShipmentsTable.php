@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Shipments\Tables;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Enums\TransportMode;
+use App\Filament\Actions\StatusTransitionActions;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -90,6 +91,7 @@ class ShipmentsTable
                 TrashedFilter::make(),
             ])
             ->recordActions([
+                StatusTransitionActions::make(ShipmentStatus::class),
                 ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),

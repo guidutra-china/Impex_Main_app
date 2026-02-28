@@ -4,6 +4,7 @@ namespace App\Filament\Resources\PurchaseOrders\Tables;
 
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
+use App\Filament\Actions\StatusTransitionActions;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -104,6 +105,7 @@ class PurchaseOrdersTable
                 TrashedFilter::make(),
             ])
             ->recordActions([
+                StatusTransitionActions::make(PurchaseOrderStatus::class),
                 ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),

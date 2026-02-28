@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Quotations\Tables;
 
 use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\QuotationStatus;
+use App\Filament\Actions\StatusTransitionActions;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -84,6 +85,7 @@ class QuotationsTable
                 TrashedFilter::make(),
             ])
             ->recordActions([
+                StatusTransitionActions::make(QuotationStatus::class),
                 ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),

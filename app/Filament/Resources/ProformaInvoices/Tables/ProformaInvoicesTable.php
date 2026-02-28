@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ProformaInvoices\Tables;
 
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
+use App\Filament\Actions\StatusTransitionActions;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -103,6 +104,19 @@ class ProformaInvoicesTable
                 TrashedFilter::make(),
             ])
             ->recordActions([
+                StatusTransitionActions::make(ProformaInvoiceStatus::class, [
+                    'finalized' => [
+                        'icon' => 'heroicon-o-lock-closed',
+                        'color' => 'primary',
+                        'requiresConfirmation' => true,
+                    ],
+                    'reopened' => [
+                        'icon' => 'heroicon-o-lock-open',
+                        'color' => 'warning',
+                        'requiresConfirmation' => true,
+                        'requiresNotes' => true,
+                    ],
+                ]),
                 ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),

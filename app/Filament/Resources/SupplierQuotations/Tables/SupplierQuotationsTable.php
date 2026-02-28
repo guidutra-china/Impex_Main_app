@@ -3,7 +3,10 @@
 namespace App\Filament\Resources\SupplierQuotations\Tables;
 
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
+use App\Filament\Actions\StatusTransitionActions;
 use App\Filament\Resources\Inquiries\InquiryResource;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -89,6 +92,11 @@ class SupplierQuotationsTable
                     ->relationship('company', 'name')
                     ->searchable()
                     ->preload(),
+            ])
+            ->recordActions([
+                StatusTransitionActions::make(SupplierQuotationStatus::class),
+                ViewAction::make(),
+                EditAction::make(),
             ])
             ->persistFiltersInSession()
             ->persistSearchInSession()
