@@ -289,6 +289,10 @@ class ItemsRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make()
                     ->visible(fn () => auth()->user()?->can('edit-inquiries'))
+                    ->preserveFormDataWhenCreatingAnother([
+                        'filter_category_id',
+                        'filter_supplier_id',
+                    ])
                     ->using(function (array $data, string $model) {
                         return $this->createItemWithDraftProduct($data);
                     }),
