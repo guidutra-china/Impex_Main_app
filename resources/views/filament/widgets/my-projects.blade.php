@@ -119,11 +119,11 @@
                                     <td class="px-3 py-2">
                                         <a href="{{ route('filament.admin.resources.inquiries.edit', $inquiry) }}"
                                            class="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400">
-                                            {{ $inquiry->reference_number ?? '#' . $inquiry->id }}
+                                            {{ $inquiry->reference ?? '#' . $inquiry->id }}
                                         </a>
                                     </td>
                                     <td class="px-3 py-2 text-gray-600 dark:text-gray-400">
-                                        {{ $inquiry->client?->name ?? '—' }}
+                                        {{ $inquiry->company?->name ?? '—' }}
                                     </td>
                                     <td class="px-3 py-2">
                                         <span @class([
