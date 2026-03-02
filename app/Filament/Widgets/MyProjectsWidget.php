@@ -50,7 +50,7 @@ class MyProjectsWidget extends Widget
                 ->whereNotIn('status', [QuotationStatus::CANCELLED, QuotationStatus::REJECTED])
                 ->count(),
             'supplier_quotations' => SupplierQuotation::where('responsible_user_id', $userId)
-                ->whereNotIn('status', [SupplierQuotationStatus::CANCELLED, SupplierQuotationStatus::REJECTED])
+                ->whereNotIn('status', [SupplierQuotationStatus::REJECTED, SupplierQuotationStatus::EXPIRED])
                 ->count(),
             'proforma_invoices' => ProformaInvoice::where('responsible_user_id', $userId)
                 ->whereNotIn('status', [ProformaInvoiceStatus::CANCELLED])
