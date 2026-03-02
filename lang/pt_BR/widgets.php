@@ -233,4 +233,26 @@ return [
         'fulfillment_incomplete' => 'Cumprimento de remessa incompleto',
         'units_pending_shipment' => ':units unidade(s) ainda pendentes de envio em :items item(ns)',
     ],
+
+    // Widget Meus Projetos
+    'my_projects' => [
+        'heading' => 'Meus Projetos',
+        'active_items' => 'itens ativos atribuídos a você',
+        'inquiries' => 'Consultas',
+        'quotations' => 'Cotações',
+        'supplier_quotations' => 'Cotações Forn.',
+        'proforma_invoices' => 'Faturas Proforma',
+        'purchase_orders' => 'Pedidos de Compra',
+        'shipments' => 'Embarques',
+        'needs_attention' => 'Precisa da Sua Atenção',
+        'recent_inquiries' => 'Suas Consultas Recentes',
+        'reference' => 'Referência',
+        'client' => 'Cliente',
+        'status' => 'Status',
+        'updated' => 'Atualizado',
+        'no_projects_assigned' => 'Nenhum projeto atribuído a você ainda.',
+        'inquiries_no_update_5_days' => 'consulta(s) sem atualização há 5+ dias',
+        'pos_no_update_10_days' => 'PO(s) sem atualização há 10+ dias',
+        'finalized_pis_without_po' => 'PI(s) finalizada(s) sem Pedido de Compra',
+    ],
 ];

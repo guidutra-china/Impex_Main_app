@@ -233,4 +233,26 @@ return [
         'fulfillment_incomplete' => 'Shipment fulfillment incomplete',
         'units_pending_shipment' => ':units unit(s) still pending shipment across :items item(s)',
     ],
+
+    // My Projects Widget
+    'my_projects' => [
+        'heading' => 'My Projects',
+        'active_items' => 'active items assigned to you',
+        'inquiries' => 'Inquiries',
+        'quotations' => 'Quotations',
+        'supplier_quotations' => 'Supplier Quotes',
+        'proforma_invoices' => 'Proforma Invoices',
+        'purchase_orders' => 'Purchase Orders',
+        'shipments' => 'Shipments',
+        'needs_attention' => 'Needs Your Attention',
+        'recent_inquiries' => 'Your Recent Inquiries',
+        'reference' => 'Reference',
+        'client' => 'Client',
+        'status' => 'Status',
+        'updated' => 'Updated',
+        'no_projects_assigned' => 'No projects assigned to you yet.',
+        'inquiries_no_update_5_days' => 'inquiry(ies) with no update for 5+ days',
+        'pos_no_update_10_days' => 'PO(s) with no update for 10+ days',
+        'finalized_pis_without_po' => 'finalized PI(s) without Purchase Order',
+    ],
 ];
