@@ -51,6 +51,7 @@ class ProformaInvoice extends Model
         'notes',
         'internal_notes',
         'created_by',
+        'responsible_user_id',
     ];
 
     protected function casts(): array
@@ -164,6 +165,11 @@ class ProformaInvoice extends Model
     public function confirmedByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'confirmed_by');
+    }
+
+    public function responsible(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'responsible_user_id');
     }
 
     public function items(): HasMany

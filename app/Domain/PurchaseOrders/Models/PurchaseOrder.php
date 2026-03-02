@@ -48,6 +48,7 @@ class PurchaseOrder extends Model
         'supplier_invoice_number',
         'supplier_invoice_date',
         'created_by',
+        'responsible_user_id',
     ];
 
     protected function casts(): array
@@ -154,6 +155,11 @@ class PurchaseOrder extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function responsible(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'responsible_user_id');
     }
 
     public function confirmedByUser(): BelongsTo

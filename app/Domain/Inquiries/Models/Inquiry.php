@@ -10,6 +10,7 @@ use App\Domain\Infrastructure\Traits\HasReference;
 use App\Domain\Infrastructure\Traits\HasStateMachine;
 use App\Domain\Inquiries\Enums\InquirySource;
 use App\Domain\Inquiries\Enums\InquiryStatus;
+use App\Domain\Inquiries\Enums\ProjectTeamRole;
 use App\Domain\Quotations\Models\Quotation;
 use App\Domain\SupplierQuotations\Models\SupplierQuotation;
 use App\Models\User;
@@ -35,6 +36,7 @@ class Inquiry extends Model
         'notes',
         'internal_notes',
         'created_by',
+        'responsible_user_id',
     ];
 
     protected function casts(): array
@@ -110,6 +112,23 @@ class Inquiry extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function responsible(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'responsible_user_id');
+    }
+
+    public function teamMembers(): HasMany
+    {
+        return $this->hasMany(ProjectTeamMember::class);
+    }
+
+    public function getTeamMemberByRole(ProjectTeamRole $role): ?User
+    {
+        $member = $this->teamMembers()->byRole($role)->first();
+
+        return $member?->user;
     }
 
     public function items(): HasMany

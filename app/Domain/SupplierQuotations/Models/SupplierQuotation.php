@@ -42,6 +42,7 @@ class SupplierQuotation extends Model
         'internal_notes',
         'rfq_instructions',
         'created_by',
+        'responsible_user_id',
     ];
 
     protected function casts(): array
@@ -128,6 +129,11 @@ class SupplierQuotation extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function responsible(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'responsible_user_id');
     }
 
     public function items(): HasMany

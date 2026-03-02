@@ -40,6 +40,7 @@ class Quotation extends Model
         'notes',
         'internal_notes',
         'created_by',
+        'responsible_user_id',
     ];
 
     protected function casts(): array
@@ -138,6 +139,11 @@ class Quotation extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function responsible(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'responsible_user_id');
     }
 
     public function items(): HasMany
