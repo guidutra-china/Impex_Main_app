@@ -5,8 +5,13 @@ namespace App\Filament\Resources\ProformaInvoices\RelationManagers;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
+use App\Domain\Financial\Enums\AdditionalCostStatus;
+use App\Domain\Financial\Enums\AdditionalCostType;
+use App\Domain\Financial\Enums\BillableTo;
+use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
+use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Inquiries\Models\InquiryItem;
 use App\Domain\Quotations\Models\Quotation;
@@ -298,6 +303,8 @@ class ItemsRelationManager extends RelationManager
 
                 $pi->quotations()->syncWithoutDetaching(array_unique($linkedQuotationIds));
 
+                $this->createCommissionCosts($pi, array_unique($linkedQuotationIds));
+
                 Notification::make()
                     ->title($imported . ' ' . __('messages.items_imported'))
                     ->body(__('messages.items_imported_from_quotations', ['count' => count(array_unique($linkedQuotationIds))]))
@@ -415,6 +422,55 @@ class ItemsRelationManager extends RelationManager
                     ->success()
                     ->send();
             });
+    }
+
+    protected function createCommissionCosts($pi, array $quotationIds): void
+    {
+        $quotations = Quotation::whereIn('id', $quotationIds)
+            ->where('commission_type', CommissionType::SEPARATE)
+            ->where('commission_rate', '>', 0)
+            ->get();
+
+        if ($quotations->isEmpty()) {
+            return;
+        }
+
+        foreach ($quotations as $quotation) {
+            $importedItemsTotal = $pi->items()
+                ->whereHas('quotationItem', fn ($q) => $q->where('quotation_id', $quotation->id))
+                ->get()
+                ->sum(fn ($item) => $item->line_total);
+
+            if ($importedItemsTotal <= 0) {
+                continue;
+            }
+
+            $commissionAmount = (int) round($importedItemsTotal * ($quotation->commission_rate / 100));
+
+            $existing = $pi->additionalCosts()
+                ->where('cost_type', AdditionalCostType::COMMISSION)
+                ->where('notes', 'like', '%' . $quotation->reference . '%')
+                ->exists();
+
+            if ($existing) {
+                continue;
+            }
+
+            AdditionalCost::create([
+                'costable_type' => $pi->getMorphClass(),
+                'costable_id' => $pi->id,
+                'cost_type' => AdditionalCostType::COMMISSION,
+                'description' => 'Service Fee (' . $quotation->commission_rate . '%) — ' . $quotation->reference,
+                'amount' => $commissionAmount,
+                'currency_code' => $pi->currency_code,
+                'exchange_rate' => 1,
+                'amount_in_document_currency' => $commissionAmount,
+                'billable_to' => BillableTo::CLIENT,
+                'cost_date' => now()->toDateString(),
+                'status' => AdditionalCostStatus::PENDING,
+                'notes' => 'Auto-generated from ' . $quotation->reference . ' (Separate commission ' . $quotation->commission_rate . '%)',
+            ]);
+        }
     }
 
     protected function fillFromProduct(int $productId, Get $get, Set $set): void
