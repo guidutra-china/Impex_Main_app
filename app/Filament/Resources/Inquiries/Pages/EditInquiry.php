@@ -18,6 +18,7 @@ use App\Domain\Quotations\Models\QuotationItem;
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
 use App\Domain\SupplierQuotations\Models\SupplierQuotation;
 use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
+use App\Filament\Actions\RevertInquiryStatusAction;
 use App\Filament\Resources\Inquiries\InquiryResource;
 use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
 use App\Filament\Resources\Quotations\QuotationResource;
@@ -46,6 +47,7 @@ class EditInquiry extends EditRecord
             $this->createQuotationAction(),
             $this->createProformaInvoiceAction(),
             $this->transitionStatusAction(),
+            RevertInquiryStatusAction::make(),
             DeleteAction::make(),
             RestoreAction::make(),
             ForceDeleteAction::make(),

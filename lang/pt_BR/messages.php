@@ -85,4 +85,10 @@ return [
     'exchange_rates.fetch_summary' => 'Data: :date | Criadas: :created | Atualizadas: :updated | Ignoradas: :skipped',
     'exchange_rates.fetch_failed' => 'Falha ao Buscar Cotações',
 
+    // Revert Status
+    'revert_status_warning' => 'Esta ação irá reverter o status desta consulta. Isso ignora o fluxo normal e deve ser usado apenas para correções.',
+    'revert_child_documents_warning' => 'Esta consulta possui os seguintes documentos vinculados que NÃO serão afetados:',
+    'status_reverted_to' => 'Status revertido para',
+    'revert_status_failed' => 'Falha ao reverter status',
+    'previous_status' => 'status anterior',
 ];

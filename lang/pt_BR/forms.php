@@ -630,6 +630,9 @@ return array (
     'item_details' => 'Detalhes do Item',
     'filter_by_category' => 'Filtrar por Categoria',
     'filter_by_supplier' => 'Filtrar por Fornecedor',
+    'revert_status' => 'Reverter Status',
+    'revert_to' => 'Reverter Para',
+    'revert_reason' => 'Motivo da Reversão',
     ),
     'helpers' => 
     array (
@@ -884,5 +887,6 @@ return array (
     'record_how_and_when_the_supplier_confirmed_this_purchase' => 'Registre como e quando o fornecedor confirmou esta compra.',
     'this_text_will_appear_on_invoices_and_other_financial' => 'Este texto aparecerá em faturas e outros documentos financeiros. Formate como deseja que seja impresso.',
     'contracted_importer_details_for_conta_e_ordem' => 'Informe os dados da importadora contratada para operações de "Conta e Ordem". Esses dados aparecerão na Commercial Invoice e no Packing List.',
+    'revert_reason_required' => 'Um motivo é obrigatório para fins de auditoria.',
     ),
 );

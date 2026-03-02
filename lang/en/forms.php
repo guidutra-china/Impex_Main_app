@@ -630,6 +630,9 @@ return array (
     'item_details' => 'Item Details',
     'filter_by_category' => 'Filter by Category',
     'filter_by_supplier' => 'Filter by Supplier',
+    'revert_status' => 'Revert Status',
+    'revert_to' => 'Revert To',
+    'revert_reason' => 'Reason for Revert',
     ),
     'helpers' => 
     array (
@@ -884,5 +887,6 @@ return array (
     'record_how_and_when_the_supplier_confirmed_this_purchase' => 'Record how and when the supplier confirmed this purchase order.',
     'this_text_will_appear_on_invoices_and_other_financial' => 'This text will appear on invoices and other financial documents. Format it as you want it to be printed.',
     'contracted_importer_details_for_conta_e_ordem' => 'Enter the details of the contracted importer for "Conta e Ordem" operations. This will appear on the Commercial Invoice and Packing List.',
+    'revert_reason_required' => 'A reason is required for audit trail purposes.',
     ),
 );

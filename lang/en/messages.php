@@ -85,4 +85,10 @@ return [
     'exchange_rates.fetch_summary' => 'Date: :date | Created: :created | Updated: :updated | Skipped: :skipped',
     'exchange_rates.fetch_failed' => 'Failed to Fetch Rates',
 
+    // Revert Status
+    'revert_status_warning' => 'This action will revert the status of this inquiry. This bypasses the normal workflow and should only be used for corrections.',
+    'revert_child_documents_warning' => 'This inquiry has the following linked documents that will NOT be affected:',
+    'status_reverted_to' => 'Status reverted to',
+    'revert_status_failed' => 'Failed to revert status',
+    'previous_status' => 'previous status',
 ];
