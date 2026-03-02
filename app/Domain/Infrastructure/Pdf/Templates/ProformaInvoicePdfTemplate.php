@@ -58,7 +58,7 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
                 'quantity' => $item->quantity,
                 'unit' => $item->unit ?? 'pcs',
                 'unit_price' => $this->formatMoney($item->unit_price, $currencyCode),
-                'line_total' => $this->formatMoney($item->line_total, $currencyCode),
+                'line_total' => $this->formatMoney($item->line_total, $currencyCode, 2),
                 'incoterm' => $item->incoterm instanceof \BackedEnum ? $item->incoterm->value : $item->incoterm,
             ];
         });
@@ -72,7 +72,7 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
                 ->where('billable_to', BillableTo::CLIENT)
                 ->map(fn ($cost) => [
                     'description' => $cost->description,
-                    'amount' => $this->formatMoney($cost->amount_in_document_currency, $currencyCode),
+                    'amount' => $this->formatMoney($cost->amount_in_document_currency, $currencyCode, 2),
                     'raw_amount' => $cost->amount_in_document_currency,
                 ])
                 ->values()
@@ -107,8 +107,8 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
             'items' => $items->toArray(),
             'service_fees' => $serviceFees,
             'totals' => [
-                'subtotal' => $this->formatMoney($subtotal, $currencyCode),
-                'grand_total' => $this->formatMoney($grandTotal, $currencyCode),
+                'subtotal' => $this->formatMoney($subtotal, $currencyCode, 2),
+                'grand_total' => $this->formatMoney($grandTotal, $currencyCode, 2),
             ],
             'payment_term' => [
                 'name' => $pi->paymentTerm?->name,
