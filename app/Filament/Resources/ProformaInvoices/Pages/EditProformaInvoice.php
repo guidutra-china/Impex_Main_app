@@ -3,7 +3,11 @@
 namespace App\Filament\Resources\ProformaInvoices\Pages;
 
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
+use App\Domain\Infrastructure\Pdf\PdfGeneratorService;
+use App\Domain\Infrastructure\Pdf\PdfRenderer;
+use App\Domain\Infrastructure\Pdf\Templates\CustomPricePdfTemplate;
 use App\Domain\Infrastructure\Pdf\Templates\ProformaInvoicePdfTemplate;
+use App\Domain\Infrastructure\Services\DocumentService;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
@@ -11,6 +15,7 @@ use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
@@ -31,11 +36,59 @@ class EditProformaInvoice extends EditRecord
                 documentType: 'proforma_invoice_pdf',
                 label: 'Download PDF',
             ),
+            $this->customPricePdfAction(),
             $this->transitionStatusAction(),
             DeleteAction::make(),
             RestoreAction::make(),
             ForceDeleteAction::make(),
         ];
+    }
+
+    protected function customPricePdfAction(): Action
+    {
+        return Action::make('customPricePdf')
+            ->label('Custom Price PDF')
+            ->icon('heroicon-o-document-currency-dollar')
+            ->color('gray')
+            ->visible(fn () => auth()->user()?->can('generate-documents'))
+            ->form([
+                Checkbox::make('hide_commission')
+                    ->label('Hide Service Fee')
+                    ->helperText('If checked, the Service Fee line will not appear in the PDF.'),
+            ])
+            ->action(function (array $data) {
+                try {
+                    $template = new CustomPricePdfTemplate(
+                        model: $this->record,
+                        hideCommission: $data['hide_commission'] ?? false,
+                    );
+                    $service = new PdfGeneratorService(
+                        new PdfRenderer(),
+                        new DocumentService(),
+                    );
+
+                    $content = $service->preview($template);
+
+                    return response()->streamDownload(
+                        function () use ($content) {
+                            echo $content;
+                        },
+                        $template->getFilename(),
+                        [
+                            'Content-Type' => 'application/pdf',
+                            'Content-Disposition' => 'inline; filename="' . $template->getFilename() . '"',
+                        ],
+                    );
+                } catch (\Throwable $e) {
+                    report($e);
+
+                    Notification::make()
+                        ->title('Custom Price PDF Failed')
+                        ->body($e->getMessage())
+                        ->danger()
+                        ->send();
+                }
+            });
     }
 
     protected function transitionStatusAction(): Action
