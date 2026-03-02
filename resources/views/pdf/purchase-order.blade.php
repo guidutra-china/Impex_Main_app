@@ -127,12 +127,12 @@
         </div>
     @endif
 
-    {{-- === BANK DETAILS === --}}
-    @if(! empty($company['bank_details']))
+    {{-- === PO TERMS & CONDITIONS === --}}
+    @if(! empty($po_terms))
         <div class="section">
-            <div class="section-title">{{ $labels['bank_details'] }}</div>
+            <div class="section-title">{{ $labels['terms_and_conditions'] }}</div>
             <div class="section-content">
-                {!! nl2br(e($company['bank_details'])) !!}
+                {!! nl2br(e($po_terms)) !!}
             </div>
         </div>
     @endif
