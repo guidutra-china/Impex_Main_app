@@ -36,10 +36,10 @@ class ProformaInvoicesListStats extends Widget
         $paymentProgress = 0;
 
         if ($showFinancial) {
-            $invoices = (clone $query)->with(['items', 'paymentScheduleItems'])->get();
+            $invoices = (clone $query)->with(['items', 'paymentScheduleItems', 'additionalCosts'])->get();
             $currency = $invoices->first()?->currency_code ?? 'USD';
 
-            $totalValue = $invoices->sum(fn ($pi) => $pi->total);
+            $totalValue = $invoices->sum(fn ($pi) => $pi->grand_total);
             $totalPaid = $invoices->sum(fn ($pi) => $pi->paymentScheduleItems->sum('paid_amount'));
             $totalRemaining = max(0, $totalValue - $totalPaid);
             $paymentProgress = $totalValue > 0 ? round(($totalPaid / $totalValue) * 100, 1) : 0;
@@ -51,9 +51,9 @@ class ProformaInvoicesListStats extends Widget
             'finalized' => $finalized,
             'pending' => $pending,
             'showFinancial' => $showFinancial,
-            'totalValue' => $totalValue !== null ? Money::format($totalValue) : null,
-            'totalPaid' => $totalPaid !== null ? Money::format($totalPaid) : null,
-            'totalRemaining' => $totalRemaining !== null ? Money::format($totalRemaining) : null,
+            'totalValue' => $totalValue !== null ? Money::format($totalValue, 2) : null,
+            'totalPaid' => $totalPaid !== null ? Money::format($totalPaid, 2) : null,
+            'totalRemaining' => $totalRemaining !== null ? Money::format($totalRemaining, 2) : null,
             'currency' => $currency,
             'paymentProgress' => $paymentProgress,
         ];
