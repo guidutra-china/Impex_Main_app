@@ -90,6 +90,18 @@
     {{-- === TOTALS === --}}
     <div class="totals-wrapper">
         <table class="totals-table">
+            @if(! empty($service_fees))
+                <tr>
+                    <td class="label-cell">{{ $labels['subtotal'] }}</td>
+                    <td class="value-cell">{{ $proforma_invoice['currency_code'] }} {{ $totals['subtotal'] }}</td>
+                </tr>
+                @foreach($service_fees as $fee)
+                    <tr>
+                        <td class="label-cell">{{ $fee['description'] }}</td>
+                        <td class="value-cell">{{ $proforma_invoice['currency_code'] }} {{ $fee['amount'] }}</td>
+                    </tr>
+                @endforeach
+            @endif
             <tr class="grand-total">
                 <td class="label-cell">{{ $labels['grand_total'] }}</td>
                 <td class="value-cell">{{ $proforma_invoice['currency_code'] }} {{ $totals['grand_total'] }}</td>

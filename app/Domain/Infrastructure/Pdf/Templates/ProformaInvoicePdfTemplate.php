@@ -2,6 +2,8 @@
 
 namespace App\Domain\Infrastructure\Pdf\Templates;
 
+use App\Domain\Financial\Enums\AdditionalCostType;
+use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 
 class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
@@ -33,6 +35,7 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
             'quotations',
             'items.product',
             'items.supplierCompany',
+            'additionalCosts',
             'creator',
         ]);
 
@@ -53,6 +56,20 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
         });
 
         $subtotal = $pi->items->sum(fn ($item) => $item->line_total);
+
+        $serviceFees = $pi->additionalCosts
+            ->where('cost_type', AdditionalCostType::COMMISSION)
+            ->where('billable_to', BillableTo::CLIENT)
+            ->map(fn ($cost) => [
+                'description' => $cost->description,
+                'amount' => $this->formatMoney($cost->amount_in_document_currency, $currencyCode),
+                'raw_amount' => $cost->amount_in_document_currency,
+            ])
+            ->values()
+            ->toArray();
+
+        $serviceFeeTotal = array_sum(array_column($serviceFees, 'raw_amount'));
+        $grandTotal = $subtotal + $serviceFeeTotal;
 
         return [
             'proforma_invoice' => [
@@ -77,9 +94,10 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
                 'contact_email' => $pi->contact?->email,
             ],
             'items' => $items->toArray(),
+            'service_fees' => $serviceFees,
             'totals' => [
                 'subtotal' => $this->formatMoney($subtotal, $currencyCode),
-                'grand_total' => $this->formatMoney($subtotal, $currencyCode),
+                'grand_total' => $this->formatMoney($grandTotal, $currencyCode),
             ],
             'payment_term' => [
                 'name' => $pi->paymentTerm?->name,
