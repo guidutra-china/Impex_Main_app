@@ -63,8 +63,14 @@ class PaymentResource extends Resource
                     ->badge(),
                 TextColumn::make('amount')
                     ->label('Amount')
-                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state))
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 2))
                     ->alignRight(),
+                TextColumn::make('unallocated_amount')
+                    ->label('Unallocated')
+                    ->getStateUsing(fn ($record) => $record->unallocated_amount)
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 2))
+                    ->alignRight()
+                    ->color(fn ($record) => $record->unallocated_amount > 0 ? 'warning' : 'success'),
                 TextColumn::make('paymentMethod.name')
                     ->label('Method')
                     ->placeholder('—'),
