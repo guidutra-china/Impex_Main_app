@@ -47,7 +47,7 @@ class PurchaseOrderPdfTemplate extends AbstractPdfTemplate
                 'quantity' => $item->quantity,
                 'unit' => $item->unit ?? 'pcs',
                 'unit_cost' => $this->formatMoney($item->unit_cost, $currencyCode),
-                'line_total' => $this->formatMoney($item->line_total, $currencyCode),
+                'line_total' => $this->formatMoney($item->line_total, $currencyCode, 2),
                 'incoterm' => $item->incoterm instanceof \BackedEnum ? $item->incoterm->value : $item->incoterm,
             ];
         });
@@ -79,12 +79,13 @@ class PurchaseOrderPdfTemplate extends AbstractPdfTemplate
             ],
             'items' => $items->toArray(),
             'totals' => [
-                'grand_total' => $this->formatMoney($total, $currencyCode),
+                'grand_total' => $this->formatMoney($total, $currencyCode, 2),
             ],
             'payment_term' => [
                 'name' => $po->paymentTerm?->name,
                 'description' => $po->paymentTerm?->description,
             ],
+            'po_terms' => $this->companySettings->po_terms,
         ];
     }
 }
