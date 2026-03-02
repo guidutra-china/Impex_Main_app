@@ -8,6 +8,7 @@ use App\Filament\Resources\Inquiries\Pages\EditInquiry;
 use App\Filament\Resources\Inquiries\Pages\ListInquiries;
 use App\Filament\Resources\Inquiries\Pages\ViewInquiry;
 use App\Filament\Resources\Inquiries\RelationManagers\ItemsRelationManager;
+use App\Filament\Resources\Inquiries\RelationManagers\ProjectTeamRelationManager;
 use App\Filament\Resources\Inquiries\Schemas\InquiryForm;
 use App\Filament\Resources\Inquiries\Schemas\InquiryInfolist;
 use App\Filament\Resources\Inquiries\Tables\InquiriesTable;
@@ -58,6 +59,7 @@ class InquiryResource extends Resource
     {
         return [
             ItemsRelationManager::class,
+            ProjectTeamRelationManager::class,
         ];
     }
 
