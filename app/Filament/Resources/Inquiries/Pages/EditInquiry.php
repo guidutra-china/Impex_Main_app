@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Inquiries\Pages;
 
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Inquiries\Enums\InquiryStatus;
+use App\Domain\Inquiries\Enums\ProjectTeamRole;
 use App\Domain\Inquiries\Models\Inquiry;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
@@ -88,6 +89,8 @@ class EditInquiry extends EditRecord
                                 'status' => SupplierQuotationStatus::REQUESTED,
                                 'currency_code' => $inquiry->currency_code,
                                 'requested_at' => now()->toDateString(),
+                                'responsible_user_id' => $inquiry->getTeamMemberByRole(ProjectTeamRole::SOURCING)?->id
+                                    ?? $inquiry->responsible_user_id,
                             ]);
 
                             foreach ($inquiry->items as $item) {
@@ -226,6 +229,8 @@ class EditInquiry extends EditRecord
                             'commission_type' => $commissionType,
                             'commission_rate' => $commissionType === CommissionType::SEPARATE ? $commissionRate : 0,
                             'notes' => $inquiry->notes,
+                            'responsible_user_id' => $inquiry->getTeamMemberByRole(ProjectTeamRole::SALES)?->id
+                                ?? $inquiry->responsible_user_id,
                         ]);
 
                         $sqItemsByProduct = collect();
@@ -357,6 +362,8 @@ class EditInquiry extends EditRecord
                             'currency_code' => $inquiry->currency_code ?? 'USD',
                             'issue_date' => now(),
                             'created_by' => auth()->id(),
+                            'responsible_user_id' => $inquiry->getTeamMemberByRole(ProjectTeamRole::FINANCIAL)?->id
+                                ?? $inquiry->responsible_user_id,
                         ]);
 
                         if (! empty($data['quotation_ids'])) {

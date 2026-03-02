@@ -35,6 +35,7 @@ class GeneratePurchaseOrdersAction
                 'incoterm' => $pi->incoterm,
                 'payment_term_id' => $pi->payment_term_id,
                 'issue_date' => now()->toDateString(),
+                'responsible_user_id' => $pi->responsible_user_id,
             ]);
 
             $sortOrder = 0;
