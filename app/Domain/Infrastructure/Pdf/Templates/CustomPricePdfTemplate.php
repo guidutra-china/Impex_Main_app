@@ -2,6 +2,7 @@
 
 namespace App\Domain\Infrastructure\Pdf\Templates;
 
+use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
@@ -61,13 +62,13 @@ class CustomPricePdfTemplate extends AbstractPdfTemplate
             $unitPrice = $item->unit_price;
 
             if ($item->product_id && $clientId) {
-                $clientPivot = $item->product->clients()
-                    ->where('companies.id', $clientId)
-                    ->first()
-                    ?->pivot;
+                $pivot = CompanyProduct::where('product_id', $item->product_id)
+                    ->where('company_id', $clientId)
+                    ->where('role', 'client')
+                    ->first();
 
-                if ($clientPivot && $clientPivot->custom_price > 0) {
-                    $unitPrice = $clientPivot->custom_price;
+                if ($pivot && $pivot->custom_price > 0) {
+                    $unitPrice = $pivot->custom_price;
                 }
             }
 
@@ -81,7 +82,7 @@ class CustomPricePdfTemplate extends AbstractPdfTemplate
                 'quantity' => $item->quantity,
                 'unit' => $item->unit ?? 'pcs',
                 'unit_price' => $this->formatMoney($unitPrice, $currencyCode),
-                'line_total' => $this->formatMoney($lineTotal, $currencyCode),
+                'line_total' => $this->formatMoney($lineTotal, $currencyCode, 2),
                 'raw_line_total' => $lineTotal,
                 'incoterm' => $item->incoterm instanceof \BackedEnum ? $item->incoterm->value : $item->incoterm,
             ];
@@ -96,7 +97,7 @@ class CustomPricePdfTemplate extends AbstractPdfTemplate
                 ->where('billable_to', BillableTo::CLIENT)
                 ->map(fn ($cost) => [
                     'description' => $cost->description,
-                    'amount' => $this->formatMoney($cost->amount_in_document_currency, $currencyCode),
+                    'amount' => $this->formatMoney($cost->amount_in_document_currency, $currencyCode, 2),
                     'raw_amount' => $cost->amount_in_document_currency,
                 ])
                 ->values()
@@ -131,8 +132,8 @@ class CustomPricePdfTemplate extends AbstractPdfTemplate
             'items' => $items->map(fn ($item) => collect($item)->except('raw_line_total')->toArray())->toArray(),
             'service_fees' => $serviceFees,
             'totals' => [
-                'subtotal' => $this->formatMoney($subtotal, $currencyCode),
-                'grand_total' => $this->formatMoney($grandTotal, $currencyCode),
+                'subtotal' => $this->formatMoney($subtotal, $currencyCode, 2),
+                'grand_total' => $this->formatMoney($grandTotal, $currencyCode, 2),
             ],
             'payment_term' => [
                 'name' => $pi->paymentTerm?->name,
