@@ -1,6 +1,17 @@
 @extends('pdf.layouts.document')
 
 @section('extra-styles')
+    .section-heading {
+        font-size: 9pt;
+        font-weight: bold;
+        color: #374151;
+        margin: 16px 0 6px 0;
+        padding-bottom: 3px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    .section-heading:first-child {
+        margin-top: 0;
+    }
     .status-badge {
         display: inline-block;
         padding: 1px 6px;
@@ -31,6 +42,11 @@
         color: #9ca3af;
         font-style: italic;
     }
+    .subtotal-row td {
+        font-weight: bold;
+        border-top: 1px solid #d1d5db;
+        padding-top: 4px;
+    }
     .summary-box {
         margin-top: 12px;
         padding: 10px 14px;
@@ -53,6 +69,13 @@
     .summary-table .value-cell {
         text-align: right;
         font-weight: bold;
+    }
+    .summary-table .grand-total-row td {
+        font-size: 10pt;
+        font-weight: bold;
+        color: #111827;
+        padding-top: 6px;
+        border-top: 2px solid #374151;
     }
     .summary-table .pending-row td {
         color: #dc2626;
@@ -103,11 +126,44 @@
 @endsection
 
 @section('content')
-    @if(count($items) === 0)
-        <div style="text-align: center; padding: 30px 0; color: #9ca3af; font-size: 10pt;">
-            No additional costs billable to client for this Proforma Invoice.
-        </div>
-    @else
+    {{-- === PI ITEMS === --}}
+    @if(count($pi_items) > 0)
+        <div class="section-heading">Proforma Invoice Items</div>
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th style="width: 25px;">#</th>
+                    <th style="width: 80px;">{{ $labels['product_code'] }}</th>
+                    <th>{{ $labels['description'] }}</th>
+                    <th class="text-center" style="width: 55px;">{{ $labels['quantity'] }}</th>
+                    <th class="text-center" style="width: 40px;">{{ $labels['unit'] }}</th>
+                    <th class="text-right" style="width: 85px;">{{ $labels['unit_price'] }}</th>
+                    <th class="text-right" style="width: 90px;">{{ $labels['line_total'] }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($pi_items as $piItem)
+                    <tr>
+                        <td class="text-center">{{ $piItem['index'] }}</td>
+                        <td>{{ $piItem['product_code'] }}</td>
+                        <td>{{ $piItem['description'] }}</td>
+                        <td class="text-center">{{ number_format($piItem['quantity']) }}</td>
+                        <td class="text-center">{{ $piItem['unit'] }}</td>
+                        <td class="text-right">{{ $piItem['unit_price'] }}</td>
+                        <td class="text-right">{{ $piItem['line_total'] }}</td>
+                    </tr>
+                @endforeach
+                <tr class="subtotal-row">
+                    <td colspan="6" class="text-right">PI Items Total</td>
+                    <td class="text-right">{{ $pi['currency_code'] }} {{ $pi_items_total }}</td>
+                </tr>
+            </tbody>
+        </table>
+    @endif
+
+    {{-- === ADDITIONAL COSTS === --}}
+    @if(count($items) > 0)
+        <div class="section-heading">Additional Costs (Billable to Client)</div>
         <table class="items-table">
             <thead>
                 <tr>
@@ -152,22 +208,42 @@
                 @endforeach
             </tbody>
         </table>
+    @endif
 
-        {{-- Summary --}}
+    @if(count($pi_items) === 0 && count($items) === 0)
+        <div style="text-align: center; padding: 30px 0; color: #9ca3af; font-size: 10pt;">
+            No costs to display for this Proforma Invoice.
+        </div>
+    @endif
+
+    {{-- === SUMMARY === --}}
+    @if(count($pi_items) > 0 || count($items) > 0)
         <div class="summary-box">
             <table class="summary-table">
-                <tr>
-                    <td class="label-cell">Total Additional Costs</td>
-                    <td class="value-cell">{{ $pi['currency_code'] }} {{ $totals['total'] }}</td>
-                </tr>
-                <tr class="paid-row">
-                    <td class="label-cell">Paid</td>
-                    <td class="value-cell">{{ $pi['currency_code'] }} {{ $totals['paid'] }}</td>
+                @if(count($pi_items) > 0)
+                    <tr>
+                        <td class="label-cell">PI Items Total</td>
+                        <td class="value-cell">{{ $pi['currency_code'] }} {{ $pi_items_total }}</td>
+                    </tr>
+                @endif
+                @if(count($items) > 0)
+                    <tr>
+                        <td class="label-cell">Additional Costs</td>
+                        <td class="value-cell">{{ $pi['currency_code'] }} {{ $totals['additional_costs'] }}</td>
+                    </tr>
+                    <tr class="paid-row">
+                        <td class="label-cell">Additional Costs Paid</td>
+                        <td class="value-cell">{{ $pi['currency_code'] }} {{ $totals['paid'] }}</td>
+                    </tr>
+                @endif
+                <tr class="grand-total-row">
+                    <td class="label-cell">Grand Total</td>
+                    <td class="value-cell">{{ $pi['currency_code'] }} {{ $totals['grand_total'] }}</td>
                 </tr>
                 @if($totals['has_pending'])
                     <tr class="pending-row">
-                        <td class="label-cell">Outstanding Balance</td>
-                        <td class="value-cell">{{ $pi['currency_code'] }} {{ $totals['pending'] }}</td>
+                        <td class="label-cell">Outstanding Additional Costs</td>
+                        <td class="value-cell">{{ $pi['currency_code'] }} {{ $totals['pending_additional'] }}</td>
                     </tr>
                 @endif
             </table>

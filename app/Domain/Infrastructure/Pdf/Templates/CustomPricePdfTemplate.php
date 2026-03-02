@@ -6,7 +6,7 @@ use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 
-class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
+class CustomPricePdfTemplate extends AbstractPdfTemplate
 {
     protected bool $hideCommission;
 
@@ -28,7 +28,14 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
 
     public function getDocumentType(): string
     {
-        return 'proforma_invoice_pdf';
+        return 'custom_price_pdf';
+    }
+
+    public function getFilename(): string
+    {
+        $reference = $this->model->reference ?? $this->model->getKey();
+
+        return "Custom-{$reference}-v{$this->getNextVersion()}.pdf";
     }
 
     protected function getDocumentData(): array
@@ -48,8 +55,24 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
         ]);
 
         $currencyCode = $pi->currency_code ?? 'USD';
+        $clientId = $pi->company_id;
 
-        $items = $pi->items->sortBy('sort_order')->values()->map(function ($item, $index) use ($currencyCode) {
+        $items = $pi->items->sortBy('sort_order')->values()->map(function ($item, $index) use ($currencyCode, $clientId) {
+            $unitPrice = $item->unit_price;
+
+            if ($item->product_id && $clientId) {
+                $clientPivot = $item->product->clients()
+                    ->where('companies.id', $clientId)
+                    ->first()
+                    ?->pivot;
+
+                if ($clientPivot && $clientPivot->custom_price > 0) {
+                    $unitPrice = $clientPivot->custom_price;
+                }
+            }
+
+            $lineTotal = $unitPrice * $item->quantity;
+
             return [
                 'index' => $index + 1,
                 'product_code' => $item->product?->sku ?? '—',
@@ -57,13 +80,14 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
                 'specifications' => $item->specifications,
                 'quantity' => $item->quantity,
                 'unit' => $item->unit ?? 'pcs',
-                'unit_price' => $this->formatMoney($item->unit_price, $currencyCode),
-                'line_total' => $this->formatMoney($item->line_total, $currencyCode),
+                'unit_price' => $this->formatMoney($unitPrice, $currencyCode),
+                'line_total' => $this->formatMoney($lineTotal, $currencyCode),
+                'raw_line_total' => $lineTotal,
                 'incoterm' => $item->incoterm instanceof \BackedEnum ? $item->incoterm->value : $item->incoterm,
             ];
         });
 
-        $subtotal = $pi->items->sum(fn ($item) => $item->line_total);
+        $subtotal = $items->sum('raw_line_total');
 
         $serviceFees = [];
         if (! $this->hideCommission) {
@@ -104,7 +128,7 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
                 'contact_name' => $pi->contact?->name,
                 'contact_email' => $pi->contact?->email,
             ],
-            'items' => $items->toArray(),
+            'items' => $items->map(fn ($item) => collect($item)->except('raw_line_total')->toArray())->toArray(),
             'service_fees' => $serviceFees,
             'totals' => [
                 'subtotal' => $this->formatMoney($subtotal, $currencyCode),
