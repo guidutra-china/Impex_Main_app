@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Domain\Inquiries\Enums\InquiryStatus;
 use App\Domain\Inquiries\Models\Inquiry;
+use App\Domain\Inquiries\Models\ProjectTeamMember;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
@@ -35,27 +36,52 @@ class MyProjectsWidget extends Widget
     {
         $userId = auth()->id();
 
+        $myInquiryIds = ProjectTeamMember::where('user_id', $userId)
+            ->pluck('inquiry_id')
+            ->unique()
+            ->toArray();
+
         $myInquiries = Inquiry::query()
-            ->where('responsible_user_id', $userId)
+            ->where(function ($query) use ($userId, $myInquiryIds) {
+                $query->where('responsible_user_id', $userId)
+                    ->orWhereIn('id', $myInquiryIds);
+            })
             ->whereNotIn('status', [InquiryStatus::CANCELLED, InquiryStatus::LOST])
             ->latest('updated_at')
             ->limit(10)
             ->get();
 
         $counts = [
-            'inquiries' => Inquiry::where('responsible_user_id', $userId)
+            'inquiries' => Inquiry::where(function ($query) use ($userId, $myInquiryIds) {
+                    $query->where('responsible_user_id', $userId)
+                        ->orWhereIn('id', $myInquiryIds);
+                })
                 ->whereNotIn('status', [InquiryStatus::CANCELLED, InquiryStatus::LOST, InquiryStatus::WON])
                 ->count(),
-            'quotations' => Quotation::where('responsible_user_id', $userId)
+            'quotations' => Quotation::where(function ($query) use ($userId, $myInquiryIds) {
+                    $query->where('responsible_user_id', $userId)
+                        ->orWhereIn('inquiry_id', $myInquiryIds);
+                })
                 ->whereNotIn('status', [QuotationStatus::CANCELLED, QuotationStatus::REJECTED])
                 ->count(),
-            'supplier_quotations' => SupplierQuotation::where('responsible_user_id', $userId)
+            'supplier_quotations' => SupplierQuotation::where(function ($query) use ($userId, $myInquiryIds) {
+                    $query->where('responsible_user_id', $userId)
+                        ->orWhereIn('inquiry_id', $myInquiryIds);
+                })
                 ->whereNotIn('status', [SupplierQuotationStatus::REJECTED, SupplierQuotationStatus::EXPIRED])
                 ->count(),
-            'proforma_invoices' => ProformaInvoice::where('responsible_user_id', $userId)
+            'proforma_invoices' => ProformaInvoice::where(function ($query) use ($userId, $myInquiryIds) {
+                    $query->where('responsible_user_id', $userId)
+                        ->orWhereIn('inquiry_id', $myInquiryIds);
+                })
                 ->whereNotIn('status', [ProformaInvoiceStatus::CANCELLED])
                 ->count(),
-            'purchase_orders' => PurchaseOrder::where('responsible_user_id', $userId)
+            'purchase_orders' => PurchaseOrder::where(function ($query) use ($userId, $myInquiryIds) {
+                    $query->where('responsible_user_id', $userId)
+                        ->orWhereHas('proformaInvoice', function ($q) use ($myInquiryIds) {
+                            $q->whereIn('inquiry_id', $myInquiryIds);
+                        });
+                })
                 ->whereNotIn('status', [PurchaseOrderStatus::CANCELLED])
                 ->count(),
             'shipments' => Shipment::where('responsible_user_id', $userId)
@@ -67,7 +93,10 @@ class MyProjectsWidget extends Widget
 
         $urgentItems = [];
 
-        $stalledInquiries = Inquiry::where('responsible_user_id', $userId)
+        $stalledInquiries = Inquiry::where(function ($query) use ($userId, $myInquiryIds) {
+                $query->where('responsible_user_id', $userId)
+                    ->orWhereIn('id', $myInquiryIds);
+            })
             ->whereIn('status', [InquiryStatus::RECEIVED, InquiryStatus::QUOTING])
             ->where('updated_at', '<', now()->subDays(5))
             ->count();
@@ -81,7 +110,12 @@ class MyProjectsWidget extends Widget
             ];
         }
 
-        $stalledPOs = PurchaseOrder::where('responsible_user_id', $userId)
+        $stalledPOs = PurchaseOrder::where(function ($query) use ($userId, $myInquiryIds) {
+                $query->where('responsible_user_id', $userId)
+                    ->orWhereHas('proformaInvoice', function ($q) use ($myInquiryIds) {
+                        $q->whereIn('inquiry_id', $myInquiryIds);
+                    });
+            })
             ->whereIn('status', [PurchaseOrderStatus::CONFIRMED, PurchaseOrderStatus::IN_PRODUCTION])
             ->where('updated_at', '<', now()->subDays(10))
             ->count();
@@ -95,7 +129,10 @@ class MyProjectsWidget extends Widget
             ];
         }
 
-        $activePIs = ProformaInvoice::where('responsible_user_id', $userId)
+        $activePIs = ProformaInvoice::where(function ($query) use ($userId, $myInquiryIds) {
+                $query->where('responsible_user_id', $userId)
+                    ->orWhereIn('inquiry_id', $myInquiryIds);
+            })
             ->where('status', ProformaInvoiceStatus::FINALIZED)
             ->whereDoesntHave('purchaseOrders')
             ->count();
