@@ -9,8 +9,8 @@ use App\Filament\Portal\Resources\ProformaInvoiceResource\Pages;
 use App\Filament\Portal\Resources\ProformaInvoiceResource\Widgets\PortalProformaInvoiceStats;
 use App\Filament\Portal\Resources\ProformaInvoiceResource\Widgets\PortalShipmentFulfillmentWidget;
 use App\Filament\Portal\Widgets\ProformaInvoicesListStats;
-use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -138,51 +138,16 @@ class ProformaInvoiceResource extends Resource
 
             Section::make('Items')
                 ->schema([
-                    RepeatableEntry::make('items')
-                        ->schema([
-                            TextEntry::make('product.name')
-                                ->label('Product'),
-                            TextEntry::make('description')
-                                ->placeholder('—'),
-                            TextEntry::make('quantity')
-                                ->alignCenter(),
-                            TextEntry::make('unit')
-                                ->placeholder('pcs'),
-                            TextEntry::make('unit_price')
-                                ->formatStateUsing(fn ($state) => Money::format($state))
-                                ->alignRight()
-                                ->visible(fn () => auth()->user()?->can('portal:view-financial-summary')),
-                            TextEntry::make('line_total')
-                                ->formatStateUsing(fn ($state) => Money::format($state))
-                                ->alignRight()
-                                ->weight('bold')
-                                ->visible(fn () => auth()->user()?->can('portal:view-financial-summary')),
-                        ])
-                        ->columns(6)
+                    ViewEntry::make('items_table')
+                        ->view('portal.infolists.pi-items-table')
                         ->columnSpanFull(),
                 ])
                 ->columnSpanFull(),
 
             Section::make('Additional Costs')
                 ->schema([
-                    RepeatableEntry::make('clientBillableCosts')
-                        ->label('')
-                        ->schema([
-                            TextEntry::make('cost_type')
-                                ->label('Type')
-                                ->badge(),
-                            TextEntry::make('description')
-                                ->placeholder('—'),
-                            TextEntry::make('amount_in_document_currency')
-                                ->label('Amount')
-                                ->formatStateUsing(fn ($state) => Money::format($state, 2))
-                                ->prefix('$ ')
-                                ->alignRight()
-                                ->weight('bold'),
-                            TextEntry::make('status')
-                                ->badge(),
-                        ])
-                        ->columns(4)
+                    ViewEntry::make('additional_costs_table')
+                        ->view('portal.infolists.pi-additional-costs-table')
                         ->columnSpanFull(),
                 ])
                 ->visible(fn ($record) => $record->clientBillableCosts->isNotEmpty())
