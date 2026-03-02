@@ -363,4 +363,13 @@ return array (
     'direct' => 'Importação Direta',
     'conta_e_ordem' => 'Importação por Conta e Ordem',
     ),
+    'project_team_role' =>
+    array (
+    'project_lead' => 'Líder do Projeto',
+    'sales' => 'Vendas',
+    'sourcing' => 'Compras',
+    'logistics' => 'Logística',
+    'financial' => 'Financeiro',
+    'quality' => 'Qualidade',
+    ),
 );

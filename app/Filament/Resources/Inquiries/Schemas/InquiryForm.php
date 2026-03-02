@@ -7,6 +7,8 @@ use App\Domain\CRM\Models\Contact;
 use App\Domain\Inquiries\Enums\InquirySource;
 use App\Domain\Inquiries\Enums\InquiryStatus;
 use App\Domain\Settings\Models\Currency;
+use App\Domain\Users\Enums\UserType;
+use App\Models\User;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -66,6 +68,16 @@ class InquiryForm
                         ->searchable()
                         ->required()
                         ->default('USD'),
+                    Select::make('responsible_user_id')
+                        ->label(__('forms.labels.responsible'))
+                        ->options(
+                            fn () => User::where('type', UserType::INTERNAL)
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                        )
+                        ->searchable()
+                        ->default(fn () => auth()->id())
+                        ->helperText(__('forms.helpers.person_responsible_for_this_inquiry')),
                 ])
                 ->columns(2),
 

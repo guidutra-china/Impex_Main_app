@@ -7,6 +7,8 @@ use App\Domain\Settings\Models\Currency;
 use App\Domain\Logistics\Enums\ImportModality;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Enums\TransportMode;
+use App\Domain\Users\Enums\UserType;
+use App\Models\User;
 use Filament\Forms\Components\DatePicker;
 use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
@@ -57,6 +59,15 @@ class ShipmentForm
                     DatePicker::make('issue_date')
                         ->label(__('forms.labels.document_issue_date'))
                         ->helperText(__('forms.helpers.date_printed_on_ci_and_packing_list')),
+                    Select::make('responsible_user_id')
+                        ->label(__('forms.labels.responsible'))
+                        ->options(
+                            fn () => User::where('type', UserType::INTERNAL)
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                        )
+                        ->searchable()
+                        ->default(fn () => auth()->id()),
                 ])
                 ->columns(3)
                 ->columnSpanFull(),

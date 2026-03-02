@@ -8,6 +8,7 @@ use App\Filament\Resources\Inquiries\InquiryResource;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
@@ -72,6 +73,11 @@ class SupplierQuotationsTable
                     ->label(__('forms.labels.items'))
                     ->counts('items')
                     ->alignCenter(),
+                TextColumn::make('responsible.name')
+                    ->label(__('forms.labels.responsible'))
+                    ->sortable()
+                    ->searchable()
+                    ->placeholder('—'),
                 TextColumn::make('created_at')
                     ->label(__('forms.labels.created'))
                     ->dateTime('d/m/Y H:i')
@@ -92,6 +98,10 @@ class SupplierQuotationsTable
                     ->relationship('company', 'name')
                     ->searchable()
                     ->preload(),
+                Filter::make('my_projects')
+                    ->label(__('forms.labels.my_projects'))
+                    ->toggle()
+                    ->query(fn ($query) => $query->where('responsible_user_id', auth()->id())),
             ])
             ->recordActions([
                 StatusTransitionActions::make(SupplierQuotationStatus::class),

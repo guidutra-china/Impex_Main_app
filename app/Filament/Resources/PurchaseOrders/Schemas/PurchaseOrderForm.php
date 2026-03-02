@@ -11,6 +11,8 @@ use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Settings\Models\Currency;
 use App\Domain\Settings\Models\PaymentTerm;
+use App\Domain\Users\Enums\UserType;
+use App\Models\User;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
@@ -87,6 +89,15 @@ class PurchaseOrderForm
                         ->required()
                         ->default('USD')
                         ->helperText(__('forms.helpers.can_differ_from_pi_currency_for_supplier_negotiation')),
+                    Select::make('responsible_user_id')
+                        ->label(__('forms.labels.responsible'))
+                        ->options(
+                            fn () => User::where('type', UserType::INTERNAL)
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                        )
+                        ->searchable()
+                        ->default(fn () => auth()->id()),
                 ])
                 ->columns(2),
 

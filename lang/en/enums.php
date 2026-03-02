@@ -363,4 +363,13 @@ return array (
     'direct' => 'Direct Import',
     'conta_e_ordem' => 'Import on Behalf (Conta e Ordem)',
     ),
+    'project_team_role' =>
+    array (
+    'project_lead' => 'Project Lead',
+    'sales' => 'Sales',
+    'sourcing' => 'Sourcing',
+    'logistics' => 'Logistics',
+    'financial' => 'Financial',
+    'quality' => 'Quality',
+    ),
 );

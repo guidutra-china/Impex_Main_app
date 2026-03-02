@@ -11,6 +11,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
@@ -57,6 +58,11 @@ class QuotationsTable
                     ->date('d/m/Y')
                     ->sortable()
                     ->color(fn ($record) => $record->valid_until && $record->valid_until->isPast() ? 'danger' : null),
+                TextColumn::make('responsible.name')
+                    ->label(__('forms.labels.responsible'))
+                    ->sortable()
+                    ->searchable()
+                    ->placeholder('—'),
                 TextColumn::make('creator.name')
                     ->label(__('forms.labels.created_by'))
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -82,6 +88,10 @@ class QuotationsTable
                     ->relationship('company', 'name')
                     ->searchable()
                     ->preload(),
+                Filter::make('my_projects')
+                    ->label(__('forms.labels.my_projects'))
+                    ->toggle()
+                    ->query(fn ($query) => $query->where('responsible_user_id', auth()->id())),
                 TrashedFilter::make(),
             ])
             ->recordActions([

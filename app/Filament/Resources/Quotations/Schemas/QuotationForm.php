@@ -8,6 +8,8 @@ use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\QuotationStatus;
 use App\Domain\Settings\Models\Currency;
 use App\Domain\Settings\Models\PaymentTerm;
+use App\Domain\Users\Enums\UserType;
+use App\Models\User;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -60,6 +62,15 @@ class QuotationForm
                         ->default(QuotationStatus::DRAFT->value)
                         ->disabled(fn (?\Illuminate\Database\Eloquent\Model $record) => $record !== null)
                         ->dehydrated(),
+                    Select::make('responsible_user_id')
+                        ->label(__('forms.labels.responsible'))
+                        ->options(
+                            fn () => User::where('type', UserType::INTERNAL)
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                        )
+                        ->searchable()
+                        ->default(fn () => auth()->id()),
                 ])
                 ->columns(2),
 

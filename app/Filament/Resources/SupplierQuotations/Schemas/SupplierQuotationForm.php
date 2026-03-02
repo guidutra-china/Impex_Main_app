@@ -10,6 +10,8 @@ use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Settings\Enums\CalculationBase;
 use App\Domain\Settings\Models\Currency;
 use App\Domain\Settings\Models\PaymentTerm;
+use App\Domain\Users\Enums\UserType;
+use App\Models\User;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput as FormTextInput;
 use Filament\Forms\Components\Toggle;
@@ -85,6 +87,15 @@ class SupplierQuotationForm
                         ->searchable()
                         ->required()
                         ->default('USD'),
+                    Select::make('responsible_user_id')
+                        ->label(__('forms.labels.responsible'))
+                        ->options(
+                            fn () => User::where('type', UserType::INTERNAL)
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                        )
+                        ->searchable()
+                        ->default(fn () => auth()->id()),
                 ])
                 ->columns(2),
 
