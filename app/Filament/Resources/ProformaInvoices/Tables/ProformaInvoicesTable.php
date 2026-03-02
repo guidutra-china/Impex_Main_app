@@ -53,10 +53,10 @@ class ProformaInvoicesTable
                 TextColumn::make('incoterm')
                     ->label(__('forms.labels.incoterm'))
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('total')
+                TextColumn::make('grand_total')
                     ->label(__('forms.labels.total'))
-                    ->getStateUsing(fn ($record) => $record->total)
-                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state))
+                    ->getStateUsing(fn ($record) => $record->grand_total)
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 2))
                     ->sortable(query: fn ($query, $direction) => $query->orderByRaw(
                         '(SELECT COALESCE(SUM(quantity * unit_price), 0) FROM proforma_invoice_items WHERE proforma_invoice_id = proforma_invoices.id) ' . $direction
                     ))
