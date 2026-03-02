@@ -8,8 +8,8 @@ use App\Domain\Logistics\Models\Shipment;
 use App\Filament\Portal\Resources\ShipmentResource\Pages;
 use App\Filament\Portal\Resources\ShipmentResource\Widgets\PortalShipmentOverview;
 use App\Filament\Portal\Widgets\ShipmentsListStats;
-use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -209,26 +209,9 @@ class ShipmentResource extends Resource
 
             Section::make('Shipped Products')
                 ->schema([
-                    RepeatableEntry::make('items')
-                        ->schema([
-                            TextEntry::make('proformaInvoiceItem.product.name')
-                                ->label('Product')
-                                ->placeholder('—'),
-                            TextEntry::make('proformaInvoiceItem.description')
-                                ->label('Description')
-                                ->placeholder('—'),
-                            TextEntry::make('quantity')
-                                ->label('Qty'),
-                            TextEntry::make('unit')
-                                ->label('Unit'),
-                            TextEntry::make('proformaInvoiceItem.proformaInvoice.reference')
-                                ->label('Proforma Invoice')
-                                ->badge()
-                                ->color('info')
-                                ->placeholder('—'),
-                        ])
-                        ->columns(5)
-                        ->contained(false),
+                    ViewEntry::make('shipped_products')
+                        ->view('portal.infolists.shipped-products-table')
+                        ->columnSpanFull(),
                 ])
                 ->columnSpanFull()
                 ->collapsible(),
