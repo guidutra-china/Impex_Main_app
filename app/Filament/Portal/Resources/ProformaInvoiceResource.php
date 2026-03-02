@@ -2,6 +2,7 @@
 
 namespace App\Filament\Portal\Resources;
 
+use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Filament\Portal\Resources\ProformaInvoiceResource\Pages;
@@ -66,9 +67,10 @@ class ProformaInvoiceResource extends Resource
                 TextColumn::make('incoterm')
                     ->badge()
                     ->placeholder('—'),
-                TextColumn::make('total')
+                TextColumn::make('grand_total')
                     ->label('Total')
-                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state))
+                    ->getStateUsing(fn ($record) => $record->grand_total)
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 2))
                     ->alignRight()
                     ->visible(fn () => auth()->user()?->can('portal:view-financial-summary')),
                 TextColumn::make('items_count')
@@ -125,9 +127,10 @@ class ProformaInvoiceResource extends Resource
                         ->label('Issue Date')
                         ->date('d/m/Y')
                         ->placeholder('—'),
-                    TextEntry::make('total')
+                    TextEntry::make('grand_total')
                         ->label('Total Value')
-                        ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state))
+                        ->getStateUsing(fn ($record) => $record->grand_total)
+                        ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 2))
                         ->weight('bold')
                         ->visible(fn () => auth()->user()?->can('portal:view-financial-summary')),
                 ])
@@ -159,6 +162,34 @@ class ProformaInvoiceResource extends Resource
                         ->columns(6)
                         ->columnSpanFull(),
                 ])
+                ->columnSpanFull(),
+
+            Section::make('Additional Costs')
+                ->schema([
+                    RepeatableEntry::make('clientBillableCosts')
+                        ->label('')
+                        ->relationship('additionalCosts', modifyQueryUsing: fn ($query) => $query->where('billable_to', BillableTo::CLIENT))
+                        ->schema([
+                            TextEntry::make('cost_type')
+                                ->label('Type')
+                                ->badge(),
+                            TextEntry::make('description')
+                                ->placeholder('—'),
+                            TextEntry::make('amount_in_document_currency')
+                                ->label('Amount')
+                                ->formatStateUsing(fn ($state, $record) => Money::format($state, 2))
+                                ->prefix('$ ')
+                                ->alignRight()
+                                ->weight('bold'),
+                            TextEntry::make('status')
+                                ->badge(),
+                        ])
+                        ->columns(4)
+                        ->columnSpanFull(),
+                ])
+                ->visible(fn ($record) => $record->additionalCosts
+                    ->where('billable_to', BillableTo::CLIENT)
+                    ->isNotEmpty())
                 ->columnSpanFull(),
 
             Section::make('Notes')

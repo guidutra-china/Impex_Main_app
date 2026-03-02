@@ -33,7 +33,8 @@ class PortalProformaInvoiceStats extends Widget
         $pi->loadMissing(['items', 'paymentScheduleItems.allocations.payment']);
 
         $currency = $pi->currency_code ?? 'USD';
-        $total = $pi->total;
+        $pi->loadMissing('additionalCosts');
+        $total = $pi->grand_total;
 
         $scheduleItems = $pi->paymentScheduleItems->sortBy('sort_order');
         $regularItems = $scheduleItems->where('is_credit', false);
@@ -53,9 +54,9 @@ class PortalProformaInvoiceStats extends Widget
         $cards = [
             [
                 'label' => __('widgets.document_summary.invoice_total'),
-                'value' => $currency . ' ' . Money::format($total),
-                'description' => $totalCredits > 0
-                    ? __('widgets.document_summary.credits') . ': ' . $currency . ' ' . Money::format($totalCredits)
+                'value' => $currency . ' ' . Money::format($total, 2),
+                'description' => $pi->client_billable_costs_total > 0
+                    ? 'Incl. ' . $currency . ' ' . Money::format($pi->client_billable_costs_total, 2) . ' additional costs'
                     : $pi->items->count() . ' item(s)',
                 'icon' => 'heroicon-o-document-currency-dollar',
                 'color' => 'primary',

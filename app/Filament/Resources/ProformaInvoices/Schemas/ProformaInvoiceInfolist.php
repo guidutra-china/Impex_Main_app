@@ -166,13 +166,29 @@ class ProformaInvoiceInfolist
                 ->schema([
                     TextEntry::make('subtotal')
                         ->label(__('forms.labels.total_client'))
-                        ->formatStateUsing(fn ($state) => \App\Domain\Infrastructure\Support\Money::format($state))
+                        ->formatStateUsing(fn ($state) => \App\Domain\Infrastructure\Support\Money::format($state, 2))
                         ->prefix('$ ')
                         ->weight(FontWeight::Bold)
                         ->color('success'),
+                    TextEntry::make('client_billable_costs_total')
+                        ->label('Additional Costs (Client)')
+                        ->getStateUsing(fn ($record) => $record->client_billable_costs_total)
+                        ->formatStateUsing(fn ($state) => \App\Domain\Infrastructure\Support\Money::format($state, 2))
+                        ->prefix('$ ')
+                        ->weight(FontWeight::Bold)
+                        ->color('info')
+                        ->visible(fn ($record) => $record->client_billable_costs_total > 0),
+                    TextEntry::make('grand_total')
+                        ->label('Grand Total')
+                        ->getStateUsing(fn ($record) => $record->grand_total)
+                        ->formatStateUsing(fn ($state) => \App\Domain\Infrastructure\Support\Money::format($state, 2))
+                        ->prefix('$ ')
+                        ->weight(FontWeight::Bold)
+                        ->color('success')
+                        ->visible(fn ($record) => $record->client_billable_costs_total > 0),
                     TextEntry::make('cost_total')
                         ->label(__('forms.labels.total_cost'))
-                        ->formatStateUsing(fn ($state) => \App\Domain\Infrastructure\Support\Money::format($state))
+                        ->formatStateUsing(fn ($state) => \App\Domain\Infrastructure\Support\Money::format($state, 2))
                         ->prefix('$ ')
                         ->weight(FontWeight::Bold)
                         ->color('danger'),
@@ -185,7 +201,7 @@ class ProformaInvoiceInfolist
                         ->label(__('forms.labels.total_items'))
                         ->state(fn ($record) => $record->items->count()),
                 ])
-                ->columns(2),
+                ->columns(3),
         ];
     }
 
