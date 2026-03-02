@@ -166,6 +166,10 @@ class PaymentForm
                                             $item->id => static::formatScheduleItemLabel($item),
                                         ]);
                                 })
+                                ->getOptionLabelUsing(function ($value): ?string {
+                                    $item = PaymentScheduleItem::with('payable')->find($value);
+                                    return $item ? static::formatScheduleItemLabel($item) : null;
+                                })
                                 ->required()
                                 ->distinct()
                                 ->searchable()
@@ -241,6 +245,10 @@ class PaymentForm
                                             $item->id => static::formatCreditItemLabel($item),
                                         ]);
                                 })
+                                ->getOptionLabelUsing(function ($value): ?string {
+                                    $item = PaymentScheduleItem::with('payable')->find($value);
+                                    return $item ? static::formatCreditItemLabel($item) : null;
+                                })
                                 ->required()
                                 ->distinct()
                                 ->searchable()
@@ -257,6 +265,10 @@ class PaymentForm
                                         ->mapWithKeys(fn ($item) => [
                                             $item->id => static::formatScheduleItemLabel($item),
                                         ]);
+                                })
+                                ->getOptionLabelUsing(function ($value): ?string {
+                                    $item = PaymentScheduleItem::with('payable')->find($value);
+                                    return $item ? static::formatScheduleItemLabel($item) : null;
                                 })
                                 ->required()
                                 ->searchable()
