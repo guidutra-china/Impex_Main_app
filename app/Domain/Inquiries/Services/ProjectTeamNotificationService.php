@@ -2,8 +2,8 @@
 
 namespace App\Domain\Inquiries\Services;
 
-use App\Domain\Inquiries\Models\Inquiry;
 use App\Domain\Inquiries\Models\ProjectTeamMember;
+use App\Filament\Resources\Inquiries\InquiryResource;
 use App\Models\User;
 use Filament\Notifications\Notification;
 
@@ -15,13 +15,15 @@ class ProjectTeamNotificationService
         $inquiry = $member->inquiry;
         $addedBy = auth()->user();
 
-        if (!$user || !$inquiry) {
+        if (! $user || ! $inquiry) {
             return;
         }
 
         if ($user->id === $addedBy?->id) {
             return;
         }
+
+        $url = InquiryResource::getUrl('edit', ['record' => $inquiry]);
 
         Notification::make()
             ->title(__('notifications.project_team.added_title'))
@@ -35,7 +37,7 @@ class ProjectTeamNotificationService
             ->actions([
                 \Filament\Notifications\Actions\Action::make('view_inquiry')
                     ->label(__('notifications.project_team.view_inquiry'))
-                    ->url(route('filament.admin.resources.inquiries.edit', $inquiry))
+                    ->url($url)
                     ->markAsRead(),
             ])
             ->sendToDatabase($user);
@@ -47,7 +49,7 @@ class ProjectTeamNotificationService
         $inquiry = $member->inquiry;
         $removedBy = auth()->user();
 
-        if (!$user || !$inquiry) {
+        if (! $user || ! $inquiry) {
             return;
         }
 
@@ -72,13 +74,15 @@ class ProjectTeamNotificationService
         $inquiry = $member->inquiry;
         $changedBy = auth()->user();
 
-        if (!$user || !$inquiry) {
+        if (! $user || ! $inquiry) {
             return;
         }
 
         if ($user->id === $changedBy?->id) {
             return;
         }
+
+        $url = InquiryResource::getUrl('edit', ['record' => $inquiry]);
 
         Notification::make()
             ->title(__('notifications.project_team.role_changed_title'))
@@ -93,7 +97,7 @@ class ProjectTeamNotificationService
             ->actions([
                 \Filament\Notifications\Actions\Action::make('view_inquiry')
                     ->label(__('notifications.project_team.view_inquiry'))
-                    ->url(route('filament.admin.resources.inquiries.edit', $inquiry))
+                    ->url($url)
                     ->markAsRead(),
             ])
             ->sendToDatabase($user);
