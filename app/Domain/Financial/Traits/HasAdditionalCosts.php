@@ -13,6 +13,12 @@ trait HasAdditionalCosts
         return $this->morphMany(AdditionalCost::class, 'costable');
     }
 
+    public function clientBillableCosts(): MorphMany
+    {
+        return $this->morphMany(AdditionalCost::class, 'costable')
+            ->where('billable_to', BillableTo::CLIENT);
+    }
+
     public function getAdditionalCostsTotalAttribute(): int
     {
         return $this->additionalCosts->sum('amount_in_document_currency');

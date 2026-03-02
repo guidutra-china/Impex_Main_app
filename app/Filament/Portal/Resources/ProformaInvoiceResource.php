@@ -11,7 +11,6 @@ use App\Filament\Portal\Resources\ProformaInvoiceResource\Widgets\PortalShipment
 use App\Filament\Portal\Widgets\ProformaInvoicesListStats;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Components\ViewEntry;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -168,7 +167,6 @@ class ProformaInvoiceResource extends Resource
                 ->schema([
                     RepeatableEntry::make('clientBillableCosts')
                         ->label('')
-                        ->relationship('additionalCosts', modifyQueryUsing: fn ($query) => $query->where('billable_to', BillableTo::CLIENT))
                         ->schema([
                             TextEntry::make('cost_type')
                                 ->label('Type')
@@ -177,7 +175,7 @@ class ProformaInvoiceResource extends Resource
                                 ->placeholder('—'),
                             TextEntry::make('amount_in_document_currency')
                                 ->label('Amount')
-                                ->formatStateUsing(fn ($state, $record) => Money::format($state, 2))
+                                ->formatStateUsing(fn ($state) => Money::format($state, 2))
                                 ->prefix('$ ')
                                 ->alignRight()
                                 ->weight('bold'),
@@ -187,9 +185,7 @@ class ProformaInvoiceResource extends Resource
                         ->columns(4)
                         ->columnSpanFull(),
                 ])
-                ->visible(fn ($record) => $record->additionalCosts
-                    ->where('billable_to', BillableTo::CLIENT)
-                    ->isNotEmpty())
+                ->visible(fn ($record) => $record->clientBillableCosts->isNotEmpty())
                 ->columnSpanFull(),
 
             Section::make('Notes')
