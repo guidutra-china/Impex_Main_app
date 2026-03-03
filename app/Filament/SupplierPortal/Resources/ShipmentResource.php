@@ -25,6 +25,7 @@ class ShipmentResource extends Resource
     protected static ?int $navigationSort = 2;
     protected static ?string $slug = 'shipments';
     protected static ?string $recordTitleAttribute = 'reference';
+    protected static bool $isScopedToTenant = false;
 
     public static function canAccess(): bool
     {
