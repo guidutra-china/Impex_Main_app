@@ -42,7 +42,7 @@ class SupplierOverviewWidget extends BaseWidget
 
         $totalPaid = Payment::where('company_id', $companyId)
             ->where('direction', PaymentDirection::OUTBOUND)
-            ->where('status', PaymentStatus::COMPLETED)
+            ->where('status', PaymentStatus::APPROVED)
             ->sum('amount');
 
         return [
