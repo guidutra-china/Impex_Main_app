@@ -3,6 +3,8 @@
 namespace App\Filament\SupplierPortal\Resources\PurchaseOrderResource\Pages;
 
 use App\Filament\SupplierPortal\Resources\PurchaseOrderResource;
+use App\Filament\SupplierPortal\Resources\PurchaseOrderResource\Widgets\SupplierPOShipmentFulfillmentWidget;
+use App\Filament\SupplierPortal\Resources\PurchaseOrderResource\Widgets\SupplierPurchaseOrderStats;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewPurchaseOrder extends ViewRecord
@@ -12,7 +14,8 @@ class ViewPurchaseOrder extends ViewRecord
     protected function getHeaderWidgets(): array
     {
         return [
-            PurchaseOrderResource\Widgets\SupplierPurchaseOrderStats::class,
+            SupplierPurchaseOrderStats::class,
+            SupplierPOShipmentFulfillmentWidget::class,
         ];
     }
 }

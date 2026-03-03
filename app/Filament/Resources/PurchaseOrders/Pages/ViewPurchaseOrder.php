@@ -6,6 +6,7 @@ use App\Domain\Infrastructure\Pdf\Templates\PurchaseOrderPdfTemplate;
 use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Actions\SendDocumentByEmailAction;
 use App\Filament\Resources\PurchaseOrders\PurchaseOrderResource;
+use App\Filament\Resources\PurchaseOrders\Widgets\POShipmentFulfillmentWidget;
 use App\Filament\Resources\PurchaseOrders\Widgets\PurchaseOrderStats;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
@@ -18,6 +19,7 @@ class ViewPurchaseOrder extends ViewRecord
     {
         return [
             PurchaseOrderStats::class,
+            POShipmentFulfillmentWidget::class,
         ];
     }
 

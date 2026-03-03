@@ -179,6 +179,25 @@ class PurchaseOrder extends Model
         return $this->items->sum(fn (PurchaseOrderItem $item) => $item->line_total);
     }
 
+    public function getShipmentProgressAttribute(): float
+    {
+        $items = $this->items;
+
+        if ($items->isEmpty()) {
+            return 0;
+        }
+
+        $totalQty = $items->sum('quantity');
+        $totalShipped = $items->sum('quantity_shipped');
+
+        return $totalQty > 0 ? round(($totalShipped / $totalQty) * 100, 1) : 0;
+    }
+
+    public function getIsFullyShippedAttribute(): bool
+    {
+        return $this->items->every(fn ($item) => $item->is_fully_shipped);
+    }
+
     // --- Scopes ---
 
     public function scopeForSupplier($query, int $companyId)

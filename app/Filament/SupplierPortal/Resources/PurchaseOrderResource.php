@@ -6,6 +6,7 @@ use App\Domain\Infrastructure\Support\Money;
 use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Filament\SupplierPortal\Resources\PurchaseOrderResource\Pages;
+use App\Filament\SupplierPortal\Resources\PurchaseOrderResource\Widgets\SupplierPOShipmentFulfillmentWidget;
 use App\Filament\SupplierPortal\Resources\PurchaseOrderResource\Widgets\SupplierPurchaseOrderStats;
 use BackedEnum;
 use Filament\Infolists\Components\TextEntry;
@@ -162,6 +163,7 @@ class PurchaseOrderResource extends Resource
     {
         return [
             SupplierPurchaseOrderStats::class,
+            SupplierPOShipmentFulfillmentWidget::class,
         ];
     }
 
