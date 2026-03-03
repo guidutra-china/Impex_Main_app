@@ -22,6 +22,16 @@ enum CalculationBase: string implements HasLabel
     }
 
 
+    public function isShipmentDependent(): bool
+    {
+        return in_array($this, [
+            self::BEFORE_SHIPMENT,
+            self::SHIPMENT_DATE,
+            self::DELIVERY_DATE,
+            self::BL_DATE,
+        ]);
+    }
+
     public function getEnglishLabel(): string
     {
         return match ($this) {

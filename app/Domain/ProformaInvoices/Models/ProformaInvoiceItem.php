@@ -6,6 +6,7 @@ use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\ShipmentItem;
+use App\Domain\Planning\Models\ShipmentPlanItem;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Quotations\Models\QuotationItem;
 use Illuminate\Database\Eloquent\Model;
@@ -66,6 +67,23 @@ class ProformaInvoiceItem extends Model
     public function shipmentItems(): HasMany
     {
         return $this->hasMany(ShipmentItem::class);
+    }
+
+    public function shipmentPlanItems(): HasMany
+    {
+        return $this->hasMany(ShipmentPlanItem::class);
+    }
+
+    public function getQuantityPlannedAttribute(): int
+    {
+        return $this->shipmentPlanItems()
+            ->whereHas('shipmentPlan', fn ($q) => $q->whereNotIn('status', ['cancelled']))
+            ->sum('quantity');
+    }
+
+    public function getQuantityAvailableForPlanningAttribute(): int
+    {
+        return max(0, $this->quantity - $this->quantity_shipped - $this->quantity_planned);
     }
 
     // --- Accessors ---

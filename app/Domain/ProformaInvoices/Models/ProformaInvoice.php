@@ -15,6 +15,8 @@ use App\Domain\Infrastructure\Traits\HasStateMachine;
 use App\Domain\Inquiries\Models\Inquiry;
 use App\Domain\ProformaInvoices\Enums\ConfirmationMethod;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
+use App\Domain\Planning\Models\ProductionSchedule;
+use App\Domain\Planning\Models\ShipmentPlanItem;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\Quotations\Models\Quotation;
 use App\Domain\Settings\Models\PaymentTerm;
@@ -180,6 +182,21 @@ class ProformaInvoice extends Model
     public function purchaseOrders(): HasMany
     {
         return $this->hasMany(PurchaseOrder::class);
+    }
+
+    public function productionSchedules(): HasMany
+    {
+        return $this->hasMany(ProductionSchedule::class);
+    }
+
+    public function shipmentPlanItems(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    {
+        return $this->hasManyThrough(
+            ShipmentPlanItem::class,
+            ProformaInvoiceItem::class,
+            'proforma_invoice_id',
+            'proforma_invoice_item_id'
+        );
     }
 
     public function quotations(): BelongsToMany

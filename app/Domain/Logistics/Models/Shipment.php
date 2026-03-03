@@ -14,6 +14,7 @@ use App\Domain\Infrastructure\Traits\HasStateMachine;
 use App\Domain\Logistics\Enums\ImportModality;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Enums\TransportMode;
+use App\Domain\Planning\Models\ShipmentPlan;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -141,6 +142,11 @@ class Shipment extends Model
     public function items(): HasMany
     {
         return $this->hasMany(ShipmentItem::class)->orderBy('sort_order');
+    }
+
+    public function shipmentPlan(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ShipmentPlan::class);
     }
 
     public function packingListItems(): HasMany

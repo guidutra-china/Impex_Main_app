@@ -5,6 +5,7 @@ namespace App\Domain\Financial\Models;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Settings\Enums\CalculationBase;
+use App\Domain\Planning\Models\ShipmentPlan;
 use App\Domain\Settings\Models\PaymentTermStage;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -17,6 +18,7 @@ class PaymentScheduleItem extends Model
     protected $fillable = [
         'payable_type',
         'payable_id',
+        'shipment_plan_id',
         'payment_term_stage_id',
         'label',
         'percentage',
@@ -60,6 +62,11 @@ class PaymentScheduleItem extends Model
     public function source(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    public function shipmentPlan(): BelongsTo
+    {
+        return $this->belongsTo(ShipmentPlan::class);
     }
 
     public function paymentTermStage(): BelongsTo

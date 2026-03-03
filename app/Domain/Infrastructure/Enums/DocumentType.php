@@ -12,6 +12,8 @@ enum DocumentType: string
     case SHIPMENT = 'SH';
     case CLIENT_INVOICE = 'CI';
     case PAYMENT = 'PAY';
+    case PRODUCTION_SCHEDULE = 'PS';
+    case SHIPMENT_PLAN = 'SP';
 
     public function padLength(): int
     {
@@ -37,6 +39,8 @@ enum DocumentType: string
             self::SHIPMENT => 'Shipment',
             self::CLIENT_INVOICE => 'Client Invoice',
             self::PAYMENT => 'Payment',
+            self::PRODUCTION_SCHEDULE => 'Production Schedule',
+            self::SHIPMENT_PLAN => 'Shipment Plan',
         };
     }
 }

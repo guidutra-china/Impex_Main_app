@@ -4,6 +4,7 @@ namespace App\Domain\Financial\Actions;
 
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\Settings\Enums\CalculationBase;
 use App\Domain\Settings\Models\PaymentTerm;
 use Illuminate\Database\Eloquent\Model;
@@ -34,9 +35,14 @@ class GeneratePaymentScheduleAction
 
         $totalAmount = $payable->total;
         $currencyCode = $payable->currency_code;
+        $isProformaInvoice = $payable instanceof ProformaInvoice;
         $created = 0;
 
         foreach ($paymentTerm->stages as $stage) {
+            if ($isProformaInvoice && $stage->calculation_base?->isShipmentDependent()) {
+                continue;
+            }
+
             $amount = (int) round($totalAmount * ($stage->percentage / 100));
 
             $isBlocking = $this->isBlockingCondition($stage->calculation_base);
@@ -80,15 +86,15 @@ class GeneratePaymentScheduleAction
             return 0;
         }
 
-        // Force fresh total from the database (not cached relation)
         $payable->load('items');
         $totalAmount = $payable->total;
         $currencyCode = $payable->currency_code;
+        $isProformaInvoice = $payable instanceof ProformaInvoice;
 
-        // Delete only payment-term-based items (not additional cost items)
         PaymentScheduleItem::where('payable_type', get_class($payable))
             ->where('payable_id', $payable->getKey())
             ->whereNull('source_type')
+            ->whereNull('shipment_plan_id')
             ->whereNotIn('status', [
                 PaymentScheduleStatus::PAID->value,
                 PaymentScheduleStatus::WAIVED->value,
@@ -96,16 +102,20 @@ class GeneratePaymentScheduleAction
             ->whereDoesntHave('allocations')
             ->delete();
 
-        // Get remaining payment-term items (paid/waived or with allocations)
         $preservedItems = PaymentScheduleItem::where('payable_type', get_class($payable))
             ->where('payable_id', $payable->getKey())
             ->whereNull('source_type')
+            ->whereNull('shipment_plan_id')
             ->get()
             ->keyBy('payment_term_stage_id');
 
         $processed = 0;
 
         foreach ($paymentTerm->stages as $stage) {
+            if ($isProformaInvoice && $stage->calculation_base?->isShipmentDependent()) {
+                continue;
+            }
+
             $newAmount = (int) round($totalAmount * ($stage->percentage / 100));
             $isBlocking = $this->isBlockingCondition($stage->calculation_base);
             $dueDate = $this->calculateDueDate($payable, $stage);
@@ -114,7 +124,6 @@ class GeneratePaymentScheduleAction
             $existing = $preservedItems->get($stage->id);
 
             if ($existing) {
-                // Update the amount on preserved items (paid amount stays, remaining recalculates)
                 $existing->update([
                     'amount' => $newAmount,
                     'label' => $label,
@@ -123,7 +132,6 @@ class GeneratePaymentScheduleAction
                     'is_blocking' => $isBlocking,
                 ]);
             } else {
-                // Recreate deleted item
                 PaymentScheduleItem::create([
                     'payable_type' => get_class($payable),
                     'payable_id' => $payable->getKey(),
