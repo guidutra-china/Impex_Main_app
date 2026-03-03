@@ -5,6 +5,7 @@ namespace App\Domain\Financial\Actions;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\Payment;
+use App\Domain\Planning\Actions\CheckShipmentPlanPaymentStatusAction;
 
 class ApprovePaymentAction
 {
@@ -17,6 +18,7 @@ class ApprovePaymentAction
         ]);
 
         $this->recalculateScheduleItemStatuses($payment);
+        $this->checkShipmentPlanTransitions($payment);
     }
 
     public function reject(Payment $payment, ?string $reason = null): void
@@ -44,6 +46,7 @@ class ApprovePaymentAction
 
         if ($wasApproved) {
             $this->rollbackScheduleItemStatuses($payment);
+            $this->revertShipmentPlanTransitions($payment);
         }
     }
 
@@ -87,6 +90,36 @@ class ApprovePaymentAction
                 $scheduleItem->update(['status' => PaymentScheduleStatus::DUE]);
             } else {
                 $scheduleItem->update(['status' => PaymentScheduleStatus::PENDING]);
+            }
+        }
+    }
+
+    protected function checkShipmentPlanTransitions(Payment $payment): void
+    {
+        $checker = new CheckShipmentPlanPaymentStatusAction();
+
+        $allocations = $payment->allocations()
+            ->with('scheduleItem')
+            ->get();
+
+        foreach ($allocations as $allocation) {
+            if ($allocation->scheduleItem?->shipment_plan_id) {
+                $checker->execute($allocation->scheduleItem);
+            }
+        }
+    }
+
+    protected function revertShipmentPlanTransitions(Payment $payment): void
+    {
+        $checker = new CheckShipmentPlanPaymentStatusAction();
+
+        $allocations = $payment->allocations()
+            ->with('scheduleItem')
+            ->get();
+
+        foreach ($allocations as $allocation) {
+            if ($allocation->scheduleItem?->shipment_plan_id) {
+                $checker->revertIfNeeded($allocation->scheduleItem);
             }
         }
     }
