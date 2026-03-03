@@ -9,12 +9,12 @@ class PurchaseOrderPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->can('view-purchase-orders');
+        return $user->can('view-purchase-orders') || $user->can('supplier-portal:view-purchase-orders');
     }
 
     public function view(User $user, PurchaseOrder $purchaseOrder): bool
     {
-        return $user->can('view-purchase-orders');
+        return $user->can('view-purchase-orders') || $user->can('supplier-portal:view-purchase-orders');
     }
 
     public function create(User $user): bool
