@@ -54,7 +54,13 @@ class User extends Authenticatable implements FilamentUser, HasTenants
         }
 
         if ($panel->getId() === 'portal') {
-            return $this->type->isExternal()
+            return $this->type === UserType::CLIENT
+                && $this->status === 'active'
+                && $this->company_id !== null;
+        }
+
+        if ($panel->getId() === 'supplier-portal') {
+            return $this->type === UserType::SUPPLIER
                 && $this->status === 'active'
                 && $this->company_id !== null;
         }
@@ -66,7 +72,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants
 
     public function getTenants(Panel $panel): array|Collection
     {
-        if ($panel->getId() === 'portal') {
+        if (in_array($panel->getId(), ['portal', 'supplier-portal'])) {
             return Company::where('id', $this->company_id)->get();
         }
 
