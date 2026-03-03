@@ -444,19 +444,19 @@ class EditInquiry extends EditRecord
 
     protected function compareSupplierQuotationsAction(): Action
     {
-        $hasSQs = $this->record->supplierQuotations()
-            ->whereIn('status', [
-                SupplierQuotationStatus::RECEIVED,
-                SupplierQuotationStatus::UNDER_ANALYSIS,
-                SupplierQuotationStatus::SELECTED,
-            ])
-            ->exists();
-
         return Action::make('compareSupplierQuotations')
             ->label(__('forms.labels.compare_supplier_quotations'))
             ->icon('heroicon-o-scale')
             ->color('info')
-            ->visible(fn () => $hasSQs)
+            ->visible(fn () => $this->record
+                ->supplierQuotations()
+                ->whereIn('status', [
+                    SupplierQuotationStatus::RECEIVED,
+                    SupplierQuotationStatus::UNDER_ANALYSIS,
+                    SupplierQuotationStatus::SELECTED,
+                ])
+                ->exists()
+            )
             ->url(fn () => InquiryResource::getUrl('compare-sq', ['record' => $this->record]));
     }
 
