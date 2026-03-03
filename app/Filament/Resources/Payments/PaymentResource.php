@@ -22,7 +22,7 @@ class PaymentResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-banknotes';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $slug = 'payments';
 

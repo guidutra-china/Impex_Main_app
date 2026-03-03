@@ -44,7 +44,6 @@ class AdminPanelProvider extends PanelProvider
                 'warning' => Color::Amber,
             ])
             ->navigationGroups([
-                __('navigation.groups.trade'),
                 __('navigation.groups.crm'),
                 __('navigation.groups.operations'),
                 __('navigation.groups.catalog'),
