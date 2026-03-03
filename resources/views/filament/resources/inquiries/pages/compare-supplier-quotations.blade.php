@@ -18,35 +18,43 @@
         </x-filament::section>
     @else
         {{-- Summary Cards --}}
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <x-filament::section>
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-primary-600">{{ count($rows) }}</div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400">Products</div>
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            @php
+                $cards = [
+                    ['label' => 'Products', 'value' => count($rows), 'color' => 'primary'],
+                    ['label' => 'Suppliers Quoting', 'value' => $supplierQuotations->count(), 'color' => 'info'],
+                    ['label' => 'Items Selected', 'value' => count($selections), 'color' => 'success'],
+                    ['label' => 'Pending Selection', 'value' => count($rows) - count($selections), 'color' => 'warning'],
+                ];
+            @endphp
+            @foreach($cards as $card)
+                <div @class([
+                    'rounded-xl border p-4 text-center',
+                    match ($card['color']) {
+                        'primary' => 'border-primary-200 bg-primary-50 dark:border-primary-500/20 dark:bg-primary-500/5',
+                        'info' => 'border-info-200 bg-info-50 dark:border-info-500/20 dark:bg-info-500/5',
+                        'success' => 'border-success-200 bg-success-50 dark:border-success-500/20 dark:bg-success-500/5',
+                        'warning' => 'border-warning-200 bg-warning-50 dark:border-warning-500/20 dark:bg-warning-500/5',
+                        default => 'border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/5',
+                    },
+                ])>
+                    <div @class([
+                        'text-2xl font-bold',
+                        match ($card['color']) {
+                            'primary' => 'text-primary-600 dark:text-primary-400',
+                            'info' => 'text-info-600 dark:text-info-400',
+                            'success' => 'text-success-600 dark:text-success-400',
+                            'warning' => 'text-warning-600 dark:text-warning-400',
+                            default => 'text-gray-600 dark:text-gray-400',
+                        },
+                    ])>{{ $card['value'] }}</div>
+                    <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1">{{ $card['label'] }}</div>
                 </div>
-            </x-filament::section>
-            <x-filament::section>
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-info-600">{{ $supplierQuotations->count() }}</div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400">Suppliers Quoting</div>
-                </div>
-            </x-filament::section>
-            <x-filament::section>
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-success-600">{{ count($selections) }}</div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400">Items Selected</div>
-                </div>
-            </x-filament::section>
-            <x-filament::section>
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-warning-600">{{ count($rows) - count($selections) }}</div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400">Pending Selection</div>
-                </div>
-            </x-filament::section>
+            @endforeach
         </div>
 
         {{-- Quick Actions --}}
-        <div class="flex flex-wrap gap-2 mb-6">
+        <div class="flex flex-wrap gap-2">
             <x-filament::button
                 wire:click="selectBestPrices"
                 color="success"
@@ -74,28 +82,27 @@
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-gray-200 dark:border-gray-700">
-                            <th class="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 min-w-[200px] sticky left-0 bg-white dark:bg-gray-900 z-10">
+                            <th class="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300" style="min-width: 200px;">
                                 Product
                             </th>
-                            <th class="text-center py-3 px-3 font-semibold text-gray-700 dark:text-gray-300 min-w-[80px]">
+                            <th class="text-center py-3 px-3 font-semibold text-gray-700 dark:text-gray-300" style="min-width: 80px;">
                                 Qty
                             </th>
-                            <th class="text-center py-3 px-3 font-semibold text-gray-700 dark:text-gray-300 min-w-[100px]">
+                            <th class="text-center py-3 px-3 font-semibold text-gray-700 dark:text-gray-300" style="min-width: 100px;">
                                 Target
                             </th>
                             @foreach($supplierQuotations as $sq)
-                                <th class="text-center py-3 px-4 font-semibold min-w-[180px] border-l border-gray-200 dark:border-gray-700"
-                                    style="color: {{ ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'][$loop->index % 6] }}">
+                                <th class="text-center py-3 px-4 font-semibold border-l border-gray-200 dark:border-gray-700" style="min-width: 180px; color: {{ ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'][$loop->index % 6] }}">
                                     <div>{{ $sq->company->name }}</div>
                                     <div class="text-xs font-normal text-gray-500 dark:text-gray-400">{{ $sq->reference }}</div>
-                                    <div class="text-xs font-normal">
+                                    <div class="text-xs font-normal mt-1">
                                         <x-filament::badge :color="$sq->status->getColor()" size="sm">
                                             {{ $sq->status->getLabel() }}
                                         </x-filament::badge>
                                     </div>
                                 </th>
                             @endforeach
-                            <th class="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 min-w-[120px] border-l border-gray-200 dark:border-gray-700">
+                            <th class="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 border-l border-gray-200 dark:border-gray-700" style="min-width: 120px;">
                                 Selected
                             </th>
                         </tr>
@@ -104,8 +111,6 @@
                         @foreach($rows as $row)
                             @php
                                 $currentSelection = $selections[$row['inquiry_item_id']] ?? null;
-
-                                // Find best price for highlighting
                                 $bestCost = PHP_INT_MAX;
                                 $worstCost = 0;
                                 foreach ($row['suppliers'] as $sqData) {
@@ -116,9 +121,9 @@
                                 }
                                 if ($bestCost === PHP_INT_MAX) $bestCost = 0;
                             @endphp
-                            <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 {{ $currentSelection ? 'bg-success-50 dark:bg-success-900/10' : '' }}">
-                                <td class="py-3 px-4 font-medium sticky left-0 bg-inherit z-10">
-                                    <div class="text-gray-900 dark:text-white">{{ $row['product_name'] }}</div>
+                            <tr class="border-b border-gray-100 dark:border-gray-800" style="{{ $currentSelection ? 'background-color: rgba(16, 185, 129, 0.05);' : '' }}">
+                                <td class="py-3 px-4 font-medium text-gray-900 dark:text-white">
+                                    {{ $row['product_name'] }}
                                 </td>
                                 <td class="text-center py-3 px-3 text-gray-600 dark:text-gray-400">
                                     {{ number_format($row['quantity']) }} {{ $row['unit'] }}
@@ -127,7 +132,7 @@
                                     @if($row['target_price'])
                                         $ {{ \App\Domain\Infrastructure\Support\Money::format($row['target_price'], 4) }}
                                     @else
-                                        <span class="text-gray-300 dark:text-gray-600">—</span>
+                                        <span class="text-gray-300 dark:text-gray-600">&mdash;</span>
                                     @endif
                                 </td>
                                 @foreach($supplierQuotations as $sq)
@@ -137,16 +142,19 @@
                                         $isBest = $sqData && $sqData['has_quote'] && $sqData['unit_cost'] === $bestCost && $bestCost !== $worstCost;
                                         $isWorst = $sqData && $sqData['has_quote'] && $sqData['unit_cost'] === $worstCost && $bestCost !== $worstCost;
                                     @endphp
-                                    <td class="text-center py-3 px-4 border-l border-gray-200 dark:border-gray-700 {{ $isSelected ? 'ring-2 ring-inset ring-success-500 bg-success-50 dark:bg-success-900/20' : '' }}">
+                                    <td class="text-center py-3 px-4 border-l border-gray-200 dark:border-gray-700" style="{{ $isSelected ? 'outline: 2px solid rgb(16, 185, 129); outline-offset: -2px; background-color: rgba(16, 185, 129, 0.08); border-radius: 4px;' : '' }}">
                                         @if($sqData && $sqData['has_quote'])
                                             <button
                                                 wire:click="selectSupplier({{ $row['inquiry_item_id'] }}, {{ $sq->id }}, {{ $sqData['sq_item_id'] }})"
-                                                class="w-full text-center cursor-pointer hover:opacity-80 transition-opacity"
+                                                class="w-full text-center cursor-pointer"
+                                                style="opacity: 1; transition: opacity 0.15s;"
+                                                onmouseover="this.style.opacity='0.8'"
+                                                onmouseout="this.style.opacity='1'"
                                             >
-                                                <div class="font-semibold {{ $isBest ? 'text-success-600' : ($isWorst ? 'text-danger-600' : 'text-gray-900 dark:text-white') }}">
+                                                <div class="font-semibold" style="color: {{ $isBest ? '#10b981' : ($isWorst ? '#ef4444' : 'inherit') }}">
                                                     $ {{ \App\Domain\Infrastructure\Support\Money::format($sqData['unit_cost'], 4) }}
                                                 </div>
-                                                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                                <div class="text-xs text-gray-500 dark:text-gray-400" style="margin-top: 2px;">
                                                     Total: $ {{ \App\Domain\Infrastructure\Support\Money::format($sqData['total_cost'], 2) }}
                                                 </div>
                                                 @if($sqData['moq'])
@@ -160,7 +168,7 @@
                                                     </div>
                                                 @endif
                                                 @if($isSelected)
-                                                    <div class="mt-1">
+                                                    <div style="margin-top: 4px;">
                                                         <x-filament::badge color="success" size="sm">
                                                             ✓ Selected
                                                         </x-filament::badge>
@@ -168,7 +176,7 @@
                                                 @endif
                                             </button>
                                         @else
-                                            <span class="text-gray-300 dark:text-gray-600">—</span>
+                                            <span class="text-gray-300 dark:text-gray-600">&mdash;</span>
                                         @endif
                                     </td>
                                 @endforeach
@@ -177,17 +185,20 @@
                                         @php
                                             $selectedSq = $supplierQuotations->firstWhere('id', $currentSelection['sq_id']);
                                         @endphp
-                                        <div class="text-sm font-medium text-success-600">
+                                        <div class="text-sm font-medium" style="color: #10b981;">
                                             {{ $selectedSq?->company?->name ?? '—' }}
                                         </div>
                                         <button
                                             wire:click="clearSelection({{ $row['inquiry_item_id'] }})"
-                                            class="text-xs text-danger-500 hover:text-danger-700 mt-1 cursor-pointer"
+                                            class="text-xs cursor-pointer"
+                                            style="color: #ef4444; margin-top: 4px;"
+                                            onmouseover="this.style.color='#dc2626'"
+                                            onmouseout="this.style.color='#ef4444'"
                                         >
                                             Clear
                                         </button>
                                     @else
-                                        <span class="text-xs text-gray-400 dark:text-gray-500 italic">Click a price to select</span>
+                                        <span class="text-xs text-gray-400 dark:text-gray-500" style="font-style: italic;">Click a price to select</span>
                                     @endif
                                 </td>
                             </tr>
@@ -199,7 +210,7 @@
 
         {{-- Selection Summary --}}
         @if(!empty($selections))
-            <x-filament::section heading="Selection Summary" class="mt-6">
+            <x-filament::section heading="Selection Summary">
                 @php
                     $summaryBySupplier = [];
                     foreach ($selections as $inquiryItemId => $sel) {
@@ -215,7 +226,6 @@
                         }
                         $summaryBySupplier[$sqId]['items']++;
 
-                        // Find the row to get total
                         foreach ($rows as $row) {
                             if ($row['inquiry_item_id'] === $inquiryItemId) {
                                 $sqData = $row['suppliers'][$sqId] ?? null;
@@ -228,12 +238,12 @@
                     }
                 @endphp
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-2 gap-3 sm:grid-cols-{{ min(count($summaryBySupplier), 4) }}">
                     @foreach($summaryBySupplier as $sqId => $summary)
-                        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                        <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                             <div class="font-semibold text-gray-900 dark:text-white">{{ $summary['supplier'] }}</div>
                             <div class="text-xs text-gray-500 dark:text-gray-400">{{ $summary['reference'] }}</div>
-                            <div class="mt-2 flex justify-between">
+                            <div style="margin-top: 8px; display: flex; justify-content: space-between;">
                                 <span class="text-sm text-gray-600 dark:text-gray-400">{{ $summary['items'] }} items</span>
                                 <span class="text-sm font-semibold text-gray-900 dark:text-white">
                                     $ {{ \App\Domain\Infrastructure\Support\Money::format($summary['total'], 2) }}
@@ -246,9 +256,9 @@
                 @php
                     $grandTotal = collect($summaryBySupplier)->sum('total');
                 @endphp
-                <div class="mt-4 text-right">
+                <div style="margin-top: 16px; text-align: right;">
                     <span class="text-sm text-gray-500 dark:text-gray-400">Grand Total:</span>
-                    <span class="text-lg font-bold text-gray-900 dark:text-white ml-2">
+                    <span class="text-lg font-bold text-gray-900 dark:text-white" style="margin-left: 8px;">
                         $ {{ \App\Domain\Infrastructure\Support\Money::format($grandTotal, 2) }}
                     </span>
                 </div>
