@@ -59,7 +59,7 @@ class ItemsRelationManager extends RelationManager
                 Section::make(__('forms.sections.select_existing_product'))
                     ->schema([
                         Select::make('filter_category_id')
-                            ->label(__('forms.labels.filter_by_category'))
+                            ->label(__('forms.tabs.filter_by_category'))
                             ->options(function () {
                                 return Category::active()
                                     ->orderBy('name')
@@ -71,14 +71,27 @@ class ItemsRelationManager extends RelationManager
                             ->placeholder(__('forms.placeholders.all_categories'))
                             ->live()
                             ->dehydrated(false)
-                            ->afterStateUpdated(fn (Set $set) => $set('product_id', null)),
+                            ->afterStateUpdated(function (Set $set) {
+                                $set('filter_supplier_id', null);
+                                $set('product_id', null);
+                            }),
 
                         Select::make('filter_supplier_id')
-                            ->label(__('forms.labels.filter_by_supplier'))
-                            ->options(function () {
-                                return Company::withRole(CompanyRole::SUPPLIER)
-                                    ->orderBy('name')
-                                    ->pluck('name', 'id');
+                            ->label(__('forms.tabs.filter_by_supplier'))
+                            ->options(function (Get $get) {
+                                $categoryId = $get('filter_category_id');
+
+                                $query = Company::withRole(CompanyRole::SUPPLIER);
+
+                                if ($categoryId) {
+                                    $categoryIds = $this->getCategoryWithDescendantIds((int) $categoryId);
+                                    $query->whereHas('products', function ($q) use ($categoryIds) {
+                                        $q->whereIn('category_id', $categoryIds)
+                                            ->where('company_product.role', 'supplier');
+                                    });
+                                }
+
+                                return $query->orderBy('name')->pluck('name', 'id');
                             })
                             ->searchable()
                             ->placeholder(__('forms.placeholders.all_suppliers'))
