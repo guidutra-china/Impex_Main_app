@@ -9,12 +9,12 @@ class ShipmentPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->can('view-shipments') || $user->can('portal:view-shipments');
+        return $user->can('view-shipments') || $user->can('portal:view-shipments') || $user->can('supplier-portal:view-shipments');
     }
 
     public function view(User $user, Shipment $shipment): bool
     {
-        return $user->can('view-shipments') || $user->can('portal:view-shipments');
+        return $user->can('view-shipments') || $user->can('portal:view-shipments') || $user->can('supplier-portal:view-shipments');
     }
 
     public function create(User $user): bool
