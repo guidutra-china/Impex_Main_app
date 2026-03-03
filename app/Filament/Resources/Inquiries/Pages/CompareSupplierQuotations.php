@@ -26,7 +26,7 @@ class CompareSupplierQuotations extends Page
 {
     protected static string $resource = InquiryResource::class;
 
-    protected static string $view = 'filament.resources.inquiries.pages.compare-supplier-quotations';
+    protected string $view = 'filament.resources.inquiries.pages.compare-supplier-quotations';
 
     protected static ?string $title = 'Compare Supplier Quotations';
 
