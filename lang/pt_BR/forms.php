@@ -99,6 +99,7 @@ return array (
     'company' => 'Empresa',
     'company_logo' => 'Logo da Empresa',
     'company_name' => 'Nome da Empresa',
+    'compare_supplier_quotations' => 'Comparar SQs',
     'complement' => 'Complemento',
     'complete_audit' => 'Completar Auditoria',
     'condition' => 'Condição',

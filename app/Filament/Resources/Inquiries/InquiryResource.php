@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Inquiries;
 
 use App\Domain\Inquiries\Models\Inquiry;
 use App\Filament\Resources\Inquiries\Pages\CreateInquiry;
+use App\Filament\Resources\Inquiries\Pages\CompareSupplierQuotations;
 use App\Filament\Resources\Inquiries\Pages\EditInquiry;
 use App\Filament\Resources\Inquiries\Pages\ListInquiries;
 use App\Filament\Resources\Inquiries\Pages\ViewInquiry;
@@ -70,6 +71,7 @@ class InquiryResource extends Resource
             'create' => CreateInquiry::route('/create'),
             'view' => ViewInquiry::route('/{record}'),
             'edit' => EditInquiry::route('/{record}/edit'),
+            'compare-sq' => CompareSupplierQuotations::route('/{record}/compare-sq'),
         ];
     }
 
