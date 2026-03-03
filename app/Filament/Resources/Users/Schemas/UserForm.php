@@ -17,6 +17,7 @@ class UserForm
 {
     private const INTERNAL_ROLES = ['admin', 'manager', 'operator', 'viewer'];
     private const CLIENT_ROLES = ['client_full', 'client_operations'];
+    private const SUPPLIER_ROLES = ['supplier_full', 'supplier_operations'];
 
     public static function configure(Schema $schema): Schema
     {
@@ -69,19 +70,35 @@ class UserForm
                         ->afterStateUpdated(fn (callable $set) => $set('roles', null)),
                     Select::make('company_id')
                         ->label(__('forms.labels.company'))
-                        ->relationship('company', 'name')
+                        ->options(function (Get $get) {
+                            $type = $get('type');
+                            $query = Company::query();
+
+                            if ($type === UserType::CLIENT->value || $type === UserType::CLIENT) {
+                                $query->withRole(\App\Domain\CRM\Enums\CompanyRole::CLIENT);
+                            } elseif ($type === UserType::SUPPLIER->value || $type === UserType::SUPPLIER) {
+                                $query->withRole(\App\Domain\CRM\Enums\CompanyRole::SUPPLIER);
+                            }
+
+                            return $query->orderBy('name')->pluck('name', 'id');
+                        })
                         ->searchable()
                         ->preload()
                         ->visible(fn (Get $get) => self::isExternalType($get('type')))
                         ->required(fn (Get $get) => self::isExternalType($get('type'))),
+
                     Select::make('roles')
                         ->label(__('forms.labels.role'))
                         ->relationship('roles', 'name')
                         ->options(function (Get $get) {
                             $type = $get('type');
-                            $allowedRoles = self::isExternalType($type)
-                                ? self::CLIENT_ROLES
-                                : self::INTERNAL_ROLES;
+                            if ($type === UserType::SUPPLIER->value || $type === UserType::SUPPLIER) {
+                                $allowedRoles = self::SUPPLIER_ROLES;
+                            } elseif (self::isExternalType($type)) {
+                                $allowedRoles = self::CLIENT_ROLES;
+                            } else {
+                                $allowedRoles = self::INTERNAL_ROLES;
+                            }
 
                             return Role::where('guard_name', 'web')
                                 ->whereIn('name', $allowedRoles)
