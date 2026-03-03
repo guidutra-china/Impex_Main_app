@@ -7,6 +7,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationGroup;
 use Filament\Pages\Dashboard;
 use App\Filament\Auth\EditProfile;
 use Filament\Panel;
@@ -44,11 +45,12 @@ class AdminPanelProvider extends PanelProvider
                 'warning' => Color::Amber,
             ])
             ->navigationGroups([
-                __('navigation.groups.crm'),
-                __('navigation.groups.operations'),
-                __('navigation.groups.catalog'),
-                __('navigation.groups.finance'),
-                __('navigation.groups.settings'),
+                NavigationGroup::make(__('navigation.groups.crm'))->sort(1),
+                NavigationGroup::make(__('navigation.groups.operations'))->sort(2),
+                NavigationGroup::make(__('navigation.groups.catalog'))->sort(3),
+                NavigationGroup::make(__('navigation.groups.finance'))->sort(4),
+                NavigationGroup::make(__('navigation.groups.trade'))->sort(5),
+                NavigationGroup::make(__('navigation.groups.settings'))->sort(6),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
