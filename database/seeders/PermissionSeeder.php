@@ -64,6 +64,16 @@ class PermissionSeeder extends Seeder
             'generate-purchase-orders',
 
             // Operations
+            'view-production-schedules',
+            'create-production-schedules',
+            'edit-production-schedules',
+            'delete-production-schedules',
+            'view-shipment-plans',
+            'create-shipment-plans',
+            'edit-shipment-plans',
+            'delete-shipment-plans',
+            'confirm-shipment-plans',
+            'execute-shipment-plans',
             'view-shipments',
             'create-shipments',
             'edit-shipments',

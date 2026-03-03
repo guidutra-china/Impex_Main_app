@@ -168,6 +168,32 @@ class RoleForm
                 ],
             ],
             [
+                'key' => 'operations_production_schedules',
+                'label' => 'Operations — Production Schedules',
+                'icon' => 'heroicon-o-calendar-days',
+                'description' => 'Manage supplier production schedules linked to PIs',
+                'permissions' => [
+                    'view-production-schedules',
+                    'create-production-schedules',
+                    'edit-production-schedules',
+                    'delete-production-schedules',
+                ],
+            ],
+            [
+                'key' => 'operations_shipment_plans',
+                'label' => 'Operations — Shipment Plans',
+                'icon' => 'heroicon-o-clipboard-document-list',
+                'description' => 'Manage shipment plans, confirmation, and execution',
+                'permissions' => [
+                    'view-shipment-plans',
+                    'create-shipment-plans',
+                    'edit-shipment-plans',
+                    'delete-shipment-plans',
+                    'confirm-shipment-plans',
+                    'execute-shipment-plans',
+                ],
+            ],
+            [
                 'key' => 'trade_shipments',
                 'label' => 'Trade — Shipments',
                 'icon' => 'heroicon-o-truck',

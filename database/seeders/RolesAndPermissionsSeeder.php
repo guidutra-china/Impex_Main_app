@@ -76,6 +76,20 @@ class RolesAndPermissionsSeeder extends Seeder
             'delete-purchase-orders',
             'generate-purchase-orders',
 
+            // Production Schedules
+            'view-production-schedules',
+            'create-production-schedules',
+            'edit-production-schedules',
+            'delete-production-schedules',
+
+            // Shipment Plans
+            'view-shipment-plans',
+            'create-shipment-plans',
+            'edit-shipment-plans',
+            'delete-shipment-plans',
+            'confirm-shipment-plans',
+            'execute-shipment-plans',
+
             // Shipments
             'view-shipments',
             'create-shipments',
@@ -162,6 +176,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'delete-quotations',
             'delete-proforma-invoices',
             'delete-purchase-orders',
+            'delete-production-schedules',
+            'delete-shipment-plans',
             'delete-shipments',
             'delete-payments',
             'manage-settings',
@@ -184,6 +200,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'delete-quotations',
             'delete-proforma-invoices',
             'delete-purchase-orders',
+            'delete-production-schedules',
+            'delete-shipment-plans',
+            'confirm-shipment-plans',
+            'execute-shipment-plans',
             'delete-shipments',
             'edit-payments',
             'delete-payments',
