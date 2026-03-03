@@ -29,7 +29,7 @@ class ProductionScheduleInfolist
                         ->label(__('forms.labels.version'))
                         ->badge()
                         ->color('gray'),
-                    TextEntry::make('received_at')
+                    TextEntry::make('received_date')
                         ->label(__('forms.labels.received_date'))
                         ->date('d/m/Y')
                         ->placeholder('—'),

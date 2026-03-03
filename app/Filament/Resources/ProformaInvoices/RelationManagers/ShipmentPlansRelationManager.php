@@ -6,6 +6,7 @@ use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Planning\Enums\ShipmentPlanStatus;
 use App\Domain\Planning\Models\ShipmentPlanItem;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
@@ -59,6 +60,14 @@ class ShipmentPlansRelationManager extends RelationManager
             ->recordActions([
                 ViewAction::make()
                     ->url(fn ($record) => route('filament.admin.resources.shipment-plans.view', $record->shipment_plan_id)),
+            ])
+            ->headerActions([
+                Action::make('create_shipment_plan')
+                    ->label('New Shipment Plan')
+                    ->icon('heroicon-o-plus')
+                    ->color('primary')
+                    ->visible(fn () => auth()->user()?->can('create-shipment-plans'))
+                    ->url(fn () => route('filament.admin.resources.shipment-plans.create')),
             ])
             ->emptyStateHeading('No shipment plans')
             ->emptyStateDescription('Items from this PI have not been added to any shipment plan yet.')

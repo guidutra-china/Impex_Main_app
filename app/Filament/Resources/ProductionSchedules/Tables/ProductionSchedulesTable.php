@@ -40,7 +40,7 @@ class ProductionSchedulesTable
                     ->label(__('forms.labels.entries'))
                     ->counts('entries')
                     ->alignCenter(),
-                TextColumn::make('received_at')
+                TextColumn::make('received_date')
                     ->label(__('forms.labels.received_date'))
                     ->date('d/m/Y')
                     ->sortable()

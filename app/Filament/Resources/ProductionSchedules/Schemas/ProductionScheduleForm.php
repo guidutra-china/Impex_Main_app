@@ -37,7 +37,7 @@ class ProductionScheduleForm
                         ->numeric()
                         ->default(1)
                         ->required(),
-                    DatePicker::make('received_at')
+                    DatePicker::make('received_date')
                         ->label(__('forms.labels.received_date'))
                         ->default(now()),
                 ])

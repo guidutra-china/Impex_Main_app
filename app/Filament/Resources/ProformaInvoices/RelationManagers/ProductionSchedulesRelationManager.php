@@ -2,7 +2,10 @@
 
 namespace App\Filament\Resources\ProformaInvoices\RelationManagers;
 
+use App\Domain\Planning\Models\ProductionSchedule;
+use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
@@ -36,7 +39,7 @@ class ProductionSchedulesRelationManager extends RelationManager
                     ->label(__('forms.labels.entries'))
                     ->counts('entries')
                     ->alignCenter(),
-                TextColumn::make('received_at')
+                TextColumn::make('received_date')
                     ->label(__('forms.labels.received_date'))
                     ->date('d/m/Y')
                     ->sortable()
@@ -48,6 +51,16 @@ class ProductionSchedulesRelationManager extends RelationManager
             ->recordActions([
                 ViewAction::make()
                     ->url(fn ($record) => route('filament.admin.resources.production-schedules.view', $record)),
+            ])
+            ->headerActions([
+                Action::make('create_production_schedule')
+                    ->label('New Production Schedule')
+                    ->icon('heroicon-o-plus')
+                    ->color('primary')
+                    ->visible(fn () => auth()->user()?->can('create-production-schedules'))
+                    ->url(fn () => route('filament.admin.resources.production-schedules.create', [
+                        'proforma_invoice_id' => $this->getOwnerRecord()->getKey(),
+                    ])),
             ])
             ->emptyStateHeading('No production schedules')
             ->emptyStateDescription('Create a production schedule to track supplier manufacturing progress for this PI.')
