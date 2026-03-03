@@ -220,16 +220,22 @@
                             $summaryBySupplier[$sqId] = [
                                 'supplier' => $sq?->company?->name ?? 'Unknown',
                                 'reference' => $sq?->reference ?? '—',
-                                'items' => 0,
+                                'items' => [],
                                 'total' => 0,
                             ];
                         }
-                        $summaryBySupplier[$sqId]['items']++;
 
                         foreach ($rows as $row) {
                             if ($row['inquiry_item_id'] === $inquiryItemId) {
                                 $sqData = $row['suppliers'][$sqId] ?? null;
                                 if ($sqData) {
+                                    $summaryBySupplier[$sqId]['items'][] = [
+                                        'product' => $row['product_name'],
+                                        'quantity' => $row['quantity'],
+                                        'unit' => $row['unit'],
+                                        'unit_cost' => $sqData['unit_cost'],
+                                        'total_cost' => $sqData['total_cost'],
+                                    ];
                                     $summaryBySupplier[$sqId]['total'] += $sqData['total_cost'];
                                 }
                                 break;
@@ -238,27 +244,55 @@
                     }
                 @endphp
 
-                <div class="grid grid-cols-2 gap-3 sm:grid-cols-{{ min(count($summaryBySupplier), 4) }}">
-                    @foreach($summaryBySupplier as $sqId => $summary)
-                        <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-                            <div class="font-semibold text-gray-900 dark:text-white">{{ $summary['supplier'] }}</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">{{ $summary['reference'] }}</div>
-                            <div style="margin-top: 8px; display: flex; justify-content: space-between;">
-                                <span class="text-sm text-gray-600 dark:text-gray-400">{{ $summary['items'] }} items</span>
-                                <span class="text-sm font-semibold text-gray-900 dark:text-white">
+                @foreach($summaryBySupplier as $sqId => $summary)
+                    <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-4" style="margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <div>
+                                <div class="font-semibold text-gray-900 dark:text-white">{{ $summary['supplier'] }}</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">{{ $summary['reference'] }}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-xs text-gray-500 dark:text-gray-400">{{ count($summary['items']) }} items</div>
+                                <div class="font-semibold text-gray-900 dark:text-white">
                                     $ {{ \App\Domain\Infrastructure\Support\Money::format($summary['total'], 2) }}
-                                </span>
+                                </div>
                             </div>
                         </div>
-                    @endforeach
-                </div>
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-gray-200 dark:border-gray-700">
+                                    <th class="text-left py-2 px-2 text-xs font-medium text-gray-500 dark:text-gray-400">Product</th>
+                                    <th class="text-center py-2 px-2 text-xs font-medium text-gray-500 dark:text-gray-400">Qty</th>
+                                    <th class="text-right py-2 px-2 text-xs font-medium text-gray-500 dark:text-gray-400">Unit Cost</th>
+                                    <th class="text-right py-2 px-2 text-xs font-medium text-gray-500 dark:text-gray-400">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($summary['items'] as $item)
+                                    <tr class="border-b border-gray-100 dark:border-gray-800">
+                                        <td class="py-2 px-2 text-gray-900 dark:text-white">{{ $item['product'] }}</td>
+                                        <td class="text-center py-2 px-2 text-gray-600 dark:text-gray-400">{{ number_format($item['quantity']) }} {{ $item['unit'] }}</td>
+                                        <td class="text-right py-2 px-2 text-gray-900 dark:text-white">$ {{ \App\Domain\Infrastructure\Support\Money::format($item['unit_cost'], 4) }}</td>
+                                        <td class="text-right py-2 px-2 font-medium text-gray-900 dark:text-white">$ {{ \App\Domain\Infrastructure\Support\Money::format($item['total_cost'], 2) }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                            <tfoot>
+                                <tr class="border-t border-gray-300 dark:border-gray-600">
+                                    <td colspan="3" class="py-2 px-2 text-right text-sm font-semibold text-gray-700 dark:text-gray-300">Supplier Total:</td>
+                                    <td class="py-2 px-2 text-right text-sm font-bold text-gray-900 dark:text-white">$ {{ \App\Domain\Infrastructure\Support\Money::format($summary['total'], 2) }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                @endforeach
 
                 @php
                     $grandTotal = collect($summaryBySupplier)->sum('total');
                 @endphp
-                <div style="margin-top: 16px; text-align: right;">
+                <div style="margin-top: 16px; padding-top: 12px; border-top: 2px solid; text-align: right;" class="border-gray-300 dark:border-gray-600">
                     <span class="text-sm text-gray-500 dark:text-gray-400">Grand Total:</span>
-                    <span class="text-lg font-bold text-gray-900 dark:text-white" style="margin-left: 8px;">
+                    <span class="text-xl font-bold text-gray-900 dark:text-white" style="margin-left: 8px;">
                         $ {{ \App\Domain\Infrastructure\Support\Money::format($grandTotal, 2) }}
                     </span>
                 </div>
