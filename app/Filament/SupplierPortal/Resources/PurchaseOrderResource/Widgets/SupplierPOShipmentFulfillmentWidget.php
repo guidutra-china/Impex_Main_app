@@ -25,7 +25,7 @@ class SupplierPOShipmentFulfillmentWidget extends Widget
         }
 
         $po = $this->record;
-        $po->loadMissing(['items.product', 'items.proformaInvoiceItem']);
+        $po->loadMissing(['items.product']);
 
         $items = $po->items;
 
@@ -125,54 +125,42 @@ class SupplierPOShipmentFulfillmentWidget extends Widget
 
     private function getShippedQuantity($poItem): int
     {
-        // Primary: direct link via purchase_order_item_id
-        $shipped = ShipmentItem::where('purchase_order_item_id', $poItem->id)
-            ->whereHas('shipment', fn ($q) => $q->where('status', '!=', ShipmentStatus::CANCELLED))
-            ->sum('quantity');
+        $baseQuery = $this->buildShipmentItemQuery($poItem);
 
-        if ($shipped > 0) {
-            return (int) $shipped;
-        }
-
-        // Fallback: via proforma_invoice_item_id chain
-        if ($poItem->proforma_invoice_item_id) {
-            $shipped = ShipmentItem::where('proforma_invoice_item_id', $poItem->proforma_invoice_item_id)
-                ->whereHas('shipment', fn ($q) => $q->where('status', '!=', ShipmentStatus::CANCELLED))
-                ->sum('quantity');
-        }
-
-        return (int) $shipped;
+        return (int) $baseQuery->sum('quantity');
     }
 
     private function getShipmentReferences($poItem): array
     {
-        // Primary: direct link
-        $refs = ShipmentItem::where('purchase_order_item_id', $poItem->id)
-            ->whereHas('shipment', fn ($q) => $q->where('status', '!=', ShipmentStatus::CANCELLED))
-            ->with('shipment')
-            ->get()
+        $baseQuery = $this->buildShipmentItemQuery($poItem)->with('shipment');
+
+        return $baseQuery->get()
             ->pluck('shipment.reference')
+            ->filter()
             ->unique()
             ->values()
             ->all();
+    }
 
-        if (! empty($refs)) {
-            return $refs;
-        }
+    private function buildShipmentItemQuery($poItem)
+    {
+        $query = ShipmentItem::query();
 
-        // Fallback: via proforma_invoice_item_id chain
         if ($poItem->proforma_invoice_item_id) {
-            $refs = ShipmentItem::where('proforma_invoice_item_id', $poItem->proforma_invoice_item_id)
-                ->whereHas('shipment', fn ($q) => $q->where('status', '!=', ShipmentStatus::CANCELLED))
-                ->with('shipment')
-                ->get()
-                ->pluck('shipment.reference')
-                ->unique()
-                ->values()
-                ->all();
+            $query->where(function ($q) use ($poItem) {
+                $q->where('purchase_order_item_id', $poItem->id)
+                    ->orWhere('proforma_invoice_item_id', $poItem->proforma_invoice_item_id);
+            });
+        } else {
+            $query->where('purchase_order_item_id', $poItem->id);
         }
 
-        return $refs;
+        $query->whereHas('shipment', function ($q) {
+            $q->withoutGlobalScopes()
+                ->where('status', '!=', ShipmentStatus::CANCELLED);
+        });
+
+        return $query;
     }
 
     private function emptyState(): array
