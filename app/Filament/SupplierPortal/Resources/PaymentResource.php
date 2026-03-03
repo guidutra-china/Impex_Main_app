@@ -69,6 +69,12 @@ class PaymentResource extends Resource
                     ->label('Amount')
                     ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 2))
                     ->alignRight(),
+                TextColumn::make('unallocated_amount')
+                    ->label('Unallocated')
+                    ->getStateUsing(fn ($record) => $record->unallocated_amount)
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 2))
+                    ->alignRight()
+                    ->color(fn ($record) => $record->unallocated_amount > 0 ? 'warning' : 'success'),
                 TextColumn::make('payment_date')
                     ->label('Payment Date')
                     ->date('d/m/Y')
