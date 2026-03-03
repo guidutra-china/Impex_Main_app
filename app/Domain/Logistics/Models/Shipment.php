@@ -180,4 +180,13 @@ class Shipment extends Model
             ->unique()
             ->implode(', ');
     }
+
+    // --- Scopes ---
+
+    public function scopeForSupplierCompany($query, int $companyId)
+    {
+        return $query->whereHas('items.purchaseOrderItem.purchaseOrder', function ($q) use ($companyId) {
+            $q->where('supplier_company_id', $companyId);
+        });
+    }
 }
