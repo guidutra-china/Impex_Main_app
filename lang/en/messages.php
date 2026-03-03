@@ -91,4 +91,16 @@ return [
     'status_reverted_to' => 'Status reverted to',
     'revert_status_failed' => 'Failed to revert status',
     'previous_status' => 'previous status',
+
+    // Production Schedule & Shipment Plan
+    'import_successful' => 'Import Successful',
+    'confirm_shipment_plan_description' => 'This will generate payment schedule items for all shipment-dependent stages (BEFORE_SHIPMENT, BEFORE_ARRIVAL, etc.) based on the planned items and their PI payment terms. The plan status will advance to Pending Payment.',
+    'shipment_plan_confirmed' => 'Shipment Plan Confirmed',
+    'payment_schedule_generated' => 'Payment schedule items have been generated for this shipment plan.',
+    'action_failed' => 'Action Failed',
+    'blocking_payments_pending' => 'There are blocking payments (BEFORE_SHIPMENT) that must be paid before this plan can be executed.',
+    'create_shipment_from_plan_description' => 'This will create a real Shipment from this plan, copying all planned items. The plan status will change to Shipped.',
+    'shipment_created' => 'Shipment Created',
+    'reconcile_shipment_plan_description' => 'This will compare the planned quantities with the actual shipment quantities and adjust the BEFORE_ARRIVAL payment schedule items accordingly.',
+    'reconciliation_complete' => 'Reconciliation Complete',
 ];

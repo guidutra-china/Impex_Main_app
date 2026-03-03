@@ -12,6 +12,8 @@ use App\Filament\Resources\ProformaInvoices\Pages\ViewProformaInvoice;
 use App\Filament\Resources\ProformaInvoices\RelationManagers\ItemsRelationManager;
 use App\Filament\Resources\ProformaInvoices\RelationManagers\PaymentScheduleRelationManager;
 use App\Filament\Resources\ProformaInvoices\RelationManagers\PaymentsRelationManager;
+use App\Filament\Resources\ProformaInvoices\RelationManagers\ProductionSchedulesRelationManager;
+use App\Filament\Resources\ProformaInvoices\RelationManagers\ShipmentPlansRelationManager;
 use App\Filament\Resources\ProformaInvoices\Schemas\ProformaInvoiceForm;
 use App\Filament\Resources\ProformaInvoices\Widgets\ProformaInvoiceStats;
 use App\Filament\Resources\ProformaInvoices\Widgets\ShipmentFulfillmentWidget;
@@ -67,6 +69,8 @@ class ProformaInvoiceResource extends Resource
             AdditionalCostsRelationManager::class,
             PaymentScheduleRelationManager::class,
             PaymentsRelationManager::class,
+            ProductionSchedulesRelationManager::class,
+            ShipmentPlansRelationManager::class,
             DocumentsRelationManager::class,
         ];
     }

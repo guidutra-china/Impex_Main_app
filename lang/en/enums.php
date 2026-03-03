@@ -116,6 +116,8 @@ return array (
     'SH' => 'Shipment',
     'CI' => 'Client Invoice',
     'PAY' => 'Payment',
+    'PS' => 'Production Schedule',
+    'SP' => 'Shipment Plan',
     ),
     'inquiry_source' => 
     array (
@@ -250,6 +252,7 @@ return array (
     'before_shipment' => 'Before Shipment',
     'before_production' => 'Before Production',
     'after_production' => 'After Production',
+    'before_arrival' => 'Before Arrival',
     ),
     'exchange_rate_source' => 
     array (
@@ -371,5 +374,14 @@ return array (
     'logistics' => 'Logistics',
     'financial' => 'Financial',
     'quality' => 'Quality',
+    ),
+    'shipment_plan_status' =>
+    array (
+    'draft' => 'Draft',
+    'confirmed' => 'Confirmed',
+    'pending_payment' => 'Pending Payment',
+    'ready_to_ship' => 'Ready to Ship',
+    'shipped' => 'Shipped',
+    'cancelled' => 'Cancelled',
     ),
 );

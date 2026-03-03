@@ -38,6 +38,8 @@ return [
         'payment_terms' => 'Payment Terms',
         'container_types' => 'Container Types',
         'audit_categories' => 'Audit Categories',
+        'production_schedules' => 'Production Schedules',
+        'shipment_plans' => 'Shipment Plans',
     ],
 
     // Model Labels (singular / plural)
@@ -90,6 +92,10 @@ return [
         'container_types' => 'Container Types',
         'audit_category' => 'Audit Category',
         'audit_categories' => 'Audit Categories',
+        'production_schedule' => 'Production Schedule',
+        'production_schedules' => 'Production Schedules',
+        'shipment_plan' => 'Shipment Plan',
+        'shipment_plans' => 'Shipment Plans',
     ],
 
     // Page Titles

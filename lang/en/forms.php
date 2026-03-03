@@ -515,6 +515,27 @@ return array (
     'month' => 'Month',
     'import_modality' => 'Import Modality',
     'contracted_importer_details' => 'Contracted Importer Details',
+    'version' => 'Version',
+    'received_date' => 'Received Date',
+    'production_date' => 'Production Date',
+    'quantity_produced' => 'Quantity Produced',
+    'entries' => 'Entries',
+    'import_spreadsheet' => 'Import Spreadsheet',
+    'spreadsheet_file' => 'Spreadsheet File',
+    'planned_shipment_date' => 'Planned Shipment Date',
+    'planned_eta' => 'Planned ETA',
+    'planned_etd' => 'Planned ETD',
+    'max_cbm' => 'Max CBM',
+    'container_type' => 'Container Type',
+    'total_value' => 'Total Value',
+    'shipment_plan' => 'Shipment Plan',
+    'confirm_plan' => 'Confirm Plan',
+    'confirm_shipment_plan' => 'Confirm Shipment Plan',
+    'create_shipment' => 'Create Shipment',
+    'create_shipment_from_plan' => 'Create Shipment from Plan',
+    'reconcile' => 'Reconcile',
+    'reconcile_shipment_plan' => 'Reconcile Shipment Plan',
+    'only_import_available_quantities' => 'Only import available quantities (exclude already shipped/planned)',
     ),
     'sections' => 
     array (
@@ -612,6 +633,11 @@ return array (
     'expense_details' => 'Expense Details',
     'recurrence' => 'Recurrence',
     'contracted_importer' => 'Contracted Importer',
+    'production_schedule_information' => 'Production Schedule Information',
+    'shipment_plan_information' => 'Shipment Plan Information',
+    'planned_dates' => 'Planned Dates',
+    'capacity' => 'Capacity',
+    'linked_shipment' => 'Linked Shipment',
     ),
     'tabs' => 
     array (
@@ -863,6 +889,7 @@ return array (
     'receipt_or_invoice_number' => 'Receipt or invoice number',
     'all_categories' => 'All categories',
     'all_suppliers' => 'All suppliers',
+    'not_yet_shipped' => 'Not yet shipped',
     ),
     'descriptions' => 
     array (
@@ -891,5 +918,6 @@ return array (
     'this_text_will_appear_on_invoices_and_other_financial' => 'This text will appear on invoices and other financial documents. Format it as you want it to be printed.',
     'contracted_importer_details_for_conta_e_ordem' => 'Enter the details of the contracted importer for "Conta e Ordem" operations. This will appear on the Commercial Invoice and Packing List.',
     'revert_reason_required' => 'A reason is required for audit trail purposes.',
+    'container_capacity_limits' => 'Define container capacity limits for CBM and weight to help plan shipments.',
     ),
 );
