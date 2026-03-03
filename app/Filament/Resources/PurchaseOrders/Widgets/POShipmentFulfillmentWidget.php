@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\PurchaseOrders\Widgets;
 
 use App\Domain\Logistics\Enums\ShipmentStatus;
+use App\Domain\Logistics\Models\ShipmentItem;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use Filament\Widgets\Widget;
 use Illuminate\Database\Eloquent\Model;
@@ -24,7 +25,7 @@ class POShipmentFulfillmentWidget extends Widget
         }
 
         $po = $this->record;
-        $po->loadMissing(['items.product', 'items.shipmentItems.shipment']);
+        $po->loadMissing(['items.product', 'items.proformaInvoiceItem']);
 
         $items = $po->items;
 
@@ -37,10 +38,7 @@ class POShipmentFulfillmentWidget extends Widget
         $pendingCount = 0;
 
         $mappedItems = $items->map(function ($item) use (&$totalQty, &$totalShipped, &$pendingCount) {
-            $activeShipmentItems = $item->shipmentItems
-                ->filter(fn ($si) => $si->shipment && $si->shipment->status !== ShipmentStatus::CANCELLED);
-
-            $shipped = $activeShipmentItems->sum('quantity');
+            $shipped = $this->getShippedQuantity($item);
             $remaining = max(0, $item->quantity - $shipped);
 
             $totalQty += $item->quantity;
@@ -56,11 +54,7 @@ class POShipmentFulfillmentWidget extends Widget
                 default => 'pending',
             };
 
-            $refs = $activeShipmentItems
-                ->pluck('shipment.reference')
-                ->unique()
-                ->values()
-                ->all();
+            $refs = $this->getShipmentReferences($item);
 
             return [
                 'product_name' => $item->product_name,
@@ -127,6 +121,54 @@ class POShipmentFulfillmentWidget extends Widget
             'showFinalizationStatus' => false,
             'pendingItemsCount' => $pendingCount,
         ];
+    }
+
+    private function getShippedQuantity($poItem): int
+    {
+        $shipped = ShipmentItem::where('purchase_order_item_id', $poItem->id)
+            ->whereHas('shipment', fn ($q) => $q->where('status', '!=', ShipmentStatus::CANCELLED))
+            ->sum('quantity');
+
+        if ($shipped > 0) {
+            return (int) $shipped;
+        }
+
+        if ($poItem->proforma_invoice_item_id) {
+            $shipped = ShipmentItem::where('proforma_invoice_item_id', $poItem->proforma_invoice_item_id)
+                ->whereHas('shipment', fn ($q) => $q->where('status', '!=', ShipmentStatus::CANCELLED))
+                ->sum('quantity');
+        }
+
+        return (int) $shipped;
+    }
+
+    private function getShipmentReferences($poItem): array
+    {
+        $refs = ShipmentItem::where('purchase_order_item_id', $poItem->id)
+            ->whereHas('shipment', fn ($q) => $q->where('status', '!=', ShipmentStatus::CANCELLED))
+            ->with('shipment')
+            ->get()
+            ->pluck('shipment.reference')
+            ->unique()
+            ->values()
+            ->all();
+
+        if (! empty($refs)) {
+            return $refs;
+        }
+
+        if ($poItem->proforma_invoice_item_id) {
+            $refs = ShipmentItem::where('proforma_invoice_item_id', $poItem->proforma_invoice_item_id)
+                ->whereHas('shipment', fn ($q) => $q->where('status', '!=', ShipmentStatus::CANCELLED))
+                ->with('shipment')
+                ->get()
+                ->pluck('shipment.reference')
+                ->unique()
+                ->values()
+                ->all();
+        }
+
+        return $refs;
     }
 
     private function emptyState(): array
