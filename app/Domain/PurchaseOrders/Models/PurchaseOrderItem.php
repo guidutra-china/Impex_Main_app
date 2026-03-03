@@ -7,6 +7,7 @@ use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\ShipmentItem;
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
 use App\Domain\Quotations\Enums\Incoterm;
+use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,6 +18,7 @@ class PurchaseOrderItem extends Model
         'purchase_order_id',
         'product_id',
         'proforma_invoice_item_id',
+        'supplier_quotation_item_id',
         'description',
         'specifications',
         'quantity',
@@ -52,6 +54,11 @@ class PurchaseOrderItem extends Model
     public function proformaInvoiceItem(): BelongsTo
     {
         return $this->belongsTo(ProformaInvoiceItem::class);
+    }
+
+    public function supplierQuotationItem(): BelongsTo
+    {
+        return $this->belongsTo(SupplierQuotationItem::class);
     }
 
     public function shipmentItems(): HasMany

@@ -223,6 +223,8 @@ return array (
     'import_from_inquiry' => 'Import from Inquiry',
     'import_from_pi' => 'Import from PI',
     'import_from_quotations' => 'Import from Quotations',
+    'import_from_sq' => 'Import from SQ',
+    'supplier_quotation' => 'Supplier Quotation',
     'in_document_currency' => 'In Document Currency',
     'incoterm' => 'Incoterm',
     'inherited_from' => 'Inherited From',
