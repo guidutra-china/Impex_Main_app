@@ -19,31 +19,34 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
+use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Illuminate\Support\Facades\DB;
 
 class CompareSupplierQuotations extends Page
 {
+    use InteractsWithRecord;
+
     protected static string $resource = InquiryResource::class;
 
     protected string $view = 'filament.resources.inquiries.pages.compare-supplier-quotations';
 
     protected static ?string $title = 'Compare Supplier Quotations';
 
-    public ?Inquiry $record = null;
-
     public array $selections = [];
 
     public function mount(int|string $record): void
     {
-        $this->record = Inquiry::with([
+        $this->record = $this->resolveRecord($record);
+
+        $this->record->load([
             'items.product',
             'supplierQuotations' => fn ($q) => $q->whereIn('status', [
                 SupplierQuotationStatus::RECEIVED,
                 SupplierQuotationStatus::UNDER_ANALYSIS,
                 SupplierQuotationStatus::SELECTED,
             ])->with(['company', 'items']),
-        ])->findOrFail($record);
+        ]);
     }
 
     public function getComparisonData(): array
