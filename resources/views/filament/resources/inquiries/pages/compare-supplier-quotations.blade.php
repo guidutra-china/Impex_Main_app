@@ -272,7 +272,7 @@
                                     <tr class="border-b border-gray-100 dark:border-gray-800">
                                         <td class="py-2 px-2 text-gray-900 dark:text-white">{{ $item['product'] }}</td>
                                         <td class="text-center py-2 px-2 text-gray-600 dark:text-gray-400">{{ number_format($item['quantity']) }} {{ $item['unit'] }}</td>
-                                        <td class="text-right py-2 px-2 text-gray-900 dark:text-white">$ {{ \App\Domain\Infrastructure\Support\Money::format($item['unit_cost'], 4) }}</td>
+                                        <td class="text-right py-2 px-2 text-gray-900 dark:text-white">$ {{ \App\Domain\Infrastructure\Support\Money::format($item['unit_cost'], 2) }}</td>
                                         <td class="text-right py-2 px-2 font-medium text-gray-900 dark:text-white">$ {{ \App\Domain\Infrastructure\Support\Money::format($item['total_cost'], 2) }}</td>
                                     </tr>
                                 @endforeach
