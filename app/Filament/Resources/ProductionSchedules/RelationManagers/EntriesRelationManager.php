@@ -24,7 +24,6 @@ class EntriesRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        $scheduleId = $this->getOwnerRecord()->id;
         $piId = $this->getOwnerRecord()->proforma_invoice_id;
 
         return $schema->components([
@@ -32,6 +31,7 @@ class EntriesRelationManager extends RelationManager
                 ->label(__('forms.labels.product'))
                 ->options(
                     fn () => ProformaInvoiceItem::where('proforma_invoice_id', $piId)
+                        ->with('product')
                         ->get()
                         ->mapWithKeys(fn ($item) => [
                             $item->id => ($item->product?->name ?? $item->description) . " (Qty: {$item->quantity})",
@@ -39,11 +39,11 @@ class EntriesRelationManager extends RelationManager
                 )
                 ->searchable()
                 ->required(),
-            DatePicker::make('date')
+            DatePicker::make('production_date')
                 ->label(__('forms.labels.production_date'))
                 ->required(),
-            TextInput::make('quantity_produced')
-                ->label(__('forms.labels.quantity_produced'))
+            TextInput::make('quantity')
+                ->label(__('forms.labels.quantity'))
                 ->numeric()
                 ->required()
                 ->minValue(1),
@@ -59,20 +59,20 @@ class EntriesRelationManager extends RelationManager
                     ->default(fn ($record) => $record->proformaInvoiceItem?->description ?? '—')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('date')
+                TextColumn::make('production_date')
                     ->label(__('forms.labels.production_date'))
                     ->date('d/m/Y')
                     ->sortable(),
-                TextColumn::make('quantity_produced')
-                    ->label(__('forms.labels.quantity_produced'))
+                TextColumn::make('quantity')
+                    ->label(__('forms.labels.quantity'))
                     ->numeric()
                     ->alignEnd()
                     ->sortable(),
             ])
-            ->defaultSort('date', 'asc')
+            ->defaultSort('production_date', 'asc')
             ->groups([
                 'proformaInvoiceItem.product.name',
-                'date',
+                'production_date',
             ])
             ->recordActions([
                 EditAction::make(),

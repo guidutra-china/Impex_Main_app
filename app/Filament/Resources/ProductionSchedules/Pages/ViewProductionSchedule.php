@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ProductionSchedules\Pages;
 
+use App\Domain\Planning\Actions\GenerateProductionScheduleTemplate;
 use App\Domain\Planning\Models\ProductionScheduleEntry;
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
 use App\Filament\Resources\ProductionSchedules\ProductionScheduleResource;
@@ -10,7 +11,7 @@ use Filament\Actions\EditAction;
 use Filament\Forms\Components\FileUpload;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
-use PhpOffice\PhpSpreadsheet\IOFactory;
+use OpenSpout\Reader\XLSX\Reader;
 
 class ViewProductionSchedule extends ViewRecord
 {
@@ -19,9 +20,24 @@ class ViewProductionSchedule extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            $this->downloadTemplateAction(),
             $this->importSpreadsheetAction(),
             EditAction::make(),
         ];
+    }
+
+    protected function downloadTemplateAction(): Action
+    {
+        return Action::make('downloadTemplate')
+            ->label('Download Template')
+            ->icon('heroicon-o-arrow-down-tray')
+            ->color('gray')
+            ->action(function () {
+                $path = app(GenerateProductionScheduleTemplate::class)
+                    ->execute($this->record);
+
+                return response()->download($path)->deleteFileAfterSend();
+            });
     }
 
     protected function importSpreadsheetAction(): Action
@@ -43,7 +59,17 @@ class ViewProductionSchedule extends ViewRecord
             ])
             ->action(function (array $data) {
                 try {
-                    $path = storage_path('app/' . $data['spreadsheet']);
+                    $filePath = $data['spreadsheet'];
+
+                    if (is_array($filePath)) {
+                        $filePath = reset($filePath);
+                    }
+
+                    $path = storage_path('app/private/' . $filePath);
+
+                    if (! file_exists($path)) {
+                        $path = storage_path('app/' . $filePath);
+                    }
 
                     $imported = $this->processSpreadsheet($path);
 
@@ -66,113 +92,189 @@ class ViewProductionSchedule extends ViewRecord
 
     protected function processSpreadsheet(string $path): int
     {
-        $spreadsheet = IOFactory::load($path);
-        $sheet = $spreadsheet->getActiveSheet();
-        $rows = $sheet->toArray(null, true, true, true);
-
         $schedule = $this->record;
         $pi = $schedule->proformaInvoice;
-        $piItems = $pi->items->keyBy('id');
+        $piItems = $pi->items()->with('product')->get();
 
-        $piItemsByDescription = $pi->items->keyBy(function ($item) {
-            return strtolower(trim($item->description ?? $item->product?->name ?? ''));
+        $piItemsByName = $piItems->keyBy(function ($item) {
+            return strtolower(trim($item->product?->name ?? $item->description ?? ''));
         });
 
-        $headerRow = null;
+        $reader = new Reader();
+        $reader->open($path);
+
+        $imported = 0;
+        $rowIndex = 0;
+        $isTemplateFormat = false;
+        $isSupplierFormat = false;
         $dateColumns = [];
         $productColumn = null;
-        $imported = 0;
 
-        foreach ($rows as $rowIndex => $row) {
-            $values = array_values($row);
+        foreach ($reader->getSheetIterator() as $sheet) {
+            foreach ($sheet->getRowIterator() as $row) {
+                $rowIndex++;
+                $cells = $row->getCells();
+                $values = array_map(fn ($cell) => $cell->getValue(), $cells);
 
-            if ($headerRow === null) {
-                foreach ($row as $colKey => $cell) {
-                    $cellValue = trim((string) $cell);
-
-                    if ($this->looksLikeDate($cellValue)) {
-                        $dateColumns[$colKey] = $this->parseDate($cellValue, $sheet, $colKey, $rowIndex);
-                    }
-
-                    if ($this->looksLikeProductHeader($cellValue)) {
-                        $productColumn = $colKey;
+                // Detect format from first rows
+                if ($rowIndex === 1) {
+                    $firstCell = strtolower(trim((string) ($values[0] ?? '')));
+                    if (str_contains($firstCell, 'production schedule')) {
+                        $isTemplateFormat = true;
+                        continue;
                     }
                 }
 
-                if (! empty($dateColumns)) {
-                    $headerRow = $rowIndex;
+                if ($rowIndex === 2 && $isTemplateFormat) {
+                    // Template format: headers are Product, PI Qty, Date, Quantity Produced
                     continue;
                 }
 
-                continue;
-            }
-
-            $productName = null;
-            if ($productColumn !== null) {
-                $productName = trim((string) ($row[$productColumn] ?? ''));
-            }
-
-            if (empty($productName)) {
-                continue;
-            }
-
-            $piItem = $this->matchPiItem($productName, $piItems, $piItemsByDescription);
-
-            if (! $piItem) {
-                continue;
-            }
-
-            foreach ($dateColumns as $colKey => $date) {
-                if ($date === null) {
+                if ($rowIndex === 3 && $isTemplateFormat) {
+                    // Hint row in template
                     continue;
                 }
 
-                $quantity = (int) ($row[$colKey] ?? 0);
+                // Template format: Product | PI Qty | Date | Quantity Produced
+                if ($isTemplateFormat) {
+                    $productName = trim((string) ($values[0] ?? ''));
+                    $dateValue = $values[2] ?? null;
+                    $quantity = (int) ($values[3] ?? 0);
 
-                if ($quantity <= 0) {
+                    if (empty($productName) || $quantity <= 0) {
+                        continue;
+                    }
+
+                    $piItem = $this->matchPiItem($productName, $piItemsByName, $piItems);
+                    if (! $piItem) {
+                        continue;
+                    }
+
+                    $date = $this->parseDateValue($dateValue);
+                    if (! $date) {
+                        continue;
+                    }
+
+                    ProductionScheduleEntry::updateOrCreate(
+                        [
+                            'production_schedule_id' => $schedule->id,
+                            'proforma_invoice_item_id' => $piItem->id,
+                            'production_date' => $date,
+                        ],
+                        [
+                            'quantity' => $quantity,
+                        ]
+                    );
+
+                    $imported++;
                     continue;
                 }
 
-                ProductionScheduleEntry::updateOrCreate(
-                    [
-                        'production_schedule_id' => $schedule->id,
-                        'proforma_invoice_item_id' => $piItem->id,
-                        'date' => $date,
-                    ],
-                    [
-                        'quantity_produced' => $quantity,
-                    ]
-                );
+                // Supplier format: detect header row with dates as columns
+                if (! $isSupplierFormat) {
+                    foreach ($values as $colIndex => $cellValue) {
+                        $cellStr = trim((string) $cellValue);
 
-                $imported++;
+                        if ($this->looksLikeDate($cellStr, $cellValue)) {
+                            $dateColumns[$colIndex] = $this->parseDateValue($cellValue);
+                        }
+
+                        if ($this->looksLikeProductHeader($cellStr)) {
+                            $productColumn = $colIndex;
+                        }
+                    }
+
+                    if (! empty($dateColumns)) {
+                        $isSupplierFormat = true;
+                        continue;
+                    }
+
+                    continue;
+                }
+
+                // Supplier format: data rows
+                $productName = null;
+                if ($productColumn !== null) {
+                    $productName = trim((string) ($values[$productColumn] ?? ''));
+                }
+
+                if (empty($productName)) {
+                    continue;
+                }
+
+                $piItem = $this->matchPiItem($productName, $piItemsByName, $piItems);
+                if (! $piItem) {
+                    continue;
+                }
+
+                foreach ($dateColumns as $colIndex => $date) {
+                    if ($date === null) {
+                        continue;
+                    }
+
+                    $quantity = (int) ($values[$colIndex] ?? 0);
+                    if ($quantity <= 0) {
+                        continue;
+                    }
+
+                    ProductionScheduleEntry::updateOrCreate(
+                        [
+                            'production_schedule_id' => $schedule->id,
+                            'proforma_invoice_item_id' => $piItem->id,
+                            'production_date' => $date,
+                        ],
+                        [
+                            'quantity' => $quantity,
+                        ]
+                    );
+
+                    $imported++;
+                }
             }
+
+            break; // Only process first sheet
         }
+
+        $reader->close();
 
         return $imported;
     }
 
-    protected function looksLikeDate(string $value): bool
+    protected function looksLikeDate(string $stringValue, mixed $rawValue): bool
     {
-        if (preg_match('/^\d{1,2}[\/-]\d{1,2}([\/-]\d{2,4})?$/', $value)) {
+        if ($rawValue instanceof \DateTimeInterface) {
             return true;
         }
 
-        if (is_numeric($value) && (int) $value > 40000 && (int) $value < 50000) {
+        if (preg_match('/^\d{1,2}[\/-]\d{1,2}([\/-]\d{2,4})?$/', $stringValue)) {
+            return true;
+        }
+
+        if (is_numeric($rawValue) && (int) $rawValue > 40000 && (int) $rawValue < 50000) {
             return true;
         }
 
         return false;
     }
 
-    protected function parseDate(string $value, $sheet, string $colKey, int $rowIndex): ?string
+    protected function parseDateValue(mixed $value): ?string
     {
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
         if (is_numeric($value) && (int) $value > 40000) {
-            $timestamp = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((int) $value);
-            return $timestamp->format('Y-m-d');
+            $unix = ((int) $value - 25569) * 86400;
+            return date('Y-m-d', $unix);
+        }
+
+        $stringValue = trim((string) $value);
+        if (empty($stringValue)) {
+            return null;
         }
 
         try {
-            return \Carbon\Carbon::parse($value)->format('Y-m-d');
+            return \Carbon\Carbon::parse($stringValue)->format('Y-m-d');
         } catch (\Throwable) {
             return null;
         }
@@ -181,32 +283,30 @@ class ViewProductionSchedule extends ViewRecord
     protected function looksLikeProductHeader(string $value): bool
     {
         $lower = strtolower($value);
-        return in_array($lower, ['product', 'item', 'description', 'model', 'produto', 'item description']);
+
+        return in_array($lower, [
+            'product', 'item', 'description', 'model',
+            'produto', 'item description', 'product name',
+        ]);
     }
 
-    protected function matchPiItem(string $productName, $piItems, $piItemsByDescription): ?ProformaInvoiceItem
+    protected function matchPiItem(string $productName, $piItemsByName, $piItems): ?ProformaInvoiceItem
     {
         $normalized = strtolower(trim($productName));
 
-        if ($piItemsByDescription->has($normalized)) {
-            return $piItemsByDescription->get($normalized);
+        if ($piItemsByName->has($normalized)) {
+            return $piItemsByName->get($normalized);
         }
 
-        foreach ($piItemsByDescription as $key => $item) {
+        foreach ($piItemsByName as $key => $item) {
             if (str_contains($key, $normalized) || str_contains($normalized, $key)) {
                 return $item;
             }
         }
 
         foreach ($piItems as $item) {
-            $itemProductName = strtolower(trim($item->product?->name ?? ''));
-            $itemSku = strtolower(trim($item->product?->sku ?? ''));
-
-            if ($itemProductName && str_contains($normalized, $itemProductName)) {
-                return $item;
-            }
-
-            if ($itemSku && str_contains($normalized, $itemSku)) {
+            $sku = strtolower(trim($item->product?->sku ?? ''));
+            if ($sku && str_contains($normalized, $sku)) {
                 return $item;
             }
         }
