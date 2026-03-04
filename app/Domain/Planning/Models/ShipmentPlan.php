@@ -7,6 +7,7 @@ use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Financial\Traits\HasPaymentSchedule;
 use App\Domain\Infrastructure\Enums\DocumentType;
+use App\Domain\Infrastructure\Traits\HasDocuments;
 use App\Domain\Infrastructure\Traits\HasReference;
 use App\Domain\Infrastructure\Traits\HasStateMachine;
 use App\Domain\Logistics\Models\Shipment;
@@ -21,7 +22,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class ShipmentPlan extends Model
 {
-    use HasReference, HasStateMachine, HasPaymentSchedule, LogsActivity;
+    use HasReference, HasStateMachine, HasDocuments, HasPaymentSchedule, LogsActivity;
 
     protected $fillable = [
         'supplier_company_id',
