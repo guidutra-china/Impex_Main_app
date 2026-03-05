@@ -36,6 +36,12 @@ class SupplierPortalRolesSeeder extends Seeder
             // Supplier Portal: Payments
             'supplier-portal:view-payments',
 
+            // Supplier Portal: Products
+            'supplier-portal:view-products',
+
+            // Supplier Portal: Financial
+            'supplier-portal:view-financial-summary',
+
             // Supplier Portal: Dashboard
             'supplier-portal:view-dashboard',
         ];
@@ -46,6 +52,8 @@ class SupplierPortalRolesSeeder extends Seeder
         // Supplier Full — sees everything
         $supplierFull = Role::firstOrCreate(['name' => 'supplier_full', 'guard_name' => 'web']);
         $supplierFull->syncPermissions([
+            'supplier-portal:view-products',
+            'supplier-portal:view-financial-summary',
             'supplier-portal:view-purchase-orders',
             'supplier-portal:view-purchase-order-details',
             'supplier-portal:view-shipments',
@@ -57,6 +65,7 @@ class SupplierPortalRolesSeeder extends Seeder
         // Supplier Operations — no payment visibility
         $supplierOps = Role::firstOrCreate(['name' => 'supplier_operations', 'guard_name' => 'web']);
         $supplierOps->syncPermissions([
+            'supplier-portal:view-products',
             'supplier-portal:view-purchase-orders',
             'supplier-portal:view-purchase-order-details',
             'supplier-portal:view-shipments',

@@ -43,6 +43,9 @@ class PortalRolesSeeder extends Seeder
             // Portal: Documents
             'portal:download-documents',
 
+            // Portal: Products
+            'portal:view-products',
+
             // Portal: Dashboard
             'portal:view-dashboard',
             'portal:view-financial-summary',
@@ -54,6 +57,7 @@ class PortalRolesSeeder extends Seeder
         // Client Full — sees everything including financial data
         $clientFull = Role::firstOrCreate(['name' => 'client_full', 'guard_name' => 'web']);
         $clientFull->syncPermissions([
+            'portal:view-products',
             'portal:view-shipments',
             'portal:view-shipment-details',
             'portal:view-quotations',
@@ -69,6 +73,7 @@ class PortalRolesSeeder extends Seeder
         // Client Operations — no financial visibility
         $clientOps = Role::firstOrCreate(['name' => 'client_operations', 'guard_name' => 'web']);
         $clientOps->syncPermissions([
+            'portal:view-products',
             'portal:view-shipments',
             'portal:view-shipment-details',
             'portal:view-quotations',
