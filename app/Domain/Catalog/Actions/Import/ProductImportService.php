@@ -171,21 +171,29 @@ class ProductImportService
             // Variants (rows with parent_ref) must also be checked for conflicts.
             // Previously they were skipped here, causing them to always default
             // to 'create' in importRow() even when the user selected 'update'.
-            $existingByName = Product::where('name', $row['name'])
-                ->whereNotNull('name')
-                ->first();
+            //
+            // Look up by reference_code first (survives name changes),
+            // then fall back to name-based matching.
+            $existing = null;
+            if (! empty($row['reference_code'])) {
+                $existing = Product::where('reference_code', trim($row['reference_code']))->first();
+            }
+            if (! $existing) {
+                $existing = Product::where('name', $row['name'])
+                    ->whereNotNull('name')
+                    ->first();
+            }
 
-            if ($existingByName) {
-                $alreadyLinked = CompanyProduct::where('product_id', $existingByName->id)
+            if ($existing) {
+                $alreadyLinked = CompanyProduct::where('product_id', $existing->id)
                     ->where('company_id', $company->id)
                     ->where('role', $role)
                     ->exists();
-
                 $conflicts[] = [
                     'row' => $row['_row'],
                     'name' => $row['name'],
-                    'existing_sku' => $existingByName->sku,
-                    'existing_id' => $existingByName->id,
+                    'existing_sku' => $existing->sku,
+                    'existing_id' => $existing->id,
                     'already_linked' => $alreadyLinked,
                 ];
             }
@@ -281,7 +289,14 @@ class ProductImportService
 
         $existing = null;
         if ($resolution !== 'create') {
-            $existing = Product::where('name', $row['name'])->first();
+            // Look up by reference_code first (most reliable, survives name changes),
+            // then fall back to name-based matching for products without a reference_code.
+            if (! empty($row['reference_code'])) {
+                $existing = Product::where('reference_code', trim($row['reference_code']))->first();
+            }
+            if (! $existing) {
+                $existing = Product::where('name', $row['name'])->first();
+            }
         }
 
         if ($existing && $resolution === 'skip') {
@@ -302,6 +317,7 @@ class ProductImportService
         $product = Product::create([
             'name' => $row['name'],
             'sku' => $skuGenerator->execute($category->id),
+            'reference_code' => ! empty($row['reference_code']) ? trim($row['reference_code']) : null,
             'category_id' => $category->id,
             'parent_id' => $parent?->id,
             'status' => ProductStatus::ACTIVE,
@@ -327,6 +343,7 @@ class ProductImportService
     {
         $data = array_filter([
             'name' => $row['name'] ?? null,
+            'reference_code' => ! empty($row['reference_code']) ? trim($row['reference_code']) : $product->reference_code,
             'category_id' => $category->id,
             'parent_id' => $parent?->id ?? $product->parent_id,
             'hs_code' => $row['hs_code'] ?? $product->hs_code,
