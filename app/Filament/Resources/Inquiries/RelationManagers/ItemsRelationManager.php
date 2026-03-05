@@ -24,6 +24,7 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use App\Domain\Infrastructure\Support\Money;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Table;
 
 class ItemsRelationManager extends RelationManager
@@ -284,16 +285,37 @@ class ItemsRelationManager extends RelationManager
                     ->label(__('forms.labels.item'))
                     ->searchable(['description'])
                     ->limit(40),
-                TextColumn::make('quantity')
+
+                // --- Inline editable columns ---
+                TextInputColumn::make('quantity')
                     ->label(__('forms.labels.qty'))
+                    ->type('number')
+                    ->inputMode('numeric')
+                    ->step('1')
+                    ->rules(['required', 'integer', 'min:1'])
                     ->alignCenter(),
-                TextColumn::make('unit')
+                TextInputColumn::make('unit')
                     ->label(__('forms.labels.unit'))
+                    ->rules(['required', 'max:20'])
                     ->alignCenter(),
-                TextColumn::make('target_price')
+                TextInputColumn::make('target_price')
                     ->label(__('forms.labels.target_price'))
-                    ->formatStateUsing(fn ($state) => $state ? '$ ' . Money::format($state) : '—')
+                    ->type('number')
+                    ->inputMode('decimal')
+                    ->step('0.0001')
+                    ->prefix('$')
+                    ->rules(['nullable', 'numeric', 'min:0'])
+                    ->getStateUsing(fn ($record) => $record->target_price ? number_format(Money::toMajor($record->target_price), 4, '.', '') : null)
+                    ->beforeStateUpdated(function ($record, $state) {
+                        $record->target_price = $state ? Money::toMinor($state) : null;
+                        $record->save();
+
+                        return false;
+                    })
                     ->alignEnd(),
+                TextInputColumn::make('notes')
+                    ->label(__('forms.labels.notes'))
+                    ->rules(['nullable', 'max:1000']),
                 TextColumn::make('specifications')
                     ->label(__('forms.labels.specs'))
                     ->limit(30)
