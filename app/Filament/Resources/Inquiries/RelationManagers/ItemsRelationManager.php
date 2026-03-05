@@ -308,7 +308,13 @@ class ItemsRelationManager extends RelationManager
                     ->rules(['nullable', 'numeric', 'min:0'])
                     ->getStateUsing(fn ($record) => $record->target_price ? number_format(Money::toMajor($record->target_price), 4, '.', '') : null)
                     ->beforeStateUpdated(function ($record, $state) {
-                        $record->target_price = $state ? Money::toMinor($state) : null;
+                        if (blank($state)) {
+                            $record->target_price = null;
+                        } else {
+                            $floatValue = (float) str_replace(',', '', $state);
+                            $record->target_price = Money::toMinor($floatValue);
+                        }
+                        
                         $record->save();
 
                         return false;

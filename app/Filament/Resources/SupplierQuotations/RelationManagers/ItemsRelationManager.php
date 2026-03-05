@@ -220,8 +220,14 @@ class ItemsRelationManager extends RelationManager
                     // Returning false from beforeStateUpdated skips the default save but also
                     // skips afterStateUpdated, so we must handle the full save here ourselves.
                     ->beforeStateUpdated(function ($record, $state) {
-                        $unitCostMinor = Money::toMinor((float) $state);
-                        $record->unit_cost  = $unitCostMinor;
+                        // Ensure we have a clean float from the input string
+                        $floatValue = (float) str_replace(',', '', $state);
+                        $unitCostMinor = Money::toMinor($floatValue);
+                        
+                        $record->unit_cost = $unitCostMinor;
+                        // total_cost is recalculated in the model's saving() hook, 
+                        // but we set it here explicitly to ensure the table row 
+                        // has the correct value for immediate re-render if needed.
                         $record->total_cost = $record->quantity * $unitCostMinor;
                         $record->save();
 
