@@ -168,10 +168,9 @@ class ProductImportService
         $conflicts = [];
 
         foreach ($rows as $row) {
-            if (! empty($row['parent_ref'])) {
-                continue;
-            }
-
+            // Variants (rows with parent_ref) must also be checked for conflicts.
+            // Previously they were skipped here, causing them to always default
+            // to 'create' in importRow() even when the user selected 'update'.
             $existingByName = Product::where('name', $row['name'])
                 ->whereNotNull('name')
                 ->first();
