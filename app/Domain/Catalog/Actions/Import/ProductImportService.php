@@ -14,6 +14,7 @@ use App\Domain\Catalog\Models\ProductSpecification;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Logistics\Enums\PackagingType;
 use App\Domain\Quotations\Enums\Incoterm;
+use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Settings\Models\Currency;
 use Illuminate\Support\Facades\DB;
 use OpenSpout\Reader\XLSX\Reader;
@@ -389,10 +390,10 @@ class ProductImportService
     private function upsertCosting(Product $product, array $row): void
     {
         $data = array_filter([
-            'base_price' => $this->toCents($row['cost_base_price'] ?? null),
-            'bom_material_cost' => $this->toCents($row['cost_bom_material_cost'] ?? null),
-            'direct_labor_cost' => $this->toCents($row['cost_direct_labor_cost'] ?? null),
-            'direct_overhead_cost' => $this->toCents($row['cost_direct_overhead_cost'] ?? null),
+            'base_price' => filled($row['cost_base_price'] ?? null) ? Money::toMinor($row['cost_base_price']) : null,
+            'bom_material_cost' => filled($row['cost_bom_material_cost'] ?? null) ? Money::toMinor($row['cost_bom_material_cost']) : null,
+            'direct_labor_cost' => filled($row['cost_direct_labor_cost'] ?? null) ? Money::toMinor($row['cost_direct_labor_cost']) : null,
+            'direct_overhead_cost' => filled($row['cost_direct_overhead_cost'] ?? null) ? Money::toMinor($row['cost_direct_overhead_cost']) : null,
             'markup_percentage' => $this->toDecimal($row['cost_markup_percentage'] ?? null),
         ], fn ($v) => $v !== null);
 
@@ -457,8 +458,8 @@ class ProductImportService
             'external_code' => $row["{$prefix}_external_code"] ?? null,
             'external_name' => $row["{$prefix}_external_name"] ?? null,
             'external_description' => $row["{$prefix}_external_description"] ?? null,
-            'unit_price' => $this->toCents($row["{$prefix}_unit_price"] ?? null),
-            'custom_price' => $this->toCents($row["{$prefix}_custom_price"] ?? null),
+            'unit_price' => filled($row["{$prefix}_unit_price"] ?? null) ? Money::toMinor($row["{$prefix}_unit_price"]) : null,
+            'custom_price' => filled($row["{$prefix}_custom_price"] ?? null) ? Money::toMinor($row["{$prefix}_custom_price"]) : null,
             'currency_code' => ! empty($row["{$prefix}_currency_code"]) ? strtoupper($row["{$prefix}_currency_code"]) : null,
             'incoterm' => ! empty($row["{$prefix}_incoterm"]) ? strtoupper($row["{$prefix}_incoterm"]) : null,
             'is_preferred' => $this->toBool($row["{$prefix}_is_preferred"] ?? null),
@@ -520,15 +521,6 @@ class ProductImportService
         }
 
         return (float) $value;
-    }
-
-    private function toCents(?string $value): ?int
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        return (int) round((float) $value * 100);
     }
 
     private function toBool(?string $value): ?bool
