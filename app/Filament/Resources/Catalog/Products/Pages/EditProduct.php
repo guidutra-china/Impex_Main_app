@@ -30,6 +30,12 @@ class EditProduct extends EditRecord
                 ->excludeAttributes([
                     'sku',
                     'avatar',
+                    // Virtual withCount attributes injected by Filament's ->counts() on TextColumn.
+                    // Eloquent's replicate() copies $attributes including these dynamic keys,
+                    // which causes an SQL error since they are not real database columns.
+                    'suppliers_count',
+                    'clients_count',
+                    'variants_count',
                 ])
                 ->mutateRecordDataUsing(function (array $data): array {
                     $data['name'] = $data['name'] . ' (Copy)';
