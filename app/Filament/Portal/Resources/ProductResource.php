@@ -10,7 +10,10 @@ use Filament\Facades\Filament;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\FontWeight;
+use Filament\Support\Enums\TextSize;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -62,7 +65,16 @@ class ProductResource extends Resource
         $tenant = Filament::getTenant();
 
         $query = parent::getEloquentQuery()
-            ->with(['product', 'product.category', 'product.specification', 'product.costing'])
+            ->with([
+                'product',
+                'product.category',
+                'product.specification',
+                'product.packaging',
+                'product.costing',
+                'product.costing.currency',
+                'product.tags',
+                'product.attributeValues.categoryAttribute',
+            ])
             ->addSelect([
                 'product_name' => \App\Domain\Catalog\Models\Product::select('name')
                     ->whereColumn('products.id', 'company_product.product_id')
@@ -165,27 +177,86 @@ class ProductResource extends Resource
     public static function infolist(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Product Details')
+            Tabs::make('Product')
+                ->tabs([
+                    Tabs\Tab::make(__('forms.tabs.general'))
+                        ->icon('heroicon-o-information-circle')
+                        ->schema(static::generalTab()),
+
+                    Tabs\Tab::make(__('forms.tabs.specifications'))
+                        ->icon('heroicon-o-cog-6-tooth')
+                        ->schema(static::specificationsTab()),
+
+                    Tabs\Tab::make(__('forms.tabs.packaging'))
+                        ->icon('heroicon-o-archive-box')
+                        ->schema(static::packagingTab()),
+
+                    Tabs\Tab::make('Pricing & Terms')
+                        ->icon('heroicon-o-banknotes')
+                        ->schema(static::pricingTab()),
+                ])
+                ->columnSpanFull()
+                ->persistTabInQueryString(),
+        ]);
+    }
+
+    protected static function generalTab(): array
+    {
+        return [
+            // Avatar / product image
+            Section::make('')
                 ->schema([
                     TextEntry::make('avatar_url')
                         ->label('')
-                        ->formatStateUsing(fn ($state) => $state ? '<img src="' . e($state) . '" class="w-20 h-20 rounded-full object-cover" />' : '')
+                        ->formatStateUsing(fn ($state) => $state
+                            ? '<img src="' . e($state) . '" class="w-24 h-24 rounded-lg object-cover shadow" />'
+                            : '<div class="w-24 h-24 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 text-2xl">📦</div>')
                         ->html()
                         ->columnSpanFull(),
+                ])
+                ->extraAttributes(['class' => 'border-0 shadow-none p-0']),
 
-                    TextEntry::make('product.sku')
-                        ->label(__('forms.labels.sku'))
-                        ->copyable()
-                        ->weight('bold'),
+            Section::make(__('forms.sections.product_identity'))
+                ->schema([
+                    TextEntry::make('product.category.name')
+                        ->label(__('forms.labels.category'))
+                        ->icon('heroicon-o-folder')
+                        ->badge()
+                        ->color('primary')
+                        ->placeholder('—'),
 
                     TextEntry::make('product.name')
                         ->label(__('forms.labels.product_name'))
-                        ->weight('bold'),
+                        ->weight(FontWeight::Bold)
+                        ->size(TextSize::Large),
 
-                    TextEntry::make('product.category.name')
-                        ->label(__('forms.labels.category'))
+                    TextEntry::make('product.sku')
+                        ->label(__('forms.labels.sku'))
                         ->badge()
-                        ->color('primary'),
+                        ->color('gray')
+                        ->copyable(),
+
+                    TextEntry::make('product.status')
+                        ->label(__('forms.labels.status'))
+                        ->badge(),
+
+                    TextEntry::make('product.parent.name')
+                        ->label(__('forms.labels.variant_of'))
+                        ->placeholder(__('forms.placeholders.base_product_2'))
+                        ->icon('heroicon-o-link'),
+                ])
+                ->columns(2),
+
+            Section::make(__('forms.sections.international_trade'))
+                ->schema([
+                    TextEntry::make('product.hs_code')
+                        ->label(__('forms.labels.hs_code'))
+                        ->placeholder('—')
+                        ->copyable(),
+
+                    TextEntry::make('product.origin_country')
+                        ->label(__('forms.labels.country_of_origin'))
+                        ->placeholder('—'),
 
                     TextEntry::make('product.brand')
                         ->label(__('forms.labels.brand'))
@@ -195,18 +266,32 @@ class ProductResource extends Resource
                         ->label(__('forms.labels.model_number'))
                         ->placeholder('—'),
 
-                    TextEntry::make('product.origin_country')
-                        ->label(__('forms.labels.origin_country'))
-                        ->placeholder('—'),
-
-                    TextEntry::make('product.hs_code')
-                        ->label(__('forms.labels.hs_code'))
+                    TextEntry::make('product.certifications')
+                        ->label(__('forms.labels.certifications'))
                         ->placeholder('—'),
                 ])
                 ->columns(3)
-                ->columnSpanFull(),
+                ->collapsible(),
 
-            Section::make('Your Product Reference')
+            Section::make(__('forms.sections.order_defaults'))
+                ->schema([
+                    TextEntry::make('product.moq')
+                        ->label(__('forms.labels.moq'))
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.moq_unit')
+                        ->label(__('forms.labels.moq_unit'))
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.lead_time_days')
+                        ->label(__('forms.labels.lead_time'))
+                        ->suffix(' days')
+                        ->placeholder('—'),
+                ])
+                ->columns(3)
+                ->collapsible(),
+
+            Section::make('Your Reference')
                 ->schema([
                     TextEntry::make('external_code')
                         ->label(__('forms.labels.client_code'))
@@ -222,26 +307,208 @@ class ProductResource extends Resource
                         ->columnSpanFull(),
                 ])
                 ->columns(2)
-                ->columnSpanFull(),
+                ->collapsible(),
 
-            Section::make('Pricing & Terms')
+            Section::make(__('forms.sections.tags_notes'))
+                ->schema([
+                    TextEntry::make('product.tags.name')
+                        ->label(__('forms.labels.tags'))
+                        ->badge()
+                        ->color('info')
+                        ->placeholder(__('forms.placeholders.no_tags')),
+
+                    TextEntry::make('product.description')
+                        ->label(__('forms.labels.description'))
+                        ->placeholder('—')
+                        ->columnSpanFull()
+                        ->markdown(),
+
+                    TextEntry::make('notes')
+                        ->label('Your Notes')
+                        ->placeholder('—')
+                        ->columnSpanFull(),
+                ])
+                ->collapsible(),
+        ];
+    }
+
+    protected static function specificationsTab(): array
+    {
+        return [
+            Section::make(__('forms.sections.product_dimensions_weight_unpackaged'))
+                ->schema([
+                    TextEntry::make('product.specification.net_weight')
+                        ->label(__('forms.labels.net_weight_1_pc'))
+                        ->suffix(' kg')
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.specification.length')
+                        ->label(__('forms.labels.length'))
+                        ->suffix(' cm')
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.specification.width')
+                        ->label(__('forms.labels.width'))
+                        ->suffix(' cm')
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.specification.height')
+                        ->label(__('forms.labels.height'))
+                        ->suffix(' cm')
+                        ->placeholder('—'),
+                ])
+                ->columns(3),
+
+            Section::make(__('forms.sections.material_finish'))
+                ->schema([
+                    TextEntry::make('product.specification.material')
+                        ->label(__('forms.labels.material'))
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.specification.color')
+                        ->label(__('forms.labels.color'))
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.specification.finish')
+                        ->label(__('forms.labels.finish'))
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.specification.notes')
+                        ->label(__('forms.labels.specification_notes'))
+                        ->placeholder('—')
+                        ->columnSpanFull(),
+                ])
+                ->columns(3),
+        ];
+    }
+
+    protected static function packagingTab(): array
+    {
+        return [
+            Section::make(__('forms.sections.packaging_type'))
+                ->schema([
+                    TextEntry::make('product.packaging.packaging_type')
+                        ->label(__('forms.labels.packaging_type'))
+                        ->badge()
+                        ->placeholder('—'),
+                ])
+                ->columns(3),
+
+            Section::make(__('forms.sections.inner_box'))
+                ->schema([
+                    TextEntry::make('product.packaging.pcs_per_inner_box')
+                        ->label(__('forms.labels.pcs_inner_box'))
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.packaging.inner_box_length')
+                        ->label(__('forms.labels.length'))
+                        ->suffix(' cm')
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.packaging.inner_box_width')
+                        ->label(__('forms.labels.width'))
+                        ->suffix(' cm')
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.packaging.inner_box_height')
+                        ->label(__('forms.labels.height'))
+                        ->suffix(' cm')
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.packaging.inner_box_weight')
+                        ->label(__('forms.labels.gw_inner_box'))
+                        ->suffix(' kg')
+                        ->placeholder('—'),
+                ])
+                ->columns(5),
+
+            Section::make(__('forms.sections.master_carton'))
+                ->schema([
+                    TextEntry::make('product.packaging.pcs_per_carton')
+                        ->label(__('forms.labels.pcs_carton'))
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.packaging.inner_boxes_per_carton')
+                        ->label(__('forms.labels.inner_boxes_carton'))
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.packaging.carton_length')
+                        ->label(__('forms.labels.length'))
+                        ->suffix(' cm')
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.packaging.carton_width')
+                        ->label(__('forms.labels.width'))
+                        ->suffix(' cm')
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.packaging.carton_height')
+                        ->label(__('forms.labels.height'))
+                        ->suffix(' cm')
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.packaging.carton_net_weight')
+                        ->label(__('forms.labels.nw_carton'))
+                        ->suffix(' kg')
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.packaging.carton_weight')
+                        ->label(__('forms.labels.gw_carton'))
+                        ->suffix(' kg')
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.packaging.carton_cbm')
+                        ->label(__('forms.labels.cbm_carton'))
+                        ->suffix(' m³')
+                        ->placeholder('—'),
+                ])
+                ->columns(4),
+
+            Section::make(__('forms.sections.container_loading'))
+                ->schema([
+                    TextEntry::make('product.packaging.cartons_per_20ft')
+                        ->label("Cartons / 20' GP")
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.packaging.cartons_per_40ft')
+                        ->label("Cartons / 40' GP")
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.packaging.cartons_per_40hq')
+                        ->label("Cartons / 40' HC")
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.packaging.packing_notes')
+                        ->label(__('forms.labels.packing_notes'))
+                        ->placeholder('—')
+                        ->columnSpanFull(),
+                ])
+                ->columns(3),
+        ];
+    }
+
+    protected static function pricingTab(): array
+    {
+        $showFinancial = auth()->user()?->can('portal:view-financial-summary') ?? false;
+
+        return [
+            Section::make('Your Pricing')
                 ->schema([
                     TextEntry::make('unit_price')
                         ->label(__('forms.labels.selling_price'))
                         ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 4))
-                        ->visible(fn () => auth()->user()?->can('portal:view-financial-summary')),
+                        ->placeholder('—'),
 
                     TextEntry::make('custom_price')
                         ->label(__('forms.labels.ci_price'))
-                        ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 4))
-                        ->placeholder('—')
-                        ->visible(fn () => auth()->user()?->can('portal:view-financial-summary')),
+                        ->formatStateUsing(fn ($state, $record) => $state ? ($record->currency_code ?? '') . ' ' . Money::format($state, 4) : '—')
+                        ->placeholder('—'),
 
                     TextEntry::make('currency_code')
                         ->label(__('forms.labels.currency'))
                         ->badge()
                         ->color('gray')
-                        ->visible(fn () => auth()->user()?->can('portal:view-financial-summary')),
+                        ->placeholder('—'),
 
                     TextEntry::make('incoterm')
                         ->label(__('forms.labels.incoterm'))
@@ -258,48 +525,71 @@ class ProductResource extends Resource
                         ->placeholder('—'),
                 ])
                 ->columns(3)
-                ->columnSpanFull(),
+                ->visible($showFinancial),
 
-            Section::make('Specifications')
+            Section::make(__('forms.sections.cost_breakdown'))
                 ->schema([
-                    TextEntry::make('product.specification.net_weight')
-                        ->label('Net Weight (kg)')
+                    TextEntry::make('product.costing.currency.code')
+                        ->label(__('forms.labels.currency'))
+                        ->badge()
                         ->placeholder('—'),
 
-                    TextEntry::make('product.specification.length')
-                        ->label('Length (cm)')
+                    TextEntry::make('product.costing.base_price')
+                        ->label(__('forms.labels.base_price'))
+                        ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
+                        ->prefix('$ ')
                         ->placeholder('—'),
 
-                    TextEntry::make('product.specification.width')
-                        ->label('Width (cm)')
+                    TextEntry::make('product.costing.bom_material_cost')
+                        ->label(__('forms.labels.bom_material_cost'))
+                        ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
+                        ->prefix('$ ')
                         ->placeholder('—'),
 
-                    TextEntry::make('product.specification.height')
-                        ->label('Height (cm)')
+                    TextEntry::make('product.costing.direct_labor_cost')
+                        ->label(__('forms.labels.direct_labor_cost'))
+                        ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
+                        ->prefix('$ ')
                         ->placeholder('—'),
 
-                    TextEntry::make('product.specification.material')
-                        ->label('Material')
+                    TextEntry::make('product.costing.direct_overhead_cost')
+                        ->label(__('forms.labels.direct_overhead_cost'))
+                        ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
+                        ->prefix('$ ')
                         ->placeholder('—'),
 
-                    TextEntry::make('product.specification.color')
-                        ->label('Color')
-                        ->placeholder('—'),
-                ])
-                ->columns(3)
-                ->collapsible()
-                ->columnSpanFull(),
-
-            Section::make('Notes')
-                ->schema([
-                    TextEntry::make('notes')
+                    TextEntry::make('product.costing.total_manufacturing_cost')
+                        ->label(__('forms.labels.total_manufacturing_cost'))
+                        ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
+                        ->prefix('$ ')
                         ->placeholder('—')
+                        ->weight(FontWeight::Bold),
+
+                    TextEntry::make('product.costing.markup_percentage')
+                        ->label(__('forms.labels.markup'))
+                        ->suffix(' %')
+                        ->placeholder('—'),
+
+                    TextEntry::make('product.costing.calculated_selling_price')
+                        ->label(__('forms.labels.calculated_selling_price'))
+                        ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
+                        ->prefix('$ ')
+                        ->placeholder('—')
+                        ->weight(FontWeight::Bold)
+                        ->color('success'),
+                ])
+                ->columns(2)
+                ->visible($showFinancial),
+
+            Section::make('Access Restricted')
+                ->schema([
+                    TextEntry::make('_access_notice')
+                        ->label('')
+                        ->default('Financial information is not available for your account role. Please contact your account manager if you need pricing details.')
                         ->columnSpanFull(),
                 ])
-                ->collapsible()
-                ->collapsed()
-                ->columnSpanFull(),
-        ]);
+                ->visible(! $showFinancial),
+        ];
     }
 
     public static function getPages(): array
