@@ -4,6 +4,7 @@ namespace App\Filament\Resources\CRM\Companies\Tables;
 
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Enums\CompanyStatus;
+use App\Domain\Catalog\Models\Category;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -28,6 +29,13 @@ class CompaniesTable
                     ->label(__('forms.labels.roles'))
                     ->badge()
                     ->separator(','),
+                TextColumn::make('categories.name')
+                    ->label(__('forms.labels.categories'))
+                    ->badge()
+                    ->color('info')
+                    ->separator(',')
+                    ->limitList(3)
+                    ->toggleable(),
                 TextColumn::make('address_city')
                     ->label(__('forms.labels.city'))
                     ->searchable()

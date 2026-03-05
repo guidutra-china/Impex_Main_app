@@ -67,6 +67,7 @@ return array (
     'cancel_payment' => 'Cancel Payment',
     'cancellation_reason' => 'Cancellation Reason',
     'category' => 'Category',
+    'categories' => 'Categories',
     'category_optional' => 'Category (optional)',
     'category_name' => 'Category Name',
     'certifications' => 'Certifications',
