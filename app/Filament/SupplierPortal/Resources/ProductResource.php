@@ -70,8 +70,6 @@ class ProductResource extends Resource
                 'product.category',
                 'product.specification',
                 'product.packaging',
-                'product.costing',
-                'product.costing.currency',
                 'product.tags',
                 'product.attributeValues.categoryAttribute',
             ])
@@ -513,60 +511,6 @@ class ProductResource extends Resource
                         ->placeholder('—'),
                 ])
                 ->columns(3)
-                ->visible($showFinancial),
-
-            Section::make(__('forms.sections.cost_breakdown'))
-                ->schema([
-                    TextEntry::make('product.costing.currency.code')
-                        ->label(__('forms.labels.currency'))
-                        ->badge()
-                        ->placeholder('—'),
-
-                    TextEntry::make('product.costing.base_price')
-                        ->label(__('forms.labels.base_price'))
-                        ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
-                        ->prefix('$ ')
-                        ->placeholder('—'),
-
-                    TextEntry::make('product.costing.bom_material_cost')
-                        ->label(__('forms.labels.bom_material_cost'))
-                        ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
-                        ->prefix('$ ')
-                        ->placeholder('—'),
-
-                    TextEntry::make('product.costing.direct_labor_cost')
-                        ->label(__('forms.labels.direct_labor_cost'))
-                        ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
-                        ->prefix('$ ')
-                        ->placeholder('—'),
-
-                    TextEntry::make('product.costing.direct_overhead_cost')
-                        ->label(__('forms.labels.direct_overhead_cost'))
-                        ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
-                        ->prefix('$ ')
-                        ->placeholder('—'),
-
-                    TextEntry::make('product.costing.total_manufacturing_cost')
-                        ->label(__('forms.labels.total_manufacturing_cost'))
-                        ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
-                        ->prefix('$ ')
-                        ->placeholder('—')
-                        ->weight(FontWeight::Bold),
-
-                    TextEntry::make('product.costing.markup_percentage')
-                        ->label(__('forms.labels.markup'))
-                        ->suffix(' %')
-                        ->placeholder('—'),
-
-                    TextEntry::make('product.costing.calculated_selling_price')
-                        ->label(__('forms.labels.calculated_selling_price'))
-                        ->formatStateUsing(fn ($state) => $state ? Money::format($state) : null)
-                        ->prefix('$ ')
-                        ->placeholder('—')
-                        ->weight(FontWeight::Bold)
-                        ->color('success'),
-                ])
-                ->columns(2)
                 ->visible($showFinancial),
 
             Section::make('Access Restricted')
