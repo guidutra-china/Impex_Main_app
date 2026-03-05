@@ -60,10 +60,12 @@ class ProductResource extends Resource
 
         $query = parent::getEloquentQuery()
             ->with(['product', 'product.category', 'product.specification', 'product.costing'])
-            ->where('role', 'supplier');
+            ->join('products', 'products.id', '=', 'company_product.product_id')
+            ->select('company_product.*')
+            ->where('company_product.role', 'supplier');
 
         if ($tenant) {
-            $query->where('company_id', $tenant->getKey());
+            $query->where('company_product.company_id', $tenant->getKey());
         }
 
         return $query;
@@ -142,7 +144,7 @@ class ProductResource extends Resource
                 \Filament\Actions\ViewAction::make()
                     ->url(fn (CompanyProduct $record) => Pages\ViewProduct::getUrl(['record' => $record])),
             ])
-            ->defaultSort('product.name')
+            ->defaultSort('products.name')
             ->emptyStateHeading('No products')
             ->emptyStateDescription('No products are linked to your company yet.')
             ->emptyStateIcon('heroicon-o-cube');
