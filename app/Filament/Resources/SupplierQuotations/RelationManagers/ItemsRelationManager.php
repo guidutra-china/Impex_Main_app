@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\SupplierQuotations\RelationManagers;
 
 use App\Domain\Catalog\Enums\ProductStatus;
+use App\Filament\Actions\PasteItemsFromSpreadsheetAction;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
@@ -244,6 +245,7 @@ class ItemsRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make()
                     ->visible(fn () => auth()->user()?->can('edit-supplier-quotations')),
+                PasteItemsFromSpreadsheetAction::forSupplierQuotationItems(),
             ])
             ->recordActions([
                 EditAction::make()

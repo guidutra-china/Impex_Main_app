@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Inquiries\RelationManagers;
 
 use App\Domain\Catalog\Enums\ProductStatus;
+use App\Filament\Actions\PasteItemsFromSpreadsheetAction;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Enums\CompanyRole;
@@ -331,6 +332,7 @@ class ItemsRelationManager extends RelationManager
                     ->using(function (array $data, string $model) {
                         return $this->createItemWithDraftProduct($data);
                     }),
+                PasteItemsFromSpreadsheetAction::forInquiryItems(),
             ])
             ->recordActions([
                 EditAction::make()
