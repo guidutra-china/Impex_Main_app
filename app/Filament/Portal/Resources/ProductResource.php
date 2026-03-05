@@ -14,6 +14,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ProductResource extends Resource
 {
@@ -21,10 +22,6 @@ class ProductResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-cube';
 
-    /**
-     * Sort: Dashboard = -2, Products = -1, then Quotations = 1, Proforma = 2, Shipment = 3, Payments = 1 (Finance group)
-     * Products appears right after Dashboard and before Quotations in the Operations group.
-     */
     protected static ?int $navigationSort = -1;
 
     protected static ?string $slug = 'products';
@@ -53,19 +50,28 @@ class ProductResource extends Resource
 
     /**
      * Scope the query to only the current tenant's client-role products.
+     *
+     * We deliberately avoid a JOIN to the products table here because Filament's
+     * multi-tenancy layer appends its own whereKey() clause after this method runs,
+     * and that clause uses the unqualified column name 'id', which becomes ambiguous
+     * when a JOIN is present. Instead we add a correlated subquery column
+     * (product_name) that can be used for sorting without any JOIN.
      */
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    public static function getEloquentQuery(): Builder
     {
         $tenant = Filament::getTenant();
 
         $query = parent::getEloquentQuery()
             ->with(['product', 'product.category', 'product.specification', 'product.costing'])
-            ->join('products', 'products.id', '=', 'company_product.product_id')
-            ->select('company_product.*')
-            ->where('company_product.role', 'client');
+            ->addSelect([
+                'product_name' => \App\Domain\Catalog\Models\Product::select('name')
+                    ->whereColumn('products.id', 'company_product.product_id')
+                    ->limit(1),
+            ])
+            ->where('role', 'client');
 
         if ($tenant) {
-            $query->where('company_product.company_id', $tenant->getKey());
+            $query->where('company_id', $tenant->getKey());
         }
 
         return $query;
@@ -87,7 +93,6 @@ class ProductResource extends Resource
                 TextColumn::make('product.sku')
                     ->label(__('forms.labels.sku'))
                     ->searchable()
-                    ->sortable()
                     ->weight('bold')
                     ->copyable(),
 
@@ -151,7 +156,7 @@ class ProductResource extends Resource
                 \Filament\Actions\ViewAction::make()
                     ->url(fn (CompanyProduct $record) => Pages\ViewProduct::getUrl(['record' => $record])),
             ])
-            ->defaultSort('products.name')
+            ->defaultSort('product_name')
             ->emptyStateHeading('No products')
             ->emptyStateDescription('No products are linked to your company yet.')
             ->emptyStateIcon('heroicon-o-cube');

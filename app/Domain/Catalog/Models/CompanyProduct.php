@@ -61,16 +61,6 @@ class CompanyProduct extends Pivot
         return $this->hasMany(CompanyProductDocument::class);
     }
 
-    /**
-     * Always qualify the primary key with the table name so that Filament's
-     * internal whereKey() calls do not produce an ambiguous 'id' column error
-     * when the model is used with a JOIN (e.g., in portal ProductResource).
-     */
-    public function getQualifiedKeyName(): string
-    {
-        return $this->getTable() . '.' . $this->getKeyName();
-    }
-
     public function getAvatarUrlAttribute(): ?string
     {
         if (! $this->avatar_path) {
