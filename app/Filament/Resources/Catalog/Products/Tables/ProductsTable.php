@@ -2,13 +2,21 @@
 
 namespace App\Filament\Resources\Catalog\Products\Tables;
 
-use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\Catalog\Enums\ProductStatus;
+use App\Domain\Catalog\Models\Product;
+use App\Domain\Catalog\Models\ProductCosting;
+use App\Domain\Catalog\Models\ProductPackaging;
+use App\Domain\Catalog\Models\ProductSpecification;
+use App\Filament\Resources\Catalog\Products\ProductResource;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ReplicateAction;
 use Filament\Actions\ViewAction;
+use Filament\Notifications\Notification;
+use Illuminate\Database\Eloquent\Model;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\Layout\Split;
 use Filament\Tables\Columns\Layout\Stack;
@@ -133,6 +141,77 @@ class ProductsTable
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
+                ReplicateAction::make()
+                    ->label('Clone')
+                    ->icon('heroicon-o-document-duplicate')
+                    ->color('gray')
+                    ->excludeAttributes([
+                        'sku',
+                        'avatar',
+                    ])
+                    ->beforeReplicaSaved(function (Model $replica): void {
+                        $replica->sku = null;
+                        $replica->name = $replica->name . ' (Copy)';
+                        $replica->status = ProductStatus::DRAFT;
+                    })
+                    ->after(function (Model $replica): void {
+                        $original = Product::with(['specification', 'packaging', 'costing', 'tags', 'attributeValues', 'companies'])
+                            ->find($replica->getOriginal('id') ?? $replica->id);
+
+                        // For table ReplicateAction, the original record is not directly available,
+                        // so we find it by checking which product has the same name minus ' (Copy)'
+                        $originalName = str_replace(' (Copy)', '', $replica->name);
+                        $original = Product::with(['specification', 'packaging', 'costing', 'tags', 'attributeValues', 'companies'])
+                            ->where('name', $originalName)
+                            ->where('id', '!=', $replica->id)
+                            ->latest()
+                            ->first();
+
+                        if (! $original) {
+                            return;
+                        }
+
+                        if ($original->specification) {
+                            $specData = $original->specification->replicate(['id', 'product_id'])->toArray();
+                            $replica->specification()->create($specData);
+                        }
+
+                        if ($original->packaging) {
+                            $packData = $original->packaging->replicate(['id', 'product_id'])->toArray();
+                            $replica->packaging()->create($packData);
+                        }
+
+                        if ($original->costing) {
+                            $costData = $original->costing->replicate(['id', 'product_id'])->toArray();
+                            $replica->costing()->create($costData);
+                        }
+
+                        if ($original->tags->isNotEmpty()) {
+                            $replica->tags()->sync($original->tags->pluck('id'));
+                        }
+
+                        foreach ($original->attributeValues as $attrValue) {
+                            $replica->attributeValues()->create([
+                                'category_attribute_id' => $attrValue->category_attribute_id,
+                                'value' => $attrValue->value,
+                            ]);
+                        }
+
+                        foreach ($original->companies as $company) {
+                            $pivotData = collect($company->pivot->toArray())
+                                ->except(['product_id', 'company_id', 'created_at', 'updated_at'])
+                                ->toArray();
+                            $replica->companies()->attach($company->id, $pivotData);
+                        }
+
+                        Notification::make()
+                            ->title('Product cloned')
+                            ->body("'{$replica->name}' created as DRAFT with SKU: {$replica->sku}")
+                            ->success()
+                            ->send();
+                    })
+                    ->successRedirectUrl(fn (Model $replica): string => ProductResource::getUrl('edit', ['record' => $replica]))
+                    ->successNotificationTitle('Product cloned'),
                 DeleteAction::make(),
             ])
             ->toolbarActions([
