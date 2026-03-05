@@ -103,7 +103,20 @@ class ProductForm
                         ->image()
                         ->directory('products')
                         ->maxSize(2048)
-                        ->columnSpanFull(),
+                        ->columnSpanFull()
+                        ->extraAttributes([
+                            'x-on:paste.window' => <<<'JS'
+                                $event.clipboardData.items && Array.from($event.clipboardData.items).forEach(item => {
+                                    if (item.type.indexOf('image') !== -1) {
+                                        const file = item.getAsFile();
+                                        const filepond = $el.querySelector('.filepond--root')?._filepond;
+                                        if (filepond) {
+                                            filepond.addFile(file);
+                                        }
+                                    }
+                                })
+                            JS,
+                        ]),
                 ])
                 ->columns(2),
 
