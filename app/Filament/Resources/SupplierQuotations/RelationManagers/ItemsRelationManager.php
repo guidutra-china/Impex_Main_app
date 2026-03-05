@@ -5,6 +5,7 @@ namespace App\Filament\Resources\SupplierQuotations\RelationManagers;
 use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -20,6 +21,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Table;
 
 class ItemsRelationManager extends RelationManager
@@ -181,32 +183,63 @@ class ItemsRelationManager extends RelationManager
                     ->label(__('forms.labels.item'))
                     ->searchable(['description'])
                     ->limit(40),
-                TextColumn::make('quantity')
+
+                // --- Inline editable columns ---
+                TextInputColumn::make('quantity')
                     ->label(__('forms.labels.qty'))
+                    ->type('number')
+                    ->inputMode('numeric')
+                    ->step('1')
+                    ->rules(['required', 'integer', 'min:1'])
+                    ->afterStateUpdated(function ($record, $state) {
+                        $record->quantity = (int) $state;
+                        $record->total_cost = $record->quantity * $record->unit_cost;
+                        $record->save();
+                    })
                     ->alignCenter(),
-                TextColumn::make('unit')
+                TextInputColumn::make('unit')
                     ->label(__('forms.labels.unit'))
+                    ->rules(['required', 'max:20'])
                     ->alignCenter(),
-                TextColumn::make('unit_cost')
+                TextInputColumn::make('unit_cost')
                     ->label(__('forms.labels.unit_cost'))
-                    ->formatStateUsing(fn ($state) => $state ? '$ ' . Money::format($state, 4) : '—')
+                    ->type('number')
+                    ->inputMode('decimal')
+                    ->step('0.0001')
+                    ->prefix('$')
+                    ->rules(['required', 'numeric', 'min:0'])
+                    ->getStateUsing(fn ($record) => number_format(Money::toMajor($record->unit_cost), 4, '.', ''))
+                    ->beforeStateUpdated(function ($record, $state) {
+                        $record->unit_cost = Money::toMinor($state);
+                        $record->total_cost = $record->quantity * $record->unit_cost;
+                        $record->save();
+
+                        return false;
+                    })
                     ->alignEnd(),
                 TextColumn::make('total_cost')
                     ->label(__('forms.labels.total'))
                     ->formatStateUsing(fn ($state) => $state ? '$ ' . Money::format($state) : '—')
                     ->alignEnd()
                     ->weight('bold'),
-                TextColumn::make('lead_time_days')
-                    ->label(__('forms.labels.lead_time'))
-                    ->suffix(' d')
-                    ->alignCenter()
-                    ->placeholder('—')
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('moq')
+                TextInputColumn::make('moq')
                     ->label(__('forms.labels.moq'))
-                    ->alignCenter()
-                    ->placeholder('—')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->type('number')
+                    ->inputMode('numeric')
+                    ->step('1')
+                    ->rules(['nullable', 'integer', 'min:0'])
+                    ->alignCenter(),
+                TextInputColumn::make('lead_time_days')
+                    ->label(__('forms.labels.lead_time'))
+                    ->type('number')
+                    ->inputMode('numeric')
+                    ->step('1')
+                    ->rules(['nullable', 'integer', 'min:0'])
+                    ->suffix(' d')
+                    ->alignCenter(),
+                TextInputColumn::make('notes')
+                    ->label(__('forms.labels.notes'))
+                    ->rules(['nullable', 'max:1000']),
             ])
             ->headerActions([
                 CreateAction::make()
