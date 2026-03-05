@@ -6,12 +6,13 @@ use App\Domain\Catalog\Models\Product;
 use App\Domain\Infrastructure\Support\Money;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Wizard;
-use Filament\Forms\Components\Wizard\Step;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
+use Filament\Schemas\Components\Wizard;
+use Filament\Schemas\Components\Wizard\Step;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -91,7 +92,7 @@ class PasteItemsFromSpreadsheetAction
                     ->label('Confirm')
                     ->description('Finalize import')
                     ->schema([
-                        \Filament\Forms\Components\Placeholder::make('summary')
+                        Placeholder::make('summary')
                             ->content(fn (Get $get) => 'You are about to import ' . count($get('items') ?? []) . ' items into this inquiry.'),
                     ]),
             ])
@@ -220,7 +221,7 @@ class PasteItemsFromSpreadsheetAction
                     ->label('Confirm')
                     ->description('Finalize import')
                     ->schema([
-                        \Filament\Forms\Components\Placeholder::make('summary')
+                        Placeholder::make('summary')
                             ->content(fn (Get $get) => 'You are about to import ' . count($get('items') ?? []) . ' items into this supplier quotation.'),
                     ]),
             ])
