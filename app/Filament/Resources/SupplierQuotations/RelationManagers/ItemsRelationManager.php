@@ -192,12 +192,10 @@ class ItemsRelationManager extends RelationManager
                     ->inputMode('numeric')
                     ->step('1')
                     ->rules(['required', 'integer', 'min:1'])
-                    ->afterStateUpdated(function ($record, $state) {
-                        // $record->unit_cost is already in minor units (stored in DB).
-                        // total_cost must also be stored in minor units.
+                    ->updateStateUsing(function ($record, $state) {
                         $record->quantity = (int) $state;
-                        $record->total_cost = $record->quantity * $record->unit_cost;
-                        $record->save();
+                        $record->save(); // model's saving() hook recalculates total_cost
+                        return $state;
                     })
                     ->alignCenter(),
                 TextInputColumn::make('unit')
@@ -213,27 +211,14 @@ class ItemsRelationManager extends RelationManager
                     ->rules(['required', 'numeric', 'min:0'])
                     // Display: convert minor units (DB) → major units for the input field.
                     ->getStateUsing(fn ($record) => number_format(Money::toMajor($record->unit_cost ?? 0), 4, '.', ''))
-                    // Save: user types major units (e.g. 12.5) → convert to minor (125000),
-                    // then recalculate total_cost in minor units: minor_cost * qty.
-                    // We use afterStateUpdated (not beforeStateUpdated) so Filament does NOT
-                    // attempt its own default save of the raw string "12.5" into unit_cost.
-                    // Returning false from beforeStateUpdated skips the default save but also
-                    // skips afterStateUpdated, so we must handle the full save here ourselves.
-                    ->beforeStateUpdated(function ($record, $state) {
-                        // Ensure we have a clean float from the input string
-                        $floatValue = (float) str_replace(',', '', $state);
-                        $unitCostMinor = Money::toMinor($floatValue);
-                        
-                        $record->unit_cost = $unitCostMinor;
-                        // total_cost is recalculated in the model's saving() hook, 
-                        // but we set it here explicitly to ensure the table row 
-                        // has the correct value for immediate re-render if needed.
-                        $record->total_cost = $record->quantity * $unitCostMinor;
-                        $record->save();
-
-                        // Return false to prevent Filament from overwriting unit_cost
-                        // with the raw major-unit string (e.g. "12.5").
-                        return false;
+                    // Save: convert major units (user input) → minor units (DB).
+                    // updateStateUsing REPLACES Filament's default save entirely,
+                    // so the raw string never touches $record->setAttribute().
+                    ->updateStateUsing(function ($record, $state) {
+                        $floatValue = (float) str_replace(',', '', (string) $state);
+                        $record->unit_cost = Money::toMinor($floatValue);
+                        $record->save(); // model's saving() hook recalculates total_cost
+                        return number_format($floatValue, 4, '.', ''); // return display value
                     })
                     ->alignEnd(),
                 TextColumn::make('total_cost')

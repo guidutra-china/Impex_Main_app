@@ -307,17 +307,18 @@ class ItemsRelationManager extends RelationManager
                     ->prefix('$')
                     ->rules(['nullable', 'numeric', 'min:0'])
                     ->getStateUsing(fn ($record) => $record->target_price ? number_format(Money::toMajor($record->target_price), 4, '.', '') : null)
-                    ->beforeStateUpdated(function ($record, $state) {
+                    // updateStateUsing REPLACES Filament's default save entirely,
+                    // preventing the raw major-unit string from being written to DB.
+                    ->updateStateUsing(function ($record, $state) {
                         if (blank($state)) {
                             $record->target_price = null;
-                        } else {
-                            $floatValue = (float) str_replace(',', '', $state);
-                            $record->target_price = Money::toMinor($floatValue);
+                            $record->save();
+                            return null;
                         }
-                        
+                        $floatValue = (float) str_replace(',', '', (string) $state);
+                        $record->target_price = Money::toMinor($floatValue);
                         $record->save();
-
-                        return false;
+                        return number_format($floatValue, 4, '.', '');
                     })
                     ->alignEnd(),
                 TextInputColumn::make('notes')
