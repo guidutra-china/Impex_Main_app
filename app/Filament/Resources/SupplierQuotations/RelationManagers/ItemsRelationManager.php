@@ -193,6 +193,8 @@ class ItemsRelationManager extends RelationManager
                     ->step('1')
                     ->rules(['required', 'integer', 'min:1'])
                     ->afterStateUpdated(function ($record, $state) {
+                        // $record->unit_cost is already in minor units (stored in DB).
+                        // total_cost must also be stored in minor units.
                         $record->quantity = (int) $state;
                         $record->total_cost = $record->quantity * $record->unit_cost;
                         $record->save();
@@ -209,12 +211,22 @@ class ItemsRelationManager extends RelationManager
                     ->step('0.0001')
                     ->prefix('$')
                     ->rules(['required', 'numeric', 'min:0'])
-                    ->getStateUsing(fn ($record) => number_format(Money::toMajor($record->unit_cost), 4, '.', ''))
+                    // Display: convert minor units (DB) → major units for the input field.
+                    ->getStateUsing(fn ($record) => number_format(Money::toMajor($record->unit_cost ?? 0), 4, '.', ''))
+                    // Save: user types major units (e.g. 12.5) → convert to minor (125000),
+                    // then recalculate total_cost in minor units: minor_cost * qty.
+                    // We use afterStateUpdated (not beforeStateUpdated) so Filament does NOT
+                    // attempt its own default save of the raw string "12.5" into unit_cost.
+                    // Returning false from beforeStateUpdated skips the default save but also
+                    // skips afterStateUpdated, so we must handle the full save here ourselves.
                     ->beforeStateUpdated(function ($record, $state) {
-                        $record->unit_cost = Money::toMinor($state);
-                        $record->total_cost = $record->quantity * $record->unit_cost;
+                        $unitCostMinor = Money::toMinor((float) $state);
+                        $record->unit_cost  = $unitCostMinor;
+                        $record->total_cost = $record->quantity * $unitCostMinor;
                         $record->save();
 
+                        // Return false to prevent Filament from overwriting unit_cost
+                        // with the raw major-unit string (e.g. "12.5").
                         return false;
                     })
                     ->alignEnd(),
