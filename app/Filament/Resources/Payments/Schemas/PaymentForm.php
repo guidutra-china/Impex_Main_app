@@ -101,6 +101,11 @@ class PaymentForm
                 FileUpload::make('attachment_path')
                     ->label(__('forms.labels.attachment_receiptswift'))
                     ->directory('payment-attachments')
+                    ->disk('public')
+                    ->visibility('public')
+                    ->openable()
+                    ->downloadable()
+                    ->previewable()
                     ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                     ->maxSize(5120)
                     ->columnSpanFull(),

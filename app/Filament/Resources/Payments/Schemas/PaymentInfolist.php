@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Payments\Schemas;
 use App\Domain\Infrastructure\Support\Money;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ImageEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -64,6 +65,13 @@ class PaymentInfolist
                     ->label(__('forms.labels.notes'))
                     ->placeholder('—')
                     ->columnSpanFull(),
+                ImageEntry::make('attachment_path')
+                    ->label(__('forms.labels.receipt_attachment'))
+                    ->disk('public')
+                    ->visibility('public')
+                    ->placeholder('—')
+                    ->columnSpanFull()
+                    ->visible(fn ($record) => filled($record->attachment_path)),
             ]),
 
             Section::make(__('forms.sections.allocations'))->columnSpanFull()->schema([

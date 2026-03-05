@@ -8,6 +8,7 @@ use App\Domain\Infrastructure\Support\Money;
 use App\Filament\Resources\Payments\PaymentResource;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
+use Illuminate\Support\Facades\Storage;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
@@ -19,6 +20,7 @@ class ViewPayment extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            $this->downloadReceiptAction(),
             $this->approveAction(),
             $this->rejectAction(),
             $this->cancelAction(),
@@ -108,6 +110,30 @@ class ViewPayment extends ViewRecord
                 Notification::make()->title('Payment cancelled')->warning()->send();
 
                 $this->refreshFormData(['status', 'notes']);
+            });
+    }
+
+    protected function downloadReceiptAction(): Action
+    {
+        return Action::make('downloadReceipt')
+            ->label(__('forms.labels.download'))
+            ->icon('heroicon-o-arrow-down-tray')
+            ->color('info')
+            ->visible(fn () => filled($this->record->attachment_path))
+            ->action(function () {
+                $path = $this->record->attachment_path;
+                $disk = 'public';
+
+                if (! Storage::disk($disk)->exists($path)) {
+                    Notification::make()
+                        ->title(__('messages.file_not_found'))
+                        ->body(__('messages.file_not_found_disk'))
+                        ->danger()
+                        ->send();
+                    return;
+                }
+
+                return Storage::disk($disk)->download($path);
             });
     }
 }
