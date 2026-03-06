@@ -296,6 +296,11 @@ class RegisterAtFair extends Page implements HasForms
                                     ->label('Category Name')
                                     ->required()
                                     ->maxLength(255),
+                                TextInput::make('sku_prefix')
+                                    ->label('SKU Prefix')
+                                    ->maxLength(10)
+                                    ->placeholder('e.g. LED, OFC')
+                                    ->helperText('Optional. Used for product SKU generation.'),
                                 Select::make('parent_id')
                                     ->label('Parent Category')
                                     ->options(
@@ -311,10 +316,11 @@ class RegisterAtFair extends Page implements HasForms
                             ])
                             ->createOptionUsing(function (array $data): int {
                                 $category = Category::create([
-                                    'name'      => $data['name'],
-                                    'slug'      => Str::slug($data['name']),
-                                    'parent_id' => $data['parent_id'] ?? null,
-                                    'is_active' => true,
+                                    'name'       => $data['name'],
+                                    'slug'       => Str::slug($data['name']),
+                                    'sku_prefix' => $data['sku_prefix'] ?? null,
+                                    'parent_id'  => $data['parent_id'] ?? null,
+                                    'is_active'  => true,
                                 ]);
 
                                 return $category->id;
@@ -407,6 +413,11 @@ class RegisterAtFair extends Page implements HasForms
                                             ->label('Category Name')
                                             ->required()
                                             ->maxLength(255),
+                                        TextInput::make('sku_prefix')
+                                            ->label('SKU Prefix')
+                                            ->maxLength(10)
+                                            ->placeholder('e.g. LED, OFC')
+                                            ->helperText('Optional. Used for product SKU generation.'),
                                         Select::make('parent_id')
                                             ->label('Parent Category')
                                             ->options(
@@ -422,10 +433,11 @@ class RegisterAtFair extends Page implements HasForms
                                     ])
                                     ->createOptionUsing(function (array $data): int {
                                         $category = Category::create([
-                                            'name'      => $data['name'],
-                                            'slug'      => Str::slug($data['name']),
-                                            'parent_id' => $data['parent_id'] ?? null,
-                                            'is_active' => true,
+                                            'name'       => $data['name'],
+                                            'slug'       => Str::slug($data['name']),
+                                            'sku_prefix' => $data['sku_prefix'] ?? null,
+                                            'parent_id'  => $data['parent_id'] ?? null,
+                                            'is_active'  => true,
                                         ]);
 
                                         return $category->id;
