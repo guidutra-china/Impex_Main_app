@@ -34,8 +34,10 @@ use Filament\Schemas\Components\Wizard\Step;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use UnitEnum;
@@ -53,6 +55,12 @@ class RegisterAtFair extends Page implements HasForms
     protected string $view = 'filament.fair.pages.register-at-fair';
 
     public ?array $data = [];
+
+    /** Whether the business card scan is currently in progress */
+    public bool $scanning = false;
+
+    /** Status message shown below the business card upload */
+    public string $scanStatus = '';
 
     // ─── Access Control ──────────────────────────────────────────────
 
@@ -96,6 +104,203 @@ class RegisterAtFair extends Page implements HasForms
             'email_subject'   => '',
             'email_message'   => '',
         ]);
+    }
+
+    // ─── Business Card Scanner ───────────────────────────────────────
+
+    /**
+     * Called by the FileUpload afterStateUpdated when a business card image is uploaded.
+     * Sends the image to OpenAI GPT-4 Vision and auto-fills the supplier form fields.
+     *
+     * The FileUpload stores the path in $this->data['business_card_photo'] as an
+     * array keyed by UUID (Filepond default). We read the file from the 'public' disk,
+     * base64-encode it, and send it to the OpenAI Chat Completions API.
+     */
+    public function scanBusinessCard(): void
+    {
+        $this->scanning   = true;
+        $this->scanStatus = 'Scanning business card...';
+
+        try {
+            // ── 1. Resolve the uploaded file path ────────────────────
+            $rawState = $this->data['business_card_photo'] ?? null;
+            $filePath = null;
+
+            if (is_string($rawState) && $rawState !== '') {
+                $filePath = $rawState;
+            } elseif (is_array($rawState) && count($rawState) > 0) {
+                $filePath = array_values(array_filter($rawState))[0] ?? null;
+            }
+
+            if (! $filePath) {
+                $this->scanStatus = '';
+                $this->scanning   = false;
+                return;
+            }
+
+            // ── 2. Read the file and base64-encode it ────────────────
+            if (! Storage::disk('public')->exists($filePath)) {
+                // Try the Livewire temporary upload disk
+                $tmpPath = storage_path('app/livewire-tmp/' . basename($filePath));
+                if (file_exists($tmpPath)) {
+                    $imageData = base64_encode(file_get_contents($tmpPath));
+                    $mimeType  = mime_content_type($tmpPath) ?: 'image/jpeg';
+                } else {
+                    $this->scanStatus = 'Could not read the uploaded image. Please try again.';
+                    $this->scanning   = false;
+                    return;
+                }
+            } else {
+                $contents  = Storage::disk('public')->get($filePath);
+                $imageData = base64_encode($contents);
+                $mimeType  = Storage::disk('public')->mimeType($filePath) ?: 'image/jpeg';
+            }
+
+            // ── 3. Call OpenAI GPT-4.1-mini with vision ──────────────
+            $apiKey = env('OPENAI_API_KEY');
+            if (! $apiKey) {
+                $this->scanStatus = 'OpenAI API key is not configured.';
+                $this->scanning   = false;
+                return;
+            }
+
+            $prompt = <<<'PROMPT'
+You are a business card data extraction assistant.
+Analyse the provided business card image and extract the following fields.
+Return ONLY a valid JSON object with these exact keys (use null for missing fields):
+{
+  "company_name": "...",
+  "contact_name": "...",
+  "email": "...",
+  "phone": "...",
+  "wechat": "...",
+  "city": "...",
+  "country_code": "CN",
+  "website": "..."
+}
+Rules:
+- country_code must be a 2-letter ISO 3166-1 alpha-2 code (e.g. CN, US, DE, VN)
+- If the card is in Chinese, translate company and contact names to English if possible, but keep the original in parentheses
+- Extract WeChat ID from any field labelled 微信, WeChat, or similar
+- Do not include any explanation or markdown — return only the raw JSON object
+PROMPT;
+
+            $response = Http::withToken($apiKey)
+                ->timeout(30)
+                ->post('https://api.openai.com/v1/chat/completions', [
+                    'model'      => 'gpt-4.1-mini',
+                    'max_tokens' => 512,
+                    'messages'   => [
+                        [
+                            'role'    => 'user',
+                            'content' => [
+                                [
+                                    'type' => 'text',
+                                    'text' => $prompt,
+                                ],
+                                [
+                                    'type'      => 'image_url',
+                                    'image_url' => [
+                                        'url'    => 'data:' . $mimeType . ';base64,' . $imageData,
+                                        'detail' => 'high',
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ]);
+
+            if (! $response->successful()) {
+                Log::warning('[FairPanel] OpenAI scan failed', [
+                    'status' => $response->status(),
+                    'body'   => $response->body(),
+                ]);
+                $this->scanStatus = 'OpenAI API error (HTTP ' . $response->status() . '). Please fill in the form manually.';
+                $this->scanning   = false;
+                return;
+            }
+
+            // ── 4. Parse the JSON response ───────────────────────────
+            $content = $response->json('choices.0.message.content', '');
+
+            // Strip markdown code fences if present
+            $content = preg_replace('/^```(?:json)?\s*/i', '', trim($content));
+            $content = preg_replace('/\s*```$/', '', $content);
+
+            $extracted = json_decode($content, true);
+
+            if (! is_array($extracted)) {
+                Log::warning('[FairPanel] OpenAI returned non-JSON', ['content' => $content]);
+                $this->scanStatus = 'Could not parse the card data. Please fill in the form manually.';
+                $this->scanning   = false;
+                return;
+            }
+
+            // ── 5. Auto-fill the supplier form fields ────────────────
+            $filled = [];
+
+            if (! empty($extracted['company_name'])) {
+                $this->data['company_name'] = $extracted['company_name'];
+                $filled[] = 'company name';
+            }
+            if (! empty($extracted['contact_name'])) {
+                $this->data['contact_name'] = $extracted['contact_name'];
+                $filled[] = 'contact name';
+            }
+            if (! empty($extracted['email'])) {
+                $this->data['contact_email'] = $extracted['email'];
+                $filled[] = 'email';
+            }
+            if (! empty($extracted['phone'])) {
+                $this->data['contact_phone'] = $extracted['phone'];
+                $filled[] = 'phone';
+            }
+            if (! empty($extracted['wechat'])) {
+                $this->data['contact_wechat'] = $extracted['wechat'];
+                $filled[] = 'WeChat';
+            }
+            if (! empty($extracted['city'])) {
+                $this->data['address_city'] = $extracted['city'];
+                $filled[] = 'city';
+            }
+            if (! empty($extracted['country_code'])) {
+                // Ensure it's a valid 2-letter code
+                $code = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $extracted['country_code']), 0, 2));
+                if (strlen($code) === 2) {
+                    $this->data['address_country'] = $code;
+                    $filled[] = 'country';
+                }
+            }
+            if (! empty($extracted['website'])) {
+                // Store website in notes if no dedicated field exists
+                $existing = $this->data['company_notes'] ?? '';
+                $websiteNote = 'Website: ' . $extracted['website'];
+                $this->data['company_notes'] = $existing
+                    ? $existing . "\n" . $websiteNote
+                    : $websiteNote;
+                $filled[] = 'website (in notes)';
+            }
+
+            if (empty($filled)) {
+                $this->scanStatus = 'Scan complete but no data could be extracted. Please fill in the form manually.';
+            } else {
+                $this->scanStatus = 'Scan complete. Auto-filled: ' . implode(', ', $filled) . '. Please review and adjust.';
+            }
+
+            Log::info('[FairPanel] Business card scanned successfully', [
+                'extracted' => $extracted,
+                'filled'    => $filled,
+            ]);
+
+        } catch (\Throwable $e) {
+            Log::error('[FairPanel] Business card scan exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            $this->scanStatus = 'Scan failed: ' . $e->getMessage() . '. Please fill in the form manually.';
+        } finally {
+            $this->scanning = false;
+        }
     }
 
     // ─── Form ────────────────────────────────────────────────────────
@@ -202,7 +407,78 @@ class RegisterAtFair extends Page implements HasForms
             ->description('Company & contact details')
             ->schema([
 
-                // ── Duplicate Detection ──────────────────────────────
+                // ── Business Card Scanner ───────────────────────────
+                // FileUpload is a top-level field (NOT inside a Repeater) so that
+                // Filepond state is preserved. afterStateUpdated fires scanBusinessCard()
+                // which calls OpenAI GPT-4 Vision and fills the form fields below.
+                Section::make('Scan Business Card')
+                    ->description('Optional. Take a photo of the supplier\'s business card to auto-fill the form.')
+                    ->icon('heroicon-o-camera')
+                    ->schema([
+                        FileUpload::make('business_card_photo')
+                            ->label('Business Card Photo')
+                            ->image()
+                            ->directory('business-cards')
+                            ->disk('public')
+                            ->maxSize(8192)
+                            ->extraInputAttributes([
+                                'accept'  => 'image/*',
+                                'capture' => 'environment',
+                            ])
+                            ->helperText('Take a photo with your phone camera or upload an image. The form will be auto-filled.')
+                            ->live()
+                            ->afterStateUpdated(function ($state) {
+                                if (! empty($state)) {
+                                    $this->scanBusinessCard();
+                                }
+                            })
+                            ->columnSpanFull(),
+
+                        Placeholder::make('scan_status_display')
+                            ->label('')
+                            ->content(function () {
+                                if ($this->scanning) {
+                                    return new HtmlString(
+                                        '<div class="flex items-center gap-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 p-3 text-sm text-blue-800 dark:text-blue-200">'
+                                        . '<svg class="animate-spin h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>'
+                                        . '<span>Scanning business card with AI... Please wait.</span>'
+                                        . '</div>'
+                                    );
+                                }
+
+                                if (! empty($this->scanStatus)) {
+                                    $isError = str_contains($this->scanStatus, 'failed')
+                                        || str_contains($this->scanStatus, 'error')
+                                        || str_contains($this->scanStatus, 'Could not');
+
+                                    $isSuccess = str_contains($this->scanStatus, 'complete');
+
+                                    if ($isError) {
+                                        $colorClass = 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700 text-red-800 dark:text-red-200';
+                                        $icon = '⚠️';
+                                    } elseif ($isSuccess) {
+                                        $colorClass = 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700 text-green-800 dark:text-green-200';
+                                        $icon = '✅';
+                                    } else {
+                                        $colorClass = 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200';
+                                        $icon = 'ℹ️';
+                                    }
+
+                                    return new HtmlString(
+                                        '<div class="rounded-lg border p-3 text-sm ' . $colorClass . '">'
+                                        . $icon . ' ' . e($this->scanStatus)
+                                        . '</div>'
+                                    );
+                                }
+
+                                return new HtmlString('');
+                            })
+                            ->visible(fn () => $this->scanning || ! empty($this->scanStatus)),
+                    ])
+                    ->collapsible()
+                    ->collapsed(false),
+
+                // ── Duplicate Detection ────────────────────────────
                 Section::make('Search Existing Suppliers')
                     ->description('Type a company name to check if this supplier already exists before creating a new record.')
                     ->schema([
