@@ -35,4 +35,18 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | OpenAI
+    |--------------------------------------------------------------------------
+    |
+    | API key for OpenAI services (GPT-4 Vision, etc.).
+    | Using config('services.openai.key') instead of env() directly ensures
+    | the value is available even when the config cache is active in production.
+    |
+    */
+    'openai' => [
+        'key' => env('OPENAI_API_KEY'),
+    ],
+
 ];

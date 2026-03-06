@@ -157,7 +157,7 @@ class RegisterAtFair extends Page implements HasForms
             }
 
             // ── 3. Call OpenAI GPT-4.1-mini with vision ──────────────
-            $apiKey = env('OPENAI_API_KEY');
+            $apiKey = config('services.openai.key');
             if (! $apiKey) {
                 $this->scanStatus = 'OpenAI API key is not configured.';
                 $this->scanning   = false;
@@ -421,6 +421,9 @@ PROMPT;
                             ->directory('business-cards')
                             ->disk('public')
                             ->maxSize(8192)
+                            ->imageResizeTargetWidth(1200)
+                            ->imageResizeTargetHeight(1200)
+                            ->imageResizeMode('contain')
                             ->extraInputAttributes([
                                 'accept'  => 'image/*',
                                 'capture' => 'environment',
@@ -779,6 +782,9 @@ PROMPT;
                             ->directory('fair-products')
                             ->disk('public')
                             ->maxSize(5120)
+                            ->imageResizeTargetWidth(1200)
+                            ->imageResizeTargetHeight(1200)
+                            ->imageResizeMode('contain')
                             ->extraInputAttributes(['accept' => 'image/*', 'capture' => 'environment'])
                             ->visible(fn () => count($this->data['products'] ?? []) >= 1),
 
@@ -788,6 +794,9 @@ PROMPT;
                             ->directory('fair-products')
                             ->disk('public')
                             ->maxSize(5120)
+                            ->imageResizeTargetWidth(1200)
+                            ->imageResizeTargetHeight(1200)
+                            ->imageResizeMode('contain')
                             ->extraInputAttributes(['accept' => 'image/*', 'capture' => 'environment'])
                             ->visible(fn () => count($this->data['products'] ?? []) >= 2),
 
@@ -797,6 +806,9 @@ PROMPT;
                             ->directory('fair-products')
                             ->disk('public')
                             ->maxSize(5120)
+                            ->imageResizeTargetWidth(1200)
+                            ->imageResizeTargetHeight(1200)
+                            ->imageResizeMode('contain')
                             ->extraInputAttributes(['accept' => 'image/*', 'capture' => 'environment'])
                             ->visible(fn () => count($this->data['products'] ?? []) >= 3),
 
@@ -806,6 +818,9 @@ PROMPT;
                             ->directory('fair-products')
                             ->disk('public')
                             ->maxSize(5120)
+                            ->imageResizeTargetWidth(1200)
+                            ->imageResizeTargetHeight(1200)
+                            ->imageResizeMode('contain')
                             ->extraInputAttributes(['accept' => 'image/*', 'capture' => 'environment'])
                             ->visible(fn () => count($this->data['products'] ?? []) >= 4),
 
@@ -815,6 +830,9 @@ PROMPT;
                             ->directory('fair-products')
                             ->disk('public')
                             ->maxSize(5120)
+                            ->imageResizeTargetWidth(1200)
+                            ->imageResizeTargetHeight(1200)
+                            ->imageResizeMode('contain')
                             ->extraInputAttributes(['accept' => 'image/*', 'capture' => 'environment'])
                             ->visible(fn () => count($this->data['products'] ?? []) >= 5),
                     ]),
