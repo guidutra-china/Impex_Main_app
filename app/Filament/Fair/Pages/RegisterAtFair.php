@@ -214,7 +214,7 @@ class RegisterAtFair extends Page implements HasForms
                             ->getSearchResultsUsing(function (string $search): array {
                                 return Company::query()
                                     ->where('name', 'like', "%{$search}%")
-                                    ->whereHas('roles', fn ($q) => $q->where('role', CompanyRole::SUPPLIER))
+                                    ->whereHas('companyRoles', fn ($q) => $q->where('role', CompanyRole::SUPPLIER))
                                     ->orderBy('name')
                                     ->limit(10)
                                     ->get()
