@@ -11,6 +11,7 @@ use App\Domain\CRM\Enums\CompanyStatus;
 use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Models\CompanyRoleAssignment;
 use App\Domain\CRM\Models\Contact;
+use App\Domain\Infrastructure\Support\Money;
 use App\Domain\TradeFairs\Models\TradeFair;
 use App\Domain\Users\Enums\UserType;
 use App\Mail\FairInquiryMail;
@@ -612,11 +613,21 @@ class RegisterAtFair extends Page implements HasForms
                         'status'      => ProductStatus::DRAFT,
                     ]);
 
-                    // Convert price to minor units (cents)
-                    $unitPrice = 0;
-                    if (! empty($productData['unit_price'])) {
-                        $unitPrice = (int) round((float) $productData['unit_price'] * 100);
+                    // Convert price to minor units using Money::SCALE (10000)
+                    $unitPrice = filled($productData['unit_price'] ?? null)
+                        ? Money::toMinor((float) $productData['unit_price'])
+                        : 0;
+
+                    // FileUpload returns an array of paths; extract the first element
+                    $photo = $productData['photo'] ?? null;
+                    if (is_array($photo)) {
+                        $photo = array_values(array_filter($photo))[0] ?? null;
                     }
+
+                    // moq must be an integer or null
+                    $moq = filled($productData['moq'] ?? null)
+                        ? (int) $productData['moq']
+                        : null;
 
                     CompanyProduct::create([
                         'company_id'    => $company->id,
@@ -624,8 +635,8 @@ class RegisterAtFair extends Page implements HasForms
                         'role'          => 'supplier',
                         'unit_price'    => $unitPrice,
                         'currency_code' => $productData['currency_code'] ?? 'USD',
-                        'moq'           => $productData['moq'] ?? null,
-                        'avatar_path'   => $productData['photo'] ?? null,
+                        'moq'           => $moq,
+                        'avatar_path'   => $photo,
                         'avatar_disk'   => 'public',
                     ]);
 
