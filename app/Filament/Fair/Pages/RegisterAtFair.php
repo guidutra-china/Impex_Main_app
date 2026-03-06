@@ -213,10 +213,16 @@ class RegisterAtFair extends Page implements HasForms
                             ->live()
                             ->getSearchResultsUsing(function (string $search): array {
                                 return Company::query()
-                                    ->where('name', 'like', "%{$search}%")
-                                    ->whereHas('companyRoles', fn ($q) => $q->where('role', CompanyRole::SUPPLIER))
+                                    ->where('name', 'like', '%' . $search . '%')
+                                    ->where(function ($q) {
+                                        // Include companies with supplier role OR companies
+                                        // registered via the fair panel (trade_fair_id set)
+                                        // to catch records before role assignment completes
+                                        $q->whereHas('companyRoles', fn ($r) => $r->where('role', CompanyRole::SUPPLIER->value))
+                                          ->orWhereNotNull('trade_fair_id');
+                                    })
                                     ->orderBy('name')
-                                    ->limit(10)
+                                    ->limit(15)
                                     ->get()
                                     ->mapWithKeys(fn (Company $c) => [
                                         $c->id => $c->name . ($c->address_city ? ' — ' . $c->address_city : ''),
@@ -618,11 +624,27 @@ class RegisterAtFair extends Page implements HasForms
                         ? Money::toMinor((float) $productData['unit_price'])
                         : 0;
 
-                    // FileUpload returns an array of paths; extract the first element
-                    $photo = $productData['photo'] ?? null;
-                    if (is_array($photo)) {
-                        $photo = array_values(array_filter($photo))[0] ?? null;
+                    // FileUpload inside a Repeater can return the path in several shapes:
+                    //   (a) null / empty string  — no photo uploaded
+                    //   (b) 'path/to/file.jpg'   — plain string (rare in non-model forms)
+                    //   (c) ['path/to/file.jpg'] — indexed array (most common: Filepond default)
+                    //   (d) ['key' => 'path/to/file.jpg'] — keyed array (Filepond with custom keys)
+                    // We log the raw value so it appears in Laravel logs for debugging,
+                    // then normalise to a single string path.
+                    $rawPhoto = $productData['photo'] ?? null;
+                    Log::debug('[FairPanel] photo raw state', [
+                        'product'   => $productData['name'] ?? '?',
+                        'raw_type'  => gettype($rawPhoto),
+                        'raw_value' => $rawPhoto,
+                    ]);
+                    $photo = null;
+                    if (is_string($rawPhoto) && $rawPhoto !== '') {
+                        $photo = $rawPhoto;
+                    } elseif (is_array($rawPhoto) && count($rawPhoto) > 0) {
+                        // Take the first non-empty value regardless of key type
+                        $photo = array_values(array_filter($rawPhoto))[0] ?? null;
                     }
+                    Log::debug('[FairPanel] photo resolved', ['path' => $photo]);
 
                     // moq must be an integer or null
                     $moq = filled($productData['moq'] ?? null)
