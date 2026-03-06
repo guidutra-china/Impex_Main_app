@@ -44,6 +44,8 @@ class Company extends Model
         'notes',
         'contracted_importer_details',
         'trade_fair_id',
+        'business_card_path',
+        'business_card_disk',
     ];
 
     protected function casts(): array

@@ -937,14 +937,40 @@ PROMPT;
                         $company->update(['notes' => $this->data['company_notes']]);
                     }
                 } else {
+                    // ── Store business card photo permanently ────────────────
+                    // The FileUpload stores state as ['<uuid>' => TemporaryUploadedFile].
+                    // We use reset() to get the object and manually move it to
+                    // public/business-cards/ before creating the company record.
+                    $businessCardPath = null;
+                    $rawCard = $this->data['business_card_photo'] ?? null;
+
+                    if (! empty($rawCard) && is_array($rawCard)) {
+                        $tempCardFile = reset($rawCard);
+
+                        if ($tempCardFile instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+                            $cardExt      = $tempCardFile->getClientOriginalExtension() ?: 'jpg';
+                            $cardFilename = 'business-cards/' . Str::uuid() . '.' . $cardExt;
+                            Storage::disk('public')->put(
+                                $cardFilename,
+                                file_get_contents($tempCardFile->getRealPath())
+                            );
+                            $businessCardPath = $cardFilename;
+                        } elseif (is_string($tempCardFile) && $tempCardFile !== '') {
+                            // Already stored (re-hydrated form)
+                            $businessCardPath = $tempCardFile;
+                        }
+                    }
+
                     // Create new company
                     $company = Company::create([
-                        'name'            => $this->data['company_name'],
-                        'address_city'    => $this->data['address_city'],
-                        'address_country' => $this->data['address_country'],
-                        'status'          => CompanyStatus::PROSPECT,
-                        'notes'           => $this->data['company_notes'] ?? null,
-                        'trade_fair_id'   => $this->data['trade_fair_id'],
+                        'name'               => $this->data['company_name'],
+                        'address_city'       => $this->data['address_city'],
+                        'address_country'    => $this->data['address_country'],
+                        'status'             => CompanyStatus::PROSPECT,
+                        'notes'              => $this->data['company_notes'] ?? null,
+                        'trade_fair_id'      => $this->data['trade_fair_id'],
+                        'business_card_path' => $businessCardPath,
+                        'business_card_disk' => $businessCardPath ? 'public' : null,
                     ]);
 
                     // Assign supplier role
