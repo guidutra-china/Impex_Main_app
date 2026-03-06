@@ -12,6 +12,7 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Models\CompanyRoleAssignment;
 use App\Domain\CRM\Models\Contact;
 use App\Domain\TradeFairs\Models\TradeFair;
+use App\Domain\Users\Enums\UserType;
 use App\Mail\FairInquiryMail;
 use BackedEnum;
 use Filament\Forms\Components\DatePicker;
@@ -21,6 +22,7 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
@@ -29,8 +31,9 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Wizard;
 use Filament\Schemas\Components\Wizard\Step;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
@@ -50,6 +53,22 @@ class RegisterAtFair extends Page implements HasForms
 
     public ?array $data = [];
 
+    // ─── Access Control ──────────────────────────────────────────────
+
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        // Only internal users may access the fair panel
+        return $user->type === UserType::INTERNAL && $user->status === 'active';
+    }
+
+    // ─── Mount ───────────────────────────────────────────────────────
+
     public function getTitle(): string
     {
         return 'Register at Fair';
@@ -57,18 +76,28 @@ class RegisterAtFair extends Page implements HasForms
 
     public function mount(): void
     {
+        // Redirect non-internal users immediately
+        if (! static::canAccess()) {
+            $this->redirect('/');
+            return;
+        }
+
         $activeFairId = session('active_trade_fair_id');
 
         $this->form->fill([
-            'trade_fair_id' => $activeFairId,
+            'trade_fair_id'   => $activeFairId,
+            'existing_company_id' => null,
+            'use_existing_company' => false,
             'address_country' => 'CN',
-            'products' => [
+            'products'        => [
                 ['currency_code' => 'USD'],
             ],
-            'email_subject' => '',
-            'email_message' => '',
+            'email_subject'   => '',
+            'email_message'   => '',
         ]);
     }
+
+    // ─── Form ────────────────────────────────────────────────────────
 
     public function form(Schema $schema): Schema
     {
@@ -87,7 +116,7 @@ class RegisterAtFair extends Page implements HasForms
                             icon="heroicon-o-paper-airplane"
                             class="w-full"
                         >
-                            Send Inquiry & Save
+                            Save & Send Inquiry
                         </x-filament::button>
                     BLADE)))
                     ->persistStepInQueryString('step')
@@ -137,10 +166,10 @@ class RegisterAtFair extends Page implements HasForms
                             ])
                             ->createOptionUsing(function (array $data): int {
                                 $fair = TradeFair::create([
-                                    'name' => $data['name'],
-                                    'location' => $data['location'] ?? null,
+                                    'name'       => $data['name'],
+                                    'location'   => $data['location'] ?? null,
                                     'start_date' => $data['start_date'] ?? null,
-                                    'end_date' => $data['end_date'] ?? null,
+                                    'end_date'   => $data['end_date'] ?? null,
                                     'created_by' => auth()->id(),
                                 ]);
 
@@ -171,6 +200,79 @@ class RegisterAtFair extends Page implements HasForms
             ->icon('heroicon-o-building-office')
             ->description('Company & contact details')
             ->schema([
+
+                // ── Duplicate Detection ──────────────────────────────
+                Section::make('Search Existing Suppliers')
+                    ->description('Type a company name to check if this supplier already exists before creating a new record.')
+                    ->schema([
+                        Select::make('existing_company_id')
+                            ->label('Search Existing Companies')
+                            ->placeholder('Type to search by name...')
+                            ->searchable()
+                            ->live()
+                            ->getSearchResultsUsing(function (string $search): array {
+                                return Company::query()
+                                    ->where('name', 'like', "%{$search}%")
+                                    ->whereHas('roles', fn ($q) => $q->where('role', CompanyRole::SUPPLIER))
+                                    ->orderBy('name')
+                                    ->limit(10)
+                                    ->get()
+                                    ->mapWithKeys(fn (Company $c) => [
+                                        $c->id => $c->name . ($c->address_city ? ' — ' . $c->address_city : ''),
+                                    ])
+                                    ->toArray();
+                            })
+                            ->getOptionLabelUsing(fn ($value): ?string => Company::find($value)?->name)
+                            ->afterStateUpdated(function ($state, callable $set) {
+                                if ($state) {
+                                    $company = Company::with('contacts')->find($state);
+                                    if ($company) {
+                                        $set('use_existing_company', true);
+                                        $set('company_name', $company->name);
+                                        $set('address_city', $company->address_city ?? '');
+                                        $set('address_country', $company->address_country ?? 'CN');
+                                        $set('company_notes', $company->notes ?? '');
+
+                                        $primary = $company->contacts->firstWhere('is_primary', true)
+                                            ?? $company->contacts->first();
+
+                                        if ($primary) {
+                                            $set('contact_name', $primary->name ?? '');
+                                            $set('contact_email', $primary->email ?? '');
+                                            $set('contact_phone', $primary->phone ?? '');
+                                            $set('contact_wechat', $primary->wechat ?? '');
+                                        }
+                                    }
+                                } else {
+                                    $set('use_existing_company', false);
+                                }
+                            })
+                            ->helperText('If found, the form below will be pre-filled. You can still edit the details.'),
+
+                        Placeholder::make('existing_company_notice')
+                            ->label('')
+                            ->content(function () {
+                                $id = $this->data['existing_company_id'] ?? null;
+                                if (! $id) {
+                                    return new HtmlString('');
+                                }
+
+                                $company = Company::find($id);
+                                if (! $company) {
+                                    return new HtmlString('');
+                                }
+
+                                return new HtmlString(
+                                    '<div class="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 p-3 text-sm text-amber-800 dark:text-amber-200">'
+                                    . '<strong>⚠ Existing supplier found:</strong> ' . e($company->name)
+                                    . '. The form has been pre-filled. Submitting will <strong>add new products</strong> to this existing supplier — it will NOT create a duplicate.'
+                                    . '</div>'
+                                );
+                            })
+                            ->visible(fn () => ! empty($this->data['existing_company_id'])),
+                    ]),
+
+                // ── Company Information ──────────────────────────────
                 Section::make('Company Information')
                     ->schema([
                         TextInput::make('company_name')
@@ -197,8 +299,8 @@ class RegisterAtFair extends Page implements HasForms
                             ])
                             ->createOptionUsing(function (array $data): int {
                                 $category = Category::create([
-                                    'name' => $data['name'],
-                                    'slug' => Str::slug($data['name']),
+                                    'name'      => $data['name'],
+                                    'slug'      => Str::slug($data['name']),
                                     'is_active' => true,
                                 ]);
 
@@ -226,6 +328,7 @@ class RegisterAtFair extends Page implements HasForms
                     ])
                     ->columns(1),
 
+                // ── Primary Contact ──────────────────────────────────
                 Section::make('Primary Contact')
                     ->schema([
                         TextInput::make('contact_name')
@@ -294,8 +397,8 @@ class RegisterAtFair extends Page implements HasForms
                                     ])
                                     ->createOptionUsing(function (array $data): int {
                                         $category = Category::create([
-                                            'name' => $data['name'],
-                                            'slug' => Str::slug($data['name']),
+                                            'name'      => $data['name'],
+                                            'slug'      => Str::slug($data['name']),
                                             'is_active' => true,
                                         ]);
 
@@ -307,7 +410,7 @@ class RegisterAtFair extends Page implements HasForms
                                     ->numeric()
                                     ->prefix('$')
                                     ->placeholder('e.g. 5.50')
-                                    ->helperText('Approximate unit price in USD'),
+                                    ->helperText('Approximate unit price'),
 
                                 Select::make('currency_code')
                                     ->label('Currency')
@@ -339,7 +442,7 @@ class RegisterAtFair extends Page implements HasForms
                                     ->maxSize(5120)
                                     ->imageEditor()
                                     ->extraInputAttributes([
-                                        'accept' => 'image/*',
+                                        'accept'  => 'image/*',
                                         'capture' => 'environment',
                                     ])
                                     ->columnSpanFull(),
@@ -363,7 +466,7 @@ class RegisterAtFair extends Page implements HasForms
             ->description('Email the supplier')
             ->schema([
                 Section::make('Inquiry Email')
-                    ->description('Send a simple inquiry email to the supplier requesting product information and pricing.')
+                    ->description('A simple inquiry email will be sent to the supplier after saving. If email fails, the registration is still saved.')
                     ->schema([
                         Placeholder::make('email_preview_to')
                             ->label('To')
@@ -406,53 +509,69 @@ class RegisterAtFair extends Page implements HasForms
     {
         $this->validate();
 
+        $company     = null;
+        $productNames = [];
+
+        // ── 1. Save supplier + products inside a transaction ─────────
         try {
-            DB::transaction(function () {
-                // 1. Create Company
-                $company = Company::create([
-                    'name' => $this->data['company_name'],
-                    'address_city' => $this->data['address_city'],
-                    'address_country' => $this->data['address_country'],
-                    'status' => CompanyStatus::PROSPECT,
-                    'notes' => $this->data['company_notes'] ?? null,
-                    'trade_fair_id' => $this->data['trade_fair_id'],
-                ]);
+            DB::transaction(function () use (&$company, &$productNames) {
+                $existingId = $this->data['existing_company_id'] ?? null;
 
-                // 2. Assign supplier role
-                CompanyRoleAssignment::create([
-                    'company_id' => $company->id,
-                    'role' => CompanyRole::SUPPLIER,
-                ]);
+                if ($existingId) {
+                    // Re-use existing company — update fair link if not already set
+                    $company = Company::findOrFail($existingId);
+                    if (! $company->trade_fair_id) {
+                        $company->update(['trade_fair_id' => $this->data['trade_fair_id']]);
+                    }
+                    // Update notes if provided
+                    if (! empty($this->data['company_notes'])) {
+                        $company->update(['notes' => $this->data['company_notes']]);
+                    }
+                } else {
+                    // Create new company
+                    $company = Company::create([
+                        'name'            => $this->data['company_name'],
+                        'address_city'    => $this->data['address_city'],
+                        'address_country' => $this->data['address_country'],
+                        'status'          => CompanyStatus::PROSPECT,
+                        'notes'           => $this->data['company_notes'] ?? null,
+                        'trade_fair_id'   => $this->data['trade_fair_id'],
+                    ]);
 
-                // 3. Attach categories
-                $categoryIds = $this->data['company_categories'] ?? [];
-                if (! empty($categoryIds)) {
-                    $company->categories()->attach($categoryIds);
+                    // Assign supplier role
+                    CompanyRoleAssignment::create([
+                        'company_id' => $company->id,
+                        'role'       => CompanyRole::SUPPLIER,
+                    ]);
+
+                    // Attach categories
+                    $categoryIds = $this->data['company_categories'] ?? [];
+                    if (! empty($categoryIds)) {
+                        $company->categories()->attach($categoryIds);
+                    }
+
+                    // Create primary contact
+                    Contact::create([
+                        'company_id' => $company->id,
+                        'name'       => $this->data['contact_name'],
+                        'email'      => $this->data['contact_email'],
+                        'phone'      => $this->data['contact_phone'] ?? null,
+                        'wechat'     => $this->data['contact_wechat'] ?? null,
+                        'is_primary' => true,
+                    ]);
                 }
 
-                // 4. Create primary contact
-                $contact = Contact::create([
-                    'company_id' => $company->id,
-                    'name' => $this->data['contact_name'],
-                    'email' => $this->data['contact_email'],
-                    'phone' => $this->data['contact_phone'] ?? null,
-                    'wechat' => $this->data['contact_wechat'] ?? null,
-                    'is_primary' => true,
-                ]);
-
-                // 5. Create products and link to supplier
-                $productNames = [];
+                // Create products and link to supplier
                 foreach ($this->data['products'] ?? [] as $productData) {
                     if (empty($productData['name'])) {
                         continue;
                     }
 
-                    // Create the product
                     $product = Product::create([
-                        'name' => $productData['name'],
+                        'name'        => $productData['name'],
                         'category_id' => $productData['category_id'],
                         'description' => $productData['description'] ?? null,
-                        'status' => ProductStatus::DRAFT,
+                        'status'      => ProductStatus::DRAFT,
                     ]);
 
                     // Convert price to minor units (cents)
@@ -461,65 +580,95 @@ class RegisterAtFair extends Page implements HasForms
                         $unitPrice = (int) round((float) $productData['unit_price'] * 100);
                     }
 
-                    // Create the company_product pivot
                     CompanyProduct::create([
-                        'company_id' => $company->id,
-                        'product_id' => $product->id,
-                        'role' => 'supplier',
-                        'unit_price' => $unitPrice,
+                        'company_id'    => $company->id,
+                        'product_id'    => $product->id,
+                        'role'          => 'supplier',
+                        'unit_price'    => $unitPrice,
                         'currency_code' => $productData['currency_code'] ?? 'USD',
-                        'moq' => $productData['moq'] ?? null,
-                        'avatar_path' => $productData['photo'] ?? null,
-                        'avatar_disk' => 'public',
+                        'moq'           => $productData['moq'] ?? null,
+                        'avatar_path'   => $productData['photo'] ?? null,
+                        'avatar_disk'   => 'public',
                     ]);
 
                     $productNames[] = $productData['name'];
                 }
-
-                // 6. Send inquiry email
-                $recipientEmail = $this->data['contact_email'];
-                $recipientName = $this->data['contact_name'];
-                $companyName = $this->data['company_name'];
-
-                $tradeFair = TradeFair::find($this->data['trade_fair_id']);
-                $tradeFairName = $tradeFair?->name ?? 'Trade Fair';
-
-                $subject = $this->data['email_subject'];
-                if (empty($subject)) {
-                    $subject = "Product Inquiry — {$companyName} — {$tradeFairName}";
-                }
-
-                $customMessage = $this->data['email_message'] ?? '';
-
-                Mail::to($recipientEmail)
-                    ->send(new FairInquiryMail(
-                        recipientName: $recipientName,
-                        companyName: $companyName,
-                        tradeFairName: $tradeFairName,
-                        productNames: $productNames,
-                        customMessage: $customMessage,
-                        subject: $subject,
-                        senderName: auth()->user()->name,
-                    ));
             });
-
-            Notification::make()
-                ->title('Registration Complete!')
-                ->body('Supplier, products, and inquiry email have been saved and sent successfully.')
-                ->success()
-                ->send();
-
-            // Redirect to dashboard
-            $this->redirect(FairDashboard::getUrl());
-
         } catch (\Throwable $e) {
             report($e);
 
             Notification::make()
                 ->title('Registration Failed')
-                ->body('Error: ' . $e->getMessage())
+                ->body('Could not save supplier data: ' . $e->getMessage())
                 ->danger()
                 ->send();
+
+            return; // Stop here — do not attempt email
         }
+
+        // ── 2. Send email OUTSIDE the transaction ────────────────────
+        // Registration is already saved. Email failure is non-fatal.
+        $emailSent = false;
+        $emailError = null;
+
+        try {
+            $recipientEmail = $this->data['contact_email'];
+            $recipientName  = $this->data['contact_name'];
+            $companyName    = $this->data['company_name'];
+
+            $tradeFair     = TradeFair::find($this->data['trade_fair_id']);
+            $tradeFairName = $tradeFair?->name ?? 'Trade Fair';
+
+            $subject = $this->data['email_subject'] ?? '';
+            if (empty($subject)) {
+                $subject = "Product Inquiry — {$companyName} — {$tradeFairName}";
+            }
+
+            $customMessage = $this->data['email_message'] ?? '';
+
+            Mail::to($recipientEmail)
+                ->send(new FairInquiryMail(
+                    recipientName: $recipientName,
+                    companyName: $companyName,
+                    tradeFairName: $tradeFairName,
+                    productNames: $productNames,
+                    customMessage: $customMessage,
+                    subject: $subject,
+                    senderName: auth()->user()->name,
+                ));
+
+            $emailSent = true;
+        } catch (\Throwable $e) {
+            $emailError = $e->getMessage();
+            Log::warning('Fair inquiry email failed', [
+                'company_id'    => $company?->id,
+                'company_name'  => $this->data['company_name'] ?? null,
+                'recipient'     => $this->data['contact_email'] ?? null,
+                'error'         => $emailError,
+            ]);
+        }
+
+        // ── 3. Notify user of outcome ────────────────────────────────
+        if ($emailSent) {
+            Notification::make()
+                ->title('Registration Complete!')
+                ->body('Supplier and products saved. Inquiry email sent successfully.')
+                ->success()
+                ->send();
+        } else {
+            Notification::make()
+                ->title('Registration Saved — Email Failed')
+                ->body(
+                    'Supplier and products were saved successfully. '
+                    . 'However, the inquiry email could not be sent. '
+                    . 'Error: ' . ($emailError ?? 'Unknown error')
+                    . '. You can resend the email from the admin panel.'
+                )
+                ->warning()
+                ->persistent()
+                ->send();
+        }
+
+        $this->redirect(FairDashboard::getUrl());
     }
 }

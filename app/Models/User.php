@@ -65,6 +65,12 @@ class User extends Authenticatable implements FilamentUser, HasTenants
                 && $this->company_id !== null;
         }
 
+        // Fair panel: internal (staff) users only
+        if ($panel->getId() === 'fair') {
+            return $this->type === UserType::INTERNAL
+                && $this->status === 'active';
+        }
+
         return false;
     }
 
