@@ -18,7 +18,7 @@ class FairInquiryMail extends Mailable
         public string $tradeFairName,
         public array $productNames,
         public string $customMessage,
-        public string $subject,
+        public $subject,
         public string $senderName,
     ) {}
 
