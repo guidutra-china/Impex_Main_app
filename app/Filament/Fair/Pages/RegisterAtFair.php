@@ -296,11 +296,24 @@ class RegisterAtFair extends Page implements HasForms
                                     ->label('Category Name')
                                     ->required()
                                     ->maxLength(255),
+                                Select::make('parent_id')
+                                    ->label('Parent Category')
+                                    ->options(
+                                        fn () => Category::query()
+                                            ->where('is_active', true)
+                                            ->orderBy('name')
+                                            ->get()
+                                            ->mapWithKeys(fn (Category $cat) => [$cat->id => $cat->full_path])
+                                    )
+                                    ->searchable()
+                                    ->placeholder('None (root category)')
+                                    ->helperText('Optional. Link this category under an existing parent.'),
                             ])
                             ->createOptionUsing(function (array $data): int {
                                 $category = Category::create([
                                     'name'      => $data['name'],
                                     'slug'      => Str::slug($data['name']),
+                                    'parent_id' => $data['parent_id'] ?? null,
                                     'is_active' => true,
                                 ]);
 
@@ -394,11 +407,24 @@ class RegisterAtFair extends Page implements HasForms
                                             ->label('Category Name')
                                             ->required()
                                             ->maxLength(255),
+                                        Select::make('parent_id')
+                                            ->label('Parent Category')
+                                            ->options(
+                                                fn () => Category::query()
+                                                    ->where('is_active', true)
+                                                    ->orderBy('name')
+                                                    ->get()
+                                                    ->mapWithKeys(fn (Category $cat) => [$cat->id => $cat->full_path])
+                                            )
+                                            ->searchable()
+                                            ->placeholder('None (root category)')
+                                            ->helperText('Optional. Link this category under an existing parent.'),
                                     ])
                                     ->createOptionUsing(function (array $data): int {
                                         $category = Category::create([
                                             'name'      => $data['name'],
                                             'slug'      => Str::slug($data['name']),
+                                            'parent_id' => $data['parent_id'] ?? null,
                                             'is_active' => true,
                                         ]);
 
