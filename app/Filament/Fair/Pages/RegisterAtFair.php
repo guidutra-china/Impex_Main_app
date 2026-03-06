@@ -478,19 +478,6 @@ class RegisterAtFair extends Page implements HasForms
                                     ->label('Notes / Description')
                                     ->maxLength(500)
                                     ->placeholder('Material, size, color, etc.'),
-
-                                FileUpload::make('photo')
-                                    ->label('Product Photo')
-                                    ->image()
-                                    ->directory('fair-products')
-                                    ->disk('public')
-                                    ->maxSize(5120)
-                                    ->imageEditor()
-                                    ->extraInputAttributes([
-                                        'accept'  => 'image/*',
-                                        'capture' => 'environment',
-                                    ])
-                                    ->columnSpanFull(),
                             ])
                             ->columns(1)
                             ->defaultItems(1)
@@ -498,6 +485,62 @@ class RegisterAtFair extends Page implements HasForms
                             ->reorderable(false)
                             ->collapsible()
                             ->itemLabel(fn (array $state): ?string => $state['name'] ?? 'New Product'),
+                    ]),
+
+                // ── Product Photos ───────────────────────────────────
+                // FileUpload is NOT supported inside a Repeater in Filament v4
+                // (confirmed by Filament maintainer, issue #13636, Dec 2024).
+                // Instead, we use a fixed set of top-level FileUpload fields.
+                // The user adds up to 5 products; each gets its own photo slot.
+                // The key 'product_photo_0' ... 'product_photo_4' maps to the
+                // products array index in submit().
+                Section::make('Product Photos')
+                    ->description('Optional. Take a photo for each product using your phone camera. Match each photo to the product number above.')
+                    ->schema([
+                        FileUpload::make('product_photo_0')
+                            ->label('Photo — Product 1')
+                            ->image()
+                            ->directory('fair-products')
+                            ->disk('public')
+                            ->maxSize(5120)
+                            ->extraInputAttributes(['accept' => 'image/*', 'capture' => 'environment'])
+                            ->visible(fn () => count($this->data['products'] ?? []) >= 1),
+
+                        FileUpload::make('product_photo_1')
+                            ->label('Photo — Product 2')
+                            ->image()
+                            ->directory('fair-products')
+                            ->disk('public')
+                            ->maxSize(5120)
+                            ->extraInputAttributes(['accept' => 'image/*', 'capture' => 'environment'])
+                            ->visible(fn () => count($this->data['products'] ?? []) >= 2),
+
+                        FileUpload::make('product_photo_2')
+                            ->label('Photo — Product 3')
+                            ->image()
+                            ->directory('fair-products')
+                            ->disk('public')
+                            ->maxSize(5120)
+                            ->extraInputAttributes(['accept' => 'image/*', 'capture' => 'environment'])
+                            ->visible(fn () => count($this->data['products'] ?? []) >= 3),
+
+                        FileUpload::make('product_photo_3')
+                            ->label('Photo — Product 4')
+                            ->image()
+                            ->directory('fair-products')
+                            ->disk('public')
+                            ->maxSize(5120)
+                            ->extraInputAttributes(['accept' => 'image/*', 'capture' => 'environment'])
+                            ->visible(fn () => count($this->data['products'] ?? []) >= 4),
+
+                        FileUpload::make('product_photo_4')
+                            ->label('Photo — Product 5')
+                            ->image()
+                            ->directory('fair-products')
+                            ->disk('public')
+                            ->maxSize(5120)
+                            ->extraInputAttributes(['accept' => 'image/*', 'capture' => 'environment'])
+                            ->visible(fn () => count($this->data['products'] ?? []) >= 5),
                     ]),
             ]);
     }
@@ -552,6 +595,13 @@ class RegisterAtFair extends Page implements HasForms
 
     public function submit(): void
     {
+        // ── DIAGNOSTIC: log the full form state at the very start ────────────
+        // This logs at 'error' level so it always appears regardless of
+        // the LOG_LEVEL environment variable setting.
+        Log::error('[FairPanel] submit() called — FULL FORM DATA', [
+            'data' => $this->data,
+        ]);
+
         $this->validate();
 
         $company     = null;
@@ -607,8 +657,13 @@ class RegisterAtFair extends Page implements HasForms
                 }
 
                 // Create products and link to supplier
+                // Photos are stored as top-level fields product_photo_0..4
+                // because FileUpload inside a Repeater is not supported in Filament v4
+                // (maintainer confirmed, issue #13636, Dec 2024).
+                $productIndex = 0;
                 foreach ($this->data['products'] ?? [] as $productData) {
                     if (empty($productData['name'])) {
+                        $productIndex++;
                         continue;
                     }
 
@@ -624,27 +679,15 @@ class RegisterAtFair extends Page implements HasForms
                         ? Money::toMinor((float) $productData['unit_price'])
                         : 0;
 
-                    // FileUpload inside a Repeater can return the path in several shapes:
-                    //   (a) null / empty string  — no photo uploaded
-                    //   (b) 'path/to/file.jpg'   — plain string (rare in non-model forms)
-                    //   (c) ['path/to/file.jpg'] — indexed array (most common: Filepond default)
-                    //   (d) ['key' => 'path/to/file.jpg'] — keyed array (Filepond with custom keys)
-                    // We log the raw value so it appears in Laravel logs for debugging,
-                    // then normalise to a single string path.
-                    $rawPhoto = $productData['photo'] ?? null;
-                    Log::debug('[FairPanel] photo raw state', [
-                        'product'   => $productData['name'] ?? '?',
-                        'raw_type'  => gettype($rawPhoto),
-                        'raw_value' => $rawPhoto,
-                    ]);
+                    // Read photo from the top-level product_photo_N field.
+                    // FileUpload returns an array keyed by UUID; extract the first value.
+                    $rawPhoto = $this->data['product_photo_' . $productIndex] ?? null;
                     $photo = null;
                     if (is_string($rawPhoto) && $rawPhoto !== '') {
                         $photo = $rawPhoto;
                     } elseif (is_array($rawPhoto) && count($rawPhoto) > 0) {
-                        // Take the first non-empty value regardless of key type
                         $photo = array_values(array_filter($rawPhoto))[0] ?? null;
                     }
-                    Log::debug('[FairPanel] photo resolved', ['path' => $photo]);
 
                     // moq must be an integer or null
                     $moq = filled($productData['moq'] ?? null)
@@ -663,6 +706,7 @@ class RegisterAtFair extends Page implements HasForms
                     ]);
 
                     $productNames[] = $productData['name'];
+                    $productIndex++;
                 }
             });
         } catch (\Throwable $e) {
