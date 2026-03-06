@@ -7,10 +7,12 @@ use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Enums\CompanyStatus;
 use App\Domain\SupplierAudits\Models\SupplierAudit;
+use App\Domain\TradeFairs\Models\TradeFair;
 use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -41,6 +43,7 @@ class Company extends Model
         'status',
         'notes',
         'contracted_importer_details',
+        'trade_fair_id',
     ];
 
     protected function casts(): array
@@ -116,6 +119,11 @@ class Company extends Model
     public function supplierAudits(): HasMany
     {
         return $this->hasMany(SupplierAudit::class, 'company_id');
+    }
+
+    public function tradeFair(): BelongsTo
+    {
+        return $this->belongsTo(TradeFair::class);
     }
 
     public function latestAudit(): HasOne

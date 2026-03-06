@@ -1,0 +1,72 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../views/filament/fair/**/*.blade.php';
+@source '../../../../app/Filament/Fair/**/*.php';
+
+/* ─── Mobile-First Optimizations for Fair Panel ─── */
+
+/* Larger touch targets for mobile */
+.fi-btn {
+    min-height: 44px;
+    font-size: 1rem;
+}
+
+/* Wizard step indicators - more compact on mobile */
+@media (max-width: 640px) {
+    .fi-wizard-header {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .fi-wizard-header-step-label {
+        font-size: 0.75rem;
+    }
+}
+
+/* Larger form inputs for touch */
+.fi-input,
+.fi-select-input,
+.fi-textarea-input {
+    min-height: 44px;
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+}
+
+/* Better spacing for repeater items on mobile */
+@media (max-width: 640px) {
+    .fi-fo-repeater-item {
+        padding: 0.75rem;
+    }
+
+    .fi-fo-repeater-item-header {
+        padding: 0.5rem;
+    }
+}
+
+/* Full-width buttons on mobile */
+@media (max-width: 640px) {
+    .fi-wizard-footer {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .fi-wizard-footer .fi-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* File upload area - larger touch target */
+.fi-fo-file-upload .filepond--drop-label {
+    min-height: 80px;
+}
+
+/* Section headers - more compact */
+@media (max-width: 640px) {
+    .fi-section-header {
+        padding: 0.75rem;
+    }
+
+    .fi-section-content {
+        padding: 0.75rem;
+    }
+}

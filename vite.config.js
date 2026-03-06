@@ -11,6 +11,7 @@ export default defineConfig({
                 'resources/css/filament/admin/theme.css',
                 'resources/css/filament/portal/theme.css',
                 'resources/css/filament/supplier-portal/theme.css',
+                'resources/css/filament/fair/theme.css',
             ],
             refresh: true,
         }),
