@@ -49,7 +49,7 @@ class RegisterAtFair extends Page implements HasForms
 
     protected static ?int $navigationSort = 1;
 
-    protected static string $view = 'filament.fair.pages.register-at-fair';
+    protected string $view = 'filament.fair.pages.register-at-fair';
 
     public ?array $data = [];
 

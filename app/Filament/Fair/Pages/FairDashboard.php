@@ -16,7 +16,7 @@ class FairDashboard extends Page
 
     protected static ?int $navigationSort = -2;
 
-    protected static string $view = 'filament.fair.pages.fair-dashboard';
+    protected string $view = 'filament.fair.pages.fair-dashboard';
 
     public function getTitle(): string
     {
