@@ -122,39 +122,53 @@ class RegisterAtFair extends Page implements HasForms
         $this->scanStatus = 'Scanning business card...';
 
         try {
-            // ── 1. Resolve the uploaded file path ────────────────────
+            // ── 1. Resolve the TemporaryUploadedFile object ──────────────
+            //
+            // Filament FileUpload stores state in $this->data as an associative
+            // array keyed by UUID: ['<uuid>' => TemporaryUploadedFile, ...]
+            // We use reset() to get the first (and only) TemporaryUploadedFile.
+            // Then getRealPath() returns the absolute filesystem path to the
+            // file in Livewire's temporary upload directory.
+            //
+            // Reference: https://www.clearhat.org/post/get-filename-and-path-after-
+            //            a-file-is-uploaded-using-Laravel-Filament-afterStateUpdated
             $rawState = $this->data['business_card_photo'] ?? null;
-            $filePath = null;
 
-            if (is_string($rawState) && $rawState !== '') {
-                $filePath = $rawState;
-            } elseif (is_array($rawState) && count($rawState) > 0) {
-                $filePath = array_values(array_filter($rawState))[0] ?? null;
-            }
-
-            if (! $filePath) {
+            if (empty($rawState) || ! is_array($rawState)) {
                 $this->scanStatus = '';
                 $this->scanning   = false;
                 return;
             }
 
-            // ── 2. Read the file and base64-encode it ────────────────
-            if (! Storage::disk('public')->exists($filePath)) {
-                // Try the Livewire temporary upload disk
-                $tmpPath = storage_path('app/livewire-tmp/' . basename($filePath));
-                if (file_exists($tmpPath)) {
-                    $imageData = base64_encode(file_get_contents($tmpPath));
-                    $mimeType  = mime_content_type($tmpPath) ?: 'image/jpeg';
-                } else {
-                    $this->scanStatus = 'Could not read the uploaded image. Please try again.';
-                    $this->scanning   = false;
-                    return;
-                }
+            $tempFile = reset($rawState);
+
+            // $tempFile may be a TemporaryUploadedFile object or a stored path string
+            // (if the form was re-hydrated after a previous submit)
+            if ($tempFile instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+                $realPath = $tempFile->getRealPath();
+                $mimeType = $tempFile->getMimeType() ?: 'image/jpeg';
+            } elseif (is_string($tempFile) && $tempFile !== '') {
+                // Already stored — read from public disk
+                $realPath = Storage::disk('public')->path($tempFile);
+                $mimeType = mime_content_type($realPath) ?: 'image/jpeg';
             } else {
-                $contents  = Storage::disk('public')->get($filePath);
-                $imageData = base64_encode($contents);
-                $mimeType  = Storage::disk('public')->mimeType($filePath) ?: 'image/jpeg';
+                Log::warning('[FairPanel] Unexpected business_card_photo state type', [
+                    'type'  => gettype($tempFile),
+                    'value' => is_object($tempFile) ? get_class($tempFile) : $tempFile,
+                ]);
+                $this->scanStatus = 'Could not read the uploaded image. Please try again.';
+                $this->scanning   = false;
+                return;
             }
+
+            if (! $realPath || ! file_exists($realPath)) {
+                $this->scanStatus = 'Could not read the uploaded image. Please try again.';
+                $this->scanning   = false;
+                return;
+            }
+
+            // ── 2. Read the file and base64-encode it ────────────────
+            $imageData = base64_encode(file_get_contents($realPath));
 
             // ── 3. Call OpenAI GPT-4.1-mini with vision ──────────────
             $apiKey = config('services.openai.key');
@@ -424,6 +438,7 @@ PROMPT;
                             ->imageResizeTargetWidth(1200)
                             ->imageResizeTargetHeight(1200)
                             ->imageResizeMode('contain')
+                            ->storeFiles(false)
                             ->extraInputAttributes([
                                 'accept'  => 'image/*',
                                 'capture' => 'environment',
@@ -785,6 +800,7 @@ PROMPT;
                             ->imageResizeTargetWidth(1200)
                             ->imageResizeTargetHeight(1200)
                             ->imageResizeMode('contain')
+                            ->storeFiles(false)
                             ->extraInputAttributes(['accept' => 'image/*', 'capture' => 'environment'])
                             ->visible(fn () => count($this->data['products'] ?? []) >= 1),
 
@@ -797,6 +813,7 @@ PROMPT;
                             ->imageResizeTargetWidth(1200)
                             ->imageResizeTargetHeight(1200)
                             ->imageResizeMode('contain')
+                            ->storeFiles(false)
                             ->extraInputAttributes(['accept' => 'image/*', 'capture' => 'environment'])
                             ->visible(fn () => count($this->data['products'] ?? []) >= 2),
 
@@ -809,6 +826,7 @@ PROMPT;
                             ->imageResizeTargetWidth(1200)
                             ->imageResizeTargetHeight(1200)
                             ->imageResizeMode('contain')
+                            ->storeFiles(false)
                             ->extraInputAttributes(['accept' => 'image/*', 'capture' => 'environment'])
                             ->visible(fn () => count($this->data['products'] ?? []) >= 3),
 
@@ -821,6 +839,7 @@ PROMPT;
                             ->imageResizeTargetWidth(1200)
                             ->imageResizeTargetHeight(1200)
                             ->imageResizeMode('contain')
+                            ->storeFiles(false)
                             ->extraInputAttributes(['accept' => 'image/*', 'capture' => 'environment'])
                             ->visible(fn () => count($this->data['products'] ?? []) >= 4),
 
@@ -833,6 +852,7 @@ PROMPT;
                             ->imageResizeTargetWidth(1200)
                             ->imageResizeTargetHeight(1200)
                             ->imageResizeMode('contain')
+                            ->storeFiles(false)
                             ->extraInputAttributes(['accept' => 'image/*', 'capture' => 'environment'])
                             ->visible(fn () => count($this->data['products'] ?? []) >= 5),
                     ]),
@@ -974,13 +994,31 @@ PROMPT;
                         : 0;
 
                     // Read photo from the top-level product_photo_N field.
-                    // FileUpload returns an array keyed by UUID; extract the first value.
+                    // FileUpload stores state as an associative array keyed by UUID:
+                    // ['<uuid>' => TemporaryUploadedFile, ...]
+                    // We use reset() to get the TemporaryUploadedFile, then store it
+                    // permanently to the 'public' disk under 'fair-products/'.
                     $rawPhoto = $this->data['product_photo_' . $productIndex] ?? null;
                     $photo = null;
-                    if (is_string($rawPhoto) && $rawPhoto !== '') {
+
+                    if (! empty($rawPhoto) && is_array($rawPhoto)) {
+                        $tempPhotoFile = reset($rawPhoto);
+
+                        if ($tempPhotoFile instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+                            // Store the temporary file permanently
+                            $extension = $tempPhotoFile->getClientOriginalExtension() ?: 'jpg';
+                            $filename  = 'fair-products/' . Str::uuid() . '.' . $extension;
+                            Storage::disk('public')->put(
+                                $filename,
+                                file_get_contents($tempPhotoFile->getRealPath())
+                            );
+                            $photo = $filename;
+                        } elseif (is_string($tempPhotoFile) && $tempPhotoFile !== '') {
+                            // Already a stored path (re-hydrated form)
+                            $photo = $tempPhotoFile;
+                        }
+                    } elseif (is_string($rawPhoto) && $rawPhoto !== '') {
                         $photo = $rawPhoto;
-                    } elseif (is_array($rawPhoto) && count($rawPhoto) > 0) {
-                        $photo = array_values(array_filter($rawPhoto))[0] ?? null;
                     }
 
                     // moq must be an integer or null
