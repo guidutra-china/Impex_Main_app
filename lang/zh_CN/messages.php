@@ -55,6 +55,7 @@ return [
     'linked_to' => '关联至',
     'client' => '客户',
     'items_imported_from_quotations' => '已从 :count 个报价导入项目。',
+    'items_imported_from_supplier_quotations' => '已从供应商报价单导入 :count 个项目。',
     'prices_prefilled' => '价格已从产品目录预填（供应商成本 + 客户价格）。请审核并根据需要调整。',
 
     // General messages (used in infolists, views, etc.)

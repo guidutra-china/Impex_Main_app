@@ -56,6 +56,7 @@ return [
     'linked_to' => 'linked to',
     'client' => 'client',
     'items_imported_from_quotations' => 'Items imported from :count quotation(s).',
+    'items_imported_from_supplier_quotations' => ':count item(s) imported from supplier quotation(s).',
     'prices_prefilled' => 'Prices pre-filled from product catalog (supplier cost + client price). Review and adjust as needed.',
 
     // General messages (used in infolists, views, etc.)

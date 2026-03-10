@@ -16,6 +16,8 @@ use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Inquiries\Models\InquiryItem;
 use App\Domain\Quotations\Models\Quotation;
 use App\Domain\Quotations\Models\QuotationItem;
+use App\Domain\SupplierQuotations\Models\SupplierQuotation;
+use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -185,6 +187,7 @@ class ItemsRelationManager extends RelationManager
                         return $data;
                     }),
                 $this->importFromQuotationsAction(),
+                $this->importFromSupplierQuotationsAction(),
                 $this->importFromInquiryAction(),
             ])
             ->recordActions([
@@ -308,6 +311,137 @@ class ItemsRelationManager extends RelationManager
                 Notification::make()
                     ->title($imported . ' ' . __('messages.items_imported'))
                     ->body(__('messages.items_imported_from_quotations', ['count' => count(array_unique($linkedQuotationIds))]))
+                    ->success()
+                    ->send();
+            });
+    }
+
+    protected function importFromSupplierQuotationsAction(): Action
+    {
+        return Action::make('importFromSupplierQuotations')
+            ->label(__('forms.labels.import_from_supplier_quotations'))
+            ->icon('heroicon-o-arrow-down-on-square-stack')
+            ->color('warning')
+            ->visible(fn () => auth()->user()?->can('edit-proforma-invoices'))
+            ->form(function () {
+                $pi = $this->getOwnerRecord();
+
+                // Get supplier quotations linked to this PI
+                $linkedSqs = $pi->supplierQuotations()->with(['company', 'items.product'])->get();
+
+                // Also look for SQs from the same inquiry (not yet linked)
+                $inquirySqs = SupplierQuotation::query()
+                    ->where('inquiry_id', $pi->inquiry_id)
+                    ->whereNotIn('id', $linkedSqs->pluck('id')->toArray())
+                    ->with(['company', 'items.product'])
+                    ->get();
+
+                $allSqs = $linkedSqs->concat($inquirySqs);
+
+                if ($allSqs->isEmpty()) {
+                    return [
+                        \Filament\Forms\Components\Placeholder::make('no_sqs')
+                            ->label('')
+                            ->content('No supplier quotations found for this inquiry.'),
+                    ];
+                }
+
+                // Build options: group items by SQ
+                $options = [];
+                foreach ($allSqs as $sq) {
+                    foreach ($sq->items as $item) {
+                        $label = '[' . $sq->reference . ' — ' . ($sq->company?->name ?? 'N/A') . '] '
+                            . ($item->product?->name ?? $item->description ?? 'Item #' . $item->id)
+                            . ' — Qty: ' . $item->quantity
+                            . ' — Cost: $' . Money::format($item->unit_cost, 4);
+                        $options[$item->id] = $label;
+                    }
+                }
+
+                if (empty($options)) {
+                    return [
+                        \Filament\Forms\Components\Placeholder::make('no_items')
+                            ->label('')
+                            ->content('No items found in the linked supplier quotations.'),
+                    ];
+                }
+
+                return [
+                    \Filament\Forms\Components\CheckboxList::make('item_ids')
+                        ->label(__('forms.labels.select_items_to_import'))
+                        ->options($options)
+                        ->required()
+                        ->searchable()
+                        ->bulkToggleable()
+                        ->helperText('Items are grouped by supplier quotation reference. Duplicate products will be skipped.'),
+                ];
+            })
+            ->action(function (array $data) {
+                $pi = $this->getOwnerRecord();
+                $itemIds = $data['item_ids'] ?? [];
+
+                if (empty($itemIds)) {
+                    return;
+                }
+
+                $items = SupplierQuotationItem::whereIn('id', $itemIds)
+                    ->with(['product', 'product.clients', 'product.specification', 'supplierQuotation'])
+                    ->get();
+
+                $maxSort = $pi->items()->max('sort_order') ?? 0;
+                $imported = 0;
+                $existingProductIds = $pi->items()->pluck('product_id')->filter()->toArray();
+                $newSqIds = [];
+
+                foreach ($items as $sqItem) {
+                    // Skip if product already exists in PI items
+                    if ($sqItem->product_id && in_array($sqItem->product_id, $existingProductIds)) {
+                        continue;
+                    }
+                    if ($sqItem->product_id) {
+                        $existingProductIds[] = $sqItem->product_id;
+                    }
+
+                    // Try to get client-specific selling price
+                    $unitPrice = 0;
+                    if ($sqItem->product) {
+                        $clientPivot = $sqItem->product->clients()
+                            ->where('companies.id', $pi->company_id)
+                            ->first()
+                            ?->pivot;
+                        if ($clientPivot && ($clientPivot->unit_price ?? 0) > 0) {
+                            $unitPrice = $clientPivot->unit_price;
+                        }
+                    }
+
+                    ProformaInvoiceItem::create([
+                        'proforma_invoice_id' => $pi->id,
+                        'product_id'          => $sqItem->product_id,
+                        'quotation_item_id'   => null,
+                        'supplier_company_id' => $sqItem->supplierQuotation->company_id ?? null,
+                        'description'         => $sqItem->product?->name ?? $sqItem->description,
+                        'specifications'      => $sqItem->product?->specification?->description ?? $sqItem->specifications,
+                        'quantity'            => $sqItem->quantity,
+                        'unit'                => $sqItem->unit ?? 'pcs',
+                        'unit_price'          => $unitPrice,
+                        'unit_cost'           => $sqItem->unit_cost,
+                        'incoterm'            => null,
+                        'notes'               => $sqItem->notes,
+                        'sort_order'          => ++$maxSort,
+                    ]);
+
+                    $newSqIds[] = $sqItem->supplier_quotation_id;
+                    $imported++;
+                }
+
+                // Link any newly referenced SQs to the PI
+                if (! empty($newSqIds)) {
+                    $pi->supplierQuotations()->syncWithoutDetaching(array_unique($newSqIds));
+                }
+
+                Notification::make()
+                    ->title($imported . ' ' . __('messages.items_imported'))
+                    ->body(__('messages.items_imported_from_supplier_quotations', ['count' => $imported]))
                     ->success()
                     ->send();
             });

@@ -411,6 +411,49 @@ class EditInquiry extends EditRecord
                         }
                         if (! empty($data['supplier_quotation_ids'])) {
                             $proformaInvoice->supplierQuotations()->attach($data['supplier_quotation_ids']);
+                            // Auto-import items from linked supplier quotations
+                            $maxSort = 0;
+                            $seenProductIds = [];
+                            $sqItems = SupplierQuotationItem::query()
+                                ->whereIn('supplier_quotation_id', $data['supplier_quotation_ids'])
+                                ->with(['product', 'product.clients', 'product.specification', 'supplierQuotation'])
+                                ->orderBy('sort_order')
+                                ->get();
+                            foreach ($sqItems as $sqItem) {
+                                // Skip duplicate products across multiple SQs
+                                if ($sqItem->product_id && in_array($sqItem->product_id, $seenProductIds)) {
+                                    continue;
+                                }
+                                if ($sqItem->product_id) {
+                                    $seenProductIds[] = $sqItem->product_id;
+                                }
+                                // Try to get client-specific selling price
+                                $unitPrice = 0;
+                                if ($sqItem->product) {
+                                    $clientPivot = $sqItem->product->clients()
+                                        ->where('companies.id', $inquiry->company_id)
+                                        ->first()
+                                        ?->pivot;
+                                    if ($clientPivot && ($clientPivot->unit_price ?? 0) > 0) {
+                                        $unitPrice = $clientPivot->unit_price;
+                                    }
+                                }
+                                ProformaInvoiceItem::create([
+                                    'proforma_invoice_id' => $proformaInvoice->id,
+                                    'product_id'          => $sqItem->product_id,
+                                    'quotation_item_id'   => null,
+                                    'supplier_company_id' => $sqItem->supplierQuotation->company_id,
+                                    'description'         => $sqItem->product?->name ?? $sqItem->description,
+                                    'specifications'      => $sqItem->product?->specification?->description ?? $sqItem->specifications,
+                                    'quantity'            => $sqItem->quantity,
+                                    'unit'                => $sqItem->unit ?? 'pcs',
+                                    'unit_price'          => $unitPrice,
+                                    'unit_cost'           => $sqItem->unit_cost,
+                                    'incoterm'            => null,
+                                    'notes'               => $sqItem->notes,
+                                    'sort_order'          => ++$maxSort,
+                                ]);
+                            }
                         }
                         return $proformaInvoice;
                     });

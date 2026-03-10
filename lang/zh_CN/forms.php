@@ -219,6 +219,7 @@ return array (
     'import_from_inquiry' => '从询价导入',
     'import_from_pi' => '从PI导入',
     'import_from_quotations' => '从报价单导入',
+    'import_from_supplier_quotations' => '从供应商报价单导入',
     'in_document_currency' => '以文件货币计',
     'incoterm' => '国际贸易术语',
     'inherited_from' => '继承自',

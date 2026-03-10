@@ -56,6 +56,7 @@ return [
     'linked_to' => 'vinculado a',
     'client' => 'cliente',
     'items_imported_from_quotations' => 'Itens importados de :count cotação(ões).',
+    'items_imported_from_supplier_quotations' => ':count item(s) importado(s) de cotação(ões) de fornecedores.',
     'prices_prefilled' => 'Preços preenchidos a partir do catálogo de produtos (custo do fornecedor + preço do cliente). Revise e ajuste conforme necessário.',
 
     // General messages (used in infolists, views, etc.)

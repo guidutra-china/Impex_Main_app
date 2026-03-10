@@ -225,6 +225,7 @@ return array (
     'import_from_pi' => 'Importar do PI',
     'import_from_quotations' => 'Importar das Cotações',
     'import_from_sq' => 'Importar da Cotação do Fornecedor',
+    'import_from_supplier_quotations' => 'Importar das Cotações de Fornecedores',
     'supplier_quotation' => 'Cotação do Fornecedor',
     'in_document_currency' => 'Na Moeda do Documento',
     'incoterm' => 'Incoterm',
