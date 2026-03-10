@@ -19,6 +19,7 @@ use App\Domain\Planning\Models\ProductionSchedule;
 use App\Domain\Planning\Models\ShipmentPlanItem;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\Quotations\Models\Quotation;
+use App\Domain\SupplierQuotations\Models\SupplierQuotation;
 use App\Domain\Settings\Models\PaymentTerm;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -202,6 +203,12 @@ class ProformaInvoice extends Model
     public function quotations(): BelongsToMany
     {
         return $this->belongsToMany(Quotation::class, 'proforma_invoice_quotation')
+            ->withTimestamps();
+    }
+
+    public function supplierQuotations(): BelongsToMany
+    {
+        return $this->belongsToMany(SupplierQuotation::class, 'proforma_invoice_supplier_quotation')
             ->withTimestamps();
     }
 

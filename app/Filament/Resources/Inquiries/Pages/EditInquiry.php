@@ -361,12 +361,39 @@ class EditInquiry extends EditRecord
                                     . ($q->inquiry_id === $inquiry->id ? '' : ' ⚠ different inquiry'),
                             ]);
                     })
-                    ->helperText(__('forms.helpers.optionally_link_existing_quotations_items_can_be_imported')),
+                     ->helperText(__('forms.helpers.optionally_link_existing_quotations_items_can_be_imported')),
+                Select::make('supplier_quotation_ids')
+                    ->label('Link Supplier Quotations (Optional)')
+                    ->multiple()
+                    ->options(function () {
+                        $inquiry = $this->record;
+                        return SupplierQuotation::query()
+                            ->where(function ($query) use ($inquiry) {
+                                $query->where('inquiry_id', $inquiry->id)
+                                    ->orWhere(function ($q) use ($inquiry) {
+                                        $q->whereNull('inquiry_id')
+                                            ->where('company_id', $inquiry->company_id);
+                                    });
+                            })
+                            ->whereNotIn('status', [
+                                SupplierQuotationStatus::REJECTED->value,
+                                SupplierQuotationStatus::EXPIRED->value,
+                            ])
+                            ->with('company')
+                            ->orderByDesc('id')
+                            ->get()
+                            ->mapWithKeys(fn ($sq) => [
+                                $sq->id => $sq->reference
+                                    . ' — ' . ($sq->company?->name ?? 'N/A')
+                                    . ' (' . $sq->status->getLabel() . ')'
+                                    . ($sq->inquiry_id === $inquiry->id ? '' : ' ⚠ different inquiry'),
+                            ]);
+                    })
+                    ->helperText('Supplier quotations to use as cost source when importing items.'),
             ])
             ->action(function (array $data) {
                 try {
                     $inquiry = $this->record;
-
                     $pi = DB::transaction(function () use ($inquiry, $data) {
                         $proformaInvoice = ProformaInvoice::create([
                             'inquiry_id' => $inquiry->id,
@@ -379,11 +406,12 @@ class EditInquiry extends EditRecord
                             'responsible_user_id' => $inquiry->getTeamMemberByRole(ProjectTeamRole::FINANCIAL)?->id
                                 ?? $inquiry->responsible_user_id,
                         ]);
-
                         if (! empty($data['quotation_ids'])) {
                             $proformaInvoice->quotations()->attach($data['quotation_ids']);
                         }
-
+                        if (! empty($data['supplier_quotation_ids'])) {
+                            $proformaInvoice->supplierQuotations()->attach($data['supplier_quotation_ids']);
+                        }
                         return $proformaInvoice;
                     });
 
