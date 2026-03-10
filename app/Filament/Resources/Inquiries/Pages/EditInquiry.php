@@ -342,12 +342,23 @@ class EditInquiry extends EditRecord
                     ->label(__('forms.labels.link_quotations_optional'))
                     ->multiple()
                     ->options(function () {
+                        $inquiry = $this->record;
                         return Quotation::query()
-                            ->where('inquiry_id', $this->record->id)
+                            ->where(function ($query) use ($inquiry) {
+                                $query->where('inquiry_id', $inquiry->id)
+                                    ->orWhere(function ($q) use ($inquiry) {
+                                        $q->whereNull('inquiry_id')
+                                            ->where('company_id', $inquiry->company_id);
+                                    });
+                            })
+                            ->whereNotIn('status', ['cancelled'])
                             ->orderByDesc('id')
                             ->get()
                             ->mapWithKeys(fn ($q) => [
-                                $q->id => $q->reference . ' (' . $q->status->getLabel() . ')',
+                                $q->id => $q->reference
+                                    . ' — ' . ($q->company?->name ?? 'N/A')
+                                    . ' (' . $q->status->getLabel() . ')'
+                                    . ($q->inquiry_id === $inquiry->id ? '' : ' ⚠ different inquiry'),
                             ]);
                     })
                     ->helperText(__('forms.helpers.optionally_link_existing_quotations_items_can_be_imported')),
