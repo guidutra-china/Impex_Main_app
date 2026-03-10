@@ -113,6 +113,7 @@ class EditProduct extends EditRecord
 
     protected function getRedirectUrl(): string
     {
-        return $this->getResource()::getUrl('index');
+        // Stay on the edit page after saving instead of redirecting to the list.
+        return $this->getResource()::getUrl('edit', ['record' => $this->getRecord()]);
     }
 }

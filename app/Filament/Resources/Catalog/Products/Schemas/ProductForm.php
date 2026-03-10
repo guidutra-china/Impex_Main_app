@@ -103,6 +103,9 @@ class ProductForm
                         ->image()
                         ->directory('products')
                         ->maxSize(2048)
+                        ->imageResizeTargetWidth(1200)
+                        ->imageResizeTargetHeight(1200)
+                        ->imageResizeMode('contain')
                         ->columnSpanFull()
                         ->extraAttributes([
                             'x-on:paste.window' => <<<'JS'
