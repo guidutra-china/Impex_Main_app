@@ -8,6 +8,9 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Drop the table if it exists from a previous failed migration
+        Schema::dropIfExists('proforma_invoice_supplier_quotation');
+
         Schema::create('proforma_invoice_supplier_quotation', function (Blueprint $table) {
             $table->id();
 
