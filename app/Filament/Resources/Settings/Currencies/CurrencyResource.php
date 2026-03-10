@@ -20,7 +20,7 @@ class CurrencyResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-currency-dollar';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 74;
 
     public static function canAccess(): bool
     {

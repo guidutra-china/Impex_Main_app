@@ -20,7 +20,7 @@ class PaymentMethodResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-credit-card';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 76;
 
     public static function canAccess(): bool
     {

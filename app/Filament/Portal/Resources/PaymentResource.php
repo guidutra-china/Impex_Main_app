@@ -23,7 +23,7 @@ class PaymentResource extends Resource
 {
     protected static ?string $model = Payment::class;
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-banknotes';
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 61;
     protected static ?string $slug = 'payments';
     protected static ?string $recordTitleAttribute = 'reference';
     protected static ?string $tenantOwnershipRelationshipName = 'company';

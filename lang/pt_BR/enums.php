@@ -106,7 +106,7 @@ return array (
     'generated' => 'Gerado',
     'uploaded' => 'Carregado',
     ),
-    'document_type' => 
+    'document_type' =>
     array (
     'INQ' => 'Consulta',
     'SQ' => 'Cotação do Fornecedor',
@@ -116,6 +116,8 @@ return array (
     'SH' => 'Remessa',
     'CI' => 'Fatura do Cliente',
     'PAY' => 'Pagamento',
+    'PS' => 'Cronograma de Produção',
+    'SP' => 'Plano de Embarque',
     ),
     'inquiry_source' => 
     array (
@@ -239,7 +241,7 @@ return array (
     'escrow' => 'Escrow',
     'foreign_currency' => 'Moeda Estrangeira',
     ),
-    'calculation_base' => 
+    'calculation_base' =>
     array (
     'order_date' => 'Data do Pedido',
     'invoice_date' => 'Data da Fatura',
@@ -250,6 +252,7 @@ return array (
     'before_shipment' => 'Antes da Remessa',
     'before_production' => 'Antes da Produção',
     'after_production' => 'Após a Produção',
+    'before_arrival' => 'Antes da Chegada',
     ),
     'exchange_rate_source' => 
     array (
@@ -371,5 +374,14 @@ return array (
     'logistics' => 'Logística',
     'financial' => 'Financeiro',
     'quality' => 'Qualidade',
+    ),
+    'shipment_plan_status' =>
+    array (
+    'draft' => 'Rascunho',
+    'confirmed' => 'Confirmado',
+    'pending_payment' => 'Pagamento Pendente',
+    'ready_to_ship' => 'Pronto para Embarcar',
+    'shipped' => 'Embarcado',
+    'cancelled' => 'Cancelado',
     ),
 );

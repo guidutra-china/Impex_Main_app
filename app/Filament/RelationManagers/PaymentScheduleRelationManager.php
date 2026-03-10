@@ -143,10 +143,18 @@ class PaymentScheduleRelationManager extends RelationManager
 
                 $count = app(GeneratePaymentScheduleAction::class)->execute($record);
 
-                Notification::make()
-                    ->title($count . ' schedule items generated')
-                    ->success()
-                    ->send();
+                if ($count === 0) {
+                    Notification::make()
+                        ->title(__('messages.no_schedule_items_created'))
+                        ->body(__('messages.schedule_items_shipment_dependent'))
+                        ->warning()
+                        ->send();
+                } else {
+                    Notification::make()
+                        ->title($count . ' schedule items generated')
+                        ->success()
+                        ->send();
+                }
             });
     }
 

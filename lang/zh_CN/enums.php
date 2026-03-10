@@ -106,7 +106,7 @@ return array (
     'generated' => '生成',
     'uploaded' => '上传',
     ),
-    'document_type' => 
+    'document_type' =>
     array (
     'INQ' => '询价',
     'SQ' => '供应商报价',
@@ -116,6 +116,8 @@ return array (
     'SH' => '装运',
     'CI' => '客户发票',
     'PAY' => '付款',
+    'PS' => '生产计划',
+    'SP' => '发货计划',
     ),
     'inquiry_source' => 
     array (
@@ -239,7 +241,7 @@ return array (
     'escrow' => '托管账户',
     'foreign_currency' => '外币账户',
     ),
-    'calculation_base' => 
+    'calculation_base' =>
     array (
     'order_date' => '订单日期',
     'invoice_date' => '发票日期',
@@ -250,6 +252,7 @@ return array (
     'before_shipment' => '装运前',
     'before_production' => '生产前',
     'after_production' => '生产后',
+    'before_arrival' => '到达前',
     ),
     'exchange_rate_source' => 
     array (
@@ -358,9 +361,27 @@ return array (
     'bank_fees' => '银行手续费',
     'other' => '其他',
     ),
-    'import_modality' => 
+    'import_modality' =>
     array (
     'direct' => '直接进口',
     'conta_e_ordem' => '代理进口（Conta e Ordem）',
+    ),
+    'project_team_role' =>
+    array (
+    'project_lead' => '项目负责人',
+    'sales' => '销售',
+    'sourcing' => '采购',
+    'logistics' => '物流',
+    'financial' => '财务',
+    'quality' => '质量',
+    ),
+    'shipment_plan_status' =>
+    array (
+    'draft' => '草稿',
+    'confirmed' => '已确认',
+    'pending_payment' => '待付款',
+    'ready_to_ship' => '准备发货',
+    'shipped' => '已发货',
+    'cancelled' => '已取消',
     ),
 );

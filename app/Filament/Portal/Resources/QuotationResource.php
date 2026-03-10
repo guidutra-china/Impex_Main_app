@@ -21,7 +21,7 @@ class QuotationResource extends Resource
 {
     protected static ?string $model = Quotation::class;
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-document-text';
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 41;
     protected static ?string $slug = 'quotations';
     protected static ?string $recordTitleAttribute = 'reference';
     protected static ?string $tenantOwnershipRelationshipName = 'company';

@@ -28,7 +28,7 @@ class PurchaseOrderResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-shopping-cart';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 45;
 
     protected static ?string $slug = 'purchase-orders';
 

@@ -45,11 +45,11 @@ class AdminPanelProvider extends PanelProvider
                 'warning' => Color::Amber,
             ])
             ->navigationGroups([
+                NavigationGroup::make(fn () => __('navigation.groups.trade')),
                 NavigationGroup::make(fn () => __('navigation.groups.crm')),
                 NavigationGroup::make(fn () => __('navigation.groups.operations')),
                 NavigationGroup::make(fn () => __('navigation.groups.catalog')),
                 NavigationGroup::make(fn () => __('navigation.groups.finance')),
-                NavigationGroup::make(fn () => __('navigation.groups.trade')),
                 NavigationGroup::make(fn () => __('navigation.groups.settings')),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')

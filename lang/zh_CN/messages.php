@@ -26,6 +26,9 @@ return [
     'cannot_deactivate_own' => '无法停用您自己的账户',
     'payment_approved' => '付款已批准',
     'payment_rejected' => '付款被拒绝',
+    'confirm_transition' => '将状态从 :from 更改为 :to？',
+    'no_schedule_items_created' => '未创建付款计划项',
+    'schedule_items_shipment_dependent' => '所有付款阶段都依赖于发货，将在创建发货计划时生成。',
 
     // Dynamic notification titles
     'sq_created' => '供应商报价已创建',
@@ -85,4 +88,22 @@ return [
     'exchange_rates.fetch_summary' => '日期: :date | 新建: :created | 更新: :updated | 跳过: :skipped',
     'exchange_rates.fetch_failed' => '获取汇率失败',
 
+    // Revert Status
+    'revert_status_warning' => '此操作将恢复此询价的状态。这将绕过正常流程，仅用于修正。',
+    'revert_child_documents_warning' => '此询价包含以下关联文档，这些文档将不受影响：',
+    'status_reverted_to' => '状态已恢复为',
+    'revert_status_failed' => '恢复状态失败',
+    'previous_status' => '先前状态',
+
+    // Production Schedule & Shipment Plan
+    'import_successful' => '导入成功',
+    'confirm_shipment_plan_description' => '这将根据计划项目及其形式发票付款条款，为所有依赖发货的阶段（发货前、到达前等）生成付款计划项。计划状态将进入待付款状态。',
+    'shipment_plan_confirmed' => '发货计划已确认',
+    'payment_schedule_generated' => '已为此发货计划生成付款计划项。',
+    'action_failed' => '操作失败',
+    'blocking_payments_pending' => '存在必须在执行此计划之前支付的阻止性付款（发货前付款）。',
+    'create_shipment_from_plan_description' => '这将根据此计划创建实际发货记录，复制所有计划项。计划状态将更改为已发货。',
+    'shipment_created' => '发货已创建',
+    'reconcile_shipment_plan_description' => '这将比较计划数量与实际发货数量，并相应调整到达前付款计划项。',
+    'reconciliation_complete' => '对账完成',
 ];

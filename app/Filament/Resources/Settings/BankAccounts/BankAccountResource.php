@@ -20,7 +20,7 @@ class BankAccountResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-building-library';
 
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 72;
 
     public static function canAccess(): bool
     {

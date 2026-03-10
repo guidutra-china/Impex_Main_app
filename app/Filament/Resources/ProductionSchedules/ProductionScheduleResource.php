@@ -21,7 +21,7 @@ class ProductionScheduleResource extends Resource
 {
     protected static ?string $model = ProductionSchedule::class;
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-calendar-days';
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 46;
     protected static ?string $slug = 'production-schedules';
     protected static ?string $recordTitleAttribute = 'reference';
 

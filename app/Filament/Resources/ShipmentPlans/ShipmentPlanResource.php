@@ -23,7 +23,7 @@ class ShipmentPlanResource extends Resource
 {
     protected static ?string $model = ShipmentPlan::class;
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-clipboard-document-check';
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 47;
     protected static ?string $slug = 'shipment-plans';
     protected static ?string $recordTitleAttribute = 'reference';
 

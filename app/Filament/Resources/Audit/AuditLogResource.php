@@ -25,7 +25,7 @@ class AuditLogResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static ?int $navigationSort = 99;
+    protected static ?int $navigationSort = 81;
 
     public static function canAccess(): bool
     {

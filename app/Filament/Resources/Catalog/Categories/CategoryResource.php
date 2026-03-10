@@ -27,7 +27,7 @@ class CategoryResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-squares-2x2';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 52;
 
     protected static ?string $slug = 'catalog/categories';
 

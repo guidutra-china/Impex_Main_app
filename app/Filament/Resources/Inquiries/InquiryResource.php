@@ -25,7 +25,7 @@ class InquiryResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-inbox-arrow-down';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 41;
 
     protected static ?string $slug = 'inquiries';
 

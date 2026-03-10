@@ -31,7 +31,7 @@ class ProformaInvoiceResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-document-check';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 44;
 
     protected static ?string $slug = 'proforma-invoices';
 

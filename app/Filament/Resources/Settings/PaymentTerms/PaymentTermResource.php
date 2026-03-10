@@ -20,7 +20,7 @@ class PaymentTermResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-clock';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 77;
 
     public static function canAccess(): bool
     {

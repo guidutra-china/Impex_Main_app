@@ -27,6 +27,8 @@ return [
     'payment_approved' => 'Pagamento aprovado',
     'payment_rejected' => 'Pagamento rejeitado',
     'confirm_transition' => 'Alterar status de :from para :to?',
+    'no_schedule_items_created' => 'Nenhum item de cronograma criado',
+    'schedule_items_shipment_dependent' => 'Todas as etapas de pagamento dependem do embarque e serão criadas quando os Planos de Embarque forem feitos.',
 
     // Dynamic notification titles
     'sq_created' => 'cotação(ões) de fornecedor criada(s)',
@@ -92,4 +94,16 @@ return [
     'status_reverted_to' => 'Status revertido para',
     'revert_status_failed' => 'Falha ao reverter status',
     'previous_status' => 'status anterior',
+
+    // Production Schedule & Shipment Plan
+    'import_successful' => 'Importação bem-sucedida',
+    'confirm_shipment_plan_description' => 'Isso irá gerar itens de cronograma de pagamento para todas as etapas dependentes de embarque (ANTES_DO_EMBARQUE, ANTES_DA_CHEGADA, etc.) com base nos itens planejados e seus termos de pagamento da PI. O status do plano avançará para Pagamento Pendente.',
+    'shipment_plan_confirmed' => 'Plano de Embarque Confirmado',
+    'payment_schedule_generated' => 'Os itens do cronograma de pagamento foram gerados para este plano de embarque.',
+    'action_failed' => 'Ação Falhou',
+    'blocking_payments_pending' => 'Existem pagamentos bloqueantes (ANTES_DO_EMBARQUE) que devem ser pagos antes que este plano possa ser executado.',
+    'create_shipment_from_plan_description' => 'Isso criará um Embarque real a partir deste plano, copiando todos os itens planejados. O status do plano mudará para Embarcado.',
+    'shipment_created' => 'Embarque Criado',
+    'reconcile_shipment_plan_description' => 'Isso irá comparar as quantidades planejadas com as quantidades reais de embarque e ajustar os itens do cronograma de pagamento ANTES_DA_CHEGADA de acordo.',
+    'reconciliation_complete' => 'Reconciliação Concluída',
 ];

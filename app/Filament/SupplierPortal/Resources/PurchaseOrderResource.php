@@ -22,7 +22,7 @@ class PurchaseOrderResource extends Resource
 {
     protected static ?string $model = PurchaseOrder::class;
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-clipboard-document-list';
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 41;
     protected static ?string $slug = 'purchase-orders';
     protected static ?string $recordTitleAttribute = 'reference';
     protected static ?string $tenantOwnershipRelationshipName = 'supplierCompany';

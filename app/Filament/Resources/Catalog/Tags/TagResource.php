@@ -20,7 +20,7 @@ class TagResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-tag';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 53;
 
     protected static ?string $slug = 'catalog/tags';
 

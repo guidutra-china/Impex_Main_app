@@ -20,7 +20,7 @@ class ContainerTypeResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-cube';
 
-    protected static ?int $navigationSort = 7;
+    protected static ?int $navigationSort = 73;
 
     public static function canAccess(): bool
     {

@@ -22,7 +22,7 @@ class ShipmentResource extends Resource
 {
     protected static ?string $model = Shipment::class;
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-truck';
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 43;
     protected static ?string $slug = 'shipments';
     protected static ?string $recordTitleAttribute = 'reference';
     protected static ?string $tenantOwnershipRelationshipName = 'company';

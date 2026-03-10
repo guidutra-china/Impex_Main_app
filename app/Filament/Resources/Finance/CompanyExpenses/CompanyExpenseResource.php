@@ -23,7 +23,7 @@ class CompanyExpenseResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-receipt-percent';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 62;
 
     protected static ?string $slug = 'company-expenses';
 

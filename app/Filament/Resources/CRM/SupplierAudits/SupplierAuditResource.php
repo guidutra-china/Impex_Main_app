@@ -23,7 +23,7 @@ class SupplierAuditResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-clipboard-document-check';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 32;
 
     protected static ?string $slug = 'crm/supplier-audits';
 

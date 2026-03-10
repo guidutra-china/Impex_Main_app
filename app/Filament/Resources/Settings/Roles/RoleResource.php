@@ -17,7 +17,7 @@ class RoleResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-shield-check';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 78;
 
     protected static ?string $slug = 'roles';
 

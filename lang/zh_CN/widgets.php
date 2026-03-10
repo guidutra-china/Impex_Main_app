@@ -233,4 +233,26 @@ return [
         'fulfillment_incomplete' => '发货履行未完成',
         'units_pending_shipment' => ':units 个单位仍在 :items 个项目中等待发货',
     ],
+
+    // My Projects Widget
+    'my_projects' => [
+        'heading' => '我的项目',
+        'active_items' => '分配给您的活跃项目',
+        'inquiries' => '询价',
+        'quotations' => '报价',
+        'supplier_quotations' => '供应商报价',
+        'proforma_invoices' => '形式发票',
+        'purchase_orders' => '采购订单',
+        'shipments' => '发货',
+        'needs_attention' => '需要您的关注',
+        'recent_inquiries' => '您最近的询价',
+        'reference' => '参考',
+        'client' => '客户',
+        'status' => '状态',
+        'updated' => '已更新',
+        'no_projects_assigned' => '尚未分配任何项目给您。',
+        'inquiries_no_update_5_days' => '5天以上未更新的询价',
+        'pos_no_update_10_days' => '10天以上未更新的采购订单',
+        'finalized_pis_without_po' => '已完成但未创建采购订单的形式发票',
+    ],
 ];
