@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ProductionSchedules\Schemas;
 
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -48,6 +49,36 @@ class ProductionScheduleInfolist
                 ])
                 ->collapsible()
                 ->collapsed()
+                ->columnSpanFull(),
+
+            Section::make(__('forms.sections.production_summary'))
+                ->schema([
+                    TextEntry::make('total_quantity')
+                        ->label('Total Planned')
+                        ->getStateUsing(fn ($record) => $record->total_quantity)
+                        ->numeric(),
+                    TextEntry::make('total_actual_quantity')
+                        ->label('Total Produced')
+                        ->getStateUsing(fn ($record) => $record->total_actual_quantity)
+                        ->numeric()
+                        ->badge()
+                        ->color(fn ($state, $record) => match (true) {
+                            $state >= $record->total_quantity => 'success',
+                            $state > 0 => 'warning',
+                            default => 'gray',
+                        }),
+                    TextEntry::make('completion_percentage')
+                        ->label('Completion')
+                        ->getStateUsing(fn ($record) => $record->total_quantity > 0
+                            ? round(($record->total_actual_quantity / $record->total_quantity) * 100, 1) . '%'
+                            : '—'),
+                    ViewEntry::make('shipment_ready_by_item')
+                        ->label('Shipment-Ready by Item')
+                        ->view('filament.production-schedule.shipment-ready-summary')
+                        ->columnSpanFull(),
+                ])
+                ->columns(3)
+                ->collapsible()
                 ->columnSpanFull(),
         ]);
     }
