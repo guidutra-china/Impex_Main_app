@@ -2,6 +2,7 @@
 
 namespace App\Filament\SupplierPortal\Resources\ProductionScheduleResource\RelationManagers;
 
+use App\Domain\Planning\Actions\UpdatePaymentScheduleFromProductionAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -63,7 +64,11 @@ class EntriesRelationManager extends RelationManager
             ->defaultSort('production_date', 'asc')
             ->recordActions([
                 EditAction::make()
-                    ->visible(fn () => auth()->user()?->can('supplier-portal:update-production-actuals') ?? false),
+                    ->visible(fn () => auth()->user()?->can('supplier-portal:update-production-actuals') ?? false)
+                    ->after(function ($record) {
+                        $schedule = $record->productionSchedule;
+                        app(UpdatePaymentScheduleFromProductionAction::class)->execute($schedule);
+                    }),
             ])
             ->emptyStateHeading('No production entries')
             ->emptyStateDescription('No production entries have been recorded yet.')
