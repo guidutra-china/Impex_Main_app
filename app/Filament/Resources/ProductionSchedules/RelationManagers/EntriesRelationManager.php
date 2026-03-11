@@ -47,6 +47,11 @@ class EntriesRelationManager extends RelationManager
                 ->numeric()
                 ->required()
                 ->minValue(1),
+            TextInput::make('actual_quantity')
+                ->label(__('forms.labels.actual_quantity'))
+                ->numeric()
+                ->minValue(0)
+                ->nullable(),
         ]);
     }
 
@@ -68,6 +73,31 @@ class EntriesRelationManager extends RelationManager
                     ->numeric()
                     ->alignEnd()
                     ->sortable(),
+                TextColumn::make('actual_quantity')
+                    ->label(__('forms.labels.actual_quantity'))
+                    ->numeric()
+                    ->alignEnd()
+                    ->placeholder('—')
+                    ->badge()
+                    ->color(fn ($state, $record) => match (true) {
+                        $state === null => 'gray',
+                        $state >= $record->quantity => 'success',
+                        $state > 0 => 'warning',
+                        default => 'danger',
+                    }),
+                TextColumn::make('delta')
+                    ->label('Delta')
+                    ->getStateUsing(fn ($record) => $record->actual_quantity !== null
+                        ? $record->actual_quantity - $record->quantity
+                        : null)
+                    ->numeric()
+                    ->alignEnd()
+                    ->placeholder('—')
+                    ->color(fn ($state) => match (true) {
+                        $state === null => 'gray',
+                        $state >= 0 => 'success',
+                        default => 'danger',
+                    }),
             ])
             ->defaultSort('production_date', 'asc')
             ->groups([
