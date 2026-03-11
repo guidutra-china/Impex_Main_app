@@ -8,8 +8,8 @@
 ### Production Control
 
 - [ ] **PROD-01**: Fornecedor pode registrar quantidade produzida diária por item via Supplier Portal
-- [ ] **PROD-02**: Sistema compara planejado vs. realizado com visualização clara (dashboard/tabela)
-- [ ] **PROD-03**: Sistema calcula automaticamente quantidade pronta para embarque baseado em produção realizada
+- [x] **PROD-02**: Sistema compara planejado vs. realizado com visualização clara (dashboard/tabela)
+- [x] **PROD-03**: Sistema calcula automaticamente quantidade pronta para embarque baseado em produção realizada
 - [x] **PROD-04**: Sistema gera/atualiza planejamento de pagamento baseado em produção pronta para embarque
 
 ### Import Testing
@@ -68,8 +68,8 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | PROD-01 | Phase 1 | Pending |
-| PROD-02 | Phase 1 | Pending |
-| PROD-03 | Phase 1 | Pending |
+| PROD-02 | Phase 1 | Complete |
+| PROD-03 | Phase 1 | Complete |
 | PROD-04 | Phase 1 | Complete |
 | IMPT-01 | Phase 2 | Pending |
 | IMPT-02 | Phase 2 | Pending |

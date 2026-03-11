@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-production-control/01-03-PLAN.md
-last_updated: "2026-03-11T08:21:05.022Z"
-last_activity: 2026-03-11 — Plan 01-01 executed (migration + model + Supplier Portal)
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-03-11T08:23:22.673Z"
+last_activity: 2026-03-11 — Plan 01-03 executed (UpdatePaymentScheduleFromProductionAction + portal wiring)
 progress:
   total_phases: 3
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
+  completed_plans: 3
   percent: 67
 ---
 
@@ -51,6 +51,7 @@ Progress: [███████░░░] 67%
 
 *Updated after each plan completion*
 | Phase 01-production-control P03 | 3min | 2 tasks | 4 files |
+| Phase 01-production-control P02 | 5min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -65,6 +66,8 @@ Recent decisions affecting current work:
 - [Phase 01-03]: Readiness calculated at overall PI level (not per PI item) because PaymentScheduleItems are PI-scoped — avoids incorrect per-item threshold checks
 - [Phase 01-03]: Idempotency via whereNull(due_date) guard — items already dated are permanently excluded, no separate flag needed
 - [Phase 01-03]: Action wired via EditAction::after() not model observer — explicit DDD Action pattern, avoids implicit side-effects
+- [Phase 01-02]: Used Blade partial (ViewEntry) for per-item shipment-ready breakdown — simpler, more control over styling than RepeatableEntry
+- [Phase 01-02]: Explicit null/zero distinction: null=gray (not reported), 0=danger (reported zero) — maintains semantic accuracy
 
 ### Pending Todos
 
@@ -77,6 +80,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-11T08:21:05.019Z
-Stopped at: Completed 01-production-control/01-03-PLAN.md
+Last session: 2026-03-11T08:23:22.671Z
+Stopped at: Completed 01-02-PLAN.md
 Resume file: None
