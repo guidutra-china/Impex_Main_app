@@ -1,3 +1,19 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: executing
+stopped_at: Completed 01-production-control/01-03-PLAN.md
+last_updated: "2026-03-11T08:21:05.022Z"
+last_activity: 2026-03-11 — Plan 01-01 executed (migration + model + Supplier Portal)
+progress:
+  total_phases: 3
+  completed_phases: 0
+  total_plans: 3
+  completed_plans: 2
+  percent: 67
+---
+
 # Project State
 
 ## Project Reference
@@ -10,30 +26,31 @@ See: .planning/PROJECT.md (updated 2026-03-11)
 ## Current Position
 
 Phase: 1 of 3 (Production Control)
-Plan: 0 of 4 in current phase
-Status: Ready to plan
-Last activity: 2026-03-11 — Roadmap created, phases defined
+Plan: 3 of 3 complete in current phase (Phase 1 complete)
+Status: Executing
+Last activity: 2026-03-11 — Plan 01-03 executed (UpdatePaymentScheduleFromProductionAction + portal wiring)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███████░░░] 67%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: —
-- Total execution time: 0 hours
+- Total plans completed: 1
+- Average duration: 5min
+- Total execution time: 5min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 1. Production Control | 1/3 | 5min | 5min |
 
 **Recent Trend:**
-- Last 5 plans: —
+- Last 5 plans: 01-01 (5min)
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 01-production-control P03 | 3min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -45,6 +62,9 @@ Recent decisions affecting current work:
 - [Init]: Fornecedor atualiza produção via Supplier Portal (elimina intermediário, dados em tempo real)
 - [Init]: Produção realizada alimenta pagamentos automaticamente (core value: rastreabilidade financeira)
 - [Init]: Priorizar testes de importação em massa (área crítica sem cobertura, alto risco de regressão)
+- [Phase 01-03]: Readiness calculated at overall PI level (not per PI item) because PaymentScheduleItems are PI-scoped — avoids incorrect per-item threshold checks
+- [Phase 01-03]: Idempotency via whereNull(due_date) guard — items already dated are permanently excluded, no separate flag needed
+- [Phase 01-03]: Action wired via EditAction::after() not model observer — explicit DDD Action pattern, avoids implicit side-effects
 
 ### Pending Todos
 
@@ -57,6 +77,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-11
-Stopped at: Roadmap created. Ready to begin planning Phase 1.
+Last session: 2026-03-11T08:21:05.019Z
+Stopped at: Completed 01-production-control/01-03-PLAN.md
 Resume file: None
