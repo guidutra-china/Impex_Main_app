@@ -13,6 +13,7 @@ class ProductionScheduleEntry extends Model
         'proforma_invoice_item_id',
         'production_date',
         'quantity',
+        'actual_quantity',
     ];
 
     protected function casts(): array
@@ -20,6 +21,7 @@ class ProductionScheduleEntry extends Model
         return [
             'production_date' => 'date',
             'quantity' => 'integer',
+            'actual_quantity' => 'integer',
         ];
     }
 

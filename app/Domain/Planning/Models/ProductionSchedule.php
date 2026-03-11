@@ -83,6 +83,18 @@ class ProductionSchedule extends Model
         return $this->entries->sum('quantity');
     }
 
+    public function getTotalActualQuantityAttribute(): int
+    {
+        return $this->entries->sum(fn ($e) => $e->actual_quantity ?? 0);
+    }
+
+    public function getShipmentReadyQuantityByItem(): \Illuminate\Support\Collection
+    {
+        return $this->entries
+            ->groupBy('proforma_invoice_item_id')
+            ->map(fn ($entries) => $entries->sum(fn ($e) => $e->actual_quantity ?? 0));
+    }
+
     public function getProductionDatesAttribute(): array
     {
         return $this->entries
