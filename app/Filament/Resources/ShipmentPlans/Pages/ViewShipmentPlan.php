@@ -71,10 +71,7 @@ class ViewShipmentPlan extends ViewRecord
             ->label(__('forms.labels.create_shipment'))
             ->icon('heroicon-o-truck')
             ->color('success')
-            ->visible(fn () => in_array($this->record->status, [
-                ShipmentPlanStatus::PENDING_PAYMENT,
-                ShipmentPlanStatus::READY_TO_SHIP,
-            ]))
+            ->visible(fn () => $this->record->status === ShipmentPlanStatus::CONFIRMED)
             ->disabled(fn () => $this->record->hasBlockingPayments())
             ->tooltip(fn () => $this->record->hasBlockingPayments()
                 ? __('messages.blocking_payments_pending')

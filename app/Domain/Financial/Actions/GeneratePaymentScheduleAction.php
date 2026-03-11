@@ -35,14 +35,9 @@ class GeneratePaymentScheduleAction
 
         $totalAmount = $payable->total;
         $currencyCode = $payable->currency_code;
-        $isProformaInvoice = $payable instanceof ProformaInvoice;
         $created = 0;
 
         foreach ($paymentTerm->stages as $stage) {
-            if ($isProformaInvoice && $stage->calculation_base?->isShipmentDependent()) {
-                continue;
-            }
-
             $amount = (int) round($totalAmount * ($stage->percentage / 100));
 
             $isBlocking = $this->isBlockingCondition($stage->calculation_base);
@@ -89,7 +84,6 @@ class GeneratePaymentScheduleAction
         $payable->load('items');
         $totalAmount = $payable->total;
         $currencyCode = $payable->currency_code;
-        $isProformaInvoice = $payable instanceof ProformaInvoice;
 
         PaymentScheduleItem::where('payable_type', get_class($payable))
             ->where('payable_id', $payable->getKey())
@@ -112,10 +106,6 @@ class GeneratePaymentScheduleAction
         $processed = 0;
 
         foreach ($paymentTerm->stages as $stage) {
-            if ($isProformaInvoice && $stage->calculation_base?->isShipmentDependent()) {
-                continue;
-            }
-
             $newAmount = (int) round($totalAmount * ($stage->percentage / 100));
             $isBlocking = $this->isBlockingCondition($stage->calculation_base);
             $dueDate = $this->calculateDueDate($payable, $stage);

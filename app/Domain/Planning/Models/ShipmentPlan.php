@@ -86,16 +86,8 @@ class ShipmentPlan extends Model
                 ShipmentPlanStatus::CANCELLED->value,
             ],
             ShipmentPlanStatus::CONFIRMED->value => [
-                ShipmentPlanStatus::PENDING_PAYMENT->value,
-                ShipmentPlanStatus::DRAFT->value,
-                ShipmentPlanStatus::CANCELLED->value,
-            ],
-            ShipmentPlanStatus::PENDING_PAYMENT->value => [
-                ShipmentPlanStatus::READY_TO_SHIP->value,
-                ShipmentPlanStatus::CANCELLED->value,
-            ],
-            ShipmentPlanStatus::READY_TO_SHIP->value => [
                 ShipmentPlanStatus::SHIPPED->value,
+                ShipmentPlanStatus::DRAFT->value,
                 ShipmentPlanStatus::CANCELLED->value,
             ],
             ShipmentPlanStatus::SHIPPED->value => [],

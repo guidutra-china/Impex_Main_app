@@ -25,7 +25,7 @@ class ConfirmShipmentPlanAction
         DB::transaction(function () use ($plan) {
             $this->generatePaymentScheduleItems($plan);
 
-            $plan->update(['status' => ShipmentPlanStatus::PENDING_PAYMENT]);
+            $plan->update(['status' => ShipmentPlanStatus::CONFIRMED]);
         });
     }
 

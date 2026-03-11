@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ProformaInvoices\Pages;
 
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Infrastructure\Pdf\PdfGeneratorService;
+use App\Domain\ProformaInvoices\Actions\CancelProformaInvoiceAction;
 use App\Domain\Infrastructure\Pdf\PdfRenderer;
 use App\Domain\Infrastructure\Pdf\Templates\CustomPricePdfTemplate;
 use App\Domain\Infrastructure\Pdf\Templates\ProformaInvoicePdfTemplate;
@@ -118,14 +119,23 @@ class EditProformaInvoice extends EditRecord
             })
             ->action(function (array $data) {
                 try {
-                    app(TransitionStatusAction::class)->execute(
-                        $this->record,
-                        ProformaInvoiceStatus::from($data['new_status']),
-                        $data['notes'] ?? null,
-                    );
+                    $newStatus = ProformaInvoiceStatus::from($data['new_status']);
+
+                    if ($newStatus === ProformaInvoiceStatus::CANCELLED) {
+                        app(CancelProformaInvoiceAction::class)->execute(
+                            $this->record,
+                            $data['notes'] ?? null,
+                        );
+                    } else {
+                        app(TransitionStatusAction::class)->execute(
+                            $this->record,
+                            $newStatus,
+                            $data['notes'] ?? null,
+                        );
+                    }
 
                     Notification::make()
-                        ->title(__('messages.status_changed_to') . ' ' . ProformaInvoiceStatus::from($data['new_status'])->getLabel())
+                        ->title(__('messages.status_changed_to') . ' ' . $newStatus->getLabel())
                         ->success()
                         ->send();
 

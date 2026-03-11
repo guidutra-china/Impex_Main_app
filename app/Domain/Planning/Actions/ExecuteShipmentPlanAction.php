@@ -13,8 +13,8 @@ class ExecuteShipmentPlanAction
 {
     public function execute(ShipmentPlan $plan, ?Shipment $existingShipment = null): Shipment
     {
-        if (! in_array($plan->status, [ShipmentPlanStatus::PENDING_PAYMENT, ShipmentPlanStatus::READY_TO_SHIP])) {
-            throw new \RuntimeException("Shipment Plan {$plan->reference} is not ready for execution.");
+if ($plan->status !== ShipmentPlanStatus::CONFIRMED) {
+            throw new \RuntimeException("Shipment Plan {$plan->reference} is not confirmed.");
         }
 
         if ($plan->hasBlockingPayments()) {
@@ -51,7 +51,7 @@ class ExecuteShipmentPlanAction
 
     protected function createShipmentItems(ShipmentPlan $plan, Shipment $shipment): void
     {
-        $plan->load('items.proformaInvoiceItem');
+        $plan->load('items.proformaInvoiceItem.purchaseOrderItem');
 
         $sortOrder = $shipment->items()->max('sort_order') ?? 0;
 
@@ -62,10 +62,18 @@ class ExecuteShipmentPlanAction
                 continue;
             }
 
+            $poItemId = $piItem->purchaseOrderItem?->id;
+
+            if (! $poItemId) {
+                throw new \RuntimeException(
+                    "PI Item \"{$piItem->product_name}\" (ID: {$piItem->id}) has no linked Purchase Order Item. Generate POs before executing the shipment plan."
+                );
+            }
+
             ShipmentItem::create([
                 'shipment_id' => $shipment->id,
                 'proforma_invoice_item_id' => $piItem->id,
-                'purchase_order_item_id' => $piItem->purchaseOrderItem?->id ?? null,
+                'purchase_order_item_id' => $poItemId,
                 'quantity' => $planItem->quantity,
                 'sort_order' => ++$sortOrder,
             ]);

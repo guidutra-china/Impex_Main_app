@@ -4,7 +4,6 @@ namespace App\Domain\Financial\Actions;
 
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\PaymentScheduleItem;
-use App\Domain\Planning\Actions\CheckShipmentPlanPaymentStatusAction;
 
 class WaivePaymentScheduleItemAction
 {
@@ -16,9 +15,5 @@ class WaivePaymentScheduleItemAction
             'waived_at' => now(),
             'notes' => $reason ?? $item->notes,
         ]);
-
-        if ($item->shipment_plan_id) {
-            (new CheckShipmentPlanPaymentStatusAction())->execute($item);
-        }
     }
 }

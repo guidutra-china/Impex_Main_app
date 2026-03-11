@@ -7,11 +7,13 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\ShipmentItem;
 use App\Domain\Planning\Models\ShipmentPlanItem;
+use App\Domain\PurchaseOrders\Models\PurchaseOrderItem;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Quotations\Models\QuotationItem;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ProformaInvoiceItem extends Model
 {
@@ -72,6 +74,11 @@ class ProformaInvoiceItem extends Model
     public function shipmentPlanItems(): HasMany
     {
         return $this->hasMany(ShipmentPlanItem::class);
+    }
+
+    public function purchaseOrderItem(): HasOne
+    {
+        return $this->hasOne(PurchaseOrderItem::class);
     }
 
     public function getQuantityPlannedAttribute(): int

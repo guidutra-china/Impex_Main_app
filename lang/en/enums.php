@@ -379,8 +379,6 @@ return array (
     array (
     'draft' => 'Draft',
     'confirmed' => 'Confirmed',
-    'pending_payment' => 'Pending Payment',
-    'ready_to_ship' => 'Ready to Ship',
     'shipped' => 'Shipped',
     'cancelled' => 'Cancelled',
     ),

@@ -11,7 +11,7 @@ class UpdateShipmentPlanAction
 {
     public function execute(ShipmentPlan $plan): void
     {
-        if (! in_array($plan->status, [ShipmentPlanStatus::PENDING_PAYMENT, ShipmentPlanStatus::CONFIRMED])) {
+        if ($plan->status !== ShipmentPlanStatus::CONFIRMED) {
             return;
         }
 

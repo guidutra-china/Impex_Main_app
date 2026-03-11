@@ -379,8 +379,6 @@ return array (
     array (
     'draft' => '草稿',
     'confirmed' => '已确认',
-    'pending_payment' => '待付款',
-    'ready_to_ship' => '准备发货',
     'shipped' => '已发货',
     'cancelled' => '已取消',
     ),

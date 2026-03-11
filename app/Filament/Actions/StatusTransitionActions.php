@@ -15,7 +15,7 @@ class StatusTransitionActions
      * Designed for use in table ->recordActions([...]).
      *
      * @param  class-string<\BackedEnum>  $enumClass  The status enum (e.g., InquiryStatus::class)
-     * @param  array<string, array{icon?: string, color?: string, requiresConfirmation?: bool, requiresNotes?: bool}>  $overrides  Per-status visual/behavior overrides keyed by enum value
+     * @param  array<string, array{icon?: string, color?: string, requiresConfirmation?: bool, requiresNotes?: bool, sideEffects?: callable}>  $overrides  Per-status visual/behavior overrides keyed by enum value
      */
     public static function make(string $enumClass, array $overrides = []): ActionGroup
     {
@@ -32,18 +32,21 @@ class StatusTransitionActions
             $requiresConfirmation = $override['requiresConfirmation'] ?? self::isDestructiveTransition($statusValue);
             $requiresNotes = $override['requiresNotes'] ?? self::isDestructiveTransition($statusValue);
 
+            $sideEffects = $override['sideEffects'] ?? null;
+
             $action = Action::make("transition_to_{$statusValue}")
                 ->label($label)
                 ->icon($icon)
                 ->color($color)
                 ->size('sm')
                 ->visible(fn ($record) => $record->canTransitionTo($statusValue))
-                ->action(function ($record, ?array $data = null) use ($enumClass, $statusValue) {
+                ->action(function ($record, ?array $data = null) use ($enumClass, $statusValue, $sideEffects) {
                     try {
                         app(TransitionStatusAction::class)->execute(
                             $record,
                             $enumClass::from($statusValue),
                             $data['notes'] ?? null,
+                            sideEffects: $sideEffects,
                         );
 
                         $newLabel = $enumClass::from($statusValue)->getLabel();

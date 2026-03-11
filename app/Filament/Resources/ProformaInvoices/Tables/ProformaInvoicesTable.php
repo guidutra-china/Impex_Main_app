@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ProformaInvoices\Tables;
 
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\ProformaInvoices\Actions\CancelProformaInvoiceAction;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Filament\Actions\StatusTransitionActions;
 use Filament\Actions\BulkActionGroup;
@@ -125,6 +126,9 @@ class ProformaInvoicesTable
                         'color' => 'warning',
                         'requiresConfirmation' => true,
                         'requiresNotes' => true,
+                    ],
+                    'cancelled' => [
+                        'sideEffects' => fn ($record) => app(CancelProformaInvoiceAction::class)->cancelRelatedRecords($record),
                     ],
                 ]),
                 ViewAction::make(),

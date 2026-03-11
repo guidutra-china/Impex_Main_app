@@ -379,8 +379,6 @@ return array (
     array (
     'draft' => 'Rascunho',
     'confirmed' => 'Confirmado',
-    'pending_payment' => 'Pagamento Pendente',
-    'ready_to_ship' => 'Pronto para Embarcar',
     'shipped' => 'Embarcado',
     'cancelled' => 'Cancelado',
     ),

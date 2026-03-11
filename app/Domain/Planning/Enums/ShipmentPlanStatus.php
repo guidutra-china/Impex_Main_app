@@ -10,8 +10,6 @@ enum ShipmentPlanStatus: string implements HasLabel, HasColor, HasIcon
 {
     case DRAFT = 'draft';
     case CONFIRMED = 'confirmed';
-    case PENDING_PAYMENT = 'pending_payment';
-    case READY_TO_SHIP = 'ready_to_ship';
     case SHIPPED = 'shipped';
     case CANCELLED = 'cancelled';
 
@@ -25,8 +23,6 @@ enum ShipmentPlanStatus: string implements HasLabel, HasColor, HasIcon
         return match ($this) {
             self::DRAFT => 'gray',
             self::CONFIRMED => 'info',
-            self::PENDING_PAYMENT => 'warning',
-            self::READY_TO_SHIP => 'success',
             self::SHIPPED => 'primary',
             self::CANCELLED => 'danger',
         };
@@ -37,8 +33,6 @@ enum ShipmentPlanStatus: string implements HasLabel, HasColor, HasIcon
         return match ($this) {
             self::DRAFT => 'heroicon-o-pencil-square',
             self::CONFIRMED => 'heroicon-o-clipboard-document-check',
-            self::PENDING_PAYMENT => 'heroicon-o-clock',
-            self::READY_TO_SHIP => 'heroicon-o-check-circle',
             self::SHIPPED => 'heroicon-o-truck',
             self::CANCELLED => 'heroicon-o-x-circle',
         };
@@ -49,8 +43,6 @@ enum ShipmentPlanStatus: string implements HasLabel, HasColor, HasIcon
         return match ($this) {
             self::DRAFT => 'Draft',
             self::CONFIRMED => 'Confirmed',
-            self::PENDING_PAYMENT => 'Pending Payment',
-            self::READY_TO_SHIP => 'Ready to Ship',
             self::SHIPPED => 'Shipped',
             self::CANCELLED => 'Cancelled',
         };
