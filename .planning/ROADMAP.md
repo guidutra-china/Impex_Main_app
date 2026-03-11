@@ -29,13 +29,12 @@ resiliência para suportar crescimento.
   2. Tela de cronograma de produção exibe side-by-side planejado vs. realizado com indicação visual de atraso ou adiantamento
   3. Sistema calcula e exibe quantidade acumulada pronta para embarque baseada na produção realizada registrada
   4. Planejamento de pagamentos reflete automaticamente a produção pronta para embarque sem edição manual
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: Add "realizado" field to ProductionSchedule entries and supplier portal UI
-- [ ] 01-02: Build planned vs. actual comparison view in admin panel
-- [ ] 01-03: Calculate shipment-ready quantities from production actuals
-- [ ] 01-04: Auto-update payment schedule based on shipment-ready production
+- [ ] 01-01-PLAN.md — Migration + model updates + Supplier Portal resource for production actuals (PROD-01)
+- [ ] 01-02-PLAN.md — Admin planned vs. actual comparison view and shipment-ready display (PROD-02, PROD-03)
+- [ ] 01-03-PLAN.md — Auto-update payment schedule from production actuals (PROD-04)
 
 ### Phase 2: Test Coverage
 **Goal**: Áreas de alto risco (importações em massa e fluxos financeiros críticos) têm cobertura automatizada que previne regressões
@@ -80,6 +79,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Production Control | 0/4 | Not started | - |
+| 1. Production Control | 0/3 | Planning complete | - |
 | 2. Test Coverage | 0/4 | Not started | - |
 | 3. Stability & Cleanup | 0/4 | Not started | - |
