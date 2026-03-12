@@ -3,6 +3,7 @@
 namespace App\Domain\Planning\Models;
 
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
+use App\Domain\PurchaseOrders\Models\PurchaseOrderItem;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -11,6 +12,7 @@ class ProductionScheduleEntry extends Model
     protected $fillable = [
         'production_schedule_id',
         'proforma_invoice_item_id',
+        'purchase_order_item_id',
         'production_date',
         'quantity',
         'actual_quantity',
@@ -35,5 +37,10 @@ class ProductionScheduleEntry extends Model
     public function proformaInvoiceItem(): BelongsTo
     {
         return $this->belongsTo(ProformaInvoiceItem::class);
+    }
+
+    public function purchaseOrderItem(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseOrderItem::class);
     }
 }

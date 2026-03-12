@@ -16,6 +16,11 @@ class EntriesRelationManager extends RelationManager
 
     protected static ?string $title = 'Production Entries';
 
+    public function isReadOnly(): bool
+    {
+        return false;
+    }
+
     public function canCreate(): bool
     {
         return false;
@@ -40,10 +45,14 @@ class EntriesRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn ($query) => $query->whereNotNull('purchase_order_item_id'))
             ->columns([
-                TextColumn::make('proformaInvoiceItem.product.name')
+                TextColumn::make('purchaseOrderItem.product.name')
                     ->label('Product')
-                    ->default(fn ($record) => $record->proformaInvoiceItem?->description ?? '—')
+                    ->default(fn ($record) => $record->purchaseOrderItem?->description
+                        ?? $record->proformaInvoiceItem?->product?->name
+                        ?? $record->proformaInvoiceItem?->description
+                        ?? '—')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('production_date')

@@ -9,12 +9,14 @@ use App\Domain\CRM\Enums\DocumentCategory;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Settings\Models\Currency;
+use App\Filament\Actions\FlexibleProductImportAction;
 use App\Filament\Actions\ImportProductsFromExcelAction;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\AttachAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DetachAction;
+use Filament\Actions\BulkAction;
 use Filament\Actions\DetachBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Checkbox;
@@ -165,7 +167,10 @@ class SupplierProductsRelationManager extends RelationManager
                     ->alignCenter(),
             ])
             ->headerActions([
+                FlexibleProductImportAction::make('supplier', fn () => $this->getOwnerRecord()),
                 ImportProductsFromExcelAction::make('supplier', fn () => $this->getOwnerRecord())
+                    ->visible(fn () => auth()->user()?->can('edit-companies')),
+                ImportProductsFromExcelAction::makeDownloadSimpleTemplate('supplier')
                     ->visible(fn () => auth()->user()?->can('edit-companies')),
                 ImportProductsFromExcelAction::makeDownloadTemplate('supplier')
                     ->visible(fn () => auth()->user()?->can('edit-companies')),
@@ -250,6 +255,10 @@ class SupplierProductsRelationManager extends RelationManager
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    $this->getBulkSetCurrencyAction(),
+                    $this->getBulkSetFieldAction('moq', 'Set MOQ', 'heroicon-o-cube', TextInput::make('value')->label('MOQ')->numeric()->required()->minValue(1)),
+                    $this->getBulkSetFieldAction('lead_time_days', 'Set Lead Time', 'heroicon-o-clock', TextInput::make('value')->label('Lead Time (days)')->numeric()->required()->minValue(1)),
+                    $this->getBulkPriceUpdateAction('purchase_price', 'unit_price', 'Adjust Purchase Price'),
                     DetachBulkAction::make()
                         ->visible(fn () => auth()->user()?->can('edit-companies')),
                 ]),
@@ -326,5 +335,118 @@ class SupplierProductsRelationManager extends RelationManager
             })
             ->badge(fn (Model $record) => CompanyProductDocument::where('company_product_id', $record->pivot->id)->count() ?: null)
             ->badgeColor('info');
+    }
+
+    private function getBulkSetCurrencyAction(): BulkAction
+    {
+        return BulkAction::make('set_currency')
+            ->label('Set Currency')
+            ->icon('heroicon-o-currency-dollar')
+            ->form([
+                Select::make('currency_code')
+                    ->label('Currency')
+                    ->options(fn () => Currency::pluck('name', 'code')->map(fn ($name, $code) => "{$code} — {$name}"))
+                    ->searchable()
+                    ->required(),
+            ])
+            ->action(function (\Illuminate\Database\Eloquent\Collection $records, array $data): void {
+                $updated = 0;
+                foreach ($records as $record) {
+                    CompanyProduct::where('company_id', $record->pivot->company_id)
+                        ->where('product_id', $record->pivot->product_id)
+                        ->update(['currency_code' => $data['currency_code']]);
+                    $updated++;
+                }
+
+                \Filament\Notifications\Notification::make()
+                    ->success()
+                    ->title("Updated {$updated} products")
+                    ->body("Currency set to {$data['currency_code']}")
+                    ->send();
+            })
+            ->deselectRecordsAfterCompletion();
+    }
+
+    private function getBulkSetFieldAction(string $column, string $label, string $icon, TextInput $field): BulkAction
+    {
+        return BulkAction::make('set_' . $column)
+            ->label($label)
+            ->icon($icon)
+            ->form([$field])
+            ->action(function (\Illuminate\Database\Eloquent\Collection $records, array $data) use ($column, $label): void {
+                $updated = 0;
+                foreach ($records as $record) {
+                    CompanyProduct::where('company_id', $record->pivot->company_id)
+                        ->where('product_id', $record->pivot->product_id)
+                        ->update([$column => (int) $data['value']]);
+                    $updated++;
+                }
+
+                \Filament\Notifications\Notification::make()
+                    ->success()
+                    ->title("Updated {$updated} products")
+                    ->body("{$label}: {$data['value']}")
+                    ->send();
+            })
+            ->deselectRecordsAfterCompletion();
+    }
+
+    private function getBulkPriceUpdateAction(string $name, string $column, string $label): BulkAction
+    {
+        return BulkAction::make($name)
+            ->label($label)
+            ->icon('heroicon-o-calculator')
+            ->form([
+                TextInput::make('formula')
+                    ->label(__('forms.labels.formula'))
+                    ->required()
+                    ->placeholder(__('forms.placeholders.eg_110_or_5_or_250'))
+                    ->helperText(__('forms.helpers.apply_to_current_value_110_10_105_5_5_add_5_250_subtract_250')),
+            ])
+            ->action(function (\Illuminate\Database\Eloquent\Collection $records, array $data) use ($column): void {
+                $formula = trim($data['formula']);
+
+                if (! preg_match('/^[\\*\\/\\+\\-]\\s*[\\d\\.]+$/', $formula)) {
+                    \Filament\Notifications\Notification::make()
+                        ->danger()
+                        ->title(__('messages.invalid_formula'))
+                        ->body(__('messages.formula_format_help'))
+                        ->send();
+                    return;
+                }
+
+                $operator = $formula[0];
+                $operand = (float) trim(substr($formula, 1));
+                $updated = 0;
+
+                foreach ($records as $record) {
+                    $currentMinor = $record->pivot->{$column} ?? 0;
+                    $currentMajor = Money::toMajor($currentMinor);
+
+                    $newMajor = match ($operator) {
+                        '*' => $currentMajor * $operand,
+                        '/' => $operand > 0 ? $currentMajor / $operand : $currentMajor,
+                        '+' => $currentMajor + $operand,
+                        '-' => $currentMajor - $operand,
+                    };
+
+                    $newMinor = Money::toMinor(max(0, $newMajor));
+
+                    CompanyProduct::where('company_id', $record->pivot->company_id)
+                        ->where('product_id', $record->pivot->product_id)
+                        ->update([$column => $newMinor]);
+
+                    $updated++;
+                }
+
+                \Filament\Notifications\Notification::make()
+                    ->success()
+                    ->title("Updated {$updated} records")
+                    ->body("Applied formula: {$formula}")
+                    ->send();
+            })
+            ->deselectRecordsAfterCompletion()
+            ->requiresConfirmation()
+            ->modalDescription('This will apply the formula to all selected records. This action cannot be undone.');
     }
 }

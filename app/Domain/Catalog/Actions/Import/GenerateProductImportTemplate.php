@@ -269,6 +269,185 @@ class GenerateProductImportTemplate
         return $row;
     }
 
+    public function executeSimple(Category $category, string $role, bool $includeCrossRole = false): string
+    {
+        $crossRole = $role === 'client' ? 'supplier' : 'client';
+        $suffix = $includeCrossRole ? "_{$role}_and_{$crossRole}" : "_{$role}";
+        $filename = 'product_import_simple_' . str($category->name)->slug() . $suffix . '.xlsx';
+        $path = storage_path('app/temp/' . $filename);
+
+        if (! is_dir(dirname($path))) {
+            mkdir(dirname($path), 0755, true);
+        }
+
+        $allColumns = $this->buildSimpleColumnMap($category, $role, $includeCrossRole);
+
+        $writer = new Writer();
+        $writer->openToFile($path);
+
+        $headerStyle = (new Style())
+            ->setFontBold()
+            ->setFontSize(11)
+            ->setBackgroundColor('4472C4')
+            ->setFontColor(Color::WHITE);
+
+        $sectionStyle = (new Style())
+            ->setFontBold()
+            ->setFontSize(10)
+            ->setBackgroundColor('D9E2F3')
+            ->setFontColor('1F3864');
+
+        $hintStyle = (new Style())
+            ->setFontItalic()
+            ->setFontSize(9)
+            ->setFontColor('808080');
+
+        // Row 1: Section headers
+        $writer->addRow(new Row(
+            array_map(fn ($col) => Cell::fromValue($col['section']), $allColumns),
+            $sectionStyle
+        ));
+
+        // Row 2: Column headers
+        $headerCells = [];
+        foreach ($allColumns as $col) {
+            $label = $col['label'];
+            if ($col['required']) {
+                $label .= ' *';
+            }
+            $headerCells[] = $label;
+        }
+        $writer->addRow(new Row(
+            array_map(fn ($v) => Cell::fromValue($v), $headerCells),
+            $headerStyle
+        ));
+
+        // Row 3: Hints
+        $writer->addRow(new Row(
+            array_map(fn ($col) => Cell::fromValue($col['hint']), $allColumns),
+            $hintStyle
+        ));
+
+        // Row 4: Example
+        $rolePrefix = strtoupper(substr($role, 0, 3));
+        $exampleRow = [];
+        foreach ($allColumns as $colKey => $col) {
+            $exampleRow[] = match ($colKey) {
+                'name' => 'Example Product',
+                'reference_code' => 'MX-100',
+                'moq' => '500',
+                'lead_time_days' => '30',
+                'company_external_code' => "{$rolePrefix}-MX100",
+                'company_unit_price' => '8.50',
+                'company_currency_code' => 'USD',
+                'company_incoterm' => 'FOB',
+                'company_is_preferred' => 'yes',
+                'spec_material' => 'Ceramic',
+                'spec_color' => 'White',
+                default => '',
+            };
+        }
+        $writer->addRow(new Row(
+            array_map(fn ($v) => Cell::fromValue($v), $exampleRow)
+        ));
+
+        $writer->close();
+
+        return $path;
+    }
+
+    /**
+     * Build a simple column map with company link and required category attributes.
+     */
+    private const SIMPLE_COMPANY_COLUMNS = [
+        'external_code' => ['label' => 'External Code', 'required' => false, 'hint' => "Company's internal code for this product"],
+        'external_name' => ['label' => 'External Product Name', 'required' => false, 'hint' => 'Name used by this company'],
+        'external_description' => ['label' => 'External Description', 'required' => false, 'hint' => 'Description for invoices'],
+        'unit_price' => ['label' => 'Unit Price', 'required' => false, 'hint' => 'Decimal (e.g. 12.50, NOT in cents)'],
+        'custom_price' => ['label' => 'Custom Price (CI Override)', 'required' => false, 'hint' => 'Decimal. Overrides PI price on Commercial Invoice.'],
+        'currency_code' => ['label' => 'Currency', 'required' => false, 'hint' => 'e.g. USD, EUR, CNY'],
+    ];
+
+    public function buildSimpleColumnMap(Category $category, string $role, bool $includeCrossRole = false): array
+    {
+        $roleLabel = ucfirst($role);
+        $crossRole = ($role === 'client') ? 'supplier' : 'client';
+        $crossRoleLabel = ucfirst($crossRole);
+        $columns = [];
+
+        // Core product fields
+        $simpleProductColumns = ['name', 'reference_code', 'moq', 'lead_time_days'];
+        foreach ($simpleProductColumns as $key) {
+            $col = self::PRODUCT_COLUMNS[$key];
+            $columns[$key] = array_merge($col, ['section' => 'PRODUCT', 'key' => $key, 'group' => 'product']);
+        }
+
+        // Primary company link columns
+        $sectionName = strtoupper($roleLabel) . ' LINK';
+        foreach (self::SIMPLE_COMPANY_COLUMNS as $key => $col) {
+            $columns["company_{$key}"] = array_merge($col, [
+                'section' => $sectionName,
+                'key' => $key,
+                'group' => 'company',
+                'link_role' => $role,
+            ]);
+        }
+
+        // Cross-company link (optional)
+        if ($includeCrossRole) {
+            $crossSectionName = strtoupper($crossRoleLabel) . ' LINK';
+            foreach (self::SIMPLE_COMPANY_COLUMNS as $key => $col) {
+                $columns["cross_{$key}"] = array_merge($col, [
+                    'section' => $crossSectionName,
+                    'key' => $key,
+                    'group' => 'cross_company',
+                    'link_role' => $crossRole,
+                ]);
+            }
+        }
+
+        // Basic spec columns (material, color)
+        $simpleSpecColumns = ['material', 'color'];
+        foreach ($simpleSpecColumns as $key) {
+            if (isset(self::SPEC_COLUMNS[$key])) {
+                $col = self::SPEC_COLUMNS[$key];
+                $columns["spec_{$key}"] = array_merge($col, ['section' => 'SPECIFICATION', 'key' => $key, 'group' => 'spec']);
+            }
+        }
+
+        // Required category attributes
+        $categoryAttributes = $category->getAllAttributes();
+        foreach ($categoryAttributes as $attr) {
+            if (! $attr->is_required) {
+                continue;
+            }
+
+            $hint = '';
+            if ($attr->type === \App\Domain\Catalog\Enums\AttributeType::SELECT && ! empty($attr->options)) {
+                $hint = 'Options: ' . implode(', ', $attr->options);
+            } elseif ($attr->type === \App\Domain\Catalog\Enums\AttributeType::BOOLEAN) {
+                $hint = 'yes or no';
+            } elseif ($attr->type === \App\Domain\Catalog\Enums\AttributeType::NUMBER) {
+                $hint = 'Numeric value';
+            }
+            if ($attr->unit) {
+                $hint .= ($hint ? '. ' : '') . "Unit: {$attr->unit}";
+            }
+
+            $columns["attr_{$attr->id}"] = [
+                'label' => $attr->name . ($attr->unit ? " ({$attr->unit})" : ''),
+                'required' => true,
+                'hint' => $hint ?: ($attr->default_value ? "Default: {$attr->default_value}" : 'Required'),
+                'section' => 'ATTRIBUTES',
+                'key' => $attr->id,
+                'group' => 'attribute',
+                'attribute_type' => $attr->type,
+            ];
+        }
+
+        return $columns;
+    }
+
     public function getColumnKeys(Category $category, ?string $role = null, bool $includeCrossRole = false): array
     {
         return array_keys($this->buildColumnMap($category, $role, $includeCrossRole));

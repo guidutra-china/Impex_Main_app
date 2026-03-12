@@ -6,6 +6,7 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Enums\DocumentType;
 use App\Domain\Infrastructure\Traits\HasReference;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,6 +20,7 @@ class ProductionSchedule extends Model
 
     protected $fillable = [
         'proforma_invoice_id',
+        'purchase_order_id',
         'supplier_company_id',
         'reference',
         'received_date',
@@ -59,6 +61,11 @@ class ProductionSchedule extends Model
     public function proformaInvoice(): BelongsTo
     {
         return $this->belongsTo(ProformaInvoice::class);
+    }
+
+    public function purchaseOrder(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseOrder::class);
     }
 
     public function supplierCompany(): BelongsTo

@@ -51,8 +51,8 @@ class ProductionScheduleResource extends Resource
                     ->sortable()
                     ->weight('bold')
                     ->copyable(),
-                TextColumn::make('proformaInvoice.reference')
-                    ->label('PI Reference')
+                TextColumn::make('purchaseOrder.reference')
+                    ->label('PO Reference')
                     ->searchable()
                     ->sortable()
                     ->placeholder('—'),
@@ -89,8 +89,8 @@ class ProductionScheduleResource extends Resource
                     TextEntry::make('reference')
                         ->copyable()
                         ->weight('bold'),
-                    TextEntry::make('proformaInvoice.reference')
-                        ->label('PI Reference')
+                    TextEntry::make('purchaseOrder.reference')
+                        ->label('PO Reference')
                         ->placeholder('—'),
                     TextEntry::make('received_date')
                         ->label('Received Date')

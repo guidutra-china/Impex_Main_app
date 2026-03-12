@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ProductionSchedules\RelationManagers;
 
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
+use App\Domain\PurchaseOrders\Models\PurchaseOrderItem;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -24,21 +25,70 @@ class EntriesRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        $piId = $this->getOwnerRecord()->proforma_invoice_id;
+        $schedule = $this->getOwnerRecord();
+        $piId = $schedule->proforma_invoice_id;
+        $poId = $schedule->purchase_order_id;
+
+        $scheduledByPiItem = $schedule->entries()->reorder()
+            ->selectRaw('proforma_invoice_item_id, SUM(quantity) as total')
+            ->groupBy('proforma_invoice_item_id')
+            ->pluck('total', 'proforma_invoice_item_id');
+
+        $scheduledByPoItem = $schedule->entries()->reorder()
+            ->selectRaw('purchase_order_item_id, SUM(quantity) as total')
+            ->groupBy('purchase_order_item_id')
+            ->pluck('total', 'purchase_order_item_id');
 
         return $schema->components([
             Select::make('proforma_invoice_item_id')
-                ->label(__('forms.labels.product'))
+                ->label(__('forms.labels.pi_item'))
                 ->options(
                     fn () => ProformaInvoiceItem::where('proforma_invoice_id', $piId)
                         ->with('product')
                         ->get()
-                        ->mapWithKeys(fn ($item) => [
-                            $item->id => ($item->product?->name ?? $item->description) . " (Qty: {$item->quantity})",
-                        ])
+                        ->mapWithKeys(function ($item) use ($scheduledByPiItem) {
+                            $scheduled = $scheduledByPiItem[$item->id] ?? 0;
+                            $remaining = $item->quantity - $scheduled;
+
+                            return [
+                                $item->id => ($item->product?->name ?? $item->description) . " (Remaining: {$remaining} / {$item->quantity})",
+                            ];
+                        })
                 )
                 ->searchable()
-                ->required(),
+                ->required()
+                ->live()
+                ->afterStateUpdated(fn (\Filament\Schemas\Components\Utilities\Set $set) => $set('purchase_order_item_id', null)),
+            Select::make('purchase_order_item_id')
+                ->label(__('forms.labels.po_item'))
+                ->options(function (\Filament\Schemas\Components\Utilities\Get $get) use ($poId, $scheduledByPoItem) {
+                    if (! $poId) {
+                        return [];
+                    }
+
+                    $piItemId = $get('proforma_invoice_item_id');
+                    $query = PurchaseOrderItem::where('purchase_order_id', $poId)->with('product');
+
+                    if ($piItemId) {
+                        $productId = ProformaInvoiceItem::find($piItemId)?->product_id;
+                        if ($productId) {
+                            $query->where('product_id', $productId);
+                        }
+                    }
+
+                    return $query->get()
+                        ->mapWithKeys(function ($item) use ($scheduledByPoItem) {
+                            $scheduled = $scheduledByPoItem[$item->id] ?? 0;
+                            $remaining = $item->quantity - $scheduled;
+
+                            return [
+                                $item->id => ($item->product?->name ?? $item->description) . " (Remaining: {$remaining} / {$item->quantity})",
+                            ];
+                        });
+                })
+                ->searchable()
+                ->nullable()
+                ->visible(fn () => $poId !== null),
             DatePicker::make('production_date')
                 ->label(__('forms.labels.production_date'))
                 ->required(),

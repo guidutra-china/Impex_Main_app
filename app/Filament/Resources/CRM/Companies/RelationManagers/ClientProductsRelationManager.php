@@ -9,6 +9,7 @@ use App\Domain\CRM\Enums\DocumentCategory;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Settings\Models\Currency;
 use BackedEnum;
+use App\Filament\Actions\FlexibleProductImportAction;
 use App\Filament\Actions\ImportProductsFromExcelAction;
 use Filament\Actions\Action;
 use Filament\Actions\AttachAction;
@@ -159,7 +160,10 @@ class ClientProductsRelationManager extends RelationManager
                     ->alignCenter(),
             ])
             ->headerActions([
+                FlexibleProductImportAction::make('client', fn () => $this->getOwnerRecord()),
                 ImportProductsFromExcelAction::make('client', fn () => $this->getOwnerRecord())
+                    ->visible(fn () => auth()->user()?->can('edit-companies')),
+                ImportProductsFromExcelAction::makeDownloadSimpleTemplate('client')
                     ->visible(fn () => auth()->user()?->can('edit-companies')),
                 ImportProductsFromExcelAction::makeDownloadTemplate('client')
                     ->visible(fn () => auth()->user()?->can('edit-companies')),
@@ -249,6 +253,9 @@ class ClientProductsRelationManager extends RelationManager
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    $this->getBulkSetCurrencyAction(),
+                    $this->getBulkSetFieldAction('moq', 'Set MOQ', 'heroicon-o-cube', TextInput::make('value')->label('MOQ')->numeric()->required()->minValue(1)),
+                    $this->getBulkSetFieldAction('lead_time_days', 'Set Lead Time', 'heroicon-o-clock', TextInput::make('value')->label('Lead Time (days)')->numeric()->required()->minValue(1)),
                     $this->getBulkPriceUpdateAction('selling_price', 'unit_price', 'Adjust Selling Price'),
                     $this->getBulkPriceUpdateAction('custom_price', 'custom_price', 'Adjust CI Price'),
                     DetachBulkAction::make()
@@ -386,5 +393,59 @@ class ClientProductsRelationManager extends RelationManager
             ->deselectRecordsAfterCompletion()
             ->requiresConfirmation()
             ->modalDescription('This will apply the formula to all selected records. This action cannot be undone.');
+    }
+
+    private function getBulkSetCurrencyAction(): BulkAction
+    {
+        return BulkAction::make('set_currency')
+            ->label('Set Currency')
+            ->icon('heroicon-o-currency-dollar')
+            ->form([
+                Select::make('currency_code')
+                    ->label('Currency')
+                    ->options(fn () => Currency::pluck('name', 'code')->map(fn ($name, $code) => "{$code} — {$name}"))
+                    ->searchable()
+                    ->required(),
+            ])
+            ->action(function (Collection $records, array $data): void {
+                $updated = 0;
+                foreach ($records as $record) {
+                    CompanyProduct::where('company_id', $record->pivot->company_id)
+                        ->where('product_id', $record->pivot->product_id)
+                        ->update(['currency_code' => $data['currency_code']]);
+                    $updated++;
+                }
+
+                Notification::make()
+                    ->success()
+                    ->title("Updated {$updated} products")
+                    ->body("Currency set to {$data['currency_code']}")
+                    ->send();
+            })
+            ->deselectRecordsAfterCompletion();
+    }
+
+    private function getBulkSetFieldAction(string $column, string $label, string $icon, TextInput $field): BulkAction
+    {
+        return BulkAction::make('set_' . $column)
+            ->label($label)
+            ->icon($icon)
+            ->form([$field])
+            ->action(function (Collection $records, array $data) use ($column, $label): void {
+                $updated = 0;
+                foreach ($records as $record) {
+                    CompanyProduct::where('company_id', $record->pivot->company_id)
+                        ->where('product_id', $record->pivot->product_id)
+                        ->update([$column => (int) $data['value']]);
+                    $updated++;
+                }
+
+                Notification::make()
+                    ->success()
+                    ->title("Updated {$updated} products")
+                    ->body("{$label}: {$data['value']}")
+                    ->send();
+            })
+            ->deselectRecordsAfterCompletion();
     }
 }

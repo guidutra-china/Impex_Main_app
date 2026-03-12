@@ -34,6 +34,7 @@ class ProductsTable
             ->columns([
                 ImageColumn::make('avatar')
                     ->label('')
+                    ->disk('public')
                     ->circular()
                     ->size(48)
                     ->defaultImageUrl(fn () => 'https://ui-avatars.com/api/?background=e2e8f0&color=94a3b8&name=P&size=48'),

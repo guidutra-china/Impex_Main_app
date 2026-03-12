@@ -58,6 +58,7 @@ class ImportProductsFromExcelAction
                     ->label(__('forms.labels.excel_file_xlsx'))
                     ->acceptedFileTypes([
                         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        'application/vnd.ms-excel',
                     ])
                     ->maxSize(10240)
                     ->required()
@@ -188,6 +189,9 @@ class ImportProductsFromExcelAction
                 if ($stats['skipped'] > 0) {
                     $parts[] = "{$stats['skipped']} skipped (linked)";
                 }
+                if (($stats['images'] ?? 0) > 0) {
+                    $parts[] = "{$stats['images']} images imported";
+                }
 
                 $body = implode(', ', $parts) ?: 'No products processed.';
 
@@ -218,10 +222,10 @@ class ImportProductsFromExcelAction
         $roleLabel = $role === 'client' ? 'Client' : 'Supplier';
 
         return Action::make('downloadProductTemplate')
-            ->label(__('forms.labels.download_template'))
+            ->label('Full Template')
             ->icon('heroicon-o-document-arrow-down')
             ->color('gray')
-            ->modalHeading('Download Product Import Template')
+            ->modalHeading('Download Full Product Import Template')
             ->modalWidth('md')
             ->form([
                 Select::make('category_id')
@@ -241,6 +245,41 @@ class ImportProductsFromExcelAction
                 $includeCross = $data['include_cross_company'] ?? false;
                 $generator = new GenerateProductImportTemplate();
                 $path = $generator->execute($category, $role, $includeCross);
+
+                return response()->download($path)->deleteFileAfterSend();
+            });
+    }
+
+    public static function makeDownloadSimpleTemplate(string $role): Action
+    {
+        $crossRole = $role === 'client' ? 'supplier' : 'client';
+        $crossLabel = $role === 'client' ? 'Supplier' : 'Client';
+        $roleLabel = $role === 'client' ? 'Client' : 'Supplier';
+
+        return Action::make('downloadSimpleTemplate')
+            ->label('Simple Template')
+            ->icon('heroicon-o-document-arrow-down')
+            ->color('gray')
+            ->modalHeading('Download Simple Product Import Template')
+            ->modalWidth('md')
+            ->form([
+                Select::make('category_id')
+                    ->label(__('forms.labels.product_category'))
+                    ->options(fn () => Category::active()->pluck('name', 'id'))
+                    ->searchable()
+                    ->required()
+                    ->helperText('Template will include required attributes for this category.'),
+
+                Toggle::make('include_cross_company')
+                    ->label("Include {$crossLabel} columns")
+                    ->helperText("Add a second set of company link columns for {$crossLabel} data (external codes, prices, etc.).")
+                    ->default(false),
+            ])
+            ->action(function (array $data) use ($role) {
+                $category = Category::findOrFail($data['category_id']);
+                $includeCross = $data['include_cross_company'] ?? false;
+                $generator = new GenerateProductImportTemplate();
+                $path = $generator->executeSimple($category, $role, $includeCross);
 
                 return response()->download($path)->deleteFileAfterSend();
             });

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ProductionSchedules\Schemas;
 
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -30,6 +31,35 @@ class ProductionScheduleForm
                         )
                         ->searchable()
                         ->required()
+                        ->live()
+                        ->disabled(fn (?\Illuminate\Database\Eloquent\Model $record) => $record !== null)
+                        ->dehydrated(),
+                    Select::make('purchase_order_id')
+                        ->label(__('forms.labels.purchase_order'))
+                        ->options(function (\Filament\Schemas\Components\Utilities\Get $get) {
+                            $piId = $get('proforma_invoice_id');
+                            if (! $piId) {
+                                return [];
+                            }
+
+                            return PurchaseOrder::where('proforma_invoice_id', $piId)
+                                ->with('supplierCompany')
+                                ->get()
+                                ->mapWithKeys(fn ($po) => [
+                                    $po->id => "{$po->reference} — {$po->supplierCompany?->name}",
+                                ]);
+                        })
+                        ->searchable()
+                        ->nullable()
+                        ->live()
+                        ->afterStateUpdated(function (\Filament\Schemas\Components\Utilities\Set $set, $state) {
+                            if ($state) {
+                                $po = PurchaseOrder::find($state);
+                                if ($po) {
+                                    $set('supplier_company_id', $po->supplier_company_id);
+                                }
+                            }
+                        })
                         ->disabled(fn (?\Illuminate\Database\Eloquent\Model $record) => $record !== null)
                         ->dehydrated(),
                     TextInput::make('version')

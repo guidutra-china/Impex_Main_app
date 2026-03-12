@@ -17,7 +17,10 @@ use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Settings\Models\Currency;
 use Illuminate\Support\Facades\DB;
-use OpenSpout\Reader\XLSX\Reader;
+use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+use PhpOffice\PhpSpreadsheet\Worksheet\MemoryDrawing;
 
 class ProductImportService
 {
@@ -30,43 +33,43 @@ class ProductImportService
 
     public function parseFile(string $filePath, Category $category, string $role = 'client'): array
     {
+        ini_set('memory_limit', '512M');
         $hasCross = $this->detectCrossColumns($filePath, $category, $role);
         $columnMap = $this->templateGenerator->buildColumnMap($category, $role, $hasCross);
         $columnKeys = array_keys($columnMap);
 
-        $reader = new Reader();
-        $reader->open($filePath);
+        $spreadsheet = IOFactory::load($filePath);
+        $worksheet = $spreadsheet->getActiveSheet();
+
+        // Extract images mapped by row number
+        $imagesByRow = $this->extractImagesByRow($worksheet);
 
         $rows = [];
-        $rowIndex = 0;
 
-        foreach ($reader->getSheetIterator() as $sheet) {
-            foreach ($sheet->getRowIterator() as $row) {
-                $rowIndex++;
-                if ($rowIndex <= 3) {
-                    continue;
-                }
+        foreach ($worksheet->getRowIterator(4) as $row) { // Data starts at row 4
+            $rowIndex = $row->getRowIndex();
+            $cellIterator = $row->getCellIterator();
+            $cellIterator->setIterateOnlyExistingCells(false);
 
-                $cells = $row->getCells();
-                $values = array_map(fn ($cell) => $cell->getValue(), $cells);
-
-                if ($this->isEmptyRow($values)) {
-                    continue;
-                }
-
-                $mapped = [];
-                foreach ($columnKeys as $i => $key) {
-                    $mapped[$key] = isset($values[$i]) ? $this->cleanValue($values[$i]) : null;
-                }
-                $mapped['_row'] = $rowIndex;
-                $mapped['_has_cross'] = $hasCross;
-
-                $rows[] = $mapped;
+            $values = [];
+            foreach ($cellIterator as $cell) {
+                $values[] = $cell->getValue();
             }
-            break;
-        }
 
-        $reader->close();
+            if ($this->isEmptyRow($values)) {
+                continue;
+            }
+
+            $mapped = [];
+            foreach ($columnKeys as $i => $key) {
+                $mapped[$key] = isset($values[$i]) ? $this->cleanValue($values[$i]) : null;
+            }
+            $mapped['_row'] = $rowIndex;
+            $mapped['_has_cross'] = $hasCross;
+            $mapped['_image_path'] = $imagesByRow[$rowIndex] ?? null;
+
+            $rows[] = $mapped;
+        }
 
         return $rows;
     }
@@ -211,7 +214,7 @@ class ProductImportService
         ?Company $crossCompany = null,
         ?string $crossRole = null,
     ): array {
-        $stats = ['created' => 0, 'updated' => 0, 'skipped' => 0, 'linked' => 0, 'errors' => []];
+        $stats = ['created' => 0, 'updated' => 0, 'skipped' => 0, 'linked' => 0, 'images' => 0, 'errors' => []];
         $skuGenerator = app(GenerateProductSkuAction::class);
         $hasCross = ! empty($rows[0]['_has_cross']);
 
@@ -228,6 +231,9 @@ class ProductImportService
                 try {
                     $result = $this->importRow($row, $category, $company, $role, $conflictResolutions, $skuGenerator, null);
                     $stats[$result['action']]++;
+                    if (! empty($row['_image_path'])) {
+                        $stats['images']++;
+                    }
 
                     if (isset($result['product']) && ! empty($row['reference_code'])) {
                         $refCodeMap[trim($row['reference_code'])] = $result['product'];
@@ -258,6 +264,9 @@ class ProductImportService
 
                     $result = $this->importRow($row, $category, $company, $role, $conflictResolutions, $skuGenerator, $parent);
                     $stats[$result['action']]++;
+                    if (! empty($row['_image_path'])) {
+                        $stats['images']++;
+                    }
 
                     if (isset($result['product']) && ! empty($row['reference_code'])) {
                         $refCodeMap[trim($row['reference_code'])] = $result['product'];
@@ -328,6 +337,7 @@ class ProductImportService
             'moq' => ! empty($row['moq']) ? (int) $row['moq'] : null,
             'moq_unit' => $row['moq_unit'] ?? null,
             'lead_time_days' => ! empty($row['lead_time_days']) ? (int) $row['lead_time_days'] : null,
+            'avatar' => $row['_image_path'] ?? null,
         ]);
 
         $this->upsertSpecification($product, $row);
@@ -354,6 +364,11 @@ class ProductImportService
             'moq_unit' => $row['moq_unit'] ?? $product->moq_unit,
             'lead_time_days' => ! empty($row['lead_time_days']) ? (int) $row['lead_time_days'] : $product->lead_time_days,
         ], fn ($v) => $v !== null);
+
+        // Update avatar if a new image was found in the spreadsheet
+        if (! empty($row['_image_path'])) {
+            $data['avatar'] = $row['_image_path'];
+        }
 
         $product->update($data);
     }
@@ -500,25 +515,73 @@ class ProductImportService
 
     private function detectCrossColumns(string $filePath, Category $category, string $role): bool
     {
-        $reader = new Reader();
-        $reader->open($filePath);
-
         $singleColumnCount = count($this->templateGenerator->buildColumnMap($category, $role, false));
 
-        $actualColumnCount = 0;
-
-        foreach ($reader->getSheetIterator() as $sheet) {
-            foreach ($sheet->getRowIterator() as $row) {
-                $cells = $row->getCells();
-                $actualColumnCount = count($cells);
-                break;
-            }
-            break;
-        }
-
-        $reader->close();
+        $spreadsheet = IOFactory::load($filePath);
+        $worksheet = $spreadsheet->getActiveSheet();
+        $actualColumnCount = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString(
+            $worksheet->getHighestColumn()
+        );
 
         return $actualColumnCount > $singleColumnCount;
+    }
+
+    /**
+     * Extract images from worksheet and map them to row numbers.
+     * Saves each image to storage and returns [rowNumber => storedPath].
+     */
+    private function extractImagesByRow(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $worksheet): array
+    {
+        $imagesByRow = [];
+
+        foreach ($worksheet->getDrawingCollection() as $drawing) {
+            $coordinate = $drawing->getCoordinates();
+            $row = (int) preg_replace('/[A-Z]+/', '', $coordinate);
+
+            if ($row < 4) {
+                continue; // Skip header rows
+            }
+
+            $imageData = null;
+            $extension = 'png';
+
+            if ($drawing instanceof MemoryDrawing) {
+                ob_start();
+                $renderFunc = match ($drawing->getRenderingFunction()) {
+                    MemoryDrawing::RENDERING_JPEG => 'imagejpeg',
+                    MemoryDrawing::RENDERING_GIF => 'imagegif',
+                    default => 'imagepng',
+                };
+                $renderFunc($drawing->getImageResource());
+                $imageData = ob_get_clean();
+                $extension = match ($drawing->getRenderingFunction()) {
+                    MemoryDrawing::RENDERING_JPEG => 'jpg',
+                    MemoryDrawing::RENDERING_GIF => 'gif',
+                    default => 'png',
+                };
+            } elseif ($drawing instanceof Drawing && $drawing->getPath()) {
+                $sourcePath = $drawing->getPath();
+
+                // Handle zip:// paths (images embedded in xlsx files)
+                if (str_starts_with($sourcePath, 'zip://')) {
+                    $imageData = @file_get_contents($sourcePath);
+                } elseif (file_exists($sourcePath)) {
+                    $imageData = file_get_contents($sourcePath);
+                }
+
+                if ($imageData) {
+                    $extension = strtolower($drawing->getExtension() ?: pathinfo($sourcePath, PATHINFO_EXTENSION) ?: 'png');
+                }
+            }
+
+            if ($imageData && ! isset($imagesByRow[$row])) {
+                $filename = 'products/' . uniqid('import_') . '.' . $extension;
+                Storage::disk('public')->put($filename, $imageData);
+                $imagesByRow[$row] = $filename;
+            }
+        }
+
+        return $imagesByRow;
     }
 
     private function cleanValue(mixed $value): ?string

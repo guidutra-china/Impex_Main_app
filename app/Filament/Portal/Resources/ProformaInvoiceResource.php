@@ -153,6 +153,15 @@ class ProformaInvoiceResource extends Resource
                 ->visible(fn ($record) => $record->clientBillableCosts->isNotEmpty())
                 ->columnSpanFull(),
 
+            Section::make('Production Progress')
+                ->schema([
+                    ViewEntry::make('production_progress')
+                        ->view('portal.infolists.pi-production-progress')
+                        ->columnSpanFull(),
+                ])
+                ->visible(fn ($record) => $record->productionSchedules()->exists())
+                ->columnSpanFull(),
+
             Section::make('Notes')
                 ->schema([
                     TextEntry::make('notes')
