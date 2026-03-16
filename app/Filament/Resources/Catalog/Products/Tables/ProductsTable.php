@@ -4,18 +4,23 @@ namespace App\Filament\Resources\Catalog\Products\Tables;
 
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Catalog\Enums\ProductStatus;
+use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\ProductCosting;
 use App\Domain\Catalog\Models\ProductPackaging;
 use App\Domain\Catalog\Models\ProductSpecification;
 use App\Filament\Resources\Catalog\Products\ProductResource;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ReplicateAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\Layout\Split;
@@ -223,6 +228,23 @@ class ProductsTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    static::getBulkSetCategoryAction(),
+                    static::getBulkSetStatusAction(),
+                    static::getBulkSetFieldAction('hs_code', 'Set HS Code', 'heroicon-o-hashtag',
+                        TextInput::make('value')->label('HS Code')->required()->maxLength(20)->placeholder('853950'),
+                    ),
+                    static::getBulkSetFieldAction('origin_country', 'Set Origin Country', 'heroicon-o-globe-alt',
+                        TextInput::make('value')->label('Country Code')->required()->maxLength(2)->placeholder('CN'),
+                    ),
+                    static::getBulkSetFieldAction('moq', 'Set MOQ', 'heroicon-o-cube',
+                        TextInput::make('value')->label('MOQ')->numeric()->required()->minValue(1),
+                    ),
+                    static::getBulkSetFieldAction('lead_time_days', 'Set Lead Time', 'heroicon-o-clock',
+                        TextInput::make('value')->label('Lead Time (days)')->numeric()->required()->minValue(0),
+                    ),
+                    static::getBulkSetFieldAction('brand', 'Set Brand', 'heroicon-o-tag',
+                        TextInput::make('value')->label('Brand')->required()->maxLength(255),
+                    ),
                     DeleteBulkAction::make(),
                 ]),
             ])
@@ -233,5 +255,80 @@ class ProductsTable
             ->emptyStateHeading('No products')
             ->emptyStateDescription('Create your first product to start building your catalog.')
             ->emptyStateIcon('heroicon-o-cube');
+    }
+
+    private static function getBulkSetCategoryAction(): BulkAction
+    {
+        return BulkAction::make('set_category')
+            ->label('Set Category')
+            ->icon('heroicon-o-folder')
+            ->form([
+                Select::make('category_id')
+                    ->label('Category')
+                    ->options(
+                        fn () => Category::query()
+                            ->active()
+                            ->orderBy('name')
+                            ->get()
+                            ->mapWithKeys(fn (Category $cat) => [$cat->id => $cat->full_path])
+                    )
+                    ->searchable()
+                    ->required(),
+            ])
+            ->action(function (Collection $records, array $data): void {
+                $updated = $records->count();
+                Product::whereIn('id', $records->pluck('id'))->update(['category_id' => $data['category_id']]);
+
+                $category = Category::find($data['category_id']);
+                Notification::make()
+                    ->success()
+                    ->title("Updated {$updated} products")
+                    ->body("Category set to {$category?->name}")
+                    ->send();
+            })
+            ->deselectRecordsAfterCompletion();
+    }
+
+    private static function getBulkSetStatusAction(): BulkAction
+    {
+        return BulkAction::make('set_status')
+            ->label('Set Status')
+            ->icon('heroicon-o-signal')
+            ->form([
+                Select::make('status')
+                    ->label('Status')
+                    ->options(ProductStatus::class)
+                    ->required(),
+            ])
+            ->action(function (Collection $records, array $data): void {
+                $updated = $records->count();
+                Product::whereIn('id', $records->pluck('id'))->update(['status' => $data['status']]);
+
+                Notification::make()
+                    ->success()
+                    ->title("Updated {$updated} products")
+                    ->body("Status set to {$data['status']}")
+                    ->send();
+            })
+            ->deselectRecordsAfterCompletion();
+    }
+
+    private static function getBulkSetFieldAction(string $column, string $label, string $icon, TextInput $field): BulkAction
+    {
+        return BulkAction::make('set_' . $column)
+            ->label($label)
+            ->icon($icon)
+            ->form([$field])
+            ->action(function (Collection $records, array $data) use ($column, $label): void {
+                $updated = $records->count();
+                Product::whereIn('id', $records->pluck('id'))->update([$column => $data['value']]);
+
+                Notification::make()
+                    ->success()
+                    ->title("Updated {$updated} products")
+                    ->body("{$label}: {$data['value']}")
+                    ->send();
+            })
+            ->deselectRecordsAfterCompletion();
     }
 }
