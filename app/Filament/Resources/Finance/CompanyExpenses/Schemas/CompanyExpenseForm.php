@@ -96,6 +96,7 @@ class CompanyExpenseForm
             Section::make(__('forms.sections.additional_info'))->columnSpanFull()->schema([
                 FileUpload::make('attachment_path')
                     ->label(__('forms.labels.receipt_attachment'))
+                    ->disk('public')
                     ->directory('expense-receipts')
                     ->acceptedFileTypes(['application/pdf', 'image/*'])
                     ->maxSize(5120),

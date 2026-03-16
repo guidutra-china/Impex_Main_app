@@ -153,6 +153,7 @@ class ConductAudit extends Page implements HasForms
                 FileUpload::make('documents')
                     ->label(__('forms.labels.upload_documents_photos'))
                     ->multiple()
+                    ->disk('public')
                     ->directory('audit-documents/' . $this->getRecord()->id)
                     ->maxSize(10240)
                     ->acceptedFileTypes([

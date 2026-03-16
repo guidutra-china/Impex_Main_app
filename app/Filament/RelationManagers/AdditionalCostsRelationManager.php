@@ -260,6 +260,7 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->columnSpanFull(),
                 FileUpload::make('attachment_path')
                     ->label(__('forms.labels.attachment_invoicereceipt'))
+                    ->disk('public')
                     ->directory('additional-cost-attachments')
                     ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                     ->maxSize(5120)

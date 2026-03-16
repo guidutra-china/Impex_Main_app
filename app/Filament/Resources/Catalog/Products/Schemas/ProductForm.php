@@ -63,8 +63,9 @@ class ProductForm
                         ->searchable()
                         ->required()
                         ->live()
-                        ->afterStateUpdated(function (Set $set, ?string $state) {
-                            if ($state) {
+                        ->afterStateUpdated(function (Set $set, ?string $state, $livewire) {
+                            // Only auto-populate name/SKU on create — never overwrite on edit
+                            if ($state && $livewire instanceof \Filament\Resources\Pages\CreateRecord) {
                                 // preview() não usa lock — é apenas uma sugestão visual.
                                 // O SKU final e único é gerado no evento creating do Model.
                                 $set('sku', app(GenerateProductSkuAction::class)->preview((int) $state));
@@ -101,6 +102,7 @@ class ProductForm
                     FileUpload::make('avatar')
                         ->label(__('forms.labels.product_image'))
                         ->image()
+                        ->disk('public')
                         ->directory('products')
                         ->maxSize(2048)
                         ->imageResizeTargetWidth(1200)
