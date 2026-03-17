@@ -24,13 +24,6 @@ class ListPayments extends ListRecords
 
     public string $currentView = 'payments';
 
-    protected function getHeaderWidgets(): array
-    {
-        return [
-            PaymentsListStats::class,
-        ];
-    }
-
     public function getTitle(): string|Htmlable
     {
         return __('navigation.resources.payments');
