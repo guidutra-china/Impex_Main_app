@@ -10,6 +10,7 @@ use App\Filament\Resources\Shipments\ShipmentResource;
 use App\Filament\Resources\Shipments\Widgets\LandedCostCalculator;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewShipment extends ViewRecord
@@ -53,6 +54,7 @@ class ViewShipment extends ViewRecord
                 GeneratePdfAction::make(
                     templateClass: CommercialInvoicePdfTemplate::class,
                     label: 'Generate PDF',
+                    formSchema: self::commercialInvoiceOptions(),
                 )->name('generateCommercialInvoicePdf'),
                 GeneratePdfAction::download(
                     documentType: 'commercial_invoice_pdf',
@@ -61,6 +63,7 @@ class ViewShipment extends ViewRecord
                 GeneratePdfAction::preview(
                     templateClass: CommercialInvoicePdfTemplate::class,
                     label: 'Preview PDF',
+                    formSchema: self::commercialInvoiceOptions(),
                 )->name('previewCommercialInvoicePdf'),
                 SendDocumentByEmailAction::make(
                     documentType: 'commercial_invoice_pdf',
@@ -73,6 +76,15 @@ class ViewShipment extends ViewRecord
                 ->button(),
 
             EditAction::make(),
+        ];
+    }
+
+    protected static function commercialInvoiceOptions(): array
+    {
+        return [
+            Toggle::make('include_freight')
+                ->label(__('forms.labels.include_freight'))
+                ->default(false),
         ];
     }
 }

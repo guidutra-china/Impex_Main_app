@@ -15,6 +15,7 @@ class GeneratePdfAction
         string $templateClass,
         string $label = 'Generate PDF',
         string $icon = 'heroicon-o-document-arrow-down',
+        array $formSchema = [],
     ): Action {
         return Action::make('generatePdf')
             ->label($label)
@@ -25,9 +26,10 @@ class GeneratePdfAction
             ->modalHeading('Generate PDF Document')
             ->modalDescription('This will generate a new PDF version. If a previous version exists, it will be archived.')
             ->modalSubmitActionLabel('Generate')
-            ->action(function ($record) use ($templateClass) {
+            ->form($formSchema)
+            ->action(function ($record, array $data = []) use ($templateClass) {
                 try {
-                    $template = new $templateClass($record);
+                    $template = new $templateClass($record, 'en', $data);
                     $service = new PdfGeneratorService(
                         new PdfRenderer(),
                         new DocumentService(),
@@ -90,15 +92,17 @@ class GeneratePdfAction
         string $templateClass,
         string $label = 'Preview PDF',
         string $icon = 'heroicon-o-eye',
+        array $formSchema = [],
     ): Action {
         return Action::make('previewPdf')
             ->label($label)
             ->icon($icon)
             ->color('gray')
             ->visible(fn () => auth()->user()?->can('generate-documents'))
-            ->action(function ($record) use ($templateClass) {
+            ->form($formSchema)
+            ->action(function ($record, array $data = []) use ($templateClass) {
                 try {
-                    $template = new $templateClass($record);
+                    $template = new $templateClass($record, 'en', $data);
                     $service = new PdfGeneratorService(
                         new PdfRenderer(),
                         new DocumentService(),

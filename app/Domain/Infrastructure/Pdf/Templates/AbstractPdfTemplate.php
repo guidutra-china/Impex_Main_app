@@ -11,11 +11,13 @@ abstract class AbstractPdfTemplate
     protected Model $model;
     protected string $locale;
     protected CompanySettings $companySettings;
+    protected array $options = [];
 
-    public function __construct(Model $model, string $locale = 'en')
+    public function __construct(Model $model, string $locale = 'en', array $options = [])
     {
         $this->model = $model;
         $this->locale = $locale;
+        $this->options = $options;
         $this->companySettings = app(CompanySettings::class);
     }
 

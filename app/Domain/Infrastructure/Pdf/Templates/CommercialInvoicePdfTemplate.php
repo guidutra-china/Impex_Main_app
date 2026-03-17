@@ -3,6 +3,7 @@
 namespace App\Domain\Infrastructure\Pdf\Templates;
 
 use App\Domain\Catalog\Models\Product;
+use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Logistics\Enums\ImportModality;
 use App\Domain\Logistics\Models\Shipment;
 
@@ -79,9 +80,13 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
             return $item->line_total;
         });
 
-        $freightCosts = $shipment->additionalCosts
-            ->filter(fn ($cost) => strtolower($cost->type ?? '') === 'freight')
-            ->sum('amount');
+        $includeFreight = $this->options['include_freight'] ?? false;
+
+        $freightCosts = $includeFreight
+            ? $shipment->additionalCosts
+                ->filter(fn ($cost) => $cost->cost_type === AdditionalCostType::FREIGHT)
+                ->sum('amount_in_document_currency')
+            : 0;
 
         $grandTotal = $subtotal + $freightCosts;
 

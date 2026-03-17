@@ -14,6 +14,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 
@@ -46,6 +47,7 @@ class EditShipment extends EditRecord
                 GeneratePdfAction::make(
                     templateClass: CommercialInvoicePdfTemplate::class,
                     label: 'Generate Commercial Invoice',
+                    formSchema: self::commercialInvoiceOptions(),
                 )->name('generateCommercialInvoicePdf'),
                 GeneratePdfAction::download(
                     documentType: 'commercial_invoice_pdf',
@@ -54,6 +56,7 @@ class EditShipment extends EditRecord
                 GeneratePdfAction::preview(
                     templateClass: CommercialInvoicePdfTemplate::class,
                     label: 'Preview Commercial Invoice',
+                    formSchema: self::commercialInvoiceOptions(),
                 )->name('previewCommercialInvoicePdf'),
             ])
                 ->label(__('forms.labels.commercial_invoice_pdf'))
@@ -63,6 +66,15 @@ class EditShipment extends EditRecord
             $this->transitionStatusAction(),
             ViewAction::make(),
             DeleteAction::make(),
+        ];
+    }
+
+    protected static function commercialInvoiceOptions(): array
+    {
+        return [
+            Toggle::make('include_freight')
+                ->label(__('forms.labels.include_freight'))
+                ->default(false),
         ];
     }
 
