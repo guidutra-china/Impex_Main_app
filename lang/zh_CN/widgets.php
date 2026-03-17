@@ -169,6 +169,7 @@ return [
         'bl_number' => '提单号',
         'items' => '项目',
         'total_value' => '总价值',
+        'product_value' => '产品价值',
         'currency' => '货币',
         'total_pi_value' => 'PI总价值',
         'total_paid' => '已付总额',

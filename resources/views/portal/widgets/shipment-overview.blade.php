@@ -77,7 +77,7 @@
             @endif
         </x-filament::section>
 
-        {{-- Timeline & Documents --}}
+        {{-- Timeline, Costs & Documents --}}
         <div class="space-y-4">
             {{-- Timeline --}}
             @if (count($timeline) > 0)
@@ -105,6 +105,20 @@
                                         @endif
                                     </p>
                                 </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </x-filament::section>
+            @endif
+
+            {{-- Cost Breakdown --}}
+            @if (count($costBreakdown) > 1)
+                <x-filament::section heading="Cost Breakdown" icon="heroicon-o-calculator">
+                    <div class="space-y-2">
+                        @foreach ($costBreakdown as $cost)
+                            <div class="flex items-center justify-between py-1 {{ $loop->last ? 'border-t border-gray-200 pt-2 dark:border-white/10' : '' }}">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">{{ $cost['label'] }}</span>
+                                <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ $cost['value'] }}</span>
                             </div>
                         @endforeach
                     </div>

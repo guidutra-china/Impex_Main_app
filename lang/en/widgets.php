@@ -169,6 +169,7 @@ return [
         'bl_number' => 'B/L Number',
         'items' => 'Items',
         'total_value' => 'Total Value',
+        'product_value' => 'Product Value',
         'currency' => 'Currency',
         'total_pi_value' => 'Total PI Value',
         'total_paid' => 'Total Paid',

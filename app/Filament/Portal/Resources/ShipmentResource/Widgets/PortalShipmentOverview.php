@@ -25,7 +25,7 @@ class PortalShipmentOverview extends Widget
         }
 
         $shipment = $this->record;
-        $shipment->loadMissing(['items.proformaInvoiceItem.proformaInvoice', 'documents']);
+        $shipment->loadMissing(['items.proformaInvoiceItem.proformaInvoice', 'documents', 'additionalCosts']);
 
         $currency = $shipment->currency_code ?? 'USD';
 
@@ -51,9 +51,13 @@ class PortalShipmentOverview extends Widget
         ];
 
         if (auth()->user()?->can('portal:view-financial-summary')) {
+            $productValue = $shipment->total_value;
+            $additionalCostsTotal = $shipment->client_billable_costs_total ?? 0;
+            $grandTotal = $productValue + $additionalCostsTotal;
+
             $cards[] = [
                 'label' => __('widgets.portal.total_value'),
-                'value' => $currency . ' ' . Money::format($shipment->total_value),
+                'value' => $currency . ' ' . Money::format($grandTotal),
                 'icon' => 'heroicon-o-currency-dollar',
                 'color' => 'primary',
             ];
@@ -100,11 +104,32 @@ class PortalShipmentOverview extends Widget
 
         $piRefs = $shipment->proforma_invoice_references;
 
+        $costBreakdown = [];
+        if (auth()->user()?->can('portal:view-financial-summary')) {
+            $costBreakdown[] = [
+                'label' => __('widgets.portal.product_value'),
+                'value' => $currency . ' ' . Money::format($shipment->total_value),
+            ];
+
+            $clientCosts = $shipment->additionalCosts
+                ->filter(fn ($cost) => $cost->billable_to?->value === 'client')
+                ->values();
+
+            foreach ($clientCosts as $cost) {
+                $typeLabel = $cost->cost_type?->getEnglishLabel() ?? 'Other';
+                $costBreakdown[] = [
+                    'label' => $typeLabel . ($cost->description ? ': ' . $cost->description : ''),
+                    'value' => $currency . ' ' . Money::format($cost->amount_in_document_currency),
+                ];
+            }
+        }
+
         return [
             'cards' => $cards,
             'timeline' => $timeline,
             'logistics' => $logistics,
             'documents' => $documents,
+            'costBreakdown' => $costBreakdown,
             'piReferences' => $piRefs ?: '—',
             'totalPackages' => $shipment->total_packages ?? 0,
             'totalGrossWeight' => $shipment->total_gross_weight ? number_format($shipment->total_gross_weight, 2) . ' kg' : '—',
