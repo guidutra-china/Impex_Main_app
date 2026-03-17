@@ -11,7 +11,11 @@ use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
+use App\Domain\Planning\Models\ShipmentPlan;
 use App\Filament\Pages\Widgets\CashFlowProjection;
+use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
+use App\Filament\Resources\PurchaseOrders\PurchaseOrderResource;
+use App\Filament\Resources\ShipmentPlans\ShipmentPlanResource;
 use App\Filament\Pages\Widgets\FinancialStatsOverview;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -227,7 +231,7 @@ class FinancialOverview extends Page implements HasTable
         return $table
             ->query(
                 PaymentScheduleItem::query()
-                    ->with(['payable', 'paymentTermStage', 'waivedByUser'])
+                    ->with(['payable', 'source', 'paymentTermStage', 'waivedByUser'])
             )
             ->columns([
                 TextColumn::make('company_name')
@@ -238,6 +242,9 @@ class FinancialOverview extends Page implements HasTable
                             return $payable->company?->name ?? '—';
                         }
                         if ($payable instanceof PurchaseOrder) {
+                            return $payable->supplierCompany?->name ?? '—';
+                        }
+                        if ($payable instanceof ShipmentPlan) {
                             return $payable->supplierCompany?->name ?? '—';
                         }
 
@@ -279,7 +286,36 @@ class FinancialOverview extends Page implements HasTable
                         $type = class_basename($payable);
 
                         return "{$type}: {$ref}";
-                    }),
+                    })
+                    ->url(function ($record) {
+                        $payable = $record->payable;
+                        if (! $payable) {
+                            return null;
+                        }
+
+                        return match (true) {
+                            $payable instanceof ProformaInvoice => ProformaInvoiceResource::getUrl('edit', ['record' => $payable]),
+                            $payable instanceof PurchaseOrder => PurchaseOrderResource::getUrl('edit', ['record' => $payable]),
+                            $payable instanceof ShipmentPlan => ShipmentPlanResource::getUrl('edit', ['record' => $payable]),
+                            default => null,
+                        };
+                    })
+                    ->color('primary')
+                    ->openUrlInNewTab(),
+                TextColumn::make('source')
+                    ->label(__('forms.labels.source'))
+                    ->formatStateUsing(function ($record) {
+                        $source = $record->source;
+                        if (! $source) {
+                            return '—';
+                        }
+                        $type = class_basename($source);
+                        $ref = $source->reference ?? $source->name ?? $source->id;
+
+                        return "{$type}: {$ref}";
+                    })
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('label')
                     ->label(__('forms.labels.label'))
                     ->searchable()
