@@ -1,7 +1,7 @@
 <x-filament-panels::page>
     <x-filament::tabs>
         <x-filament::tabs.item
-            :active="$activeTab === 'payments'"
+            :active="$currentView === 'payments'"
             wire:click="switchTab('payments')"
             icon="heroicon-o-banknotes"
         >
@@ -9,7 +9,7 @@
         </x-filament::tabs.item>
 
         <x-filament::tabs.item
-            :active="$activeTab === 'schedule'"
+            :active="$currentView === 'schedule'"
             wire:click="switchTab('schedule')"
             icon="heroicon-o-calendar-days"
         >
@@ -17,7 +17,7 @@
         </x-filament::tabs.item>
     </x-filament::tabs>
 
-    @if ($activeTab === 'payments')
+    @if ($currentView === 'payments')
         @if (count($this->getHeaderWidgets()))
             <x-filament-widgets::widgets
                 :widgets="$this->getVisibleHeaderWidgets()"
