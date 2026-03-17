@@ -20,7 +20,7 @@ class ListPayments extends ListRecords
 {
     protected static string $resource = PaymentResource::class;
 
-    protected static string $view = 'portal.pages.list-payments';
+    protected string $view = 'portal.pages.list-payments';
 
     public string $currentView = 'payments';
 
