@@ -5,7 +5,7 @@ namespace App\Filament\Resources\Quotations\Pages;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
-use App\Domain\Financial\Enums\CommissionType;
+use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Infrastructure\Pdf\Templates\QuotationPdfTemplate;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
