@@ -17,15 +17,5 @@
         </x-filament::tabs.item>
     </x-filament::tabs>
 
-    @if ($currentView === 'payments')
-        @if (count($this->getHeaderWidgets()))
-            <x-filament-widgets::widgets
-                :widgets="$this->getVisibleHeaderWidgets()"
-                :columns="$this->getHeaderWidgetsColumns()"
-                :data="$this->getWidgetData()"
-            />
-        @endif
-    @endif
-
     {{ $this->table }}
 </x-filament-panels::page>
