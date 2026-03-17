@@ -34,7 +34,7 @@ class PortalQuotationSummary extends Widget
             [
                 'label' => __('widgets.portal.status'),
                 'value' => $quotation->status?->getLabel() ?? '—',
-                'icon' => $quotation->status?->getIcon() ?? 'heroicon-o-document',
+                'icon' => method_exists($quotation->status, 'getIcon') ? ($quotation->status->getIcon() ?? 'heroicon-o-document') : 'heroicon-o-document',
                 'color' => $quotation->status?->getColor() ?? 'gray',
             ],
             [
