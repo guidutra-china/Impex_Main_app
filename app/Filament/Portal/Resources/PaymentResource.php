@@ -90,10 +90,11 @@ class PaymentResource extends Resource
                 SelectFilter::make('direction')
                     ->options(PaymentDirection::class),
             ])
-            ->recordUrl(fn (Payment $record) => Pages\ViewPayment::getUrl(['record' => $record]))
+            ->recordUrl(fn ($record) => $record instanceof Payment ? Pages\ViewPayment::getUrl(['record' => $record]) : null)
             ->recordActions([
                 \Filament\Actions\ViewAction::make()
-                    ->url(fn (Payment $record) => Pages\ViewPayment::getUrl(['record' => $record])),
+                    ->url(fn ($record) => $record instanceof Payment ? Pages\ViewPayment::getUrl(['record' => $record]) : null)
+                    ->visible(fn ($record) => $record instanceof Payment),
             ])
             ->persistFiltersInSession()
             ->defaultSort('created_at', 'desc')
