@@ -37,6 +37,7 @@ class PackingListRelationManager extends RelationManager
         return $schema->components([
             Select::make('shipment_item_id')
                 ->label(__('forms.labels.product'))
+                ->required()
                 ->options(function () {
                     $shipment = $this->getOwnerRecord();
 
