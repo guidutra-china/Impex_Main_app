@@ -2,9 +2,13 @@
 
 namespace App\Domain\Financial\Actions;
 
+use App\Domain\Financial\Enums\AdditionalCostType;
+use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
+use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\Settings\Enums\CalculationBase;
 use App\Domain\Settings\Models\PaymentTerm;
 use Illuminate\Database\Eloquent\Model;
@@ -63,6 +67,8 @@ class GeneratePaymentScheduleAction
 
             $created++;
         }
+
+        $this->syncAdditionalCosts($payable);
 
         return $created;
     }
@@ -141,7 +147,97 @@ class GeneratePaymentScheduleAction
             $processed++;
         }
 
+        $this->syncAdditionalCosts($payable);
+
         return $processed;
+    }
+
+    protected function syncAdditionalCosts(Model $payable): void
+    {
+        if (! method_exists($payable, 'additionalCosts')) {
+            return;
+        }
+
+        $costs = $payable->additionalCosts()
+            ->whereNotIn('status', ['waived'])
+            ->get();
+
+        $maxSortOrder = PaymentScheduleItem::where('payable_type', get_class($payable))
+            ->where('payable_id', $payable->getKey())
+            ->max('sort_order') ?? 0;
+
+        foreach ($costs as $cost) {
+            $billableTo = $cost->billable_to instanceof BillableTo ? $cost->billable_to : BillableTo::from($cost->billable_to);
+
+            if ($billableTo === BillableTo::COMPANY) {
+                continue;
+            }
+
+            $schedulePayable = $this->resolvePayableForCost($cost, $payable, $billableTo);
+            if (! $schedulePayable) {
+                continue;
+            }
+
+            $existing = PaymentScheduleItem::where('source_type', AdditionalCost::class)
+                ->where('source_id', $cost->id)
+                ->first();
+
+            if ($existing) {
+                continue;
+            }
+
+            $isCredit = $billableTo === BillableTo::SUPPLIER;
+            $costTypeLabel = $cost->cost_type instanceof AdditionalCostType
+                ? $cost->cost_type->getLabel()
+                : $cost->cost_type;
+
+            $label = $isCredit
+                ? "Credit: {$cost->description}"
+                : "{$costTypeLabel}: {$cost->description}";
+
+            $maxSortOrder++;
+
+            PaymentScheduleItem::create([
+                'payable_type' => get_class($schedulePayable),
+                'payable_id' => $schedulePayable->getKey(),
+                'label' => mb_substr($label, 0, 100),
+                'percentage' => 0,
+                'amount' => $cost->amount_in_document_currency,
+                'currency_code' => $schedulePayable->currency_code ?? $cost->currency_code ?? 'USD',
+                'status' => PaymentScheduleStatus::DUE->value,
+                'is_blocking' => false,
+                'is_credit' => $isCredit,
+                'source_type' => AdditionalCost::class,
+                'source_id' => $cost->id,
+                'sort_order' => $maxSortOrder,
+                'notes' => $cost->notes,
+            ]);
+        }
+    }
+
+    protected function resolvePayableForCost(AdditionalCost $cost, Model $owner, BillableTo $billableTo): ?Model
+    {
+        if ($billableTo === BillableTo::CLIENT) {
+            if ($owner instanceof ProformaInvoice) {
+                return $owner;
+            }
+            if ($owner instanceof PurchaseOrder) {
+                return $owner->proformaInvoice;
+            }
+        }
+
+        if ($billableTo === BillableTo::SUPPLIER) {
+            if ($owner instanceof PurchaseOrder) {
+                return $owner;
+            }
+            if ($owner instanceof ProformaInvoice) {
+                $po = $owner->purchaseOrders()->first();
+
+                return $po ?: $owner;
+            }
+        }
+
+        return $owner;
     }
 
     protected function isBlockingCondition(?CalculationBase $condition): bool
