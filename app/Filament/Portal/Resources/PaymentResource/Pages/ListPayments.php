@@ -6,6 +6,7 @@ use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Filament\Portal\Resources\PaymentResource;
 use App\Filament\Portal\Widgets\PaymentsListStats;
@@ -46,8 +47,12 @@ class ListPayments extends ListRecords
             ->query(
                 PaymentScheduleItem::query()
                     ->with(['payable', 'paymentTermStage'])
-                    ->whereHasMorph('payable', [ProformaInvoice::class], function ($query) use ($tenant) {
-                        $query->where('company_id', $tenant->id);
+                    ->where(function ($query) use ($tenant) {
+                        $query->whereHasMorph('payable', [ProformaInvoice::class], function ($q) use ($tenant) {
+                            $q->where('company_id', $tenant->id);
+                        })->orWhereHasMorph('payable', [Shipment::class], function ($q) use ($tenant) {
+                            $q->where('company_id', $tenant->id);
+                        });
                     })
             )
             ->columns([
