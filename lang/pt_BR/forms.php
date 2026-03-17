@@ -296,6 +296,7 @@ return array (
     'package_to' => 'Pacote Para',
     'packages' => 'Pacotes',
     'packaging_type' => 'Tipo de Embalagem',
+    'include_freight' => 'Incluir Frete',
     'packing_list' => 'Lista de Embalagem',
     'packing_list_pdf' => 'PDF da Lista de Embalagem',
     'packing_list_prefix' => 'Prefixo da Lista de Embalagem',

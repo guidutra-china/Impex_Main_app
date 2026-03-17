@@ -295,6 +295,7 @@ return array (
     'package_to' => '包装结束',
     'packages' => '包裹',
     'packaging_type' => '包装类型',
+    'include_freight' => '包含运费',
     'packing_list' => '装箱单',
     'packing_list_pdf' => '装箱单 PDF',
     'packing_list_prefix' => '装箱单前缀',

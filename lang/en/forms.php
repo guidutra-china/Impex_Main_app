@@ -298,6 +298,7 @@ return array (
     'package_to' => 'Package To',
     'packages' => 'Packages',
     'packaging_type' => 'Packaging Type',
+    'include_freight' => 'Include Freight',
     'packing_list' => 'Packing List',
     'packing_list_pdf' => 'Packing List PDF',
     'packing_list_prefix' => 'Packing List Prefix',
