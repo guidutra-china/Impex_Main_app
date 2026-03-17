@@ -11,10 +11,12 @@ use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
+use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Planning\Models\ShipmentPlan;
 use App\Filament\Pages\Widgets\CashFlowProjection;
 use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
 use App\Filament\Resources\PurchaseOrders\PurchaseOrderResource;
+use App\Filament\Resources\Shipments\ShipmentResource;
 use App\Filament\Resources\ShipmentPlans\ShipmentPlanResource;
 use App\Filament\Pages\Widgets\FinancialStatsOverview;
 use BackedEnum;
@@ -247,6 +249,9 @@ class FinancialOverview extends Page implements HasTable
                         if ($payable instanceof ShipmentPlan) {
                             return $payable->supplierCompany?->name ?? '—';
                         }
+                        if ($payable instanceof Shipment) {
+                            return $payable->company?->name ?? '—';
+                        }
 
                         return '—';
                     })
@@ -297,6 +302,7 @@ class FinancialOverview extends Page implements HasTable
                             $payable instanceof ProformaInvoice => ProformaInvoiceResource::getUrl('edit', ['record' => $payable]),
                             $payable instanceof PurchaseOrder => PurchaseOrderResource::getUrl('edit', ['record' => $payable]),
                             $payable instanceof ShipmentPlan => ShipmentPlanResource::getUrl('edit', ['record' => $payable]),
+                            $payable instanceof Shipment => ShipmentResource::getUrl('edit', ['record' => $payable]),
                             default => null,
                         };
                     })
