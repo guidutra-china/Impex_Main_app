@@ -55,6 +55,18 @@ class ProductPackaging extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::saving(function (ProductPackaging $packaging) {
+            if ($packaging->carton_length > 0 && $packaging->carton_width > 0 && $packaging->carton_height > 0) {
+                $packaging->carton_cbm = round(
+                    ($packaging->carton_length * $packaging->carton_width * $packaging->carton_height) / 1_000_000,
+                    6
+                );
+            }
+        });
+    }
+
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);

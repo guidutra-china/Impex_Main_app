@@ -46,6 +46,10 @@ class GeneratePackingListAction
         $cartonWidth = (float) ($packaging->carton_width ?? 0);
         $cartonHeight = (float) ($packaging->carton_height ?? 0);
         $cartonCbm = (float) ($packaging->carton_cbm ?? 0);
+
+        if ($cartonCbm <= 0 && $cartonLength > 0 && $cartonWidth > 0 && $cartonHeight > 0) {
+            $cartonCbm = round(($cartonLength * $cartonWidth * $cartonHeight) / 1_000_000, 4);
+        }
         $cartonNetWeight = (float) ($packaging->carton_net_weight ?? 0);
 
         if ($fullCartons > 0) {
