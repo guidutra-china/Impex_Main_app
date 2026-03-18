@@ -306,7 +306,7 @@ class ItemsRelationManager extends RelationManager
                     ->label(__('forms.labels.incoterm'))
                     ->badge()
                     ->color('info')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(isToggledHiddenByDefault: false),
             ])
             ->reorderable('sort_order')
             ->defaultSort('sort_order')
