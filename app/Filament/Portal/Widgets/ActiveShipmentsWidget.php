@@ -41,6 +41,10 @@ class ActiveShipmentsWidget extends BaseWidget
                     ->badge(),
                 TextColumn::make('transport_mode')
                     ->badge(),
+                TextColumn::make('bl_number')
+                    ->label('B/L')
+                    ->copyable()
+                    ->placeholder('—'),
                 TextColumn::make('origin_port')
                     ->placeholder('—'),
                 TextColumn::make('destination_port')
