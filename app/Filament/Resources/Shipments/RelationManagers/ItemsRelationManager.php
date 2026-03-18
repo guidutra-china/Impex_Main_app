@@ -21,6 +21,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Table;
 use UnitEnum;
 
@@ -170,10 +171,13 @@ class ItemsRelationManager extends RelationManager
                         });
                     })
                     ->limit(40),
-                TextColumn::make('quantity')
+                TextInputColumn::make('quantity')
                     ->label(__('forms.labels.qty'))
                     ->alignCenter()
-                    ->weight('bold')
+                    ->rules(['required', 'integer', 'min:1'])
+                    ->afterStateUpdated(function ($record) {
+                        app(RecalculateShipmentTotalsAction::class)->execute($this->getOwnerRecord());
+                    })
                     ->summarize(Sum::make()->label(__('forms.labels.total'))),
                 TextColumn::make('unit')
                     ->placeholder('—'),
@@ -326,6 +330,13 @@ class ItemsRelationManager extends RelationManager
                             ->success()
                             ->title('Item added to shipment')
                             ->send();
+                    }),
+            ])
+            ->bulkActions([
+                \Filament\Actions\DeleteBulkAction::make()
+                    ->visible(fn () => auth()->user()?->can('edit-shipments'))
+                    ->after(function () {
+                        app(RecalculateShipmentTotalsAction::class)->execute($this->getOwnerRecord());
                     }),
             ])
             ->emptyStateHeading('No items')
