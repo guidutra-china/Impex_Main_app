@@ -40,9 +40,14 @@ class SendDocumentByEmailAction
                 }
 
                 try {
-                    $toEmail = $data['to'];
+                    $toAddresses = collect($data['to'])
+                        ->map(fn ($email) => trim($email))
+                        ->filter(fn ($email) => filter_var($email, FILTER_VALIDATE_EMAIL))
+                        ->unique()
+                        ->values()
+                        ->all();
 
-                    $mail = Mail::to($toEmail);
+                    $mail = Mail::to($toAddresses);
 
                     $ccAddresses = collect($data['cc'] ?? [])
                         ->map(fn ($email) => trim($email))
@@ -61,7 +66,7 @@ class SendDocumentByEmailAction
                         customMessage: $data['message'] ?? '',
                     ));
 
-                    $allRecipients = collect([$toEmail])->merge($ccAddresses)->join(', ');
+                    $allRecipients = collect($toAddresses)->merge($ccAddresses)->join(', ');
 
                     Notification::make()
                         ->title('Email Sent')
@@ -92,7 +97,8 @@ class SendDocumentByEmailAction
             Select::make('to')
                 ->label(__('forms.labels.to'))
                 ->options($emailOptions)
-                ->default($defaultTo)
+                ->default($defaultTo ? [$defaultTo] : [])
+                ->multiple()
                 ->searchable()
                 ->allowHtml()
                 ->required()
