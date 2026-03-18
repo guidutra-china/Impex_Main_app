@@ -127,6 +127,10 @@ class ItemsRelationManager extends RelationManager
                         $set('selected_supplier_id', $sqItem->supplierQuotation->company_id);
                         $set('unit_cost', Money::toMajor($sqItem->unit_cost));
 
+                        if ($sqItem->supplierQuotation->incoterm) {
+                            $set('incoterm', $sqItem->supplierQuotation->incoterm);
+                        }
+
                         $quotation = $this->getOwnerRecord();
                         $clientId = $quotation->company_id;
                         $productId = $get('product_id');
@@ -375,6 +379,10 @@ class ItemsRelationManager extends RelationManager
                 $set('supplier_quotation_item_id', $sqItem->id);
                 $set('selected_supplier_id', $sqItem->supplierQuotation->company_id);
                 $set('unit_cost', Money::toMajor($sqItem->unit_cost));
+
+                if ($sqItem->supplierQuotation->incoterm) {
+                    $set('incoterm', $sqItem->supplierQuotation->incoterm);
+                }
 
                 $clientPivot = $product->clients()
                     ->where('companies.id', $clientId)
