@@ -95,6 +95,7 @@ class GeneratePaymentScheduleAction
             ->where('payable_id', $payable->getKey())
             ->whereNull('source_type')
             ->whereNull('shipment_plan_id')
+            ->whereNull('shipment_id')
             ->whereNotIn('status', [
                 PaymentScheduleStatus::PAID->value,
                 PaymentScheduleStatus::WAIVED->value,
@@ -106,6 +107,7 @@ class GeneratePaymentScheduleAction
             ->where('payable_id', $payable->getKey())
             ->whereNull('source_type')
             ->whereNull('shipment_plan_id')
+            ->whereNull('shipment_id')
             ->get()
             ->keyBy('payment_term_stage_id');
 

@@ -3,12 +3,15 @@
 namespace App\Domain\Logistics\Actions;
 
 use App\Domain\Logistics\Models\Shipment;
+use App\Domain\Planning\Actions\ReconcileShipmentPlanAction;
 
 class RecalculateShipmentTotalsAction
 {
     public function execute(Shipment $shipment): void
     {
         $this->syncCurrencyCode($shipment);
+
+        $this->recalculatePaymentSchedule($shipment);
 
         $packingTotals = $shipment->packingListItems()
             ->selectRaw('SUM(total_gross_weight) as total_gross, SUM(total_net_weight) as total_net, SUM(total_volume) as total_vol, SUM(quantity) as total_pkgs')
@@ -35,6 +38,20 @@ class RecalculateShipmentTotalsAction
             'total_volume' => $itemTotals->total_volume,
             'total_packages' => null,
         ]);
+    }
+
+    protected function recalculatePaymentSchedule(Shipment $shipment): void
+    {
+        $plan = $shipment->shipmentPlan;
+
+        if ($plan && $plan->shipment_id) {
+            $plan->load('items.proformaInvoiceItem');
+            $shipment->load('items.proformaInvoiceItem');
+
+            app(ReconcileShipmentPlanAction::class)->execute($plan);
+        } else {
+            app(RecalculatePaymentScheduleForShipmentAction::class)->execute($shipment);
+        }
     }
 
     protected function syncCurrencyCode(Shipment $shipment): void

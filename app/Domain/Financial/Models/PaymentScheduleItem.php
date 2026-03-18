@@ -5,6 +5,7 @@ namespace App\Domain\Financial\Models;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Settings\Enums\CalculationBase;
+use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Planning\Models\ShipmentPlan;
 use App\Domain\Settings\Models\PaymentTermStage;
 use App\Models\User;
@@ -19,6 +20,7 @@ class PaymentScheduleItem extends Model
         'payable_type',
         'payable_id',
         'shipment_plan_id',
+        'shipment_id',
         'payment_term_stage_id',
         'label',
         'percentage',
@@ -67,6 +69,11 @@ class PaymentScheduleItem extends Model
     public function shipmentPlan(): BelongsTo
     {
         return $this->belongsTo(ShipmentPlan::class);
+    }
+
+    public function shipment(): BelongsTo
+    {
+        return $this->belongsTo(Shipment::class);
     }
 
     public function paymentTermStage(): BelongsTo

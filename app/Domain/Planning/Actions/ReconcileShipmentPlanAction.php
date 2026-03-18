@@ -4,6 +4,7 @@ namespace App\Domain\Planning\Actions;
 
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\Logistics\Actions\RecalculatePaymentScheduleForShipmentAction;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Planning\Models\ShipmentPlan;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
@@ -28,6 +29,7 @@ class ReconcileShipmentPlanAction
 
         DB::transaction(function () use ($plan, $shipment, &$adjustments) {
             $adjustments = $this->reconcilePayments($plan, $shipment);
+            $this->recalculateRemainingBaseItems($shipment);
         });
 
         return $adjustments;
@@ -94,6 +96,27 @@ class ReconcileShipmentPlanAction
         }
 
         return $adjustments;
+    }
+
+    protected function recalculateRemainingBaseItems(Shipment $shipment): void
+    {
+        $shipment->loadMissing('items.proformaInvoiceItem.proformaInvoice.paymentTerm.stages');
+
+        $piIds = $shipment->items
+            ->map(fn ($item) => $item->proformaInvoiceItem?->proforma_invoice_id)
+            ->filter()
+            ->unique();
+
+        foreach ($piIds as $piId) {
+            $pi = ProformaInvoice::with('paymentTerm.stages')->find($piId);
+
+            if (! $pi || ! $pi->paymentTerm) {
+                continue;
+            }
+
+            app(RecalculatePaymentScheduleForShipmentAction::class)
+                ->recalculateRemainingItems($pi, $pi->paymentTerm);
+        }
     }
 
     protected function updateDueDatesFromShipment(ShipmentPlan $plan, Shipment $shipment): void
