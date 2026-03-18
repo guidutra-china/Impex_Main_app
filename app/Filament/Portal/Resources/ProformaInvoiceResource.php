@@ -150,7 +150,8 @@ class ProformaInvoiceResource extends Resource
                         ->view('portal.infolists.pi-additional-costs-table')
                         ->columnSpanFull(),
                 ])
-                ->visible(fn ($record) => $record->clientBillableCosts->isNotEmpty())
+                ->visible(fn ($record) => $record->clientBillableCosts->isNotEmpty()
+                    && auth()->user()?->can('portal:view-financial-summary'))
                 ->columnSpanFull(),
 
             Section::make('Production Progress')
