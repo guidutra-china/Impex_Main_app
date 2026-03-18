@@ -119,7 +119,7 @@ class ConductAudit extends Page implements HasForms
 
                 $fields[] = Toggle::make("responses.{$criterion->id}.is_not_applicable")
                     ->label('N/A')
-                    ->helperText(__('forms.helpers.mark_as_not_applicable'))
+                    ->helperText('Mark as Not Applicable — will not count in scoring')
                     ->live()
                     ->afterStateUpdated(function ($state, \Filament\Schemas\Components\Utilities\Set $set) use ($criterion) {
                         if ($state) {
