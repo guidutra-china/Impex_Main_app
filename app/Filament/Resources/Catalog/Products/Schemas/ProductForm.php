@@ -492,7 +492,7 @@ class ProductForm
 
         if ($length > 0 && $width > 0 && $height > 0) {
             $cbm = ($length * $width * $height) / 1_000_000;
-            $set('carton_cbm', round($cbm, 6));
+            $set('carton_cbm', round($cbm, 4));
         }
     }
 }
