@@ -121,6 +121,68 @@ class AuditCategorySeeder extends Seeder
                     ['name' => 'Export documentation capability', 'description' => 'Verify ability to produce correct invoices, packing lists, certificates of origin, etc.', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 5],
                 ],
             ],
+            // === Mold/Tooling Specific Categories (mark N/A for non-tooling companies) ===
+            [
+                'name' => 'Engineering & Design Capability (Tooling)',
+                'description' => 'CAD/CAM software, mold flow analysis, DFM capability, and engineering change management — specific to mold/tooling companies',
+                'weight' => 15.00,
+                'sort_order' => 9,
+                'criteria' => [
+                    ['name' => 'CAD/CAM software (NX, CATIA, PowerMill, etc.)', 'description' => 'Evaluate available design software, licenses, and operator proficiency', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 1],
+                    ['name' => 'Mold flow analysis capability (Moldflow/CAE)', 'description' => 'Assess ability to simulate and optimize injection flow, cooling, and warpage', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 2],
+                    ['name' => 'Reverse engineering / 3D scanning', 'description' => 'Check equipment and capability for 3D scanning and reverse engineering', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 3],
+                    ['name' => 'Dedicated mold design team', 'description' => 'Verify existence and experience of dedicated mold design engineers', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 4],
+                    ['name' => 'DFM (Design for Manufacturing) capability', 'description' => 'Evaluate ability to provide DFM feedback and optimize part design for moldability', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 5],
+                    ['name' => 'Engineering Change Notice (ECN) management', 'description' => 'Verify documented process for managing design changes and version control', 'type' => 'pass_fail', 'is_critical' => false, 'sort_order' => 6],
+                ],
+            ],
+            [
+                'name' => 'Machining & Manufacturing (Tooling)',
+                'description' => 'CNC machining, EDM, grinding, and mold manufacturing capabilities — specific to mold/tooling companies',
+                'weight' => 20.00,
+                'sort_order' => 10,
+                'criteria' => [
+                    ['name' => 'CNC machining centers (3/5 axis)', 'description' => 'Evaluate quantity, capacity, precision level, and brand of CNC machines', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 1],
+                    ['name' => 'EDM wire-cut and sinker', 'description' => 'Assess EDM equipment availability, precision, and condition', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 2],
+                    ['name' => 'Precision grinding (CNC/conventional)', 'description' => 'Evaluate surface and cylindrical grinding capabilities', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 3],
+                    ['name' => 'Deep hole drilling capability', 'description' => 'Check gun drilling / deep hole drilling for cooling channels', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 4],
+                    ['name' => 'Large mold capacity (max tonnage)', 'description' => 'Evaluate maximum mold size and weight the facility can handle', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 5],
+                    ['name' => 'Texturing and polishing capability', 'description' => 'Assess surface finishing capabilities (mirror polish, texture, VDI)', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 6],
+                    ['name' => 'Hot runner system experience', 'description' => 'Evaluate knowledge and experience with hot runner brands and configurations', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 7],
+                ],
+            ],
+            [
+                'name' => 'Quality & Metrology (Tooling)',
+                'description' => 'APQP/PPAP process, CMM measurement, dimensional inspection — specific to mold/tooling companies',
+                'weight' => 20.00,
+                'sort_order' => 11,
+                'criteria' => [
+                    ['name' => 'APQP/PPAP process implemented', 'description' => 'Verify documented APQP process and ability to submit PPAP packages', 'type' => 'pass_fail', 'is_critical' => true, 'sort_order' => 1],
+                    ['name' => 'CMM (coordinate measuring machine)', 'description' => 'Verify CMM availability, brand, capacity, and calibration status', 'type' => 'pass_fail', 'is_critical' => true, 'sort_order' => 2],
+                    ['name' => 'IATF 16949 or equivalent automotive QMS', 'description' => 'Check automotive quality management system certification scope and validity', 'type' => 'pass_fail', 'is_critical' => false, 'sort_order' => 3],
+                    ['name' => 'In-process dimensional control during machining', 'description' => 'Evaluate on-machine probing and in-process measurement practices', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 4],
+                    ['name' => 'Final dimensional report with GD&T', 'description' => 'Assess ability to produce full dimensional reports with GD&T compliance', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 5],
+                    ['name' => 'Steel material traceability and certificates', 'description' => 'Verify that all steel has mill certificates and is traceable to heat/lot', 'type' => 'pass_fail', 'is_critical' => false, 'sort_order' => 6],
+                    ['name' => 'Process FMEA implemented', 'description' => 'Check for documented failure mode and effects analysis for critical operations', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 7],
+                    ['name' => 'Heat treatment control (hardness verification)', 'description' => 'Evaluate heat treatment process and hardness testing records', 'type' => 'pass_fail', 'is_critical' => false, 'sort_order' => 8],
+                ],
+            ],
+            [
+                'name' => 'Assembly, Try-out & After-Sales (Tooling)',
+                'description' => 'Mold assembly, injection try-out, delivery documentation, and post-delivery support — specific to mold/tooling companies',
+                'weight' => 15.00,
+                'sort_order' => 12,
+                'criteria' => [
+                    ['name' => 'Dedicated mold assembly area', 'description' => 'Inspect assembly area for cleanliness, tooling, and adequate space', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 1],
+                    ['name' => 'Injection molding machines for try-out', 'description' => 'Evaluate available tonnage range and condition of try-out presses', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 2],
+                    ['name' => 'Post try-out adjustment capability', 'description' => 'Assess ability to correct issues identified during try-out efficiently', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 3],
+                    ['name' => 'Mold manual and delivery documentation', 'description' => 'Verify delivery includes mold manual, dimensional report, steel certificates, and maintenance guide', 'type' => 'pass_fail', 'is_critical' => false, 'sort_order' => 4],
+                    ['name' => 'Packaging and transport protection', 'description' => 'Evaluate mold packaging, rust protection, and transport safety practices', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 5],
+                    ['name' => 'Post-delivery technical support', 'description' => 'Assess responsiveness and capability for remote and on-site support after delivery', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 6],
+                    ['name' => 'Spare parts availability', 'description' => 'Check if critical spare parts (inserts, slides, ejector pins) are provided or available', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 7],
+                    ['name' => 'Warranty terms (cycles/time)', 'description' => 'Evaluate warranty conditions offered on mold lifecycle and shot count', 'type' => 'scored', 'is_critical' => false, 'sort_order' => 8],
+                ],
+            ],
         ];
 
         foreach ($categories as $categoryData) {

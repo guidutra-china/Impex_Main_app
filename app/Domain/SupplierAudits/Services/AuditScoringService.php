@@ -31,6 +31,7 @@ class AuditScoringService
 
             $scoredValues = [];
             $allPassed = true;
+            $applicableCriteria = 0;
 
             foreach ($criteria as $criterion) {
                 $response = $audit->responses
@@ -39,6 +40,13 @@ class AuditScoringService
                 if (! $response) {
                     continue;
                 }
+
+                // Skip N/A responses — they don't count in scoring
+                if ($response->is_not_applicable) {
+                    continue;
+                }
+
+                $applicableCriteria++;
 
                 if ($criterion->type->value === 'scored' && $response->score !== null) {
                     $scoredValues[] = $response->score;
@@ -56,15 +64,19 @@ class AuditScoringService
                 ? array_sum($scoredValues) / count($scoredValues)
                 : null;
 
+            $responsesForCategory = $audit->responses
+                ->whereIn('audit_criterion_id', $criteria->pluck('id'));
+
             $categoryScores[$category->id] = [
                 'name' => $category->name,
                 'weight' => $category->weight,
                 'average' => $categoryAverage,
                 'all_passed' => $allPassed,
                 'criteria_count' => $criteria->count(),
-                'answered_count' => $audit->responses
-                    ->whereIn('audit_criterion_id', $criteria->pluck('id'))
-                    ->filter(fn ($r) => $r->score !== null || $r->passed !== null)
+                'applicable_count' => $applicableCriteria,
+                'na_count' => $responsesForCategory->where('is_not_applicable', true)->count(),
+                'answered_count' => $responsesForCategory
+                    ->filter(fn ($r) => $r->is_not_applicable || $r->score !== null || $r->passed !== null)
                     ->count(),
             ];
 

@@ -12,6 +12,7 @@ class AuditResponse extends Model
         'audit_criterion_id',
         'score',
         'passed',
+        'is_not_applicable',
         'notes',
     ];
 
@@ -20,6 +21,7 @@ class AuditResponse extends Model
         return [
             'score' => 'integer',
             'passed' => 'boolean',
+            'is_not_applicable' => 'boolean',
         ];
     }
 

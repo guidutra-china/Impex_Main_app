@@ -11,10 +11,10 @@ use App\Domain\SupplierAudits\Services\AuditScoringService;
 use App\Filament\Resources\CRM\SupplierAudits\SupplierAuditResource;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
@@ -84,6 +84,7 @@ class ConductAudit extends Page implements HasForms
                 $this->responses[$criterion->id] = [
                     'score' => $existing?->score,
                     'passed' => $existing?->passed,
+                    'is_not_applicable' => $existing?->is_not_applicable ?? false,
                     'notes' => $existing?->notes ?? '',
                 ];
             }
@@ -101,31 +102,49 @@ class ConductAudit extends Page implements HasForms
 
         foreach ($categories as $category) {
             $criteriaFields = [];
+            $answeredCount = 0;
+            $totalCount = count($category->criteria);
 
             foreach ($category->criteria as $criterion) {
-                $fields = [
-                    Placeholder::make("criterion_label_{$criterion->id}")
-                        ->label($criterion->name)
-                        ->content($criterion->description ?: 'No guidance notes')
-                        ->columnSpanFull(),
-                ];
+                $responseData = $this->responses[$criterion->id] ?? [];
+                $hasAnswer = ($responseData['is_not_applicable'] ?? false)
+                    || ($responseData['score'] ?? null) !== null
+                    || ($responseData['passed'] ?? null) !== null;
+
+                if ($hasAnswer) {
+                    $answeredCount++;
+                }
+
+                $fields = [];
+
+                $fields[] = Toggle::make("responses.{$criterion->id}.is_not_applicable")
+                    ->label('N/A')
+                    ->helperText(__('forms.helpers.mark_as_not_applicable'))
+                    ->live()
+                    ->afterStateUpdated(function ($state, \Filament\Schemas\Components\Utilities\Set $set) use ($criterion) {
+                        if ($state) {
+                            $set("responses.{$criterion->id}.score", null);
+                            $set("responses.{$criterion->id}.passed", null);
+                        }
+                    });
 
                 if ($criterion->type === CriterionType::SCORED) {
                     $fields[] = Radio::make("responses.{$criterion->id}.score")
                         ->label(__('forms.labels.score'))
                         ->options([
-                            1 => '1 - Critical Non-Conformance',
-                            2 => '2 - Major Non-Conformance',
-                            3 => '3 - Minor Non-Conformance',
-                            4 => '4 - Acceptable',
+                            1 => '1 - Critical',
+                            2 => '2 - Major NC',
+                            3 => '3 - Minor NC',
+                            4 => '4 - OK',
                             5 => '5 - Excellent',
                         ])
-                        ->inline();
+                        ->disabled(fn (Get $get) => $get("responses.{$criterion->id}.is_not_applicable"));
                 } else {
                     $fields[] = Toggle::make("responses.{$criterion->id}.passed")
                         ->label(__('forms.labels.pass'))
                         ->onColor('success')
-                        ->offColor('danger');
+                        ->offColor('danger')
+                        ->disabled(fn (Get $get) => $get("responses.{$criterion->id}.is_not_applicable"));
                 }
 
                 $fields[] = Textarea::make("responses.{$criterion->id}.notes")
@@ -134,21 +153,29 @@ class ConductAudit extends Page implements HasForms
                     ->placeholder(__('forms.placeholders.observations_evidence_or_findings'))
                     ->columnSpanFull();
 
-                $criteriaFields[] = Section::make($criterion->name . ($criterion->is_critical ? ' ⚠️ CRITICAL' : ''))
+                $sectionLabel = $criterion->is_critical
+                    ? $criterion->name . ' ⚠️ CRITICAL'
+                    : $criterion->name;
+
+                $criteriaFields[] = Section::make($sectionLabel)
                     ->description($criterion->description)
                     ->schema($fields)
                     ->collapsible()
-                    ->collapsed(false);
+                    ->collapsed($hasAnswer)
+                    ->extraAttributes($criterion->is_critical ? ['class' => 'criterion-critical'] : []);
             }
 
+            $badgeLabel = "{$answeredCount}/{$totalCount}";
+
             $tabs[] = Tab::make($category->name)
-                ->icon('heroicon-o-clipboard-document-list')
-                ->badge(count($category->criteria))
+                ->icon($answeredCount === $totalCount ? 'heroicon-o-check-circle' : 'heroicon-o-clipboard-document-list')
+                ->badge($badgeLabel)
+                ->badgeColor($answeredCount === $totalCount ? 'success' : ($answeredCount > 0 ? 'warning' : 'gray'))
                 ->schema($criteriaFields);
         }
 
         $tabs[] = Tab::make(__('forms.tabs.documents_photos'))
-            ->icon('heroicon-o-photo')
+            ->icon('heroicon-o-camera')
             ->schema([
                 FileUpload::make('documents')
                     ->label(__('forms.labels.upload_documents_photos'))
@@ -162,6 +189,10 @@ class ConductAudit extends Page implements HasForms
                         'application/msword',
                         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                     ])
+                    ->imageEditor()
+                    ->imageResizeMode('cover')
+                    ->imageResizeTargetWidth('1920')
+                    ->imageResizeTargetHeight('1920')
                     ->helperText(__('forms.helpers.upload_photos_certificates_reports_or_any_supporting'))
                     ->columnSpanFull(),
             ]);
@@ -191,7 +222,9 @@ class ConductAudit extends Page implements HasForms
                         continue;
                     }
 
-                    $hasData = ($responseData['score'] ?? null) !== null
+                    $isNA = $responseData['is_not_applicable'] ?? false;
+                    $hasData = $isNA
+                        || ($responseData['score'] ?? null) !== null
                         || ($responseData['passed'] ?? null) !== null
                         || ! empty($responseData['notes']);
 
@@ -205,8 +238,9 @@ class ConductAudit extends Page implements HasForms
                             'audit_criterion_id' => $criterion->id,
                         ],
                         [
-                            'score' => $criterion->type === CriterionType::SCORED ? ($responseData['score'] ?? null) : null,
-                            'passed' => $criterion->type === CriterionType::PASS_FAIL ? ($responseData['passed'] ?? false) : null,
+                            'score' => (! $isNA && $criterion->type === CriterionType::SCORED) ? ($responseData['score'] ?? null) : null,
+                            'passed' => (! $isNA && $criterion->type === CriterionType::PASS_FAIL) ? ($responseData['passed'] ?? false) : null,
+                            'is_not_applicable' => $isNA,
                             'notes' => $responseData['notes'] ?? null,
                         ]
                     );
