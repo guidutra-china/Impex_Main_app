@@ -32,7 +32,7 @@ class DocumentMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.document',
+            markdown: 'emails.document',
         );
     }
 
