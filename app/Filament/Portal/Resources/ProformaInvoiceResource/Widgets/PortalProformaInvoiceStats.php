@@ -90,10 +90,17 @@ class PortalProformaInvoiceStats extends Widget
         $mappedSchedule = $scheduleItems->values()->map(fn ($item) => [
             'label' => $item->label,
             'status' => $item->status,
+            'status_value' => $item->status->value,
+            'status_label' => $item->status->getLabel(),
+            'status_color' => $item->status->getColor(),
+            'status_icon' => $item->status->getIcon(),
             'due_date' => $item->due_date?->format('M d, Y'),
+            'due_date_sort' => $item->due_date?->format('Y-m-d') ?? '',
             'percentage' => $item->percentage,
             'amount' => Money::format(abs($item->amount)),
+            'amount_raw' => abs($item->amount),
             'paid' => Money::format($item->paid_amount),
+            'paid_raw' => $item->paid_amount,
             'remaining' => Money::format($item->remaining_amount),
             'remaining_raw' => $item->remaining_amount,
             'is_credit' => $item->is_credit,
@@ -104,6 +111,13 @@ class PortalProformaInvoiceStats extends Widget
         $totalSchedulePaid = $regularItems->sum(fn ($i) => $i->paid_amount);
         $totalScheduleRemaining = max(0, $totalScheduleAmount - $totalSchedulePaid);
 
+        $statusOptions = $scheduleItems
+            ->pluck('status')
+            ->unique()
+            ->map(fn ($s) => ['value' => $s->value, 'label' => $s->getLabel()])
+            ->values()
+            ->all();
+
         return [
             'heading' => __('widgets.document_summary.financial_summary'),
             'icon' => 'heroicon-o-banknotes',
@@ -111,6 +125,7 @@ class PortalProformaInvoiceStats extends Widget
             'cards' => $cards,
             'progress' => $progress,
             'scheduleItems' => $mappedSchedule,
+            'statusOptions' => $statusOptions,
             'totals' => [
                 'amount' => Money::format($totalScheduleAmount),
                 'paid' => Money::format($totalSchedulePaid),
@@ -156,6 +171,7 @@ class PortalProformaInvoiceStats extends Widget
             'cards' => [],
             'progress' => null,
             'scheduleItems' => [],
+            'statusOptions' => [],
             'totals' => ['amount' => '0.00', 'paid' => '0.00', 'remaining' => '0.00', 'remaining_raw' => 0],
             'unallocatedTotal' => 0,
             'unallocatedFormatted' => '0.00',
