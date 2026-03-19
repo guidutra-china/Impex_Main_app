@@ -111,6 +111,10 @@ class ListPayments extends ListRecords
                     ->copyable(),
                 TextColumn::make('label')
                     ->label(__('forms.labels.label'))
+                    ->formatStateUsing(function ($state) {
+                        // Remove "30% — " prefix since percentage and condition have their own columns
+                        return preg_replace('/^\d+%\s*[—–-]\s*/', '', $state ?? '');
+                    })
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('percentage')
