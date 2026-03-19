@@ -62,6 +62,12 @@ class ShipmentResource extends Resource
                     ->sortable()
                     ->weight('bold')
                     ->copyable(),
+                TextColumn::make('bl_number')
+                    ->label('B/L Number')
+                    ->searchable()
+                    ->sortable()
+                    ->copyable()
+                    ->placeholder('—'),
                 TextColumn::make('status')
                     ->badge(),
                 TextColumn::make('transport_mode')
@@ -83,10 +89,6 @@ class ShipmentResource extends Resource
                     ->date('d/m/Y')
                     ->sortable()
                     ->placeholder('—'),
-                TextColumn::make('bl_number')
-                    ->label('B/L Number')
-                    ->placeholder('—')
-                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('container_number')
                     ->label('Container')
                     ->placeholder('—')
