@@ -21,6 +21,17 @@ class UpcomingPaymentsWidget extends Widget
 
     protected function getViewData(): array
     {
+        try {
+            return $this->buildViewData();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return $this->emptyState();
+        }
+    }
+
+    private function buildViewData(): array
+    {
         $tenant = Filament::getTenant();
 
         if (! $tenant) {
@@ -97,8 +108,7 @@ class UpcomingPaymentsWidget extends Widget
                 'remaining_raw' => $item->remaining_amount,
                 'currency' => $item->currency_code ?? 'USD',
                 'due_date' => $item->due_date?->format('d/m/Y'),
-                'days_until' => $item->due_date ? (int) $today->diffInDays($item->due_date, false) : null,
-                'status' => $item->status,
+                'days_until' => $item->due_date ? (int) $today->diffInDays($item->due_date, absolute: false) : null,
                 'status_label' => $item->status->getLabel(),
                 'status_color' => $item->status->getColor(),
             ];

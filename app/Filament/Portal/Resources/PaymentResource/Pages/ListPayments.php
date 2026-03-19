@@ -28,6 +28,7 @@ class ListPayments extends ListRecords
     protected function getHeaderWidgets(): array
     {
         return [
+            \App\Filament\Portal\Widgets\PaymentsListStats::class,
             \App\Filament\Portal\Widgets\UpcomingPaymentsWidget::class,
         ];
     }
