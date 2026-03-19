@@ -144,7 +144,8 @@
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-2.5 text-right font-mono font-medium">
                                     <span @class([
-                                        'text-success-600 dark:text-success-400' => $item['shipped'] >= $item['quantity'],
+                                        'font-bold text-danger-600 dark:text-danger-400' => $item['shipped'] > $item['quantity'],
+                                        'text-success-600 dark:text-success-400' => $item['shipped'] === $item['quantity'],
                                         'text-primary-600 dark:text-primary-400' => $item['shipped'] > 0 && $item['shipped'] < $item['quantity'],
                                         'text-gray-400 dark:text-gray-500' => $item['shipped'] === 0,
                                     ])>{{ number_format($item['shipped']) }}</span>
