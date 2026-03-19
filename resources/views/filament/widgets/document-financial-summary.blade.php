@@ -131,6 +131,10 @@
                             this.sortDir = 'asc';
                         }
                     },
+                    sortIcon(col) {
+                        if (this.sortCol !== col) return 'inactive';
+                        return this.sortDir;
+                    },
                     get filteredItems() {
                         let result = this.items;
                         if (this.filterStatus) {
@@ -202,83 +206,40 @@
                         <thead>
                             <tr class="border-b-2 border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/5">
                                 <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">#</th>
-                                <th
-                                    x-on:click="toggleSort('label')"
-                                    class="cursor-pointer select-none px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                                >
-                                    <span class="inline-flex items-center gap-1">
-                                        Stage
-                                        <template x-if="sortCol === 'label'">
-                                            <svg class="h-3 w-3" :class="sortDir === 'desc' && 'rotate-180'" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
-                                        </template>
-                                    </span>
-                                </th>
-                                <th
-                                    x-on:click="toggleSort('status_value')"
-                                    class="cursor-pointer select-none px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                                >
-                                    <span class="inline-flex items-center gap-1">
-                                        Status
-                                        <template x-if="sortCol === 'status_value'">
-                                            <svg class="h-3 w-3" :class="sortDir === 'desc' && 'rotate-180'" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
-                                        </template>
-                                    </span>
-                                </th>
-                                <th
-                                    x-on:click="toggleSort('due_date_sort')"
-                                    class="cursor-pointer select-none px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                                >
-                                    <span class="inline-flex items-center gap-1">
-                                        Due Date
-                                        <template x-if="sortCol === 'due_date_sort'">
-                                            <svg class="h-3 w-3" :class="sortDir === 'desc' && 'rotate-180'" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
-                                        </template>
-                                    </span>
-                                </th>
-                                <th
-                                    x-on:click="toggleSort('percentage')"
-                                    class="cursor-pointer select-none px-4 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                                >
-                                    <span class="inline-flex items-center justify-end gap-1">
-                                        %
-                                        <template x-if="sortCol === 'percentage'">
-                                            <svg class="h-3 w-3" :class="sortDir === 'desc' && 'rotate-180'" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
-                                        </template>
-                                    </span>
-                                </th>
-                                <th
-                                    x-on:click="toggleSort('amount_raw')"
-                                    class="cursor-pointer select-none px-4 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                                >
-                                    <span class="inline-flex items-center justify-end gap-1">
-                                        Amount
-                                        <template x-if="sortCol === 'amount_raw'">
-                                            <svg class="h-3 w-3" :class="sortDir === 'desc' && 'rotate-180'" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
-                                        </template>
-                                    </span>
-                                </th>
-                                <th
-                                    x-on:click="toggleSort('paid_raw')"
-                                    class="cursor-pointer select-none px-4 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                                >
-                                    <span class="inline-flex items-center justify-end gap-1">
-                                        Paid
-                                        <template x-if="sortCol === 'paid_raw'">
-                                            <svg class="h-3 w-3" :class="sortDir === 'desc' && 'rotate-180'" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
-                                        </template>
-                                    </span>
-                                </th>
-                                <th
-                                    x-on:click="toggleSort('remaining_raw')"
-                                    class="cursor-pointer select-none px-4 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                                >
-                                    <span class="inline-flex items-center justify-end gap-1">
-                                        Remaining
-                                        <template x-if="sortCol === 'remaining_raw'">
-                                            <svg class="h-3 w-3" :class="sortDir === 'desc' && 'rotate-180'" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
-                                        </template>
-                                    </span>
-                                </th>
+                                @php
+                                    $sortableCols = [
+                                        ['key' => 'label', 'label' => 'Stage', 'align' => 'left'],
+                                        ['key' => 'status_value', 'label' => 'Status', 'align' => 'left'],
+                                        ['key' => 'due_date_sort', 'label' => 'Due Date', 'align' => 'left'],
+                                        ['key' => 'percentage', 'label' => '%', 'align' => 'right'],
+                                        ['key' => 'amount_raw', 'label' => 'Amount', 'align' => 'right'],
+                                        ['key' => 'paid_raw', 'label' => 'Paid', 'align' => 'right'],
+                                        ['key' => 'remaining_raw', 'label' => 'Remaining', 'align' => 'right'],
+                                    ];
+                                @endphp
+                                @foreach ($sortableCols as $col)
+                                    <th
+                                        x-on:click="toggleSort('{{ $col['key'] }}')"
+                                        class="cursor-pointer select-none px-4 py-3 text-{{ $col['align'] }} text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+                                    >
+                                        <span class="inline-flex items-center {{ $col['align'] === 'right' ? 'justify-end' : '' }} gap-1">
+                                            {{ $col['label'] }}
+                                            {{-- Inactive: both arrows (faded) --}}
+                                            <span x-show="sortCol !== '{{ $col['key'] }}'" class="inline-flex flex-col text-gray-300 dark:text-gray-600">
+                                                <svg class="h-2.5 w-2.5 -mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
+                                                <svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                                            </span>
+                                            {{-- Active asc: up arrow --}}
+                                            <span x-show="sortCol === '{{ $col['key'] }}' && sortDir === 'asc'" class="text-primary-600 dark:text-primary-400">
+                                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
+                                            </span>
+                                            {{-- Active desc: down arrow --}}
+                                            <span x-show="sortCol === '{{ $col['key'] }}' && sortDir === 'desc'" class="text-primary-600 dark:text-primary-400">
+                                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                                            </span>
+                                        </span>
+                                    </th>
+                                @endforeach
                             </tr>
                         </thead>
                         <tbody>
