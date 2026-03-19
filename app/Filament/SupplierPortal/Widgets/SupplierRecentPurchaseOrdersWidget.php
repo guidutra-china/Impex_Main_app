@@ -3,9 +3,11 @@
 namespace App\Filament\SupplierPortal\Widgets;
 
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use Filament\Facades\Filament;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 
@@ -31,7 +33,15 @@ class SupplierRecentPurchaseOrdersWidget extends BaseWidget
                     ->limit(10)
             )
             ->columns([
+                TextColumn::make('supplier_invoice_number')
+                    ->label(__('forms.labels.supplier_invoice'))
+                    ->searchable()
+                    ->sortable()
+                    ->copyable()
+                    ->placeholder('—'),
                 TextColumn::make('reference')
+                    ->searchable()
+                    ->sortable()
                     ->weight('bold')
                     ->copyable(),
                 TextColumn::make('status')
@@ -44,6 +54,10 @@ class SupplierRecentPurchaseOrdersWidget extends BaseWidget
                     ->label('Total')
                     ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? 'USD') . ' ' . Money::format($state, 2))
                     ->alignRight(),
+            ])
+            ->filters([
+                SelectFilter::make('status')
+                    ->options(PurchaseOrderStatus::class),
             ])
             ->paginated(false)
             ->emptyStateHeading('No purchase orders')
