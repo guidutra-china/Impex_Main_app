@@ -1,4 +1,12 @@
 <x-filament-panels::page>
+    @if (method_exists($this, 'getHeaderWidgets') && count($this->getHeaderWidgets()) > 0)
+        <x-filament-widgets::widgets
+            :widgets="$this->getVisibleHeaderWidgets()"
+            :columns="$this->getHeaderWidgetsColumns()"
+            :data="['activeTab' => $this->activeTab ?? null]"
+        />
+    @endif
+
     <x-filament::tabs>
         <x-filament::tabs.item
             :active="$currentView === 'payments'"

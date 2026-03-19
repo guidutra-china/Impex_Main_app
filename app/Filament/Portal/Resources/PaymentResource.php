@@ -9,6 +9,7 @@ use App\Domain\Infrastructure\Support\Money;
 use App\Filament\Portal\Resources\PaymentResource\Pages;
 use App\Filament\Portal\Resources\PaymentResource\Widgets\PortalPaymentAllocations;
 use App\Filament\Portal\Widgets\PaymentsListStats;
+use App\Filament\Portal\Widgets\UpcomingPaymentsWidget;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ViewEntry;
 use BackedEnum;
@@ -148,6 +149,7 @@ class PaymentResource extends Resource
         return [
             PortalPaymentAllocations::class,
             PaymentsListStats::class,
+            UpcomingPaymentsWidget::class,
         ];
     }
 

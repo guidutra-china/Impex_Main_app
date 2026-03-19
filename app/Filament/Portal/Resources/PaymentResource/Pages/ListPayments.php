@@ -25,6 +25,14 @@ class ListPayments extends ListRecords
 
     public string $currentView = 'payments';
 
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            \App\Filament\Portal\Widgets\UpcomingPaymentsWidget::class,
+            \App\Filament\Portal\Widgets\PaymentsListStats::class,
+        ];
+    }
+
     public function getTitle(): string|Htmlable
     {
         return __('navigation.resources.payments');
