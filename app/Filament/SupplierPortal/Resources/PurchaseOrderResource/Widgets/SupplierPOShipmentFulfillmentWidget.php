@@ -135,7 +135,7 @@ class SupplierPOShipmentFulfillmentWidget extends Widget
         $baseQuery = $this->buildShipmentItemQuery($poItem)->with('shipment');
 
         return $baseQuery->get()
-            ->pluck('shipment.reference')
+            ->map(fn ($si) => $si->shipment?->bl_number ?: $si->shipment?->reference)
             ->filter()
             ->unique()
             ->values()
