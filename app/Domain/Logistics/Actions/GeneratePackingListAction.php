@@ -52,6 +52,11 @@ class GeneratePackingListAction
         }
         $cartonNetWeight = (float) ($packaging->carton_net_weight ?? 0);
 
+        // Default net weight to 90% of gross weight if not set
+        if ($cartonNetWeight <= 0 && $cartonWeight > 0) {
+            $cartonNetWeight = round($cartonWeight * 0.9, 3);
+        }
+
         if ($fullCartons > 0) {
             $cartonFrom = $cartonCounter + 1;
             $cartonTo = $cartonCounter + $fullCartons;

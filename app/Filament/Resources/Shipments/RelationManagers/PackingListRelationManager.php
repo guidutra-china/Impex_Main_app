@@ -96,8 +96,17 @@ class PackingListRelationManager extends RelationManager
                     if ($packaging->carton_height > 0) {
                         $set('height', (float) $packaging->carton_height);
                     }
+
+                    // Calculate CBM from dimensions if not stored
                     if ($packaging->carton_cbm > 0) {
                         $set('volume', (float) $packaging->carton_cbm);
+                    } elseif ($packaging->carton_length > 0 && $packaging->carton_width > 0 && $packaging->carton_height > 0) {
+                        $set('volume', round(($packaging->carton_length * $packaging->carton_width * $packaging->carton_height) / 1_000_000, 4));
+                    }
+
+                    // Default net_weight to 90% of gross_weight if not set
+                    if (! ($packaging->carton_net_weight > 0) && $packaging->carton_weight > 0) {
+                        $set('net_weight', round((float) $packaging->carton_weight * 0.9, 3));
                     }
                 }),
 
@@ -185,13 +194,24 @@ class PackingListRelationManager extends RelationManager
                             ->label(__('forms.labels.gross_weight_kg'))
                             ->numeric()
                             ->live(onBlur: true)
-                            ->afterStateUpdated(fn (Get $get, Set $set) => static::recalculateWeightVolumeTotals($get, $set)),
+                            ->afterStateUpdated(function (Get $get, Set $set) {
+                                $grossWeight = (float) $get('gross_weight');
+                                $netWeight = (float) $get('net_weight');
+
+                                // Auto-fill net_weight as 90% of gross if empty
+                                if ($grossWeight > 0 && ! $netWeight) {
+                                    $set('net_weight', round($grossWeight * 0.9, 3));
+                                }
+
+                                static::recalculateWeightVolumeTotals($get, $set);
+                            }),
 
                         TextInput::make('net_weight')
                             ->label(__('forms.labels.net_weight_kg'))
                             ->numeric()
                             ->live(onBlur: true)
-                            ->afterStateUpdated(fn (Get $get, Set $set) => static::recalculateWeightVolumeTotals($get, $set)),
+                            ->afterStateUpdated(fn (Get $get, Set $set) => static::recalculateWeightVolumeTotals($get, $set))
+                            ->helperText(__('forms.helpers.defaults_to_90_of_gross_weight')),
                     ]),
 
                     Grid::make(4)->schema([
