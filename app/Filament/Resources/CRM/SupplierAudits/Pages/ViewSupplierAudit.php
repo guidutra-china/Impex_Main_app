@@ -28,6 +28,13 @@ class ViewSupplierAudit extends ViewRecord
                 ->url(fn () => SupplierAuditResource::getUrl('conduct', ['record' => $this->record]))
                 ->visible(fn () => in_array($this->record->status, [AuditStatus::SCHEDULED, AuditStatus::IN_PROGRESS])),
 
+            Action::make('editScores')
+                ->label(__('forms.labels.edit_scores'))
+                ->icon('heroicon-o-pencil-square')
+                ->color('warning')
+                ->url(fn () => SupplierAuditResource::getUrl('conduct', ['record' => $this->record]))
+                ->visible(fn () => $this->record->status === AuditStatus::COMPLETED),
+
             Action::make('complete')
                 ->label(__('forms.labels.complete_audit'))
                 ->icon('heroicon-o-check-circle')

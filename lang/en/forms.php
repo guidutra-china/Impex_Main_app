@@ -107,6 +107,7 @@ return array (
     'condition' => 'Condition',
     'conduct' => 'Conduct',
     'conduct_audit' => 'Conduct Audit',
+    'edit_scores' => 'Edit Scores',
     'conducted' => 'Conducted',
     'conducted_date' => 'Conducted Date',
     'confirmation_method' => 'Confirmation Method',

@@ -106,6 +106,7 @@ return array (
     'condition' => 'Condição',
     'conduct' => 'Realizar',
     'conduct_audit' => 'Realizar Auditoria',
+    'edit_scores' => 'Editar Pontuações',
     'conducted' => 'Realizado',
     'conducted_date' => 'Data da Realização',
     'confirmation_method' => 'Método de Confirmação',

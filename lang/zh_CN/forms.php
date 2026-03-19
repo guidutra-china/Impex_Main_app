@@ -106,6 +106,7 @@ return array (
     'condition' => '条件',
     'conduct' => '执行',
     'conduct_audit' => '执行审核',
+    'edit_scores' => '编辑评分',
     'conducted' => '已执行',
     'conducted_date' => '执行日期',
     'confirmation_method' => '确认方式',

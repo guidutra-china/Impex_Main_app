@@ -44,7 +44,7 @@ class ConductAudit extends Page implements HasForms
     {
         $this->record = $this->resolveRecord($record);
 
-        if (! in_array($this->record->status, [AuditStatus::SCHEDULED, AuditStatus::IN_PROGRESS])) {
+        if (! in_array($this->record->status, [AuditStatus::SCHEDULED, AuditStatus::IN_PROGRESS, AuditStatus::COMPLETED])) {
             Notification::make()
                 ->title(__('messages.audit_cannot_modify'))
                 ->warning()
@@ -161,7 +161,6 @@ class ConductAudit extends Page implements HasForms
                     ->description($criterion->description)
                     ->schema($fields)
                     ->collapsible()
-                    ->collapsed($hasAnswer)
                     ->extraAttributes($criterion->is_critical ? ['class' => 'criterion-critical'] : []);
             }
 
