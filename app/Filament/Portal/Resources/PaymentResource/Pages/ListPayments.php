@@ -74,7 +74,8 @@ class ListPayments extends ListRecords
                         'Shipment' => 'info',
                         'PO' => 'warning',
                         default => 'gray',
-                    }),
+                    })
+                    ->sortable(query: fn ($query, string $direction) => $query->orderBy('payable_type', $direction)),
                 TextColumn::make('payable_ref')
                     ->label(__('forms.labels.reference'))
                     ->state(fn ($record) => $record->payable?->reference ?? '—')
