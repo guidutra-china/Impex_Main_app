@@ -7,11 +7,14 @@ use App\Filament\Actions\PasteItemsFromSpreadsheetAction;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\DB;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -248,6 +251,56 @@ class ItemsRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make()
                     ->visible(fn () => auth()->user()?->can('edit-supplier-quotations')),
+                Action::make('importInquiryItems')
+                    ->label(__('forms.labels.import_inquiry_items'))
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('info')
+                    ->visible(fn () => $this->getOwnerRecord()->inquiry_id
+                        && $this->getOwnerRecord()->items()->count() === 0
+                        && auth()->user()?->can('edit-supplier-quotations'))
+                    ->requiresConfirmation()
+                    ->modalHeading('Import Items from Inquiry')
+                    ->modalDescription('This will copy all items from the linked inquiry into this supplier quotation.')
+                    ->action(function () {
+                        try {
+                            $record = $this->getOwnerRecord();
+                            $inquiry = $record->inquiry;
+                            if (! $inquiry) {
+                                throw new \RuntimeException('No inquiry linked.');
+                            }
+
+                            $count = 0;
+                            DB::transaction(function () use ($record, $inquiry, &$count) {
+                                foreach ($inquiry->items as $item) {
+                                    SupplierQuotationItem::create([
+                                        'supplier_quotation_id' => $record->id,
+                                        'inquiry_item_id' => $item->id,
+                                        'product_id' => $item->product_id,
+                                        'description' => $item->description,
+                                        'quantity' => $item->quantity,
+                                        'unit' => $item->unit,
+                                        'unit_cost' => 0,
+                                        'specifications' => $item->specifications,
+                                        'notes' => $item->notes,
+                                        'sort_order' => $item->sort_order,
+                                    ]);
+                                    $count++;
+                                }
+                            });
+
+                            Notification::make()
+                                ->title("{$count} items imported from inquiry")
+                                ->body($inquiry->reference)
+                                ->success()
+                                ->send();
+                        } catch (\Throwable $e) {
+                            Notification::make()
+                                ->title(__('messages.import_failed'))
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
                 PasteItemsFromSpreadsheetAction::forSupplierQuotationItems(),
             ])
             ->recordActions([
