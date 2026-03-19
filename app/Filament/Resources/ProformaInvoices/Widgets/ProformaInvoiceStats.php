@@ -91,7 +91,6 @@ class ProformaInvoiceStats extends Widget
 
         $mappedSchedule = $scheduleItems->values()->map(fn ($item) => [
             'label' => $item->label,
-            'status' => $item->status,
             'status_value' => $item->status->value,
             'status_label' => $item->status->getLabel(),
             'status_color' => $item->status->getColor(),

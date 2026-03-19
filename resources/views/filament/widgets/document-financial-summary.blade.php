@@ -163,7 +163,7 @@
                         };
                     },
                     formatMoney(v) {
-                        return (v / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        return (v / 10000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     },
                     badgeClasses(color) {
                         const map = {
