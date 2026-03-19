@@ -57,17 +57,17 @@ class ShipmentResource extends Resource
                 }
             })
             ->columns([
-                TextColumn::make('reference')
-                    ->searchable()
-                    ->sortable()
-                    ->weight('bold')
-                    ->copyable(),
                 TextColumn::make('bl_number')
                     ->label('B/L Number')
                     ->searchable()
                     ->sortable()
                     ->copyable()
                     ->placeholder('—'),
+                TextColumn::make('reference')
+                    ->searchable()
+                    ->sortable()
+                    ->weight('bold')
+                    ->copyable(),
                 TextColumn::make('status')
                     ->badge(),
                 TextColumn::make('transport_mode')
