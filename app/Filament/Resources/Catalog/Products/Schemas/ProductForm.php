@@ -16,7 +16,9 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
+use Illuminate\Support\Str;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Schema;
 
@@ -63,6 +65,32 @@ class ProductForm
                         ->searchable()
                         ->required()
                         ->live()
+                        ->createOptionForm([
+                            TextInput::make('name')
+                                ->label(__('forms.labels.name'))
+                                ->required()
+                                ->maxLength(255)
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(fn (Set $set, $state) => $set('slug', Str::slug($state))),
+                            TextInput::make('slug')
+                                ->label(__('forms.labels.slug'))
+                                ->required()
+                                ->maxLength(255),
+                            Select::make('parent_id')
+                                ->label(__('forms.labels.parent_category'))
+                                ->options(fn () => Category::active()->orderBy('name')->get()->pluck('full_path', 'id'))
+                                ->searchable()
+                                ->placeholder(__('forms.placeholders.none_top_level')),
+                            TextInput::make('sku_prefix')
+                                ->label(__('forms.labels.sku_prefix'))
+                                ->maxLength(10),
+                            Toggle::make('is_active')
+                                ->label(__('forms.labels.active'))
+                                ->default(true),
+                        ])
+                        ->createOptionUsing(function (array $data): int {
+                            return Category::create($data)->getKey();
+                        })
                         ->afterStateUpdated(function (Set $set, ?string $state, $livewire) {
                             // Only auto-populate name/SKU on create — never overwrite on edit
                             if ($state && $livewire instanceof \Filament\Resources\Pages\CreateRecord) {
