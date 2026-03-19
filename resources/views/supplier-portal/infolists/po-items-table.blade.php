@@ -24,7 +24,7 @@
                         <td class="px-4 py-2.5">{{ $item->description ?? '—' }}</td>
                         <td class="px-4 py-2.5 text-center">{{ number_format($item->quantity) }}</td>
                         <td class="px-4 py-2.5 text-center">{{ $item->unit ?? 'pcs' }}</td>
-                        <td class="px-4 py-2.5 text-right">{{ \App\Domain\Infrastructure\Support\Money::format($item->unit_price) }}</td>
+                        <td class="px-4 py-2.5 text-right">{{ \App\Domain\Infrastructure\Support\Money::format($item->unit_cost) }}</td>
                         <td class="px-4 py-2.5 text-right font-bold">{{ \App\Domain\Infrastructure\Support\Money::format($item->line_total, 2) }}</td>
                     </tr>
                 @endforeach
