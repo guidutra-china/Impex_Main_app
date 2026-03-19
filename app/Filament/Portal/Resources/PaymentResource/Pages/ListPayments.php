@@ -112,8 +112,13 @@ class ListPayments extends ListRecords
                 TextColumn::make('label')
                     ->label(__('forms.labels.label'))
                     ->formatStateUsing(function ($state) {
-                        // Remove "30% — " prefix since percentage and condition have their own columns
-                        return preg_replace('/^\d+%\s*[—–-]\s*/', '', $state ?? '');
+                        $label = $state ?? '';
+                        // Remove "30% — " prefix (percentage + condition have own columns)
+                        $label = preg_replace('/^\d+%\s*\x{2014}\s*/u', '', $label);
+                        // Remove trailing " — [SP-2026-00002 / PI-2026-00005]" references
+                        $label = preg_replace('/\s*\x{2014}\s*\[.*\]\s*$/u', '', $label);
+
+                        return trim($label);
                     })
                     ->searchable()
                     ->sortable(),
