@@ -56,18 +56,35 @@ class ListPayments extends ListRecords
                     })
             )
             ->columns([
-                TextColumn::make('payable_document')
-                    ->label(__('forms.labels.document'))
+                TextColumn::make('payable_type_label')
+                    ->label(__('forms.labels.type'))
                     ->state(function ($record) {
                         $payable = $record->payable;
-                        if (! $payable) {
-                            return '—';
-                        }
-                        $type = class_basename($payable);
-                        $ref = $payable->reference ?? '—';
 
-                        return "{$type}: {$ref}";
+                        return match (true) {
+                            $payable instanceof ProformaInvoice => 'PI',
+                            $payable instanceof Shipment => 'Shipment',
+                            $payable instanceof \App\Domain\PurchaseOrders\Models\PurchaseOrder => 'PO',
+                            default => '—',
+                        };
+                    })
+                    ->badge()
+                    ->color(fn ($state) => match ($state) {
+                        'PI' => 'primary',
+                        'Shipment' => 'info',
+                        'PO' => 'warning',
+                        default => 'gray',
                     }),
+                TextColumn::make('payable_ref')
+                    ->label(__('forms.labels.reference'))
+                    ->state(fn ($record) => $record->payable?->reference ?? '—')
+                    ->searchable(query: fn ($query, string $search) => $query->whereHasMorph(
+                        'payable',
+                        [ProformaInvoice::class, Shipment::class],
+                        fn ($q) => $q->where('reference', 'like', "%{$search}%")
+                    ))
+                    ->weight('bold')
+                    ->copyable(),
                 TextColumn::make('label')
                     ->label(__('forms.labels.label'))
                     ->searchable()
