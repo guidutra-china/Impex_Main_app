@@ -22,6 +22,11 @@ class UpcomingPaymentsWidget extends Widget
     protected function getViewData(): array
     {
         $tenant = Filament::getTenant();
+
+        if (! $tenant) {
+            return $this->emptyState();
+        }
+
         $today = Carbon::today();
         $endOfWeek = $today->copy()->addDays(7);
         $endOfMonth = $today->copy()->addDays(30);
@@ -119,6 +124,23 @@ class UpcomingPaymentsWidget extends Widget
             'monthCount' => $monthItems->count(),
             'currency' => $currency,
             'hasAny' => $overdueItems->isNotEmpty() || $weekItems->isNotEmpty() || $monthItems->isNotEmpty(),
+        ];
+    }
+
+    private function emptyState(): array
+    {
+        return [
+            'overdue' => [],
+            'overdueTotal' => '0.00',
+            'overdueCount' => 0,
+            'thisWeek' => [],
+            'weekTotal' => '0.00',
+            'weekCount' => 0,
+            'thisMonth' => [],
+            'monthTotal' => '0.00',
+            'monthCount' => 0,
+            'currency' => 'USD',
+            'hasAny' => false,
         ];
     }
 }

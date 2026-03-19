@@ -29,7 +29,6 @@ class ListPayments extends ListRecords
     {
         return [
             \App\Filament\Portal\Widgets\UpcomingPaymentsWidget::class,
-            \App\Filament\Portal\Widgets\PaymentsListStats::class,
         ];
     }
 
