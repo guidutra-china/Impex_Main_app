@@ -78,12 +78,35 @@ class ListPayments extends ListRecords
                     ->sortable(query: fn ($query, string $direction) => $query->orderBy('payable_type', $direction)),
                 TextColumn::make('payable_ref')
                     ->label(__('forms.labels.reference'))
-                    ->state(fn ($record) => $record->payable?->reference ?? '—')
+                    ->state(function ($record) {
+                        $payable = $record->payable;
+                        if (! $payable) {
+                            return '—';
+                        }
+                        if ($payable instanceof Shipment && $payable->bl_number) {
+                            return $payable->bl_number;
+                        }
+
+                        return $payable->reference ?? '—';
+                    })
                     ->searchable(query: fn ($query, string $search) => $query->whereHasMorph(
                         'payable',
                         [ProformaInvoice::class, Shipment::class],
                         fn ($q) => $q->where('reference', 'like', "%{$search}%")
+                            ->orWhere('bl_number', 'like', "%{$search}%")
                     ))
+                    ->sortable(query: fn ($query, string $direction) => $query
+                        ->leftJoin('proforma_invoices', function ($join) {
+                            $join->on('payment_schedule_items.payable_id', '=', 'proforma_invoices.id')
+                                ->where('payment_schedule_items.payable_type', (new ProformaInvoice)->getMorphClass());
+                        })
+                        ->leftJoin('shipments', function ($join) {
+                            $join->on('payment_schedule_items.payable_id', '=', 'shipments.id')
+                                ->where('payment_schedule_items.payable_type', (new Shipment)->getMorphClass());
+                        })
+                        ->orderByRaw("COALESCE(shipments.bl_number, shipments.reference, proforma_invoices.reference) {$direction}")
+                        ->select('payment_schedule_items.*')
+                    )
                     ->weight('bold')
                     ->copyable(),
                 TextColumn::make('label')
