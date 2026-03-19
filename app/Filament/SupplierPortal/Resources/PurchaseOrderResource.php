@@ -56,6 +56,12 @@ class PurchaseOrderResource extends Resource
                     ->sortable()
                     ->weight('bold')
                     ->copyable(),
+                TextColumn::make('supplier_invoice_number')
+                    ->label(__('forms.labels.supplier_invoice'))
+                    ->searchable()
+                    ->sortable()
+                    ->copyable()
+                    ->placeholder('—'),
                 TextColumn::make('status')
                     ->badge(),
                 TextColumn::make('currency_code')
