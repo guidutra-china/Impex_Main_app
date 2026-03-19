@@ -205,6 +205,7 @@ return array (
     'generate_pos' => '生成采购订单',
     'generate_schedule' => '生成计划',
     'generate_from_items' => '从项目生成',
+    'renumber_packages' => '重新编号包装',
     'gross_weight' => '毛重',
     'gross_weight_kg' => '毛重 (kg)',
     'guidance_notes' => '指导说明',

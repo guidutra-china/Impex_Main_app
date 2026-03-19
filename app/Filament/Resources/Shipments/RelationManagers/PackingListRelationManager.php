@@ -376,6 +376,45 @@ class PackingListRelationManager extends RelationManager
                             ->body("{$count} line(s) created from shipment items.")
                             ->send();
                     }),
+                \Filament\Actions\Action::make('renumber_packages')
+                    ->label(__('forms.labels.renumber_packages'))
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('gray')
+                    ->visible(fn () => $this->getOwnerRecord()->packingListItems()->count() > 0
+                        && auth()->user()?->can('edit-shipments'))
+                    ->requiresConfirmation()
+                    ->modalHeading('Renumber Packages')
+                    ->modalDescription('This will reorder items by container/pallet and recalculate the package numbering (carton from/to) sequentially.')
+                    ->action(function () {
+                        $items = $this->getOwnerRecord()
+                            ->packingListItems()
+                            ->orderByRaw('COALESCE(container_number, \'\') ASC')
+                            ->orderByRaw('COALESCE(pallet_number, 0) ASC')
+                            ->orderBy('sort_order')
+                            ->get();
+
+                        $counter = 0;
+                        $sortOrder = 0;
+                        foreach ($items as $item) {
+                            $qty = max(1, (int) $item->quantity);
+                            $from = $counter + 1;
+                            $to = $counter + $qty;
+                            $counter = $to;
+                            $sortOrder++;
+
+                            $item->update([
+                                'carton_from' => $from,
+                                'carton_to' => $to,
+                                'sort_order' => $sortOrder,
+                            ]);
+                        }
+
+                        Notification::make()
+                            ->success()
+                            ->title('Packages renumbered')
+                            ->body("Numbered {$counter} packages across {$items->count()} lines, sorted by container/pallet.")
+                            ->send();
+                    }),
                 \Filament\Actions\CreateAction::make()
                     ->label(__('forms.labels.add_line'))
                     ->icon('heroicon-o-plus')

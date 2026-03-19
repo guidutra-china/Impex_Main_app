@@ -207,6 +207,7 @@ return array (
     'generate_pos' => 'Generate POs',
     'generate_schedule' => 'Generate Schedule',
     'generate_from_items' => 'Generate from Items',
+    'renumber_packages' => 'Renumber Packages',
     'gross_weight' => 'Gross Weight',
     'gross_weight_kg' => 'Gross Weight (kg)',
     'guidance_notes' => 'Guidance Notes',

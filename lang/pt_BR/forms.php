@@ -206,6 +206,7 @@ return array (
     'generate_pos' => 'Gerar POs',
     'generate_schedule' => 'Gerar Cronograma',
     'generate_from_items' => 'Gerar a partir dos Itens',
+    'renumber_packages' => 'Renumerar Pacotes',
     'gross_weight' => 'Peso Bruto',
     'gross_weight_kg' => 'Peso Bruto (kg)',
     'guidance_notes' => 'Notas de Orientação',
