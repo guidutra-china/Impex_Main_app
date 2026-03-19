@@ -12,7 +12,7 @@
                     <th class="px-4 py-2.5">Description</th>
                     <th class="px-4 py-2.5 text-center">Qty</th>
                     <th class="px-4 py-2.5 text-center">Unit</th>
-                    <th class="px-4 py-2.5">Purchase Order</th>
+                    <th class="px-4 py-2.5">Supplier Invoice</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-white/10">
@@ -23,10 +23,12 @@
                         <td class="px-4 py-2.5 text-center">{{ number_format($item->quantity) }}</td>
                         <td class="px-4 py-2.5 text-center">{{ $item->unit ?? $item->proformaInvoiceItem?->unit ?? 'pcs' }}</td>
                         <td class="px-4 py-2.5">
-                            @if($item->purchaseOrderItem?->purchaseOrder)
+                            @if($item->purchaseOrderItem?->purchaseOrder?->supplier_invoice_number)
                                 <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-400/10 dark:text-blue-400 dark:ring-blue-400/30">
-                                    {{ $item->purchaseOrderItem->purchaseOrder->reference }}
+                                    {{ $item->purchaseOrderItem->purchaseOrder->supplier_invoice_number }}
                                 </span>
+                            @elseif($item->purchaseOrderItem?->purchaseOrder)
+                                <span class="text-gray-400">{{ $item->purchaseOrderItem->purchaseOrder->reference }}</span>
                             @else
                                 —
                             @endif
