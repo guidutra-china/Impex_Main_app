@@ -28,6 +28,12 @@ class PurchaseOrdersTable
                     ->sortable()
                     ->weight('bold')
                     ->copyable(),
+                TextColumn::make('supplier_invoice_number')
+                    ->label(__('forms.labels.supplier_invoice'))
+                    ->searchable()
+                    ->sortable()
+                    ->copyable()
+                    ->placeholder('—'),
                 TextColumn::make('proformaInvoice.reference')
                     ->label(__('forms.labels.proforma_invoice'))
                     ->searchable()
@@ -45,12 +51,6 @@ class PurchaseOrdersTable
                 TextColumn::make('status')
                     ->label(__('forms.labels.status'))
                     ->badge(),
-                TextColumn::make('supplier_invoice_number')
-                    ->label(__('forms.labels.supplier_invoice'))
-                    ->searchable()
-                    ->sortable()
-                    ->copyable()
-                    ->placeholder('—'),
                 TextColumn::make('currency_code')
                     ->label(__('forms.labels.currency'))
                     ->badge()
