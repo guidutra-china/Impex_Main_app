@@ -350,8 +350,14 @@ class PaymentForm
                     $stageBadge .= ' <span class="inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-[0.65rem] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-400/10 dark:text-blue-400 dark:ring-blue-400/30">' . e($shipRef) . '</span>';
                 }
 
+                // Show B/L number instead of SH reference when payable is Shipment
+                $displayRef = $docRef;
+                if ($item->payable instanceof Shipment && $item->payable->bl_number) {
+                    $displayRef = $item->payable->bl_number;
+                }
+
                 $html .= '<tr class="border-b border-gray-100 dark:border-gray-800">';
-                $html .= '<td class="py-1.5 px-2 font-medium">' . e($docRef) . '</td>';
+                $html .= '<td class="py-1.5 px-2 font-medium">' . e($displayRef) . '</td>';
                 $html .= '<td class="py-1.5 px-2">' . $stageBadge . '</td>';
                 $html .= '<td class="py-1.5 px-2 text-right">' . Money::format($item->amount) . '</td>';
                 $html .= '<td class="py-1.5 px-2 text-right">' . Money::format($item->paid_amount) . '</td>';
@@ -384,7 +390,7 @@ class PaymentForm
         $html .= '</tr></thead><tbody>';
 
         foreach ($credits as $credit) {
-            $docRef = $credit->payable?->reference ?? 'Unknown';
+            $docRef = static::formatDocRef($credit);
             $cleanLabel = e(static::cleanLabel($credit));
 
             $descBadge = '<span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-800 dark:bg-white/10 dark:text-gray-200">' . $cleanLabel . '</span>';
@@ -522,14 +528,30 @@ class PaymentForm
 
     protected static function shipmentRef(PaymentScheduleItem $item): ?string
     {
+        // Check the direct shipment relation first
         $shipment = $item->relationLoaded('shipment') ? $item->shipment : $item->shipment()->first();
 
-        return $shipment ? ($shipment->bl_number ?: $shipment->reference) : null;
+        // If no direct shipment, check if the payable itself is a Shipment
+        if (! $shipment && $item->payable instanceof Shipment) {
+            $shipment = $item->payable;
+        }
+
+        return $shipment ? ($shipment->bl_number ?: null) : null;
+    }
+
+    protected static function formatDocRef(PaymentScheduleItem $item): string
+    {
+        $payable = $item->payable;
+        if ($payable instanceof Shipment && $payable->bl_number) {
+            return $payable->bl_number;
+        }
+
+        return $payable?->reference ?? 'Unknown';
     }
 
     protected static function formatScheduleItemLabel(PaymentScheduleItem $item): string
     {
-        $docRef = $item->payable?->reference ?? 'Unknown';
+        $docRef = static::formatDocRef($item);
         $label = static::cleanLabel($item);
         $remaining = Money::format($item->remaining_amount);
         $shipRef = static::shipmentRef($item);
@@ -545,7 +567,7 @@ class PaymentForm
 
     protected static function formatCreditItemLabel(PaymentScheduleItem $item): string
     {
-        $docRef = $item->payable?->reference ?? 'Unknown';
+        $docRef = static::formatDocRef($item);
         $label = static::cleanLabel($item);
         $amount = Money::format($item->amount);
 
