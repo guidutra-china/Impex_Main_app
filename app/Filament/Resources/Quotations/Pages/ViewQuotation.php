@@ -84,6 +84,8 @@ class ViewQuotation extends ViewRecord
                         $quotation->load('items.product.suppliers');
                         $sortOrder = 0;
 
+                        $isSeparateCommission = $quotation->commission_type === CommissionType::SEPARATE;
+
                         foreach ($quotation->items as $item) {
                             $supplierId = $item->selected_supplier_id;
 
@@ -94,6 +96,10 @@ class ViewQuotation extends ViewRecord
                                 $supplierId = $preferred?->id;
                             }
 
+                            // When commission is separate, PI unit_price = unit_cost (no markup)
+                            // The commission will be added as an AdditionalCost line
+                            $unitPrice = $isSeparateCommission ? $item->unit_cost : $item->unit_price;
+
                             ProformaInvoiceItem::create([
                                 'proforma_invoice_id' => $proformaInvoice->id,
                                 'product_id' => $item->product_id,
@@ -103,7 +109,7 @@ class ViewQuotation extends ViewRecord
                                 'specifications' => $item->product?->specification?->description ?? null,
                                 'quantity' => $item->quantity,
                                 'unit' => 'pcs',
-                                'unit_price' => $item->unit_price,
+                                'unit_price' => $unitPrice,
                                 'unit_cost' => $item->unit_cost,
                                 'incoterm' => $item->incoterm,
                                 'notes' => $item->notes,
