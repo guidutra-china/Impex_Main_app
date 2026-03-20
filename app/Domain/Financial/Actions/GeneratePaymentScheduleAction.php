@@ -109,15 +109,29 @@ class GeneratePaymentScheduleAction
         }
 
         // Force fresh total calculation directly from DB to avoid any Eloquent caching
-        $totalAmount = $this->calculateTotalFromDb($payable);
+        $payable->refresh();
+        $payable->load('items');
+        $totalAmount = $payable->total;
         $currencyCode = $payable->currency_code;
+
+        // Calculate total directly from DB for comparison
+        $dbTotal = $this->calculateTotalFromDb($payable);
 
         \Log::info('PaymentSchedule regenerate', [
             'payable' => get_class($payable) . '#' . $payable->getKey(),
-            'total_from_db' => $totalAmount,
-            'total_from_accessor' => $payable->total,
+            'total_from_accessor' => $totalAmount,
+            'total_from_db' => $dbTotal,
             'currency' => $currencyCode,
         ]);
+
+        // Use DB total if accessor seems stale
+        if ($dbTotal > 0 && $dbTotal !== $totalAmount) {
+            \Log::warning('PaymentSchedule total mismatch — using DB total', [
+                'accessor' => $totalAmount,
+                'db' => $dbTotal,
+            ]);
+            $totalAmount = $dbTotal;
+        }
 
         // Count items before delete for logging
         $beforeCount = PaymentScheduleItem::where('payable_type', get_class($payable))
@@ -579,5 +593,22 @@ class GeneratePaymentScheduleAction
         }
 
         return implode(' — ', $parts);
+    }
+
+    protected function calculateTotalFromDb(Model $payable): int
+    {
+        if ($payable instanceof ProformaInvoice) {
+            return (int) $payable->items()
+                ->selectRaw('SUM(unit_price * quantity) as total')
+                ->value('total');
+        }
+
+        if ($payable instanceof PurchaseOrder) {
+            return (int) $payable->items()
+                ->selectRaw('SUM(unit_cost * quantity) as total')
+                ->value('total');
+        }
+
+        return 0;
     }
 }
