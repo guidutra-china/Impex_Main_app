@@ -87,9 +87,12 @@ class PortalProformaInvoiceStats extends Widget
             ];
         }
 
+        $scheduleItems->loadMissing('shipment');
+
         $mappedSchedule = $scheduleItems->values()->map(fn ($item) => [
             'label' => $item->label,
             'label_clean' => preg_replace('/\s*\x{2014}\s*\[.*\]\s*$/u', '', $item->label ?? ''),
+            'shipment_ref' => $item->shipment ? ($item->shipment->bl_number ?: $item->shipment->reference) : null,
             'status_value' => $item->status->value,
             'status_label' => $item->status->getLabel(),
             'status_color' => $item->status->getColor(),
