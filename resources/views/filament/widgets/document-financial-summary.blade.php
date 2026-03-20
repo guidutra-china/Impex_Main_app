@@ -208,7 +208,7 @@
                                 <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">#</th>
                                 @php
                                     $sortableCols = [
-                                        ['key' => 'label', 'label' => 'Stage', 'align' => 'left'],
+                                        ['key' => 'label_clean', 'label' => 'Stage', 'align' => 'left'],
                                         ['key' => 'status_value', 'label' => 'Status', 'align' => 'left'],
                                         ['key' => 'due_date_sort', 'label' => 'Due Date', 'align' => 'left'],
                                         ['key' => 'percentage', 'label' => '%', 'align' => 'right'],
@@ -254,7 +254,7 @@
                                             <template x-if="item.is_blocking">
                                                 <svg class="h-3.5 w-3.5 text-danger-500 dark:text-danger-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
                                             </template>
-                                            <span class="font-medium text-gray-900 dark:text-white" x-text="item.label"></span>
+                                            <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-800 dark:bg-white/10 dark:text-gray-200" x-text="item.label_clean"></span>
                                         </div>
                                     </td>
                                     <td class="whitespace-nowrap px-4 py-2.5">
