@@ -108,16 +108,16 @@ class GeneratePaymentScheduleAction
             return 0;
         }
 
+        // Force fresh data to ensure total is recalculated from current items
+        $payable->refresh();
         $payable->load('items');
         $totalAmount = $payable->total;
         $currencyCode = $payable->currency_code;
 
-        // Delete unpaid/unwaived base items (no shipment, no plan, no source)
+        // Delete ALL unpaid/unwaived items without allocations (base + shipment-linked)
         PaymentScheduleItem::where('payable_type', get_class($payable))
             ->where('payable_id', $payable->getKey())
             ->whereNull('source_type')
-            ->whereNull('shipment_plan_id')
-            ->whereNull('shipment_id')
             ->whereNotIn('status', [
                 PaymentScheduleStatus::PAID->value,
                 PaymentScheduleStatus::WAIVED->value,
@@ -125,24 +125,26 @@ class GeneratePaymentScheduleAction
             ->whereDoesntHave('allocations')
             ->delete();
 
-        // Also delete unpaid shipment-linked items (will be recreated below)
-        PaymentScheduleItem::where('payable_type', get_class($payable))
+        // Fetch preserved items (paid/waived/with allocations) — update their amounts too
+        $allPreservedItems = PaymentScheduleItem::where('payable_type', get_class($payable))
             ->where('payable_id', $payable->getKey())
             ->whereNull('source_type')
-            ->whereNotNull('shipment_id')
-            ->whereNotIn('status', [
-                PaymentScheduleStatus::PAID->value,
-                PaymentScheduleStatus::WAIVED->value,
-            ])
-            ->whereDoesntHave('allocations')
-            ->delete();
+            ->get();
 
-        $preservedItems = PaymentScheduleItem::where('payable_type', get_class($payable))
-            ->where('payable_id', $payable->getKey())
-            ->whereNull('source_type')
+        // Update amounts on ALL preserved items (even paid/waived) to reflect current total
+        foreach ($allPreservedItems as $preserved) {
+            if ($preserved->percentage > 0) {
+                $newAmount = (int) round($totalAmount * ($preserved->percentage / 100));
+
+                if ($preserved->amount !== $newAmount) {
+                    $preserved->update(['amount' => $newAmount]);
+                }
+            }
+        }
+
+        $preservedBaseItems = $allPreservedItems
             ->whereNull('shipment_plan_id')
             ->whereNull('shipment_id')
-            ->get()
             ->keyBy('payment_term_stage_id');
 
         $processed = 0;
@@ -159,7 +161,7 @@ class GeneratePaymentScheduleAction
             $dueDate = $this->calculateDueDate($payable, $stage);
             $label = $this->generateLabel($stage);
 
-            $existing = $preservedItems->get($stage->id);
+            $existing = $preservedBaseItems->get($stage->id);
 
             if ($existing) {
                 $existing->update([
