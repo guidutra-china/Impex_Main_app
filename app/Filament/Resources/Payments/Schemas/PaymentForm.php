@@ -211,20 +211,30 @@ class PaymentForm
                         ->label('')
                         ->content(function (Get $get) {
                             $allocations = $get('allocations') ?? [];
-                            $total = 0;
+                            $totalAllocated = 0;
                             foreach ($allocations as $alloc) {
-                                $total += (float) ($alloc['allocated_amount'] ?? 0);
+                                $totalAllocated += (float) ($alloc['allocated_amount'] ?? 0);
                             }
-                            $amount = (float) ($get('amount') ?? 0);
-                            $unallocated = $amount - $total;
+                            $wireAmount = (float) ($get('amount') ?? 0);
+                            $remaining = $wireAmount - $totalAllocated;
+                            $currency = $get('currency_code') ?? '';
 
-                            $parts = ['<span class="font-semibold">Allocated: ' . number_format($total, 2) . '</span>'];
-                            if ($amount > 0 && abs($unallocated) > 0.001) {
-                                $color = $unallocated > 0 ? 'text-yellow-600' : 'text-red-600';
-                                $label = $unallocated > 0 ? 'Unallocated' : 'Over-allocated';
-                                $parts[] = '<span class="' . $color . ' font-medium"> | ' . $label . ': ' . number_format(abs($unallocated), 2) . '</span>';
+                            $html = '<div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">';
+                            $html .= '<span class="text-gray-500">Wire Transfer: <span class="font-semibold text-gray-900 dark:text-white">' . $currency . ' ' . number_format($wireAmount, 2) . '</span></span>';
+                            $html .= '<span class="text-gray-500">Allocated: <span class="font-semibold text-blue-600">' . $currency . ' ' . number_format($totalAllocated, 2) . '</span></span>';
+
+                            if ($wireAmount > 0 && abs($remaining) > 0.001) {
+                                if ($remaining > 0) {
+                                    $html .= '<span class="text-gray-500">Remaining: <span class="font-semibold text-yellow-600">' . $currency . ' ' . number_format($remaining, 2) . '</span></span>';
+                                } else {
+                                    $html .= '<span class="text-gray-500">Over-allocated: <span class="font-semibold text-red-600">' . $currency . ' ' . number_format(abs($remaining), 2) . '</span></span>';
+                                }
+                            } elseif ($wireAmount > 0) {
+                                $html .= '<span class="font-semibold text-green-600">Fully Allocated</span>';
                             }
-                            return new HtmlString(implode('', $parts));
+
+                            $html .= '</div>';
+                            return new HtmlString($html);
                         }),
                 ])
                 ->columnSpanFull(),
@@ -417,6 +427,13 @@ class PaymentForm
 
     protected static function recalculateTotal(Get $get, Set $set): void
     {
+        $currentAmount = (float) ($get('../../amount') ?? $get('amount') ?? 0);
+
+        // Don't overwrite manually entered amount
+        if ($currentAmount > 0) {
+            return;
+        }
+
         $allocations = $get('../../allocations') ?? $get('allocations') ?? [];
         $total = 0;
 
