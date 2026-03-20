@@ -233,7 +233,7 @@ class FinancialOverview extends Page implements HasTable
         return $table
             ->query(
                 PaymentScheduleItem::query()
-                    ->with(['payable', 'source', 'paymentTermStage', 'waivedByUser'])
+                    ->with(['payable', 'source', 'paymentTermStage', 'waivedByUser', 'shipment'])
             )
             ->columns([
                 TextColumn::make('company_name')
@@ -280,18 +280,29 @@ class FinancialOverview extends Page implements HasTable
                             ) {$direction}
                         ", [(new ProformaInvoice)->getMorphClass(), (new PurchaseOrder)->getMorphClass()]);
                     }),
-                TextColumn::make('payable')
-                    ->label(__('forms.labels.document'))
-                    ->formatStateUsing(function ($record) {
-                        $payable = $record->payable;
-                        if (! $payable) {
-                            return '—';
-                        }
-                        $ref = $payable->reference ?? '—';
-                        $type = class_basename($payable);
-
-                        return "{$type}: {$ref}";
+                TextColumn::make('payable_type_badge')
+                    ->label(__('forms.labels.type'))
+                    ->state(function ($record) {
+                        return match (true) {
+                            $record->payable instanceof ProformaInvoice => 'PI',
+                            $record->payable instanceof PurchaseOrder => 'PO',
+                            $record->payable instanceof ShipmentPlan => 'SP',
+                            $record->payable instanceof Shipment => 'Shipment',
+                            default => '—',
+                        };
                     })
+                    ->badge()
+                    ->color(fn ($state) => match ($state) {
+                        'PI' => 'primary',
+                        'PO' => 'warning',
+                        'SP' => 'info',
+                        'Shipment' => 'info',
+                        default => 'gray',
+                    })
+                    ->sortable(query: fn ($query, string $direction) => $query->orderBy('payable_type', $direction)),
+                TextColumn::make('payable_ref')
+                    ->label(__('forms.labels.reference'))
+                    ->state(fn ($record) => $record->payable?->reference ?? '—')
                     ->url(function ($record) {
                         $payable = $record->payable;
                         if (! $payable) {
@@ -307,7 +318,13 @@ class FinancialOverview extends Page implements HasTable
                         };
                     })
                     ->color('primary')
-                    ->openUrlInNewTab(),
+                    ->weight('bold')
+                    ->openUrlInNewTab()
+                    ->searchable(query: fn ($query, string $search) => $query->whereHasMorph(
+                        'payable',
+                        [ProformaInvoice::class, PurchaseOrder::class, Shipment::class, ShipmentPlan::class],
+                        fn ($q) => $q->where('reference', 'like', "%{$search}%")
+                    )),
                 TextColumn::make('source')
                     ->label(__('forms.labels.source'))
                     ->formatStateUsing(function ($record) {
@@ -323,7 +340,17 @@ class FinancialOverview extends Page implements HasTable
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('label')
-                    ->label(__('forms.labels.label'))
+                    ->label(__('forms.labels.schedule_stage'))
+                    ->formatStateUsing(function ($record) {
+                        $label = preg_replace('/\s*\x{2014}\s*\[.*\]\s*$/u', '', $record->label ?? '');
+                        $shipmentRef = $record->shipment
+                            ? ($record->shipment->bl_number ?: $record->shipment->reference)
+                            : null;
+
+                        return $shipmentRef ? "{$label} [{$shipmentRef}]" : $label;
+                    })
+                    ->badge()
+                    ->color('gray')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('percentage')
