@@ -341,9 +341,17 @@ class PaymentForm
                 };
                 $statusLabel = $item->status instanceof \BackedEnum ? $item->status->value : $item->status;
 
+                $cleanLabel = e(static::cleanLabel($item));
+                $shipRef = static::shipmentRef($item);
+
+                $stageBadge = '<span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-800 dark:bg-white/10 dark:text-gray-200">' . $cleanLabel . '</span>';
+                if ($shipRef) {
+                    $stageBadge .= ' <span class="inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-[0.65rem] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-400/10 dark:text-blue-400 dark:ring-blue-400/30">' . e($shipRef) . '</span>';
+                }
+
                 $html .= '<tr class="border-b border-gray-100 dark:border-gray-800">';
                 $html .= '<td class="py-1.5 px-2 font-medium">' . e($docRef) . '</td>';
-                $html .= '<td class="py-1.5 px-2">' . e($item->label) . '</td>';
+                $html .= '<td class="py-1.5 px-2">' . $stageBadge . '</td>';
                 $html .= '<td class="py-1.5 px-2 text-right">' . Money::format($item->amount) . '</td>';
                 $html .= '<td class="py-1.5 px-2 text-right">' . Money::format($item->paid_amount) . '</td>';
                 $html .= '<td class="py-1.5 px-2 text-right font-semibold">' . Money::format($remaining) . '</td>';
@@ -376,9 +384,14 @@ class PaymentForm
 
         foreach ($credits as $credit) {
             $docRef = $credit->payable?->reference ?? 'Unknown';
+            $cleanLabel = e(static::cleanLabel($credit));
+
+            $descBadge = '<span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-800 dark:bg-white/10 dark:text-gray-200">' . $cleanLabel . '</span>';
+            $descBadge .= ' <span class="inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-[0.6rem] font-semibold text-green-700 uppercase dark:bg-green-400/10 dark:text-green-400">Credit</span>';
+
             $html .= '<tr class="border-b border-gray-100 dark:border-gray-800">';
             $html .= '<td class="py-1.5 px-2 font-medium">' . e($docRef) . '</td>';
-            $html .= '<td class="py-1.5 px-2">' . e($credit->label) . '</td>';
+            $html .= '<td class="py-1.5 px-2">' . $descBadge . '</td>';
             $html .= '<td class="py-1.5 px-2 text-right font-semibold text-green-600">' . Money::format($credit->amount) . '</td>';
             $html .= '<td class="py-1.5 px-2">' . e($credit->currency_code) . '</td>';
             $html .= '</tr>';
@@ -428,7 +441,7 @@ class PaymentForm
             $query->where('payable_type', PurchaseOrder::class)->whereIn('payable_id', $poIds);
         }
 
-        return $query->with('payable')->get();
+        return $query->with(['payable', 'shipment'])->get();
     }
 
     public static function getCompanyCreditItems(int $companyId, mixed $direction): \Illuminate\Support\Collection
@@ -450,22 +463,43 @@ class PaymentForm
             $query->where('payable_type', PurchaseOrder::class)->whereIn('payable_id', $poIds);
         }
 
-        return $query->with('payable')->get();
+        return $query->with(['payable', 'shipment'])->get();
+    }
+
+    protected static function cleanLabel(PaymentScheduleItem $item): string
+    {
+        return preg_replace('/\s*\x{2014}\s*\[.*\]\s*$/u', '', $item->label ?? '');
+    }
+
+    protected static function shipmentRef(PaymentScheduleItem $item): ?string
+    {
+        $shipment = $item->relationLoaded('shipment') ? $item->shipment : $item->shipment()->first();
+
+        return $shipment ? ($shipment->bl_number ?: $shipment->reference) : null;
     }
 
     protected static function formatScheduleItemLabel(PaymentScheduleItem $item): string
     {
         $docRef = $item->payable?->reference ?? 'Unknown';
+        $label = static::cleanLabel($item);
         $remaining = Money::format($item->remaining_amount);
+        $shipRef = static::shipmentRef($item);
 
-        return "[{$docRef}] {$item->label} — {$item->currency_code} {$remaining} remaining";
+        $parts = "[{$docRef}] {$label}";
+        if ($shipRef) {
+            $parts .= " [{$shipRef}]";
+        }
+        $parts .= " — {$item->currency_code} {$remaining} remaining";
+
+        return $parts;
     }
 
     protected static function formatCreditItemLabel(PaymentScheduleItem $item): string
     {
         $docRef = $item->payable?->reference ?? 'Unknown';
+        $label = static::cleanLabel($item);
         $amount = Money::format($item->amount);
 
-        return "[{$docRef}] {$item->label} — {$item->currency_code} {$amount} credit";
+        return "[{$docRef}] {$label} — {$item->currency_code} {$amount} credit";
     }
 }
