@@ -108,41 +108,12 @@ class GeneratePaymentScheduleAction
             return 0;
         }
 
-        // Force fresh total from DB query — bypasses all Eloquent caching/accessors
-        $payable->refresh();
-        $payable->load('items');
+        // Calculate total directly from DB — avoids any Eloquent caching
+        $totalAmount = $this->calculateTotalFromDb($payable);
         $currencyCode = $payable->currency_code;
 
-        $accessorTotal = $payable->total;
-        $dbTotal = $this->calculateTotalFromDb($payable);
-        $itemCount = $payable->items()->count();
-
-        // Log individual items for debugging
-        $itemDetails = $payable->items()->select('id', 'unit_price', 'quantity')
-            ->get()
-            ->map(fn ($i) => "#{$i->id}: {$i->unit_price} x {$i->quantity} = " . ($i->unit_price * $i->quantity))
-            ->all();
-
-        \Log::info('PaymentSchedule regenerate', [
-            'payable' => get_class($payable) . '#' . $payable->getKey(),
-            'accessor_total' => $accessorTotal,
-            'db_total' => $dbTotal,
-            'item_count' => $itemCount,
-            'items' => $itemDetails,
-            'currency' => $currencyCode,
-        ]);
-
-        // Always use DB total — most reliable
-        $totalAmount = $dbTotal > 0 ? $dbTotal : $accessorTotal;
-
-        // Count items before delete for logging
-        $beforeCount = PaymentScheduleItem::where('payable_type', get_class($payable))
-            ->where('payable_id', $payable->getKey())
-            ->whereNull('source_type')
-            ->count();
-
-        // Delete ALL unpaid/unwaived items without allocations (base + shipment-linked)
-        $deleted = PaymentScheduleItem::where('payable_type', get_class($payable))
+        // Step 1: Delete ALL deletable schedule items (not paid/waived, no allocations)
+        PaymentScheduleItem::where('payable_type', get_class($payable))
             ->where('payable_id', $payable->getKey())
             ->whereNull('source_type')
             ->whereNotIn('status', [
@@ -152,75 +123,57 @@ class GeneratePaymentScheduleAction
             ->whereDoesntHave('allocations')
             ->delete();
 
-        // Fetch preserved items (paid/waived/with allocations) — update their amounts too
-        $allPreservedItems = PaymentScheduleItem::where('payable_type', get_class($payable))
+        // Step 2: Force-update amounts on ANY surviving items (paid/waived/with allocations)
+        $survivingItems = PaymentScheduleItem::where('payable_type', get_class($payable))
             ->where('payable_id', $payable->getKey())
             ->whereNull('source_type')
             ->get();
 
-        \Log::info('PaymentSchedule delete phase', [
-            'before_count' => $beforeCount,
-            'deleted' => $deleted,
-            'preserved_count' => $allPreservedItems->count(),
-            'preserved_ids' => $allPreservedItems->pluck('id', 'status')->all(),
-        ]);
-
-        // Update amounts on ALL preserved items (even paid/waived) to reflect current total
-        foreach ($allPreservedItems as $preserved) {
-            if ($preserved->percentage > 0) {
-                $newAmount = (int) round($totalAmount * ($preserved->percentage / 100));
-
-                if ($preserved->amount !== $newAmount) {
-                    $preserved->update(['amount' => $newAmount]);
-                }
+        foreach ($survivingItems as $item) {
+            if ($item->percentage > 0) {
+                $correctAmount = (int) round($totalAmount * ($item->percentage / 100));
+                PaymentScheduleItem::where('id', $item->id)->update(['amount' => $correctAmount]);
             }
         }
 
-        $preservedBaseItems = $allPreservedItems
+        // Step 3: Create missing base items for non-shipment-dependent stages
+        $existingStageIds = $survivingItems
             ->whereNull('shipment_plan_id')
             ->whereNull('shipment_id')
-            ->keyBy('payment_term_stage_id');
+            ->pluck('payment_term_stage_id')
+            ->filter()
+            ->all();
 
         $processed = 0;
 
         foreach ($paymentTerm->stages as $stage) {
-            // Skip shipment-dependent stages for base items — they'll be handled per-shipment
             if ($stage->calculation_base?->isShipmentDependent()) {
                 $processed++;
                 continue;
             }
 
-            $newAmount = (int) round($totalAmount * ($stage->percentage / 100));
-            $isBlocking = $this->isBlockingCondition($stage->calculation_base);
-            $dueDate = $this->calculateDueDate($payable, $stage);
-            $label = $this->generateLabel($stage);
-
-            $existing = $preservedBaseItems->get($stage->id);
-
-            if ($existing) {
-                $existing->update([
-                    'amount' => $newAmount,
-                    'label' => $label,
-                    'percentage' => $stage->percentage,
-                    'due_condition' => $stage->calculation_base,
-                    'is_blocking' => $isBlocking,
-                ]);
-            } else {
-                PaymentScheduleItem::create([
-                    'payable_type' => get_class($payable),
-                    'payable_id' => $payable->getKey(),
-                    'payment_term_stage_id' => $stage->id,
-                    'label' => $label,
-                    'percentage' => $stage->percentage,
-                    'amount' => $newAmount,
-                    'currency_code' => $currencyCode,
-                    'due_condition' => $stage->calculation_base,
-                    'due_date' => $dueDate,
-                    'status' => PaymentScheduleStatus::PENDING,
-                    'is_blocking' => $isBlocking,
-                    'sort_order' => $stage->sort_order,
-                ]);
+            // Skip if a surviving item already covers this stage
+            if (in_array($stage->id, $existingStageIds)) {
+                $processed++;
+                continue;
             }
+
+            $newAmount = (int) round($totalAmount * ($stage->percentage / 100));
+
+            PaymentScheduleItem::create([
+                'payable_type' => get_class($payable),
+                'payable_id' => $payable->getKey(),
+                'payment_term_stage_id' => $stage->id,
+                'label' => $this->generateLabel($stage),
+                'percentage' => $stage->percentage,
+                'amount' => $newAmount,
+                'currency_code' => $currencyCode,
+                'due_condition' => $stage->calculation_base,
+                'due_date' => $this->calculateDueDate($payable, $stage),
+                'status' => PaymentScheduleStatus::PENDING,
+                'is_blocking' => $this->isBlockingCondition($stage->calculation_base),
+                'sort_order' => $stage->sort_order,
+            ]);
 
             $processed++;
         }
