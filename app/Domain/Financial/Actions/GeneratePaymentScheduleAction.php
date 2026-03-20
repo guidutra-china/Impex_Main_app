@@ -108,14 +108,25 @@ class GeneratePaymentScheduleAction
             return 0;
         }
 
-        // Force fresh data to ensure total is recalculated from current items
-        $payable->refresh();
-        $payable->load('items');
-        $totalAmount = $payable->total;
+        // Force fresh total calculation directly from DB to avoid any Eloquent caching
+        $totalAmount = $this->calculateTotalFromDb($payable);
         $currencyCode = $payable->currency_code;
 
+        \Log::info('PaymentSchedule regenerate', [
+            'payable' => get_class($payable) . '#' . $payable->getKey(),
+            'total_from_db' => $totalAmount,
+            'total_from_accessor' => $payable->total,
+            'currency' => $currencyCode,
+        ]);
+
+        // Count items before delete for logging
+        $beforeCount = PaymentScheduleItem::where('payable_type', get_class($payable))
+            ->where('payable_id', $payable->getKey())
+            ->whereNull('source_type')
+            ->count();
+
         // Delete ALL unpaid/unwaived items without allocations (base + shipment-linked)
-        PaymentScheduleItem::where('payable_type', get_class($payable))
+        $deleted = PaymentScheduleItem::where('payable_type', get_class($payable))
             ->where('payable_id', $payable->getKey())
             ->whereNull('source_type')
             ->whereNotIn('status', [
@@ -130,6 +141,13 @@ class GeneratePaymentScheduleAction
             ->where('payable_id', $payable->getKey())
             ->whereNull('source_type')
             ->get();
+
+        \Log::info('PaymentSchedule delete phase', [
+            'before_count' => $beforeCount,
+            'deleted' => $deleted,
+            'preserved_count' => $allPreservedItems->count(),
+            'preserved_ids' => $allPreservedItems->pluck('id', 'status')->all(),
+        ]);
 
         // Update amounts on ALL preserved items (even paid/waived) to reflect current total
         foreach ($allPreservedItems as $preserved) {
