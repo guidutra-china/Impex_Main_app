@@ -57,7 +57,7 @@ class ShipmentFulfillmentWidget extends Widget
             };
 
             $refs = $activeShipmentItems
-                ->pluck('shipment.reference')
+                ->map(fn ($si) => $si->shipment->bl_number ?: $si->shipment->reference)
                 ->unique()
                 ->values()
                 ->all();
