@@ -362,6 +362,7 @@ return array (
     'record_payment' => 'Registrar Pagamento',
     'reference' => 'Referência',
     'reference_swift_transfer' => 'Referência (SWIFT, Nº da Transferência)',
+    'recalculate_shipment_schedule' => 'Recalcular para Embarque',
     'regenerate' => 'Regenerar',
     'registration_number' => 'Número de Registro',
     'reject' => 'Rejeitar',

@@ -365,6 +365,7 @@ return array (
     'record_payment' => 'Record Payment',
     'reference' => 'Reference',
     'reference_swift_transfer' => 'Reference (SWIFT, Transfer #)',
+    'recalculate_shipment_schedule' => 'Recalculate for Shipment',
     'regenerate' => 'Regenerate',
     'registration_number' => 'Registration Number',
     'reject' => 'Reject',

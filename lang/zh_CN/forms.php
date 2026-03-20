@@ -360,6 +360,7 @@ return array (
     'record_payment' => '记录付款',
     'reference' => '参考',
     'reference_swift_transfer' => '参考（SWIFT，转账号）',
+    'recalculate_shipment_schedule' => '重新计算装运付款计划',
     'regenerate' => '重新生成',
     'registration_number' => '注册号',
     'reject' => '拒绝',

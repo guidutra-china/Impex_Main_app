@@ -11,6 +11,7 @@ use App\Filament\Resources\Shipments\Pages\ListShipments;
 use App\Filament\Resources\Shipments\Pages\ViewShipment;
 use App\Filament\Resources\Shipments\RelationManagers\ItemsRelationManager;
 use App\Filament\Resources\Shipments\RelationManagers\PackingListRelationManager;
+use App\Filament\Resources\Shipments\RelationManagers\PaymentScheduleRelationManager;
 use App\Filament\Resources\Shipments\Schemas\ShipmentForm;
 use App\Filament\Resources\Shipments\Schemas\ShipmentInfolist;
 use App\Filament\Resources\Shipments\Tables\ShipmentsTable;
@@ -59,6 +60,7 @@ class ShipmentResource extends Resource
             ItemsRelationManager::class,
             PackingListRelationManager::class,
             AdditionalCostsRelationManager::class,
+            PaymentScheduleRelationManager::class,
             DocumentsRelationManager::class,
         ];
     }

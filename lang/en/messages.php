@@ -26,6 +26,7 @@ return [
     'cannot_deactivate_own' => 'Cannot deactivate your own account',
     'payment_approved' => 'Payment approved',
     'payment_rejected' => 'Payment rejected',
+    'payment_schedule_recalculated' => 'Payment schedule recalculated',
     'confirm_transition' => 'Change status from :from to :to?',
     'no_schedule_items_created' => 'No schedule items created',
     'schedule_items_shipment_dependent' => 'All payment stages are shipment-dependent and will be created when Shipping Plans are made.',

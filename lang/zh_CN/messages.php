@@ -26,6 +26,7 @@ return [
     'cannot_deactivate_own' => '无法停用您自己的账户',
     'payment_approved' => '付款已批准',
     'payment_rejected' => '付款被拒绝',
+    'payment_schedule_recalculated' => '付款计划已重新计算',
     'confirm_transition' => '将状态从 :from 更改为 :to？',
     'no_schedule_items_created' => '未创建付款计划项',
     'schedule_items_shipment_dependent' => '所有付款阶段都依赖于发货，将在创建发货计划时生成。',

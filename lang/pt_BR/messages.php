@@ -26,6 +26,7 @@ return [
     'cannot_deactivate_own' => 'Não é possível desativar sua própria conta',
     'payment_approved' => 'Pagamento aprovado',
     'payment_rejected' => 'Pagamento rejeitado',
+    'payment_schedule_recalculated' => 'Cronograma de pagamento recalculado',
     'confirm_transition' => 'Alterar status de :from para :to?',
     'no_schedule_items_created' => 'Nenhum item de cronograma criado',
     'schedule_items_shipment_dependent' => 'Todas as etapas de pagamento dependem do embarque e serão criadas quando os Planos de Embarque forem feitos.',
