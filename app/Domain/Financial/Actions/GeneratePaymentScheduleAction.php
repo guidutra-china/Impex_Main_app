@@ -108,30 +108,32 @@ class GeneratePaymentScheduleAction
             return 0;
         }
 
-        // Force fresh total calculation directly from DB to avoid any Eloquent caching
+        // Force fresh total from DB query — bypasses all Eloquent caching/accessors
         $payable->refresh();
         $payable->load('items');
-        $totalAmount = $payable->total;
         $currencyCode = $payable->currency_code;
 
-        // Calculate total directly from DB for comparison
+        $accessorTotal = $payable->total;
         $dbTotal = $this->calculateTotalFromDb($payable);
+        $itemCount = $payable->items()->count();
+
+        // Log individual items for debugging
+        $itemDetails = $payable->items()->select('id', 'unit_price', 'quantity')
+            ->get()
+            ->map(fn ($i) => "#{$i->id}: {$i->unit_price} x {$i->quantity} = " . ($i->unit_price * $i->quantity))
+            ->all();
 
         \Log::info('PaymentSchedule regenerate', [
             'payable' => get_class($payable) . '#' . $payable->getKey(),
-            'total_from_accessor' => $totalAmount,
-            'total_from_db' => $dbTotal,
+            'accessor_total' => $accessorTotal,
+            'db_total' => $dbTotal,
+            'item_count' => $itemCount,
+            'items' => $itemDetails,
             'currency' => $currencyCode,
         ]);
 
-        // Use DB total if accessor seems stale
-        if ($dbTotal > 0 && $dbTotal !== $totalAmount) {
-            \Log::warning('PaymentSchedule total mismatch — using DB total', [
-                'accessor' => $totalAmount,
-                'db' => $dbTotal,
-            ]);
-            $totalAmount = $dbTotal;
-        }
+        // Always use DB total — most reliable
+        $totalAmount = $dbTotal > 0 ? $dbTotal : $accessorTotal;
 
         // Count items before delete for logging
         $beforeCount = PaymentScheduleItem::where('payable_type', get_class($payable))
