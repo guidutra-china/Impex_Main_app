@@ -7,6 +7,7 @@ use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\Settings\Models\BankAccount;
@@ -435,10 +436,34 @@ class PaymentForm
 
         if ($directionValue === PaymentDirection::INBOUND->value || $directionValue === 'inbound') {
             $piIds = ProformaInvoice::where('company_id', $companyId)->pluck('id');
-            $query->where('payable_type', ProformaInvoice::class)->whereIn('payable_id', $piIds);
+            $shipmentIds = Shipment::where('company_id', $companyId)->pluck('id');
+
+            $query->where(function ($q) use ($piIds, $shipmentIds) {
+                $q->where(function ($q2) use ($piIds) {
+                    $q2->where('payable_type', ProformaInvoice::class)->whereIn('payable_id', $piIds);
+                });
+                if ($shipmentIds->isNotEmpty()) {
+                    $q->orWhere(function ($q2) use ($shipmentIds) {
+                        $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $shipmentIds);
+                    });
+                }
+            });
         } else {
             $poIds = PurchaseOrder::where('supplier_company_id', $companyId)->pluck('id');
-            $query->where('payable_type', PurchaseOrder::class)->whereIn('payable_id', $poIds);
+            $shipmentIds = Shipment::whereHas('items.purchaseOrderItem.purchaseOrder', function ($q) use ($companyId) {
+                $q->where('supplier_company_id', $companyId);
+            })->pluck('id');
+
+            $query->where(function ($q) use ($poIds, $shipmentIds) {
+                $q->where(function ($q2) use ($poIds) {
+                    $q2->where('payable_type', PurchaseOrder::class)->whereIn('payable_id', $poIds);
+                });
+                if ($shipmentIds->isNotEmpty()) {
+                    $q->orWhere(function ($q2) use ($shipmentIds) {
+                        $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $shipmentIds);
+                    });
+                }
+            });
         }
 
         return $query->with(['payable', 'shipment'])->get();
@@ -457,10 +482,34 @@ class PaymentForm
 
         if ($directionValue === PaymentDirection::INBOUND->value || $directionValue === 'inbound') {
             $piIds = ProformaInvoice::where('company_id', $companyId)->pluck('id');
-            $query->where('payable_type', ProformaInvoice::class)->whereIn('payable_id', $piIds);
+            $shipmentIds = Shipment::where('company_id', $companyId)->pluck('id');
+
+            $query->where(function ($q) use ($piIds, $shipmentIds) {
+                $q->where(function ($q2) use ($piIds) {
+                    $q2->where('payable_type', ProformaInvoice::class)->whereIn('payable_id', $piIds);
+                });
+                if ($shipmentIds->isNotEmpty()) {
+                    $q->orWhere(function ($q2) use ($shipmentIds) {
+                        $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $shipmentIds);
+                    });
+                }
+            });
         } else {
             $poIds = PurchaseOrder::where('supplier_company_id', $companyId)->pluck('id');
-            $query->where('payable_type', PurchaseOrder::class)->whereIn('payable_id', $poIds);
+            $shipmentIds = Shipment::whereHas('items.purchaseOrderItem.purchaseOrder', function ($q) use ($companyId) {
+                $q->where('supplier_company_id', $companyId);
+            })->pluck('id');
+
+            $query->where(function ($q) use ($poIds, $shipmentIds) {
+                $q->where(function ($q2) use ($poIds) {
+                    $q2->where('payable_type', PurchaseOrder::class)->whereIn('payable_id', $poIds);
+                });
+                if ($shipmentIds->isNotEmpty()) {
+                    $q->orWhere(function ($q2) use ($shipmentIds) {
+                        $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $shipmentIds);
+                    });
+                }
+            });
         }
 
         return $query->with(['payable', 'shipment'])->get();
