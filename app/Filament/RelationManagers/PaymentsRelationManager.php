@@ -31,10 +31,24 @@ class PaymentsRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('label')
                     ->label(__('forms.labels.schedule_stage'))
-                    ->weight('bold')
-                    ->icon(fn ($record) => $record->is_credit ? 'heroicon-o-arrow-uturn-left' : null)
-                    ->color(fn ($record) => $record->is_credit ? 'info' : null)
-                    ->description(fn ($record) => $record->is_credit ? 'Credit' : null)
+                    ->formatStateUsing(function ($state, $record) {
+                        $label = preg_replace('/\s*\x{2014}\s*\[.*\]\s*$/u', '', $state ?? '');
+                        $label = e($label);
+
+                        $html = '<span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-800 dark:bg-white/10 dark:text-gray-200">' . $label . '</span>';
+
+                        $record->loadMissing('shipment');
+                        if ($record->shipment) {
+                            $ref = e($record->shipment->bl_number ?: $record->shipment->reference);
+                            $html .= ' <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-[0.65rem] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-400/10 dark:text-blue-400 dark:ring-blue-400/30">' . $ref . '</span>';
+                        }
+
+                        if ($record->is_credit) {
+                            $html .= ' <span class="inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-[0.6rem] font-semibold text-green-700 uppercase dark:bg-green-400/10 dark:text-green-400">Credit</span>';
+                        }
+
+                        return new HtmlString($html);
+                    })
                     ->searchable(),
                 TextColumn::make('percentage')
                     ->label(__('forms.labels.percent'))
