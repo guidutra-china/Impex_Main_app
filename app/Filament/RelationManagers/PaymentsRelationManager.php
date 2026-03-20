@@ -5,9 +5,6 @@ namespace App\Filament\RelationManagers;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
-use App\Domain\Logistics\Models\Shipment;
-use App\Domain\ProformaInvoices\Models\ProformaInvoice;
-use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Filament\Resources\Payments\PaymentResource;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -175,22 +172,33 @@ class PaymentsRelationManager extends RelationManager
 
     protected function getScheduleItemsQuery(): Builder
     {
-        return $this->buildScheduleQuery()
+        $record = $this->getOwnerRecord();
+
+        return PaymentScheduleItem::query()
+            ->where('payable_type', get_class($record))
+            ->where('payable_id', $record->getKey())
             ->orderBy('is_credit')
             ->orderBy('sort_order');
     }
 
     protected function hasOnlyCredits(): bool
     {
-        return ! $this->buildScheduleQuery()
+        $record = $this->getOwnerRecord();
+
+        return PaymentScheduleItem::query()
+            ->where('payable_type', get_class($record))
+            ->where('payable_id', $record->getKey())
             ->where('is_credit', false)
-            ->exists();
+            ->doesntExist();
     }
 
     protected function getPaymentSummaryData(): array
     {
         $record = $this->getOwnerRecord();
-        $items = $this->buildScheduleQuery()->get();
+        $items = PaymentScheduleItem::query()
+            ->where('payable_type', get_class($record))
+            ->where('payable_id', $record->getKey())
+            ->get();
 
         $currency = $record->currency_code ?? 'USD';
 
@@ -359,50 +367,5 @@ class PaymentsRelationManager extends RelationManager
         $html .= '</div></div>';
 
         return $html;
-    }
-
-    /**
-     * Build query that includes:
-     * 1. Schedule items directly on this document (PI/PO)
-     * 2. Schedule items on Shipments linked to this document (via shipment items)
-     */
-    protected function buildScheduleQuery(): Builder
-    {
-        $record = $this->getOwnerRecord();
-        $shipmentIds = $this->getLinkedShipmentIds($record);
-
-        return PaymentScheduleItem::query()
-            ->where(function (Builder $q) use ($record, $shipmentIds) {
-                // Items directly on this document
-                $q->where(function (Builder $q2) use ($record) {
-                    $q2->where('payable_type', get_class($record))
-                        ->where('payable_id', $record->getKey());
-                });
-
-                // Items on linked Shipments (additional costs like freight, insurance, etc.)
-                if ($shipmentIds->isNotEmpty()) {
-                    $q->orWhere(function (Builder $q2) use ($shipmentIds) {
-                        $q2->where('payable_type', (new Shipment)->getMorphClass())
-                            ->whereIn('payable_id', $shipmentIds);
-                    });
-                }
-            });
-    }
-
-    protected function getLinkedShipmentIds($record): \Illuminate\Support\Collection
-    {
-        if ($record instanceof ProformaInvoice) {
-            return Shipment::whereHas('items.proformaInvoiceItem', function ($q) use ($record) {
-                $q->where('proforma_invoice_id', $record->id);
-            })->pluck('id');
-        }
-
-        if ($record instanceof PurchaseOrder) {
-            return Shipment::whereHas('items.purchaseOrderItem', function ($q) use ($record) {
-                $q->where('purchase_order_id', $record->id);
-            })->pluck('id');
-        }
-
-        return collect();
     }
 }
