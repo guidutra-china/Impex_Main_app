@@ -7,11 +7,14 @@ use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\Logistics\Models\Shipment;
+use App\Domain\Logistics\Models\ShipmentItem;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\Settings\Enums\CalculationBase;
 use App\Domain\Settings\Models\PaymentTerm;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class GeneratePaymentScheduleAction
 {
@@ -75,6 +78,24 @@ class GeneratePaymentScheduleAction
 
     public function regenerate(Model $payable): int
     {
+        return DB::transaction(function () use ($payable) {
+            $processed = $this->regenerateBaseItems($payable);
+
+            // For PI/PO: also recalculate shipment-dependent items across all linked shipments
+            if ($payable instanceof ProformaInvoice) {
+                $this->regenerateShipmentItemsForPi($payable);
+            } elseif ($payable instanceof PurchaseOrder) {
+                $this->regenerateShipmentItemsForPo($payable);
+            }
+
+            $this->syncAdditionalCosts($payable);
+
+            return $processed;
+        });
+    }
+
+    protected function regenerateBaseItems(Model $payable): int
+    {
         $paymentTermId = $payable->payment_term_id;
 
         if (! $paymentTermId) {
@@ -91,11 +112,24 @@ class GeneratePaymentScheduleAction
         $totalAmount = $payable->total;
         $currencyCode = $payable->currency_code;
 
+        // Delete unpaid/unwaived base items (no shipment, no plan, no source)
         PaymentScheduleItem::where('payable_type', get_class($payable))
             ->where('payable_id', $payable->getKey())
             ->whereNull('source_type')
             ->whereNull('shipment_plan_id')
             ->whereNull('shipment_id')
+            ->whereNotIn('status', [
+                PaymentScheduleStatus::PAID->value,
+                PaymentScheduleStatus::WAIVED->value,
+            ])
+            ->whereDoesntHave('allocations')
+            ->delete();
+
+        // Also delete unpaid shipment-linked items (will be recreated below)
+        PaymentScheduleItem::where('payable_type', get_class($payable))
+            ->where('payable_id', $payable->getKey())
+            ->whereNull('source_type')
+            ->whereNotNull('shipment_id')
             ->whereNotIn('status', [
                 PaymentScheduleStatus::PAID->value,
                 PaymentScheduleStatus::WAIVED->value,
@@ -114,6 +148,12 @@ class GeneratePaymentScheduleAction
         $processed = 0;
 
         foreach ($paymentTerm->stages as $stage) {
+            // Skip shipment-dependent stages for base items — they'll be handled per-shipment
+            if ($stage->calculation_base?->isShipmentDependent()) {
+                $processed++;
+                continue;
+            }
+
             $newAmount = (int) round($totalAmount * ($stage->percentage / 100));
             $isBlocking = $this->isBlockingCondition($stage->calculation_base);
             $dueDate = $this->calculateDueDate($payable, $stage);
@@ -149,10 +189,190 @@ class GeneratePaymentScheduleAction
             $processed++;
         }
 
-        $this->syncAdditionalCosts($payable);
-
         return $processed;
     }
+
+    // ─── Shipment-dependent items for Proforma Invoice ───
+
+    protected function regenerateShipmentItemsForPi(ProformaInvoice $pi): void
+    {
+        $paymentTerm = $pi->paymentTerm;
+
+        if (! $paymentTerm || $paymentTerm->stages->isEmpty()) {
+            return;
+        }
+
+        $shipmentDependentStages = $paymentTerm->stages->filter(
+            fn ($stage) => $stage->calculation_base?->isShipmentDependent()
+        );
+
+        if ($shipmentDependentStages->isEmpty()) {
+            return;
+        }
+
+        // Find all shipments linked to this PI via items
+        $shipments = Shipment::whereHas('items.proformaInvoiceItem', function ($q) use ($pi) {
+            $q->where('proforma_invoice_id', $pi->id);
+        })->with(['items.proformaInvoiceItem' => fn ($q) => $q->where('proforma_invoice_id', $pi->id)])
+            ->get();
+
+        $totalShippedValue = 0;
+        $sortOffset = PaymentScheduleItem::where('payable_type', get_class($pi))
+            ->where('payable_id', $pi->id)
+            ->max('sort_order') ?? 0;
+
+        foreach ($shipments as $shipment) {
+            $shipmentValue = $shipment->items
+                ->filter(fn ($item) => $item->proformaInvoiceItem && $item->proformaInvoiceItem->proforma_invoice_id === $pi->id)
+                ->sum(fn ($item) => $item->proformaInvoiceItem->unit_price * $item->quantity);
+
+            $totalShippedValue += $shipmentValue;
+
+            if ($shipmentValue <= 0) {
+                continue;
+            }
+
+            foreach ($shipmentDependentStages as $stage) {
+                $amount = (int) round($shipmentValue * ($stage->percentage / 100));
+                $dueDate = $this->calculateShipmentDueDate($shipment, $stage);
+                $label = $this->generateShipmentLabel($stage, $pi->reference, $shipment->reference);
+                $isBlocking = $stage->calculation_base === CalculationBase::BEFORE_SHIPMENT;
+
+                PaymentScheduleItem::create([
+                    'payable_type' => get_class($pi),
+                    'payable_id' => $pi->id,
+                    'shipment_id' => $shipment->id,
+                    'payment_term_stage_id' => $stage->id,
+                    'label' => $label,
+                    'percentage' => $stage->percentage,
+                    'amount' => $amount,
+                    'currency_code' => $pi->currency_code,
+                    'due_condition' => $stage->calculation_base,
+                    'due_date' => $dueDate,
+                    'status' => PaymentScheduleStatus::PENDING,
+                    'is_blocking' => $isBlocking,
+                    'sort_order' => ++$sortOffset,
+                ]);
+            }
+        }
+
+        // Create "remaining" items for unshipped value
+        $remainingValue = max(0, $pi->total - $totalShippedValue);
+
+        if ($remainingValue > 0) {
+            foreach ($shipmentDependentStages as $stage) {
+                $amount = (int) round($remainingValue * ($stage->percentage / 100));
+                $label = $this->generateShipmentLabel($stage, $pi->reference, null) . ' [remaining]';
+
+                PaymentScheduleItem::create([
+                    'payable_type' => get_class($pi),
+                    'payable_id' => $pi->id,
+                    'payment_term_stage_id' => $stage->id,
+                    'label' => $label,
+                    'percentage' => $stage->percentage,
+                    'amount' => $amount,
+                    'currency_code' => $pi->currency_code,
+                    'due_condition' => $stage->calculation_base,
+                    'due_date' => null,
+                    'status' => PaymentScheduleStatus::PENDING,
+                    'is_blocking' => false,
+                    'sort_order' => ++$sortOffset,
+                ]);
+            }
+        }
+    }
+
+    // ─── Shipment-dependent items for Purchase Order ───
+
+    protected function regenerateShipmentItemsForPo(PurchaseOrder $po): void
+    {
+        $paymentTerm = $po->paymentTerm;
+
+        if (! $paymentTerm || $paymentTerm->stages->isEmpty()) {
+            return;
+        }
+
+        $shipmentDependentStages = $paymentTerm->stages->filter(
+            fn ($stage) => $stage->calculation_base?->isShipmentDependent()
+        );
+
+        if ($shipmentDependentStages->isEmpty()) {
+            return;
+        }
+
+        // Find all shipments linked to this PO via items
+        $shipments = Shipment::whereHas('items.purchaseOrderItem', function ($q) use ($po) {
+            $q->where('purchase_order_id', $po->id);
+        })->with(['items.purchaseOrderItem' => fn ($q) => $q->where('purchase_order_id', $po->id)])
+            ->get();
+
+        $totalShippedValue = 0;
+        $sortOffset = PaymentScheduleItem::where('payable_type', get_class($po))
+            ->where('payable_id', $po->id)
+            ->max('sort_order') ?? 0;
+
+        foreach ($shipments as $shipment) {
+            $shipmentValue = $shipment->items
+                ->filter(fn ($item) => $item->purchaseOrderItem && $item->purchaseOrderItem->purchase_order_id === $po->id)
+                ->sum(fn ($item) => $item->purchaseOrderItem->unit_cost * $item->quantity);
+
+            $totalShippedValue += $shipmentValue;
+
+            if ($shipmentValue <= 0) {
+                continue;
+            }
+
+            foreach ($shipmentDependentStages as $stage) {
+                $amount = (int) round($shipmentValue * ($stage->percentage / 100));
+                $dueDate = $this->calculateShipmentDueDate($shipment, $stage);
+                $label = $this->generateShipmentLabel($stage, $po->reference, $shipment->reference);
+                $isBlocking = $stage->calculation_base === CalculationBase::BEFORE_SHIPMENT;
+
+                PaymentScheduleItem::create([
+                    'payable_type' => get_class($po),
+                    'payable_id' => $po->id,
+                    'shipment_id' => $shipment->id,
+                    'payment_term_stage_id' => $stage->id,
+                    'label' => $label,
+                    'percentage' => $stage->percentage,
+                    'amount' => $amount,
+                    'currency_code' => $po->currency_code,
+                    'due_condition' => $stage->calculation_base,
+                    'due_date' => $dueDate,
+                    'status' => PaymentScheduleStatus::PENDING,
+                    'is_blocking' => $isBlocking,
+                    'sort_order' => ++$sortOffset,
+                ]);
+            }
+        }
+
+        // Create "remaining" items for unshipped value
+        $remainingValue = max(0, $po->total - $totalShippedValue);
+
+        if ($remainingValue > 0) {
+            foreach ($shipmentDependentStages as $stage) {
+                $amount = (int) round($remainingValue * ($stage->percentage / 100));
+                $label = $this->generateShipmentLabel($stage, $po->reference, null) . ' [remaining]';
+
+                PaymentScheduleItem::create([
+                    'payable_type' => get_class($po),
+                    'payable_id' => $po->id,
+                    'payment_term_stage_id' => $stage->id,
+                    'label' => $label,
+                    'percentage' => $stage->percentage,
+                    'amount' => $amount,
+                    'currency_code' => $po->currency_code,
+                    'due_condition' => $stage->calculation_base,
+                    'due_date' => null,
+                    'status' => PaymentScheduleStatus::PENDING,
+                    'is_blocking' => false,
+                    'sort_order' => ++$sortOffset,
+                ]);
+            }
+        }
+    }
+
+    // ─── Shared helpers ───
 
     protected function syncAdditionalCosts(Model $payable): void
     {
@@ -270,12 +490,35 @@ class GeneratePaymentScheduleAction
         }
 
         if ($baseDate instanceof \Carbon\Carbon || $baseDate instanceof \Illuminate\Support\Carbon) {
-            return $stage->days > 0 ? $baseDate->copy()->addDays($stage->days) : $baseDate->copy();
+            return $stage->days != 0 ? $baseDate->copy()->addDays($stage->days) : $baseDate->copy();
         }
 
         $parsed = \Carbon\Carbon::parse($baseDate);
 
-        return $stage->days > 0 ? $parsed->addDays($stage->days) : $parsed;
+        return $stage->days != 0 ? $parsed->addDays($stage->days) : $parsed;
+    }
+
+    protected function calculateShipmentDueDate(Shipment $shipment, $stage): ?\Carbon\Carbon
+    {
+        $baseDate = match ($stage->calculation_base) {
+            CalculationBase::BEFORE_SHIPMENT,
+            CalculationBase::SHIPMENT_DATE,
+            CalculationBase::BL_DATE => $shipment->etd,
+            CalculationBase::DELIVERY_DATE => $shipment->eta,
+            default => null,
+        };
+
+        if (! $baseDate) {
+            return null;
+        }
+
+        if ($stage->calculation_base === CalculationBase::BEFORE_SHIPMENT) {
+            return $baseDate->copy()->subDays(max($stage->days, 2));
+        }
+
+        return $stage->days != 0
+            ? $baseDate->copy()->addDays($stage->days)
+            : $baseDate->copy();
     }
 
     protected function generateLabel($stage): string
@@ -291,6 +534,28 @@ class GeneratePaymentScheduleAction
             $parts[] = '(+' . $stage->days . ' days)';
         } elseif ($stage->days < 0) {
             $parts[] = '(' . $stage->days . ' days)';
+        }
+
+        return implode(' — ', $parts);
+    }
+
+    protected function generateShipmentLabel($stage, string $docReference, ?string $shipmentReference): string
+    {
+        $parts = [
+            $stage->percentage . '%',
+            $stage->calculation_base->getLabel(),
+        ];
+
+        if ($stage->days > 0) {
+            $parts[] = '(+' . $stage->days . ' days)';
+        } elseif ($stage->days < 0) {
+            $parts[] = '(' . $stage->days . ' days)';
+        }
+
+        if ($shipmentReference) {
+            $parts[] = '[' . $shipmentReference . ' / ' . $docReference . ']';
+        } else {
+            $parts[] = '[' . $docReference . ']';
         }
 
         return implode(' — ', $parts);
