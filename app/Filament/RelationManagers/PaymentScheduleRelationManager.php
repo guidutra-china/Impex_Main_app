@@ -5,7 +5,11 @@ namespace App\Filament\RelationManagers;
 use App\Domain\Financial\Actions\GeneratePaymentScheduleAction;
 use App\Domain\Financial\Actions\WaivePaymentScheduleItemAction;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
+use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\Logistics\Models\Shipment;
+use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\Settings\Enums\CalculationBase;
 use BackedEnum;
 use Illuminate\Support\HtmlString;
@@ -19,6 +23,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 class PaymentScheduleRelationManager extends RelationManager
@@ -32,6 +37,17 @@ class PaymentScheduleRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(function (Builder $query) {
+                $record = $this->getOwnerRecord();
+                $shipmentIds = $this->getLinkedShipmentIds($record);
+
+                if ($shipmentIds->isNotEmpty()) {
+                    $query->orWhere(function (Builder $q) use ($shipmentIds) {
+                        $q->where('payable_type', (new Shipment)->getMorphClass())
+                            ->whereIn('payable_id', $shipmentIds);
+                    });
+                }
+            })
             ->columns([
                 TextColumn::make('sort_order')
                     ->label(__('forms.labels.hash'))
@@ -258,5 +274,22 @@ class PaymentScheduleRelationManager extends RelationManager
 
                 Notification::make()->title(__('messages.payment_restored'))->success()->send();
             });
+    }
+
+    protected function getLinkedShipmentIds($record): \Illuminate\Support\Collection
+    {
+        if ($record instanceof ProformaInvoice) {
+            return Shipment::whereHas('items.proformaInvoiceItem', function ($q) use ($record) {
+                $q->where('proforma_invoice_id', $record->id);
+            })->pluck('id');
+        }
+
+        if ($record instanceof PurchaseOrder) {
+            return Shipment::whereHas('items.purchaseOrderItem', function ($q) use ($record) {
+                $q->where('purchase_order_id', $record->id);
+            })->pluck('id');
+        }
+
+        return collect();
     }
 }
