@@ -94,6 +94,7 @@ class PaymentScheduleRelationManager extends RelationManager
             ->recordActions([
                 $this->setDueDateAction(),
                 $this->waiveAction(),
+                $this->restoreWaivedAction(),
             ])
             ->emptyStateHeading('No payment schedule')
             ->emptyStateDescription('Generate a payment schedule from the payment terms.')
@@ -219,6 +220,27 @@ class PaymentScheduleRelationManager extends RelationManager
                 app(WaivePaymentScheduleItemAction::class)->execute($record, $data['reason'] ?? null);
 
                 Notification::make()->title('Payment waived')->success()->send();
+            });
+    }
+
+    protected function restoreWaivedAction(): Action
+    {
+        return Action::make('restoreWaived')
+            ->label(__('forms.labels.restore'))
+            ->icon('heroicon-o-arrow-uturn-left')
+            ->color('info')
+            ->requiresConfirmation()
+            ->modalHeading(__('forms.labels.restore_payment'))
+            ->modalDescription(fn ($record) => 'This will restore the waived payment "' . $record->label . '" back to pending status.')
+            ->visible(fn ($record) => $record->status === PaymentScheduleStatus::WAIVED && auth()->user()?->can('waive-payments'))
+            ->action(function ($record) {
+                $record->update([
+                    'status' => PaymentScheduleStatus::PENDING,
+                    'waived_by' => null,
+                    'waived_at' => null,
+                ]);
+
+                Notification::make()->title(__('messages.payment_restored'))->success()->send();
             });
     }
 }

@@ -364,6 +364,8 @@ return array (
     'regenerate' => '重新生成',
     'registration_number' => '注册号',
     'reject' => '拒绝',
+    'restore' => '恢复',
+    'restore_payment' => '恢复付款',
     'rejection_reason' => '拒绝原因',
     'remaining' => '剩余',
     'reopen' => '重新打开',

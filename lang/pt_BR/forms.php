@@ -366,6 +366,8 @@ return array (
     'regenerate' => 'Regenerar',
     'registration_number' => 'Número de Registro',
     'reject' => 'Rejeitar',
+    'restore' => 'Restaurar',
+    'restore_payment' => 'Restaurar Pagamento',
     'rejection_reason' => 'Motivo da Rejeição',
     'remaining' => 'Restante',
     'reopen' => 'Reabrir',
