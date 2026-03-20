@@ -707,6 +707,7 @@ return array (
     'date_printed_on_ci_and_packing_list' => 'Data impressa na CI e na Lista de Embalagem',
     'date_the_supplier_sent_the_quotation' => 'Data em que o fornecedor enviou a cotação.',
     'days_after_the_calculation_base_date' => 'Dias após a data base de cálculo.',
+    'days_relative_to_calculation_base' => 'Dias relativos à data base. Use valores negativos para dias antes (ex: -5 = 5 dias antes).',
     'default_instructions_included_in_rfq_documents_sent_to' => 'Instruções padrão incluídas nos documentos RFQ enviados aos fornecedores.',
     'default_terms_and_conditions_for_purchase_orders' => 'Termos e condições padrão para pedidos de compra.',
     'define_the_selectable_options_for_this_attribute' => 'Defina as opções selecionáveis para este atributo.',

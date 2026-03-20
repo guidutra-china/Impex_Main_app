@@ -711,6 +711,7 @@ return array (
     'date_printed_on_ci_and_packing_list' => 'Date printed on CI and Packing List',
     'date_the_supplier_sent_the_quotation' => 'Date the supplier sent the quotation.',
     'days_after_the_calculation_base_date' => 'Days after the calculation base date.',
+    'days_relative_to_calculation_base' => 'Days relative to the base date. Use negative values for days before (e.g. -5 = 5 days before).',
     'default_instructions_included_in_rfq_documents_sent_to' => 'Default instructions included in RFQ documents sent to suppliers.',
     'default_terms_and_conditions_for_purchase_orders' => 'Default terms and conditions for purchase orders.',
     'define_the_selectable_options_for_this_attribute' => 'Define the selectable options for this attribute.',

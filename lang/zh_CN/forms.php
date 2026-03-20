@@ -705,6 +705,7 @@ return array (
     'date_printed_on_ci_and_packing_list' => '打印在商业发票和装箱单上的日期',
     'date_the_supplier_sent_the_quotation' => '供应商发送报价的日期。',
     'days_after_the_calculation_base_date' => '计算基准日期后的天数。',
+    'days_relative_to_calculation_base' => '相对于基准日期的天数。使用负值表示之前的天数（例如 -5 = 5天前）。',
     'default_instructions_included_in_rfq_documents_sent_to' => '默认说明包含在发送给供应商的询价单文件中。',
     'default_terms_and_conditions_for_purchase_orders' => '采购订单的默认条款和条件。',
     'define_the_selectable_options_for_this_attribute' => '定义此属性的可选项。',

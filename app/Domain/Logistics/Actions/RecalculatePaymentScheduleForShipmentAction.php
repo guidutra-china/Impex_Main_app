@@ -219,6 +219,8 @@ class RecalculatePaymentScheduleForShipmentAction
 
         if ($stage->days > 0) {
             $parts[] = '(+' . $stage->days . ' days)';
+        } elseif ($stage->days < 0) {
+            $parts[] = '(' . $stage->days . ' days)';
         }
 
         if ($shipmentReference) {

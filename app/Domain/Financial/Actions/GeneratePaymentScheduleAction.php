@@ -289,6 +289,8 @@ class GeneratePaymentScheduleAction
 
         if ($stage->days > 0) {
             $parts[] = '(+' . $stage->days . ' days)';
+        } elseif ($stage->days < 0) {
+            $parts[] = '(' . $stage->days . ' days)';
         }
 
         return implode(' — ', $parts);

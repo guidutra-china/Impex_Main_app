@@ -54,9 +54,9 @@ class PaymentTermForm
                                     ->label(__('forms.labels.days'))
                                     ->required()
                                     ->numeric()
+                                    ->integer()
                                     ->default(0)
-                                    ->minValue(0)
-                                    ->helperText(__('forms.helpers.days_after_the_calculation_base_date')),
+                                    ->helperText(__('forms.helpers.days_relative_to_calculation_base')),
                                 Select::make('calculation_base')
                                     ->label(__('forms.labels.calculation_base'))
                                     ->options(CalculationBase::class)
