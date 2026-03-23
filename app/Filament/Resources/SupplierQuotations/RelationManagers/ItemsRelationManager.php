@@ -258,10 +258,15 @@ class ItemsRelationManager extends RelationManager
                     ->visible(fn () => $this->getOwnerRecord()->inquiry_id
                         && $this->getOwnerRecord()->items()->count() === 0
                         && auth()->user()?->can('edit-supplier-quotations'))
-                    ->requiresConfirmation()
+                    ->form([
+                        \Filament\Forms\Components\Toggle::make('include_target_price')
+                            ->label('Include Target Price')
+                            ->helperText('Pre-fill unit cost with the target price from the inquiry (if available)')
+                            ->default(true),
+                    ])
                     ->modalHeading('Import Items from Inquiry')
                     ->modalDescription('This will copy all items from the linked inquiry into this supplier quotation.')
-                    ->action(function () {
+                    ->action(function (array $data) {
                         try {
                             $record = $this->getOwnerRecord();
                             $inquiry = $record->inquiry;
@@ -269,9 +274,12 @@ class ItemsRelationManager extends RelationManager
                                 throw new \RuntimeException('No inquiry linked.');
                             }
 
+                            $includeTargetPrice = $data['include_target_price'] ?? false;
                             $count = 0;
-                            DB::transaction(function () use ($record, $inquiry, &$count) {
+                            DB::transaction(function () use ($record, $inquiry, $includeTargetPrice, &$count) {
                                 foreach ($inquiry->items as $item) {
+                                    $unitCost = ($includeTargetPrice && $item->target_price) ? $item->target_price : 0;
+
                                     SupplierQuotationItem::create([
                                         'supplier_quotation_id' => $record->id,
                                         'inquiry_item_id' => $item->id,
@@ -279,7 +287,7 @@ class ItemsRelationManager extends RelationManager
                                         'description' => $item->description,
                                         'quantity' => $item->quantity,
                                         'unit' => $item->unit,
-                                        'unit_cost' => 0,
+                                        'unit_cost' => $unitCost,
                                         'specifications' => $item->specifications,
                                         'notes' => $item->notes,
                                         'sort_order' => $item->sort_order,

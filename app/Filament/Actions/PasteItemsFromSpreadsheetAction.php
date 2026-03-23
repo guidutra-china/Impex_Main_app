@@ -374,9 +374,9 @@ class PasteItemsFromSpreadsheetAction
             importCallback: function (array $items, $ownerRecord) {
                 DB::transaction(function () use ($items, $ownerRecord) {
                     $maxSort = $ownerRecord->items()->max('sort_order') ?? 0;
+                    $stats = ['created' => 0, 'updated' => 0];
 
                     foreach ($items as $item) {
-                        $maxSort++;
                         $productNameOrSku = $item['product_name'];
 
                         $product = Product::where('sku', $productNameOrSku)->first()
@@ -385,20 +385,43 @@ class PasteItemsFromSpreadsheetAction
                         $unitCost = ! empty($item['price']) ? Money::toMinor((float) $item['price']) : 0;
                         $quantity = (float) ($item['quantity'] ?? 1);
 
-                        $ownerRecord->items()->create([
+                        // Try to find existing item by product_id or description
+                        $existing = null;
+                        if ($product) {
+                            $existing = $ownerRecord->items()->where('product_id', $product->id)->first();
+                        }
+                        if (! $existing) {
+                            $existing = $ownerRecord->items()->where('description', $productNameOrSku)->first();
+                        }
+
+                        $data = [
                             'product_id' => $product?->id,
                             'description' => $product ? $product->name : $productNameOrSku,
                             'quantity' => $quantity,
                             'unit' => $item['unit'] ?? 'pcs',
                             'unit_cost' => $unitCost,
-                            'total_cost' => $quantity * $unitCost,
                             'moq' => ! empty($item['moq']) ? (float) $item['moq'] : null,
                             'lead_time_days' => ! empty($item['lead_time']) ? (int) $item['lead_time'] : null,
                             'specifications' => $item['specs'] ?: null,
                             'notes' => $item['notes'] ?: null,
-                            'sort_order' => $maxSort,
-                        ]);
+                        ];
+
+                        if ($existing) {
+                            $existing->update($data);
+                            $stats['updated']++;
+                        } else {
+                            $maxSort++;
+                            $ownerRecord->items()->create(array_merge($data, [
+                                'sort_order' => $maxSort,
+                            ]));
+                            $stats['created']++;
+                        }
                     }
+
+                    Notification::make()
+                        ->title("Import complete: {$stats['created']} created, {$stats['updated']} updated")
+                        ->success()
+                        ->send();
                 });
             },
         );
