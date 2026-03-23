@@ -40,9 +40,15 @@ class PortalPaymentAllocations extends Widget
                 default => __('widgets.portal.document'),
             };
 
+            $clientReference = null;
+            if ($payable instanceof \App\Domain\ProformaInvoices\Models\ProformaInvoice) {
+                $clientReference = $payable->client_reference;
+            }
+
             $allocations[] = [
                 'document_type' => $documentType,
                 'document_ref' => $payable?->reference ?? '—',
+                'client_reference' => $clientReference,
                 'schedule_label' => $scheduleItem?->label ?? '—',
                 'amount' => Money::format($allocation->allocated_amount_in_document_currency ?: $allocation->allocated_amount),
                 'amount_raw' => $allocation->allocated_amount_in_document_currency ?: $allocation->allocated_amount,

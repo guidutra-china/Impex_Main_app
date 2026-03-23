@@ -74,6 +74,7 @@
                             <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">#</th>
                             <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.portal.document') }}</th>
                             <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.portal.reference') }}</th>
+                            <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('forms.labels.client_reference') }}</th>
                             <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.portal.schedule_item') }}</th>
                             <th class="px-4 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.portal.allocated_amount') }}</th>
                         </tr>
@@ -96,6 +97,9 @@
                                     {{ $allocation['document_ref'] }}
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-2.5 text-gray-600 dark:text-gray-400">
+                                    {{ $allocation['client_reference'] ?? '—' }}
+                                </td>
+                                <td class="whitespace-nowrap px-4 py-2.5 text-gray-600 dark:text-gray-400">
                                     {{ $allocation['schedule_label'] }}
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-2.5 text-right font-mono font-medium text-success-600 dark:text-success-400">
@@ -106,7 +110,7 @@
                     </tbody>
                     <tfoot>
                         <tr class="border-t-2 border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/5">
-                            <td colspan="4" class="px-4 py-3 text-sm font-bold text-gray-700 dark:text-gray-300">
+                            <td colspan="5" class="px-4 py-3 text-sm font-bold text-gray-700 dark:text-gray-300">
                                 {{ __('widgets.portal.total') }} ({{ count($allocations) }} {{ count($allocations) === 1 ? __('widgets.portal.allocation') : __('widgets.portal.allocations') }})
                             </td>
                             <td class="whitespace-nowrap px-4 py-3 text-right font-mono font-bold text-success-600 dark:text-success-400">
