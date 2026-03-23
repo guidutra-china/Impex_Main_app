@@ -57,6 +57,11 @@ class ProformaInvoiceResource extends Resource
                     ->sortable()
                     ->weight('bold')
                     ->copyable(),
+                TextColumn::make('client_reference')
+                    ->label(__('forms.labels.client_reference'))
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('—'),
                 TextColumn::make('status')
                     ->badge(),
                 TextColumn::make('currency_code')
@@ -110,6 +115,10 @@ class ProformaInvoiceResource extends Resource
                     TextEntry::make('reference')
                         ->copyable()
                         ->weight('bold'),
+                    TextEntry::make('client_reference')
+                        ->label(__('forms.labels.client_reference'))
+                        ->placeholder('—')
+                        ->copyable(),
                     TextEntry::make('status')
                         ->badge(),
                     TextEntry::make('currency_code')

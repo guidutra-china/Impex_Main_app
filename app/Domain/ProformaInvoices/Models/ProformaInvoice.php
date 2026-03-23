@@ -37,6 +37,7 @@ class ProformaInvoice extends Model
 
     protected $fillable = [
         'reference',
+        'client_reference',
         'inquiry_id',
         'company_id',
         'contact_id',

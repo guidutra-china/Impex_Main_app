@@ -20,6 +20,12 @@
             <td class="meta-label">{{ $labels['currency'] }} @if($proforma_invoice['incoterm'])/ {{ $labels['incoterm'] }}@endif</td>
             <td class="meta-value">{{ $proforma_invoice['currency_code'] }} @if($proforma_invoice['incoterm'])/ {{ $proforma_invoice['incoterm'] }}@endif</td>
         </tr>
+        @if($proforma_invoice['client_reference'])
+            <tr>
+                <td class="meta-label">{{ $labels['client_reference'] }}</td>
+                <td class="meta-value">{{ $proforma_invoice['client_reference'] }}</td>
+            </tr>
+        @endif
         @if($proforma_invoice['inquiry_reference'])
             <tr>
                 <td class="meta-label">{{ $labels['inquiry_reference'] }}</td>

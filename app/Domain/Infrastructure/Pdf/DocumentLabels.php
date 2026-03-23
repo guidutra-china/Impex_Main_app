@@ -66,6 +66,7 @@ class DocumentLabels
             'total_target_value' => 'Total Target Value',
 
             // Proforma Invoice
+            'client_reference' => 'Client Ref.',
             'issue_date' => 'Issue Date',
             'confirmed_via' => 'Confirmed Via',
             'confirmation_ref' => 'Confirmation Ref.',
@@ -135,6 +136,7 @@ class DocumentLabels
             'inquiry_reference' => 'Ref. Consulta',
             'total_target_value' => 'Valor Alvo Total',
 
+            'client_reference' => 'Ref. Cliente',
             'issue_date' => 'Data de Emissão',
             'confirmed_via' => 'Confirmado Via',
             'confirmation_ref' => 'Ref. Confirmação',
@@ -202,6 +204,7 @@ class DocumentLabels
             'inquiry_reference' => '询价编号',
             'total_target_value' => '目标总价值',
 
+            'client_reference' => '客户参考',
             'issue_date' => '开具日期',
             'confirmed_via' => '确认方式',
             'confirmation_ref' => '确认参考',

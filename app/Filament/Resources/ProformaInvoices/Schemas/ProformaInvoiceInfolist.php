@@ -47,6 +47,10 @@ class ProformaInvoiceInfolist
                         ->label(__('forms.labels.reference'))
                         ->weight(FontWeight::Bold)
                         ->copyable(),
+                    TextEntry::make('client_reference')
+                        ->label(__('forms.labels.client_reference'))
+                        ->placeholder('—')
+                        ->copyable(),
                     TextEntry::make('status')
                         ->label(__('forms.labels.status'))
                         ->badge(),

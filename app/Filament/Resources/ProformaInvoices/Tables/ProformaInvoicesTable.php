@@ -29,6 +29,12 @@ class ProformaInvoicesTable
                     ->sortable()
                     ->weight('bold')
                     ->copyable(),
+                TextColumn::make('client_reference')
+                    ->label(__('forms.labels.client_reference'))
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('inquiry.reference')
                     ->label(__('forms.labels.inquiry'))
                     ->searchable()
