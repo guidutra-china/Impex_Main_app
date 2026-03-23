@@ -74,9 +74,12 @@ class FlexibleProductImportAction
         $fieldPatterns = [
             'product_name' => ['product', 'item', 'description', 'modelo', 'model', 'produto', 'name', 'nome'],
             'reference_code' => ['ref', 'code', 'código', 'codigo', 'sku', 'reference'],
-            'unit_price' => ['price', 'preço', 'preco', 'valor', 'cost', 'custo', 'unit price', 'unit cost'],
+            'unit_price' => ['price', 'preço', 'preco', 'valor', 'cost', 'custo', 'unit price', 'unit cost', 'selling price', 'purchase price'],
+            'custom_price' => ['custom price', 'ci price', 'ci override', 'override', 'preço custom', 'preco ci'],
             'currency' => ['currency', 'moeda', 'curr'],
             'external_code' => ['external', 'client code', 'supplier code', 'externo', 'codigo cliente', 'codigo fornecedor'],
+            'external_name' => ['external name', 'client name', 'supplier name', 'nome externo', 'nome cliente', 'nome fornecedor', 'product name client', 'product name supplier'],
+            'external_description' => ['external desc', 'invoice desc', 'ci desc', 'descrição fatura', 'descricao fatura'],
             'moq' => ['moq', 'minimum', 'min order', 'pedido min', 'min qty'],
             'lead_time' => ['lead', 'delivery', 'prazo', 'entrega', 'days', 'dias'],
             'material' => ['material', 'matéria', 'materia'],
@@ -88,8 +91,11 @@ class FlexibleProductImportAction
             'product_name' => '',
             'reference_code' => '',
             'unit_price' => '',
+            'custom_price' => '',
             'currency' => 'USD',
             'external_code' => '',
+            'external_name' => '',
+            'external_description' => '',
             'moq' => '',
             'lead_time' => '',
             'material' => '',
@@ -101,8 +107,11 @@ class FlexibleProductImportAction
             'product_name' => 'Product Name',
             'reference_code' => 'Reference Code / SKU',
             'unit_price' => 'Unit Price',
+            'custom_price' => 'Custom Price (CI Override)',
             'currency' => 'Currency',
-            'external_code' => 'External Code',
+            'external_code' => 'Client/Supplier Code',
+            'external_name' => 'Client/Supplier Product Name',
+            'external_description' => 'Invoice Description',
             'moq' => 'MOQ',
             'lead_time' => 'Lead Time (days)',
             'material' => 'Material',
@@ -127,6 +136,14 @@ class FlexibleProductImportAction
                             ->options(fn () => Category::active()->pluck('name', 'id'))
                             ->searchable()
                             ->required(),
+                        Select::make('cross_company_id')
+                            ->label($role === 'client' ? 'Also link to Supplier' : 'Also link to Client')
+                            ->options(fn () => Company::orderBy('name')->pluck('name', 'id'))
+                            ->searchable()
+                            ->placeholder('— None —')
+                            ->helperText($role === 'client'
+                                ? 'Optionally link imported products to a supplier as well'
+                                : 'Optionally link imported products to a client as well'),
                         FileUpload::make('spreadsheet')
                             ->label('Excel File')
                             ->acceptedFileTypes([
@@ -397,6 +414,7 @@ class FlexibleProductImportAction
             ])
             ->action(function (array $data) use ($role, $getCompany, $fieldDefaults): void {
                 $categoryId = $data['category_id'] ?? null;
+                $crossCompanyId = $data['cross_company_id'] ?? null;
                 $mapping = self::getCache('mapping', []);
                 $rows = self::getCachedRows();
                 $images = self::getCache('images', []);
@@ -423,7 +441,7 @@ class FlexibleProductImportAction
                 ]);
 
                 try {
-                    DB::transaction(function () use ($items, $category, $company, $role, $skuGenerator, $images, &$stats) {
+                    DB::transaction(function () use ($items, $category, $company, $role, $skuGenerator, $images, $crossCompanyId, &$stats) {
                         foreach ($items as $item) {
                             $productName = $item['product_name'] ?? '';
                             if (empty($productName)) {
@@ -475,7 +493,10 @@ class FlexibleProductImportAction
                             $pivotData = array_filter([
                                 'role' => $role,
                                 'external_code' => $item['external_code'] ?: null,
+                                'external_name' => $item['external_name'] ?: null,
+                                'external_description' => $item['external_description'] ?: null,
                                 'unit_price' => ! empty($item['unit_price']) ? Money::toMinor((float) $item['unit_price']) : null,
+                                'custom_price' => ! empty($item['custom_price']) ? Money::toMinor((float) $item['custom_price']) : null,
                                 'currency_code' => ! empty($item['currency']) ? strtoupper($item['currency']) : null,
                                 'avatar_path' => $imagePath,
                                 'avatar_disk' => $imagePath ? 'public' : null,
@@ -493,6 +514,28 @@ class FlexibleProductImportAction
                                     'product_id' => $existing->id,
                                     'company_id' => $company->id,
                                 ]));
+                            }
+
+                            // Cross-company link (optional)
+                            if (! empty($crossCompanyId)) {
+                                $crossRole = $role === 'client' ? 'supplier' : 'client';
+                                $crossPivotData = array_filter([
+                                    'role' => $crossRole,
+                                    'unit_price' => ! empty($item['unit_price']) ? Money::toMinor((float) $item['unit_price']) : null,
+                                    'currency_code' => ! empty($item['currency']) ? strtoupper($item['currency']) : null,
+                                ], fn ($v) => $v !== null);
+
+                                $existingCrossLink = CompanyProduct::where('product_id', $existing->id)
+                                    ->where('company_id', $crossCompanyId)
+                                    ->where('role', $crossRole)
+                                    ->first();
+
+                                if (! $existingCrossLink) {
+                                    CompanyProduct::create(array_merge($crossPivotData, [
+                                        'product_id' => $existing->id,
+                                        'company_id' => $crossCompanyId,
+                                    ]));
+                                }
                             }
                         }
                     });
