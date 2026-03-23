@@ -104,14 +104,15 @@ class FlexibleProductImportAction
             'notes' => '',
         ];
 
+        $isClient = $role === 'client';
         $fieldLabels = [
             'product_name' => 'Product Name',
             'reference_code' => 'Reference Code / SKU',
-            'unit_price' => 'Unit Price',
+            'unit_price' => $isClient ? 'Selling Price' : 'Purchase Price',
             'custom_price' => 'Custom Price (CI Override)',
             'currency' => 'Currency',
-            'external_code' => 'Client/Supplier Code',
-            'external_name' => 'Client/Supplier Product Name',
+            'external_code' => $isClient ? 'Client Code' : 'Supplier Code',
+            'external_name' => $isClient ? 'Client Product Name' : 'Supplier Product Name',
             'external_description' => 'Invoice Description',
             'moq' => 'MOQ',
             'lead_time' => 'Lead Time (days)',
