@@ -91,6 +91,12 @@ class FlexibleProductImportAction
             'external_name' => $isClient
                 ? ['client name', 'nome cliente', 'client product']
                 : ['supplier name', 'nome fornecedor', 'supplier product'],
+            'cross_external_code' => $isClient
+                ? ['supplier code', 'codigo fornecedor']
+                : ['client code', 'codigo cliente'],
+            'cross_external_name' => $isClient
+                ? ['supplier name', 'nome fornecedor', 'supplier product']
+                : ['client name', 'nome cliente', 'client product'],
             'external_description' => ['external desc', 'invoice desc', 'ci desc', 'descrição fatura', 'descricao fatura'],
             'moq' => ['moq', 'minimum', 'min order', 'pedido min', 'min qty'],
             'lead_time' => ['lead', 'delivery', 'prazo', 'entrega', 'days', 'dias'],
@@ -111,6 +117,8 @@ class FlexibleProductImportAction
             'currency' => 'USD',
             'external_code' => '',
             'external_name' => '',
+            'cross_external_code' => '',
+            'cross_external_name' => '',
             'external_description' => '',
             'moq' => '',
             'lead_time' => '',
@@ -128,6 +136,8 @@ class FlexibleProductImportAction
             'currency' => 'Currency',
             'external_code' => $isClient ? 'Client Code' : 'Supplier Code',
             'external_name' => $isClient ? 'Client Product Name' : 'Supplier Product Name',
+            'cross_external_code' => $isClient ? 'Supplier Code' : 'Client Code',
+            'cross_external_name' => $isClient ? 'Supplier Product Name' : 'Client Product Name',
             'external_description' => 'Invoice Description',
             'moq' => 'MOQ',
             'lead_time' => 'Lead Time (days)',
@@ -548,6 +558,8 @@ class FlexibleProductImportAction
                                 $crossRole = $role === 'client' ? 'supplier' : 'client';
                                 $crossPivotData = array_filter([
                                     'role' => $crossRole,
+                                    'external_code' => $item['cross_external_code'] ?: null,
+                                    'external_name' => $item['cross_external_name'] ?: null,
                                     'unit_price' => ! empty($item['cross_unit_price']) ? Money::toMinor((float) $item['cross_unit_price']) : null,
                                     'currency_code' => ! empty($item['currency']) ? strtoupper($item['currency']) : null,
                                 ], fn ($v) => $v !== null);
