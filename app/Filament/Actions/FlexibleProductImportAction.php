@@ -67,6 +67,7 @@ class FlexibleProductImportAction
         @unlink(self::tempPath('rows'));
         @unlink(self::tempPath('images'));
         @unlink(self::tempPath('mapping'));
+        @unlink(self::tempPath('row_origins'));
     }
 
     public static function make(string $role, \Closure $getCompany): Action
@@ -188,15 +189,19 @@ class FlexibleProductImportAction
                             \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: toArray returned ' . count($rawData) . ' rows');
 
                             // Filter out completely empty rows and trim values
+                            // Preserve original spreadsheet row numbers for image matching
                             $rows = [];
+                            $rowOrigins = []; // maps filtered index → original 1-based row number
                             $maxRows = min(count($rawData), 5000); // Safety limit
                             for ($r = 0; $r < $maxRows; $r++) {
                                 $values = array_map(fn ($v) => trim((string) ($v ?? '')), $rawData[$r]);
                                 if (implode('', $values) !== '') {
+                                    $rowOrigins[count($rows)] = $r + 1; // 1-based spreadsheet row
                                     $rows[] = $values;
                                 }
                             }
                             unset($rawData);
+                            self::putCache('row_origins', $rowOrigins);
                             \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: filtered to ' . count($rows) . ' non-empty rows');
 
                             if (empty($rows)) {
@@ -448,9 +453,15 @@ class FlexibleProductImportAction
                                 continue;
                             }
 
-                            // Use _source_row to find the correct image
+                            // Use _source_row (original spreadsheet row) to find the correct image
                             $sourceRow = $item['_source_row'] ?? null;
                             $imagePath = $sourceRow ? ($images[$sourceRow] ?? null) : null;
+
+                            if ($sourceRow && $imagePath) {
+                                \Illuminate\Support\Facades\Log::info("FLEXIBLE IMPORT: matched image for '{$productName}' at row {$sourceRow} → {$imagePath}");
+                            } elseif ($sourceRow && ! $imagePath && ! empty($images)) {
+                                \Illuminate\Support\Facades\Log::info("FLEXIBLE IMPORT: no image match for '{$productName}' at row {$sourceRow}, available image rows: " . implode(',', array_keys($images)));
+                            }
 
                             // Use mapped reference_code as SKU if available, otherwise auto-generate
                             $sku = ! empty($item['reference_code'])
@@ -647,7 +658,19 @@ class FlexibleProductImportAction
 
         foreach ($worksheet->getDrawingCollection() as $drawing) {
             $coordinate = $drawing->getCoordinates();
-            $row = (int) preg_replace('/[A-Z]+/', '', $coordinate);
+
+            if (empty($coordinate)) {
+                \Illuminate\Support\Facades\Log::warning('FLEXIBLE IMPORT: image with no coordinates, skipping');
+                continue;
+            }
+
+            // Extract row number from cell reference (e.g., "B5" → 5)
+            $row = (int) preg_replace('/[A-Z]+/i', '', $coordinate);
+
+            if ($row < 1) {
+                \Illuminate\Support\Facades\Log::warning("FLEXIBLE IMPORT: invalid row from coordinate '{$coordinate}', skipping");
+                continue;
+            }
 
             if (isset($imagesByRow[$row])) {
                 continue;
@@ -656,38 +679,47 @@ class FlexibleProductImportAction
             $imageData = null;
             $extension = 'png';
 
-            if ($drawing instanceof MemoryDrawing) {
-                ob_start();
-                $renderFunc = match ($drawing->getRenderingFunction()) {
-                    MemoryDrawing::RENDERING_JPEG => 'imagejpeg',
-                    MemoryDrawing::RENDERING_GIF => 'imagegif',
-                    default => 'imagepng',
-                };
-                $renderFunc($drawing->getImageResource());
-                $imageData = ob_get_clean();
-                $extension = match ($drawing->getRenderingFunction()) {
-                    MemoryDrawing::RENDERING_JPEG => 'jpg',
-                    MemoryDrawing::RENDERING_GIF => 'gif',
-                    default => 'png',
-                };
-            } elseif ($drawing instanceof Drawing && $drawing->getPath()) {
-                $sourcePath = $drawing->getPath();
+            try {
+                if ($drawing instanceof MemoryDrawing) {
+                    $imageResource = $drawing->getImageResource();
+                    if ($imageResource) {
+                        ob_start();
+                        $renderFunc = match ($drawing->getRenderingFunction()) {
+                            MemoryDrawing::RENDERING_JPEG => 'imagejpeg',
+                            MemoryDrawing::RENDERING_GIF => 'imagegif',
+                            default => 'imagepng',
+                        };
+                        $renderFunc($imageResource);
+                        $imageData = ob_get_clean();
+                        $extension = match ($drawing->getRenderingFunction()) {
+                            MemoryDrawing::RENDERING_JPEG => 'jpg',
+                            MemoryDrawing::RENDERING_GIF => 'gif',
+                            default => 'png',
+                        };
+                    }
+                } elseif ($drawing instanceof Drawing && $drawing->getPath()) {
+                    $sourcePath = $drawing->getPath();
 
-                if (str_starts_with($sourcePath, 'zip://')) {
-                    $imageData = @file_get_contents($sourcePath);
-                } elseif (file_exists($sourcePath)) {
-                    $imageData = file_get_contents($sourcePath);
-                }
+                    if (str_starts_with($sourcePath, 'zip://')) {
+                        $imageData = @file_get_contents($sourcePath);
+                    } elseif (file_exists($sourcePath)) {
+                        $imageData = file_get_contents($sourcePath);
+                    }
 
-                if ($imageData) {
-                    $extension = strtolower($drawing->getExtension() ?: pathinfo($sourcePath, PATHINFO_EXTENSION) ?: 'png');
+                    if ($imageData) {
+                        $extension = strtolower($drawing->getExtension() ?: pathinfo($sourcePath, PATHINFO_EXTENSION) ?: 'png');
+                    }
                 }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("FLEXIBLE IMPORT: failed to extract image at {$coordinate}: {$e->getMessage()}");
+                continue;
             }
 
-            if ($imageData) {
+            if ($imageData && strlen($imageData) > 100) { // Skip tiny/corrupt images
                 $filename = 'products/' . uniqid('import_') . '.' . $extension;
                 Storage::disk('public')->put($filename, $imageData);
                 $imagesByRow[$row] = $filename;
+                \Illuminate\Support\Facades\Log::info("FLEXIBLE IMPORT: image extracted at row {$row} → {$filename}");
             }
         }
 
@@ -757,6 +789,7 @@ class FlexibleProductImportAction
     protected static function applyMapping(array $rows, array $mapping, int $headerRowNumber, array $fieldDefaults): array
     {
         $startIndex = max(0, $headerRowNumber);
+        $rowOrigins = self::getCache('row_origins', []);
         $items = [];
 
         for ($i = $startIndex; $i < count($rows); $i++) {
@@ -778,8 +811,8 @@ class FlexibleProductImportAction
             }
 
             if ($hasContent) {
-                // +1 because spreadsheet rows are 1-based, $i is 0-based index into $rows array
-                $item['_source_row'] = $i + 1;
+                // Use original spreadsheet row number for image matching
+                $item['_source_row'] = $rowOrigins[$i] ?? ($i + 1);
                 $items[] = $item;
             }
         }
