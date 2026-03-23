@@ -72,14 +72,25 @@ class FlexibleProductImportAction
 
     public static function make(string $role, \Closure $getCompany): Action
     {
+        $isClient = $role === 'client';
+
         $fieldPatterns = [
             'product_name' => ['product', 'item', 'description', 'modelo', 'model', 'produto', 'name', 'nome'],
             'reference_code' => ['ref', 'code', 'código', 'codigo', 'sku', 'reference'],
-            'unit_price' => ['price', 'preço', 'preco', 'valor', 'cost', 'custo', 'unit price', 'unit cost', 'selling price', 'purchase price'],
+            'unit_price' => $isClient
+                ? ['selling price', 'sell price', 'preço venda', 'preco venda', 'client price']
+                : ['purchase price', 'buy price', 'preço compra', 'preco compra', 'supplier price', 'cost', 'custo', 'fob'],
+            'cross_unit_price' => $isClient
+                ? ['purchase price', 'buy price', 'preço compra', 'preco compra', 'supplier price', 'cost', 'custo', 'fob']
+                : ['selling price', 'sell price', 'preço venda', 'preco venda', 'client price'],
             'custom_price' => ['custom price', 'ci price', 'ci override', 'override', 'preço custom', 'preco ci'],
             'currency' => ['currency', 'moeda', 'curr'],
-            'external_code' => ['external', 'client code', 'supplier code', 'externo', 'codigo cliente', 'codigo fornecedor'],
-            'external_name' => ['external name', 'client name', 'supplier name', 'nome externo', 'nome cliente', 'nome fornecedor', 'product name client', 'product name supplier'],
+            'external_code' => $isClient
+                ? ['client code', 'codigo cliente', 'external code']
+                : ['supplier code', 'codigo fornecedor', 'external code'],
+            'external_name' => $isClient
+                ? ['client name', 'nome cliente', 'client product']
+                : ['supplier name', 'nome fornecedor', 'supplier product'],
             'external_description' => ['external desc', 'invoice desc', 'ci desc', 'descrição fatura', 'descricao fatura'],
             'moq' => ['moq', 'minimum', 'min order', 'pedido min', 'min qty'],
             'lead_time' => ['lead', 'delivery', 'prazo', 'entrega', 'days', 'dias'],
@@ -88,10 +99,14 @@ class FlexibleProductImportAction
             'notes' => ['note', 'remark', 'observa', 'obs', 'comment'],
         ];
 
+        // Add generic price patterns as fallback (only if specific ones didn't match)
+        $fieldPatterns['unit_price'] = array_merge($fieldPatterns['unit_price'], ['price', 'preço', 'preco', 'valor', 'unit price', 'unit cost']);
+
         $fieldDefaults = [
             'product_name' => '',
             'reference_code' => '',
             'unit_price' => '',
+            'cross_unit_price' => '',
             'custom_price' => '',
             'currency' => 'USD',
             'external_code' => '',
@@ -104,11 +119,11 @@ class FlexibleProductImportAction
             'notes' => '',
         ];
 
-        $isClient = $role === 'client';
         $fieldLabels = [
             'product_name' => 'Product Name',
             'reference_code' => 'Reference Code / SKU',
-            'unit_price' => $isClient ? 'Selling Price' : 'Purchase Price',
+            'unit_price' => $isClient ? 'Selling Price (Client)' : 'Purchase Price (Supplier)',
+            'cross_unit_price' => $isClient ? 'Purchase Price (Supplier)' : 'Selling Price (Client)',
             'custom_price' => 'Custom Price (CI Override)',
             'currency' => 'Currency',
             'external_code' => $isClient ? 'Client Code' : 'Supplier Code',
@@ -533,7 +548,7 @@ class FlexibleProductImportAction
                                 $crossRole = $role === 'client' ? 'supplier' : 'client';
                                 $crossPivotData = array_filter([
                                     'role' => $crossRole,
-                                    'unit_price' => ! empty($item['unit_price']) ? Money::toMinor((float) $item['unit_price']) : null,
+                                    'unit_price' => ! empty($item['cross_unit_price']) ? Money::toMinor((float) $item['cross_unit_price']) : null,
                                     'currency_code' => ! empty($item['currency']) ? strtoupper($item['currency']) : null,
                                 ], fn ($v) => $v !== null);
 
