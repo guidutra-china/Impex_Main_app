@@ -89,10 +89,6 @@ class ProductImportService
         foreach ($rows as $i => $row) {
             $rowNum = $row['_row'];
 
-            if (empty($row['name'])) {
-                $errors[] = "Row {$rowNum}: Product Name is required.";
-            }
-
             if (! empty($row['parent_ref'])) {
                 $parentRef = trim($row['parent_ref']);
                 if (! in_array($parentRef, $refCodes)) {
@@ -323,8 +319,17 @@ class ProductImportService
             return ['action' => 'updated', 'product' => $existing];
         }
 
+        // Auto-generate name: Category + Model Number (same as product form)
+        $productName = $row['name'] ?? '';
+        if (empty($productName)) {
+            $modelNumber = $row['model_number'] ?? '';
+            $productName = $modelNumber
+                ? $category->name . ' ' . $modelNumber
+                : $category->name;
+        }
+
         $product = Product::create([
-            'name' => $row['name'],
+            'name' => $productName,
             'commercial_name' => $row['commercial_name'] ?? null,
             'product_family' => $row['product_family'] ?? null,
             'sku' => $skuGenerator->execute($category->id),

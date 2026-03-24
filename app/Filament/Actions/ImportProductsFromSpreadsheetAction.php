@@ -550,8 +550,16 @@ class ImportProductsFromSpreadsheetAction
                     $totalItems += count($items);
 
                     foreach ($items as $item) {
+                        // Auto-generate name: Category + Model Number (same as product form)
                         $productName = $item['name'] ?? '';
                         if (empty($productName)) {
+                            $modelNumber = $item['model_number'] ?? '';
+                            $productName = $modelNumber
+                                ? $category->name . ' ' . $modelNumber
+                                : $category->name;
+                        }
+
+                        if (empty(trim($productName))) {
                             continue;
                         }
 
