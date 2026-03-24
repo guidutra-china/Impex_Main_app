@@ -668,10 +668,10 @@ class PasteItemsFromSpreadsheetAction
                                     }
 
                                     return new HtmlString(self::buildPreviewTable($rows, (int) ($get('header_row') ?? 1)));
-                                }),
+                                })
+                                ->columnSpanFull(),
                             TextInput::make('header_row')
-                                ->label('Header row number')
-                                ->helperText('Which row contains the column headers? Data will be imported starting from the next row. Set to 0 if there is no header row.')
+                                ->label('Header row')
                                 ->numeric()
                                 ->default(1)
                                 ->minValue(0)
@@ -697,14 +697,15 @@ class PasteItemsFromSpreadsheetAction
                                 }),
                             Placeholder::make('mapping_help')
                                 ->content(new HtmlString(
-                                    '<p class="text-sm text-gray-500 dark:text-gray-400">'
-                                    . 'Match each field to a column from your spreadsheet. '
-                                    . 'Headers are auto-detected when possible. Use "Skip" for columns you don\'t need.'
+                                    '<p class="text-xs text-gray-500 dark:text-gray-400">'
+                                    . 'Match each field to a spreadsheet column. Use "Skip" for columns you don\'t need.'
                                     . '</p>'
-                                )),
+                                ))
+                                ->columnSpanFull(),
                             ...$columnSelects,
                         ];
-                    }),
+                    })
+                    ->columns(3),
                 Step::make('Preview & Edit')
                     ->label('Preview & Edit')
                     ->description('Review items before importing')
