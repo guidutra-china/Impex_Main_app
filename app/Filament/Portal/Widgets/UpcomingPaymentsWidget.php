@@ -66,12 +66,8 @@ class UpcomingPaymentsWidget extends Widget
                 PaymentScheduleStatus::DUE,
                 PaymentScheduleStatus::OVERDUE,
             ])
-            ->where(function ($query) use ($tenant) {
-                $query->whereHasMorph('payable', [ProformaInvoice::class], function ($q) use ($tenant) {
-                    $q->where('company_id', $tenant->id);
-                })->orWhereHasMorph('payable', [Shipment::class], function ($q) use ($tenant) {
-                    $q->where('company_id', $tenant->id);
-                });
+            ->whereHasMorph('payable', [ProformaInvoice::class], function ($q) use ($tenant) {
+                $q->where('company_id', $tenant->id);
             });
 
         // Overdue: explicit OVERDUE status OR past due_date with PENDING/DUE status

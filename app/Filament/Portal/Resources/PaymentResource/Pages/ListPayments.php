@@ -55,12 +55,8 @@ class ListPayments extends ListRecords
             ->query(
                 PaymentScheduleItem::query()
                     ->with(['payable', 'paymentTermStage'])
-                    ->where(function ($query) use ($tenant) {
-                        $query->whereHasMorph('payable', [ProformaInvoice::class], function ($q) use ($tenant) {
-                            $q->where('company_id', $tenant->id);
-                        })->orWhereHasMorph('payable', [Shipment::class], function ($q) use ($tenant) {
-                            $q->where('company_id', $tenant->id);
-                        });
+                    ->whereHasMorph('payable', [ProformaInvoice::class], function ($q) use ($tenant) {
+                        $q->where('company_id', $tenant->id);
                     })
             )
             ->columns([
