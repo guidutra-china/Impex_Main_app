@@ -12,6 +12,7 @@ use App\Domain\Infrastructure\Support\Money;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -161,14 +162,9 @@ class FlexibleProductImportAction
             ->visible(fn () => auth()->user()?->can('edit-companies'))
             ->steps([
                 Step::make('Upload')
-                    ->label('Upload & Category')
-                    ->description('Upload spreadsheet and select category')
+                    ->label('Upload')
+                    ->description('Upload spreadsheet')
                     ->schema([
-                        Select::make('category_id')
-                            ->label('Product Category')
-                            ->options(fn () => Category::active()->pluck('name', 'id'))
-                            ->searchable()
-                            ->required(),
                         Select::make('cross_company_id')
                             ->label($role === 'client' ? 'Also link to Supplier' : 'Also link to Client')
                             ->options(fn () => Company::orderBy('name')->pluck('name', 'id'))
@@ -291,7 +287,6 @@ class FlexibleProductImportAction
                     ->label('Map Columns')
                     ->description('Match spreadsheet columns to product fields')
                     ->afterValidation(function (Get $get) use ($fieldDefaults) {
-                        // Store mapping in cache for the action to use
                         $currentMapping = [];
                         foreach (array_keys($fieldDefaults) as $field) {
                             $value = $get("col_{$field}");
@@ -300,13 +295,15 @@ class FlexibleProductImportAction
                             }
                         }
 
+                        $blocks = $get('import_blocks') ?? [];
+
                         self::putCache('mapping', [
                             'columns' => $currentMapping,
                             'header_row' => (int) ($get('header_row') ?? 1),
+                            'blocks' => array_values($blocks),
                         ]);
                     })
                     ->schema(function () use ($fieldLabels, $fieldDefaults, $fieldPatterns) {
-                        \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: Step 2 schema() called');
                         $columnSelects = [];
                         foreach ($fieldLabels as $field => $label) {
                             $columnSelects[] = Select::make("col_{$field}")
@@ -323,14 +320,14 @@ class FlexibleProductImportAction
 
                                         return self::buildColumnOptions($headerData);
                                     } catch (\Throwable $e) {
-                                        \Illuminate\Support\Facades\Log::error('FLEXIBLE IMPORT: Select options error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-
                                         return [];
                                     }
                                 })
                                 ->native(false)
                                 ->placeholder('-- Skip --');
                         }
+
+                        $totalRows = count(self::getCachedRows());
 
                         return [
                             Placeholder::make('file_preview')
@@ -350,10 +347,9 @@ class FlexibleProductImportAction
                                         return new HtmlString(
                                             self::buildPreviewTable($rows, (int) ($get('header_row') ?? 1))
                                             . $imageNote
+                                            . '<p class="text-sm text-gray-500 mt-1">Total: ' . count($rows) . ' rows</p>'
                                         );
                                     } catch (\Throwable $e) {
-                                        \Illuminate\Support\Facades\Log::error('FLEXIBLE IMPORT: Preview error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-
                                         return new HtmlString('<p class="text-red-500">Error: ' . e($e->getMessage()) . '</p>');
                                     }
                                 }),
@@ -390,6 +386,43 @@ class FlexibleProductImportAction
                                     . '</p>'
                                 )),
                             ...$columnSelects,
+                            Placeholder::make('blocks_help')
+                                ->content(new HtmlString(
+                                    '<hr class="my-4 border-gray-200 dark:border-gray-700">'
+                                    . '<p class="text-sm font-medium text-gray-700 dark:text-gray-300">'
+                                    . 'Define which rows belong to each product category. '
+                                    . 'Add multiple blocks to import different categories from the same file.'
+                                    . '</p>'
+                                )),
+                            Repeater::make('import_blocks')
+                                ->label('Import Blocks')
+                                ->schema([
+                                    Select::make('category_id')
+                                        ->label('Category')
+                                        ->options(fn () => Category::active()->orderBy('name')->pluck('name', 'id'))
+                                        ->searchable()
+                                        ->required(),
+                                    TextInput::make('start_row')
+                                        ->label('Start Row')
+                                        ->numeric()
+                                        ->required()
+                                        ->minValue(1)
+                                        ->maxValue($totalRows)
+                                        ->helperText('First data row (not the header)'),
+                                    TextInput::make('end_row')
+                                        ->label('End Row')
+                                        ->numeric()
+                                        ->required()
+                                        ->minValue(1)
+                                        ->maxValue($totalRows)
+                                        ->helperText('Last data row to import'),
+                                ])
+                                ->columns(3)
+                                ->required()
+                                ->minItems(1)
+                                ->defaultItems(1)
+                                ->addActionLabel('Add category block')
+                                ->reorderable(false),
                         ];
                     }),
                 Step::make('Confirm')
@@ -402,187 +435,200 @@ class FlexibleProductImportAction
                                 $mapping = self::getCache('mapping', []);
                                 $rows = self::getCachedRows();
                                 $images = self::getCache('images', []);
+                                $blocks = $mapping['blocks'] ?? [];
 
-                                if (empty($rows) || empty($mapping)) {
-                                    return new HtmlString('<p class="text-red-500">No data available. Please go back and re-upload.</p>');
+                                if (empty($rows) || empty($mapping) || empty($blocks)) {
+                                    return new HtmlString('<p class="text-red-500">No data available. Please go back and configure import blocks.</p>');
                                 }
 
-                                $items = self::applyMapping($rows, $mapping['columns'] ?? [], $mapping['header_row'] ?? 1, $fieldDefaults);
+                                $headerRow = $mapping['header_row'] ?? 1;
+                                $mappedFields = array_keys($mapping['columns'] ?? []);
                                 $imageCount = count($images);
+                                $totalProducts = 0;
 
-                                $html = '<div class="space-y-3">';
-                                $html .= '<p class="text-sm font-medium">Ready to import <strong>' . count($items) . '</strong> products.';
+                                $html = '<div class="space-y-4">';
+
+                                foreach ($blocks as $idx => $block) {
+                                    $categoryId = $block['category_id'] ?? null;
+                                    $startRow = (int) ($block['start_row'] ?? 1);
+                                    $endRow = (int) ($block['end_row'] ?? count($rows));
+                                    $categoryName = $categoryId ? (Category::find($categoryId)?->name ?? 'Unknown') : 'No category';
+
+                                    $items = self::applyMappingWithRange($rows, $mapping['columns'] ?? [], $headerRow, $fieldDefaults, $startRow, $endRow);
+                                    $totalProducts += count($items);
+
+                                    $html .= '<div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">';
+                                    $html .= '<p class="text-sm font-medium mb-2">';
+                                    $html .= '<span class="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-900/30 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 ring-1 ring-inset ring-blue-700/10 mr-2">Block ' . ($idx + 1) . '</span>';
+                                    $html .= '<strong>' . e($categoryName) . '</strong>';
+                                    $html .= ' — rows ' . $startRow . '–' . $endRow;
+                                    $html .= ' (' . count($items) . ' products)';
+                                    $html .= '</p>';
+
+                                    if (! empty($items) && ! empty($mappedFields)) {
+                                        $previewCount = min(count($items), 5);
+                                        $html .= '<div class="overflow-x-auto">';
+                                        $html .= '<table class="min-w-full text-xs">';
+                                        $html .= '<thead><tr class="bg-gray-50 dark:bg-gray-800">';
+                                        $html .= '<th class="px-2 py-1 text-gray-400">#</th>';
+                                        foreach ($mappedFields as $field) {
+                                            $html .= '<th class="px-2 py-1 text-left">' . e($fieldLabels[$field] ?? $field) . '</th>';
+                                        }
+                                        $html .= '</tr></thead><tbody>';
+                                        for ($i = 0; $i < $previewCount; $i++) {
+                                            $html .= '<tr class="border-t border-gray-100 dark:border-gray-700">';
+                                            $html .= '<td class="px-2 py-1 text-gray-400">' . ($i + 1) . '</td>';
+                                            foreach ($mappedFields as $field) {
+                                                $val = htmlspecialchars(mb_substr($items[$i][$field] ?? '', 0, 40));
+                                                $html .= '<td class="px-2 py-1">' . $val . '</td>';
+                                            }
+                                            $html .= '</tr>';
+                                        }
+                                        if (count($items) > $previewCount) {
+                                            $html .= '<tr><td colspan="' . (count($mappedFields) + 1) . '" class="px-2 py-1 text-gray-400 text-center">... and ' . (count($items) - $previewCount) . ' more</td></tr>';
+                                        }
+                                        $html .= '</tbody></table></div>';
+                                    }
+
+                                    $html .= '</div>';
+                                }
+
+                                $html .= '<p class="text-sm font-medium mt-2">Total: <strong>' . $totalProducts . '</strong> products across ' . count($blocks) . ' block(s).';
                                 if ($imageCount > 0) {
                                     $html .= " {$imageCount} image(s) will be saved.";
                                 }
-                                $html .= '</p>';
-
-                                // Show first 10 items as preview table
-                                $mappedFields = array_keys($mapping['columns'] ?? []);
-                                if (! empty($items) && ! empty($mappedFields)) {
-                                    $previewCount = min(count($items), 10);
-                                    $html .= '<div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">';
-                                    $html .= '<table class="min-w-full text-xs">';
-                                    $html .= '<thead><tr class="bg-gray-50 dark:bg-gray-800">';
-                                    $html .= '<th class="px-2 py-1 text-gray-400">#</th>';
-                                    foreach ($mappedFields as $field) {
-                                        $html .= '<th class="px-2 py-1 text-left">' . e($fieldLabels[$field] ?? $field) . '</th>';
-                                    }
-                                    $html .= '</tr></thead><tbody>';
-                                    for ($i = 0; $i < $previewCount; $i++) {
-                                        $html .= '<tr class="border-t border-gray-100 dark:border-gray-700">';
-                                        $html .= '<td class="px-2 py-1 text-gray-400">' . ($i + 1) . '</td>';
-                                        foreach ($mappedFields as $field) {
-                                            $val = htmlspecialchars(mb_substr($items[$i][$field] ?? '', 0, 40));
-                                            $html .= '<td class="px-2 py-1">' . $val . '</td>';
-                                        }
-                                        $html .= '</tr>';
-                                    }
-                                    if (count($items) > $previewCount) {
-                                        $html .= '<tr><td colspan="' . (count($mappedFields) + 1) . '" class="px-2 py-1 text-gray-400 text-center">... and ' . (count($items) - $previewCount) . ' more</td></tr>';
-                                    }
-                                    $html .= '</tbody></table></div>';
-                                }
-
-                                $html .= '</div>';
+                                $html .= '</p></div>';
 
                                 return new HtmlString($html);
                             }),
                     ]),
             ])
             ->action(function (array $data) use ($role, $getCompany, $fieldDefaults): void {
-                $categoryId = $data['category_id'] ?? null;
                 $crossCompanyId = $data['cross_company_id'] ?? null;
                 $mapping = self::getCache('mapping', []);
                 $rows = self::getCachedRows();
                 $images = self::getCache('images', []);
                 $headerRow = $mapping['header_row'] ?? 1;
-                $items = self::applyMapping($rows, $mapping['columns'] ?? [], $headerRow, $fieldDefaults);
+                $blocks = $mapping['blocks'] ?? [];
 
-                if (empty($items) || ! $categoryId) {
-                    Notification::make()->title('No items to import')->warning()->send();
+                if (empty($blocks)) {
+                    Notification::make()->title('No import blocks defined')->warning()->send();
 
                     return;
                 }
 
-                $category = Category::findOrFail($categoryId);
                 /** @var Company $company */
                 $company = $getCompany();
                 $skuGenerator = app(GenerateProductSkuAction::class);
 
                 $stats = ['created' => 0, 'updated' => 0, 'images' => 0, 'errors' => []];
-
-                \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: action starting', [
-                    'items' => count($items),
-                    'images_keys' => array_keys($images),
-                    'sample_source_rows' => array_slice(array_column($items, '_source_row'), 0, 5),
-                ]);
+                $totalItems = 0;
 
                 try {
-                    DB::transaction(function () use ($items, $category, $company, $role, $skuGenerator, $images, $crossCompanyId, &$stats) {
-                        foreach ($items as $item) {
-                            $productName = $item['product_name'] ?? '';
-                            if (empty($productName)) {
+                    DB::transaction(function () use ($blocks, $rows, $mapping, $headerRow, $fieldDefaults, $company, $role, $skuGenerator, $images, $crossCompanyId, &$stats, &$totalItems) {
+                        foreach ($blocks as $block) {
+                            $categoryId = $block['category_id'] ?? null;
+                            $startRow = (int) ($block['start_row'] ?? 1);
+                            $endRow = (int) ($block['end_row'] ?? count($rows));
+
+                            if (! $categoryId) {
                                 continue;
                             }
 
-                            // Use _source_row (original spreadsheet row) to find the correct image
-                            $sourceRow = $item['_source_row'] ?? null;
-                            $imagePath = $sourceRow ? ($images[$sourceRow] ?? null) : null;
+                            $category = Category::findOrFail($categoryId);
+                            $items = self::applyMappingWithRange($rows, $mapping['columns'] ?? [], $headerRow, $fieldDefaults, $startRow, $endRow);
+                            $totalItems += count($items);
 
-                            if ($sourceRow && $imagePath) {
-                                \Illuminate\Support\Facades\Log::info("FLEXIBLE IMPORT: matched image for '{$productName}' at row {$sourceRow} → {$imagePath}");
-                            } elseif ($sourceRow && ! $imagePath && ! empty($images)) {
-                                \Illuminate\Support\Facades\Log::info("FLEXIBLE IMPORT: no image match for '{$productName}' at row {$sourceRow}, available image rows: " . implode(',', array_keys($images)));
-                            }
-
-                            // Use mapped reference_code as SKU if available, otherwise auto-generate
-                            $sku = ! empty($item['reference_code'])
-                                ? trim($item['reference_code'])
-                                : $skuGenerator->execute($category->id);
-
-                            // Find or create product — use withTrashed to avoid unique constraint conflicts
-                            $existing = Product::withTrashed()->where('sku', $sku)->first()
-                                ?? (! empty($item['reference_code']) ? Product::withTrashed()->where('reference_code', trim($item['reference_code']))->first() : null)
-                                ?? Product::where('name', $productName)->first();
-
-                            if ($existing) {
-                                // Restore if soft-deleted
-                                if ($existing->trashed()) {
-                                    $existing->restore();
+                            foreach ($items as $item) {
+                                $productName = $item['product_name'] ?? '';
+                                if (empty($productName)) {
+                                    continue;
                                 }
-                                if ($imagePath && ! $existing->avatar) {
-                                    $existing->update(['avatar' => $imagePath]);
-                                    $stats['images']++;
+
+                                $sourceRow = $item['_source_row'] ?? null;
+                                $imagePath = $sourceRow ? ($images[$sourceRow] ?? null) : null;
+
+                                $sku = ! empty($item['reference_code'])
+                                    ? trim($item['reference_code'])
+                                    : $skuGenerator->execute($category->id);
+
+                                $existing = Product::withTrashed()->where('sku', $sku)->first()
+                                    ?? (! empty($item['reference_code']) ? Product::withTrashed()->where('reference_code', trim($item['reference_code']))->first() : null)
+                                    ?? Product::where('name', $productName)->first();
+
+                                if ($existing) {
+                                    if ($existing->trashed()) {
+                                        $existing->restore();
+                                    }
+                                    if ($imagePath && ! $existing->avatar) {
+                                        $existing->update(['avatar' => $imagePath]);
+                                        $stats['images']++;
+                                    }
+                                    $stats['updated']++;
+                                } else {
+                                    $existing = Product::create([
+                                        'name' => $productName,
+                                        'commercial_name' => $item['commercial_name'] ?: null,
+                                        'product_family' => $item['product_family'] ?: null,
+                                        'sku' => $sku,
+                                        'reference_code' => ! empty($item['reference_code']) ? trim($item['reference_code']) : null,
+                                        'category_id' => $category->id,
+                                        'status' => ProductStatus::ACTIVE,
+                                        'moq' => ! empty($item['moq']) ? (int) $item['moq'] : null,
+                                        'lead_time_days' => ! empty($item['lead_time']) ? (int) $item['lead_time'] : null,
+                                        'avatar' => $imagePath,
+                                    ]);
+                                    $stats['created']++;
+                                    if ($imagePath) {
+                                        $stats['images']++;
+                                    }
                                 }
-                                $stats['updated']++;
-                            } else {
-                                $existing = Product::create([
-                                    'name' => $productName,
-                                    'commercial_name' => $item['commercial_name'] ?: null,
-                                    'product_family' => $item['product_family'] ?: null,
-                                    'sku' => $sku,
-                                    'reference_code' => ! empty($item['reference_code']) ? trim($item['reference_code']) : null,
-                                    'category_id' => $category->id,
-                                    'status' => ProductStatus::ACTIVE,
-                                    'moq' => ! empty($item['moq']) ? (int) $item['moq'] : null,
-                                    'lead_time_days' => ! empty($item['lead_time']) ? (int) $item['lead_time'] : null,
-                                    'avatar' => $imagePath,
-                                ]);
-                                $stats['created']++;
-                                if ($imagePath) {
-                                    $stats['images']++;
-                                }
-                            }
 
-                            // Ensure company link
-                            $pivotData = array_filter([
-                                'role' => $role,
-                                'external_code' => $item['external_code'] ?: null,
-                                'external_name' => $item['external_name'] ?: null,
-                                'external_description' => $item['external_description'] ?: null,
-                                'unit_price' => ! empty($item['unit_price']) ? Money::toMinor((float) $item['unit_price']) : null,
-                                'custom_price' => ! empty($item['custom_price']) ? Money::toMinor((float) $item['custom_price']) : null,
-                                'currency_code' => ! empty($item['currency']) ? strtoupper($item['currency']) : null,
-                                'avatar_path' => $imagePath,
-                                'avatar_disk' => $imagePath ? 'public' : null,
-                            ], fn ($v) => $v !== null);
-
-                            $existingLink = CompanyProduct::where('product_id', $existing->id)
-                                ->where('company_id', $company->id)
-                                ->where('role', $role)
-                                ->first();
-
-                            if ($existingLink) {
-                                $existingLink->update($pivotData);
-                            } else {
-                                CompanyProduct::create(array_merge($pivotData, [
-                                    'product_id' => $existing->id,
-                                    'company_id' => $company->id,
-                                ]));
-                            }
-
-                            // Cross-company link (optional)
-                            if (! empty($crossCompanyId)) {
-                                $crossRole = $role === 'client' ? 'supplier' : 'client';
-                                $crossPivotData = array_filter([
-                                    'role' => $crossRole,
-                                    'external_code' => $item['cross_external_code'] ?: null,
-                                    'external_name' => $item['cross_external_name'] ?: null,
-                                    'unit_price' => ! empty($item['cross_unit_price']) ? Money::toMinor((float) $item['cross_unit_price']) : null,
+                                $pivotData = array_filter([
+                                    'role' => $role,
+                                    'external_code' => $item['external_code'] ?: null,
+                                    'external_name' => $item['external_name'] ?: null,
+                                    'external_description' => $item['external_description'] ?: null,
+                                    'unit_price' => ! empty($item['unit_price']) ? Money::toMinor((float) $item['unit_price']) : null,
+                                    'custom_price' => ! empty($item['custom_price']) ? Money::toMinor((float) $item['custom_price']) : null,
                                     'currency_code' => ! empty($item['currency']) ? strtoupper($item['currency']) : null,
                                 ], fn ($v) => $v !== null);
 
-                                $existingCrossLink = CompanyProduct::where('product_id', $existing->id)
-                                    ->where('company_id', $crossCompanyId)
-                                    ->where('role', $crossRole)
+                                $existingLink = CompanyProduct::where('product_id', $existing->id)
+                                    ->where('company_id', $company->id)
+                                    ->where('role', $role)
                                     ->first();
 
-                                if (! $existingCrossLink) {
-                                    CompanyProduct::create(array_merge($crossPivotData, [
+                                if ($existingLink) {
+                                    $existingLink->update($pivotData);
+                                } else {
+                                    CompanyProduct::create(array_merge($pivotData, [
                                         'product_id' => $existing->id,
-                                        'company_id' => $crossCompanyId,
+                                        'company_id' => $company->id,
                                     ]));
+                                }
+
+                                if (! empty($crossCompanyId)) {
+                                    $crossRole = $role === 'client' ? 'supplier' : 'client';
+                                    $crossPivotData = array_filter([
+                                        'role' => $crossRole,
+                                        'external_code' => $item['cross_external_code'] ?: null,
+                                        'external_name' => $item['cross_external_name'] ?: null,
+                                        'unit_price' => ! empty($item['cross_unit_price']) ? Money::toMinor((float) $item['cross_unit_price']) : null,
+                                        'currency_code' => ! empty($item['currency']) ? strtoupper($item['currency']) : null,
+                                    ], fn ($v) => $v !== null);
+
+                                    $existingCrossLink = CompanyProduct::where('product_id', $existing->id)
+                                        ->where('company_id', $crossCompanyId)
+                                        ->where('role', $crossRole)
+                                        ->first();
+
+                                    if (! $existingCrossLink) {
+                                        CompanyProduct::create(array_merge($crossPivotData, [
+                                            'product_id' => $existing->id,
+                                            'company_id' => $crossCompanyId,
+                                        ]));
+                                    }
                                 }
                             }
                         }
@@ -599,8 +645,10 @@ class FlexibleProductImportAction
                         $parts[] = "{$stats['images']} images";
                     }
 
+                    $blockSummary = count($blocks) > 1 ? ' across ' . count($blocks) . ' categories' : '';
+
                     Notification::make()
-                        ->title('Import Complete — ' . count($items) . ' products')
+                        ->title("Import Complete — {$totalItems} products{$blockSummary}")
                         ->body(implode(', ', $parts) ?: 'Done.')
                         ->success()
                         ->send();
@@ -612,7 +660,6 @@ class FlexibleProductImportAction
                         ->send();
                 }
 
-                // Clean up
                 self::forgetCache();
             });
     }
@@ -825,11 +872,30 @@ class FlexibleProductImportAction
 
     protected static function applyMapping(array $rows, array $mapping, int $headerRowNumber, array $fieldDefaults): array
     {
-        $startIndex = max(0, $headerRowNumber);
+        return self::applyMappingWithRange($rows, $mapping, $headerRowNumber, $fieldDefaults);
+    }
+
+    protected static function applyMappingWithRange(array $rows, array $mapping, int $headerRowNumber, array $fieldDefaults, ?int $startRow = null, ?int $endRow = null): array
+    {
         $rowOrigins = self::getCache('row_origins', []);
         $items = [];
 
-        for ($i = $startIndex; $i < count($rows); $i++) {
+        for ($i = 0; $i < count($rows); $i++) {
+            $originalRow = $rowOrigins[$i] ?? ($i + 1);
+
+            // Skip header row and rows before it (when no explicit range)
+            if ($startRow === null && $originalRow <= $headerRowNumber) {
+                continue;
+            }
+
+            // Filter by row range when specified
+            if ($startRow !== null && $originalRow < $startRow) {
+                continue;
+            }
+            if ($endRow !== null && $originalRow > $endRow) {
+                continue;
+            }
+
             $row = $rows[$i];
             $item = [];
             $hasContent = false;
@@ -848,8 +914,7 @@ class FlexibleProductImportAction
             }
 
             if ($hasContent) {
-                // Use original spreadsheet row number for image matching
-                $item['_source_row'] = $rowOrigins[$i] ?? ($i + 1);
+                $item['_source_row'] = $originalRow;
                 $items[] = $item;
             }
         }
