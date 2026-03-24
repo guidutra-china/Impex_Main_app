@@ -72,50 +72,73 @@ class ViewInquiry extends ViewRecord
             ->action(function (array $data) {
                 try {
                     $created = [];
-                    DB::transaction(function () use ($data, &$created) {
+                    $updated = [];
+                    DB::transaction(function () use ($data, &$created, &$updated) {
                         $inquiry = Inquiry::lockForUpdate()->findOrFail($this->record->id);
 
                         foreach ($data['company_ids'] as $companyId) {
-                            $sq = SupplierQuotation::create([
-                                'inquiry_id' => $inquiry->id,
-                                'company_id' => $companyId,
-                                'status' => SupplierQuotationStatus::REQUESTED,
-                                'currency_code' => $inquiry->currency_code,
-                                'requested_at' => now()->toDateString(),
-                                'responsible_user_id' => $inquiry->getTeamMemberByRole(ProjectTeamRole::SOURCING)?->id
-                                    ?? $inquiry->responsible_user_id,
-                            ]);
+                            // Check if an RFQ already exists for this supplier with REQUESTED status
+                            $existing = SupplierQuotation::where('inquiry_id', $inquiry->id)
+                                ->where('company_id', $companyId)
+                                ->where('status', SupplierQuotationStatus::REQUESTED)
+                                ->first();
 
-                            foreach ($inquiry->items as $item) {
-                                SupplierQuotationItem::create([
-                                    'supplier_quotation_id' => $sq->id,
-                                    'inquiry_item_id' => $item->id,
-                                    'product_id' => $item->product_id,
-                                    'description' => $item->description,
-                                    'quantity' => $item->quantity,
-                                    'unit' => $item->unit,
-                                    'unit_cost' => 0,
-                                    'specifications' => $item->specifications,
-                                    'notes' => $item->notes,
-                                    'sort_order' => $item->sort_order,
+                            if ($existing) {
+                                // Update existing: sync items from inquiry
+                                $this->syncRfqItems($existing, $inquiry);
+                                $updated[] = $existing->reference . ' (' . Company::find($companyId)->name . ')';
+                            } else {
+                                // Create new RFQ
+                                $sq = SupplierQuotation::create([
+                                    'inquiry_id' => $inquiry->id,
+                                    'company_id' => $companyId,
+                                    'status' => SupplierQuotationStatus::REQUESTED,
+                                    'currency_code' => $inquiry->currency_code,
+                                    'requested_at' => now()->toDateString(),
+                                    'responsible_user_id' => $inquiry->getTeamMemberByRole(ProjectTeamRole::SOURCING)?->id
+                                        ?? $inquiry->responsible_user_id,
                                 ]);
-                            }
 
-                            $created[] = $sq->reference . ' (' . Company::find($companyId)->name . ')';
+                                foreach ($inquiry->items as $item) {
+                                    SupplierQuotationItem::create([
+                                        'supplier_quotation_id' => $sq->id,
+                                        'inquiry_item_id' => $item->id,
+                                        'product_id' => $item->product_id,
+                                        'description' => $item->description,
+                                        'quantity' => $item->quantity,
+                                        'unit' => $item->unit,
+                                        'unit_cost' => 0,
+                                        'specifications' => $item->specifications,
+                                        'notes' => $item->notes,
+                                        'sort_order' => $item->sort_order,
+                                    ]);
+                                }
+
+                                $created[] = $sq->reference . ' (' . Company::find($companyId)->name . ')';
+                            }
                         }
 
                         if ($inquiry->status === InquiryStatus::RECEIVED) {
+                            $all = array_merge($created, $updated);
                             app(TransitionStatusAction::class)->execute(
                                 $inquiry,
                                 InquiryStatus::QUOTING,
-                                'Supplier quotations requested: ' . implode(', ', $created),
+                                'Supplier quotations requested: ' . implode(', ', $all),
                             );
                         }
                     });
 
+                    $parts = [];
+                    if (! empty($created)) {
+                        $parts[] = count($created) . ' created: ' . implode(', ', $created);
+                    }
+                    if (! empty($updated)) {
+                        $parts[] = count($updated) . ' updated: ' . implode(', ', $updated);
+                    }
+
                     Notification::make()
-                        ->title(count($created) . ' ' . __('messages.sq_created'))
-                        ->body(implode("\n", $created))
+                        ->title((count($created) + count($updated)) . ' ' . __('messages.sq_created'))
+                        ->body(implode("\n", $parts))
                         ->success()
                         ->send();
                 } catch (\Throwable $e) {
@@ -126,6 +149,46 @@ class ViewInquiry extends ViewRecord
                         ->send();
                 }
             });
+    }
+
+    protected function syncRfqItems(SupplierQuotation $sq, Inquiry $inquiry): void
+    {
+        $existingItemsByInquiryItemId = $sq->items->keyBy('inquiry_item_id');
+        $inquiryItemIds = $inquiry->items->pluck('id')->toArray();
+
+        // Remove items no longer in the inquiry
+        $sq->items()->whereNotIn('inquiry_item_id', $inquiryItemIds)->delete();
+
+        // Add or update items
+        foreach ($inquiry->items as $item) {
+            $existing = $existingItemsByInquiryItemId->get($item->id);
+
+            if ($existing) {
+                // Update quantity, description, specs from inquiry (keep supplier's unit_cost)
+                $existing->update([
+                    'product_id' => $item->product_id,
+                    'description' => $item->description,
+                    'quantity' => $item->quantity,
+                    'unit' => $item->unit,
+                    'specifications' => $item->specifications,
+                    'notes' => $item->notes,
+                    'sort_order' => $item->sort_order,
+                ]);
+            } else {
+                SupplierQuotationItem::create([
+                    'supplier_quotation_id' => $sq->id,
+                    'inquiry_item_id' => $item->id,
+                    'product_id' => $item->product_id,
+                    'description' => $item->description,
+                    'quantity' => $item->quantity,
+                    'unit' => $item->unit,
+                    'unit_cost' => 0,
+                    'specifications' => $item->specifications,
+                    'notes' => $item->notes,
+                    'sort_order' => $item->sort_order,
+                ]);
+            }
+        }
     }
 
     protected function createQuotationAction(): Action
