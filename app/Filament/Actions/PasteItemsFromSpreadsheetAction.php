@@ -213,9 +213,8 @@ class PasteItemsFromSpreadsheetAction
      */
     protected static function applyMapping(array $rows, array $mapping, int $headerRowNumber, array $fieldDefaults): array
     {
-        // Data starts on the row after the header row. If header_row=0, data starts at row 1 (index 0).
         $startIndex = max(0, $headerRowNumber);
-        $items = [];
+        $rawItems = [];
 
         for ($i = $startIndex; $i < count($rows); $i++) {
             $row = $rows[$i];
@@ -236,11 +235,29 @@ class PasteItemsFromSpreadsheetAction
             }
 
             if ($hasContent) {
-                $items[] = $item;
+                $rawItems[] = $item;
             }
         }
 
-        return $items;
+        // Consolidate duplicates: same product_name → sum quantities, keep first row's data
+        $consolidated = [];
+        foreach ($rawItems as $item) {
+            $key = strtolower(trim($item['product_name'] ?? ''));
+            if ($key === '') {
+                $consolidated[] = $item;
+                continue;
+            }
+
+            if (isset($consolidated[$key])) {
+                $existingQty = (float) ($consolidated[$key]['quantity'] ?? 0);
+                $newQty = (float) ($item['quantity'] ?? 0);
+                $consolidated[$key]['quantity'] = (string) ($existingQty + $newQty);
+            } else {
+                $consolidated[$key] = $item;
+            }
+        }
+
+        return array_values($consolidated);
     }
 
     /**
@@ -712,9 +729,10 @@ class PasteItemsFromSpreadsheetAction
                     ->schema([
                         Repeater::make('items')
                             ->schema($previewSchema)
-                            ->columns(4)
-                            ->itemLabel(fn (array $state): ?string => $state['product_name'] ?? null)
+                            ->columns(6)
+                            ->itemLabel(fn (array $state): ?string => ($state['product_name'] ?? '') . (! empty($state['quantity']) ? ' (qty: ' . $state['quantity'] . ')' : ''))
                             ->collapsible()
+                            ->collapsed()
                             ->defaultItems(0)
                             ->reorderable(false),
                     ]),
