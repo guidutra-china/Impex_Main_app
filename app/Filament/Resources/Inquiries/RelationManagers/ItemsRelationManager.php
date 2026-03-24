@@ -39,10 +39,10 @@ class ItemsRelationManager extends RelationManager
     public function form(Schema $schema): Schema
     {
         return $schema
+            ->columns(3)
             ->components([
                 Toggle::make('create_new_product')
                     ->label(__('forms.labels.create_new_draft_product'))
-                    ->helperText(__('forms.helpers.enable_to_create_a_new_product_in_the_catalog_as_draft'))
                     ->live()
                     ->dehydrated(false)
                     ->default(false)
@@ -58,146 +58,136 @@ class ItemsRelationManager extends RelationManager
                     }),
 
                 // --- Existing product selection with filters ---
-                Section::make(__('forms.sections.select_existing_product'))
-                    ->schema([
-                        Select::make('filter_category_id')
-                            ->label(__('forms.tabs.filter_by_category'))
-                            ->options(function () {
-                                return Category::active()
-                                    ->orderBy('name')
-                                    ->get()
-                                    ->mapWithKeys(fn ($c) => [$c->id => $c->reverse_path]);
-                            })
-                            ->allowHtml()
-                            ->searchable()
-                            ->placeholder(__('forms.placeholders.all_categories'))
-                            ->live()
-                            ->dehydrated(false)
-                            ->afterStateUpdated(function (Set $set) {
-                                $set('filter_supplier_id', null);
-                                $set('product_id', null);
-                            }),
+                Select::make('filter_category_id')
+                    ->label(__('forms.tabs.filter_by_category'))
+                    ->options(function () {
+                        return Category::active()
+                            ->orderBy('name')
+                            ->get()
+                            ->mapWithKeys(fn ($c) => [$c->id => $c->reverse_path]);
+                    })
+                    ->allowHtml()
+                    ->searchable()
+                    ->placeholder(__('forms.placeholders.all_categories'))
+                    ->live()
+                    ->dehydrated(false)
+                    ->afterStateUpdated(function (Set $set) {
+                        $set('filter_supplier_id', null);
+                        $set('product_id', null);
+                    })
+                    ->visible(fn (Get $get) => ! $get('create_new_product')),
 
-                        Select::make('filter_supplier_id')
-                            ->label(__('forms.tabs.filter_by_supplier'))
-                            ->options(function (Get $get) {
-                                $categoryId = $get('filter_category_id');
+                Select::make('filter_supplier_id')
+                    ->label(__('forms.tabs.filter_by_supplier'))
+                    ->options(function (Get $get) {
+                        $categoryId = $get('filter_category_id');
 
-                                $query = Company::withRole(CompanyRole::SUPPLIER);
+                        $query = Company::withRole(CompanyRole::SUPPLIER);
 
-                                if ($categoryId) {
-                                    $categoryIds = $this->getCategoryWithDescendantIds((int) $categoryId);
-                                    $query->whereHas('products', function ($q) use ($categoryIds) {
-                                        $q->whereIn('category_id', $categoryIds)
-                                            ->where('company_product.role', 'supplier');
-                                    });
-                                }
+                        if ($categoryId) {
+                            $categoryIds = $this->getCategoryWithDescendantIds((int) $categoryId);
+                            $query->whereHas('products', function ($q) use ($categoryIds) {
+                                $q->whereIn('category_id', $categoryIds)
+                                    ->where('company_product.role', 'supplier');
+                            });
+                        }
 
-                                return $query->orderBy('name')->pluck('name', 'id');
-                            })
-                            ->searchable()
-                            ->placeholder(__('forms.placeholders.all_suppliers'))
-                            ->live()
-                            ->dehydrated(false)
-                            ->afterStateUpdated(fn (Set $set) => $set('product_id', null)),
+                        return $query->orderBy('name')->pluck('name', 'id');
+                    })
+                    ->searchable()
+                    ->placeholder(__('forms.placeholders.all_suppliers'))
+                    ->live()
+                    ->dehydrated(false)
+                    ->afterStateUpdated(fn (Set $set) => $set('product_id', null))
+                    ->visible(fn (Get $get) => ! $get('create_new_product')),
 
-                        Select::make('product_id')
-                            ->label(__('forms.labels.product'))
-                            ->searchable()
-                            ->options(function (Get $get) {
-                                $categoryId = $get('filter_category_id');
-                                $supplierId = $get('filter_supplier_id');
+                Select::make('product_id')
+                    ->label(__('forms.labels.product'))
+                    ->searchable()
+                    ->options(function (Get $get) {
+                        $categoryId = $get('filter_category_id');
+                        $supplierId = $get('filter_supplier_id');
 
-                                if (! $categoryId && ! $supplierId) {
-                                    return [];
-                                }
+                        if (! $categoryId && ! $supplierId) {
+                            return [];
+                        }
 
-                                return $this->buildProductQuery(null, $get);
-                            })
-                            ->getSearchResultsUsing(function (string $search, Get $get) {
-                                return $this->buildProductQuery($search, $get);
-                            })
-                            ->getOptionLabelUsing(function ($value) {
-                                $product = Product::find($value);
-                                return $product
-                                    ? ($product->status === ProductStatus::DRAFT ? '[DRAFT] ' : '') . $product->sku . ' — ' . $product->name
-                                    : null;
-                            })
-                            ->live()
-                            ->afterStateUpdated(function (Set $set, ?string $state) {
-                                if ($state) {
-                                    $product = Product::find($state);
-                                    if ($product) {
-                                        $set('description', $product->name);
-                                    }
-                                }
-                            })
-                            ->helperText(__('forms.helpers.type_to_search_by_name_sku_or_code_use_filters_above'))
-                            ->columnSpanFull(),
-                    ])
-                    ->columns(2)
+                        return $this->buildProductQuery(null, $get);
+                    })
+                    ->getSearchResultsUsing(function (string $search, Get $get) {
+                        return $this->buildProductQuery($search, $get);
+                    })
+                    ->getOptionLabelUsing(function ($value) {
+                        $product = Product::find($value);
+                        if (! $product) {
+                            return null;
+                        }
+                        $prefix = $product->status === ProductStatus::DRAFT ? '[DRAFT] ' : '';
+                        $commercial = $product->commercial_name ? " ({$product->commercial_name})" : '';
+
+                        return $prefix . $product->sku . ' — ' . $product->name . $commercial;
+                    })
+                    ->live()
+                    ->afterStateUpdated(function (Set $set, ?string $state) {
+                        if ($state) {
+                            $product = Product::find($state);
+                            if ($product) {
+                                $set('description', $product->name);
+                            }
+                        }
+                    })
+                    ->helperText(__('forms.helpers.type_to_search_by_name_sku_or_code_use_filters_above'))
+                    ->columnSpanFull()
                     ->visible(fn (Get $get) => ! $get('create_new_product')),
 
                 // --- New draft product creation ---
-                Section::make(__('forms.sections.new_draft_product'))
-                    ->description(__('forms.descriptions.a_new_product_will_be_created_in_the_catalog_with_draft'))
-                    ->schema([
-                        TextInput::make('new_product_name')
-                            ->label(__('forms.labels.product_name'))
-                            ->required(fn (Get $get) => (bool) $get('create_new_product'))
-                            ->maxLength(255)
-                            ->helperText(__('forms.helpers.name_as_described_by_the_client_can_be_refined_later')),
-                        Select::make('new_product_category_id')
-                            ->label(__('forms.labels.category_optional'))
-                            ->options(fn () => Category::active()->orderBy('name')->pluck('name', 'id'))
-                            ->searchable()
-                            ->helperText(__('forms.helpers.assign_a_category_if_known_affects_sku_prefix_generation')),
-                    ])
+                TextInput::make('new_product_name')
+                    ->label(__('forms.labels.product_name'))
+                    ->required(fn (Get $get) => (bool) $get('create_new_product'))
+                    ->maxLength(255)
                     ->visible(fn (Get $get) => (bool) $get('create_new_product'))
-                    ->columns(2),
+                    ->columnSpan(2),
+                Select::make('new_product_category_id')
+                    ->label(__('forms.labels.category_optional'))
+                    ->options(fn () => Category::active()->orderBy('name')->get()->mapWithKeys(fn (Category $cat) => [$cat->id => $cat->full_path]))
+                    ->searchable()
+                    ->visible(fn (Get $get) => (bool) $get('create_new_product')),
 
                 // --- Common fields ---
-                Section::make(__('forms.sections.item_details'))
-                    ->schema([
-                        TextInput::make('description')
-                            ->label(__('forms.labels.item_description'))
-                            ->maxLength(255)
-                            ->helperText(__('forms.helpers.description_for_this_inquiry_line_item_autofilled_from'))
-                            ->visible(fn (Get $get) => ! $get('create_new_product'))
-                            ->columnSpanFull(),
-                        TextInput::make('quantity')
-                            ->label(__('forms.labels.quantity'))
-                            ->numeric()
-                            ->minValue(1)
-                            ->default(1)
-                            ->required(),
-                        TextInput::make('unit')
-                            ->label(__('forms.labels.unit'))
-                            ->default('pcs')
-                            ->maxLength(20)
-                            ->required(),
-                        TextInput::make('target_price')
-                            ->label(__('forms.labels.target_price'))
-                            ->numeric()
-                            ->minValue(0)
-                            ->step(0.0001)
-                            ->prefix('$')
-                            ->helperText(__('forms.helpers.client_target_price_per_unit_if_provided'))
-                            ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : null)
-                            ->dehydrateStateUsing(fn ($state) => $state ? Money::toMinor($state) : null),
-                        Textarea::make('specifications')
-                            ->label(__('forms.labels.specifications'))
-                            ->rows(3)
-                            ->maxLength(2000)
-                            ->helperText(__('forms.helpers.clientprovided_specs_dimensions_certifications_etc'))
-                            ->columnSpanFull(),
-                        Textarea::make('notes')
-                            ->label(__('forms.labels.notes'))
-                            ->rows(2)
-                            ->maxLength(1000)
-                            ->columnSpanFull(),
-                    ])
-                    ->columns(3),
+                TextInput::make('description')
+                    ->label(__('forms.labels.item_description'))
+                    ->maxLength(255)
+                    ->visible(fn (Get $get) => ! $get('create_new_product'))
+                    ->columnSpanFull(),
+                TextInput::make('quantity')
+                    ->label(__('forms.labels.quantity'))
+                    ->numeric()
+                    ->minValue(1)
+                    ->default(1)
+                    ->required(),
+                TextInput::make('unit')
+                    ->label(__('forms.labels.unit'))
+                    ->default('pcs')
+                    ->maxLength(20)
+                    ->required(),
+                TextInput::make('target_price')
+                    ->label(__('forms.labels.target_price'))
+                    ->numeric()
+                    ->minValue(0)
+                    ->step(0.0001)
+                    ->prefix('$')
+                    ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : null)
+                    ->dehydrateStateUsing(fn ($state) => $state ? Money::toMinor($state) : null),
+                Textarea::make('specifications')
+                    ->label(__('forms.labels.specifications'))
+                    ->rows(2)
+                    ->maxLength(2000)
+                    ->columnSpanFull(),
+                Textarea::make('notes')
+                    ->label(__('forms.labels.notes'))
+                    ->rows(2)
+                    ->maxLength(1000)
+                    ->columnSpanFull(),
             ]);
     }
 
@@ -255,8 +245,9 @@ class ItemsRelationManager extends RelationManager
             }
 
             $clientBadge = $isClientProduct ? ' ★' : '';
+            $commercial = $p->commercial_name ? " ({$p->commercial_name})" : '';
 
-            return [$p->id => $prefix . $p->sku . ' — ' . $p->name . $clientBadge];
+            return [$p->id => $prefix . $p->sku . ' — ' . $p->name . $commercial . $clientBadge];
         })->toArray();
     }
 
