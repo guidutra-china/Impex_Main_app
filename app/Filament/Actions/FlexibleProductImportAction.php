@@ -1047,53 +1047,91 @@ class FlexibleProductImportAction
         foreach ($rows as $row) {
             $maxCols = max($maxCols, count($row));
         }
-        // Limit columns to first 10 for readability
         $displayCols = min($maxCols, 10);
+        $perPage = 25;
+        $totalRows = count($rows);
+        $totalPages = max(1, (int) ceil($totalRows / $perPage));
+        $uid = 'sp_' . substr(md5(uniqid()), 0, 8);
 
-        $html = '<div class="overflow-auto rounded-lg border border-gray-200 dark:border-gray-700" style="max-height: 400px;">';
-        $html .= '<table class="min-w-full text-xs">';
-
-        $html .= '<thead class="sticky top-0 z-10"><tr class="bg-gray-50 dark:bg-gray-800">';
-        $html .= '<th class="px-2 py-1 text-gray-400 font-normal sticky left-0 bg-gray-50 dark:bg-gray-800">Row</th>';
+        // Build table header
+        $thead = '<thead class="sticky top-0 z-10"><tr class="bg-gray-50 dark:bg-gray-800">';
+        $thead .= '<th class="px-2 py-1 text-gray-400 font-normal text-left">Row</th>';
         for ($c = 0; $c < $displayCols; $c++) {
-            $html .= '<th class="px-2 py-1 text-gray-400 font-normal">' . self::columnLetter($c) . '</th>';
+            $thead .= '<th class="px-2 py-1 text-gray-400 font-normal text-left">' . self::columnLetter($c) . '</th>';
         }
         if ($maxCols > $displayCols) {
-            $html .= '<th class="px-2 py-1 text-gray-400 font-normal">...</th>';
+            $thead .= '<th class="px-2 py-1 text-gray-400 font-normal">…</th>';
         }
-        $html .= '</tr></thead>';
+        $thead .= '</tr></thead>';
 
-        $html .= '<tbody>';
-        for ($i = 0; $i < count($rows); $i++) {
+        // Build all rows with page data attribute
+        $tbody = '<tbody>';
+        for ($i = 0; $i < $totalRows; $i++) {
+            $page = (int) floor($i / $perPage) + 1;
             $originalRowNum = $rowOrigins[$i] ?? ($i + 1);
             $isHeader = ($originalRowNum === $headerRowNumber);
 
-            $rowClass = $isHeader
+            $bgClass = $isHeader
                 ? 'bg-blue-50 dark:bg-blue-900/30 font-semibold'
-                : ($i % 2 === 0 ? '' : 'bg-gray-50/50 dark:bg-gray-800/30');
+                : ($i % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-800/30');
 
-            $html .= "<tr class=\"{$rowClass} border-t border-gray-100 dark:border-gray-700\">";
+            $display = $page === 1 ? '' : ' style="display:none"';
+
+            $tbody .= "<tr data-page=\"{$page}\" class=\"{$bgClass} border-t border-gray-100 dark:border-gray-700\"{$display}>";
 
             $badge = $isHeader
                 ? ' <span class="text-[10px] bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 px-1 rounded">HDR</span>'
                 : '';
 
-            $html .= "<td class=\"px-2 py-1 text-gray-400 whitespace-nowrap sticky left-0 bg-white dark:bg-gray-900 {$rowClass}\">{$originalRowNum}{$badge}</td>";
+            $tbody .= "<td class=\"px-2 py-1 text-gray-400 whitespace-nowrap font-mono\">{$originalRowNum}{$badge}</td>";
 
             $row = $rows[$i];
             for ($c = 0; $c < $displayCols; $c++) {
-                $value = htmlspecialchars(mb_substr($row[$c] ?? '', 0, 30));
-                $html .= "<td class=\"px-2 py-1 whitespace-nowrap\">{$value}</td>";
+                $value = htmlspecialchars(mb_substr($row[$c] ?? '', 0, 35));
+                $html_class = $value === '' ? 'text-gray-300' : '';
+                $tbody .= "<td class=\"px-2 py-1 whitespace-nowrap max-w-[180px] truncate {$html_class}\">{$value}</td>";
             }
             if ($maxCols > $displayCols) {
-                $html .= '<td class="px-2 py-1 text-gray-400">…</td>';
+                $tbody .= '<td class="px-2 py-1 text-gray-400">…</td>';
             }
 
-            $html .= '</tr>';
+            $tbody .= '</tr>';
         }
+        $tbody .= '</tbody>';
 
-        $html .= '</tbody></table></div>';
-        $html .= '<p class="text-xs text-gray-400 mt-1">' . count($rows) . ' rows, ' . $maxCols . ' columns</p>';
+        // Pagination controls
+        $firstOriginal = $rowOrigins[0] ?? 1;
+        $lastOriginal = $rowOrigins[$totalRows - 1] ?? $totalRows;
+
+        $html = <<<HTML
+<div id="{$uid}" class="space-y-2">
+    <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+        <table class="min-w-full text-xs">{$thead}{$tbody}</table>
+    </div>
+    <div class="flex items-center justify-between text-xs text-gray-500">
+        <span>{$totalRows} rows (Excel rows {$firstOriginal}–{$lastOriginal}), {$maxCols} columns</span>
+        <div class="flex items-center gap-2">
+            <button type="button" onclick="{$uid}_go(-1)" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" id="{$uid}_prev" disabled>← Prev</button>
+            <span id="{$uid}_info">Page 1 of {$totalPages}</span>
+            <button type="button" onclick="{$uid}_go(1)" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700" id="{$uid}_next">Next →</button>
+        </div>
+    </div>
+</div>
+<script>
+(function(){
+    let p=1, t={$totalPages};
+    window.{$uid}_go=function(d){
+        p=Math.max(1,Math.min(t,p+d));
+        document.querySelectorAll('#{$uid} tbody tr').forEach(r=>{
+            r.style.display=r.dataset.page==p?'':'none';
+        });
+        document.getElementById('{$uid}_info').textContent='Page '+p+' of '+t;
+        document.getElementById('{$uid}_prev').disabled=(p===1);
+        document.getElementById('{$uid}_next').disabled=(p===t);
+    };
+})();
+</script>
+HTML;
 
         return $html;
     }
