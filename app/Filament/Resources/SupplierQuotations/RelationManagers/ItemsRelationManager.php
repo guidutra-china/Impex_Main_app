@@ -39,137 +39,124 @@ class ItemsRelationManager extends RelationManager
     public function form(Schema $schema): Schema
     {
         return $schema
+            ->columns(4)
             ->components([
-                Section::make(__('forms.sections.product'))
-                    ->schema([
-                        Select::make('product_id')
-                            ->label(__('forms.labels.product'))
-                            ->options(function () {
-                                return Product::query()
-                                    ->orderBy('name')
-                                    ->get()
-                                    ->mapWithKeys(fn ($p) => [
-                                        $p->id => ($p->status === ProductStatus::DRAFT ? '[DRAFT] ' : '') . $p->sku . ' — ' . $p->name,
-                                    ]);
+                Select::make('product_id')
+                    ->label(__('forms.labels.product'))
+                    ->searchable()
+                    ->getSearchResultsUsing(function (string $search) {
+                        return Product::query()
+                            ->where(function ($query) use ($search) {
+                                $query->where('name', 'like', "%{$search}%")
+                                    ->orWhere('sku', 'like', "%{$search}%")
+                                    ->orWhere('commercial_name', 'like', "%{$search}%")
+                                    ->orWhere('model_number', 'like', "%{$search}%");
                             })
-                            ->searchable()
-                            ->getSearchResultsUsing(function (string $search) {
-                                return Product::query()
-                                    ->where(function ($query) use ($search) {
-                                        $query->where('name', 'like', "%{$search}%")
-                                            ->orWhere('sku', 'like', "%{$search}%");
-                                    })
-                                    ->limit(50)
-                                    ->get()
-                                    ->mapWithKeys(fn ($p) => [
-                                        $p->id => ($p->status === ProductStatus::DRAFT ? '[DRAFT] ' : '') . $p->sku . ' — ' . $p->name,
-                                    ]);
-                            })
-                            ->live()
-                            ->afterStateUpdated(function (Set $set, ?string $state) {
-                                if ($state) {
-                                    $product = Product::find($state);
-                                    if ($product) {
-                                        $set('description', $product->name);
+                            ->limit(50)
+                            ->get()
+                            ->mapWithKeys(function ($p) {
+                                $prefix = $p->status === ProductStatus::DRAFT ? '[DRAFT] ' : '';
+                                $commercial = $p->commercial_name ? " ({$p->commercial_name})" : '';
 
-                                        $supplierQuotation = $this->getOwnerRecord();
-                                        $pivot = $product->companies()
-                                            ->where('company_id', $supplierQuotation->company_id)
-                                            ->where('role', 'supplier')
-                                            ->first();
+                                return [$p->id => $prefix . $p->sku . ' — ' . $p->name . $commercial];
+                            });
+                    })
+                    ->getOptionLabelUsing(function ($value) {
+                        $product = Product::find($value);
+                        if (! $product) {
+                            return null;
+                        }
+                        $prefix = $product->status === ProductStatus::DRAFT ? '[DRAFT] ' : '';
+                        $commercial = $product->commercial_name ? " ({$product->commercial_name})" : '';
 
-                                        if ($pivot && $pivot->pivot->unit_price) {
-                                            $majorValue = Money::toMajor($pivot->pivot->unit_price);
-                                            $set('unit_cost', number_format($majorValue, 4, '.', ''));
-                                            static::recalculateTotal($set, fn ($key) => match ($key) {
-                                                'quantity' => 1,
-                                                'unit_cost' => number_format($majorValue, 4, '.', ''),
-                                                default => null,
-                                            });
-                                        }
-                                    }
+                        return $prefix . $product->sku . ' — ' . $product->name . $commercial;
+                    })
+                    ->live()
+                    ->afterStateUpdated(function (Set $set, ?string $state) {
+                        if ($state) {
+                            $product = Product::find($state);
+                            if ($product) {
+                                $set('description', $product->name);
+
+                                $supplierQuotation = $this->getOwnerRecord();
+                                $pivot = $product->companies()
+                                    ->where('company_id', $supplierQuotation->company_id)
+                                    ->where('role', 'supplier')
+                                    ->first();
+
+                                if ($pivot && $pivot->pivot->unit_price) {
+                                    $majorValue = Money::toMajor($pivot->pivot->unit_price);
+                                    $set('unit_cost', number_format($majorValue, 4, '.', ''));
+                                    static::recalculateTotal($set, fn ($key) => match ($key) {
+                                        'quantity' => 1,
+                                        'unit_cost' => number_format($majorValue, 4, '.', ''),
+                                        default => null,
+                                    });
                                 }
-                            })
-                            ->helperText(__('forms.helpers.search_by_name_or_sku_price_autofills_from_supplier_catalog'))
-                            ->columnSpanFull(),
-                        TextInput::make('description')
-                            ->label(__('forms.labels.description'))
-                            ->maxLength(500)
-                            ->helperText(__('forms.helpers.item_description_as_provided_by_the_supplier'))
-                            ->columnSpanFull(),
-                    ])
+                            }
+                        }
+                    })
+                    ->helperText(__('forms.helpers.search_by_name_or_sku_price_autofills_from_supplier_catalog'))
                     ->columnSpanFull(),
-
-                Section::make(__('forms.sections.pricing'))
-                    ->schema([
-                        TextInput::make('quantity')
-                            ->label(__('forms.labels.quantity'))
-                            ->numeric()
-                            ->minValue(1)
-                            ->default(1)
-                            ->required()
-                            ->live(onBlur: true)
-                            ->afterStateUpdated(function (Set $set, Get $get) {
-                                static::recalculateTotal($set, $get);
-                            }),
-                        TextInput::make('unit')
-                            ->label(__('forms.labels.unit'))
-                            ->default('pcs')
-                            ->maxLength(20)
-                            ->required(),
-                        TextInput::make('unit_cost')
-                            ->label(__('forms.labels.unit_cost'))
-                            ->numeric()
-                            ->minValue(0)
-                            ->step(0.0001)
-                            ->prefix('$')
-                            ->required()
-                            ->default(0)
-                            ->live(onBlur: true)
-                            ->afterStateUpdated(function (Set $set, Get $get) {
-                                static::recalculateTotal($set, $get);
-                            })
-                            ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : '0.0000')
-                            ->dehydrateStateUsing(fn ($state) => Money::toMinor($state)),
-                        TextInput::make('total_cost')
-                            ->label(__('forms.labels.total_cost'))
-                            ->numeric()
-                            ->prefix('$')
-                            ->disabled()
-                            ->dehydrated()
-                            ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : '0.0000')
-                            ->dehydrateStateUsing(fn ($state) => Money::toMinor($state)),
-                    ])
-                    ->columns(4)
+                TextInput::make('description')
+                    ->label(__('forms.labels.description'))
+                    ->maxLength(500)
                     ->columnSpanFull(),
-
-                Section::make(__('forms.sections.additional_info'))
-                    ->schema([
-                        TextInput::make('moq')
-                            ->label(__('forms.labels.item_moq'))
-                            ->numeric()
-                            ->minValue(0)
-                            ->helperText(__('forms.helpers.itemspecific_moq_if_different_from_header')),
-                        TextInput::make('lead_time_days')
-                            ->label(__('forms.labels.item_lead_time_days'))
-                            ->numeric()
-                            ->minValue(0)
-                            ->helperText(__('forms.helpers.itemspecific_lead_time_if_different_from_header')),
-                        Textarea::make('specifications')
-                            ->label(__('forms.labels.specifications'))
-                            ->rows(3)
-                            ->maxLength(2000)
-                            ->helperText(__('forms.helpers.supplierprovided_specs_certifications_materials_etc'))
-                            ->columnSpanFull(),
-                        Textarea::make('notes')
-                            ->label(__('forms.labels.notes'))
-                            ->rows(2)
-                            ->maxLength(1000)
-                            ->columnSpanFull(),
-                    ])
-                    ->columns(2)
-                    ->collapsed()
-                    ->columnSpanFull(),
+                TextInput::make('quantity')
+                    ->label(__('forms.labels.quantity'))
+                    ->numeric()
+                    ->minValue(1)
+                    ->default(1)
+                    ->required()
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(function (Set $set, Get $get) {
+                        static::recalculateTotal($set, $get);
+                    }),
+                TextInput::make('unit')
+                    ->label(__('forms.labels.unit'))
+                    ->default('pcs')
+                    ->maxLength(20)
+                    ->required(),
+                TextInput::make('unit_cost')
+                    ->label(__('forms.labels.unit_cost'))
+                    ->numeric()
+                    ->minValue(0)
+                    ->step(0.0001)
+                    ->prefix('$')
+                    ->required()
+                    ->default(0)
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(function (Set $set, Get $get) {
+                        static::recalculateTotal($set, $get);
+                    })
+                    ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : '0.0000')
+                    ->dehydrateStateUsing(fn ($state) => Money::toMinor($state)),
+                TextInput::make('total_cost')
+                    ->label(__('forms.labels.total_cost'))
+                    ->numeric()
+                    ->prefix('$')
+                    ->disabled()
+                    ->dehydrated()
+                    ->formatStateUsing(fn ($state) => $state ? number_format(Money::toMajor($state), 4, '.', '') : '0.0000')
+                    ->dehydrateStateUsing(fn ($state) => Money::toMinor($state)),
+                TextInput::make('moq')
+                    ->label(__('forms.labels.item_moq'))
+                    ->numeric()
+                    ->minValue(0),
+                TextInput::make('lead_time_days')
+                    ->label(__('forms.labels.item_lead_time_days'))
+                    ->numeric()
+                    ->minValue(0),
+                Textarea::make('specifications')
+                    ->label(__('forms.labels.specifications'))
+                    ->rows(2)
+                    ->maxLength(2000)
+                    ->columnSpan(2),
+                Textarea::make('notes')
+                    ->label(__('forms.labels.notes'))
+                    ->rows(2)
+                    ->maxLength(1000)
+                    ->columnSpan(2),
             ]);
     }
 
@@ -186,7 +173,8 @@ class ItemsRelationManager extends RelationManager
                 TextColumn::make('displayName')
                     ->label(__('forms.labels.item'))
                     ->searchable(['description'])
-                    ->limit(40),
+                    ->limit(40)
+                    ->description(fn ($record) => $record->product?->commercial_name),
 
                 // --- Inline editable columns ---
                 TextInputColumn::make('quantity')
