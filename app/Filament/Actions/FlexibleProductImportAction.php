@@ -480,17 +480,25 @@ class FlexibleProductImportAction
                         Placeholder::make('import_preview')
                             ->label('')
                             ->content(function (Get $get) {
-                                $mapping = self::getCache('mapping', []);
                                 $rows = self::getCachedRows();
                                 $images = self::getCache('images', []);
-                                $blocks = $mapping['blocks'] ?? [];
 
-                                if (empty($rows) || empty($mapping) || empty($blocks)) {
+                                // Read mapping directly from form state
+                                $headerRow = (int) ($get('header_row') ?? 1);
+                                $colMapping = [];
+                                for ($c = 0; $c < 15; $c++) {
+                                    $field = $get("col_map_{$c}");
+                                    if ($field && $field !== '' && $field !== 'skip') {
+                                        $colMapping[$field] = (string) $c;
+                                    }
+                                }
+                                $blocks = array_values($get('import_blocks') ?? []);
+
+                                if (empty($rows) || empty($colMapping) || empty($blocks)) {
                                     return new HtmlString('<p class="text-red-500">No data available. Please go back and configure import blocks.</p>');
                                 }
 
-                                $headerRow = $mapping['header_row'] ?? 1;
-                                $mappedFields = array_keys($mapping['columns'] ?? []);
+                                $mappedFields = array_keys($colMapping);
                                 $totalProducts = 0;
                                 $totalImages = 0;
 
@@ -503,7 +511,7 @@ class FlexibleProductImportAction
                                     $categoryName = $categoryId ? (Category::find($categoryId)?->name ?? 'Unknown') : 'No category';
                                     $blockFamily = $block['product_family'] ?? null;
 
-                                    $items = self::applyMappingWithRange($rows, $mapping['columns'] ?? [], $headerRow, null, $startRow, $endRow);
+                                    $items = self::applyMappingWithRange($rows, $colMapping, $headerRow, null, $startRow, $endRow);
                                     $totalProducts += count($items);
 
                                     // Count images only within this block's range
@@ -570,13 +578,28 @@ class FlexibleProductImportAction
             ])
             ->action(function (array $data) use ($role, $getCompany): void {
                 $crossCompanyId = $data['cross_company_id'] ?? null;
-                $mapping = self::getCache('mapping', []);
                 $rows = self::getCachedRows();
                 $images = self::getCache('images', []);
-                $headerRow = $mapping['header_row'] ?? 1;
-                $blocks = $mapping['blocks'] ?? [];
-                $currencyCode = $mapping['currency_code'] ?? 'USD';
-                $customPriceFormula = $mapping['custom_price_formula'] ?? null;
+
+                // Collect mapping from form data (more reliable than cache)
+                $headerRow = (int) ($data['header_row'] ?? 1);
+                $colMapping = [];
+                for ($c = 0; $c < 15; $c++) {
+                    $field = $data["col_map_{$c}"] ?? null;
+                    if ($field && $field !== '' && $field !== 'skip') {
+                        $colMapping[$field] = (string) $c;
+                    }
+                }
+                $blocks = array_values($data['import_blocks'] ?? []);
+                $currencyCode = $data['currency_code'] ?? 'USD';
+                $customPriceFormula = $data['custom_price_formula'] ?? null;
+
+                \Illuminate\Support\Facades\Log::info('QUICK IMPORT: action executing', [
+                    'colMapping' => $colMapping,
+                    'headerRow' => $headerRow,
+                    'blocks' => count($blocks),
+                    'totalRows' => count($rows),
+                ]);
 
                 if (empty($blocks)) {
                     Notification::make()->title('No import blocks defined')->warning()->send();
@@ -592,7 +615,7 @@ class FlexibleProductImportAction
                 $totalItems = 0;
 
                 try {
-                    DB::transaction(function () use ($blocks, $rows, $mapping, $headerRow, $company, $role, $skuGenerator, $images, $crossCompanyId, $currencyCode, $customPriceFormula, &$stats, &$totalItems) {
+                    DB::transaction(function () use ($blocks, $rows, $colMapping, $headerRow, $company, $role, $skuGenerator, $images, $crossCompanyId, $currencyCode, $customPriceFormula, &$stats, &$totalItems) {
                         foreach ($blocks as $block) {
                             $categoryId = $block['category_id'] ?? null;
                             $startRow = (int) ($block['start_row'] ?? 1);
@@ -604,7 +627,6 @@ class FlexibleProductImportAction
 
                             $category = Category::findOrFail($categoryId);
                             $blockFamily = $block['product_family'] ?? null;
-                            $colMapping = $mapping['columns'] ?? [];
                             $items = self::applyMappingWithRange($rows, $colMapping, $headerRow, null, $startRow, $endRow);
                             $totalItems += count($items);
 
