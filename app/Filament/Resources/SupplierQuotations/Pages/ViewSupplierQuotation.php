@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\SupplierQuotations\Pages;
 
+use App\Domain\Infrastructure\Excel\Templates\RfqExcelTemplate;
 use App\Domain\Infrastructure\Pdf\Templates\RfqPdfTemplate;
+use App\Filament\Actions\GenerateExcelAction;
 use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Actions\SendDocumentByEmailAction;
 use App\Filament\Resources\SupplierQuotations\SupplierQuotationResource;
@@ -39,6 +41,15 @@ class ViewSupplierQuotation extends ViewRecord
                     Toggle::make('show_target_price')
                         ->label('Include Target Price')
                         ->helperText('Show the client\'s target price in the RFQ document')
+                        ->default(false),
+                ],
+            ),
+            GenerateExcelAction::download(
+                templateClass: RfqExcelTemplate::class,
+                label: 'Download RFQ Excel',
+                formSchema: [
+                    Toggle::make('show_target_price')
+                        ->label('Include Target Price')
                         ->default(false),
                 ],
             ),
