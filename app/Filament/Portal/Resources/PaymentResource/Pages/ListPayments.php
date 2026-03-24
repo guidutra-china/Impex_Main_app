@@ -137,7 +137,7 @@ class ListPayments extends ListRecords
                     ->sortable(),
                 TextColumn::make('percentage')
                     ->label(__('forms.labels.percent'))
-                    ->suffix('%')
+                    ->formatStateUsing(fn ($state) => ($state == 0 ? 100 : $state) . '%')
                     ->alignCenter()
                     ->sortable(),
                 TextColumn::make('amount')

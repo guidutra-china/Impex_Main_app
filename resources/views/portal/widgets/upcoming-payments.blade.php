@@ -196,9 +196,7 @@
                                         @endif
                                     </td>
                                     <td class="whitespace-nowrap px-4 py-2.5 text-gray-600 dark:text-gray-400">
-                                        @if ($item['percentage'])
-                                            <span class="text-gray-400 dark:text-gray-500">{{ $item['percentage'] }}%</span>
-                                        @endif
+                                        <span class="text-gray-400 dark:text-gray-500">{{ $item['percentage'] ?: 100 }}%</span>
                                         {{ $item['label'] }}
                                     </td>
                                     <td class="whitespace-nowrap px-4 py-2.5 text-right font-mono font-medium">
