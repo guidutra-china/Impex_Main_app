@@ -80,6 +80,7 @@ class FlexibleProductImportAction
             'product_name' => ['product', 'item', 'description', 'modelo', 'model', 'produto', 'name', 'nome'],
             'commercial_name' => ['commercial', 'comercial', 'client name', 'nome comercial', 'nome cliente'],
             'product_family' => ['family', 'família', 'familia', 'line', 'linha', 'series', 'série', 'serie'],
+            'model_number' => ['model number', 'modelo', 'model no', 'model#', 'número modelo', 'numero modelo'],
             'reference_code' => ['ref', 'code', 'código', 'codigo', 'sku', 'reference'],
             'unit_price' => $isClient
                 ? ['selling price', 'sell price', 'preço venda', 'preco venda', 'client price']
@@ -115,6 +116,7 @@ class FlexibleProductImportAction
             'product_name' => '',
             'commercial_name' => '',
             'product_family' => '',
+            'model_number' => '',
             'reference_code' => '',
             'unit_price' => '',
             'cross_unit_price' => '',
@@ -135,6 +137,7 @@ class FlexibleProductImportAction
             'product_name' => 'Product Name',
             'commercial_name' => 'Commercial Name',
             'product_family' => 'Product Family',
+            'model_number' => 'Model Number',
             'reference_code' => 'Reference Code / SKU',
             'unit_price' => $isClient ? 'Selling Price (Client)' : 'Purchase Price (Supplier)',
             'cross_unit_price' => $isClient ? 'Purchase Price (Supplier)' : 'Selling Price (Client)',
@@ -652,7 +655,7 @@ class FlexibleProductImportAction
                                 // Auto-generate name: Category + Model Number (same as product form)
                                 $productName = $item['product_name'] ?? '';
                                 if (empty($productName)) {
-                                    $modelNumber = $item['reference_code'] ?? '';
+                                    $modelNumber = $item['model_number'] ?? '';
                                     $productName = $modelNumber
                                         ? $category->name . ' ' . $modelNumber
                                         : $category->name;
@@ -687,6 +690,7 @@ class FlexibleProductImportAction
                                         'name' => $productName,
                                         'commercial_name' => $item['commercial_name'] ?: null,
                                         'product_family' => $blockFamily ?: ($item['product_family'] ?: null),
+                                        'model_number' => $item['model_number'] ?: null,
                                         'sku' => $sku,
                                         'reference_code' => ! empty($item['reference_code']) ? trim($item['reference_code']) : null,
                                         'category_id' => $category->id,
