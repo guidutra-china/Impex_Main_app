@@ -837,6 +837,7 @@ class FlexibleProductImportAction
     protected static function extractImagesByRow(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $worksheet): array
     {
         $imagesByRow = [];
+        $hashMap = []; // md5 hash => stored filename (deduplication)
 
         foreach ($worksheet->getDrawingCollection() as $drawing) {
             $coordinate = $drawing->getCoordinates();
@@ -898,10 +899,19 @@ class FlexibleProductImportAction
             }
 
             if ($imageData && strlen($imageData) > 100) { // Skip tiny/corrupt images
-                $filename = 'products/' . uniqid('import_') . '.' . $extension;
-                Storage::disk('public')->put($filename, $imageData);
-                $imagesByRow[$row] = $filename;
-                \Illuminate\Support\Facades\Log::info("FLEXIBLE IMPORT: image extracted at row {$row} → {$filename}");
+                $hash = md5($imageData);
+
+                if (isset($hashMap[$hash])) {
+                    // Reuse already-saved file for identical image content
+                    $imagesByRow[$row] = $hashMap[$hash];
+                    \Illuminate\Support\Facades\Log::info("FLEXIBLE IMPORT: image at row {$row} deduplicated → {$hashMap[$hash]}");
+                } else {
+                    $filename = 'products/' . uniqid('import_') . '.' . $extension;
+                    Storage::disk('public')->put($filename, $imageData);
+                    $hashMap[$hash] = $filename;
+                    $imagesByRow[$row] = $filename;
+                    \Illuminate\Support\Facades\Log::info("FLEXIBLE IMPORT: image extracted at row {$row} → {$filename}");
+                }
             }
         }
 

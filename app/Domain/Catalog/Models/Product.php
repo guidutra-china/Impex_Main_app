@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
 {
@@ -40,6 +41,39 @@ class Product extends Model
                 $product->name = $category?->name ?? 'New Product';
             }
         });
+
+        // Delete old avatar file when avatar is changed
+        static::updating(function (Product $product) {
+            if ($product->isDirty('avatar')) {
+                $oldAvatar = $product->getOriginal('avatar');
+                if ($oldAvatar) {
+                    self::deleteAvatarIfOrphan($oldAvatar, $product->id);
+                }
+            }
+        });
+
+        // Delete avatar file when product is force-deleted
+        static::forceDeleting(function (Product $product) {
+            if ($product->avatar) {
+                self::deleteAvatarIfOrphan($product->avatar, $product->id);
+            }
+        });
+    }
+
+    /**
+     * Delete avatar file from disk only if no other product references it.
+     * Shared images (from deduplication) are kept until the last reference is removed.
+     */
+    private static function deleteAvatarIfOrphan(string $avatarPath, ?int $excludeProductId = null): void
+    {
+        $query = static::withTrashed()->where('avatar', $avatarPath);
+        if ($excludeProductId) {
+            $query->where('id', '!=', $excludeProductId);
+        }
+
+        if (! $query->exists()) {
+            Storage::disk('public')->delete($avatarPath);
+        }
     }
 
     protected $fillable = [

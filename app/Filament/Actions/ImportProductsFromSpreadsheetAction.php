@@ -1028,6 +1028,7 @@ class ImportProductsFromSpreadsheetAction
     protected static function extractImagesByRow(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $worksheet): array
     {
         $imagesByRow = [];
+        $hashMap = []; // md5 hash => stored filename (deduplication)
 
         foreach ($worksheet->getDrawingCollection() as $drawing) {
             $coordinate = $drawing->getCoordinates();
@@ -1075,9 +1076,16 @@ class ImportProductsFromSpreadsheetAction
             }
 
             if ($imageData && strlen($imageData) > 100) {
-                $filename = 'products/' . uniqid('import_') . '.' . $extension;
-                Storage::disk('public')->put($filename, $imageData);
-                $imagesByRow[$row] = $filename;
+                $hash = md5($imageData);
+
+                if (isset($hashMap[$hash])) {
+                    $imagesByRow[$row] = $hashMap[$hash];
+                } else {
+                    $filename = 'products/' . uniqid('import_') . '.' . $extension;
+                    Storage::disk('public')->put($filename, $imageData);
+                    $hashMap[$hash] = $filename;
+                    $imagesByRow[$row] = $filename;
+                }
             }
         }
 

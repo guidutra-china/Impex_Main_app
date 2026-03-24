@@ -542,6 +542,7 @@ class ProductImportService
     private function extractImagesByRow(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $worksheet): array
     {
         $imagesByRow = [];
+        $hashMap = []; // md5 hash => stored filename (deduplication)
 
         foreach ($worksheet->getDrawingCollection() as $drawing) {
             $coordinate = $drawing->getCoordinates();
@@ -549,6 +550,10 @@ class ProductImportService
 
             if ($row < 4) {
                 continue; // Skip header rows
+            }
+
+            if (isset($imagesByRow[$row])) {
+                continue;
             }
 
             $imageData = null;
@@ -583,10 +588,17 @@ class ProductImportService
                 }
             }
 
-            if ($imageData && ! isset($imagesByRow[$row])) {
-                $filename = 'products/' . uniqid('import_') . '.' . $extension;
-                Storage::disk('public')->put($filename, $imageData);
-                $imagesByRow[$row] = $filename;
+            if ($imageData && strlen($imageData) > 100) {
+                $hash = md5($imageData);
+
+                if (isset($hashMap[$hash])) {
+                    $imagesByRow[$row] = $hashMap[$hash];
+                } else {
+                    $filename = 'products/' . uniqid('import_') . '.' . $extension;
+                    Storage::disk('public')->put($filename, $imageData);
+                    $hashMap[$hash] = $filename;
+                    $imagesByRow[$row] = $filename;
+                }
             }
         }
 
