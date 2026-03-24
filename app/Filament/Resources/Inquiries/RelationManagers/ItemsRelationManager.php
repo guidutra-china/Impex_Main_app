@@ -285,7 +285,8 @@ class ItemsRelationManager extends RelationManager
                 TextColumn::make('displayName')
                     ->label(__('forms.labels.item'))
                     ->searchable(['description'])
-                    ->limit(40),
+                    ->limit(40)
+                    ->description(fn ($record) => $record->product?->commercial_name),
 
                 // --- Inline editable columns ---
                 TextInputColumn::make('quantity')
