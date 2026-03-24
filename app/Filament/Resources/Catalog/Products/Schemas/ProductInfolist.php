@@ -48,10 +48,22 @@ class ProductInfolist
                         ->label(__('forms.labels.category'))
                         ->icon('heroicon-o-folder')
                         ->placeholder('—'),
+                    TextEntry::make('model_number')
+                        ->label(__('forms.labels.model_number'))
+                        ->placeholder('—')
+                        ->copyable(),
                     TextEntry::make('name')
                         ->label(__('forms.labels.product_name'))
                         ->weight(FontWeight::Bold)
                         ->size(TextSize::Large),
+                    TextEntry::make('commercial_name')
+                        ->label(__('forms.labels.commercial_name'))
+                        ->placeholder('—'),
+                    TextEntry::make('product_family')
+                        ->label(__('forms.labels.product_family'))
+                        ->badge()
+                        ->color('info')
+                        ->placeholder('—'),
                     TextEntry::make('sku')
                         ->label(__('forms.labels.sku'))
                         ->badge()
@@ -78,9 +90,6 @@ class ProductInfolist
                         ->placeholder('—'),
                     TextEntry::make('brand')
                         ->label(__('forms.labels.brand'))
-                        ->placeholder('—'),
-                    TextEntry::make('model_number')
-                        ->label(__('forms.labels.model_number'))
                         ->placeholder('—'),
                     TextEntry::make('certifications')
                         ->label(__('forms.labels.certifications'))

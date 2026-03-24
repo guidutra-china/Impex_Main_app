@@ -39,7 +39,7 @@ class ProductResource extends Resource
 
     public static function getGloballySearchableAttributes(): array
     {
-        return ['name', 'sku', 'brand', 'model_number', 'hs_code'];
+        return ['name', 'commercial_name', 'product_family', 'sku', 'brand', 'model_number', 'hs_code'];
     }
 
     public static function form(Schema $schema): Schema

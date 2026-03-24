@@ -76,6 +76,8 @@ class FlexibleProductImportAction
 
         $fieldPatterns = [
             'product_name' => ['product', 'item', 'description', 'modelo', 'model', 'produto', 'name', 'nome'],
+            'commercial_name' => ['commercial', 'comercial', 'client name', 'nome comercial', 'nome cliente'],
+            'product_family' => ['family', 'família', 'familia', 'line', 'linha', 'series', 'série', 'serie'],
             'reference_code' => ['ref', 'code', 'código', 'codigo', 'sku', 'reference'],
             'unit_price' => $isClient
                 ? ['selling price', 'sell price', 'preço venda', 'preco venda', 'client price']
@@ -110,6 +112,8 @@ class FlexibleProductImportAction
 
         $fieldDefaults = [
             'product_name' => '',
+            'commercial_name' => '',
+            'product_family' => '',
             'reference_code' => '',
             'unit_price' => '',
             'cross_unit_price' => '',
@@ -129,6 +133,8 @@ class FlexibleProductImportAction
 
         $fieldLabels = [
             'product_name' => 'Product Name',
+            'commercial_name' => 'Commercial Name',
+            'product_family' => 'Product Family',
             'reference_code' => 'Reference Code / SKU',
             'unit_price' => $isClient ? 'Selling Price (Client)' : 'Purchase Price (Supplier)',
             'cross_unit_price' => $isClient ? 'Purchase Price (Supplier)' : 'Selling Price (Client)',
@@ -512,6 +518,8 @@ class FlexibleProductImportAction
                             } else {
                                 $existing = Product::create([
                                     'name' => $productName,
+                                    'commercial_name' => $item['commercial_name'] ?: null,
+                                    'product_family' => $item['product_family'] ?: null,
                                     'sku' => $sku,
                                     'reference_code' => ! empty($item['reference_code']) ? trim($item['reference_code']) : null,
                                     'category_id' => $category->id,

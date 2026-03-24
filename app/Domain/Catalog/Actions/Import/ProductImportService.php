@@ -325,6 +325,8 @@ class ProductImportService
 
         $product = Product::create([
             'name' => $row['name'],
+            'commercial_name' => $row['commercial_name'] ?? null,
+            'product_family' => $row['product_family'] ?? null,
             'sku' => $skuGenerator->execute($category->id),
             'reference_code' => ! empty($row['reference_code']) ? trim($row['reference_code']) : null,
             'category_id' => $category->id,
@@ -353,6 +355,8 @@ class ProductImportService
     {
         $data = array_filter([
             'name' => $row['name'] ?? null,
+            'commercial_name' => $row['commercial_name'] ?? $product->commercial_name,
+            'product_family' => $row['product_family'] ?? $product->product_family,
             'reference_code' => ! empty($row['reference_code']) ? trim($row['reference_code']) : $product->reference_code,
             'category_id' => $category->id,
             'parent_id' => $parent?->id ?? $product->parent_id,

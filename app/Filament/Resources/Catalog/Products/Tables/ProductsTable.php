@@ -57,7 +57,20 @@ class ProductsTable
                     ->sortable()
                     ->limit(50)
                     ->weight('bold')
-                    ->description(fn ($record) => $record->category?->name),
+                    ->description(fn ($record) => $record->commercial_name ?: $record->category?->name),
+                TextColumn::make('model_number')
+                    ->label(__('forms.labels.model_number'))
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('—'),
+                TextColumn::make('product_family')
+                    ->label(__('forms.labels.product_family'))
+                    ->searchable()
+                    ->sortable()
+                    ->badge()
+                    ->color('info')
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('status')
                     ->label(__('forms.labels.status'))
                     ->badge(),
@@ -139,6 +152,9 @@ class ProductsTable
             ->groups([
                 Group::make('category.name')
                     ->label(__('forms.labels.category'))
+                    ->collapsible(),
+                Group::make('product_family')
+                    ->label(__('forms.labels.product_family'))
                     ->collapsible(),
                 Group::make('status')
                     ->label(__('forms.labels.status'))

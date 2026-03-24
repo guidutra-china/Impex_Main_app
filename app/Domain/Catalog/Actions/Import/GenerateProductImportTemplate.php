@@ -13,6 +13,8 @@ class GenerateProductImportTemplate
 {
     private const PRODUCT_COLUMNS = [
         'name' => ['label' => 'Product Name', 'required' => true, 'hint' => 'e.g. Ceramic Mug 300ml'],
+        'commercial_name' => ['label' => 'Commercial Name', 'required' => false, 'hint' => 'Client-facing name (e.g. Premium Slim Light)'],
+        'product_family' => ['label' => 'Product Family', 'required' => false, 'hint' => 'Group name (e.g. MX Series, Slim Line)'],
         'reference_code' => ['label' => 'Reference Code', 'required' => false, 'hint' => 'Your code for this product (e.g. LED-001). Used to link variants to base products.'],
         'parent_ref' => ['label' => 'Parent Reference', 'required' => false, 'hint' => 'Leave EMPTY for base products. For variants, enter the Reference Code of the base product.'],
         'hs_code' => ['label' => 'HS Code', 'required' => false, 'hint' => 'e.g. 6912.00'],
@@ -234,6 +236,8 @@ class GenerateProductImportTemplate
         foreach ($columns as $colKey => $col) {
             $row[] = match ($colKey) {
                 'name' => $isVariant ? 'Example Product - Blue' : 'Example Product',
+                'commercial_name' => $isVariant ? 'Premium Light Blue' : 'Premium Light',
+                'product_family' => 'MX Series',
                 'reference_code' => $isVariant ? 'MX-100-BL' : 'MX-100',
                 'parent_ref' => $isVariant ? 'MX-100' : '',
                 'hs_code' => '6912.00',
@@ -376,7 +380,7 @@ class GenerateProductImportTemplate
         $columns = [];
 
         // Core product fields
-        $simpleProductColumns = ['name', 'reference_code', 'moq', 'lead_time_days'];
+        $simpleProductColumns = ['name', 'commercial_name', 'product_family', 'reference_code', 'moq', 'lead_time_days'];
         foreach ($simpleProductColumns as $key) {
             $col = self::PRODUCT_COLUMNS[$key];
             $columns[$key] = array_merge($col, ['section' => 'PRODUCT', 'key' => $key, 'group' => 'product']);
