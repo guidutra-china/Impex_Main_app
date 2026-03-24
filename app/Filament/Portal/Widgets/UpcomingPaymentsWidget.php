@@ -110,7 +110,7 @@ class UpcomingPaymentsWidget extends Widget
             ->orderBy('created_at')
             ->get();
 
-        $mapItem = function ($item) {
+        $mapItem = function ($item) use ($today) {
             $payable = $item->payable;
             $docType = match (true) {
                 $payable instanceof ProformaInvoice => 'PI',
