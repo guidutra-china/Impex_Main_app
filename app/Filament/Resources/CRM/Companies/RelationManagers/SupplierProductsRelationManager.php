@@ -122,7 +122,9 @@ class SupplierProductsRelationManager extends RelationManager
                     ->disk('public')
                     ->circular()
                     ->size(40)
-                    ->defaultImageUrl(fn () => 'https://ui-avatars.com/api/?name=P&background=e2e8f0&color=64748b&size=40')
+                    ->defaultImageUrl(fn (Model $record) => $record->avatar
+                        ? Storage::disk('public')->url($record->avatar)
+                        : 'https://ui-avatars.com/api/?name=P&background=e2e8f0&color=64748b&size=40')
                     ->width('50px'),
                 TextColumn::make('sku')
                     ->label(__('forms.labels.sku'))
