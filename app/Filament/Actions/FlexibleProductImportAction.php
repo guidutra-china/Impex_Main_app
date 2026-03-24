@@ -88,7 +88,6 @@ class FlexibleProductImportAction
                 ? ['purchase price', 'buy price', 'preço compra', 'preco compra', 'supplier price', 'cost', 'custo', 'fob']
                 : ['selling price', 'sell price', 'preço venda', 'preco venda', 'client price'],
             'custom_price' => ['custom price', 'ci price', 'ci override', 'override', 'preço custom', 'preco ci'],
-            'currency' => ['currency', 'moeda', 'curr'],
             'external_code' => $isClient
                 ? ['client code', 'codigo cliente', 'external code']
                 : ['supplier code', 'codigo fornecedor', 'external code'],
@@ -120,7 +119,6 @@ class FlexibleProductImportAction
             'unit_price' => '',
             'cross_unit_price' => '',
             'custom_price' => '',
-            'currency' => 'USD',
             'external_code' => '',
             'external_name' => '',
             'cross_external_code' => '',
@@ -141,7 +139,6 @@ class FlexibleProductImportAction
             'unit_price' => $isClient ? 'Selling Price (Client)' : 'Purchase Price (Supplier)',
             'cross_unit_price' => $isClient ? 'Purchase Price (Supplier)' : 'Selling Price (Client)',
             'custom_price' => 'Custom Price (CI Override)',
-            'currency' => 'Currency',
             'external_code' => $isClient ? 'Client Code' : 'Supplier Code',
             'external_name' => $isClient ? 'Client Product Name' : 'Supplier Product Name',
             'cross_external_code' => $isClient ? 'Supplier Code' : 'Client Code',
@@ -308,6 +305,7 @@ class FlexibleProductImportAction
                             'columns' => $currentMapping,
                             'header_row' => (int) ($get('header_row') ?? 1),
                             'blocks' => array_values($blocks),
+                            'currency_code' => $get('currency_code') ?? 'USD',
                         ]);
                     })
                     ->schema(function () use ($fieldLabels, $fieldDefaults, $fieldPatterns) {
@@ -410,11 +408,12 @@ class FlexibleProductImportAction
                                 ->options($columnOptions)
                                 ->native(false)
                                 ->placeholder('-- Skip --'),
-                            Select::make('col_currency')
-                                ->label($fieldLabels['currency'])
-                                ->options($columnOptions)
-                                ->native(false)
-                                ->placeholder('-- Skip --'),
+                            Select::make('currency_code')
+                                ->label('Currency')
+                                ->options(fn () => \App\Domain\Settings\Models\Currency::orderBy('code')->pluck('code', 'code'))
+                                ->searchable()
+                                ->default('USD')
+                                ->required(),
                             Select::make('col_external_code')
                                 ->label($fieldLabels['external_code'])
                                 ->options($columnOptions)
@@ -618,6 +617,7 @@ class FlexibleProductImportAction
                 $images = self::getCache('images', []);
                 $headerRow = $mapping['header_row'] ?? 1;
                 $blocks = $mapping['blocks'] ?? [];
+                $currencyCode = $mapping['currency_code'] ?? 'USD';
 
                 if (empty($blocks)) {
                     Notification::make()->title('No import blocks defined')->warning()->send();
@@ -633,7 +633,7 @@ class FlexibleProductImportAction
                 $totalItems = 0;
 
                 try {
-                    DB::transaction(function () use ($blocks, $rows, $mapping, $headerRow, $fieldDefaults, $company, $role, $skuGenerator, $images, $crossCompanyId, &$stats, &$totalItems) {
+                    DB::transaction(function () use ($blocks, $rows, $mapping, $headerRow, $fieldDefaults, $company, $role, $skuGenerator, $images, $crossCompanyId, $currencyCode, &$stats, &$totalItems) {
                         foreach ($blocks as $block) {
                             $categoryId = $block['category_id'] ?? null;
                             $startRow = (int) ($block['start_row'] ?? 1);
@@ -700,7 +700,7 @@ class FlexibleProductImportAction
                                     'external_description' => $item['external_description'] ?: null,
                                     'unit_price' => ! empty($item['unit_price']) ? Money::toMinor((float) $item['unit_price']) : null,
                                     'custom_price' => ! empty($item['custom_price']) ? Money::toMinor((float) $item['custom_price']) : null,
-                                    'currency_code' => ! empty($item['currency']) ? strtoupper($item['currency']) : null,
+                                    'currency_code' => $currencyCode,
                                 ], fn ($v) => $v !== null);
 
                                 $existingLink = CompanyProduct::where('product_id', $existing->id)
@@ -724,7 +724,7 @@ class FlexibleProductImportAction
                                         'external_code' => $item['cross_external_code'] ?: null,
                                         'external_name' => $item['cross_external_name'] ?: null,
                                         'unit_price' => ! empty($item['cross_unit_price']) ? Money::toMinor((float) $item['cross_unit_price']) : null,
-                                        'currency_code' => ! empty($item['currency']) ? strtoupper($item['currency']) : null,
+                                        'currency_code' => $currencyCode,
                                     ], fn ($v) => $v !== null);
 
                                     $existingCrossLink = CompanyProduct::where('product_id', $existing->id)
