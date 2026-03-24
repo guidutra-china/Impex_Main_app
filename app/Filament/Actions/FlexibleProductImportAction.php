@@ -291,50 +291,85 @@ class FlexibleProductImportAction
                         }
                     }),
                 Step::make('Map Columns')
-                    ->label('Map Columns')
-                    ->description('Match spreadsheet columns to product fields')
-                    ->afterValidation(function (Get $get) use ($fieldDefaults) {
-                        $currentMapping = [];
-                        foreach (array_keys($fieldDefaults) as $field) {
-                            $value = $get("col_{$field}");
-                            if ($value !== null && $value !== '') {
-                                $currentMapping[$field] = $value;
+                    ->label('Map & Configure')
+                    ->description('Assign fields to columns and define import blocks')
+                    ->afterValidation(function (Get $get) {
+                        $rows = self::getCachedRows();
+                        $headerRow = (int) ($get('header_row') ?? 1);
+                        $headerData = $rows[max(0, $headerRow - 1)] ?? [];
+
+                        $colMapping = [];
+                        for ($c = 0; $c < count($headerData); $c++) {
+                            $field = $get("col_map_{$c}");
+                            if ($field && $field !== 'skip') {
+                                $colMapping[$field] = (string) $c;
                             }
                         }
 
                         $blocks = $get('import_blocks') ?? [];
 
                         self::putCache('mapping', [
-                            'columns' => $currentMapping,
-                            'header_row' => (int) ($get('header_row') ?? 1),
+                            'columns' => $colMapping,
+                            'header_row' => $headerRow,
                             'blocks' => array_values($blocks),
                             'currency_code' => $get('currency_code') ?? 'USD',
                             'custom_price_formula' => $get('custom_price_formula'),
                         ]);
                     })
-                    ->schema(function () use ($fieldLabels, $fieldDefaults, $fieldPatterns) {
-                        $columnOptions = function (Get $get) {
-                            try {
-                                $rows = self::getCachedRows();
-                                if (empty($rows)) {
-                                    return [];
-                                }
-
-                                $headerRow = (int) ($get('header_row') ?? 1);
-                                $headerData = self::getHeaderRow($rows, $headerRow);
-
-                                return self::buildColumnOptions($headerData);
-                            } catch (\Throwable $e) {
-                                return [];
-                            }
-                        };
+                    ->schema(function () use ($isClient) {
+                        $rows = self::getCachedRows();
+                        $headerData = $rows[0] ?? [];
+                        $displayCols = min(count($headerData), 15);
 
                         $rowOrigins = self::getCache('row_origins', []);
-                        $lastRow = ! empty($rowOrigins) ? max($rowOrigins) : count(self::getCachedRows());
+                        $lastRow = ! empty($rowOrigins) ? max($rowOrigins) : count($rows);
+
+                        // Build field options grouped by section
+                        $fieldOptions = [
+                            'skip' => '— Skip —',
+                            'Product' => [
+                                'product_name' => 'Product Name',
+                                'commercial_name' => 'Commercial Name',
+                                'model_number' => 'Model Number',
+                                'product_family' => 'Product Family',
+                                'reference_code' => 'Reference Code / SKU',
+                                'moq' => 'MOQ',
+                                'lead_time' => 'Lead Time (days)',
+                                'material' => 'Material',
+                                'specs' => 'Specifications',
+                                'notes' => 'Notes',
+                            ],
+                            ($isClient ? 'Client' : 'Supplier') . ' Link' => [
+                                'unit_price' => $isClient ? 'Selling Price (Client)' : 'Purchase Price (Supplier)',
+                                'custom_price' => 'Custom Price (CI Override)',
+                                'external_code' => $isClient ? 'Client Code' : 'Supplier Code',
+                                'external_name' => $isClient ? 'Client Product Name' : 'Supplier Product Name',
+                                'external_description' => 'Invoice Description',
+                            ],
+                            ($isClient ? 'Supplier' : 'Client') . ' Link' => [
+                                'cross_unit_price' => $isClient ? 'Purchase Price (Supplier)' : 'Selling Price (Client)',
+                                'cross_external_code' => $isClient ? 'Supplier Code' : 'Client Code',
+                                'cross_external_name' => $isClient ? 'Supplier Product Name' : 'Client Product Name',
+                            ],
+                        ];
+
+                        // Build column selects
+                        $colSelects = [];
+                        for ($c = 0; $c < $displayCols; $c++) {
+                            $letter = self::columnLetter($c);
+                            $headerLabel = $headerData[$c] ?? '';
+                            $label = "Col {$letter}" . ($headerLabel ? ": {$headerLabel}" : '');
+
+                            $colSelects[] = Select::make("col_map_{$c}")
+                                ->label(mb_substr($label, 0, 40))
+                                ->options($fieldOptions)
+                                ->default('skip')
+                                ->native(false);
+                        }
 
                         return [
                             Placeholder::make('file_preview')
-                                ->label('Spreadsheet Preview — use row numbers below for Start/End Row')
+                                ->label('Spreadsheet — use row numbers for Start/End Row below')
                                 ->content(function (Get $get) {
                                     try {
                                         $rows = self::getCachedRows();
@@ -363,55 +398,15 @@ class FlexibleProductImportAction
                                 ->minValue(0)
                                 ->maxValue(50)
                                 ->required()
-                                ->live(onBlur: true)
-                                ->afterStateUpdated(function ($state, Set $set) use ($fieldPatterns) {
-                                    $rows = self::getCachedRows();
-                                    if (empty($rows) || (int) ($state ?? 0) < 1) {
-                                        return;
-                                    }
-
-                                    $headerData = self::getHeaderRow($rows, (int) $state);
-                                    $mapping = self::autoDetectMapping($headerData, $fieldPatterns);
-                                    foreach ($mapping as $field => $colIndex) {
-                                        $set("col_{$field}", $colIndex);
-                                    }
-                                }),
+                                ->live(onBlur: true),
                             Placeholder::make('mapping_help')
                                 ->content(new HtmlString(
                                     '<p class="text-xs text-gray-500 dark:text-gray-400">'
-                                    . 'Match columns to fields. Only <strong>Product Name</strong> is required.'
+                                    . 'Assign a field to each spreadsheet column:'
                                     . '</p>'
-                                )),
-                            Select::make('col_product_name')
-                                ->label($fieldLabels['product_name'])
-                                ->options($columnOptions)
-                                ->native(false)
-                                ->placeholder('-- Skip --'),
-                            Select::make('col_commercial_name')
-                                ->label($fieldLabels['commercial_name'])
-                                ->options($columnOptions)
-                                ->native(false)
-                                ->placeholder('-- Skip --'),
-                            Select::make('col_reference_code')
-                                ->label($fieldLabels['reference_code'])
-                                ->options($columnOptions)
-                                ->native(false)
-                                ->placeholder('-- Skip --'),
-                            Select::make('col_unit_price')
-                                ->label($fieldLabels['unit_price'])
-                                ->options($columnOptions)
-                                ->native(false)
-                                ->placeholder('-- Skip --'),
-                            Select::make('col_cross_unit_price')
-                                ->label($fieldLabels['cross_unit_price'])
-                                ->options($columnOptions)
-                                ->native(false)
-                                ->placeholder('-- Skip --'),
-                            Select::make('col_custom_price')
-                                ->label($fieldLabels['custom_price'])
-                                ->options($columnOptions)
-                                ->native(false)
-                                ->placeholder('-- Skip --'),
+                                ))
+                                ->columnSpanFull(),
+                            ...$colSelects,
                             Select::make('currency_code')
                                 ->label('Currency')
                                 ->options(fn () => \App\Domain\Settings\Models\Currency::orderBy('code')->pluck('code', 'code'))
@@ -422,61 +417,11 @@ class FlexibleProductImportAction
                                 ->label('Custom Price Formula')
                                 ->placeholder('e.g. *0.70, *1.30, +5')
                                 ->helperText('Calculate from Unit Price. *0.70=70%, +5=add $5'),
-                            Select::make('col_external_code')
-                                ->label($fieldLabels['external_code'])
-                                ->options($columnOptions)
-                                ->native(false)
-                                ->placeholder('-- Skip --'),
-                            Select::make('col_external_name')
-                                ->label($fieldLabels['external_name'])
-                                ->options($columnOptions)
-                                ->native(false)
-                                ->placeholder('-- Skip --'),
-                            Select::make('col_cross_external_code')
-                                ->label($fieldLabels['cross_external_code'])
-                                ->options($columnOptions)
-                                ->native(false)
-                                ->placeholder('-- Skip --'),
-                            Select::make('col_cross_external_name')
-                                ->label($fieldLabels['cross_external_name'])
-                                ->options($columnOptions)
-                                ->native(false)
-                                ->placeholder('-- Skip --'),
-                            Select::make('col_external_description')
-                                ->label($fieldLabels['external_description'])
-                                ->options($columnOptions)
-                                ->native(false)
-                                ->placeholder('-- Skip --'),
-                            Select::make('col_moq')
-                                ->label($fieldLabels['moq'])
-                                ->options($columnOptions)
-                                ->native(false)
-                                ->placeholder('-- Skip --'),
-                            Select::make('col_lead_time')
-                                ->label($fieldLabels['lead_time'])
-                                ->options($columnOptions)
-                                ->native(false)
-                                ->placeholder('-- Skip --'),
-                            Select::make('col_material')
-                                ->label($fieldLabels['material'])
-                                ->options($columnOptions)
-                                ->native(false)
-                                ->placeholder('-- Skip --'),
-                            Select::make('col_specs')
-                                ->label($fieldLabels['specs'])
-                                ->options($columnOptions)
-                                ->native(false)
-                                ->placeholder('-- Skip --'),
-                            Select::make('col_notes')
-                                ->label($fieldLabels['notes'])
-                                ->options($columnOptions)
-                                ->native(false)
-                                ->placeholder('-- Skip --'),
                             Placeholder::make('blocks_help')
                                 ->content(new HtmlString(
                                     '<hr class="my-2 border-gray-200 dark:border-gray-700">'
                                     . '<p class="text-sm font-medium text-gray-700 dark:text-gray-300">'
-                                    . 'Define category blocks with row ranges from the preview above.'
+                                    . 'Define category blocks with row ranges:'
                                     . '</p>'
                                 ))
                                 ->columnSpanFull(),
@@ -529,7 +474,7 @@ class FlexibleProductImportAction
                     ->schema([
                         Placeholder::make('import_preview')
                             ->label('')
-                            ->content(function (Get $get) use ($fieldDefaults, $fieldLabels) {
+                            ->content(function (Get $get) {
                                 $mapping = self::getCache('mapping', []);
                                 $rows = self::getCachedRows();
                                 $images = self::getCache('images', []);
@@ -553,7 +498,7 @@ class FlexibleProductImportAction
                                     $categoryName = $categoryId ? (Category::find($categoryId)?->name ?? 'Unknown') : 'No category';
                                     $blockFamily = $block['product_family'] ?? null;
 
-                                    $items = self::applyMappingWithRange($rows, $mapping['columns'] ?? [], $headerRow, $fieldDefaults, $startRow, $endRow);
+                                    $items = self::applyMappingWithRange($rows, $mapping['columns'] ?? [], $headerRow, null, $startRow, $endRow);
                                     $totalProducts += count($items);
 
                                     // Count images only within this block's range
@@ -587,7 +532,7 @@ class FlexibleProductImportAction
                                         $html .= '<thead><tr class="bg-gray-50 dark:bg-gray-800">';
                                         $html .= '<th class="px-2 py-1 text-gray-400">#</th>';
                                         foreach ($mappedFields as $field) {
-                                            $html .= '<th class="px-2 py-1 text-left">' . e($fieldLabels[$field] ?? $field) . '</th>';
+                                            $html .= '<th class="px-2 py-1 text-left">' . e(self::fieldLabel($field)) . '</th>';
                                         }
                                         $html .= '</tr></thead><tbody>';
                                         for ($i = 0; $i < $previewCount; $i++) {
@@ -618,7 +563,7 @@ class FlexibleProductImportAction
                             }),
                     ]),
             ])
-            ->action(function (array $data) use ($role, $getCompany, $fieldDefaults): void {
+            ->action(function (array $data) use ($role, $getCompany): void {
                 $crossCompanyId = $data['cross_company_id'] ?? null;
                 $mapping = self::getCache('mapping', []);
                 $rows = self::getCachedRows();
@@ -642,7 +587,7 @@ class FlexibleProductImportAction
                 $totalItems = 0;
 
                 try {
-                    DB::transaction(function () use ($blocks, $rows, $mapping, $headerRow, $fieldDefaults, $company, $role, $skuGenerator, $images, $crossCompanyId, $currencyCode, $customPriceFormula, &$stats, &$totalItems) {
+                    DB::transaction(function () use ($blocks, $rows, $mapping, $headerRow, $company, $role, $skuGenerator, $images, $crossCompanyId, $currencyCode, $customPriceFormula, &$stats, &$totalItems) {
                         foreach ($blocks as $block) {
                             $categoryId = $block['category_id'] ?? null;
                             $startRow = (int) ($block['start_row'] ?? 1);
@@ -654,7 +599,7 @@ class FlexibleProductImportAction
 
                             $category = Category::findOrFail($categoryId);
                             $blockFamily = $block['product_family'] ?? null;
-                            $items = self::applyMappingWithRange($rows, $mapping['columns'] ?? [], $headerRow, $fieldDefaults, $startRow, $endRow);
+                            $items = self::applyMappingWithRange($rows, $mapping['columns'] ?? [], $headerRow, null, $startRow, $endRow);
                             $totalItems += count($items);
 
                             foreach ($items as $item) {
@@ -990,6 +935,22 @@ class FlexibleProductImportAction
         return $options;
     }
 
+    protected static function fieldLabel(string $field): string
+    {
+        return [
+            'product_name' => 'Product Name', 'commercial_name' => 'Commercial Name',
+            'model_number' => 'Model Number', 'product_family' => 'Product Family',
+            'reference_code' => 'Reference Code', 'moq' => 'MOQ',
+            'lead_time' => 'Lead Time', 'material' => 'Material',
+            'specs' => 'Specifications', 'notes' => 'Notes',
+            'unit_price' => 'Unit Price', 'custom_price' => 'Custom Price',
+            'cross_unit_price' => 'Cross Unit Price',
+            'external_code' => 'Ext. Code', 'external_name' => 'Ext. Name',
+            'cross_external_code' => 'Cross Ext. Code', 'cross_external_name' => 'Cross Ext. Name',
+            'external_description' => 'Invoice Desc',
+        ][$field] ?? $field;
+    }
+
     protected static function applyFormula(float $baseValue, string $formula): ?float
     {
         $formula = trim($formula);
@@ -1022,34 +983,21 @@ class FlexibleProductImportAction
         return $letter;
     }
 
-    protected static function applyMapping(array $rows, array $mapping, int $headerRowNumber, array $fieldDefaults): array
-    {
-        return self::applyMappingWithRange($rows, $mapping, $headerRowNumber, $fieldDefaults);
-    }
-
-    protected static function applyMappingWithRange(array $rows, array $mapping, int $headerRowNumber, array $fieldDefaults, ?int $startRow = null, ?int $endRow = null): array
+    protected static function applyMappingWithRange(array $rows, array $colMapping, int $headerRowNumber, ?array $fieldDefaults = null, ?int $startRow = null, ?int $endRow = null): array
     {
         $rowOrigins = self::getCache('row_origins', []);
-
-        // Convert header row from filtered index to original Excel row number
         $headerOriginalRow = $rowOrigins[$headerRowNumber - 1] ?? $headerRowNumber;
-
         $items = [];
 
         for ($i = 0; $i < count($rows); $i++) {
             $originalRow = $rowOrigins[$i] ?? ($i + 1);
 
-            // Always skip the header row itself
             if ($originalRow === $headerOriginalRow) {
                 continue;
             }
-
-            // When no explicit range, skip rows before/at header
             if ($startRow === null && $originalRow <= $headerOriginalRow) {
                 continue;
             }
-
-            // Filter by row range when specified (uses original Excel row numbers)
             if ($startRow !== null && $originalRow < $startRow) {
                 continue;
             }
@@ -1061,16 +1009,14 @@ class FlexibleProductImportAction
             $item = [];
             $hasContent = false;
 
-            foreach ($fieldDefaults as $field => $default) {
-                $colIndex = $mapping[$field] ?? '';
+            // Iterate mapped fields (field => colIndex)
+            foreach ($colMapping as $field => $colIndex) {
                 if ($colIndex !== '' && isset($row[(int) $colIndex])) {
                     $value = trim($row[(int) $colIndex]);
-                    $item[$field] = $value !== '' ? $value : $default;
                     if ($value !== '') {
+                        $item[$field] = $value;
                         $hasContent = true;
                     }
-                } else {
-                    $item[$field] = $default;
                 }
             }
 
