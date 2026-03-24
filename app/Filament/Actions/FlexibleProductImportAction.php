@@ -294,9 +294,10 @@ class FlexibleProductImportAction
                     ->label('Map & Configure')
                     ->description('Assign fields to columns and define import blocks')
                     ->schema(function () use ($isClient) {
-                        $rows = self::getCachedRows();
+                        $rows = self::getCache('rows', []);
                         $headerData = $rows[0] ?? [];
-                        $displayCols = min(count($headerData), 15);
+                        $totalCols = count($headerData);
+                        $displayCols = min($totalCols, 15);
 
                         $rowOrigins = self::getCache('row_origins', []);
                         $lastRow = ! empty($rowOrigins) ? max($rowOrigins) : count($rows);
@@ -330,18 +331,25 @@ class FlexibleProductImportAction
                             ],
                         ];
 
-                        // Build column selects
+                        // Build column selects — always 15 to keep form structure stable
                         $colSelects = [];
-                        for ($c = 0; $c < $displayCols; $c++) {
+                        for ($c = 0; $c < 15; $c++) {
                             $letter = self::columnLetter($c);
                             $headerLabel = $headerData[$c] ?? '';
                             $label = "Col {$letter}" . ($headerLabel ? ": {$headerLabel}" : '');
 
-                            $colSelects[] = Select::make("col_map_{$c}")
-                                ->label(mb_substr($label, 0, 40))
+                            $select = Select::make("col_map_{$c}")
                                 ->options($fieldOptions)
                                 ->default('skip')
                                 ->native(false);
+
+                            if ($c < $displayCols) {
+                                $select->label(mb_substr($label, 0, 40));
+                            } else {
+                                $select->hidden();
+                            }
+
+                            $colSelects[] = $select;
                         }
 
                         return [
@@ -813,10 +821,7 @@ class FlexibleProductImportAction
 
     protected static function getCachedRows(): array
     {
-        $rows = self::getCache('rows', []);
-        \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: getCachedRows count=' . count($rows));
-
-        return $rows;
+        return self::getCache('rows', []);
     }
 
     protected static function getHeaderRow(array $rows, int $headerRowNumber): array
