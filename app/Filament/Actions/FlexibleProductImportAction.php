@@ -588,15 +588,6 @@ class FlexibleProductImportAction
                 $currencyCode = $data['currency_code'] ?? 'USD';
                 $customPriceFormula = $data['custom_price_formula'] ?? null;
 
-                \Illuminate\Support\Facades\Log::info('QUICK IMPORT: action executing', [
-                    'data_keys' => array_keys($data),
-                    'colMapping' => $colMapping,
-                    'headerRow' => $headerRow,
-                    'blocks' => $blocks,
-                    'totalRows' => count($rows),
-                    'sample_data' => array_slice($data, 0, 20, true),
-                ]);
-
                 if (empty($blocks)) {
                     Notification::make()->title('No import blocks defined')->warning()->send();
 
@@ -626,18 +617,7 @@ class FlexibleProductImportAction
                             $items = self::applyMappingWithRange($rows, $colMapping, $headerRow, null, $startRow, $endRow);
                             $totalItems += count($items);
 
-                            \Illuminate\Support\Facades\Log::info('QUICK IMPORT: block processing', [
-                                'category' => $category->name,
-                                'startRow' => $startRow,
-                                'endRow' => $endRow,
-                                'headerRow' => $headerRow,
-                                'colMapping' => $colMapping,
-                                'totalRows' => count($rows),
-                                'itemsFound' => count($items),
-                                'sampleRowOrigins' => array_slice(self::getCache('row_origins', []), 0, 5, true),
-                            ]);
-
-                            foreach ($items as $idx => $item) {
+                            foreach ($items as $item) {
                                 // Auto-generate name: Category + Model Number (same as product form)
                                 $productName = $item['product_name'] ?? '';
                                 if (empty($productName)) {
@@ -648,15 +628,8 @@ class FlexibleProductImportAction
                                 }
 
                                 if (empty(trim($productName))) {
-                                    \Illuminate\Support\Facades\Log::warning('QUICK IMPORT: skipping item - empty name', ['item' => $item]);
                                     continue;
                                 }
-
-                                \Illuminate\Support\Facades\Log::info('QUICK IMPORT: processing item', [
-                                    'idx' => $idx,
-                                    'productName' => $productName,
-                                    'item' => $item,
-                                ]);
 
                                 $sourceRow = $item['_source_row'] ?? null;
                                 $imagePath = $sourceRow ? ($images[$sourceRow] ?? null) : null;
