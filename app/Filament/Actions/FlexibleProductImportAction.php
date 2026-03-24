@@ -604,8 +604,20 @@ class FlexibleProductImportAction
 
                             $category = Category::findOrFail($categoryId);
                             $blockFamily = $block['product_family'] ?? null;
-                            $items = self::applyMappingWithRange($rows, $mapping['columns'] ?? [], $headerRow, null, $startRow, $endRow);
+                            $colMapping = $mapping['columns'] ?? [];
+                            $items = self::applyMappingWithRange($rows, $colMapping, $headerRow, null, $startRow, $endRow);
                             $totalItems += count($items);
+
+                            \Illuminate\Support\Facades\Log::info('QUICK IMPORT: block processing', [
+                                'category' => $category->name,
+                                'startRow' => $startRow,
+                                'endRow' => $endRow,
+                                'headerRow' => $headerRow,
+                                'colMapping' => $colMapping,
+                                'totalRows' => count($rows),
+                                'itemsFound' => count($items),
+                                'sampleRowOrigins' => array_slice(self::getCache('row_origins', []), 0, 5, true),
+                            ]);
 
                             foreach ($items as $item) {
                                 // Auto-generate name: Category + Model Number (same as product form)
