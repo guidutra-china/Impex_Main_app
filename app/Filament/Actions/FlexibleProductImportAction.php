@@ -1099,39 +1099,20 @@ class FlexibleProductImportAction
         }
         $tbody .= '</tbody>';
 
-        // Pagination controls
         $firstOriginal = $rowOrigins[0] ?? 1;
         $lastOriginal = $rowOrigins[$totalRows - 1] ?? $totalRows;
 
-        $html = <<<HTML
-<div id="{$uid}" class="space-y-2">
-    <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-        <table class="min-w-full text-xs">{$thead}{$tbody}</table>
-    </div>
-    <div class="flex items-center justify-between text-xs text-gray-500">
-        <span>{$totalRows} rows (Excel rows {$firstOriginal}–{$lastOriginal}), {$maxCols} columns</span>
-        <div class="flex items-center gap-2">
-            <button type="button" onclick="{$uid}_go(-1)" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" id="{$uid}_prev" disabled>← Prev</button>
-            <span id="{$uid}_info">Page 1 of {$totalPages}</span>
-            <button type="button" onclick="{$uid}_go(1)" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700" id="{$uid}_next">Next →</button>
-        </div>
-    </div>
-</div>
-<script>
-(function(){
-    let p=1, t={$totalPages};
-    window.{$uid}_go=function(d){
-        p=Math.max(1,Math.min(t,p+d));
-        document.querySelectorAll('#{$uid} tbody tr').forEach(r=>{
-            r.style.display=r.dataset.page==p?'':'none';
-        });
-        document.getElementById('{$uid}_info').textContent='Page '+p+' of '+t;
-        document.getElementById('{$uid}_prev').disabled=(p===1);
-        document.getElementById('{$uid}_next').disabled=(p===t);
-    };
-})();
-</script>
-HTML;
+        $html = '<div x-data="{ page: 1, total: ' . $totalPages . ' }" class="space-y-2">';
+        $html .= '<div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">';
+        $html .= '<table class="min-w-full text-xs">' . $thead . $tbody . '</table>';
+        $html .= '</div>';
+        $html .= '<div class="flex items-center justify-between text-xs text-gray-500">';
+        $html .= '<span>' . $totalRows . ' rows (Excel rows ' . $firstOriginal . '–' . $lastOriginal . '), ' . $maxCols . ' columns</span>';
+        $html .= '<div class="flex items-center gap-2">';
+        $html .= '<button type="button" x-on:click="page = Math.max(1, page - 1); $el.closest(\'[x-data]\').querySelectorAll(\'tbody tr\').forEach(r => r.style.display = r.dataset.page == page ? \'\' : \'none\')" x-bind:disabled="page === 1" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed">← Prev</button>';
+        $html .= '<span x-text="`Page ${page} of ${total}`">Page 1 of ' . $totalPages . '</span>';
+        $html .= '<button type="button" x-on:click="page = Math.min(total, page + 1); $el.closest(\'[x-data]\').querySelectorAll(\'tbody tr\').forEach(r => r.style.display = r.dataset.page == page ? \'\' : \'none\')" x-bind:disabled="page === total" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed">Next →</button>';
+        $html .= '</div></div></div>';
 
         return $html;
     }
