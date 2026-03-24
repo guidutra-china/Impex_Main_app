@@ -515,7 +515,7 @@ class FlexibleProductImportAction
                                 ->columnSpanFull(),
                         ];
                     })
-                    ->columns(2),
+                    ->columns(3),
                 Step::make('Confirm')
                     ->label('Preview & Confirm')
                     ->description('Review and finalize import')
