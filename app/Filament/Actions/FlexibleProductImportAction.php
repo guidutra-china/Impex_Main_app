@@ -644,9 +644,9 @@ class FlexibleProductImportAction
                                 } else {
                                     $existing = Product::create([
                                         'name' => $productName,
-                                        'commercial_name' => $item['commercial_name'] ?: null,
-                                        'product_family' => $blockFamily ?: ($item['product_family'] ?: null),
-                                        'model_number' => $item['model_number'] ?: null,
+                                        'commercial_name' => $item['commercial_name'] ?? null,
+                                        'product_family' => $blockFamily ?: ($item['product_family'] ?? null),
+                                        'model_number' => $item['model_number'] ?? null,
                                         'sku' => $sku,
                                         'reference_code' => ! empty($item['reference_code']) ? trim($item['reference_code']) : null,
                                         'category_id' => $category->id,
@@ -669,9 +669,9 @@ class FlexibleProductImportAction
 
                                 $pivotData = array_filter([
                                     'role' => $role,
-                                    'external_code' => $item['external_code'] ?: null,
-                                    'external_name' => $item['external_name'] ?: null,
-                                    'external_description' => $item['external_description'] ?: null,
+                                    'external_code' => $item['external_code'] ?? null,
+                                    'external_name' => $item['external_name'] ?? null,
+                                    'external_description' => $item['external_description'] ?? null,
                                     'unit_price' => $unitPrice !== null ? Money::toMinor($unitPrice) : null,
                                     'custom_price' => $customPrice !== null ? Money::toMinor($customPrice) : null,
                                     'currency_code' => $currencyCode,
@@ -695,8 +695,8 @@ class FlexibleProductImportAction
                                     $crossRole = $role === 'client' ? 'supplier' : 'client';
                                     $crossPivotData = array_filter([
                                         'role' => $crossRole,
-                                        'external_code' => $item['cross_external_code'] ?: null,
-                                        'external_name' => $item['cross_external_name'] ?: null,
+                                        'external_code' => $item['cross_external_code'] ?? null,
+                                        'external_name' => $item['cross_external_name'] ?? null,
                                         'unit_price' => ! empty($item['cross_unit_price']) ? Money::toMinor((float) $item['cross_unit_price']) : null,
                                         'currency_code' => $currencyCode,
                                     ], fn ($v) => $v !== null);
