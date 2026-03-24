@@ -101,6 +101,7 @@ class ListPayments extends ListRecords
 
                         return $payable->reference ?? '—';
                     })
+                    ->description(fn ($record) => $record->payable?->client_reference)
                     ->searchable(query: fn ($query, string $search) => $query->whereHasMorph(
                         'payable',
                         [ProformaInvoice::class, Shipment::class],
