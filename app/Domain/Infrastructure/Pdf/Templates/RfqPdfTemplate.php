@@ -62,6 +62,7 @@ class RfqPdfTemplate extends AbstractPdfTemplate
             return [
                 'index' => $index + 1,
                 'product_code' => $item->product?->sku ?? '—',
+                'model_number' => $item->product?->model_number ?? '',
                 'description' => $this->buildProductDescription($item),
                 'specifications' => $item->specifications ?? $item->product?->description ?? null,
                 'quantity' => $quantity,

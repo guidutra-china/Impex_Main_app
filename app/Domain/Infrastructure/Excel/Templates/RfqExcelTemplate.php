@@ -34,7 +34,7 @@ class RfqExcelTemplate extends AbstractExcelTemplate
 
     protected function getHeaders(): array
     {
-        $headers = ['#', 'SKU', 'Description', 'Specifications', 'Qty', 'Unit'];
+        $headers = ['#', 'SKU', 'Model', 'Description', 'Specifications', 'Qty', 'Unit'];
 
         $showTargetPrice = $this->options['show_target_price'] ?? false;
         if ($showTargetPrice) {
@@ -75,6 +75,7 @@ class RfqExcelTemplate extends AbstractExcelTemplate
             $row = [
                 $index + 1,
                 $product?->sku ?? '—',
+                $product?->model_number ?? '',
                 $description,
                 $item->specifications ?? $product?->description ?? '',
                 $item->quantity ?? 0,

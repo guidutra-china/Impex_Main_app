@@ -88,6 +88,7 @@
             <tr>
                 <th style="width: 30px;">{{ $labels['item'] }}</th>
                 <th style="width: 70px;">{{ $labels['product_code'] }}</th>
+                <th style="width: 80px;">{{ $labels['model_number'] ?? 'Model' }}</th>
                 <th>{{ $labels['description'] }}</th>
                 <th class="text-center" style="width: 55px;">{{ $labels['quantity'] }}</th>
                 <th class="text-center" style="width: 45px;">{{ $labels['unit'] }}</th>
@@ -103,6 +104,7 @@
                 <tr>
                     <td class="text-center">{{ $item['index'] }}</td>
                     <td>{{ $item['product_code'] }}</td>
+                    <td>{{ $item['model_number'] ?? '' }}</td>
                     <td>
                         {{ $item['description'] }}
                         @if($item['specifications'])
