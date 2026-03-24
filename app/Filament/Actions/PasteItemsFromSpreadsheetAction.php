@@ -26,26 +26,30 @@ class PasteItemsFromSpreadsheetAction
      */
     protected static function readSpreadsheet(string $path): array
     {
+        ini_set('memory_limit', '512M');
+
         $spreadsheet = IOFactory::load($path);
         $worksheet = $spreadsheet->getActiveSheet();
 
+        $rawData = $worksheet->toArray(null, true, false, false);
+
+        // Free memory immediately
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet, $worksheet);
+
         $rows = [];
-        foreach ($worksheet->getRowIterator() as $row) {
-            $cellIterator = $row->getCellIterator();
-            $cellIterator->setIterateOnlyExistingCells(false);
+        $maxRows = min(count($rawData), 5000);
+        for ($r = 0; $r < $maxRows; $r++) {
+            $values = array_map(fn ($v) => trim((string) ($v ?? '')), $rawData[$r]);
 
-            $values = [];
-            foreach ($cellIterator as $cell) {
-                $values[] = trim((string) $cell->getValue());
-            }
-
-            // Skip completely empty rows
             if (implode('', $values) === '') {
                 continue;
             }
 
             $rows[] = $values;
         }
+
+        unset($rawData);
 
         return $rows;
     }
@@ -429,12 +433,36 @@ class PasteItemsFromSpreadsheetAction
 
     protected static string $sessionKey = '_spreadsheet_import_rows';
 
+    protected static function tempPath(): string
+    {
+        return storage_path('app/private/spreadsheet-import-' . session()->getId() . '.json');
+    }
+
+    protected static function putCache(array $data): void
+    {
+        $dir = dirname(self::tempPath());
+        if (! is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        file_put_contents(self::tempPath(), json_encode($data, JSON_UNESCAPED_UNICODE));
+    }
+
+    protected static function forgetCache(): void
+    {
+        @unlink(self::tempPath());
+    }
+
     /**
-     * Read rows from session cache.
+     * Read rows from file cache.
      */
     protected static function getCachedRows(): array
     {
-        return session()->get(self::$sessionKey, []);
+        $path = self::tempPath();
+        if (! file_exists($path)) {
+            return [];
+        }
+
+        return json_decode(file_get_contents($path), true) ?? [];
     }
 
     /**
@@ -563,7 +591,7 @@ class PasteItemsFromSpreadsheetAction
                             return;
                         }
 
-                        session()->put(self::$sessionKey, $rows);
+                        self::putCache($rows);
                         \Illuminate\Support\Facades\Log::info('SPREADSHEET IMPORT: cached ' . count($rows) . ' rows in session');
 
                         // Auto-detect header row: scan first rows for one that looks like headers
@@ -722,7 +750,7 @@ class PasteItemsFromSpreadsheetAction
                 }
 
                 // Clean up
-                session()->forget(self::$sessionKey);
+                self::forgetCache();
                 $path = self::resolveUploadPath($data['spreadsheet'] ?? null);
                 if ($path) {
                     @unlink($path);
