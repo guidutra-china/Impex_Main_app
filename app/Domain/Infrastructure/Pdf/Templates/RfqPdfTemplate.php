@@ -53,8 +53,9 @@ class RfqPdfTemplate extends AbstractPdfTemplate
         ]);
 
         $currencyCode = $sq->currency_code ?? 'USD';
+        $showTargetPrice = $this->options['show_target_price'] ?? false;
 
-        $items = $sq->items->map(function ($item, $index) use ($currencyCode) {
+        $items = $sq->items->map(function ($item, $index) use ($currencyCode, $showTargetPrice) {
             $targetPrice = $item->inquiryItem?->target_price ?? 0;
             $quantity = $item->quantity ?? 0;
 
@@ -65,16 +66,18 @@ class RfqPdfTemplate extends AbstractPdfTemplate
                 'specifications' => $item->specifications ?? $item->product?->description ?? null,
                 'quantity' => $quantity,
                 'unit' => $item->unit ?? $item->product?->unit ?? 'pcs',
-                'target_price' => $targetPrice > 0 ? $this->formatMoney($targetPrice, $currencyCode) : null,
-                'target_total' => $targetPrice > 0 ? $this->formatMoney($targetPrice * $quantity, $currencyCode) : null,
+                'target_price' => $showTargetPrice && $targetPrice > 0 ? $this->formatMoney($targetPrice, $currencyCode) : null,
+                'target_total' => $showTargetPrice && $targetPrice > 0 ? $this->formatMoney($targetPrice * $quantity, $currencyCode) : null,
                 'notes' => $item->notes,
             ];
         });
 
-        $totalTargetValue = $sq->items->sum(function ($item) {
-            $targetPrice = $item->inquiryItem?->target_price ?? 0;
-            return $targetPrice * ($item->quantity ?? 0);
-        });
+        $totalTargetValue = $showTargetPrice
+            ? $sq->items->sum(function ($item) {
+                $targetPrice = $item->inquiryItem?->target_price ?? 0;
+                return $targetPrice * ($item->quantity ?? 0);
+            })
+            : 0;
 
         $instructions = $sq->rfq_instructions
             ?? $this->companySettings->rfq_default_instructions

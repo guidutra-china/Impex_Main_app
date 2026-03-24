@@ -7,6 +7,7 @@ use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Actions\SendDocumentByEmailAction;
 use App\Filament\Resources\SupplierQuotations\SupplierQuotationResource;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewSupplierQuotation extends ViewRecord
@@ -20,6 +21,12 @@ class ViewSupplierQuotation extends ViewRecord
                 templateClass: RfqPdfTemplate::class,
                 label: 'Generate RFQ',
                 icon: 'heroicon-o-document-arrow-down',
+                formSchema: [
+                    Toggle::make('show_target_price')
+                        ->label('Include Target Price')
+                        ->helperText('Show the client\'s target price in the RFQ document')
+                        ->default(false),
+                ],
             ),
             GeneratePdfAction::download(
                 documentType: 'rfq_pdf',
@@ -28,6 +35,12 @@ class ViewSupplierQuotation extends ViewRecord
             GeneratePdfAction::preview(
                 templateClass: RfqPdfTemplate::class,
                 label: 'Preview RFQ',
+                formSchema: [
+                    Toggle::make('show_target_price')
+                        ->label('Include Target Price')
+                        ->helperText('Show the client\'s target price in the RFQ document')
+                        ->default(false),
+                ],
             ),
             SendDocumentByEmailAction::make(
                 documentType: 'rfq_pdf',

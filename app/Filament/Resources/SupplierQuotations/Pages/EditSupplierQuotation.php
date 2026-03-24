@@ -6,7 +6,9 @@ use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Infrastructure\Pdf\Templates\RfqPdfTemplate;
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
 use App\Filament\Actions\GeneratePdfAction;
+use App\Filament\Actions\SendDocumentByEmailAction;
 use App\Filament\Resources\SupplierQuotations\SupplierQuotationResource;
+use Filament\Forms\Components\Toggle;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
@@ -75,6 +77,12 @@ class EditSupplierQuotation extends EditRecord
                 templateClass: RfqPdfTemplate::class,
                 label: 'Generate RFQ',
                 icon: 'heroicon-o-document-arrow-down',
+                formSchema: [
+                    Toggle::make('show_target_price')
+                        ->label('Include Target Price')
+                        ->helperText('Show the client\'s target price in the RFQ document')
+                        ->default(false),
+                ],
             ),
             GeneratePdfAction::download(
                 documentType: 'rfq_pdf',
@@ -83,6 +91,16 @@ class EditSupplierQuotation extends EditRecord
             GeneratePdfAction::preview(
                 templateClass: RfqPdfTemplate::class,
                 label: 'Preview RFQ',
+                formSchema: [
+                    Toggle::make('show_target_price')
+                        ->label('Include Target Price')
+                        ->helperText('Show the client\'s target price in the RFQ document')
+                        ->default(false),
+                ],
+            ),
+            SendDocumentByEmailAction::make(
+                documentType: 'rfq_pdf',
+                label: 'Send RFQ by Email',
             ),
 
             DeleteAction::make(),
