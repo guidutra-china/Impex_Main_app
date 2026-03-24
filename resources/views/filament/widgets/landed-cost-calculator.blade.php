@@ -140,6 +140,30 @@
             </div>
         @endif
 
+        {{-- Freight Profit --}}
+        @if ($costs['has_freight_margin'])
+            <div class="mt-4 rounded-lg border border-success-200 bg-success-50 p-3 dark:border-success-500/20 dark:bg-success-500/5">
+                <div class="flex items-center gap-2 mb-2">
+                    <x-filament::icon icon="heroicon-o-globe-alt" class="h-4 w-4 text-success-500" />
+                    <span class="text-xs font-semibold uppercase tracking-wider text-success-600 dark:text-success-400">{{ __('widgets.landed_cost.freight_margin') }}</span>
+                </div>
+                <div class="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('widgets.landed_cost.charged_to_client') }}</p>
+                        <p class="font-semibold text-gray-900 dark:text-white">{{ $currency }} {{ $costs['freight_client_charge_formatted'] }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('widgets.landed_cost.paid_to_forwarder') }}</p>
+                        <p class="font-semibold text-gray-900 dark:text-white">{{ $currency }} {{ $costs['freight_actual_cost_formatted'] }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('widgets.landed_cost.freight_profit') }}</p>
+                        <p class="font-bold text-success-600 dark:text-success-400">{{ $currency }} {{ $costs['freight_profit_formatted'] }}</p>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         {{-- Billable To Summary --}}
         @if ($costs['by_billable']['client_raw'] > 0 || $costs['by_billable']['supplier_raw'] > 0 || $costs['by_billable']['company_raw'] > 0)
             <div class="mt-4 flex flex-wrap gap-3">
@@ -250,7 +274,8 @@
                                 <th class="pb-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">Type</th>
                                 <th class="pb-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">Description</th>
                                 <th class="pb-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">Supplier</th>
-                                <th class="pb-2 text-right text-xs font-semibold text-gray-500 dark:text-gray-400">Amount</th>
+                                <th class="pb-2 text-right text-xs font-semibold text-gray-500 dark:text-gray-400">{{ __('widgets.landed_cost.client_amount') }}</th>
+                                <th class="pb-2 text-right text-xs font-semibold text-gray-500 dark:text-gray-400">{{ __('widgets.landed_cost.actual_cost') }}</th>
                                 <th class="pb-2 text-center text-xs font-semibold text-gray-500 dark:text-gray-400">Billable To</th>
                                 <th class="pb-2 text-center text-xs font-semibold text-gray-500 dark:text-gray-400">Status</th>
                             </tr>
@@ -263,6 +288,11 @@
                                     </td>
                                     <td class="py-2 pr-3 text-gray-700 dark:text-gray-300">
                                         {{ $detail['description'] ?? '—' }}
+                                        @if ($detail['forwarder'])
+                                            <p class="text-xs text-gray-400 dark:text-gray-500">
+                                                Forwarder: {{ $detail['forwarder'] }}
+                                            </p>
+                                        @endif
                                     </td>
                                     <td class="py-2 pr-3 text-gray-700 dark:text-gray-300">
                                         {{ $detail['supplier'] ?? '—' }}
@@ -275,6 +305,15 @@
                                             <p class="text-xs text-gray-400 dark:text-gray-500">
                                                 {{ $detail['original_currency'] }} {{ $detail['original_amount'] }}
                                             </p>
+                                        @endif
+                                    </td>
+                                    <td class="py-2 text-right">
+                                        @if ($detail['is_freight_with_forwarder'])
+                                            <p class="font-medium text-gray-900 dark:text-white">
+                                                {{ $currency }} {{ $detail['forwarder_amount'] }}
+                                            </p>
+                                        @else
+                                            <p class="text-gray-400 dark:text-gray-500">—</p>
                                         @endif
                                     </td>
                                     <td class="py-2 text-center">

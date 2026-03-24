@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Shipments\Schemas;
 
+use App\Domain\CRM\Enums\CompanyRole;
+use App\Domain\CRM\Models\Company;
 use App\Domain\Settings\Models\ContainerType;
 use App\Domain\Settings\Models\Currency;
 use App\Domain\Logistics\Enums\ImportModality;
@@ -30,6 +32,9 @@ class ShipmentForm
                         ->searchable()
                         ->preload()
                         ->required(),
+                    TextInput::make('client_reference')
+                        ->label(__('forms.labels.client_reference'))
+                        ->maxLength(255),
                     Select::make('status')
                         ->options(ShipmentStatus::class)
                         ->default(ShipmentStatus::DRAFT->value)
@@ -98,8 +103,16 @@ class ShipmentForm
                 ->schema([
                     TextInput::make('carrier')
                         ->maxLength(255),
-                    TextInput::make('freight_forwarder')
-                        ->maxLength(255),
+                    Select::make('forwarder_company_id')
+                        ->label(__('forms.labels.freight_forwarder'))
+                        ->options(
+                            fn () => Company::withRole(CompanyRole::FORWARDER)
+                                ->active()
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                        )
+                        ->searchable()
+                        ->placeholder('—'),
                     TextInput::make('booking_number')
                         ->maxLength(255),
                 ])

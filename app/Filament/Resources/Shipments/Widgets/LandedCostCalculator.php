@@ -41,7 +41,7 @@ class LandedCostCalculator extends Widget
         $items = $this->buildItemBreakdown($shipment, $shipmentCurrency);
         $costs = $this->buildCostBreakdown($shipment, $shipmentCurrency, $baseCurrencyId);
         $summary = $this->buildSummary($items, $costs, $shipment);
-        $margin = $this->buildMarginAnalysis($items, $summary);
+        $margin = $this->buildMarginAnalysis($items, $summary, $costs);
 
         return [
             'currency' => $shipmentCurrency,
@@ -121,33 +121,57 @@ class LandedCostCalculator extends Widget
 
         $costDetails = [];
         $totalAdditionalCosts = 0;
+        $totalFreightClientCharge = 0;
+        $totalFreightActualCost = 0;
 
         foreach ($shipment->additionalCosts as $cost) {
-            $amountInShipmentCurrency = $cost->amount_in_document_currency ?? $cost->amount;
+            $clientAmount = $cost->amount_in_document_currency ?? $cost->amount;
 
-            $costDetails[] = [
+            // For freight with forwarder amount, the actual cost is what we pay the forwarder
+            $isFreightWithForwarder = $cost->cost_type === AdditionalCostType::FREIGHT
+                && $cost->forwarder_amount_in_document_currency;
+
+            $actualCost = $isFreightWithForwarder
+                ? $cost->forwarder_amount_in_document_currency
+                : $clientAmount;
+
+            $detail = [
                 'type' => $cost->cost_type->getLabel(),
                 'type_value' => $cost->cost_type->value,
                 'description' => $cost->description,
                 'supplier' => $cost->supplierCompany?->name,
+                'forwarder' => $cost->forwarderCompany?->name,
                 'original_amount' => Money::format($cost->amount),
                 'original_currency' => $cost->currency_code,
-                'converted_amount' => Money::format($amountInShipmentCurrency),
+                'converted_amount' => Money::format($clientAmount),
                 'billable_to' => $cost->billable_to->getLabel(),
                 'billable_to_color' => $cost->billable_to->getColor(),
                 'status' => $cost->status->getLabel(),
                 'status_color' => $cost->status->getColor(),
+                'is_freight_with_forwarder' => $isFreightWithForwarder,
+                'forwarder_amount' => $isFreightWithForwarder ? Money::format($cost->forwarder_amount_in_document_currency) : null,
+                'actual_cost' => Money::format($actualCost),
             ];
 
-            $totalAdditionalCosts += $amountInShipmentCurrency;
+            $costDetails[] = $detail;
+
+            // Landed cost uses actual cost (forwarder amount for freight, or full amount otherwise)
+            $totalAdditionalCosts += $actualCost;
+
+            if ($isFreightWithForwarder) {
+                $totalFreightClientCharge += $clientAmount;
+                $totalFreightActualCost += $cost->forwarder_amount_in_document_currency;
+            }
 
             foreach ($costGroups as $key => &$group) {
                 if (in_array($cost->cost_type, $group['types'])) {
-                    $group['total'] += $amountInShipmentCurrency;
+                    $group['total'] += $actualCost;
                     break;
                 }
             }
         }
+
+        $freightProfit = $totalFreightClientCharge - $totalFreightActualCost;
 
         $byBillable = [
             'client' => $shipment->additionalCosts->where('billable_to', BillableTo::CLIENT)->sum('amount_in_document_currency'),
@@ -174,6 +198,13 @@ class LandedCostCalculator extends Widget
             'groups' => $groupSummary,
             'total' => $totalAdditionalCosts,
             'total_formatted' => Money::format($totalAdditionalCosts),
+            'freight_profit' => $freightProfit,
+            'freight_profit_formatted' => Money::format(abs($freightProfit)),
+            'freight_client_charge' => $totalFreightClientCharge,
+            'freight_client_charge_formatted' => Money::format($totalFreightClientCharge),
+            'freight_actual_cost' => $totalFreightActualCost,
+            'freight_actual_cost_formatted' => Money::format($totalFreightActualCost),
+            'has_freight_margin' => $freightProfit != 0,
             'by_billable' => [
                 'client' => Money::format($byBillable['client']),
                 'client_raw' => $byBillable['client'],
@@ -217,11 +248,14 @@ class LandedCostCalculator extends Widget
         ];
     }
 
-    private function buildMarginAnalysis(array $items, array $summary): array
+    private function buildMarginAnalysis(array $items, array $summary, array $costs): array
     {
         $sellingValue = $items['total_selling_value'];
         $landedCost = $summary['total_landed_cost'];
-        $grossProfit = $sellingValue - $landedCost;
+        $freightProfit = $costs['freight_profit'] ?? 0;
+
+        // Gross profit includes freight margin (charge client more than we pay forwarder)
+        $grossProfit = $sellingValue - $landedCost + $freightProfit;
 
         $marginOnCost = $landedCost > 0 ? round(($grossProfit / $landedCost) * 100, 2) : 0;
         $marginOnSale = $sellingValue > 0 ? round(($grossProfit / $sellingValue) * 100, 2) : 0;
@@ -241,6 +275,8 @@ class LandedCostCalculator extends Widget
             'margin_on_sale' => $marginOnSale,
             'fob_margin' => $fobMargin,
             'margin_erosion' => $fobMargin - $marginOnCost,
+            'freight_profit' => $freightProfit,
+            'freight_profit_formatted' => Money::format(abs($freightProfit)),
         ];
     }
 }

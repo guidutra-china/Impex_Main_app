@@ -63,6 +63,12 @@ return [
         'packaging' => 'Embalagem',
         'other_costs' => 'Outros Custos',
         'gross_profit' => 'Lucro Bruto',
+        'freight_margin' => 'Margem do Frete',
+        'charged_to_client' => 'Cobrado do Cliente',
+        'paid_to_forwarder' => 'Pago ao Forwarder',
+        'freight_profit' => 'Lucro no Frete',
+        'client_amount' => 'Valor Cliente',
+        'actual_cost' => 'Custo Real',
     ],
     'product_summary' => [
         'suppliers' => 'Fornecedores',

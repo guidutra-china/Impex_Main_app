@@ -63,6 +63,12 @@ return [
         'packaging' => 'Packaging',
         'other_costs' => 'Other Costs',
         'gross_profit' => 'Gross Profit',
+        'freight_margin' => 'Freight Margin',
+        'charged_to_client' => 'Charged to Client',
+        'paid_to_forwarder' => 'Paid to Forwarder',
+        'freight_profit' => 'Freight Profit',
+        'client_amount' => 'Client Amount',
+        'actual_cost' => 'Actual Cost',
     ],
     'product_summary' => [
         'suppliers' => 'Suppliers',

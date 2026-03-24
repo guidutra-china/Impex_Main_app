@@ -2,6 +2,8 @@
 
 namespace App\Filament\RelationManagers;
 
+use App\Domain\CRM\Enums\CompanyRole;
+use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
@@ -71,6 +73,15 @@ class AdditionalCostsRelationManager extends RelationManager
                 TextColumn::make('billable_to')
                     ->label(__('forms.labels.billable_to'))
                     ->badge(),
+                TextColumn::make('forwarderCompany.name')
+                    ->label(__('forms.labels.freight_forwarder'))
+                    ->placeholder('—')
+                    ->visible(fn () => $this->getOwnerRecord() instanceof Shipment),
+                TextColumn::make('forwarder_amount_in_document_currency')
+                    ->label(__('forms.labels.forwarder_amount'))
+                    ->formatStateUsing(fn ($state) => $state ? Money::format($state) : '—')
+                    ->alignEnd()
+                    ->visible(fn () => $this->getOwnerRecord() instanceof Shipment),
                 TextColumn::make('supplierCompany.name')
                     ->label(__('forms.labels.supplier'))
                     ->placeholder('—')
@@ -143,6 +154,10 @@ class AdditionalCostsRelationManager extends RelationManager
                 'exchange_rate' => $record->exchange_rate,
                 'billable_to' => $record->billable_to->value,
                 'supplier_company_id' => $record->supplier_company_id,
+                'forwarder_company_id' => $record->forwarder_company_id,
+                'forwarder_amount' => $record->forwarder_amount ? Money::toMajor($record->forwarder_amount) : null,
+                'forwarder_currency_code' => $record->forwarder_currency_code,
+                'forwarder_exchange_rate' => $record->forwarder_exchange_rate,
                 'cost_date' => $record->cost_date,
                 'notes' => $record->notes,
                 'attachment_path' => $record->attachment_path,
@@ -166,22 +181,21 @@ class AdditionalCostsRelationManager extends RelationManager
             ->icon('heroicon-o-arrow-uturn-right')
             ->color('warning')
             ->requiresConfirmation()
-            ->modalDescription('This will waive the cost and its linked schedule item. The amount will no longer be collectible/deductible.')
+            ->modalDescription('This will waive the cost and its linked schedule items. The amounts will no longer be collectible/deductible.')
             ->visible(fn ($record) => in_array($record->status, [AdditionalCostStatus::PENDING, AdditionalCostStatus::INVOICED]) && auth()->user()?->can('approve-payments'))
             ->action(function ($record) {
                 $record->update(['status' => AdditionalCostStatus::WAIVED]);
 
-                $scheduleItem = PaymentScheduleItem::where('source_type', AdditionalCost::class)
+                PaymentScheduleItem::where('source_type', AdditionalCost::class)
                     ->where('source_id', $record->id)
-                    ->first();
-
-                if ($scheduleItem) {
-                    $scheduleItem->update([
-                        'status' => PaymentScheduleStatus::WAIVED,
-                        'waived_by' => auth()->id(),
-                        'waived_at' => now(),
-                    ]);
-                }
+                    ->get()
+                    ->each(function ($scheduleItem) {
+                        $scheduleItem->update([
+                            'status' => PaymentScheduleStatus::WAIVED,
+                            'waived_by' => auth()->id(),
+                            'waived_at' => now(),
+                        ]);
+                    });
 
                 Notification::make()->title('Cost waived')->success()->send();
             });
@@ -194,7 +208,7 @@ class AdditionalCostsRelationManager extends RelationManager
             ->icon('heroicon-o-trash')
             ->color('danger')
             ->requiresConfirmation()
-            ->modalDescription('This will delete the cost and its linked schedule item.')
+            ->modalDescription('This will delete the cost and its linked schedule items.')
             ->visible(fn ($record) => $record->status === AdditionalCostStatus::PENDING && auth()->user()?->can('create-payments'))
             ->action(function ($record) {
                 PaymentScheduleItem::where('source_type', AdditionalCost::class)
@@ -210,13 +224,25 @@ class AdditionalCostsRelationManager extends RelationManager
 
     protected function costFormSchema(): array
     {
+        $isFreight = function ($get): bool {
+            $val = $get('cost_type');
+
+            if ($val instanceof AdditionalCostType) {
+                return $val === AdditionalCostType::FREIGHT;
+            }
+
+            return $val === AdditionalCostType::FREIGHT->value
+                || $val === 'freight';
+        };
+
         return [
             Section::make(__('forms.sections.cost_details'))->columns(2)->schema([
                 Select::make('cost_type')
                     ->label(__('forms.labels.cost_type'))
                     ->options(AdditionalCostType::class)
                     ->required()
-                    ->searchable(),
+                    ->searchable()
+                    ->live(),
                 TextInput::make('description')
                     ->label(__('forms.labels.description'))
                     ->required()
@@ -227,7 +253,8 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->numeric()
                     ->step('0.01')
                     ->minValue(0.01)
-                    ->required(),
+                    ->required()
+                    ->helperText(fn ($get) => $isFreight($get) ? __('forms.helpers.amount_charged_to_client') : null),
                 Select::make('currency_code')
                     ->label(__('forms.labels.currency'))
                     ->options(fn () => Currency::pluck('code', 'code'))
@@ -265,6 +292,39 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                     ->maxSize(5120)
                     ->columnSpanFull(),
+                Select::make('forwarder_company_id')
+                    ->label(__('forms.labels.freight_forwarder'))
+                    ->options(
+                        fn () => Company::withRole(CompanyRole::FORWARDER)
+                            ->active()
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                    )
+                    ->searchable()
+                    ->placeholder('—')
+                    ->default(fn () => $this->getOwnerRecord() instanceof Shipment
+                        ? $this->getOwnerRecord()->forwarder_company_id
+                        : null)
+                    ->hidden(fn ($get) => ! $isFreight($get)),
+                TextInput::make('forwarder_amount')
+                    ->label(__('forms.labels.forwarder_amount'))
+                    ->numeric()
+                    ->step('0.01')
+                    ->minValue(0.01)
+                    ->helperText(__('forms.helpers.amount_paid_to_forwarder'))
+                    ->hidden(fn ($get) => ! $isFreight($get)),
+                Select::make('forwarder_currency_code')
+                    ->label(__('forms.labels.forwarder_currency'))
+                    ->options(fn () => Currency::pluck('code', 'code'))
+                    ->default(fn () => $this->getOwnerRecord()->currency_code)
+                    ->live()
+                    ->hidden(fn ($get) => ! $isFreight($get)),
+                TextInput::make('forwarder_exchange_rate')
+                    ->label(__('forms.labels.exchange_rate'))
+                    ->numeric()
+                    ->step('0.00000001')
+                    ->helperText(__('forms.helpers.rate_to_convert_to_document_currency_leave_empty_if_same'))
+                    ->hidden(fn ($get) => ! $isFreight($get) || ! $get('forwarder_currency_code') || $get('forwarder_currency_code') === $this->getOwnerRecord()->currency_code),
             ]),
         ];
     }
@@ -285,20 +345,9 @@ class AdditionalCostsRelationManager extends RelationManager
             if ($exchangeRate) {
                 $amountInDocCurrency = (int) round($amountMinor * (float) $exchangeRate);
             } else {
-                $costCurrency = Currency::where('code', $costCurrencyCode)->first();
-                $documentCurrency = Currency::where('code', $documentCurrencyCode)->first();
-
-                if ($costCurrency && $documentCurrency) {
-                    $converted = ExchangeRate::convert(
-                        $costCurrency->id,
-                        $documentCurrency->id,
-                        Money::toMajor($amountMinor)
-                    );
-
-                    if ($converted !== null) {
-                        $amountInDocCurrency = Money::toMinor($converted);
-                        $exchangeRate = $amountInDocCurrency / max($amountMinor, 1);
-                    }
+                $amountInDocCurrency = $this->convertCurrency($costCurrencyCode, $documentCurrencyCode, $amountMinor);
+                if ($amountInDocCurrency !== $amountMinor) {
+                    $exchangeRate = $amountInDocCurrency / max($amountMinor, 1);
                 }
             }
         }
@@ -317,6 +366,44 @@ class AdditionalCostsRelationManager extends RelationManager
             'attachment_path' => $data['attachment_path'] ?? null,
         ];
 
+        // Forwarder fields (only for FREIGHT type)
+        $costTypeVal = $data['cost_type'] ?? null;
+        $isFreight = $costTypeVal === AdditionalCostType::FREIGHT->value
+            || $costTypeVal === AdditionalCostType::FREIGHT
+            || $costTypeVal === 'freight';
+
+        if ($isFreight && ! empty($data['forwarder_amount'])) {
+            $forwarderAmountMinor = Money::toMinor((float) $data['forwarder_amount']);
+            $forwarderCurrency = $data['forwarder_currency_code'] ?? $documentCurrencyCode;
+            $forwarderExchangeRate = null;
+            $forwarderAmountInDoc = $forwarderAmountMinor;
+
+            if ($forwarderCurrency !== $documentCurrencyCode) {
+                $forwarderExchangeRate = $data['forwarder_exchange_rate'] ?? null;
+
+                if ($forwarderExchangeRate) {
+                    $forwarderAmountInDoc = (int) round($forwarderAmountMinor * (float) $forwarderExchangeRate);
+                } else {
+                    $forwarderAmountInDoc = $this->convertCurrency($forwarderCurrency, $documentCurrencyCode, $forwarderAmountMinor);
+                    if ($forwarderAmountInDoc !== $forwarderAmountMinor) {
+                        $forwarderExchangeRate = $forwarderAmountInDoc / max($forwarderAmountMinor, 1);
+                    }
+                }
+            }
+
+            $payload['forwarder_company_id'] = $data['forwarder_company_id'] ?? null;
+            $payload['forwarder_amount'] = $forwarderAmountMinor;
+            $payload['forwarder_currency_code'] = $forwarderCurrency;
+            $payload['forwarder_exchange_rate'] = $forwarderExchangeRate;
+            $payload['forwarder_amount_in_document_currency'] = $forwarderAmountInDoc;
+        } else {
+            $payload['forwarder_company_id'] = null;
+            $payload['forwarder_amount'] = null;
+            $payload['forwarder_currency_code'] = null;
+            $payload['forwarder_exchange_rate'] = null;
+            $payload['forwarder_amount_in_document_currency'] = null;
+        }
+
         if ($record) {
             $record->update($payload);
             return $record->fresh();
@@ -324,6 +411,26 @@ class AdditionalCostsRelationManager extends RelationManager
 
         $payload['status'] = AdditionalCostStatus::PENDING->value;
         return $owner->additionalCosts()->create($payload);
+    }
+
+    protected function convertCurrency(string $fromCode, string $toCode, int $amountMinor): int
+    {
+        $fromCurrency = Currency::where('code', $fromCode)->first();
+        $toCurrency = Currency::where('code', $toCode)->first();
+
+        if ($fromCurrency && $toCurrency) {
+            $converted = ExchangeRate::convert(
+                $fromCurrency->id,
+                $toCurrency->id,
+                Money::toMajor($amountMinor)
+            );
+
+            if ($converted !== null) {
+                return Money::toMinor($converted);
+            }
+        }
+
+        return $amountMinor;
     }
 
     protected function syncScheduleItem(AdditionalCost $cost): void
@@ -346,9 +453,6 @@ class AdditionalCostsRelationManager extends RelationManager
         }
 
         $isCredit = $billableTo === BillableTo::SUPPLIER;
-        $maxSortOrder = PaymentScheduleItem::where('payable_type', get_class($payable))
-            ->where('payable_id', $payable->getKey())
-            ->max('sort_order') ?? 0;
 
         $costTypeLabel = $cost->cost_type instanceof AdditionalCostType
             ? $cost->cost_type->getLabel()
@@ -358,25 +462,46 @@ class AdditionalCostsRelationManager extends RelationManager
             ? "Credit: {$cost->description}"
             : "{$costTypeLabel}: {$cost->description}";
 
-        $scheduleData = [
-            'payable_type' => get_class($payable),
-            'payable_id' => $payable->getKey(),
+        // --- Client receivable schedule item (existing logic) ---
+        $this->upsertScheduleItem($cost, $payable, [
             'label' => mb_substr($label, 0, 100),
-            'percentage' => 0,
             'amount' => $cost->amount_in_document_currency,
-            'currency_code' => $payable->currency_code ?? $cost->currency_code ?? 'USD',
-            'status' => PaymentScheduleStatus::DUE->value,
-            'is_blocking' => false,
             'is_credit' => $isCredit,
-            'source_type' => AdditionalCost::class,
-            'source_id' => $cost->id,
-            'sort_order' => $maxSortOrder + 1,
             'notes' => $cost->notes,
-        ];
+        ], 'client');
+
+        // --- Forwarder payable schedule item (new) ---
+        $this->syncForwarderScheduleItem($cost, $owner);
+    }
+
+    protected function upsertScheduleItem(AdditionalCost $cost, $payable, array $data, string $tag): void
+    {
+        $sourceTag = $tag === 'client' ? null : $tag;
 
         $existing = PaymentScheduleItem::where('source_type', AdditionalCost::class)
             ->where('source_id', $cost->id)
+            ->where('notes', $sourceTag === 'forwarder' ? 'LIKE' : 'NOT LIKE', '%[forwarder-payable]%')
             ->first();
+
+        $maxSortOrder = PaymentScheduleItem::where('payable_type', get_class($payable))
+            ->where('payable_id', $payable->getKey())
+            ->max('sort_order') ?? 0;
+
+        $scheduleData = [
+            'payable_type' => get_class($payable),
+            'payable_id' => $payable->getKey(),
+            'label' => $data['label'],
+            'percentage' => 0,
+            'amount' => $data['amount'],
+            'currency_code' => $payable->currency_code ?? $cost->currency_code ?? 'USD',
+            'status' => PaymentScheduleStatus::DUE->value,
+            'is_blocking' => false,
+            'is_credit' => $data['is_credit'],
+            'source_type' => AdditionalCost::class,
+            'source_id' => $cost->id,
+            'sort_order' => $maxSortOrder + 1,
+            'notes' => $data['notes'],
+        ];
 
         if ($existing) {
             if ($existing->allocations()->exists()) {
@@ -384,6 +509,67 @@ class AdditionalCostsRelationManager extends RelationManager
                     'label' => $scheduleData['label'],
                     'amount' => $scheduleData['amount'],
                     'is_credit' => $scheduleData['is_credit'],
+                    'notes' => $scheduleData['notes'],
+                ]);
+            } else {
+                $existing->update($scheduleData);
+            }
+        } else {
+            PaymentScheduleItem::create($scheduleData);
+        }
+    }
+
+    protected function syncForwarderScheduleItem(AdditionalCost $cost, $owner): void
+    {
+        $forwarderTag = '[forwarder-payable]';
+
+        $existing = PaymentScheduleItem::where('source_type', AdditionalCost::class)
+            ->where('source_id', $cost->id)
+            ->where('notes', 'LIKE', "%{$forwarderTag}%")
+            ->first();
+
+        // If no forwarder amount, remove any existing forwarder schedule item
+        if (! $cost->forwarder_amount || ! $cost->forwarder_company_id) {
+            if ($existing && ! $existing->allocations()->exists()) {
+                $existing->delete();
+            }
+            return;
+        }
+
+        $payable = $owner instanceof Shipment ? $owner : $owner;
+
+        $costTypeLabel = $cost->cost_type instanceof AdditionalCostType
+            ? $cost->cost_type->getLabel()
+            : $cost->cost_type;
+
+        $forwarderName = $cost->forwarderCompany?->name ?? 'Forwarder';
+        $label = mb_substr("{$costTypeLabel} payable: {$forwarderName} - {$cost->description}", 0, 100);
+
+        $maxSortOrder = PaymentScheduleItem::where('payable_type', get_class($payable))
+            ->where('payable_id', $payable->getKey())
+            ->max('sort_order') ?? 0;
+
+        $scheduleData = [
+            'payable_type' => get_class($payable),
+            'payable_id' => $payable->getKey(),
+            'label' => $label,
+            'percentage' => 0,
+            'amount' => $cost->forwarder_amount_in_document_currency,
+            'currency_code' => $payable->currency_code ?? $cost->forwarder_currency_code ?? 'USD',
+            'status' => PaymentScheduleStatus::DUE->value,
+            'is_blocking' => false,
+            'is_credit' => false,
+            'source_type' => AdditionalCost::class,
+            'source_id' => $cost->id,
+            'sort_order' => $maxSortOrder + 1,
+            'notes' => "{$forwarderTag} {$cost->notes}",
+        ];
+
+        if ($existing) {
+            if ($existing->allocations()->exists()) {
+                $existing->update([
+                    'label' => $scheduleData['label'],
+                    'amount' => $scheduleData['amount'],
                     'notes' => $scheduleData['notes'],
                 ]);
             } else {

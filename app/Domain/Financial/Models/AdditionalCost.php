@@ -27,6 +27,11 @@ class AdditionalCost extends Model
         'amount_in_document_currency',
         'billable_to',
         'supplier_company_id',
+        'forwarder_company_id',
+        'forwarder_amount',
+        'forwarder_currency_code',
+        'forwarder_exchange_rate',
+        'forwarder_amount_in_document_currency',
         'cost_date',
         'status',
         'notes',
@@ -42,6 +47,9 @@ class AdditionalCost extends Model
             'exchange_rate' => 'decimal:8',
             'amount_in_document_currency' => 'integer',
             'billable_to' => BillableTo::class,
+            'forwarder_amount' => 'integer',
+            'forwarder_exchange_rate' => 'decimal:8',
+            'forwarder_amount_in_document_currency' => 'integer',
             'cost_date' => 'date',
             'status' => AdditionalCostStatus::class,
         ];
@@ -66,6 +74,11 @@ class AdditionalCost extends Model
     public function supplierCompany(): BelongsTo
     {
         return $this->belongsTo(Company::class, 'supplier_company_id');
+    }
+
+    public function forwarderCompany(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'forwarder_company_id');
     }
 
     public function creator(): BelongsTo

@@ -132,7 +132,8 @@ class ShipmentResource extends Resource
                         ->placeholder('—'),
                     TextEntry::make('carrier')
                         ->placeholder('—'),
-                    TextEntry::make('freight_forwarder')
+                    TextEntry::make('forwarderCompany.name')
+                        ->label(__('forms.labels.freight_forwarder'))
                         ->placeholder('—'),
                 ])
                 ->columns(3)

@@ -63,6 +63,12 @@ return [
         'packaging' => '包装',
         'other_costs' => '其他费用',
         'gross_profit' => '毛利润',
+        'freight_margin' => '运费利润',
+        'charged_to_client' => '向客户收取',
+        'paid_to_forwarder' => '支付给货代',
+        'freight_profit' => '运费利润',
+        'client_amount' => '客户金额',
+        'actual_cost' => '实际成本',
     ],
     'product_summary' => [
         'suppliers' => '供应商',

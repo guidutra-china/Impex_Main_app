@@ -20,6 +20,9 @@ class ShipmentInfolist
                         ->weight('bold'),
                     TextEntry::make('company.name')
                         ->label(__('forms.labels.client')),
+                    TextEntry::make('client_reference')
+                        ->label(__('forms.labels.client_reference'))
+                        ->placeholder('—'),
                     TextEntry::make('status')
                         ->badge(),
                     TextEntry::make('transport_mode')
@@ -69,7 +72,8 @@ class ShipmentInfolist
                 ->schema([
                     TextEntry::make('carrier')
                         ->placeholder('—'),
-                    TextEntry::make('freight_forwarder')
+                    TextEntry::make('forwarderCompany.name')
+                        ->label(__('forms.labels.freight_forwarder'))
                         ->placeholder('—'),
                     TextEntry::make('booking_number')
                         ->copyable()

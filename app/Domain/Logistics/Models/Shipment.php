@@ -30,6 +30,7 @@ class Shipment extends Model
 
     protected $fillable = [
         'reference',
+        'client_reference',
         'issue_date',
         'company_id',
         'status',
@@ -39,6 +40,7 @@ class Shipment extends Model
         'import_modality',
         'carrier',
         'freight_forwarder',
+        'forwarder_company_id',
         'booking_number',
         'bl_number',
         'container_number',
@@ -127,6 +129,11 @@ class Shipment extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function forwarderCompany(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'forwarder_company_id');
     }
 
     public function creator(): BelongsTo
