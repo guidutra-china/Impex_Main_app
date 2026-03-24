@@ -293,6 +293,25 @@ class FlexibleProductImportAction
                 Step::make('Map Columns')
                     ->label('Map & Configure')
                     ->description('Assign fields to columns and define import blocks')
+                    ->afterValidation(function (Get $get) {
+                        $headerRow = (int) ($get('header_row') ?? 1);
+
+                        $colMapping = [];
+                        for ($c = 0; $c < 15; $c++) {
+                            $field = $get("col_map_{$c}");
+                            if ($field && $field !== '' && $field !== 'skip') {
+                                $colMapping[$field] = (string) $c;
+                            }
+                        }
+
+                        self::putCache('mapping', [
+                            'columns' => $colMapping,
+                            'header_row' => $headerRow,
+                            'blocks' => array_values($get('import_blocks') ?? []),
+                            'currency_code' => $get('currency_code') ?? 'USD',
+                            'custom_price_formula' => $get('custom_price_formula'),
+                        ]);
+                    })
                     ->schema(function () use ($isClient) {
                         $rows = self::getCache('rows', []);
                         $headerData = $rows[0] ?? [];
@@ -453,6 +472,104 @@ class FlexibleProductImportAction
                         ];
                     })
                     ->columns(3),
+                Step::make('Confirm')
+                    ->label('Preview & Confirm')
+                    ->description('Review and finalize import')
+                    ->schema([
+                        Placeholder::make('import_preview')
+                            ->label('')
+                            ->content(function () {
+                                $mapping = self::getCache('mapping', []);
+                                $rows = self::getCachedRows();
+                                $images = self::getCache('images', []);
+                                $blocks = $mapping['blocks'] ?? [];
+                                $colMapping = $mapping['columns'] ?? [];
+                                $headerRow = $mapping['header_row'] ?? 1;
+
+                                if (empty($rows) || empty($colMapping) || empty($blocks)) {
+                                    return new HtmlString('<p class="text-red-500">No mapping data. Please go back and configure columns and blocks.</p>');
+                                }
+
+                                $mappedFields = array_keys($colMapping);
+                                $showFields = array_slice($mappedFields, 0, 6);
+                                $totalProducts = 0;
+                                $totalImages = 0;
+                                $currencyCode = $mapping['currency_code'] ?? 'USD';
+                                $formula = $mapping['custom_price_formula'] ?? null;
+
+                                $html = '<div class="space-y-4">';
+                                $html .= '<div class="text-sm text-gray-600 dark:text-gray-400">';
+                                $html .= 'Currency: <strong>' . e($currencyCode) . '</strong>';
+                                if ($formula) {
+                                    $html .= ' | Custom Price: <strong>Unit Price ' . e($formula) . '</strong>';
+                                }
+                                $html .= '</div>';
+
+                                foreach ($blocks as $idx => $block) {
+                                    $categoryId = $block['category_id'] ?? null;
+                                    $startRow = (int) ($block['start_row'] ?? 1);
+                                    $endRow = (int) ($block['end_row'] ?? count($rows));
+                                    $categoryName = $categoryId ? (Category::find($categoryId)?->name ?? 'Unknown') : 'No category';
+                                    $blockFamily = $block['product_family'] ?? null;
+
+                                    $items = self::applyMappingWithRange($rows, $colMapping, $headerRow, null, $startRow, $endRow);
+                                    $totalProducts += count($items);
+
+                                    $blockImages = 0;
+                                    foreach ($images as $imgRow => $imgPath) {
+                                        if ($imgRow >= $startRow && $imgRow <= $endRow) {
+                                            $blockImages++;
+                                        }
+                                    }
+                                    $totalImages += $blockImages;
+
+                                    $html .= '<div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">';
+                                    $html .= '<p class="text-sm font-medium mb-2">';
+                                    $html .= '<span class="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-900/30 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 ring-1 ring-inset ring-blue-700/10 mr-2">Block ' . ($idx + 1) . '</span>';
+                                    $html .= '<strong>' . e($categoryName) . '</strong>';
+                                    if ($blockFamily) {
+                                        $html .= ' <span class="text-xs text-gray-500">(' . e($blockFamily) . ')</span>';
+                                    }
+                                    $html .= ' — rows ' . $startRow . '–' . $endRow;
+                                    $html .= ' (' . count($items) . ' products';
+                                    if ($blockImages > 0) {
+                                        $html .= ', ' . $blockImages . ' images';
+                                    }
+                                    $html .= ')</p>';
+
+                                    if (! empty($items) && ! empty($showFields)) {
+                                        $previewCount = min(count($items), 5);
+                                        $html .= '<div class="overflow-x-auto"><table class="min-w-full text-xs">';
+                                        $html .= '<thead><tr class="bg-gray-50 dark:bg-gray-800">';
+                                        foreach ($showFields as $field) {
+                                            $html .= '<th class="px-2 py-1 text-left">' . e(self::fieldLabel($field)) . '</th>';
+                                        }
+                                        $html .= '</tr></thead><tbody>';
+                                        for ($i = 0; $i < $previewCount; $i++) {
+                                            $html .= '<tr class="border-t border-gray-100 dark:border-gray-700">';
+                                            foreach ($showFields as $field) {
+                                                $val = htmlspecialchars(mb_substr($items[$i][$field] ?? '', 0, 40));
+                                                $html .= '<td class="px-2 py-1">' . $val . '</td>';
+                                            }
+                                            $html .= '</tr>';
+                                        }
+                                        if (count($items) > $previewCount) {
+                                            $html .= '<tr><td colspan="' . count($showFields) . '" class="px-2 py-1 text-gray-400 text-center">... and ' . (count($items) - $previewCount) . ' more</td></tr>';
+                                        }
+                                        $html .= '</tbody></table></div>';
+                                    }
+                                    $html .= '</div>';
+                                }
+
+                                $html .= '<p class="text-sm font-medium mt-2">Total: <strong>' . $totalProducts . '</strong> products across ' . count($blocks) . ' block(s).';
+                                if ($totalImages > 0) {
+                                    $html .= " {$totalImages} image(s) will be saved.";
+                                }
+                                $html .= '</p></div>';
+
+                                return new HtmlString($html);
+                            }),
+                    ]),
             ])
             ->action(function (array $data) use ($role, $getCompany): void {
                 $crossCompanyId = $data['cross_company_id'] ?? null;
