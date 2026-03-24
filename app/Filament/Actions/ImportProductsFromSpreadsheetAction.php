@@ -267,7 +267,7 @@ class ImportProductsFromSpreadsheetAction
                         ->schema([
                             Select::make('category_id')
                                 ->label('Category')
-                                ->options(fn () => Category::active()->orderBy('name')->pluck('name', 'id'))
+                                ->options(fn () => Category::active()->orderBy('name')->get()->mapWithKeys(fn (Category $cat) => [$cat->id => $cat->full_path]))
                                 ->searchable()
                                 ->required(),
                             TextInput::make('product_family')
@@ -321,7 +321,6 @@ class ImportProductsFromSpreadsheetAction
         $fieldOptions = [
             'skip' => '— Skip —',
             'Product' => [
-                'name' => 'Product Name',
                 'commercial_name' => 'Commercial Name',
                 'model_number' => 'Model Number',
                 'product_family' => 'Product Family',

@@ -325,7 +325,6 @@ class FlexibleProductImportAction
                         $fieldOptions = [
                             'skip' => '— Skip —',
                             'Product' => [
-                                'product_name' => 'Product Name',
                                 'commercial_name' => 'Commercial Name',
                                 'model_number' => 'Model Number',
                                 'product_family' => 'Product Family',
@@ -434,7 +433,7 @@ class FlexibleProductImportAction
                                 ->schema([
                                     Select::make('category_id')
                                         ->label('Category')
-                                        ->options(fn () => Category::active()->orderBy('name')->pluck('name', 'id'))
+                                        ->options(fn () => Category::active()->orderBy('name')->get()->mapWithKeys(fn (Category $cat) => [$cat->id => $cat->full_path]))
                                         ->searchable()
                                         ->required(),
                                     TextInput::make('product_family')
