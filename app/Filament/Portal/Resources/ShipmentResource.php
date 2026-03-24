@@ -218,6 +218,10 @@ class ShipmentResource extends Resource
 
             Section::make('References')
                 ->schema([
+                    TextEntry::make('client_reference')
+                        ->label(__('forms.labels.client_reference'))
+                        ->placeholder('—')
+                        ->copyable(),
                     TextEntry::make('proforma_invoice_references')
                         ->label('Proforma Invoices')
                         ->placeholder('—'),
