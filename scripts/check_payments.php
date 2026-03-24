@@ -2,7 +2,7 @@
 
 /**
  * Diagnostic script for Upcoming Payments widget.
- * Run via Forge Commands: php /home/forge/YOUR-DOMAIN/scripts/check_payments.php
+ * Run via Forge Commands: php /home/forge/app.impex.ltd/scripts/check_payments.php
  */
 
 require __DIR__ . '/../vendor/autoload.php';
