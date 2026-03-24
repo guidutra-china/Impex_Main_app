@@ -111,6 +111,7 @@ class PaymentScheduleRelationManager extends RelationManager
                 $this->setDueDateAction(),
                 $this->waiveAction(),
                 $this->restoreWaivedAction(),
+                $this->deleteScheduleItemAction(),
             ])
             ->emptyStateHeading('No payment schedule')
             ->emptyStateDescription('Generate a payment schedule from the payment terms.')
@@ -257,6 +258,25 @@ class PaymentScheduleRelationManager extends RelationManager
                 ]);
 
                 Notification::make()->title(__('messages.payment_restored'))->success()->send();
+            });
+    }
+
+    protected function deleteScheduleItemAction(): Action
+    {
+        return Action::make('deleteItem')
+            ->label(__('forms.labels.delete'))
+            ->icon('heroicon-o-trash')
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalHeading(__('forms.labels.delete'))
+            ->modalDescription('This will permanently delete this schedule item.')
+            ->visible(fn ($record) => ! $record->allocations()->exists()
+                && ! in_array($record->status, [PaymentScheduleStatus::PAID])
+                && auth()->user()?->can('generate-payment-schedule'))
+            ->action(function ($record) {
+                $record->delete();
+
+                Notification::make()->title('Schedule item deleted')->success()->send();
             });
     }
 

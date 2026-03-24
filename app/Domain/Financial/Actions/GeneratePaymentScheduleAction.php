@@ -373,6 +373,15 @@ class GeneratePaymentScheduleAction
             ->whereNotIn('status', ['waived'])
             ->get();
 
+        // First, remove orphaned additional cost schedule items (cost was deleted/waived)
+        $activeCostIds = $costs->pluck('id')->all();
+        PaymentScheduleItem::where('payable_type', get_class($payable))
+            ->where('payable_id', $payable->getKey())
+            ->where('source_type', AdditionalCost::class)
+            ->whereNotIn('source_id', $activeCostIds)
+            ->whereDoesntHave('allocations')
+            ->delete();
+
         $maxSortOrder = PaymentScheduleItem::where('payable_type', get_class($payable))
             ->where('payable_id', $payable->getKey())
             ->max('sort_order') ?? 0;
@@ -389,14 +398,6 @@ class GeneratePaymentScheduleAction
                 continue;
             }
 
-            $existing = PaymentScheduleItem::where('source_type', AdditionalCost::class)
-                ->where('source_id', $cost->id)
-                ->first();
-
-            if ($existing) {
-                continue;
-            }
-
             $isCredit = $billableTo === BillableTo::SUPPLIER;
             $costTypeLabel = $cost->cost_type instanceof AdditionalCostType
                 ? $cost->cost_type->getLabel()
@@ -406,23 +407,75 @@ class GeneratePaymentScheduleAction
                 ? "Credit: {$cost->description}"
                 : "{$costTypeLabel}: {$cost->description}";
 
-            $maxSortOrder++;
+            // --- Client receivable item ---
+            $existingClient = PaymentScheduleItem::where('source_type', AdditionalCost::class)
+                ->where('source_id', $cost->id)
+                ->where(function ($q) {
+                    $q->whereNull('notes')
+                        ->orWhere('notes', 'NOT LIKE', '%[forwarder-payable]%');
+                })
+                ->first();
 
-            PaymentScheduleItem::create([
-                'payable_type' => get_class($schedulePayable),
-                'payable_id' => $schedulePayable->getKey(),
-                'label' => mb_substr($label, 0, 100),
-                'percentage' => 0,
-                'amount' => $cost->amount_in_document_currency,
-                'currency_code' => $schedulePayable->currency_code ?? $cost->currency_code ?? 'USD',
-                'status' => PaymentScheduleStatus::DUE->value,
-                'is_blocking' => false,
-                'is_credit' => $isCredit,
-                'source_type' => AdditionalCost::class,
-                'source_id' => $cost->id,
-                'sort_order' => $maxSortOrder,
-                'notes' => $cost->notes,
-            ]);
+            if (! $existingClient) {
+                $maxSortOrder++;
+                PaymentScheduleItem::create([
+                    'payable_type' => get_class($schedulePayable),
+                    'payable_id' => $schedulePayable->getKey(),
+                    'label' => mb_substr($label, 0, 100),
+                    'percentage' => 0,
+                    'amount' => $cost->amount_in_document_currency,
+                    'currency_code' => $schedulePayable->currency_code ?? $cost->currency_code ?? 'USD',
+                    'status' => PaymentScheduleStatus::DUE->value,
+                    'is_blocking' => false,
+                    'is_credit' => $isCredit,
+                    'source_type' => AdditionalCost::class,
+                    'source_id' => $cost->id,
+                    'sort_order' => $maxSortOrder,
+                    'notes' => $cost->notes,
+                ]);
+            } else {
+                $existingClient->update([
+                    'label' => mb_substr($label, 0, 100),
+                    'amount' => $cost->amount_in_document_currency,
+                    'is_credit' => $isCredit,
+                ]);
+            }
+
+            // --- Forwarder payable item ---
+            if ($cost->forwarder_amount_in_document_currency && $cost->forwarder_company_id) {
+                $forwarderTag = '[forwarder-payable]';
+                $forwarderName = $cost->forwarderCompany?->name ?? 'Forwarder';
+                $forwarderLabel = mb_substr("{$costTypeLabel} payable: {$forwarderName} - {$cost->description}", 0, 100);
+
+                $existingForwarder = PaymentScheduleItem::where('source_type', AdditionalCost::class)
+                    ->where('source_id', $cost->id)
+                    ->where('notes', 'LIKE', "%{$forwarderTag}%")
+                    ->first();
+
+                if (! $existingForwarder) {
+                    $maxSortOrder++;
+                    PaymentScheduleItem::create([
+                        'payable_type' => get_class($schedulePayable),
+                        'payable_id' => $schedulePayable->getKey(),
+                        'label' => $forwarderLabel,
+                        'percentage' => 0,
+                        'amount' => $cost->forwarder_amount_in_document_currency,
+                        'currency_code' => $schedulePayable->currency_code ?? $cost->forwarder_currency_code ?? 'USD',
+                        'status' => PaymentScheduleStatus::DUE->value,
+                        'is_blocking' => false,
+                        'is_credit' => false,
+                        'source_type' => AdditionalCost::class,
+                        'source_id' => $cost->id,
+                        'sort_order' => $maxSortOrder,
+                        'notes' => "{$forwarderTag} {$cost->notes}",
+                    ]);
+                } else {
+                    $existingForwarder->update([
+                        'label' => $forwarderLabel,
+                        'amount' => $cost->forwarder_amount_in_document_currency,
+                    ]);
+                }
+            }
         }
     }
 
