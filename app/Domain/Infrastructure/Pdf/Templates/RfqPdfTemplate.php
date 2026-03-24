@@ -22,6 +22,21 @@ class RfqPdfTemplate extends AbstractPdfTemplate
         return 'rfq_pdf';
     }
 
+    private function buildProductDescription($item): string
+    {
+        $product = $item->product;
+        if (! $product) {
+            return $item->description ?? '—';
+        }
+
+        $name = $product->name;
+        if ($product->commercial_name) {
+            $name .= "\n" . $product->commercial_name;
+        }
+
+        return $name;
+    }
+
     protected function getDocumentData(): array
     {
         /** @var SupplierQuotation $sq */
@@ -46,7 +61,7 @@ class RfqPdfTemplate extends AbstractPdfTemplate
             return [
                 'index' => $index + 1,
                 'product_code' => $item->product?->sku ?? '—',
-                'description' => $item->product?->name ?? $item->description ?? '—',
+                'description' => $this->buildProductDescription($item),
                 'specifications' => $item->specifications ?? $item->product?->description ?? null,
                 'quantity' => $quantity,
                 'unit' => $item->unit ?? $item->product?->unit ?? 'pcs',
