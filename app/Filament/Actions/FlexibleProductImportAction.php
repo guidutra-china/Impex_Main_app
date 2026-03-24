@@ -294,19 +294,24 @@ class FlexibleProductImportAction
                     ->label('Map & Configure')
                     ->description('Assign fields to columns and define import blocks')
                     ->afterValidation(function (Get $get) {
-                        $rows = self::getCachedRows();
                         $headerRow = (int) ($get('header_row') ?? 1);
-                        $headerData = $rows[max(0, $headerRow - 1)] ?? [];
 
+                        // Iterate all possible column selects (max 15, matching schema)
                         $colMapping = [];
-                        for ($c = 0; $c < count($headerData); $c++) {
+                        for ($c = 0; $c < 15; $c++) {
                             $field = $get("col_map_{$c}");
-                            if ($field && $field !== 'skip') {
+                            if ($field && $field !== '' && $field !== 'skip') {
                                 $colMapping[$field] = (string) $c;
                             }
                         }
 
                         $blocks = $get('import_blocks') ?? [];
+
+                        \Illuminate\Support\Facades\Log::info('QUICK IMPORT: mapping collected', [
+                            'columns' => $colMapping,
+                            'header_row' => $headerRow,
+                            'blocks' => count($blocks),
+                        ]);
 
                         self::putCache('mapping', [
                             'columns' => $colMapping,

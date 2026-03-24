@@ -196,11 +196,11 @@ class ImportProductsFromSpreadsheetAction
                 $rowOrigins = self::getCache('row_origins', []);
                 $headerData = $rows[max(0, $headerRow - 1)] ?? [];
 
-                // Collect inverted mapping from col_map_X fields
+                // Collect inverted mapping from col_map_X fields (max 15, matching schema)
                 $colMapping = [];
-                for ($c = 0; $c < count($headerData); $c++) {
+                for ($c = 0; $c < 15; $c++) {
                     $field = $get("col_map_{$c}");
-                    if ($field && $field !== 'skip') {
+                    if ($field && $field !== '' && $field !== 'skip') {
                         $colMapping[$field] = (string) $c;
                     }
                 }
