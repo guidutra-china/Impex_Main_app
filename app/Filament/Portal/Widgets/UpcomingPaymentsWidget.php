@@ -22,8 +22,24 @@ class UpcomingPaymentsWidget extends Widget
     protected function getViewData(): array
     {
         try {
-            return $this->buildViewData();
+            $data = $this->buildViewData();
+
+            \Illuminate\Support\Facades\Log::info('UPCOMING WIDGET', [
+                'tenant_id' => Filament::getTenant()?->id,
+                'tenant_name' => Filament::getTenant()?->name,
+                'hasAny' => $data['hasAny'],
+                'overdueCount' => $data['overdueCount'],
+                'pendingCount' => $data['pendingCount'],
+                'weekCount' => $data['weekCount'],
+            ]);
+
+            return $data;
         } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('UPCOMING WIDGET ERROR', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
             report($e);
 
             return $this->emptyState();

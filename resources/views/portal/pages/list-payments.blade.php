@@ -1,4 +1,11 @@
 <x-filament-panels::page>
+    @if (count($this->getHeaderWidgets()))
+        <x-filament-widgets::widgets
+            :columns="$this->getHeaderWidgetsColumns()"
+            :widgets="$this->getVisibleHeaderWidgets()"
+        />
+    @endif
+
     <x-filament::tabs>
         <x-filament::tabs.item
             :active="$activeTab === 'payments'"
