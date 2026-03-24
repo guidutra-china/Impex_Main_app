@@ -476,12 +476,19 @@ class AdditionalCostsRelationManager extends RelationManager
 
     protected function upsertScheduleItem(AdditionalCost $cost, $payable, array $data, string $tag): void
     {
-        $sourceTag = $tag === 'client' ? null : $tag;
+        $query = PaymentScheduleItem::where('source_type', AdditionalCost::class)
+            ->where('source_id', $cost->id);
 
-        $existing = PaymentScheduleItem::where('source_type', AdditionalCost::class)
-            ->where('source_id', $cost->id)
-            ->where('notes', $sourceTag === 'forwarder' ? 'LIKE' : 'NOT LIKE', '%[forwarder-payable]%')
-            ->first();
+        if ($tag === 'forwarder') {
+            $query->where('notes', 'LIKE', '%[forwarder-payable]%');
+        } else {
+            $query->where(function ($q) {
+                $q->whereNull('notes')
+                    ->orWhere('notes', 'NOT LIKE', '%[forwarder-payable]%');
+            });
+        }
+
+        $existing = $query->first();
 
         $maxSortOrder = PaymentScheduleItem::where('payable_type', get_class($payable))
             ->where('payable_id', $payable->getKey())
