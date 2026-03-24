@@ -7,6 +7,7 @@ use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\Catalog\Models\Product;
+use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Support\Money;
 use Filament\Actions\Action;
@@ -167,7 +168,13 @@ class FlexibleProductImportAction
                     ->schema([
                         Select::make('cross_company_id')
                             ->label($role === 'client' ? 'Also link to Supplier' : 'Also link to Client')
-                            ->options(fn () => Company::orderBy('name')->pluck('name', 'id'))
+                            ->options(function () use ($role) {
+                                $crossRole = $role === 'client' ? CompanyRole::SUPPLIER : CompanyRole::CLIENT;
+
+                                return Company::withRole($crossRole)
+                                    ->orderBy('name')
+                                    ->pluck('name', 'id');
+                            })
                             ->searchable()
                             ->placeholder('— None —')
                             ->helperText($role === 'client'
