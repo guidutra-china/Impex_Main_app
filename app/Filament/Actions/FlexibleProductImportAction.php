@@ -327,7 +327,8 @@ class FlexibleProductImportAction
                                 ->placeholder('-- Skip --');
                         }
 
-                        $totalRows = count(self::getCachedRows());
+                        $rowOrigins = self::getCache('row_origins', []);
+                        $lastRow = ! empty($rowOrigins) ? max($rowOrigins) : count(self::getCachedRows());
 
                         return [
                             Placeholder::make('file_preview')
@@ -407,15 +408,15 @@ class FlexibleProductImportAction
                                         ->numeric()
                                         ->required()
                                         ->minValue(1)
-                                        ->maxValue($totalRows)
-                                        ->helperText('First data row (not the header)'),
+                                        ->maxValue($lastRow)
+                                        ->helperText("Excel row number (see preview). Last row: {$lastRow}"),
                                     TextInput::make('end_row')
                                         ->label('End Row')
                                         ->numeric()
                                         ->required()
                                         ->minValue(1)
-                                        ->maxValue($totalRows)
-                                        ->helperText('Last data row to import'),
+                                        ->maxValue($lastRow)
+                                        ->helperText("Excel row number. Last row: {$lastRow}"),
                                 ])
                                 ->columns(3)
                                 ->required()
@@ -443,8 +444,8 @@ class FlexibleProductImportAction
 
                                 $headerRow = $mapping['header_row'] ?? 1;
                                 $mappedFields = array_keys($mapping['columns'] ?? []);
-                                $imageCount = count($images);
                                 $totalProducts = 0;
+                                $totalImages = 0;
 
                                 $html = '<div class="space-y-4">';
 
@@ -457,12 +458,25 @@ class FlexibleProductImportAction
                                     $items = self::applyMappingWithRange($rows, $mapping['columns'] ?? [], $headerRow, $fieldDefaults, $startRow, $endRow);
                                     $totalProducts += count($items);
 
+                                    // Count images only within this block's range
+                                    $blockImages = 0;
+                                    foreach ($images as $imgRow => $imgPath) {
+                                        if ($imgRow >= $startRow && $imgRow <= $endRow) {
+                                            $blockImages++;
+                                        }
+                                    }
+                                    $totalImages += $blockImages;
+
                                     $html .= '<div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">';
                                     $html .= '<p class="text-sm font-medium mb-2">';
                                     $html .= '<span class="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-900/30 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 ring-1 ring-inset ring-blue-700/10 mr-2">Block ' . ($idx + 1) . '</span>';
                                     $html .= '<strong>' . e($categoryName) . '</strong>';
                                     $html .= ' — rows ' . $startRow . '–' . $endRow;
-                                    $html .= ' (' . count($items) . ' products)';
+                                    $html .= ' (' . count($items) . ' products';
+                                    if ($blockImages > 0) {
+                                        $html .= ', ' . $blockImages . ' images';
+                                    }
+                                    $html .= ')';
                                     $html .= '</p>';
 
                                     if (! empty($items) && ! empty($mappedFields)) {
@@ -494,8 +508,8 @@ class FlexibleProductImportAction
                                 }
 
                                 $html .= '<p class="text-sm font-medium mt-2">Total: <strong>' . $totalProducts . '</strong> products across ' . count($blocks) . ' block(s).';
-                                if ($imageCount > 0) {
-                                    $html .= " {$imageCount} image(s) will be saved.";
+                                if ($totalImages > 0) {
+                                    $html .= " {$totalImages} image(s) will be saved.";
                                 }
                                 $html .= '</p></div>';
 
@@ -878,17 +892,26 @@ class FlexibleProductImportAction
     protected static function applyMappingWithRange(array $rows, array $mapping, int $headerRowNumber, array $fieldDefaults, ?int $startRow = null, ?int $endRow = null): array
     {
         $rowOrigins = self::getCache('row_origins', []);
+
+        // Convert header row from filtered index to original Excel row number
+        $headerOriginalRow = $rowOrigins[$headerRowNumber - 1] ?? $headerRowNumber;
+
         $items = [];
 
         for ($i = 0; $i < count($rows); $i++) {
             $originalRow = $rowOrigins[$i] ?? ($i + 1);
 
-            // Skip header row and rows before it (when no explicit range)
-            if ($startRow === null && $originalRow <= $headerRowNumber) {
+            // Always skip the header row itself
+            if ($originalRow === $headerOriginalRow) {
                 continue;
             }
 
-            // Filter by row range when specified
+            // When no explicit range, skip rows before/at header
+            if ($startRow === null && $originalRow <= $headerOriginalRow) {
+                continue;
+            }
+
+            // Filter by row range when specified (uses original Excel row numbers)
             if ($startRow !== null && $originalRow < $startRow) {
                 continue;
             }
@@ -924,6 +947,7 @@ class FlexibleProductImportAction
 
     protected static function buildPreviewTable(array $rows, int $headerRowNumber): string
     {
+        $rowOrigins = self::getCache('row_origins', []);
         $maxPreviewRows = min(count($rows), max($headerRowNumber + 3, 8));
         $maxCols = 0;
         for ($i = 0; $i < $maxPreviewRows; $i++) {
@@ -934,7 +958,7 @@ class FlexibleProductImportAction
         $html .= '<table class="min-w-full text-xs">';
 
         $html .= '<thead><tr class="bg-gray-50 dark:bg-gray-800">';
-        $html .= '<th class="px-2 py-1 text-gray-400 font-normal">#</th>';
+        $html .= '<th class="px-2 py-1 text-gray-400 font-normal">Row</th>';
         for ($c = 0; $c < $maxCols; $c++) {
             $html .= '<th class="px-2 py-1 text-gray-400 font-normal">' . self::columnLetter($c) . '</th>';
         }
@@ -942,9 +966,10 @@ class FlexibleProductImportAction
 
         $html .= '<tbody>';
         for ($i = 0; $i < $maxPreviewRows; $i++) {
-            $rowNum = $i + 1;
-            $isHeader = ($rowNum === $headerRowNumber);
-            $isSkipped = ($headerRowNumber > 0 && $rowNum < $headerRowNumber);
+            // Show original Excel row number so users can reference it in start_row/end_row
+            $originalRowNum = $rowOrigins[$i] ?? ($i + 1);
+            $isHeader = ($originalRowNum === $headerRowNumber);
+            $isSkipped = ($headerRowNumber > 0 && $originalRowNum < $headerRowNumber);
 
             $rowClass = '';
             if ($isHeader) {
@@ -962,7 +987,7 @@ class FlexibleProductImportAction
                 $labelBadge = ' <span class="ml-1 text-[10px] bg-gray-200 dark:bg-gray-700 text-gray-500 px-1 rounded">SKIP</span>';
             }
 
-            $html .= "<td class=\"px-2 py-1 text-gray-400 whitespace-nowrap\">{$rowNum}{$labelBadge}</td>";
+            $html .= "<td class=\"px-2 py-1 text-gray-400 whitespace-nowrap\">{$originalRowNum}{$labelBadge}</td>";
 
             $row = $rows[$i] ?? [];
             for ($c = 0; $c < $maxCols; $c++) {
@@ -975,7 +1000,8 @@ class FlexibleProductImportAction
 
         if (count($rows) > $maxPreviewRows) {
             $remaining = count($rows) - $maxPreviewRows;
-            $html .= "<tr><td colspan=\"" . ($maxCols + 1) . "\" class=\"px-2 py-1 text-gray-400 text-center\">... and {$remaining} more rows</td></tr>";
+            $lastOriginalRow = $rowOrigins[count($rows) - 1] ?? count($rows);
+            $html .= "<tr><td colspan=\"" . ($maxCols + 1) . "\" class=\"px-2 py-1 text-gray-400 text-center\">... and {$remaining} more rows (last row: {$lastOriginalRow})</td></tr>";
         }
 
         $html .= '</tbody></table></div>';
