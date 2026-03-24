@@ -23,7 +23,8 @@ class CompanyForm
                         TextInput::make('name')
                             ->label(__('forms.labels.company_name'))
                             ->required()
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->unique(table: Company::class, ignoreRecord: true),
                         TextInput::make('legal_name')
                             ->label(__('forms.labels.legal_name'))
                             ->maxLength(255)
@@ -31,6 +32,7 @@ class CompanyForm
                         TextInput::make('tax_number')
                             ->label(__('forms.labels.tax_number'))
                             ->maxLength(50)
+                            ->unique(table: Company::class, ignoreRecord: true)
                             ->helperText(__('forms.helpers.cnpj_vat_ein_etc')),
                         TextInput::make('email')
                             ->label(__('forms.labels.email'))
