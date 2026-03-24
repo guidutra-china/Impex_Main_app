@@ -465,10 +465,12 @@ class FlexibleProductImportAction
                 $customPriceFormula = $data['custom_price_formula'] ?? null;
 
                 \Illuminate\Support\Facades\Log::info('QUICK IMPORT: action executing', [
+                    'data_keys' => array_keys($data),
                     'colMapping' => $colMapping,
                     'headerRow' => $headerRow,
-                    'blocks' => count($blocks),
+                    'blocks' => $blocks,
                     'totalRows' => count($rows),
+                    'sample_data' => array_slice($data, 0, 20, true),
                 ]);
 
                 if (empty($blocks)) {
