@@ -130,6 +130,11 @@ class ImportProductsFromSpreadsheetAction
                     ->searchable()
                     ->default('USD')
                     ->required(),
+                TextInput::make('custom_price_formula')
+                    ->label('Custom Price Formula')
+                    ->placeholder('e.g. *0.70, *1.30, +5, -2.50')
+                    ->helperText('Calculate Custom Price from Unit Price. Use *0.70 for 70%, *1.30 for 130% markup, +5 to add, -2.50 to subtract.')
+                    ->maxLength(20),
             ])
             ->afterValidation(function (Get $get, Set $set) {
                 ini_set('memory_limit', '512M');
@@ -205,6 +210,7 @@ class ImportProductsFromSpreadsheetAction
                     'header_row' => $headerRow,
                     'blocks' => array_values($get('import_blocks') ?? []),
                     'currency_code' => $get('currency_code') ?? 'USD',
+                    'custom_price_formula' => $get('custom_price_formula'),
                     'client_company_id' => $get('client_company_id'),
                     'supplier_company_id' => $get('supplier_company_id'),
                 ]);
@@ -435,6 +441,10 @@ class ImportProductsFromSpreadsheetAction
                                 $html .= 'Supplier: <strong>' . e(Company::find($supplierId)?->name ?? '—') . '</strong>';
                             }
                             $html .= ' | Currency: <strong>' . e($mapping['currency_code'] ?? 'USD') . '</strong>';
+                            $formula = $mapping['custom_price_formula'] ?? null;
+                            if ($formula) {
+                                $html .= ' | Custom Price: <strong>Unit Price ' . e($formula) . '</strong>';
+                            }
                             $html .= '</div>';
                         }
 
@@ -519,6 +529,7 @@ class ImportProductsFromSpreadsheetAction
         $headerRow = $mapping['header_row'] ?? 1;
         $blocks = $mapping['blocks'] ?? [];
         $currencyCode = $mapping['currency_code'] ?? 'USD';
+        $customPriceFormula = $mapping['custom_price_formula'] ?? null;
         $clientCompanyId = $mapping['client_company_id'] ?? null;
         $supplierCompanyId = $mapping['supplier_company_id'] ?? null;
         $colMapping = $mapping['columns'] ?? [];
@@ -534,7 +545,7 @@ class ImportProductsFromSpreadsheetAction
         $totalItems = 0;
 
         try {
-            DB::transaction(function () use ($blocks, $rows, $colMapping, $headerRow, $skuGenerator, $images, $clientCompanyId, $supplierCompanyId, $currencyCode, &$stats, &$totalItems) {
+            DB::transaction(function () use ($blocks, $rows, $colMapping, $headerRow, $skuGenerator, $images, $clientCompanyId, $supplierCompanyId, $currencyCode, $customPriceFormula, &$stats, &$totalItems) {
                 foreach ($blocks as $block) {
                     $categoryId = $block['category_id'] ?? null;
                     $startRow = (int) ($block['start_row'] ?? 1);
@@ -620,12 +631,12 @@ class ImportProductsFromSpreadsheetAction
 
                         // Link to client
                         if ($clientCompanyId) {
-                            self::ensureCompanyLink($existing, (int) $clientCompanyId, 'client', $item, $currencyCode);
+                            self::ensureCompanyLink($existing, (int) $clientCompanyId, 'client', $item, $currencyCode, $customPriceFormula);
                         }
 
                         // Link to supplier
                         if ($supplierCompanyId) {
-                            self::ensureCompanyLink($existing, (int) $supplierCompanyId, 'supplier', $item, $currencyCode);
+                            self::ensureCompanyLink($existing, (int) $supplierCompanyId, 'supplier', $item, $currencyCode, $customPriceFormula);
                         }
                     }
                 }
@@ -723,15 +734,23 @@ class ImportProductsFromSpreadsheetAction
         }
     }
 
-    protected static function ensureCompanyLink(Product $product, int $companyId, string $role, array $item, string $currencyCode): void
+    protected static function ensureCompanyLink(Product $product, int $companyId, string $role, array $item, string $currencyCode, ?string $formula = null): void
     {
+        $unitPrice = ! empty($item['unit_price']) ? (float) $item['unit_price'] : null;
+
+        // Calculate custom_price: explicit value > formula > null
+        $customPrice = ! empty($item['custom_price']) ? (float) $item['custom_price'] : null;
+        if ($customPrice === null && $unitPrice !== null && $formula) {
+            $customPrice = self::applyFormula($unitPrice, $formula);
+        }
+
         $pivotData = array_filter([
             'role' => $role,
             'external_code' => $item['external_code'] ?? null,
             'external_name' => $item['external_name'] ?? null,
             'external_description' => $item['external_description'] ?? null,
-            'unit_price' => ! empty($item['unit_price']) ? Money::toMinor((float) $item['unit_price']) : null,
-            'custom_price' => ! empty($item['custom_price']) ? Money::toMinor((float) $item['custom_price']) : null,
+            'unit_price' => $unitPrice !== null ? Money::toMinor($unitPrice) : null,
+            'custom_price' => $customPrice !== null ? Money::toMinor($customPrice) : null,
             'currency_code' => $currencyCode,
         ], fn ($v) => $v !== null);
 
@@ -896,6 +915,25 @@ class ImportProductsFromSpreadsheetAction
         }
 
         return $labels[$field] ?? $field;
+    }
+
+    protected static function applyFormula(float $baseValue, string $formula): ?float
+    {
+        $formula = trim($formula);
+        if ($formula === '') {
+            return null;
+        }
+
+        $operator = $formula[0];
+        $operand = (float) substr($formula, 1);
+
+        return match ($operator) {
+            '*' => round($baseValue * $operand, 4),
+            '+' => round($baseValue + $operand, 4),
+            '-' => round($baseValue - $operand, 4),
+            '/' => $operand != 0 ? round($baseValue / $operand, 4) : null,
+            default => null,
+        };
     }
 
     protected static function toDecimal(?string $value): ?float

@@ -309,6 +309,7 @@ class FlexibleProductImportAction
                             'header_row' => (int) ($get('header_row') ?? 1),
                             'blocks' => array_values($blocks),
                             'currency_code' => $get('currency_code') ?? 'USD',
+                            'custom_price_formula' => $get('custom_price_formula'),
                         ]);
                     })
                     ->schema(function () use ($fieldLabels, $fieldDefaults, $fieldPatterns) {
@@ -417,6 +418,10 @@ class FlexibleProductImportAction
                                 ->searchable()
                                 ->default('USD')
                                 ->required(),
+                            TextInput::make('custom_price_formula')
+                                ->label('Custom Price Formula')
+                                ->placeholder('e.g. *0.70, *1.30, +5')
+                                ->helperText('Calculate from Unit Price. *0.70=70%, +5=add $5'),
                             Select::make('col_external_code')
                                 ->label($fieldLabels['external_code'])
                                 ->options($columnOptions)
@@ -621,6 +626,7 @@ class FlexibleProductImportAction
                 $headerRow = $mapping['header_row'] ?? 1;
                 $blocks = $mapping['blocks'] ?? [];
                 $currencyCode = $mapping['currency_code'] ?? 'USD';
+                $customPriceFormula = $mapping['custom_price_formula'] ?? null;
 
                 if (empty($blocks)) {
                     Notification::make()->title('No import blocks defined')->warning()->send();
@@ -636,7 +642,7 @@ class FlexibleProductImportAction
                 $totalItems = 0;
 
                 try {
-                    DB::transaction(function () use ($blocks, $rows, $mapping, $headerRow, $fieldDefaults, $company, $role, $skuGenerator, $images, $crossCompanyId, $currencyCode, &$stats, &$totalItems) {
+                    DB::transaction(function () use ($blocks, $rows, $mapping, $headerRow, $fieldDefaults, $company, $role, $skuGenerator, $images, $crossCompanyId, $currencyCode, $customPriceFormula, &$stats, &$totalItems) {
                         foreach ($blocks as $block) {
                             $categoryId = $block['category_id'] ?? null;
                             $startRow = (int) ($block['start_row'] ?? 1);
@@ -705,13 +711,19 @@ class FlexibleProductImportAction
                                     }
                                 }
 
+                                $unitPrice = ! empty($item['unit_price']) ? (float) $item['unit_price'] : null;
+                                $customPrice = ! empty($item['custom_price']) ? (float) $item['custom_price'] : null;
+                                if ($customPrice === null && $unitPrice !== null && $customPriceFormula) {
+                                    $customPrice = self::applyFormula($unitPrice, $customPriceFormula);
+                                }
+
                                 $pivotData = array_filter([
                                     'role' => $role,
                                     'external_code' => $item['external_code'] ?: null,
                                     'external_name' => $item['external_name'] ?: null,
                                     'external_description' => $item['external_description'] ?: null,
-                                    'unit_price' => ! empty($item['unit_price']) ? Money::toMinor((float) $item['unit_price']) : null,
-                                    'custom_price' => ! empty($item['custom_price']) ? Money::toMinor((float) $item['custom_price']) : null,
+                                    'unit_price' => $unitPrice !== null ? Money::toMinor($unitPrice) : null,
+                                    'custom_price' => $customPrice !== null ? Money::toMinor($customPrice) : null,
                                     'currency_code' => $currencyCode,
                                 ], fn ($v) => $v !== null);
 
@@ -976,6 +988,25 @@ class FlexibleProductImportAction
         }
 
         return $options;
+    }
+
+    protected static function applyFormula(float $baseValue, string $formula): ?float
+    {
+        $formula = trim($formula);
+        if ($formula === '') {
+            return null;
+        }
+
+        $operator = $formula[0];
+        $operand = (float) substr($formula, 1);
+
+        return match ($operator) {
+            '*' => round($baseValue * $operand, 4),
+            '+' => round($baseValue + $operand, 4),
+            '-' => round($baseValue - $operand, 4),
+            '/' => $operand != 0 ? round($baseValue / $operand, 4) : null,
+            default => null,
+        };
     }
 
     protected static function columnLetter(int $index): string
