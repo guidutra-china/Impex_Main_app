@@ -23,7 +23,7 @@ class ListPayments extends ListRecords
 
     protected string $view = 'portal.pages.list-payments';
 
-    public string $currentView = 'payments';
+    public ?string $activeTab = 'payments';
 
     protected function getHeaderWidgets(): array
     {

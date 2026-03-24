@@ -10,7 +10,7 @@
             </div>
         @else
             {{-- Summary Cards --}}
-            <div class="grid grid-cols-3 gap-3 mb-6">
+            <div class="grid grid-cols-2 gap-3 mb-6 sm:grid-cols-4">
                 {{-- Overdue --}}
                 <div @class([
                     'rounded-xl border p-4',
@@ -112,6 +112,40 @@
                         </div>
                     </div>
                 </div>
+
+                {{-- Pending (no due date) --}}
+                <div @class([
+                    'rounded-xl border p-4',
+                    'border-gray-300 bg-gray-100 dark:border-gray-500/20 dark:bg-gray-500/5' => $pendingCount > 0,
+                    'border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/5' => $pendingCount === 0,
+                ])>
+                    <div class="flex items-center gap-3">
+                        <div @class([
+                            'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
+                            'bg-gray-300 dark:bg-gray-500/20' => $pendingCount > 0,
+                            'bg-gray-200 dark:bg-white/10' => $pendingCount === 0,
+                        ])>
+                            <x-filament::icon icon="heroicon-o-question-mark-circle" @class([
+                                'h-5 w-5',
+                                'text-gray-600 dark:text-gray-400' => $pendingCount > 0,
+                                'text-gray-400 dark:text-gray-500' => $pendingCount === 0,
+                            ]) />
+                        </div>
+                        <div class="min-w-0">
+                            <p @class([
+                                'text-[0.65rem] font-semibold uppercase tracking-wide',
+                                'text-gray-600 dark:text-gray-400' => $pendingCount > 0,
+                                'text-gray-400 dark:text-gray-500' => $pendingCount === 0,
+                            ])>Pending</p>
+                            <p @class([
+                                'text-lg font-bold',
+                                'text-gray-700 dark:text-gray-300' => $pendingCount > 0,
+                                'text-gray-400 dark:text-gray-500' => $pendingCount === 0,
+                            ])>{{ $pendingCount > 0 ? $currency . ' ' . $pendingTotal : '—' }}</p>
+                            <p class="text-[0.65rem] text-gray-400 dark:text-gray-500">{{ $pendingCount }} {{ $pendingCount === 1 ? 'item' : 'items' }} (no due date)</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {{-- Detailed Items Table --}}
@@ -168,7 +202,7 @@
                                         <span @class([
                                             'text-danger-600 dark:text-danger-400 font-bold' => $item['section'] === 'overdue',
                                             'text-warning-600 dark:text-warning-400' => $item['section'] === 'week',
-                                            'text-gray-900 dark:text-white' => $item['section'] === 'month',
+                                            'text-gray-900 dark:text-white' => in_array($item['section'], ['month', 'pending']),
                                         ])>
                                             <span class="text-gray-400 dark:text-gray-500">{{ $item['currency'] }}</span>
                                             {{ $item['remaining'] }}

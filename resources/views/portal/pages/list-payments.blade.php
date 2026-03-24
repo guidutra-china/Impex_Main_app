@@ -1,7 +1,7 @@
 <x-filament-panels::page>
     <x-filament::tabs>
         <x-filament::tabs.item
-            :active="$currentView === 'payments'"
+            :active="$activeTab === 'payments'"
             wire:click="switchTab('payments')"
             icon="heroicon-o-banknotes"
         >
@@ -9,7 +9,7 @@
         </x-filament::tabs.item>
 
         <x-filament::tabs.item
-            :active="$currentView === 'schedule'"
+            :active="$activeTab === 'schedule'"
             wire:click="switchTab('schedule')"
             icon="heroicon-o-calendar-days"
         >
