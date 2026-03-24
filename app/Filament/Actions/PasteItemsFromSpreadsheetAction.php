@@ -536,9 +536,10 @@ class PasteItemsFromSpreadsheetAction
                                 'application/vnd.ms-excel',
                             ])
                             ->required()
+                            ->maxSize(51200)
                             ->disk('local')
                             ->directory('temp-imports')
-                            ->helperText('Upload an .xlsx or .xls file.'),
+                            ->helperText('Upload an .xlsx or .xls file (max 50MB).'),
                     ])
                     ->afterValidation(function (Get $get, Set $set) use ($fieldPatterns) {
                         $raw = $get('spreadsheet');

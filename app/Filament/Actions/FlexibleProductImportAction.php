@@ -184,9 +184,10 @@ class FlexibleProductImportAction
                                 'application/vnd.ms-excel',
                             ])
                             ->required()
+                            ->maxSize(51200)
                             ->disk('local')
                             ->directory('temp-imports')
-                            ->helperText('Upload .xlsx or .xls file. Product images in the spreadsheet will be imported automatically.'),
+                            ->helperText('Upload .xlsx or .xls file (max 50MB). Product images in the spreadsheet will be imported automatically.'),
                     ])
                     ->afterValidation(function (Get $get, Set $set) use ($fieldPatterns) {
                         ini_set('memory_limit', '512M');

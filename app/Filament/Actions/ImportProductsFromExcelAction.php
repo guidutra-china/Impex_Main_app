@@ -60,7 +60,7 @@ class ImportProductsFromExcelAction
                         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                         'application/vnd.ms-excel',
                     ])
-                    ->maxSize(10240)
+                    ->maxSize(51200)
                     ->required()
                     ->disk('local')
                     ->directory('temp/imports')
