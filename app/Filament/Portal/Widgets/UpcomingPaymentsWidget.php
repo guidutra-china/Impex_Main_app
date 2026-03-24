@@ -58,13 +58,20 @@ class UpcomingPaymentsWidget extends Widget
                 });
             });
 
-        // Overdue
+        // Overdue: explicit OVERDUE status OR past due_date with PENDING/DUE status
         $overdueItems = (clone $baseQuery)
-            ->where('status', PaymentScheduleStatus::OVERDUE)
+            ->where(function ($query) use ($today) {
+                $query->where('status', PaymentScheduleStatus::OVERDUE)
+                    ->orWhere(function ($q) use ($today) {
+                        $q->whereNotNull('due_date')
+                            ->where('due_date', '<', $today)
+                            ->whereIn('status', [PaymentScheduleStatus::PENDING, PaymentScheduleStatus::DUE]);
+                    });
+            })
             ->orderBy('due_date')
             ->get();
 
-        // Due this week (today to +7 days)
+        // Due this week (today to +7 days, not overdue)
         $weekItems = (clone $baseQuery)
             ->whereNotNull('due_date')
             ->whereBetween('due_date', [$today, $endOfWeek])
@@ -72,12 +79,19 @@ class UpcomingPaymentsWidget extends Widget
             ->orderBy('due_date')
             ->get();
 
-        // Due this month (today to +30 days), excluding items already in week
+        // Due this month (+8 to +30 days)
         $monthItems = (clone $baseQuery)
             ->whereNotNull('due_date')
             ->whereBetween('due_date', [$endOfWeek->copy()->addDay(), $endOfMonth])
             ->whereIn('status', [PaymentScheduleStatus::PENDING, PaymentScheduleStatus::DUE])
             ->orderBy('due_date')
+            ->get();
+
+        // Pending without due_date (show separately so they're not hidden)
+        $pendingNoDueDate = (clone $baseQuery)
+            ->whereNull('due_date')
+            ->whereIn('status', [PaymentScheduleStatus::PENDING, PaymentScheduleStatus::DUE])
+            ->orderBy('created_at')
             ->get();
 
         $mapItem = function ($item) {
@@ -117,9 +131,11 @@ class UpcomingPaymentsWidget extends Widget
         $overdueTotal = $overdueItems->sum('remaining_amount');
         $weekTotal = $weekItems->sum('remaining_amount');
         $monthTotal = $monthItems->sum('remaining_amount');
+        $pendingTotal = $pendingNoDueDate->sum('remaining_amount');
         $currency = $overdueItems->first()?->currency_code
             ?? $weekItems->first()?->currency_code
             ?? $monthItems->first()?->currency_code
+            ?? $pendingNoDueDate->first()?->currency_code
             ?? 'USD';
 
         return [
@@ -132,8 +148,11 @@ class UpcomingPaymentsWidget extends Widget
             'thisMonth' => $monthItems->map($mapItem)->all(),
             'monthTotal' => Money::format($monthTotal, 2),
             'monthCount' => $monthItems->count(),
+            'pending' => $pendingNoDueDate->map($mapItem)->all(),
+            'pendingTotal' => Money::format($pendingTotal, 2),
+            'pendingCount' => $pendingNoDueDate->count(),
             'currency' => $currency,
-            'hasAny' => $overdueItems->isNotEmpty() || $weekItems->isNotEmpty() || $monthItems->isNotEmpty(),
+            'hasAny' => $overdueItems->isNotEmpty() || $weekItems->isNotEmpty() || $monthItems->isNotEmpty() || $pendingNoDueDate->isNotEmpty(),
         ];
     }
 
@@ -149,6 +168,9 @@ class UpcomingPaymentsWidget extends Widget
             'thisMonth' => [],
             'monthTotal' => '0.00',
             'monthCount' => 0,
+            'pending' => [],
+            'pendingTotal' => '0.00',
+            'pendingCount' => 0,
             'currency' => 'USD',
             'hasAny' => false,
         ];

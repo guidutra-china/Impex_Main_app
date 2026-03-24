@@ -120,6 +120,7 @@
                     array_map(fn($i) => array_merge($i, ['section' => 'overdue']), $overdue),
                     array_map(fn($i) => array_merge($i, ['section' => 'week']), $thisWeek),
                     array_map(fn($i) => array_merge($i, ['section' => 'month']), $thisMonth),
+                    array_map(fn($i) => array_merge($i, ['section' => 'pending']), $pending),
                 );
             @endphp
 
