@@ -513,7 +513,7 @@ class FlexibleProductImportAction
                                 'sampleRowOrigins' => array_slice(self::getCache('row_origins', []), 0, 5, true),
                             ]);
 
-                            foreach ($items as $item) {
+                            foreach ($items as $idx => $item) {
                                 // Auto-generate name: Category + Model Number (same as product form)
                                 $productName = $item['product_name'] ?? '';
                                 if (empty($productName)) {
@@ -524,8 +524,15 @@ class FlexibleProductImportAction
                                 }
 
                                 if (empty(trim($productName))) {
+                                    \Illuminate\Support\Facades\Log::warning('QUICK IMPORT: skipping item - empty name', ['item' => $item]);
                                     continue;
                                 }
+
+                                \Illuminate\Support\Facades\Log::info('QUICK IMPORT: processing item', [
+                                    'idx' => $idx,
+                                    'productName' => $productName,
+                                    'item' => $item,
+                                ]);
 
                                 $sourceRow = $item['_source_row'] ?? null;
                                 $imagePath = $sourceRow ? ($images[$sourceRow] ?? null) : null;
@@ -641,7 +648,12 @@ class FlexibleProductImportAction
                         ->body(implode(', ', $parts) ?: 'Done.')
                         ->success()
                         ->send();
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error('QUICK IMPORT: error', [
+                        'message' => $e->getMessage(),
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
+                    ]);
                     Notification::make()
                         ->title('Error importing products')
                         ->body($e->getMessage())
