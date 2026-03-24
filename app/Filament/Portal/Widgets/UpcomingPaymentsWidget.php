@@ -130,6 +130,7 @@ class UpcomingPaymentsWidget extends Widget
                 'doc_type' => $docType,
                 'doc_color' => $docColor,
                 'reference' => $ref,
+                'client_reference' => $payable?->client_reference ?? null,
                 'label' => preg_replace('/^\d+%\s*\x{2014}\s*/u', '', preg_replace('/\s*\x{2014}\s*\[.*\]\s*$/u', '', $item->label ?? '')),
                 'percentage' => $item->percentage,
                 'amount' => Money::format($item->amount, 2),

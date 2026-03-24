@@ -189,8 +189,11 @@
                                             },
                                         ])>{{ $item['doc_type'] }}</span>
                                     </td>
-                                    <td class="whitespace-nowrap px-4 py-2.5 font-semibold text-gray-900 dark:text-white">
-                                        {{ $item['reference'] }}
+                                    <td class="whitespace-nowrap px-4 py-2.5">
+                                        <div class="font-semibold text-gray-900 dark:text-white">{{ $item['reference'] }}</div>
+                                        @if ($item['client_reference'] ?? null)
+                                            <div class="text-xs text-gray-500 dark:text-gray-400">{{ $item['client_reference'] }}</div>
+                                        @endif
                                     </td>
                                     <td class="whitespace-nowrap px-4 py-2.5 text-gray-600 dark:text-gray-400">
                                         @if ($item['percentage'])
