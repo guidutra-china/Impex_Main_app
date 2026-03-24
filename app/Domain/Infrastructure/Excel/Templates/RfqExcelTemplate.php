@@ -20,6 +20,11 @@ class RfqExcelTemplate extends AbstractExcelTemplate
         return $title;
     }
 
+    public function getDocumentType(): string
+    {
+        return 'rfq_excel';
+    }
+
     public function getFilename(): string
     {
         $reference = $this->model->reference ?? $this->model->getKey();

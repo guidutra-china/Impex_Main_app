@@ -18,8 +18,9 @@ class SendDocumentByEmailAction
         string $documentType,
         string $label = 'Send by Email',
         string $icon = 'heroicon-o-envelope',
+        ?string $name = null,
     ): Action {
-        return Action::make('sendByEmail')
+        return Action::make($name ?? 'sendByEmail_' . str_replace(['.', '-'], '_', $documentType))
             ->label($label)
             ->icon($icon)
             ->color('warning')

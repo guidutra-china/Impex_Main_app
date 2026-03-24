@@ -25,9 +25,16 @@ abstract class AbstractExcelTemplate
 
     abstract public function getDocumentTitle(): string;
 
+    abstract public function getDocumentType(): string;
+
     abstract protected function getHeaders(): array;
 
     abstract protected function getRows(): array;
+
+    public function getModel(): Model
+    {
+        return $this->model;
+    }
 
     public function getFilename(): string
     {

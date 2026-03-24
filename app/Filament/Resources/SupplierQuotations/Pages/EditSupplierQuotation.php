@@ -100,18 +100,28 @@ class EditSupplierQuotation extends EditRecord
                         ->default(false),
                 ],
             ),
-            GenerateExcelAction::download(
+            GenerateExcelAction::make(
                 templateClass: RfqExcelTemplate::class,
-                label: 'Download RFQ Excel',
+                label: 'Generate RFQ Excel',
+                icon: 'heroicon-o-table-cells',
                 formSchema: [
                     Toggle::make('show_target_price')
                         ->label('Include Target Price')
                         ->default(false),
                 ],
             ),
+            GenerateExcelAction::downloadStored(
+                documentType: 'rfq_excel',
+                label: 'Download RFQ Excel',
+            ),
             SendDocumentByEmailAction::make(
                 documentType: 'rfq_pdf',
-                label: 'Send RFQ by Email',
+                label: 'Send RFQ PDF',
+            ),
+            SendDocumentByEmailAction::make(
+                documentType: 'rfq_excel',
+                label: 'Send RFQ Excel',
+                icon: 'heroicon-o-envelope',
             ),
 
             DeleteAction::make(),
