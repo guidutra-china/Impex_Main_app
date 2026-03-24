@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Catalog\Products\Pages;
 
+use App\Filament\Actions\ImportProductsFromSpreadsheetAction;
 use App\Filament\Resources\Catalog\Products\ProductResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
@@ -13,6 +14,7 @@ class ListProducts extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            ImportProductsFromSpreadsheetAction::make(),
             CreateAction::make(),
         ];
     }
