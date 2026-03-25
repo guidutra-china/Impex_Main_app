@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Inquiries\Pages;
 
+use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Inquiries\Enums\InquiryStatus;
 use App\Domain\Inquiries\Enums\ProjectTeamRole;
@@ -100,6 +101,8 @@ class ViewInquiry extends ViewRecord
                                 ]);
 
                                 foreach ($inquiry->items as $item) {
+                                    $unitCost = $this->resolveSupplierCost($item, $companyId);
+
                                     SupplierQuotationItem::create([
                                         'supplier_quotation_id' => $sq->id,
                                         'inquiry_item_id' => $item->id,
@@ -107,7 +110,7 @@ class ViewInquiry extends ViewRecord
                                         'description' => $item->description,
                                         'quantity' => $item->quantity,
                                         'unit' => $item->unit,
-                                        'unit_cost' => 0,
+                                        'unit_cost' => $unitCost,
                                         'specifications' => $item->specifications,
                                         'notes' => $item->notes,
                                         'sort_order' => $item->sort_order,
@@ -175,6 +178,8 @@ class ViewInquiry extends ViewRecord
                     'sort_order' => $item->sort_order,
                 ]);
             } else {
+                $unitCost = $this->resolveSupplierCost($item, $sq->company_id);
+
                 SupplierQuotationItem::create([
                     'supplier_quotation_id' => $sq->id,
                     'inquiry_item_id' => $item->id,
@@ -182,13 +187,35 @@ class ViewInquiry extends ViewRecord
                     'description' => $item->description,
                     'quantity' => $item->quantity,
                     'unit' => $item->unit,
-                    'unit_cost' => 0,
+                    'unit_cost' => $unitCost,
                     'specifications' => $item->specifications,
                     'notes' => $item->notes,
                     'sort_order' => $item->sort_order,
                 ]);
             }
         }
+    }
+
+    protected function resolveSupplierCost($inquiryItem, int $supplierId): int
+    {
+        // Use target_price from inquiry if available
+        if (($inquiryItem->target_price ?? 0) > 0) {
+            return $inquiryItem->target_price;
+        }
+
+        // Otherwise, look up supplier's unit_price from company_product pivot
+        if ($inquiryItem->product_id) {
+            $pivot = CompanyProduct::where('product_id', $inquiryItem->product_id)
+                ->where('company_id', $supplierId)
+                ->where('role', 'supplier')
+                ->first();
+
+            if ($pivot && ($pivot->unit_price ?? 0) > 0) {
+                return $pivot->unit_price;
+            }
+        }
+
+        return 0;
     }
 
     protected function createQuotationAction(): Action
