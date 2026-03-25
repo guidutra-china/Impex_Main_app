@@ -369,12 +369,13 @@ class ViewInquiry extends ViewRecord
                                 $sqItemId = $bestSqItem->id;
                             }
 
+                            // Resolve unit_price from: client pivot > commission markup > cost > target_price
                             $clientPivot = null;
-                            if ($productId && $inquiryItem->product) {
-                                $clientPivot = $inquiryItem->product->clients()
-                                    ->where('companies.id', $clientId)
-                                    ->first()
-                                    ?->pivot;
+                            if ($productId) {
+                                $clientPivot = CompanyProduct::where('product_id', $productId)
+                                    ->where('company_id', $clientId)
+                                    ->where('role', 'client')
+                                    ->first();
                             }
 
                             if ($clientPivot && $clientPivot->unit_price > 0) {
@@ -388,6 +389,19 @@ class ViewInquiry extends ViewRecord
 
                             if ($inquiryItem->target_price && $inquiryItem->target_price > 0 && $unitPrice === 0) {
                                 $unitPrice = $inquiryItem->target_price;
+                            }
+
+                            // Resolve unit_cost from supplier pivot if still zero
+                            if ($unitCost === 0 && $productId) {
+                                $supplierPivot = CompanyProduct::where('product_id', $productId)
+                                    ->where('role', 'supplier')
+                                    ->orderByDesc('is_preferred')
+                                    ->first();
+
+                                if ($supplierPivot && $supplierPivot->unit_price > 0) {
+                                    $unitCost = $supplierPivot->unit_price;
+                                    $selectedSupplierId = $supplierPivot->company_id;
+                                }
                             }
 
                             $existingQItem = $productId ? $existingQItems->get($productId) : null;
