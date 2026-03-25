@@ -263,22 +263,24 @@ class FlexibleProductImportAction
                             self::putCache('rows', $rows);
                             \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: stored ' . count($rows) . ' rows and ' . count($images) . ' images in cache');
 
-                            // Auto-detect header row
-                            $bestRow = 1;
+                            // Auto-detect header row (use original Excel row number)
+                            $bestRow = $rowOrigins[0] ?? 1;
                             $bestScore = 0;
                             $limit = min(count($rows), 10);
                             for ($i = 0; $i < $limit; $i++) {
                                 $mapping = self::autoDetectMapping($rows[$i], $fieldPatterns);
                                 if (count($mapping) > $bestScore) {
                                     $bestScore = count($mapping);
-                                    $bestRow = $i + 1;
+                                    $bestRow = $rowOrigins[$i] ?? ($i + 1);
                                 }
                             }
 
                             $set('header_row', (string) $bestRow);
 
                             if ($bestScore > 0) {
-                                $headerData = $rows[$bestRow - 1];
+                                // Find the filtered index for the best original row number
+                                $bestFilteredIndex = array_search($bestRow, $rowOrigins);
+                                $headerData = $bestFilteredIndex !== false ? $rows[$bestFilteredIndex] : $rows[0];
                                 $mapping = self::autoDetectMapping($headerData, $fieldPatterns);
                                 // Group fields by column index for multi-select
                                 $colFields = [];
@@ -1050,7 +1052,8 @@ class FlexibleProductImportAction
     protected static function applyMappingWithRange(array $rows, array $colMapping, int $headerRowNumber, ?array $fieldDefaults = null, ?int $startRow = null, ?int $endRow = null): array
     {
         $rowOrigins = self::getCache('row_origins', []);
-        $headerOriginalRow = $rowOrigins[$headerRowNumber - 1] ?? $headerRowNumber;
+        // headerRowNumber is the original Excel row number (from the preview table)
+        $headerOriginalRow = $headerRowNumber;
         $items = [];
 
         for ($i = 0; $i < count($rows); $i++) {
