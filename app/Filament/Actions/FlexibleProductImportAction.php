@@ -280,8 +280,13 @@ class FlexibleProductImportAction
                             if ($bestScore > 0) {
                                 $headerData = $rows[$bestRow - 1];
                                 $mapping = self::autoDetectMapping($headerData, $fieldPatterns);
+                                // Group fields by column index for multi-select
+                                $colFields = [];
                                 foreach ($mapping as $field => $colIndex) {
-                                    $set("col_{$field}", $colIndex);
+                                    $colFields[$colIndex][] = $field;
+                                }
+                                foreach ($colFields as $colIndex => $fields) {
+                                    $set("col_map_{$colIndex}", $fields);
                                 }
                             }
                             \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: afterValidation COMPLETE');
@@ -298,9 +303,14 @@ class FlexibleProductImportAction
 
                         $colMapping = [];
                         for ($c = 0; $c < 15; $c++) {
-                            $field = $get("col_map_{$c}");
-                            if ($field && $field !== '' && $field !== 'skip') {
-                                $colMapping[$field] = (string) $c;
+                            $fields = $get("col_map_{$c}") ?? [];
+                            if (is_string($fields)) {
+                                $fields = [$fields];
+                            }
+                            foreach ($fields as $field) {
+                                if ($field && $field !== '' && $field !== 'skip') {
+                                    $colMapping[$field] = (string) $c;
+                                }
                             }
                         }
 
@@ -358,7 +368,8 @@ class FlexibleProductImportAction
 
                             $select = Select::make("col_map_{$c}")
                                 ->options($fieldOptions)
-                                ->default('skip')
+                                ->multiple()
+                                ->default([])
                                 ->native(false);
 
                             if ($c < $displayCols) {
@@ -579,9 +590,14 @@ class FlexibleProductImportAction
                 $headerRow = (int) ($data['header_row'] ?? 1);
                 $colMapping = [];
                 for ($c = 0; $c < 15; $c++) {
-                    $field = $data["col_map_{$c}"] ?? null;
-                    if ($field && $field !== '' && $field !== 'skip') {
-                        $colMapping[$field] = (string) $c;
+                    $fields = $data["col_map_{$c}"] ?? [];
+                    if (is_string($fields)) {
+                        $fields = [$fields];
+                    }
+                    foreach ($fields as $field) {
+                        if ($field && $field !== '' && $field !== 'skip') {
+                            $colMapping[$field] = (string) $c;
+                        }
                     }
                 }
                 $blocks = array_values($data['import_blocks'] ?? []);
