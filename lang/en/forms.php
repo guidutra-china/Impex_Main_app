@@ -130,6 +130,7 @@ return array (
     'convert_to_pi' => 'Convert to Proforma Invoice',
     'country_of_origin' => 'Country of Origin',
     'create_proforma_invoice' => 'Create Proforma Invoice',
+    'update_proforma_invoice' => 'Update Proforma Invoice',
     'create_quotation' => 'Create Quotation',
     'create_new_draft_product' => 'Create new draft product',
     'created' => 'Created',

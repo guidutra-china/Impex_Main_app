@@ -36,6 +36,8 @@ return [
     'sq_created' => '供应商报价已创建',
     'quotation_created' => '报价已创建',
     'pi_created' => '形式发票已创建',
+    'pi_updated' => '形式发票已更新',
+    'pi_update_description' => '这将使用当前询价数据（公司、联系人、货币）更新现有形式发票 :reference。',
     'status_changed_to' => '状态已更改为',
     'version_saved' => '版本 v:version 已保存',
     'pos_generated' => '采购订单已生成',

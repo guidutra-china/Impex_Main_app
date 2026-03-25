@@ -11,6 +11,7 @@ use App\Domain\Infrastructure\Traits\HasStateMachine;
 use App\Domain\Inquiries\Enums\InquirySource;
 use App\Domain\Inquiries\Enums\InquiryStatus;
 use App\Domain\Inquiries\Enums\ProjectTeamRole;
+use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\Quotations\Models\Quotation;
 use App\Domain\SupplierQuotations\Models\SupplierQuotation;
 use App\Models\User;
@@ -145,6 +146,11 @@ class Inquiry extends Model
     public function supplierQuotations(): HasMany
     {
         return $this->hasMany(SupplierQuotation::class);
+    }
+
+    public function proformaInvoices(): HasMany
+    {
+        return $this->hasMany(ProformaInvoice::class);
     }
 
     // --- Scopes ---

@@ -197,6 +197,89 @@ class EditInquiry extends EditRecord
         }
     }
 
+    protected function syncPiItemsFromInquiry(ProformaInvoice $pi, Inquiry $inquiry, array $supplierQuotationIds = []): void
+    {
+        $inquiry->load('items.product.clients', 'items.product.specification');
+        $existingPiItems = $pi->items()->get()->keyBy('product_id');
+        $inquiryProductIds = $inquiry->items->pluck('product_id')->filter()->toArray();
+
+        // Build supplier cost map from linked supplier quotations
+        $supplierCostMap = [];
+        if (! empty($supplierQuotationIds)) {
+            $sqItems = SupplierQuotationItem::query()
+                ->whereIn('supplier_quotation_id', $supplierQuotationIds)
+                ->with('supplierQuotation')
+                ->get();
+            foreach ($sqItems as $sqItem) {
+                if ($sqItem->product_id && ! isset($supplierCostMap[$sqItem->product_id])) {
+                    $supplierCostMap[$sqItem->product_id] = [
+                        'unit_cost' => $sqItem->unit_cost,
+                        'supplier_company_id' => $sqItem->supplierQuotation->company_id ?? null,
+                    ];
+                }
+            }
+        }
+
+        // Remove PI items no longer in Inquiry (only if no downstream dependencies)
+        $pi->items()
+            ->whereNotNull('product_id')
+            ->whereNotIn('product_id', $inquiryProductIds)
+            ->whereDoesntHave('purchaseOrderItem')
+            ->whereDoesntHave('shipmentItems')
+            ->whereDoesntHave('shipmentPlanItems')
+            ->delete();
+
+        // Add or update items
+        $maxSort = 0;
+        foreach ($inquiry->items as $item) {
+            $maxSort++;
+            $existing = $item->product_id ? $existingPiItems->get($item->product_id) : null;
+
+            if ($existing) {
+                // Update quantity, description, specs from inquiry (keep unit_price and unit_cost)
+                $existing->update([
+                    'product_id'     => $item->product_id,
+                    'description'    => $item->product?->name ?? $item->description,
+                    'specifications' => $item->product?->specification?->description ?? $item->specifications,
+                    'quantity'       => $item->quantity,
+                    'unit'           => $item->unit ?? 'pcs',
+                    'notes'          => $item->notes,
+                    'sort_order'     => $maxSort,
+                ]);
+            } else {
+                // Get client-specific selling price
+                $clientPrice = 0;
+                if ($item->product) {
+                    $clientPivot = $item->product->clients()
+                        ->where('companies.id', $inquiry->company_id)
+                        ->first()
+                        ?->pivot;
+                    if ($clientPivot && ($clientPivot->unit_price ?? 0) > 0) {
+                        $clientPrice = $clientPivot->unit_price;
+                    }
+                }
+
+                $supplierData = $supplierCostMap[$item->product_id] ?? null;
+
+                ProformaInvoiceItem::create([
+                    'proforma_invoice_id' => $pi->id,
+                    'product_id'          => $item->product_id,
+                    'quotation_item_id'   => null,
+                    'supplier_company_id' => $supplierData['supplier_company_id'] ?? null,
+                    'description'         => $item->product?->name ?? $item->description,
+                    'specifications'      => $item->product?->specification?->description ?? $item->specifications,
+                    'quantity'            => $item->quantity,
+                    'unit'                => $item->unit ?? 'pcs',
+                    'unit_price'          => $clientPrice,
+                    'unit_cost'           => $supplierData['unit_cost'] ?? 0,
+                    'incoterm'            => null,
+                    'notes'               => $item->notes,
+                    'sort_order'          => $maxSort,
+                ]);
+            }
+        }
+    }
+
     protected function createQuotationAction(): Action
     {
         $inquiry = $this->record;
@@ -387,17 +470,31 @@ class EditInquiry extends EditRecord
 
     protected function createProformaInvoiceAction(): Action
     {
+        $existingPi = $this->record->proformaInvoices()
+            ->where('status', '!=', ProformaInvoiceStatus::CANCELLED->value)
+            ->latest()
+            ->first();
+
+        $isUpdate = (bool) $existingPi;
+
         return Action::make('createProformaInvoice')
-            ->label(__('forms.labels.create_proforma_invoice'))
+            ->label($isUpdate
+                ? __('forms.labels.update_proforma_invoice')
+                : __('forms.labels.create_proforma_invoice'))
             ->icon('heroicon-o-document-text')
-            ->color('success')
+            ->color($isUpdate ? 'warning' : 'success')
             ->requiresConfirmation()
-            ->modalHeading('Create Proforma Invoice')
-            ->modalDescription('This will create a new Proforma Invoice linked to this inquiry. You can then import items from quotations or add them manually.')
+            ->modalHeading($isUpdate
+                ? __('forms.labels.update_proforma_invoice') . ' — ' . $existingPi?->reference
+                : 'Create Proforma Invoice')
+            ->modalDescription($isUpdate
+                ? __('messages.pi_update_description', ['reference' => $existingPi?->reference])
+                : 'This will create a new Proforma Invoice linked to this inquiry. You can then import items from quotations or add them manually.')
             ->form([
                 Select::make('quotation_ids')
                     ->label(__('forms.labels.link_quotations_optional'))
                     ->multiple()
+                    ->default($isUpdate ? $existingPi?->quotations()->pluck('quotations.id')->toArray() : [])
                     ->options(function () {
                         $inquiry = $this->record;
                         return Quotation::query()
@@ -418,10 +515,11 @@ class EditInquiry extends EditRecord
                                     . ($q->inquiry_id === $inquiry->id ? '' : ' ⚠ different inquiry'),
                             ]);
                     })
-                     ->helperText(__('forms.helpers.optionally_link_existing_quotations_items_can_be_imported')),
+                    ->helperText(__('forms.helpers.optionally_link_existing_quotations_items_can_be_imported')),
                 Select::make('supplier_quotation_ids')
                     ->label('Link Supplier Quotations (Optional)')
                     ->multiple()
+                    ->default($isUpdate ? $existingPi?->supplierQuotations()->pluck('supplier_quotations.id')->toArray() : [])
                     ->options(function () {
                         $inquiry = $this->record;
                         return SupplierQuotation::query()
@@ -448,75 +546,62 @@ class EditInquiry extends EditRecord
                     })
                     ->helperText('Supplier quotations to use as cost source when importing items.'),
             ])
-            ->action(function (array $data) {
+            ->action(function (array $data) use ($existingPi) {
                 try {
                     $inquiry = $this->record;
-                    $pi = DB::transaction(function () use ($inquiry, $data) {
-                        $proformaInvoice = ProformaInvoice::create([
-                            'inquiry_id' => $inquiry->id,
-                            'company_id' => $inquiry->company_id,
-                            'contact_id' => $inquiry->contact_id,
-                            'status' => ProformaInvoiceStatus::DRAFT,
-                            'currency_code' => $inquiry->currency_code ?? 'USD',
-                            'issue_date' => now(),
-                            'created_by' => auth()->id(),
-                            'responsible_user_id' => $inquiry->getTeamMemberByRole(ProjectTeamRole::FINANCIAL)?->id
-                                ?? $inquiry->responsible_user_id,
-                        ]);
-                        if (! empty($data['quotation_ids'])) {
-                            $proformaInvoice->quotations()->attach($data['quotation_ids']);
-                        }
-                        if (! empty($data['supplier_quotation_ids'])) {
-                            $proformaInvoice->supplierQuotations()->attach($data['supplier_quotation_ids']);
-                            // Auto-import items from linked supplier quotations
-                            $maxSort = 0;
-                            $seenProductIds = [];
-                            $sqItems = SupplierQuotationItem::query()
-                                ->whereIn('supplier_quotation_id', $data['supplier_quotation_ids'])
-                                ->with(['product', 'product.clients', 'product.specification', 'supplierQuotation'])
-                                ->orderBy('sort_order')
-                                ->get();
-                            foreach ($sqItems as $sqItem) {
-                                // Skip duplicate products across multiple SQs
-                                if ($sqItem->product_id && in_array($sqItem->product_id, $seenProductIds)) {
-                                    continue;
-                                }
-                                if ($sqItem->product_id) {
-                                    $seenProductIds[] = $sqItem->product_id;
-                                }
-                                // Try to get client-specific selling price
-                                $unitPrice = 0;
-                                if ($sqItem->product) {
-                                    $clientPivot = $sqItem->product->clients()
-                                        ->where('companies.id', $inquiry->company_id)
-                                        ->first()
-                                        ?->pivot;
-                                    if ($clientPivot && ($clientPivot->unit_price ?? 0) > 0) {
-                                        $unitPrice = $clientPivot->unit_price;
-                                    }
-                                }
-                                ProformaInvoiceItem::create([
-                                    'proforma_invoice_id' => $proformaInvoice->id,
-                                    'product_id'          => $sqItem->product_id,
-                                    'quotation_item_id'   => null,
-                                    'supplier_company_id' => $sqItem->supplierQuotation->company_id,
-                                    'description'         => $sqItem->product?->name ?? $sqItem->description,
-                                    'specifications'      => $sqItem->product?->specification?->description ?? $sqItem->specifications,
-                                    'quantity'            => $sqItem->quantity,
-                                    'unit'                => $sqItem->unit ?? 'pcs',
-                                    'unit_price'          => $unitPrice,
-                                    'unit_cost'           => $sqItem->unit_cost,
-                                    'incoterm'            => null,
-                                    'notes'               => $sqItem->notes,
-                                    'sort_order'          => ++$maxSort,
-                                ]);
+
+                    $pi = DB::transaction(function () use ($inquiry, $data, $existingPi) {
+                        if ($existingPi) {
+                            // Update existing PI with current inquiry data
+                            $existingPi->update([
+                                'company_id' => $inquiry->company_id,
+                                'contact_id' => $inquiry->contact_id,
+                                'currency_code' => $inquiry->currency_code ?? 'USD',
+                                'responsible_user_id' => $inquiry->getTeamMemberByRole(ProjectTeamRole::FINANCIAL)?->id
+                                    ?? $inquiry->responsible_user_id,
+                            ]);
+
+                            $proformaInvoice = $existingPi;
+
+                            // Sync quotation links
+                            $proformaInvoice->quotations()->sync($data['quotation_ids'] ?? []);
+                            $proformaInvoice->supplierQuotations()->sync($data['supplier_quotation_ids'] ?? []);
+
+                            // Sync items from Inquiry
+                            $this->syncPiItemsFromInquiry($proformaInvoice, $inquiry, $data['supplier_quotation_ids'] ?? []);
+                        } else {
+                            // Create new PI
+                            $proformaInvoice = ProformaInvoice::create([
+                                'inquiry_id' => $inquiry->id,
+                                'company_id' => $inquiry->company_id,
+                                'contact_id' => $inquiry->contact_id,
+                                'status' => ProformaInvoiceStatus::DRAFT,
+                                'currency_code' => $inquiry->currency_code ?? 'USD',
+                                'issue_date' => now(),
+                                'created_by' => auth()->id(),
+                                'responsible_user_id' => $inquiry->getTeamMemberByRole(ProjectTeamRole::FINANCIAL)?->id
+                                    ?? $inquiry->responsible_user_id,
+                            ]);
+
+                            if (! empty($data['quotation_ids'])) {
+                                $proformaInvoice->quotations()->attach($data['quotation_ids']);
                             }
+
+                            if (! empty($data['supplier_quotation_ids'])) {
+                                $proformaInvoice->supplierQuotations()->attach($data['supplier_quotation_ids']);
+                            }
+
+                            // Import items from Inquiry
+                            $this->syncPiItemsFromInquiry($proformaInvoice, $inquiry, $data['supplier_quotation_ids'] ?? []);
                         }
+
                         return $proformaInvoice;
                     });
 
                     Notification::make()
-                        ->title(__('messages.pi_created') . ': ' . $pi->reference)
+                        ->title($existingPi
+                            ? __('messages.pi_updated') . ': ' . $pi->reference
+                            : __('messages.pi_created') . ': ' . $pi->reference)
                         ->body(__('messages.redirect_import_quotations'))
                         ->success()
                         ->send();

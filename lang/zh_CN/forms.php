@@ -128,6 +128,7 @@ return array (
     'convert_to_pi' => '转换为形式发票',
     'country_of_origin' => '原产国',
     'create_proforma_invoice' => '创建形式发票',
+    'update_proforma_invoice' => '更新形式发票',
     'create_quotation' => '创建报价单',
     'create_new_draft_product' => '创建新草稿产品',
     'created' => '已创建',
