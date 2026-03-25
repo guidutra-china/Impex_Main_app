@@ -10,6 +10,7 @@
         <table class="w-full text-sm text-left">
             <thead class="bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 font-medium">
                 <tr>
+                    <th class="px-4 py-2.5 w-12"></th>
                     <th class="px-4 py-2.5">Product</th>
                     <th class="px-4 py-2.5">Description</th>
                     <th class="px-4 py-2.5 text-center">Quantity</th>
@@ -23,6 +24,15 @@
             <tbody class="divide-y divide-gray-200 dark:divide-white/10">
                 @foreach($items as $item)
                     <tr class="text-gray-900 dark:text-white">
+                        <td class="px-4 py-2.5">
+                            @if($item->product?->avatar)
+                                <img src="{{ Storage::disk('public')->url($item->product->avatar) }}" alt="{{ $item->product->name }}" class="w-10 h-10 rounded object-cover">
+                            @else
+                                <div class="w-10 h-10 rounded bg-gray-100 dark:bg-white/10 flex items-center justify-center">
+                                    <x-heroicon-o-cube class="w-5 h-5 text-gray-400" />
+                                </div>
+                            @endif
+                        </td>
                         <td class="px-4 py-2.5">{{ $item->product?->name ?? '—' }}</td>
                         <td class="px-4 py-2.5">{{ $item->description ?? '—' }}</td>
                         <td class="px-4 py-2.5 text-center">{{ number_format($item->quantity) }}</td>
@@ -37,7 +47,7 @@
             @if($showFinancial)
                 <tfoot class="bg-gray-50 dark:bg-white/5 font-bold text-gray-900 dark:text-white">
                     <tr>
-                        <td colspan="4" class="px-4 py-2.5 text-right">Subtotal</td>
+                        <td colspan="5" class="px-4 py-2.5 text-right">Subtotal</td>
                         <td class="px-4 py-2.5"></td>
                         <td class="px-4 py-2.5 text-right">{{ $currency }} {{ \App\Domain\Infrastructure\Support\Money::format($record->total, 2) }}</td>
                     </tr>
