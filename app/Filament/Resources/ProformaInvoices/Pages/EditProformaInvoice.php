@@ -11,6 +11,7 @@ use App\Domain\Infrastructure\Pdf\Templates\ProformaInvoicePdfTemplate;
 use App\Domain\Infrastructure\Services\DocumentService;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Filament\Actions\GeneratePdfAction;
+use App\Filament\Actions\SendDocumentByEmailAction;
 use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -36,6 +37,14 @@ class EditProformaInvoice extends EditRecord
             GeneratePdfAction::download(
                 documentType: 'proforma_invoice_pdf',
                 label: 'Download PDF',
+            ),
+            GeneratePdfAction::preview(
+                templateClass: ProformaInvoicePdfTemplate::class,
+                label: 'Preview PDF',
+            ),
+            SendDocumentByEmailAction::make(
+                documentType: 'proforma_invoice_pdf',
+                label: 'Send by Email',
             ),
             $this->customPricePdfAction(),
             $this->transitionStatusAction(),
