@@ -325,6 +325,7 @@ class FlexibleProductImportAction
                         $fieldOptions = [
                             'skip' => '— Skip —',
                             'Product' => [
+                                'product_name' => 'Product Name',
                                 'commercial_name' => 'Commercial Name',
                                 'model_number' => 'Model Number',
                                 'product_family' => 'Product Family',
@@ -598,7 +599,19 @@ class FlexibleProductImportAction
                 $company = $getCompany();
                 $skuGenerator = app(GenerateProductSkuAction::class);
 
-                $stats = ['created' => 0, 'updated' => 0, 'images' => 0, 'errors' => []];
+                // Validate that at least product_name or reference_code is mapped
+                $hasMandatoryField = isset($colMapping['product_name']) || isset($colMapping['reference_code']);
+                if (! $hasMandatoryField) {
+                    Notification::make()
+                        ->title('Missing required column mapping')
+                        ->body('You must map at least "Product Name" or "Reference Code / SKU" to a column.')
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+
+                $stats = ['created' => 0, 'updated' => 0, 'images' => 0, 'skipped' => 0, 'errors' => []];
                 $totalItems = 0;
 
                 try {
@@ -628,6 +641,7 @@ class FlexibleProductImportAction
                                 }
 
                                 if (empty(trim($productName))) {
+                                    $stats['skipped']++;
                                     continue;
                                 }
 
@@ -646,7 +660,7 @@ class FlexibleProductImportAction
                                     if ($existing->trashed()) {
                                         $existing->restore();
                                     }
-                                    if ($imagePath && ! $existing->avatar) {
+                                    if ($imagePath) {
                                         $existing->update(['avatar' => $imagePath]);
                                         $stats['images']++;
                                     }
@@ -716,7 +730,9 @@ class FlexibleProductImportAction
                                         ->where('role', $crossRole)
                                         ->first();
 
-                                    if (! $existingCrossLink) {
+                                    if ($existingCrossLink) {
+                                        $existingCrossLink->update($crossPivotData);
+                                    } else {
                                         CompanyProduct::create(array_merge($crossPivotData, [
                                             'product_id' => $existing->id,
                                             'company_id' => $crossCompanyId,
@@ -736,6 +752,9 @@ class FlexibleProductImportAction
                     }
                     if ($stats['images'] > 0) {
                         $parts[] = "{$stats['images']} images";
+                    }
+                    if ($stats['skipped'] > 0) {
+                        $parts[] = "{$stats['skipped']} skipped (no name)";
                     }
 
                     $blockSummary = count($blocks) > 1 ? ' across ' . count($blocks) . ' categories' : '';
@@ -980,13 +999,17 @@ class FlexibleProductImportAction
 
     protected static function applyFormula(float $baseValue, string $formula): ?float
     {
-        $formula = trim($formula);
+        $formula = preg_replace('/\s+/', '', trim($formula));
         if ($formula === '') {
             return null;
         }
 
         $operator = $formula[0];
         $operand = (float) substr($formula, 1);
+
+        if ($operand == 0 && $operator !== '+' && $operator !== '-') {
+            return null;
+        }
 
         return match ($operator) {
             '*' => round($baseValue * $operand, 4),
