@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Catalog\Products\Tables;
 
+use App\Domain\CRM\Enums\CompanyRole;
+use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\Category;
@@ -267,6 +269,11 @@ class ProductsTable
                     static::getBulkSetFieldAction('brand', 'Set Brand', 'heroicon-o-tag',
                         TextInput::make('value')->label('Brand')->required()->maxLength(255),
                     ),
+                    static::getBulkSetFieldAction('product_family', 'Set Product Family', 'heroicon-o-rectangle-group',
+                        TextInput::make('value')->label('Product Family')->required()->maxLength(255),
+                    ),
+                    static::getBulkAttachCompanyAction('client'),
+                    static::getBulkAttachCompanyAction('supplier'),
                     DeleteBulkAction::make(),
                     RestoreBulkAction::make(),
                     ForceDeleteBulkAction::make(),
@@ -332,6 +339,72 @@ class ProductsTable
                     ->success()
                     ->title("Updated {$updated} products")
                     ->body("Status set to {$data['status']}")
+                    ->send();
+            })
+            ->deselectRecordsAfterCompletion();
+    }
+
+    private static function getBulkAttachCompanyAction(string $role): BulkAction
+    {
+        $isClient = $role === 'client';
+        $label = $isClient ? 'Attach Client' : 'Attach Supplier';
+        $icon = $isClient ? 'heroicon-o-user-group' : 'heroicon-o-truck';
+        $companyRole = $isClient ? CompanyRole::CLIENT : CompanyRole::SUPPLIER;
+
+        return BulkAction::make('attach_' . $role)
+            ->label($label)
+            ->icon($icon)
+            ->form([
+                Select::make('company_id')
+                    ->label($isClient ? 'Client' : 'Supplier')
+                    ->options(
+                        fn () => Company::whereHas('companyRoles', fn ($q) => $q->where('role', $companyRole))
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                    )
+                    ->searchable()
+                    ->required(),
+                TextInput::make('unit_price')
+                    ->label($isClient ? 'Selling Price' : 'Unit Cost')
+                    ->numeric()
+                    ->minValue(0)
+                    ->step(0.0001)
+                    ->prefix('$')
+                    ->inputMode('decimal')
+                    ->helperText('Leave empty to set individually later.'),
+            ])
+            ->action(function (Collection $records, array $data) use ($role, $label): void {
+                $companyId = $data['company_id'];
+                $unitPrice = ! empty($data['unit_price'])
+                    ? Money::toMinor((float) $data['unit_price'])
+                    : 0;
+
+                $attached = 0;
+                $skipped = 0;
+
+                foreach ($records as $product) {
+                    $exists = $product->companies()
+                        ->where('companies.id', $companyId)
+                        ->wherePivot('role', $role)
+                        ->exists();
+
+                    if ($exists) {
+                        $skipped++;
+                        continue;
+                    }
+
+                    $product->companies()->attach($companyId, [
+                        'role' => $role,
+                        'unit_price' => $unitPrice,
+                    ]);
+                    $attached++;
+                }
+
+                $company = Company::find($companyId);
+                Notification::make()
+                    ->success()
+                    ->title("{$attached} products linked")
+                    ->body("{$label}: {$company?->name}" . ($skipped > 0 ? " ({$skipped} already linked)" : ''))
                     ->send();
             })
             ->deselectRecordsAfterCompletion();
