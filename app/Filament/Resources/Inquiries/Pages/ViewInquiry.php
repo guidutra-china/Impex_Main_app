@@ -393,18 +393,19 @@ class ViewInquiry extends ViewRecord
                             $existingQItem = $productId ? $existingQItems->get($productId) : null;
 
                             if ($existingQItem) {
-                                // Update existing: sync quantity, notes, cost/price from SQ
                                 $updateData = [
                                     'quantity' => $inquiryItem->quantity,
                                     'notes' => $inquiryItem->specifications,
                                     'sort_order' => $sortOrder++,
                                 ];
-                                if ($unitCost > 0) {
+                                // Always update cost if we have a better value and existing is empty
+                                if ($unitCost > 0 && ! ($existingQItem->unit_cost > 0)) {
                                     $updateData['unit_cost'] = $unitCost;
                                     $updateData['supplier_quotation_item_id'] = $sqItemId;
                                     $updateData['selected_supplier_id'] = $selectedSupplierId;
                                 }
-                                if ($unitPrice > 0 && ($existingQItem->unit_price ?? 0) === 0) {
+                                // Always update price if we have a value and existing is empty
+                                if ($unitPrice > 0 && ! ($existingQItem->unit_price > 0)) {
                                     $updateData['unit_price'] = $unitPrice;
                                     $updateData['commission_rate'] = $itemCommissionRate;
                                 }

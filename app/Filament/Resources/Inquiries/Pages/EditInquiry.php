@@ -484,12 +484,12 @@ class EditInquiry extends EditRecord
                                     'notes' => $inquiryItem->specifications,
                                     'sort_order' => $sortOrder++,
                                 ];
-                                if ($unitCost > 0) {
+                                if ($unitCost > 0 && ! ($existingQItem->unit_cost > 0)) {
                                     $updateData['unit_cost'] = $unitCost;
                                     $updateData['supplier_quotation_item_id'] = $sqItemId;
                                     $updateData['selected_supplier_id'] = $selectedSupplierId;
                                 }
-                                if ($unitPrice > 0 && ($existingQItem->unit_price ?? 0) === 0) {
+                                if ($unitPrice > 0 && ! ($existingQItem->unit_price > 0)) {
                                     $updateData['unit_price'] = $unitPrice;
                                     $updateData['commission_rate'] = $itemCommissionRate;
                                 }
