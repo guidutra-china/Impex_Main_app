@@ -172,7 +172,19 @@ class ViewProformaInvoice extends ViewRecord
             ->modalHeading('Generate Purchase Orders')
             ->modalDescription(function () {
                 $record = $this->getRecord();
-                $record->loadMissing(['items.supplierCompany']);
+                $record->loadMissing(['items.supplierCompany', 'items.product.suppliers']);
+
+                // Resolve suppliers from product catalog for preview
+                foreach ($record->items as $item) {
+                    if ($item->supplier_company_id === null && $item->product) {
+                        $preferred = $item->product->suppliers()
+                            ->orderByDesc('company_product.is_preferred')
+                            ->first();
+                        if ($preferred) {
+                            $item->supplier_company_id = $preferred->id;
+                        }
+                    }
+                }
 
                 $blockers = PaymentScheduleItem::blockingPurchaseOrderGeneration($record);
 
