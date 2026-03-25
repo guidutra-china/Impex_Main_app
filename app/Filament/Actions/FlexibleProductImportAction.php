@@ -325,7 +325,6 @@ class FlexibleProductImportAction
                         $fieldOptions = [
                             'skip' => '— Skip —',
                             'Product' => [
-                                'product_name' => 'Product Name',
                                 'commercial_name' => 'Commercial Name',
                                 'model_number' => 'Model Number',
                                 'product_family' => 'Product Family',
@@ -599,12 +598,11 @@ class FlexibleProductImportAction
                 $company = $getCompany();
                 $skuGenerator = app(GenerateProductSkuAction::class);
 
-                // Validate that at least product_name or reference_code is mapped
-                $hasMandatoryField = isset($colMapping['product_name']) || isset($colMapping['reference_code']);
-                if (! $hasMandatoryField) {
+                // Validate that model_number is mapped (required for product name generation)
+                if (! isset($colMapping['model_number'])) {
                     Notification::make()
                         ->title('Missing required column mapping')
-                        ->body('You must map at least "Product Name" or "Reference Code / SKU" to a column.')
+                        ->body('You must map "Model Number" to a column. Product names are generated as: Category + Model Number.')
                         ->danger()
                         ->send();
 
