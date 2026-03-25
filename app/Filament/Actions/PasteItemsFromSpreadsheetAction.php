@@ -316,9 +316,10 @@ class PasteItemsFromSpreadsheetAction
                         $maxSort++;
                         $productName = $item['product_name'];
 
-                        $product = Product::where('name', 'like', "%{$productName}%")
-                            ->orWhere('sku', 'like', "%{$productName}%")
-                            ->first();
+                        $product = Product::where('model_number', $productName)->first()
+                            ?? Product::where('reference_code', $productName)->first()
+                            ?? Product::where('sku', $productName)->first()
+                            ?? Product::where('name', 'like', "%{$productName}%")->first();
 
                         $ownerRecord->items()->create([
                             'product_id' => $product?->id,
@@ -401,6 +402,8 @@ class PasteItemsFromSpreadsheetAction
                         $productNameOrSku = $item['product_name'];
 
                         $product = Product::where('sku', $productNameOrSku)->first()
+                            ?? Product::where('model_number', $productNameOrSku)->first()
+                            ?? Product::where('reference_code', $productNameOrSku)->first()
                             ?? Product::where('name', 'like', "%{$productNameOrSku}%")->first();
 
                         $unitCost = ! empty($item['price']) ? Money::toMinor((float) $item['price']) : 0;
