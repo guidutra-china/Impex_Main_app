@@ -104,6 +104,7 @@ class ProformaInvoice extends Model
                 ProformaInvoiceStatus::CANCELLED->value,
             ],
             ProformaInvoiceStatus::CONFIRMED->value => [
+                ProformaInvoiceStatus::SENT->value,
                 ProformaInvoiceStatus::FINALIZED->value,
                 ProformaInvoiceStatus::CANCELLED->value,
             ],

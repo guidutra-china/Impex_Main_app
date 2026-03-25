@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ProformaInvoices\Tables;
 
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\ProformaInvoices\Actions\CancelProformaInvoiceAction;
+use App\Domain\ProformaInvoices\Actions\SyncClientProductPricesAction;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Filament\Actions\StatusTransitionActions;
 use Filament\Actions\BulkActionGroup;
@@ -132,6 +133,12 @@ class ProformaInvoicesTable
             ])
             ->recordActions([
                 StatusTransitionActions::make(ProformaInvoiceStatus::class, [
+                    'confirmed' => [
+                        'icon' => 'heroicon-o-check-circle',
+                        'color' => 'success',
+                        'requiresConfirmation' => true,
+                        'sideEffects' => fn ($record) => app(SyncClientProductPricesAction::class)->execute($record),
+                    ],
                     'finalized' => [
                         'icon' => 'heroicon-o-lock-closed',
                         'color' => 'primary',

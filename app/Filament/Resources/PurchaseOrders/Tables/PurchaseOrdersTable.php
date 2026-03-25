@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\PurchaseOrders\Tables;
 
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\PurchaseOrders\Actions\SyncSupplierProductPricesAction;
 use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
 use App\Filament\Actions\StatusTransitionActions;
 use Filament\Actions\BulkActionGroup;
@@ -125,7 +126,14 @@ class PurchaseOrdersTable
                 TrashedFilter::make(),
             ])
             ->recordActions([
-                StatusTransitionActions::make(PurchaseOrderStatus::class),
+                StatusTransitionActions::make(PurchaseOrderStatus::class, [
+                    'confirmed' => [
+                        'icon' => 'heroicon-o-check-circle',
+                        'color' => 'success',
+                        'requiresConfirmation' => true,
+                        'sideEffects' => fn ($record) => app(SyncSupplierProductPricesAction::class)->execute($record),
+                    ],
+                ]),
                 ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
