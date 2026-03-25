@@ -130,6 +130,7 @@ return array (
     'country_of_origin' => 'País de Origem',
     'create_proforma_invoice' => 'Criar Fatura Proforma',
     'update_proforma_invoice' => 'Atualizar Fatura Proforma',
+    'update_quotation' => 'Atualizar Cotação',
     'create_quotation' => 'Criar Cotação',
     'create_new_draft_product' => 'Criar novo produto rascunho',
     'created' => 'Criado',

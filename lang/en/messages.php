@@ -35,6 +35,7 @@ return [
     // Dynamic notification titles
     'sq_created' => 'supplier quotation(s) created',
     'quotation_created' => 'Quotation created',
+    'quotation_updated' => 'Quotation updated',
     'pi_created' => 'Proforma Invoice created',
     'pi_updated' => 'Proforma Invoice updated',
     'pi_update_description' => 'This will update the existing Proforma Invoice :reference with the current inquiry data (company, contact, currency).',

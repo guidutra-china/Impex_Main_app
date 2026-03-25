@@ -131,6 +131,7 @@ return array (
     'country_of_origin' => 'Country of Origin',
     'create_proforma_invoice' => 'Create Proforma Invoice',
     'update_proforma_invoice' => 'Update Proforma Invoice',
+    'update_quotation' => 'Update Quotation',
     'create_quotation' => 'Create Quotation',
     'create_new_draft_product' => 'Create new draft product',
     'created' => 'Created',

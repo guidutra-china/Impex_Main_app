@@ -229,10 +229,19 @@ class ViewInquiry extends ViewRecord
             ])
             ->exists();
 
+        $existingQuotation = $inquiry->quotations()
+            ->whereNotIn('status', [QuotationStatus::CANCELLED->value, QuotationStatus::REJECTED->value, QuotationStatus::EXPIRED->value])
+            ->latest()
+            ->first();
+
+        $isUpdate = (bool) $existingQuotation;
+
         return Action::make('createQuotation')
-            ->label(__('forms.labels.create_quotation'))
+            ->label($isUpdate
+                ? __('forms.labels.update_quotation')
+                : __('forms.labels.create_quotation'))
             ->icon('heroicon-o-document-plus')
-            ->color('success')
+            ->color($isUpdate ? 'warning' : 'success')
             ->visible(fn () => in_array($this->record->status, [
                 InquiryStatus::RECEIVED,
                 InquiryStatus::QUOTING,
@@ -289,9 +298,9 @@ class ViewInquiry extends ViewRecord
 
                 return $fields;
             })
-            ->action(function (array $data) use ($hasSupplierQuotations) {
+            ->action(function (array $data) use ($hasSupplierQuotations, $existingQuotation) {
                 try {
-                    $quotation = DB::transaction(function () use ($data, $hasSupplierQuotations) {
+                    $quotation = DB::transaction(function () use ($data, $hasSupplierQuotations, $existingQuotation) {
                         $inquiry = Inquiry::with(['items.product.clients', 'items.product.suppliers'])
                             ->lockForUpdate()
                             ->findOrFail($this->record->id);
@@ -301,18 +310,31 @@ class ViewInquiry extends ViewRecord
                             : CommissionType::from($data['commission_type']);
                         $commissionRate = (float) ($data['commission_rate'] ?? 0);
 
-                        $quotation = Quotation::create([
-                            'inquiry_id' => $inquiry->id,
-                            'company_id' => $inquiry->company_id,
-                            'contact_id' => $inquiry->contact_id,
-                            'status' => QuotationStatus::DRAFT,
-                            'currency_code' => $inquiry->currency_code,
-                            'commission_type' => $commissionType,
-                            'commission_rate' => $commissionType === CommissionType::SEPARATE ? $commissionRate : 0,
-                            'notes' => $inquiry->notes,
-                            'responsible_user_id' => $inquiry->getTeamMemberByRole(ProjectTeamRole::SALES)?->id
-                                ?? $inquiry->responsible_user_id,
-                        ]);
+                        if ($existingQuotation) {
+                            $existingQuotation->update([
+                                'company_id' => $inquiry->company_id,
+                                'contact_id' => $inquiry->contact_id,
+                                'currency_code' => $inquiry->currency_code,
+                                'commission_type' => $commissionType,
+                                'commission_rate' => $commissionType === CommissionType::SEPARATE ? $commissionRate : 0,
+                                'responsible_user_id' => $inquiry->getTeamMemberByRole(ProjectTeamRole::SALES)?->id
+                                    ?? $inquiry->responsible_user_id,
+                            ]);
+                            $quotation = $existingQuotation;
+                        } else {
+                            $quotation = Quotation::create([
+                                'inquiry_id' => $inquiry->id,
+                                'company_id' => $inquiry->company_id,
+                                'contact_id' => $inquiry->contact_id,
+                                'status' => QuotationStatus::DRAFT,
+                                'currency_code' => $inquiry->currency_code,
+                                'commission_type' => $commissionType,
+                                'commission_rate' => $commissionType === CommissionType::SEPARATE ? $commissionRate : 0,
+                                'notes' => $inquiry->notes,
+                                'responsible_user_id' => $inquiry->getTeamMemberByRole(ProjectTeamRole::SALES)?->id
+                                    ?? $inquiry->responsible_user_id,
+                            ]);
+                        }
 
                         $sqItemsByProduct = collect();
                         if ($hasSupplierQuotations && ! empty($data['supplier_quotation_ids'])) {
@@ -324,6 +346,10 @@ class ViewInquiry extends ViewRecord
                                 ->groupBy('product_id');
                         }
 
+                        // Sync items from inquiry
+                        $existingQItems = $existingQuotation
+                            ? $quotation->items()->get()->keyBy('product_id')
+                            : collect();
                         $clientId = $inquiry->company_id;
                         $sortOrder = 0;
 
@@ -364,18 +390,48 @@ class ViewInquiry extends ViewRecord
                                 $unitPrice = $inquiryItem->target_price;
                             }
 
-                            QuotationItem::create([
-                                'quotation_id' => $quotation->id,
-                                'product_id' => $productId,
-                                'supplier_quotation_item_id' => $sqItemId,
-                                'quantity' => $inquiryItem->quantity,
-                                'selected_supplier_id' => $selectedSupplierId,
-                                'unit_cost' => $unitCost,
-                                'commission_rate' => $itemCommissionRate,
-                                'unit_price' => $unitPrice,
-                                'notes' => $inquiryItem->specifications,
-                                'sort_order' => $sortOrder++,
-                            ]);
+                            $existingQItem = $productId ? $existingQItems->get($productId) : null;
+
+                            if ($existingQItem) {
+                                // Update existing: sync quantity, notes, cost/price from SQ
+                                $updateData = [
+                                    'quantity' => $inquiryItem->quantity,
+                                    'notes' => $inquiryItem->specifications,
+                                    'sort_order' => $sortOrder++,
+                                ];
+                                if ($unitCost > 0) {
+                                    $updateData['unit_cost'] = $unitCost;
+                                    $updateData['supplier_quotation_item_id'] = $sqItemId;
+                                    $updateData['selected_supplier_id'] = $selectedSupplierId;
+                                }
+                                if ($unitPrice > 0 && ($existingQItem->unit_price ?? 0) === 0) {
+                                    $updateData['unit_price'] = $unitPrice;
+                                    $updateData['commission_rate'] = $itemCommissionRate;
+                                }
+                                $existingQItem->update($updateData);
+                            } else {
+                                QuotationItem::create([
+                                    'quotation_id' => $quotation->id,
+                                    'product_id' => $productId,
+                                    'supplier_quotation_item_id' => $sqItemId,
+                                    'quantity' => $inquiryItem->quantity,
+                                    'selected_supplier_id' => $selectedSupplierId,
+                                    'unit_cost' => $unitCost,
+                                    'commission_rate' => $itemCommissionRate,
+                                    'unit_price' => $unitPrice,
+                                    'notes' => $inquiryItem->specifications,
+                                    'sort_order' => $sortOrder++,
+                                ]);
+                            }
+                        }
+
+                        // Remove quotation items no longer in inquiry
+                        if ($existingQuotation) {
+                            $inquiryProductIds = $inquiry->items->pluck('product_id')->filter()->toArray();
+                            $quotation->items()
+                                ->whereNotNull('product_id')
+                                ->whereNotIn('product_id', $inquiryProductIds)
+                                ->delete();
                         }
 
                         if ($inquiry->status === InquiryStatus::RECEIVED) {
@@ -390,7 +446,7 @@ class ViewInquiry extends ViewRecord
                     });
 
                     Notification::make()
-                        ->title(__('messages.quotation_created') . ': ' . $quotation->reference)
+                        ->title(($existingQuotation ? __('messages.quotation_updated') : __('messages.quotation_created')) . ': ' . $quotation->reference)
                         ->body(__('messages.items_populated_redirecting'))
                         ->success()
                         ->send();

@@ -35,6 +35,7 @@ return [
     // Dynamic notification titles
     'sq_created' => 'cotação(ões) de fornecedor criada(s)',
     'quotation_created' => 'Cotação criada',
+    'quotation_updated' => 'Cotação atualizada',
     'pi_created' => 'Proforma Invoice criada',
     'pi_updated' => 'Proforma Invoice atualizada',
     'pi_update_description' => 'Isto irá atualizar a Proforma Invoice existente :reference com os dados atuais da consulta (empresa, contato, moeda).',
