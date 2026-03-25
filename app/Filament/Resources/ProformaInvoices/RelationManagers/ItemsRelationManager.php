@@ -34,6 +34,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Table;
 use UnitEnum;
 
@@ -146,21 +147,45 @@ class ItemsRelationManager extends RelationManager
                     ->label(__('forms.labels.supplier'))
                     ->limit(20)
                     ->placeholder('—'),
-                TextColumn::make('quantity')
+                TextInputColumn::make('quantity')
                     ->label(__('forms.labels.qty'))
+                    ->type('number')
+                    ->inputMode('numeric')
+                    ->step('1')
+                    ->rules(['required', 'integer', 'min:1'])
                     ->alignCenter(),
                 TextColumn::make('unit')
                     ->label(__('forms.labels.unit'))
                     ->alignCenter(),
-                TextColumn::make('unit_price')
+                TextInputColumn::make('unit_price')
                     ->label(__('forms.labels.price'))
-                    ->formatStateUsing(fn ($state) => Money::format($state, 4))
-                    ->prefix('$ ')
+                    ->type('number')
+                    ->inputMode('decimal')
+                    ->step('0.0001')
+                    ->prefix('$')
+                    ->rules(['required', 'numeric', 'min:0'])
+                    ->getStateUsing(fn ($record) => number_format(Money::toMajor($record->unit_price ?? 0), 4, '.', ''))
+                    ->updateStateUsing(function ($record, $state) {
+                        $floatValue = (float) str_replace(',', '', (string) $state);
+                        $record->unit_price = Money::toMinor($floatValue);
+                        $record->save();
+                        return number_format($floatValue, 4, '.', '');
+                    })
                     ->alignEnd(),
-                TextColumn::make('unit_cost')
+                TextInputColumn::make('unit_cost')
                     ->label(__('forms.labels.cost'))
-                    ->formatStateUsing(fn ($state) => Money::format($state, 4))
-                    ->prefix('$ ')
+                    ->type('number')
+                    ->inputMode('decimal')
+                    ->step('0.0001')
+                    ->prefix('$')
+                    ->rules(['required', 'numeric', 'min:0'])
+                    ->getStateUsing(fn ($record) => number_format(Money::toMajor($record->unit_cost ?? 0), 4, '.', ''))
+                    ->updateStateUsing(function ($record, $state) {
+                        $floatValue = (float) str_replace(',', '', (string) $state);
+                        $record->unit_cost = Money::toMinor($floatValue);
+                        $record->save();
+                        return number_format($floatValue, 4, '.', '');
+                    })
                     ->alignEnd(),
                 TextColumn::make('line_total')
                     ->label(__('forms.labels.total'))
