@@ -5,6 +5,7 @@ namespace App\Filament\Resources\ProformaInvoices\Pages;
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Infrastructure\Pdf\PdfGeneratorService;
 use App\Domain\ProformaInvoices\Actions\CancelProformaInvoiceAction;
+use App\Domain\ProformaInvoices\Actions\SyncClientProductPricesAction;
 use App\Domain\Infrastructure\Pdf\PdfRenderer;
 use App\Domain\Infrastructure\Pdf\Templates\CustomPricePdfTemplate;
 use App\Domain\Infrastructure\Pdf\Templates\ProformaInvoicePdfTemplate;
@@ -136,10 +137,19 @@ class EditProformaInvoice extends EditRecord
                             $data['notes'] ?? null,
                         );
                     } else {
+                        $sideEffects = null;
+
+                        if ($newStatus === ProformaInvoiceStatus::CONFIRMED) {
+                            $sideEffects = function ($pi) {
+                                app(SyncClientProductPricesAction::class)->execute($pi);
+                            };
+                        }
+
                         app(TransitionStatusAction::class)->execute(
                             $this->record,
                             $newStatus,
                             $data['notes'] ?? null,
+                            sideEffects: $sideEffects,
                         );
                     }
 

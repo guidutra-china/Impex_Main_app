@@ -4,6 +4,7 @@ namespace App\Filament\Resources\PurchaseOrders\Pages;
 
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
+use App\Domain\PurchaseOrders\Actions\SyncSupplierProductPricesAction;
 use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
 use App\Filament\Resources\PurchaseOrders\PurchaseOrderResource;
 use Filament\Actions\Action;
@@ -54,14 +55,24 @@ class EditPurchaseOrder extends EditRecord
             })
             ->action(function (array $data) {
                 try {
+                    $newStatus = PurchaseOrderStatus::from($data['new_status']);
+
+                    $sideEffects = null;
+                    if ($newStatus === PurchaseOrderStatus::CONFIRMED) {
+                        $sideEffects = function ($po) {
+                            app(SyncSupplierProductPricesAction::class)->execute($po);
+                        };
+                    }
+
                     app(TransitionStatusAction::class)->execute(
                         $this->record,
-                        PurchaseOrderStatus::from($data['new_status']),
+                        $newStatus,
                         $data['notes'] ?? null,
+                        sideEffects: $sideEffects,
                     );
 
                     Notification::make()
-                        ->title(__('messages.status_changed_to') . ' ' . PurchaseOrderStatus::from($data['new_status'])->getLabel())
+                        ->title(__('messages.status_changed_to') . ' ' . $newStatus->getLabel())
                         ->success()
                         ->send();
 
