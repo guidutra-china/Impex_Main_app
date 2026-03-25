@@ -24,7 +24,18 @@ class InquiriesTable
             ->columns([
                 TextColumn::make('reference')
                     ->label(__('forms.labels.reference'))
-                    ->searchable()
+                    ->searchable(query: function ($query, string $search): void {
+                        $query->where('reference', 'like', "%{$search}%")
+                            ->orWhere('description', 'like', "%{$search}%")
+                            ->orWhereHas('items', function ($q) use ($search) {
+                                $q->where('description', 'like', "%{$search}%")
+                                    ->orWhereHas('product', fn ($pq) => $pq
+                                        ->where('name', 'like', "%{$search}%")
+                                        ->orWhere('model_number', 'like', "%{$search}%")
+                                        ->orWhere('sku', 'like', "%{$search}%")
+                                    );
+                            });
+                    })
                     ->sortable()
                     ->weight('bold')
                     ->copyable()
