@@ -27,7 +27,8 @@ class InquiriesTable
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
-                    ->copyable(),
+                    ->copyable()
+                    ->description(fn ($record) => $record->description),
                 TextColumn::make('company.name')
                     ->label(__('forms.labels.client'))
                     ->searchable()

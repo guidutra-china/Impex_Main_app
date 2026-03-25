@@ -26,6 +26,7 @@ class Inquiry extends Model
 
     protected $fillable = [
         'reference',
+        'description',
         'company_id',
         'contact_id',
         'status',

@@ -37,6 +37,10 @@ class InquiryInfolist
                         ->label(__('forms.labels.reference'))
                         ->weight('bold')
                         ->copyable(),
+                    TextEntry::make('description')
+                        ->label(__('forms.labels.description'))
+                        ->placeholder('—')
+                        ->columnSpanFull(),
                     TextEntry::make('status')
                         ->label(__('forms.labels.status'))
                         ->badge(),
