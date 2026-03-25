@@ -8,6 +8,7 @@ use App\Domain\Infrastructure\Pdf\Templates\AbstractPdfTemplate;
 use App\Domain\Infrastructure\Services\DocumentService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Str;
 
 class GeneratePdfAction
 {
@@ -29,7 +30,7 @@ class GeneratePdfAction
             ->form($formSchema)
             ->action(function ($record, array $data = []) use ($templateClass) {
                 try {
-                    $template = new $templateClass($record, 'en', $data);
+                    $template = self::createTemplate($templateClass, $record, $data);
                     $service = new PdfGeneratorService(
                         new PdfRenderer(),
                         new DocumentService(),
@@ -88,6 +89,34 @@ class GeneratePdfAction
             });
     }
 
+    /**
+     * Create a template instance, mapping form $data keys to constructor parameters.
+     */
+    protected static function createTemplate(string $templateClass, $record, array $data): AbstractPdfTemplate
+    {
+        $extraArgs = [];
+        $constructor = new \ReflectionMethod($templateClass, '__construct');
+
+        foreach ($constructor->getParameters() as $i => $param) {
+            if ($i < 2) {
+                continue; // skip $model and $locale
+            }
+
+            $name = $param->getName();
+            $snakeName = Str::snake($name);
+
+            if (array_key_exists($snakeName, $data)) {
+                $extraArgs[] = $data[$snakeName];
+            } elseif (array_key_exists($name, $data)) {
+                $extraArgs[] = $data[$name];
+            } else {
+                $extraArgs[] = $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null;
+            }
+        }
+
+        return new $templateClass($record, 'en', ...$extraArgs);
+    }
+
     public static function preview(
         string $templateClass,
         string $label = 'Preview PDF',
@@ -102,7 +131,7 @@ class GeneratePdfAction
             ->form($formSchema)
             ->action(function ($record, array $data = []) use ($templateClass) {
                 try {
-                    $template = new $templateClass($record, 'en', $data);
+                    $template = self::createTemplate($templateClass, $record, $data);
                     $service = new PdfGeneratorService(
                         new PdfRenderer(),
                         new DocumentService(),
