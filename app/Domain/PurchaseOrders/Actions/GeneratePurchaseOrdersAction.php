@@ -11,7 +11,21 @@ class GeneratePurchaseOrdersAction
 {
     public function execute(ProformaInvoice $pi): Collection
     {
-        $pi->loadMissing(['items.supplierCompany', 'items.product']);
+        $pi->loadMissing(['items.supplierCompany', 'items.product.suppliers']);
+
+        // Resolve supplier for items that don't have one assigned
+        foreach ($pi->items as $item) {
+            if ($item->supplier_company_id === null && $item->product) {
+                $preferred = $item->product->suppliers()
+                    ->orderByDesc('company_product.is_preferred')
+                    ->first();
+
+                if ($preferred) {
+                    $item->supplier_company_id = $preferred->id;
+                    $item->save();
+                }
+            }
+        }
 
         $itemsBySupplier = $pi->items
             ->filter(fn ($item) => $item->supplier_company_id !== null)
