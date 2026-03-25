@@ -212,16 +212,22 @@ class ViewProformaInvoice extends ViewRecord
                 }
 
                 if ($existing->isNotEmpty()) {
-                    $names = $existing->map(fn ($po) => $po->supplierCompany?->name ?? $po->reference)->implode(', ');
-                    $lines[] = "**Already exists:** {$names} (will be skipped).";
+                    $updatable = $existing->filter(fn ($po) => in_array($po->status->value, ['draft', 'sent']));
+                    $locked = $existing->filter(fn ($po) => ! in_array($po->status->value, ['draft', 'sent']));
+
+                    if ($updatable->isNotEmpty()) {
+                        $names = $updatable->map(fn ($po) => $po->reference . ' (' . ($po->supplierCompany?->name ?? 'N/A') . ')')->implode(', ');
+                        $lines[] = "**{$updatable->count()} PO(s) will be updated:** {$names}";
+                    }
+
+                    if ($locked->isNotEmpty()) {
+                        $names = $locked->map(fn ($po) => $po->reference . ' (' . $po->status->getLabel() . ')')->implode(', ');
+                        $lines[] = "**Cannot update:** {$names} (already confirmed/shipped).";
+                    }
                 }
 
                 if ($skipped->isNotEmpty()) {
                     $lines[] = "**{$skipped->count()} item(s)** have no supplier assigned and will be skipped.";
-                }
-
-                if ($newCount <= 0) {
-                    $lines[] = "All supplier POs already exist for this PI. Nothing to generate.";
                 }
 
                 return implode("\n\n", $lines);
@@ -249,9 +255,9 @@ class ViewProformaInvoice extends ViewRecord
                 }
 
                 $action = new GeneratePurchaseOrdersAction();
-                $created = $action->execute($record);
+                $result = $action->execute($record);
 
-                if ($created->isEmpty()) {
+                if ($result->isEmpty()) {
                     Notification::make()
                         ->title(__('messages.no_pos_created'))
                         ->body(__('messages.all_pos_exist'))
@@ -261,11 +267,11 @@ class ViewProformaInvoice extends ViewRecord
                     return;
                 }
 
-                $refs = $created->pluck('reference')->implode(', ');
+                $refs = $result->pluck('reference')->implode(', ');
 
                 Notification::make()
-                    ->title($created->count() . ' ' . __('messages.pos_generated'))
-                    ->body("Created: {$refs}")
+                    ->title($result->count() . ' ' . __('messages.pos_generated'))
+                    ->body($refs)
                     ->success()
                     ->send();
             });
