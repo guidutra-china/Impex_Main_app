@@ -418,11 +418,21 @@ class ItemsRelationManager extends RelationManager
                 $existingProductIds = $pi->items()->pluck('product_id')->filter()->toArray();
                 $newSqIds = [];
 
+                $existingPiItemsByProduct = $pi->items()->get()->keyBy('product_id');
+
                 foreach ($items as $sqItem) {
-                    // Skip if product already exists in PI items
-                    if ($sqItem->product_id && in_array($sqItem->product_id, $existingProductIds)) {
+                    // If product already exists in PI, update cost and supplier
+                    if ($sqItem->product_id && isset($existingPiItemsByProduct[$sqItem->product_id])) {
+                        $existingItem = $existingPiItemsByProduct[$sqItem->product_id];
+                        $existingItem->update([
+                            'unit_cost' => $sqItem->unit_cost,
+                            'supplier_company_id' => $sqItem->supplierQuotation->company_id ?? $existingItem->supplier_company_id,
+                        ]);
+                        $imported++;
+                        $newSqIds[] = $sqItem->supplier_quotation_id;
                         continue;
                     }
+
                     if ($sqItem->product_id) {
                         $existingProductIds[] = $sqItem->product_id;
                     }
