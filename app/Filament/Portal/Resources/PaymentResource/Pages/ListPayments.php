@@ -63,8 +63,8 @@ class ListPayments extends ListRecords
                         });
                     })
                     ->where(function ($query) {
-                        $query->whereNull('notes')
-                            ->orWhere('notes', 'not like', '%[forwarder-payable]%');
+                        $query->whereNull('payment_schedule_items.notes')
+                            ->orWhere('payment_schedule_items.notes', 'not like', '%[forwarder-payable]%');
                     })
             )
             ->columns([
