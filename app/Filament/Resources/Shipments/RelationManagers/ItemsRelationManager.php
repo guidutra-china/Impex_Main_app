@@ -40,10 +40,14 @@ class ItemsRelationManager extends RelationManager
                 ->options(function () {
                     $companyId = $this->getOwnerRecord()->company_id;
                     return ProformaInvoice::where('company_id', $companyId)
-                        ->pluck('reference', 'id');
+                        ->whereIn('status', ['confirmed', 'finalized', 'reopened'])
+                        ->orderByDesc('id')
+                        ->get()
+                        ->mapWithKeys(fn ($pi) => [
+                            $pi->id => $pi->reference . ($pi->client_reference ? ' — ' . $pi->client_reference : ''),
+                        ]);
                 })
                 ->searchable()
-                ->preload()
                 ->required()
                 ->live()
                 ->afterStateUpdated(function (Set $set) {
@@ -71,9 +75,8 @@ class ItemsRelationManager extends RelationManager
                         ->mapWithKeys(function ($item) {
                             $shipped = ShipmentItem::where('proforma_invoice_item_id', $item->id)->sum('quantity');
                             $remaining = $item->quantity - $shipped;
-                            $label = $item->product_name
-                                . ' — Qty: ' . $item->quantity
-                                . ' | Shipped: ' . $shipped
+                            $label = ($item->product?->model_number ?? '') . ' — ' . $item->product_name
+                                . ' | Qty: ' . $item->quantity
                                 . ' | Remaining: ' . $remaining;
                             return [$item->id => $label];
                         });
@@ -229,29 +232,64 @@ class ItemsRelationManager extends RelationManager
                     ->label(__('forms.labels.import_from_pi'))
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('warning')
-                    ->form([
-                        Select::make('proforma_invoice_id')
-                            ->label(__('forms.labels.proforma_invoice'))
-                            ->options(function () {
-                                $companyId = $this->getOwnerRecord()->company_id;
-                                return ProformaInvoice::where('company_id', $companyId)
-                                    ->pluck('reference', 'id');
-                            })
-                            ->searchable()
-                            ->preload()
-                            ->required()
-                            ->live(),
+                    ->form(function () {
+                        $companyId = $this->getOwnerRecord()->company_id;
+                        $piOptions = ProformaInvoice::where('company_id', $companyId)
+                            ->whereIn('status', ['confirmed', 'finalized', 'reopened'])
+                            ->orderByDesc('id')
+                            ->get()
+                            ->mapWithKeys(fn ($pi) => [
+                                $pi->id => $pi->reference . ($pi->client_reference ? ' — ' . $pi->client_reference : ''),
+                            ]);
 
-                        Checkbox::make('only_remaining')
-                            ->label(__('forms.labels.only_import_remaining_quantities_exclude_already_shipped'))
-                            ->default(true),
-                    ])
+                        return [
+                            Select::make('proforma_invoice_id')
+                                ->label(__('forms.labels.proforma_invoice'))
+                                ->options($piOptions)
+                                ->searchable()
+                                ->required()
+                                ->live(),
+
+                            \Filament\Forms\Components\CheckboxList::make('pi_item_ids')
+                                ->label(__('forms.labels.select_items_to_import'))
+                                ->options(function (Get $get) {
+                                    $piId = $get('proforma_invoice_id');
+                                    if (! $piId) {
+                                        return [];
+                                    }
+
+                                    return ProformaInvoiceItem::where('proforma_invoice_id', $piId)
+                                        ->with('product')
+                                        ->get()
+                                        ->mapWithKeys(function ($item) {
+                                            $shipped = ShipmentItem::where('proforma_invoice_item_id', $item->id)->sum('quantity');
+                                            $remaining = $item->quantity - $shipped;
+                                            $label = ($item->product?->model_number ?? '') . ' — ' . $item->product_name
+                                                . ' | Qty: ' . $item->quantity
+                                                . ' | Remaining: ' . $remaining;
+                                            return [$item->id => $label];
+                                        });
+                                })
+                                ->visible(fn (Get $get) => filled($get('proforma_invoice_id')))
+                                ->bulkToggleable()
+                                ->required()
+                                ->columns(1),
+
+                            Checkbox::make('only_remaining')
+                                ->label(__('forms.labels.only_import_remaining_quantities_exclude_already_shipped'))
+                                ->default(true),
+                        ];
+                    })
                     ->action(function (array $data) {
-                        $piId = $data['proforma_invoice_id'];
                         $onlyRemaining = $data['only_remaining'] ?? true;
                         $shipment = $this->getOwnerRecord();
+                        $itemIds = $data['pi_item_ids'] ?? [];
 
-                        $piItems = ProformaInvoiceItem::where('proforma_invoice_id', $piId)
+                        if (empty($itemIds)) {
+                            return;
+                        }
+
+                        $piItems = ProformaInvoiceItem::whereIn('id', $itemIds)
                             ->with('product.packaging', 'product.specification')
                             ->get();
 
@@ -319,18 +357,15 @@ class ItemsRelationManager extends RelationManager
                     ->label(__('forms.labels.add_item'))
                     ->icon('heroicon-o-plus')
                     ->visible(fn () => auth()->user()?->can('edit-shipments'))
+                    ->createAnother()
                     ->mutateFormDataUsing(function (array $data): array {
                         unset($data['proforma_invoice_id'], $data['max_quantity']);
                         return $data;
                     })
                     ->after(function () {
                         app(RecalculateShipmentTotalsAction::class)->execute($this->getOwnerRecord());
-
-                        Notification::make()
-                            ->success()
-                            ->title('Item added to shipment')
-                            ->send();
-                    }),
+                    })
+                    ->successNotificationTitle('Item added to shipment'),
             ])
             ->bulkActions([
                 \Filament\Actions\DeleteBulkAction::make()
