@@ -281,7 +281,7 @@ class SupplierProductsRelationManager extends RelationManager
                         Checkbox::make('is_preferred')
                             ->label(__('forms.labels.preferred_supplier')),
                     ];})
-                    ->action(function (array $data) {
+                    ->action(function (array $arguments, array $data, \Filament\Schemas\Schema $schema, Action $action) {
                         $productId = $data['recordId'];
                         $companyId = $this->getOwnerRecord()->id;
 
@@ -307,19 +307,23 @@ class SupplierProductsRelationManager extends RelationManager
 
                         if ($existing) {
                             $existing->update(array_filter($pivotData, fn ($v) => $v !== null));
-                            Notification::make()
-                                ->title(__('messages.product_link_updated'))
-                                ->success()
-                                ->send();
                         } else {
                             CompanyProduct::create(array_merge($pivotData, [
                                 'product_id' => $productId,
                                 'company_id' => $companyId,
                             ]));
-                            Notification::make()
-                                ->title(__('messages.product_linked'))
-                                ->success()
-                                ->send();
+                        }
+
+                        Notification::make()
+                            ->title($existing ? __('messages.product_link_updated') : __('messages.product_linked'))
+                            ->success()
+                            ->send();
+
+                        if ($arguments['another'] ?? false) {
+                            $schema->fill();
+                            $action->halt();
+
+                            return;
                         }
                     }),
             ])
