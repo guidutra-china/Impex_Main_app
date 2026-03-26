@@ -4,6 +4,7 @@ namespace App\Filament\Resources\CRM\Companies\RelationManagers;
 
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\CompanyProduct;
+use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\CompanyProductDocument;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Enums\DocumentCategory;
@@ -27,6 +28,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
@@ -174,42 +176,48 @@ class ClientProductsRelationManager extends RelationManager
                 AttachAction::make()
                     ->label(__('forms.labels.add_product'))
                     ->visible(fn () => auth()->user()?->can('edit-companies'))
-                    ->recordSelectSearchColumns(['sku', 'name', 'model_number', 'product_family'])
-                    ->recordSelectOptionsQuery(function ($query, Get $get) {
-                        $query->where('status', 'active');
-
-                        $categoryId = $get('filter_category_id');
-                        if ($categoryId) {
-                            $query->where('category_id', $categoryId);
-                        }
-
-                        $search = $get('filter_search');
-                        if ($search && strlen($search) >= 2) {
-                            $query->where(function ($q) use ($search) {
-                                $q->where('name', 'like', "%{$search}%")
-                                    ->orWhere('product_family', 'like', "%{$search}%")
-                                    ->orWhere('model_number', 'like', "%{$search}%")
-                                    ->orWhere('sku', 'like', "%{$search}%");
-                            });
-                        }
-
-                        return $query->orderBy('name');
-                    })
                     ->form(fn (AttachAction $action): array => [
                         Select::make('filter_category_id')
-                            ->label(__('forms.labels.filter_by_category'))
+                            ->label('Filter by Category')
                             ->options(fn () => Category::active()->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->placeholder('— All Categories —')
                             ->live()
+                            ->afterStateUpdated(fn (Set $set) => $set('recordId', null))
                             ->dehydrated(false),
                         TextInput::make('filter_search')
-                            ->label(__('forms.labels.filter_by_search'))
+                            ->label('Search Products')
                             ->placeholder('Search by name, family, model, SKU...')
                             ->live(debounce: 400)
+                            ->afterStateUpdated(fn (Set $set) => $set('recordId', null))
                             ->dehydrated(false),
-                        $action->getRecordSelect()
-                            ->label(__('forms.labels.product')),
+                        Select::make('recordId')
+                            ->label(__('forms.labels.product'))
+                            ->options(function (Get $get) {
+                                $query = Product::where('status', 'active');
+
+                                $categoryId = $get('filter_category_id');
+                                if ($categoryId) {
+                                    $query->where('category_id', $categoryId);
+                                }
+
+                                $search = $get('filter_search');
+                                if ($search && strlen($search) >= 2) {
+                                    $query->where(function ($q) use ($search) {
+                                        $q->where('name', 'like', "%{$search}%")
+                                            ->orWhere('product_family', 'like', "%{$search}%")
+                                            ->orWhere('model_number', 'like', "%{$search}%")
+                                            ->orWhere('sku', 'like', "%{$search}%");
+                                    });
+                                }
+
+                                return $query->orderBy('name')
+                                    ->limit(100)
+                                    ->get()
+                                    ->mapWithKeys(fn ($p) => [$p->id => $p->sku . ' — ' . $p->name]);
+                            })
+                            ->searchable()
+                            ->required(),
                         FileUpload::make('avatar_path')
                             ->label(__('forms.labels.product_photo'))
                             ->image()
