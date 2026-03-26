@@ -6,6 +6,7 @@ use App\Domain\Financial\Actions\GeneratePaymentScheduleAction;
 use App\Domain\Financial\Actions\WaivePaymentScheduleItemAction;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Settings\Enums\CalculationBase;
 use BackedEnum;
 use Illuminate\Support\HtmlString;
@@ -129,6 +130,11 @@ class PaymentScheduleRelationManager extends RelationManager
             ->modalHeading('Generate Payment Schedule')
             ->modalDescription(function () {
                 $record = $this->getOwnerRecord();
+
+                if ($record instanceof Shipment) {
+                    return $this->getShipmentScheduleDescription($record);
+                }
+
                 $paymentTerm = $record->paymentTerm;
 
                 if (! $paymentTerm) {
@@ -149,17 +155,26 @@ class PaymentScheduleRelationManager extends RelationManager
             ->action(function () {
                 $record = $this->getOwnerRecord();
 
-                if (! $record->payment_term_id) {
-                    Notification::make()->title('No payment term assigned')->danger()->send();
-                    return;
-                }
+                if ($record instanceof Shipment) {
+                    if ($record->hasPaymentSchedule()) {
+                        Notification::make()->title('Schedule already exists')->warning()->send();
+                        return;
+                    }
 
-                if ($record->hasPaymentSchedule()) {
-                    Notification::make()->title('Schedule already exists')->warning()->send();
-                    return;
-                }
+                    $count = app(GeneratePaymentScheduleAction::class)->executeForShipment($record);
+                } else {
+                    if (! $record->payment_term_id) {
+                        Notification::make()->title('No payment term assigned')->danger()->send();
+                        return;
+                    }
 
-                $count = app(GeneratePaymentScheduleAction::class)->execute($record);
+                    if ($record->hasPaymentSchedule()) {
+                        Notification::make()->title('Schedule already exists')->warning()->send();
+                        return;
+                    }
+
+                    $count = app(GeneratePaymentScheduleAction::class)->execute($record);
+                }
 
                 if ($count === 0) {
                     Notification::make()
@@ -188,7 +203,10 @@ class PaymentScheduleRelationManager extends RelationManager
             ->visible(fn () => $this->getOwnerRecord()->hasPaymentSchedule() && auth()->user()?->can('generate-payment-schedule'))
             ->action(function () {
                 $record = $this->getOwnerRecord();
-                $count = app(GeneratePaymentScheduleAction::class)->regenerate($record);
+
+                $count = $record instanceof Shipment
+                    ? app(GeneratePaymentScheduleAction::class)->regenerateForShipment($record)
+                    : app(GeneratePaymentScheduleAction::class)->regenerate($record);
 
                 Notification::make()
                     ->title($count . ' schedule items regenerated')
@@ -280,4 +298,44 @@ class PaymentScheduleRelationManager extends RelationManager
             });
     }
 
+    protected function getShipmentScheduleDescription(Shipment $shipment): string
+    {
+        $shipment->loadMissing(['items.proformaInvoiceItem.proformaInvoice.paymentTerm.stages']);
+
+        if ($shipment->hasPaymentSchedule()) {
+            return 'A payment schedule already exists. Use "Regenerate" to update it.';
+        }
+
+        $itemsByPi = $shipment->items
+            ->filter(fn ($item) => $item->proformaInvoiceItem?->proformaInvoice)
+            ->groupBy(fn ($item) => $item->proformaInvoiceItem->proforma_invoice_id);
+
+        if ($itemsByPi->isEmpty()) {
+            return 'No items linked to Proforma Invoices. Add items from a PI first.';
+        }
+
+        $lines = [];
+        $grandTotal = 0;
+
+        foreach ($itemsByPi as $piId => $shipmentItems) {
+            $pi = $shipmentItems->first()->proformaInvoiceItem->proformaInvoice;
+            $paymentTerm = $pi->paymentTerm;
+            $piValue = $shipmentItems->sum(fn ($item) => $item->proformaInvoiceItem->unit_price * $item->quantity);
+            $grandTotal += $piValue;
+
+            $piRef = $pi->reference . ($pi->client_reference ? ' — ' . $pi->client_reference : '');
+
+            if (! $paymentTerm) {
+                $lines[] = "**{$piRef}**: " . Money::format($piValue) . ' — ⚠ No payment term assigned to this PI';
+                continue;
+            }
+
+            $stages = $paymentTerm->stages->map(fn ($s) => $s->percentage . '%')->implode(' + ');
+            $lines[] = "**{$piRef}**: " . Money::format($piValue) . " — {$paymentTerm->name} ({$stages})";
+        }
+
+        return "Payment schedules will be generated per PI:\n\n"
+            . implode("\n", $lines)
+            . "\n\nGrand Total: " . Money::format($grandTotal) . ' ' . ($shipment->currency_code ?? '');
+    }
 }

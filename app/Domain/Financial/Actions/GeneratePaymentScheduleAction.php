@@ -361,6 +361,88 @@ class GeneratePaymentScheduleAction
         }
     }
 
+    // ─── Shipment-specific: one schedule per PI ───
+
+    public function executeForShipment(Shipment $shipment): int
+    {
+        $shipment->loadMissing(['items.proformaInvoiceItem.proformaInvoice.paymentTerm.stages']);
+
+        // Group shipment items by PI
+        $itemsByPi = $shipment->items
+            ->filter(fn ($item) => $item->proformaInvoiceItem?->proformaInvoice)
+            ->groupBy(fn ($item) => $item->proformaInvoiceItem->proforma_invoice_id);
+
+        $created = 0;
+        $sortOrder = 0;
+
+        foreach ($itemsByPi as $piId => $shipmentItems) {
+            $pi = $shipmentItems->first()->proformaInvoiceItem->proformaInvoice;
+            $paymentTerm = $pi->paymentTerm;
+
+            if (! $paymentTerm || $paymentTerm->stages->isEmpty()) {
+                continue;
+            }
+
+            // Calculate value of this PI's items in this shipment
+            $piValue = $shipmentItems->sum(function ($item) {
+                $piItem = $item->proformaInvoiceItem;
+                return $piItem ? $piItem->unit_price * $item->quantity : 0;
+            });
+
+            if ($piValue <= 0) {
+                continue;
+            }
+
+            foreach ($paymentTerm->stages as $stage) {
+                $amount = (int) round($piValue * ($stage->percentage / 100));
+                $dueDate = $this->calculateShipmentDueDate($shipment, $stage);
+                $label = $this->generateShipmentLabel($stage, $pi->reference, $shipment->reference);
+
+                PaymentScheduleItem::create([
+                    'payable_type' => get_class($shipment),
+                    'payable_id' => $shipment->id,
+                    'shipment_id' => $shipment->id,
+                    'payment_term_stage_id' => $stage->id,
+                    'label' => $label,
+                    'percentage' => $stage->percentage,
+                    'amount' => $amount,
+                    'currency_code' => $pi->currency_code ?? $shipment->currency_code,
+                    'due_condition' => $stage->calculation_base,
+                    'due_date' => $dueDate,
+                    'status' => PaymentScheduleStatus::PENDING,
+                    'is_blocking' => $this->isBlockingCondition($stage->calculation_base),
+                    'sort_order' => ++$sortOrder,
+                ]);
+
+                $created++;
+            }
+        }
+
+        $this->syncAdditionalCosts($shipment);
+
+        return $created;
+    }
+
+    public function regenerateForShipment(Shipment $shipment): int
+    {
+        return DB::transaction(function () use ($shipment) {
+            // Delete all deletable schedule items
+            PaymentScheduleItem::where('payable_type', get_class($shipment))
+                ->where('payable_id', $shipment->id)
+                ->whereNull('source_type')
+                ->whereNotIn('status', [
+                    PaymentScheduleStatus::PAID->value,
+                    PaymentScheduleStatus::WAIVED->value,
+                ])
+                ->whereDoesntHave('allocations')
+                ->delete();
+
+            $count = $this->executeForShipment($shipment);
+
+            return $count;
+        });
+    }
+
     // ─── Shared helpers ───
 
     protected function syncAdditionalCosts(Model $payable): void
