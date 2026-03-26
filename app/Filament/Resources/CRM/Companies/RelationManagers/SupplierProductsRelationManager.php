@@ -197,14 +197,12 @@ class SupplierProductsRelationManager extends RelationManager
                             ->searchable()
                             ->placeholder('— All Categories —')
                             ->live()
-                            ->afterStateUpdated(fn (Set $set) => $set('recordId', null))
-                            ->dehydrated(false),
+                            ->afterStateUpdated(fn (Set $set) => $set('recordId', null)),
                         TextInput::make('filter_search')
                             ->label('Search Products')
                             ->placeholder('Search by name, family, model, SKU...')
                             ->live(debounce: 400)
-                            ->afterStateUpdated(fn (Set $set) => $set('recordId', null))
-                            ->dehydrated(false),
+                            ->afterStateUpdated(fn (Set $set) => $set('recordId', null)),
                         Select::make('recordId')
                             ->label(__('forms.labels.product'))
                             ->options(function (Get $get) use ($linkedIds) {
@@ -320,7 +318,10 @@ class SupplierProductsRelationManager extends RelationManager
                             ->send();
 
                         if ($arguments['another'] ?? false) {
-                            $schema->fill();
+                            $schema->fill([
+                                'filter_category_id' => $data['filter_category_id'] ?? null,
+                                'filter_search' => $data['filter_search'] ?? null,
+                            ]);
                             $action->halt();
 
                             return;
