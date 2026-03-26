@@ -158,6 +158,26 @@ return [
         'fully_allocated' => '已全额分配',
     ],
 
+    // Portal Upcoming Arrivals Widget
+    'arrivals' => [
+        'upcoming_arrivals' => '即将到达',
+        'this_week' => '本周',
+        'week_2' => '第2周',
+        'week_3' => '第3周',
+        'week_4' => '第4周',
+        'week' => '周',
+        'reference' => '参考',
+        'status' => '状态',
+        'transport' => '运输方式',
+        'container' => '集装箱',
+        'eta' => '预计到达',
+        'days_until' => '天数',
+        'destination' => '目的地',
+        'today' => '今天',
+        'late' => '延迟',
+        'no_upcoming' => '未来4周没有预计到达的货物。',
+    ],
+
     // Portal Detail Widgets
     'portal' => [
         'active_shipments' => '活跃发货',

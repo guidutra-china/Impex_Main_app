@@ -158,6 +158,26 @@ return [
         'fully_allocated' => 'Totalmente alocado',
     ],
 
+    // Portal Upcoming Arrivals Widget
+    'arrivals' => [
+        'upcoming_arrivals' => 'Chegadas Previstas',
+        'this_week' => 'Esta Semana',
+        'week_2' => 'Semana 2',
+        'week_3' => 'Semana 3',
+        'week_4' => 'Semana 4',
+        'week' => 'Semana',
+        'reference' => 'Referência',
+        'status' => 'Status',
+        'transport' => 'Transporte',
+        'container' => 'Container',
+        'eta' => 'ETA',
+        'days_until' => 'Dias',
+        'destination' => 'Destino',
+        'today' => 'Hoje',
+        'late' => 'atrasado',
+        'no_upcoming' => 'Nenhuma chegada prevista nas próximas 4 semanas.',
+    ],
+
     // Portal Detail Widgets
     'portal' => [
         'active_shipments' => 'Remessas Ativas',

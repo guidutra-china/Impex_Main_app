@@ -4,6 +4,7 @@ namespace App\Filament\Portal\Resources\ShipmentResource\Pages;
 
 use App\Filament\Portal\Resources\ShipmentResource;
 use App\Filament\Portal\Widgets\ShipmentsListStats;
+use App\Filament\Portal\Widgets\UpcomingArrivalsWidget;
 use Filament\Resources\Pages\ListRecords;
 
 class ListShipments extends ListRecords
@@ -14,6 +15,7 @@ class ListShipments extends ListRecords
     {
         return [
             ShipmentsListStats::class,
+            UpcomingArrivalsWidget::class,
         ];
     }
 }

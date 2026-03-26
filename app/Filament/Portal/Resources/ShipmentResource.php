@@ -8,9 +8,10 @@ use App\Domain\Logistics\Models\Shipment;
 use App\Filament\Portal\Resources\ShipmentResource\Pages;
 use App\Filament\Portal\Resources\ShipmentResource\Widgets\PortalShipmentOverview;
 use App\Filament\Portal\Widgets\ShipmentsListStats;
+use App\Filament\Portal\Widgets\UpcomingArrivalsWidget;
+use BackedEnum;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ViewEntry;
-use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -21,10 +22,15 @@ use Filament\Tables\Table;
 class ShipmentResource extends Resource
 {
     protected static ?string $model = Shipment::class;
+
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-truck';
+
     protected static ?int $navigationSort = 43;
+
     protected static ?string $slug = 'shipments';
+
     protected static ?string $recordTitleAttribute = 'reference';
+
     protected static ?string $tenantOwnershipRelationshipName = 'company';
 
     public static function canAccess(): bool
@@ -230,7 +236,7 @@ class ShipmentResource extends Resource
                         ->placeholder('—'),
                     TextEntry::make('total_value')
                         ->label('Total Value')
-                        ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state))
+                        ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '').' '.Money::format($state))
                         ->weight('bold')
                         ->visible(fn () => auth()->user()?->can('portal:view-financial-summary')),
                 ])
@@ -254,6 +260,7 @@ class ShipmentResource extends Resource
         return [
             PortalShipmentOverview::class,
             ShipmentsListStats::class,
+            UpcomingArrivalsWidget::class,
         ];
     }
 
