@@ -102,24 +102,31 @@ class ListPayments extends ListRecords
                         return $payable->reference ?? '—';
                     })
                     ->description(fn ($record) => $record->payable?->client_reference)
-                    ->searchable(query: fn ($query, string $search) => $query->whereHasMorph(
-                        'payable',
-                        [ProformaInvoice::class, Shipment::class],
-                        fn ($q) => $q->where('reference', 'like', "%{$search}%")
-                            ->orWhere('bl_number', 'like', "%{$search}%")
-                    ))
-                    ->sortable(query: fn ($query, string $direction) => $query
-                        ->leftJoin('proforma_invoices', function ($join) {
-                            $join->on('payment_schedule_items.payable_id', '=', 'proforma_invoices.id')
-                                ->where('payment_schedule_items.payable_type', (new ProformaInvoice)->getMorphClass());
-                        })
-                        ->leftJoin('shipments', function ($join) {
-                            $join->on('payment_schedule_items.payable_id', '=', 'shipments.id')
-                                ->where('payment_schedule_items.payable_type', (new Shipment)->getMorphClass());
-                        })
-                        ->orderByRaw("COALESCE(shipments.bl_number, shipments.reference, proforma_invoices.reference) {$direction}")
-                        ->select('payment_schedule_items.*')
-                    )
+                    ->searchable(query: function ($query, string $search) {
+                        $query->where(function ($q) use ($search) {
+                            $q->whereHasMorph('payable', [ProformaInvoice::class], function ($sub) use ($search) {
+                                $sub->where('reference', 'like', "%{$search}%");
+                            })->orWhereHasMorph('payable', [Shipment::class], function ($sub) use ($search) {
+                                $sub->where('reference', 'like', "%{$search}%")
+                                    ->orWhere('bl_number', 'like', "%{$search}%");
+                            });
+                        });
+                    })
+                    ->sortable(query: function ($query, string $direction) {
+                        $direction = strtolower($direction) === 'desc' ? 'DESC' : 'ASC';
+
+                        return $query
+                            ->leftJoin('proforma_invoices', function ($join) {
+                                $join->on('payment_schedule_items.payable_id', '=', 'proforma_invoices.id')
+                                    ->where('payment_schedule_items.payable_type', (new ProformaInvoice)->getMorphClass());
+                            })
+                            ->leftJoin('shipments', function ($join) {
+                                $join->on('payment_schedule_items.payable_id', '=', 'shipments.id')
+                                    ->where('payment_schedule_items.payable_type', (new Shipment)->getMorphClass());
+                            })
+                            ->selectRaw('payment_schedule_items.*, COALESCE(shipments.bl_number, shipments.reference, proforma_invoices.reference) as _sort_ref')
+                            ->orderBy('_sort_ref', $direction);
+                    })
                     ->weight('bold')
                     ->copyable(),
                 TextColumn::make('label')
