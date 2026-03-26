@@ -214,7 +214,7 @@ class ClientProductsRelationManager extends RelationManager
                                 return $query->orderBy('name')
                                     ->limit(100)
                                     ->get()
-                                    ->mapWithKeys(fn ($p) => [$p->id => $p->sku . ' — ' . $p->name]);
+                                    ->mapWithKeys(fn ($p) => [$p->id => $p->sku . ' — ' . ($p->model_number ?? '') . ($p->commercial_name ? ' — ' . $p->commercial_name : '')]);
                             })
                             ->searchable()
                             ->required(),
