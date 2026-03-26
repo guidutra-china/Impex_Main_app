@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CRM\Companies\RelationManagers;
 
+use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\Catalog\Models\CompanyProductDocument;
 use App\Domain\CRM\Enums\CompanyRole;
@@ -25,6 +26,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
@@ -172,10 +174,42 @@ class ClientProductsRelationManager extends RelationManager
                 AttachAction::make()
                     ->label(__('forms.labels.add_product'))
                     ->visible(fn () => auth()->user()?->can('edit-companies'))
-                    ->preloadRecordSelect()
-                    ->recordSelectSearchColumns(['sku', 'name'])
+                    ->recordSelectSearchColumns(['sku', 'name', 'model_number', 'product_family'])
+                    ->recordSelectOptionsQuery(function ($query, Get $get) {
+                        $query->where('status', 'active');
+
+                        $categoryId = $get('filter_category_id');
+                        if ($categoryId) {
+                            $query->where('category_id', $categoryId);
+                        }
+
+                        $search = $get('filter_search');
+                        if ($search && strlen($search) >= 2) {
+                            $query->where(function ($q) use ($search) {
+                                $q->where('name', 'like', "%{$search}%")
+                                    ->orWhere('product_family', 'like', "%{$search}%")
+                                    ->orWhere('model_number', 'like', "%{$search}%")
+                                    ->orWhere('sku', 'like', "%{$search}%");
+                            });
+                        }
+
+                        return $query->orderBy('name');
+                    })
                     ->form(fn (AttachAction $action): array => [
-                        $action->getRecordSelect(),
+                        Select::make('filter_category_id')
+                            ->label(__('forms.labels.filter_by_category'))
+                            ->options(fn () => Category::active()->orderBy('name')->pluck('name', 'id'))
+                            ->searchable()
+                            ->placeholder('— All Categories —')
+                            ->live()
+                            ->dehydrated(false),
+                        TextInput::make('filter_search')
+                            ->label(__('forms.labels.filter_by_search'))
+                            ->placeholder('Search by name, family, model, SKU...')
+                            ->live(debounce: 400)
+                            ->dehydrated(false),
+                        $action->getRecordSelect()
+                            ->label(__('forms.labels.product')),
                         FileUpload::make('avatar_path')
                             ->label(__('forms.labels.product_photo'))
                             ->image()
@@ -227,6 +261,7 @@ class ClientProductsRelationManager extends RelationManager
                             ? Money::toMinor($data['custom_price'])
                             : null;
                         $data['avatar_disk'] = 'public';
+                        unset($data['filter_category_id'], $data['filter_search']);
                         return $data;
                     }),
             ])
