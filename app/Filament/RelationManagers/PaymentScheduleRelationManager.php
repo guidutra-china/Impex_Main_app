@@ -330,12 +330,21 @@ class PaymentScheduleRelationManager extends RelationManager
                 continue;
             }
 
-            $stages = $paymentTerm->stages->map(fn ($s) => $s->percentage . '%')->implode(' + ');
-            $lines[] = "**{$piRef}**: " . Money::format($piValue) . " — {$paymentTerm->name} ({$stages})";
+            $shipmentStages = $paymentTerm->stages
+                ->filter(fn ($s) => $s->calculation_base?->isShipmentDependent())
+                ->map(fn ($s) => $s->percentage . '% ' . $s->calculation_base->getLabel())
+                ->implode(', ');
+
+            if (empty($shipmentStages)) {
+                $lines[] = "**{$piRef}**: " . Money::format($piValue) . ' — ⚠ No shipment-dependent stages in payment term';
+                continue;
+            }
+
+            $lines[] = "**{$piRef}**: " . Money::format($piValue) . " — {$shipmentStages}";
         }
 
-        return "Payment schedules will be generated per PI:\n\n"
+        return "Only shipment-dependent payment stages will be generated (non-shipment stages like upfront remain on the PI schedule).\n\n"
             . implode("\n", $lines)
-            . "\n\nGrand Total: " . Money::format($grandTotal) . ' ' . ($shipment->currency_code ?? '');
+            . "\n\nShipment Value: " . Money::format($grandTotal) . ' ' . ($shipment->currency_code ?? '');
     }
 }

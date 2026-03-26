@@ -393,7 +393,13 @@ class GeneratePaymentScheduleAction
                 continue;
             }
 
-            foreach ($paymentTerm->stages as $stage) {
+            // Only shipment-dependent stages (before shipment, delivery date, etc.)
+            // Non-shipment stages (upfront, order date) stay on the PI schedule
+            $shipmentStages = $paymentTerm->stages->filter(
+                fn ($stage) => $stage->calculation_base?->isShipmentDependent()
+            );
+
+            foreach ($shipmentStages as $stage) {
                 $amount = (int) round($piValue * ($stage->percentage / 100));
                 $dueDate = $this->calculateShipmentDueDate($shipment, $stage);
                 $label = $this->generateShipmentLabel($stage, $pi->reference, $shipment->reference);
@@ -415,6 +421,14 @@ class GeneratePaymentScheduleAction
                 ]);
 
                 $created++;
+            }
+        }
+
+        // Also update each PI's schedule to split shipped vs remaining
+        foreach ($itemsByPi as $piId => $shipmentItems) {
+            $pi = $shipmentItems->first()->proformaInvoiceItem->proformaInvoice;
+            if ($pi->paymentTerm && $pi->hasPaymentSchedule()) {
+                $this->regenerateShipmentItemsForPi($pi);
             }
         }
 
