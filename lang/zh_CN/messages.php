@@ -36,6 +36,8 @@ return [
     'sq_created' => '供应商报价已创建',
     'quotation_created' => '报价已创建',
     'quotation_updated' => '报价已更新',
+    'product_linked' => '产品关联成功',
+    'product_link_updated' => '产品关联已更新',
     'pi_created' => '形式发票已创建',
     'pi_updated' => '形式发票已更新',
     'pi_update_description' => '这将使用当前询价数据（公司、联系人、货币）更新现有形式发票 :reference。',

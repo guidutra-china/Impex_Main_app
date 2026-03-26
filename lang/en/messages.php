@@ -36,6 +36,8 @@ return [
     'sq_created' => 'supplier quotation(s) created',
     'quotation_created' => 'Quotation created',
     'quotation_updated' => 'Quotation updated',
+    'product_linked' => 'Product linked successfully',
+    'product_link_updated' => 'Product link updated',
     'pi_created' => 'Proforma Invoice created',
     'pi_updated' => 'Proforma Invoice updated',
     'pi_update_description' => 'This will update the existing Proforma Invoice :reference with the current inquiry data (company, contact, currency).',

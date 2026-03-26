@@ -36,6 +36,8 @@ return [
     'sq_created' => 'cotação(ões) de fornecedor criada(s)',
     'quotation_created' => 'Cotação criada',
     'quotation_updated' => 'Cotação atualizada',
+    'product_linked' => 'Produto vinculado com sucesso',
+    'product_link_updated' => 'Vínculo do produto atualizado',
     'pi_created' => 'Proforma Invoice criada',
     'pi_updated' => 'Proforma Invoice atualizada',
     'pi_update_description' => 'Isto irá atualizar a Proforma Invoice existente :reference com os dados atuais da consulta (empresa, contato, moeda).',

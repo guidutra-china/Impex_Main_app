@@ -176,7 +176,14 @@ class ClientProductsRelationManager extends RelationManager
                 AttachAction::make()
                     ->label(__('forms.labels.add_product'))
                     ->visible(fn () => auth()->user()?->can('edit-companies'))
-                    ->form(fn (AttachAction $action): array => [
+                    ->form(function (AttachAction $action): array {
+                        $companyId = $this->getOwnerRecord()->id;
+                        $linkedIds = CompanyProduct::where('company_id', $companyId)
+                            ->where('role', 'client')
+                            ->pluck('product_id')
+                            ->toArray();
+
+                        return [
                         Select::make('filter_category_id')
                             ->label('Filter by Category')
                             ->options(fn () => Category::active()->orderBy('name')->pluck('name', 'id'))
@@ -193,8 +200,9 @@ class ClientProductsRelationManager extends RelationManager
                             ->dehydrated(false),
                         Select::make('recordId')
                             ->label(__('forms.labels.product'))
-                            ->options(function (Get $get) {
-                                $query = Product::where('status', 'active');
+                            ->options(function (Get $get) use ($linkedIds) {
+                                $query = Product::where('status', 'active')
+                                    ->whereNotIn('id', $linkedIds);
 
                                 $categoryId = $get('filter_category_id');
                                 if ($categoryId) {
@@ -261,16 +269,47 @@ class ClientProductsRelationManager extends RelationManager
                             ->searchable(),
                         Checkbox::make('is_preferred')
                             ->label(__('forms.labels.primary_client')),
-                    ])
-                    ->mutateFormDataUsing(function (array $data): array {
-                        $data['role'] = 'client';
-                        $data['unit_price'] = Money::toMinor($data['unit_price'] ?? 0);
-                        $data['custom_price'] = filled($data['custom_price'] ?? null)
-                            ? Money::toMinor($data['custom_price'])
-                            : null;
-                        $data['avatar_disk'] = 'public';
-                        unset($data['filter_category_id'], $data['filter_search']);
-                        return $data;
+                    ];})
+                    ->action(function (array $data) {
+                        $productId = $data['recordId'];
+                        $companyId = $this->getOwnerRecord()->id;
+
+                        $pivotData = [
+                            'role' => 'client',
+                            'external_code' => $data['external_code'] ?? null,
+                            'external_name' => $data['external_name'] ?? null,
+                            'external_description' => $data['external_description'] ?? null,
+                            'unit_price' => Money::toMinor($data['unit_price'] ?? 0),
+                            'custom_price' => filled($data['custom_price'] ?? null)
+                                ? Money::toMinor($data['custom_price'])
+                                : null,
+                            'currency_code' => $data['currency_code'] ?? null,
+                            'is_preferred' => $data['is_preferred'] ?? false,
+                            'avatar_path' => $data['avatar_path'] ?? null,
+                            'avatar_disk' => 'public',
+                        ];
+
+                        $existing = CompanyProduct::where('product_id', $productId)
+                            ->where('company_id', $companyId)
+                            ->where('role', 'client')
+                            ->first();
+
+                        if ($existing) {
+                            $existing->update(array_filter($pivotData, fn ($v) => $v !== null));
+                            Notification::make()
+                                ->title(__('messages.product_link_updated'))
+                                ->success()
+                                ->send();
+                        } else {
+                            CompanyProduct::create(array_merge($pivotData, [
+                                'product_id' => $productId,
+                                'company_id' => $companyId,
+                            ]));
+                            Notification::make()
+                                ->title(__('messages.product_linked'))
+                                ->success()
+                                ->send();
+                        }
                     }),
             ])
             ->recordActions([
