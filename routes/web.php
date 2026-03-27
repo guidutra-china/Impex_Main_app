@@ -43,7 +43,8 @@ Route::get('/debug/pi-check-00019/{token}', function (string $token) {
 
         $allocs = $item->allocations()->with('payment')->get();
         foreach ($allocs as $a) {
-            $output .= "  -> Alloc #{$a->id} | payment #{$a->payment_id} | payment_status: {$a->payment->status->value} | alloc_amount: {$a->allocated_amount} | in_doc_currency: {$a->allocated_amount_in_document_currency}\n";
+            $paymentStatus = $a->payment ? $a->payment->status->value : 'PAYMENT_MISSING';
+            $output .= "  -> Alloc #{$a->id} | payment #{$a->payment_id} | payment_status: {$paymentStatus} | alloc_amount: {$a->allocated_amount} | in_doc_currency: {$a->allocated_amount_in_document_currency}\n";
         }
         $output .= "\n";
     }
