@@ -22,7 +22,11 @@ Route::get('/portal/documents/{document}/download', PortalDocumentDownloadContro
     ->middleware(['auth']);
 
 // TEMPORARY DEBUG ROUTE - REMOVE AFTER USE
-Route::get('/debug/pi-check-00019', function () {
+Route::get('/debug/pi-check-00019/{token}', function (string $token) {
+    if ($token !== 'impex2026debug') {
+        abort(403);
+    }
+
     $pi = \App\Domain\ProformaInvoices\Models\ProformaInvoice::where('reference', 'like', '%00019%')->first();
     if (! $pi) {
         return response('PI not found', 404);
@@ -45,4 +49,4 @@ Route::get('/debug/pi-check-00019', function () {
     }
 
     return response($output, 200, ['Content-Type' => 'text/plain']);
-})->middleware(['auth']);
+});
