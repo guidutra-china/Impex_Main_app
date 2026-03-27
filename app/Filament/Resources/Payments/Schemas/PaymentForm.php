@@ -466,7 +466,11 @@ class PaymentForm
             ->whereNotIn('status', [
                 PaymentScheduleStatus::PAID->value,
                 PaymentScheduleStatus::WAIVED->value,
-            ]);
+            ])
+            ->where(function ($q) {
+                $q->whereNull('notes')
+                  ->orWhere('notes', 'NOT LIKE', '%[forwarder-payable]%');
+            });
 
         if ($directionValue === PaymentDirection::INBOUND->value || $directionValue === 'inbound') {
             $piIds = ProformaInvoice::where('company_id', $companyId)->pluck('id');
