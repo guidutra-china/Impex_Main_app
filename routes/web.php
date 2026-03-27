@@ -60,9 +60,9 @@ Route::get('/debug/pi-fix-00019/{token}', function (string $token) {
 
     $output = "";
 
-    // 1. Delete orphan allocations (payments that were deleted)
+    // 1. Delete orphan allocations (payments that were soft-deleted or hard-deleted)
     $orphans = \App\Domain\Financial\Models\PaymentAllocation::whereNotIn('payment_id', function ($q) {
-        $q->select('id')->from('payments');
+        $q->select('id')->from('payments')->whereNull('deleted_at');
     })->get();
 
     foreach ($orphans as $orphan) {
