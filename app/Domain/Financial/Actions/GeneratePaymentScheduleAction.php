@@ -199,6 +199,33 @@ class GeneratePaymentScheduleAction
             return;
         }
 
+        // Check which stages already have a base item (no shipment_id) that is paid/waived or has allocations
+        $coveredStageIds = PaymentScheduleItem::where('payable_type', get_class($pi))
+            ->where('payable_id', $pi->id)
+            ->whereNull('shipment_id')
+            ->whereNull('source_type')
+            ->where(function ($q) {
+                $q->whereIn('status', [
+                    PaymentScheduleStatus::PAID->value,
+                    PaymentScheduleStatus::WAIVED->value,
+                ])->orWhereHas('allocations');
+            })
+            ->pluck('payment_term_stage_id')
+            ->filter()
+            ->all();
+
+        // Delete existing shipment-specific items that can be regenerated
+        PaymentScheduleItem::where('payable_type', get_class($pi))
+            ->where('payable_id', $pi->id)
+            ->whereNotNull('shipment_id')
+            ->whereNull('source_type')
+            ->whereNotIn('status', [
+                PaymentScheduleStatus::PAID->value,
+                PaymentScheduleStatus::WAIVED->value,
+            ])
+            ->whereDoesntHave('allocations')
+            ->delete();
+
         // Find all shipments linked to this PI via items
         $shipments = Shipment::whereHas('items.proformaInvoiceItem', function ($q) use ($pi) {
             $q->where('proforma_invoice_id', $pi->id);
@@ -222,6 +249,22 @@ class GeneratePaymentScheduleAction
             }
 
             foreach ($shipmentDependentStages as $stage) {
+                // Skip if the base item for this stage is already paid/has allocations
+                if (in_array($stage->id, $coveredStageIds)) {
+                    continue;
+                }
+
+                // Skip if a shipment-specific item already exists (paid/with allocations, survived delete above)
+                $existingShipmentItem = PaymentScheduleItem::where('payable_type', get_class($pi))
+                    ->where('payable_id', $pi->id)
+                    ->where('shipment_id', $shipment->id)
+                    ->where('payment_term_stage_id', $stage->id)
+                    ->first();
+
+                if ($existingShipmentItem) {
+                    continue;
+                }
+
                 $amount = (int) round($shipmentValue * ($stage->percentage / 100));
                 $dueDate = $this->calculateShipmentDueDate($shipment, $stage);
                 $label = $this->generateShipmentLabel($stage, $pi->reference, $shipment->reference);
@@ -250,6 +293,11 @@ class GeneratePaymentScheduleAction
 
         if ($remainingValue > 0) {
             foreach ($shipmentDependentStages as $stage) {
+                // Skip if the base item for this stage is already paid/has allocations
+                if (in_array($stage->id, $coveredStageIds)) {
+                    continue;
+                }
+
                 $amount = (int) round($remainingValue * ($stage->percentage / 100));
                 $label = $this->generateShipmentLabel($stage, $pi->reference, null) . ' [remaining]';
 
