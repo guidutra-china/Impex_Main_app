@@ -64,3 +64,104 @@ Route::get('/debug/pi-schedule/{ref}/{token}', function (string $ref, string $to
 
     return response($output, 200, ['Content-Type' => 'text/plain']);
 });
+
+// TEMPORARY AUDIT ROUTE - REMOVE AFTER USE
+Route::get('/debug/pi-audit-all/{token}', function (string $token) {
+    if ($token !== 'impex2026debug') {
+        abort(403);
+    }
+
+    $pis = \App\Domain\ProformaInvoices\Models\ProformaInvoice::orderBy('reference')->get();
+    $piClass = \App\Domain\ProformaInvoices\Models\ProformaInvoice::class;
+    $output = "PI SCHEDULE AUDIT - ALL PROFORMA INVOICES\n";
+    $output .= str_repeat('=', 120) . "\n\n";
+
+    foreach ($pis as $pi) {
+        $items = \App\Domain\Financial\Models\PaymentScheduleItem::where('payable_type', $piClass)
+            ->where('payable_id', $pi->id)
+            ->get();
+
+        if ($items->isEmpty()) {
+            continue;
+        }
+
+        $piTotal = $pi->total / 10000;
+        $scheduleTotal = $items->where('is_credit', false)->sum('amount') / 10000;
+        $schedulePaid = $items->sum(fn ($i) => $i->paid_amount) / 10000;
+        $scheduleRemaining = $items->where('is_credit', false)->sum(fn ($i) => $i->remaining_amount) / 10000;
+
+        // Detect issues
+        $issues = [];
+
+        // 1. Schedule total vs PI total mismatch
+        $expectedTotal = $piTotal; // 100% = full PI
+        if (abs($scheduleTotal - $expectedTotal) > 1.00) {
+            $issues[] = "TOTAL MISMATCH: schedule={$scheduleTotal} vs expected={$expectedTotal} (diff=" . round($scheduleTotal - $expectedTotal, 2) . ")";
+        }
+
+        // 2. Duplicate stage+shipment combinations
+        $stageShipmentCombos = [];
+        foreach ($items as $item) {
+            if (! $item->payment_term_stage_id) continue;
+            $key = "stage:{$item->payment_term_stage_id}_ship:" . ($item->shipment_id ?? 'base');
+            $stageShipmentCombos[$key][] = $item;
+        }
+        foreach ($stageShipmentCombos as $key => $group) {
+            if (count($group) > 1) {
+                $ids = implode(',', array_map(fn ($i) => '#' . $i->id, $group));
+                $issues[] = "DUPLICATE {$key}: items {$ids}";
+            }
+        }
+
+        // 3. Base + shipment covering same stage (both with amounts)
+        $baseStages = $items->whereNull('shipment_id')->whereNotNull('payment_term_stage_id')->pluck('payment_term_stage_id')->all();
+        $shipStages = $items->whereNotNull('shipment_id')->whereNotNull('payment_term_stage_id')->pluck('payment_term_stage_id')->unique()->all();
+        $overlapping = array_intersect($baseStages, $shipStages);
+        foreach ($overlapping as $stageId) {
+            $baseItem = $items->whereNull('shipment_id')->where('payment_term_stage_id', $stageId)->first();
+            if ($baseItem && ! str_contains($baseItem->label ?? '', '[remaining]')) {
+                $issues[] = "OVERLAP stage:{$stageId} has both BASE #{$baseItem->id} and shipment-specific items";
+            }
+        }
+
+        // 4. Wrong status (paid but has remaining > tolerance)
+        foreach ($items as $item) {
+            if ($item->status->value === 'paid' && $item->remaining_amount > 100) {
+                $remainMajor = number_format($item->remaining_amount / 10000, 2);
+                $issues[] = "WRONG STATUS #{$item->id}: status=paid but remaining={$remainMajor}";
+            }
+        }
+
+        // 5. Orphan allocations
+        foreach ($items as $item) {
+            $orphans = $item->allocations()->with('payment')->get()->filter(fn ($a) => ! $a->payment || $a->payment->trashed());
+            if ($orphans->isNotEmpty()) {
+                $ids = $orphans->pluck('id')->implode(',');
+                $issues[] = "ORPHAN ALLOCS on #{$item->id}: alloc IDs {$ids}";
+            }
+        }
+
+        $status = empty($issues) ? 'OK' : 'ISSUES FOUND';
+        $output .= "{$pi->reference} (ID:{$pi->id}) | PI Total: " . number_format($piTotal, 2) . " | Schedule Total: " . number_format($scheduleTotal, 2) . " | Paid: " . number_format($schedulePaid, 2) . " | Remaining: " . number_format($scheduleRemaining, 2) . " | [{$status}]\n";
+
+        if (! empty($issues)) {
+            foreach ($issues as $issue) {
+                $output .= "  !! {$issue}\n";
+            }
+
+            // Show items detail for problematic PIs
+            foreach ($items as $item) {
+                $tag = $item->shipment_id ? "[ship:{$item->shipment_id}]" : "[BASE]";
+                $stg = $item->payment_term_stage_id ? "stg:{$item->payment_term_stage_id}" : "no_stg";
+                $amt = number_format($item->amount / 10000, 2);
+                $paid = number_format($item->paid_amount / 10000, 2);
+                $rem = number_format($item->remaining_amount / 10000, 2);
+                $credit = $item->is_credit ? ' [CREDIT]' : '';
+                $output .= "    #{$item->id} {$tag} ({$stg}) {$item->label}{$credit} | Amt:{$amt} Paid:{$paid} Rem:{$rem} | {$item->status->value}\n";
+            }
+            $output .= "\n";
+        }
+    }
+
+    return response($output, 200, ['Content-Type' => 'text/plain']);
+});
