@@ -572,8 +572,12 @@ class PaymentForm
         $label = static::cleanLabel($item);
         $remaining = Money::format($item->remaining_amount);
         $shipRef = static::shipmentRef($item);
+        $clientRef = $item->payable?->client_reference;
 
         $parts = "[{$docRef}] {$label}";
+        if ($clientRef) {
+            $parts .= " (Ref: {$clientRef})";
+        }
         if ($shipRef) {
             $parts .= " [{$shipRef}]";
         }

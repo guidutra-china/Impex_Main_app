@@ -76,12 +76,18 @@ class ViewPayment extends ViewRecord
                                     $payment->direction
                                 );
 
-                                return $items->mapWithKeys(fn ($item) => [
-                                    $item->id => '['.($item->payable?->reference ?? '?').'] '
-                                        .($item->label ?? $item->paymentTermStage?->name ?? '—')
-                                        .' — '.$item->currency_code.' '.Money::format($item->remaining_amount)
-                                        .' remaining',
-                                ]);
+                                return $items->mapWithKeys(function ($item) {
+                                    $clientRef = $item->payable?->client_reference;
+                                    $label = '['.($item->payable?->reference ?? '?').'] '
+                                        .($item->label ?? $item->paymentTermStage?->name ?? '—');
+                                    if ($clientRef) {
+                                        $label .= " (Ref: {$clientRef})";
+                                    }
+                                    $label .= ' — '.$item->currency_code.' '.Money::format($item->remaining_amount)
+                                        .' remaining';
+
+                                    return [$item->id => $label];
+                                });
                             })
                             ->getOptionLabelUsing(function ($value): ?string {
                                 $item = PaymentScheduleItem::with('payable', 'paymentTermStage')->find($value);
@@ -89,10 +95,16 @@ class ViewPayment extends ViewRecord
                                     return null;
                                 }
 
-                                return '['.($item->payable?->reference ?? '?').'] '
-                                    .($item->label ?? $item->paymentTermStage?->name ?? '—')
-                                    .' — '.$item->currency_code.' '.Money::format($item->remaining_amount)
+                                $clientRef = $item->payable?->client_reference;
+                                $labelText = '['.($item->payable?->reference ?? '?').'] '
+                                    .($item->label ?? $item->paymentTermStage?->name ?? '—');
+                                if ($clientRef) {
+                                    $labelText .= " (Ref: {$clientRef})";
+                                }
+                                $labelText .= ' — '.$item->currency_code.' '.Money::format($item->remaining_amount)
                                     .' remaining';
+
+                                return $labelText;
                             })
                             ->required()
                             ->distinct()
