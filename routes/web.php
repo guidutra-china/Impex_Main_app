@@ -51,3 +51,39 @@ Route::get('/debug/pi-check-00019/{token}', function (string $token) {
 
     return response($output, 200, ['Content-Type' => 'text/plain']);
 });
+
+// TEMPORARY FIX ROUTE - REMOVE AFTER USE
+Route::get('/debug/pi-fix-00019/{token}', function (string $token) {
+    if ($token !== 'impex2026debug') {
+        abort(403);
+    }
+
+    $output = "";
+
+    // 1. Delete orphan allocation #41 (payment #11 was deleted)
+    $orphan = \App\Domain\Financial\Models\PaymentAllocation::find(41);
+    if ($orphan) {
+        $orphan->delete();
+        $output .= "DELETED orphan allocation #41 (payment_id: 11)\n";
+    } else {
+        $output .= "Allocation #41 not found (already cleaned)\n";
+    }
+
+    // 2. Fix schedule item #476 — remaining is 30 (0.30 cents rounding diff)
+    $item = \App\Domain\Financial\Models\PaymentScheduleItem::find(476);
+    if ($item) {
+        $item->refresh();
+        $paid = $item->paid_amount;
+        $remaining = $item->remaining_amount;
+        $output .= "\nItem #476 recalculated: paid={$paid} remaining={$remaining}\n";
+
+        if ($remaining <= 100) { // less than 1.00 in minor units — rounding tolerance
+            $item->update(['status' => 'paid']);
+            $output .= "STATUS UPDATED to PAID (rounding tolerance: {$remaining})\n";
+        } else {
+            $output .= "Remaining too large to auto-fix: {$remaining}\n";
+        }
+    }
+
+    return response($output, 200, ['Content-Type' => 'text/plain']);
+});
