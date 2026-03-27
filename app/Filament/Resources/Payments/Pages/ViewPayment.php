@@ -18,6 +18,8 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Support\Facades\Storage;
@@ -109,6 +111,16 @@ class ViewPayment extends ViewRecord
                             ->required()
                             ->distinct()
                             ->searchable()
+                            ->live()
+                            ->afterStateUpdated(function ($state, Set $set) {
+                                if (! $state) {
+                                    return;
+                                }
+                                $item = PaymentScheduleItem::find($state);
+                                if ($item) {
+                                    $set('allocated_amount', number_format(Money::toMajor($item->remaining_amount), 2, '.', ''));
+                                }
+                            })
                             ->columnSpan(5),
                         TextInput::make('allocated_amount')
                             ->label(__('forms.labels.amount'))

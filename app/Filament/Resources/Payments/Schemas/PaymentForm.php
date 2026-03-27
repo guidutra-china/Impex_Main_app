@@ -179,6 +179,17 @@ class PaymentForm
                                 ->required()
                                 ->distinct()
                                 ->searchable()
+                                ->live()
+                                ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                    if (! $state) {
+                                        return;
+                                    }
+                                    $item = PaymentScheduleItem::find($state);
+                                    if ($item) {
+                                        $set('allocated_amount', number_format(Money::toMajor($item->remaining_amount), 2, '.', ''));
+                                        static::recalculateTotal($get, $set);
+                                    }
+                                })
                                 ->columnSpan(5),
                             TextInput::make('allocated_amount')
                                 ->label(__('forms.labels.amount'))
