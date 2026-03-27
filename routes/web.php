@@ -90,16 +90,13 @@ Route::get('/debug/pi-audit-all/{token}', function (string $token) {
         $schedulePaid = $items->sum(fn ($i) => $i->paid_amount) / 10000;
         $scheduleRemaining = $items->where('is_credit', false)->sum(fn ($i) => $i->remaining_amount) / 10000;
 
-        // Detect issues
         $issues = [];
 
-        // 1. Schedule total vs PI total mismatch
-        $expectedTotal = $piTotal; // 100% = full PI
+        $expectedTotal = $piTotal;
         if (abs($scheduleTotal - $expectedTotal) > 1.00) {
             $issues[] = "TOTAL MISMATCH: schedule={$scheduleTotal} vs expected={$expectedTotal} (diff=" . round($scheduleTotal - $expectedTotal, 2) . ")";
         }
 
-        // 2. Duplicate stage+shipment combinations
         $stageShipmentCombos = [];
         foreach ($items as $item) {
             if (! $item->payment_term_stage_id) continue;
@@ -113,7 +110,6 @@ Route::get('/debug/pi-audit-all/{token}', function (string $token) {
             }
         }
 
-        // 3. Base + shipment covering same stage (both with amounts)
         $baseStages = $items->whereNull('shipment_id')->whereNotNull('payment_term_stage_id')->pluck('payment_term_stage_id')->all();
         $shipStages = $items->whereNotNull('shipment_id')->whereNotNull('payment_term_stage_id')->pluck('payment_term_stage_id')->unique()->all();
         $overlapping = array_intersect($baseStages, $shipStages);
@@ -124,7 +120,6 @@ Route::get('/debug/pi-audit-all/{token}', function (string $token) {
             }
         }
 
-        // 4. Wrong status (paid but has remaining > tolerance)
         foreach ($items as $item) {
             if ($item->status->value === 'paid' && $item->remaining_amount > 100) {
                 $remainMajor = number_format($item->remaining_amount / 10000, 2);
@@ -132,7 +127,6 @@ Route::get('/debug/pi-audit-all/{token}', function (string $token) {
             }
         }
 
-        // 5. Orphan allocations
         foreach ($items as $item) {
             $orphans = $item->allocations()->with('payment')->get()->filter(fn ($a) => ! $a->payment || $a->payment->trashed());
             if ($orphans->isNotEmpty()) {
@@ -149,7 +143,6 @@ Route::get('/debug/pi-audit-all/{token}', function (string $token) {
                 $output .= "  !! {$issue}\n";
             }
 
-            // Show items detail for problematic PIs
             foreach ($items as $item) {
                 $tag = $item->shipment_id ? "[ship:{$item->shipment_id}]" : "[BASE]";
                 $stg = $item->payment_term_stage_id ? "stg:{$item->payment_term_stage_id}" : "no_stg";
@@ -161,6 +154,43 @@ Route::get('/debug/pi-audit-all/{token}', function (string $token) {
             }
             $output .= "\n";
         }
+    }
+
+    return response($output, 200, ['Content-Type' => 'text/plain']);
+});
+
+// TEMPORARY FIX ROUTE - Regenerate all PI schedules to fix duplicates and statuses
+Route::get('/debug/pi-fix-all/{token}', function (string $token) {
+    if ($token !== 'impex2026debug') {
+        abort(403);
+    }
+
+    $output = "PI SCHEDULE FIX - REGENERATING ALL\n";
+    $output .= str_repeat('=', 100) . "\n\n";
+
+    $piClass = \App\Domain\ProformaInvoices\Models\ProformaInvoice::class;
+    $pis = \App\Domain\ProformaInvoices\Models\ProformaInvoice::orderBy('reference')
+        ->whereHas('paymentScheduleItems')
+        ->get();
+    $action = app(\App\Domain\Financial\Actions\GeneratePaymentScheduleAction::class);
+
+    foreach ($pis as $pi) {
+        if (! $pi->payment_term_id) {
+            $output .= "{$pi->reference}: SKIPPED (no payment term)\n";
+            continue;
+        }
+
+        $beforeCount = \App\Domain\Financial\Models\PaymentScheduleItem::where('payable_type', $piClass)
+            ->where('payable_id', $pi->id)->count();
+
+        $action->regenerate($pi);
+
+        $afterCount = \App\Domain\Financial\Models\PaymentScheduleItem::where('payable_type', $piClass)
+            ->where('payable_id', $pi->id)->count();
+
+        $diff = $afterCount - $beforeCount;
+        $diffLabel = $diff > 0 ? "+{$diff}" : (string) $diff;
+        $output .= "{$pi->reference}: regenerated ({$beforeCount} -> {$afterCount} items, {$diffLabel})\n";
     }
 
     return response($output, 200, ['Content-Type' => 'text/plain']);

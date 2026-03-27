@@ -90,6 +90,9 @@ class GeneratePaymentScheduleAction
 
             $this->syncAdditionalCosts($payable);
 
+            // Recalculate statuses based on actual allocations
+            $this->recalculateAllStatuses($payable);
+
             return $processed;
         });
     }
@@ -199,11 +202,14 @@ class GeneratePaymentScheduleAction
             return;
         }
 
-        // Check which stages already have a base item (no shipment_id) that is paid/waived or has allocations
-        $coveredStageIds = PaymentScheduleItem::where('payable_type', get_class($pi))
+        $piType = get_class($pi);
+
+        // Step 1: Identify stages covered by base items (no shipment_id) that are paid/waived or have allocations
+        $coveredStageIds = PaymentScheduleItem::where('payable_type', $piType)
             ->where('payable_id', $pi->id)
             ->whereNull('shipment_id')
             ->whereNull('source_type')
+            ->where('label', 'NOT LIKE', '%[remaining]%')
             ->where(function ($q) {
                 $q->whereIn('status', [
                     PaymentScheduleStatus::PAID->value,
@@ -214,11 +220,14 @@ class GeneratePaymentScheduleAction
             ->filter()
             ->all();
 
-        // Delete existing shipment-specific items that can be regenerated
-        PaymentScheduleItem::where('payable_type', get_class($pi))
+        // Step 2: Delete shipment-specific items AND remaining items that can be regenerated
+        PaymentScheduleItem::where('payable_type', $piType)
             ->where('payable_id', $pi->id)
-            ->whereNotNull('shipment_id')
             ->whereNull('source_type')
+            ->where(function ($q) {
+                $q->whereNotNull('shipment_id')
+                  ->orWhere('label', 'LIKE', '%[remaining]%');
+            })
             ->whereNotIn('status', [
                 PaymentScheduleStatus::PAID->value,
                 PaymentScheduleStatus::WAIVED->value,
@@ -226,14 +235,14 @@ class GeneratePaymentScheduleAction
             ->whereDoesntHave('allocations')
             ->delete();
 
-        // Find all shipments linked to this PI via items
+        // Step 3: Find all shipments linked to this PI
         $shipments = Shipment::whereHas('items.proformaInvoiceItem', function ($q) use ($pi) {
             $q->where('proforma_invoice_id', $pi->id);
         })->with(['items.proformaInvoiceItem' => fn ($q) => $q->where('proforma_invoice_id', $pi->id)])
             ->get();
 
         $totalShippedValue = 0;
-        $sortOffset = PaymentScheduleItem::where('payable_type', get_class($pi))
+        $sortOffset = PaymentScheduleItem::where('payable_type', $piType)
             ->where('payable_id', $pi->id)
             ->max('sort_order') ?? 0;
 
@@ -249,19 +258,22 @@ class GeneratePaymentScheduleAction
             }
 
             foreach ($shipmentDependentStages as $stage) {
-                // Skip if the base item for this stage is already paid/has allocations
+                // Skip if a base item already covers this stage (paid/with allocations)
                 if (in_array($stage->id, $coveredStageIds)) {
                     continue;
                 }
 
-                // Skip if a shipment-specific item already exists (paid/with allocations, survived delete above)
-                $existingShipmentItem = PaymentScheduleItem::where('payable_type', get_class($pi))
+                // Check for surviving item (paid/waived/with allocations — not deleted above)
+                $existingItem = PaymentScheduleItem::where('payable_type', $piType)
                     ->where('payable_id', $pi->id)
                     ->where('shipment_id', $shipment->id)
                     ->where('payment_term_stage_id', $stage->id)
                     ->first();
 
-                if ($existingShipmentItem) {
+                if ($existingItem) {
+                    // Update amount to match current shipment value
+                    $correctAmount = (int) round($shipmentValue * ($stage->percentage / 100));
+                    $existingItem->update(['amount' => $correctAmount]);
                     continue;
                 }
 
@@ -271,7 +283,7 @@ class GeneratePaymentScheduleAction
                 $isBlocking = $stage->calculation_base === CalculationBase::BEFORE_SHIPMENT;
 
                 PaymentScheduleItem::create([
-                    'payable_type' => get_class($pi),
+                    'payable_type' => $piType,
                     'payable_id' => $pi->id,
                     'shipment_id' => $shipment->id,
                     'payment_term_stage_id' => $stage->id,
@@ -288,13 +300,27 @@ class GeneratePaymentScheduleAction
             }
         }
 
-        // Create "remaining" items for unshipped value
+        // Step 4: Create "remaining" items for unshipped value
         $remainingValue = max(0, $pi->total - $totalShippedValue);
 
         if ($remainingValue > 0) {
             foreach ($shipmentDependentStages as $stage) {
-                // Skip if the base item for this stage is already paid/has allocations
+                // Skip if a base item already covers this stage
                 if (in_array($stage->id, $coveredStageIds)) {
+                    continue;
+                }
+
+                // Skip if a remaining item survived deletion (paid/with allocations)
+                $existingRemaining = PaymentScheduleItem::where('payable_type', $piType)
+                    ->where('payable_id', $pi->id)
+                    ->whereNull('shipment_id')
+                    ->where('payment_term_stage_id', $stage->id)
+                    ->where('label', 'LIKE', '%[remaining]%')
+                    ->first();
+
+                if ($existingRemaining) {
+                    $correctAmount = (int) round($remainingValue * ($stage->percentage / 100));
+                    $existingRemaining->update(['amount' => $correctAmount]);
                     continue;
                 }
 
@@ -302,7 +328,7 @@ class GeneratePaymentScheduleAction
                 $label = $this->generateShipmentLabel($stage, $pi->reference, null) . ' [remaining]';
 
                 PaymentScheduleItem::create([
-                    'payable_type' => get_class($pi),
+                    'payable_type' => $piType,
                     'payable_id' => $pi->id,
                     'payment_term_stage_id' => $stage->id,
                     'label' => $label,
@@ -337,14 +363,47 @@ class GeneratePaymentScheduleAction
             return;
         }
 
-        // Find all shipments linked to this PO via items
+        $poType = get_class($po);
+
+        // Step 1: Identify stages covered by base items that are paid/waived or have allocations
+        $coveredStageIds = PaymentScheduleItem::where('payable_type', $poType)
+            ->where('payable_id', $po->id)
+            ->whereNull('shipment_id')
+            ->whereNull('source_type')
+            ->where('label', 'NOT LIKE', '%[remaining]%')
+            ->where(function ($q) {
+                $q->whereIn('status', [
+                    PaymentScheduleStatus::PAID->value,
+                    PaymentScheduleStatus::WAIVED->value,
+                ])->orWhereHas('allocations');
+            })
+            ->pluck('payment_term_stage_id')
+            ->filter()
+            ->all();
+
+        // Step 2: Delete shipment-specific and remaining items that can be regenerated
+        PaymentScheduleItem::where('payable_type', $poType)
+            ->where('payable_id', $po->id)
+            ->whereNull('source_type')
+            ->where(function ($q) {
+                $q->whereNotNull('shipment_id')
+                  ->orWhere('label', 'LIKE', '%[remaining]%');
+            })
+            ->whereNotIn('status', [
+                PaymentScheduleStatus::PAID->value,
+                PaymentScheduleStatus::WAIVED->value,
+            ])
+            ->whereDoesntHave('allocations')
+            ->delete();
+
+        // Step 3: Find all shipments linked to this PO
         $shipments = Shipment::whereHas('items.purchaseOrderItem', function ($q) use ($po) {
             $q->where('purchase_order_id', $po->id);
         })->with(['items.purchaseOrderItem' => fn ($q) => $q->where('purchase_order_id', $po->id)])
             ->get();
 
         $totalShippedValue = 0;
-        $sortOffset = PaymentScheduleItem::where('payable_type', get_class($po))
+        $sortOffset = PaymentScheduleItem::where('payable_type', $poType)
             ->where('payable_id', $po->id)
             ->max('sort_order') ?? 0;
 
@@ -360,13 +419,29 @@ class GeneratePaymentScheduleAction
             }
 
             foreach ($shipmentDependentStages as $stage) {
+                if (in_array($stage->id, $coveredStageIds)) {
+                    continue;
+                }
+
+                $existingItem = PaymentScheduleItem::where('payable_type', $poType)
+                    ->where('payable_id', $po->id)
+                    ->where('shipment_id', $shipment->id)
+                    ->where('payment_term_stage_id', $stage->id)
+                    ->first();
+
+                if ($existingItem) {
+                    $correctAmount = (int) round($shipmentValue * ($stage->percentage / 100));
+                    $existingItem->update(['amount' => $correctAmount]);
+                    continue;
+                }
+
                 $amount = (int) round($shipmentValue * ($stage->percentage / 100));
                 $dueDate = $this->calculateShipmentDueDate($shipment, $stage);
                 $label = $this->generateShipmentLabel($stage, $po->reference, $shipment->reference);
                 $isBlocking = $stage->calculation_base === CalculationBase::BEFORE_SHIPMENT;
 
                 PaymentScheduleItem::create([
-                    'payable_type' => get_class($po),
+                    'payable_type' => $poType,
                     'payable_id' => $po->id,
                     'shipment_id' => $shipment->id,
                     'payment_term_stage_id' => $stage->id,
@@ -383,16 +458,33 @@ class GeneratePaymentScheduleAction
             }
         }
 
-        // Create "remaining" items for unshipped value
+        // Step 4: Create "remaining" items for unshipped value
         $remainingValue = max(0, $po->total - $totalShippedValue);
 
         if ($remainingValue > 0) {
             foreach ($shipmentDependentStages as $stage) {
+                if (in_array($stage->id, $coveredStageIds)) {
+                    continue;
+                }
+
+                $existingRemaining = PaymentScheduleItem::where('payable_type', $poType)
+                    ->where('payable_id', $po->id)
+                    ->whereNull('shipment_id')
+                    ->where('payment_term_stage_id', $stage->id)
+                    ->where('label', 'LIKE', '%[remaining]%')
+                    ->first();
+
+                if ($existingRemaining) {
+                    $correctAmount = (int) round($remainingValue * ($stage->percentage / 100));
+                    $existingRemaining->update(['amount' => $correctAmount]);
+                    continue;
+                }
+
                 $amount = (int) round($remainingValue * ($stage->percentage / 100));
                 $label = $this->generateShipmentLabel($stage, $po->reference, null) . ' [remaining]';
 
                 PaymentScheduleItem::create([
-                    'payable_type' => get_class($po),
+                    'payable_type' => $poType,
                     'payable_id' => $po->id,
                     'payment_term_stage_id' => $stage->id,
                     'label' => $label,
@@ -762,5 +854,34 @@ class GeneratePaymentScheduleAction
         }
 
         return 0;
+    }
+
+    protected function recalculateAllStatuses(Model $payable): void
+    {
+        $items = PaymentScheduleItem::where('payable_type', get_class($payable))
+            ->where('payable_id', $payable->getKey())
+            ->get();
+
+        foreach ($items as $item) {
+            if ($item->status === PaymentScheduleStatus::WAIVED) {
+                continue;
+            }
+
+            $item->refresh();
+
+            if ($item->is_paid_in_full) {
+                $newStatus = PaymentScheduleStatus::PAID;
+            } elseif ($item->paid_amount > 0) {
+                $newStatus = PaymentScheduleStatus::DUE;
+            } else {
+                $newStatus = $item->status === PaymentScheduleStatus::DUE
+                    ? PaymentScheduleStatus::DUE
+                    : PaymentScheduleStatus::PENDING;
+            }
+
+            if ($item->status !== $newStatus) {
+                $item->update(['status' => $newStatus]);
+            }
+        }
     }
 }

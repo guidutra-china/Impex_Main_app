@@ -80,10 +80,28 @@ class RecalculatePaymentScheduleForShipmentAction
 
     protected function recalculateForDocument(Shipment $shipment, Model $document, PaymentTerm $paymentTerm, int $shipmentValue): void
     {
-        // 1. Delete existing shipment-linked items for this shipment (not paid/waived, no allocations)
+        $docType = get_class($document);
+
+        // 1. Identify stages covered by base items (no shipment_id) that are paid/waived or have allocations
+        $coveredStageIds = PaymentScheduleItem::where('payable_type', $docType)
+            ->where('payable_id', $document->id)
+            ->whereNull('shipment_id')
+            ->whereNull('source_type')
+            ->where('label', 'NOT LIKE', '%[remaining]%')
+            ->where(function ($q) {
+                $q->whereIn('status', [
+                    PaymentScheduleStatus::PAID->value,
+                    PaymentScheduleStatus::WAIVED->value,
+                ])->orWhereHas('allocations');
+            })
+            ->pluck('payment_term_stage_id')
+            ->filter()
+            ->all();
+
+        // 2. Delete existing shipment-linked items for this shipment (not paid/waived, no allocations)
         PaymentScheduleItem::where('shipment_id', $shipment->id)
             ->where('payable_id', $document->id)
-            ->where('payable_type', get_class($document))
+            ->where('payable_type', $docType)
             ->whereNotIn('status', [
                 PaymentScheduleStatus::PAID->value,
                 PaymentScheduleStatus::WAIVED->value,
@@ -91,17 +109,35 @@ class RecalculatePaymentScheduleForShipmentAction
             ->whereDoesntHave('allocations')
             ->delete();
 
-        // 2. Create shipment-dependent items for this shipment's value
+        // 3. Create shipment-dependent items for this shipment's value
         if ($shipmentValue <= 0) {
             return;
         }
 
-        $sortOffset = PaymentScheduleItem::where('payable_type', get_class($document))
+        $sortOffset = PaymentScheduleItem::where('payable_type', $docType)
             ->where('payable_id', $document->id)
             ->max('sort_order') ?? 0;
 
         foreach ($paymentTerm->stages as $stage) {
             if (! $stage->calculation_base?->isShipmentDependent()) {
+                continue;
+            }
+
+            // Skip if base item already covers this stage
+            if (in_array($stage->id, $coveredStageIds)) {
+                continue;
+            }
+
+            // Check for surviving item (paid/waived/with allocations)
+            $existingItem = PaymentScheduleItem::where('payable_type', $docType)
+                ->where('payable_id', $document->id)
+                ->where('shipment_id', $shipment->id)
+                ->where('payment_term_stage_id', $stage->id)
+                ->first();
+
+            if ($existingItem) {
+                $correctAmount = (int) round($shipmentValue * ($stage->percentage / 100));
+                $existingItem->update(['amount' => $correctAmount]);
                 continue;
             }
 
@@ -112,7 +148,7 @@ class RecalculatePaymentScheduleForShipmentAction
             $isBlocking = $stage->calculation_base === CalculationBase::BEFORE_SHIPMENT;
 
             PaymentScheduleItem::create([
-                'payable_type' => get_class($document),
+                'payable_type' => $docType,
                 'payable_id' => $document->id,
                 'shipment_id' => $shipment->id,
                 'payment_term_stage_id' => $stage->id,
