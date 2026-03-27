@@ -60,29 +60,26 @@ Route::get('/debug/pi-fix-00019/{token}', function (string $token) {
 
     $output = "";
 
-    // 1. Delete orphan allocation #41 (payment #11 was deleted)
-    $orphan = \App\Domain\Financial\Models\PaymentAllocation::find(41);
-    if ($orphan) {
+    // 1. Delete orphan allocations (payments that were deleted)
+    $orphans = \App\Domain\Financial\Models\PaymentAllocation::whereNotIn('payment_id', function ($q) {
+        $q->select('id')->from('payments');
+    })->get();
+
+    foreach ($orphans as $orphan) {
+        $output .= "DELETED orphan allocation #{$orphan->id} (payment_id: {$orphan->payment_id})\n";
         $orphan->delete();
-        $output .= "DELETED orphan allocation #41 (payment_id: 11)\n";
-    } else {
-        $output .= "Allocation #41 not found (already cleaned)\n";
+    }
+    if ($orphans->isEmpty()) {
+        $output .= "No orphan allocations found\n";
     }
 
-    // 2. Fix schedule item #476 — remaining is 30 (0.30 cents rounding diff)
+    // 2. Recalculate status for item #476 (10% order date)
     $item = \App\Domain\Financial\Models\PaymentScheduleItem::find(476);
-    if ($item) {
+    if ($item && $item->status->value !== 'waived') {
         $item->refresh();
-        $paid = $item->paid_amount;
-        $remaining = $item->remaining_amount;
-        $output .= "\nItem #476 recalculated: paid={$paid} remaining={$remaining}\n";
-
-        if ($remaining <= 100) { // less than 1.00 in minor units — rounding tolerance
-            $item->update(['status' => 'paid']);
-            $output .= "STATUS UPDATED to PAID (rounding tolerance: {$remaining})\n";
-        } else {
-            $output .= "Remaining too large to auto-fix: {$remaining}\n";
-        }
+        $newStatus = $item->is_paid_in_full ? 'paid' : 'due';
+        $item->update(['status' => $newStatus]);
+        $output .= "\nItem #476: paid={$item->paid_amount} remaining={$item->remaining_amount} -> status={$newStatus}\n";
     }
 
     return response($output, 200, ['Content-Type' => 'text/plain']);

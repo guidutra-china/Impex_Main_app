@@ -150,7 +150,8 @@ class PaymentScheduleItem extends Model
             return $this->is_credit_applied || $this->isResolved();
         }
 
-        return $this->remaining_amount <= 0;
+        // Tolerance of 0.01 (100 minor units) to handle percentage rounding differences
+        return $this->remaining_amount <= 100;
     }
 
     public function isResolved(): bool
