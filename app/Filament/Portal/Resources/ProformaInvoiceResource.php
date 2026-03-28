@@ -87,6 +87,17 @@ class ProformaInvoiceResource extends Resource
                     ->label('Items')
                     ->counts('items')
                     ->alignCenter(),
+                TextColumn::make('shipment_progress')
+                    ->label('Shipped')
+                    ->getStateUsing(fn ($record) => $record->shipment_progress)
+                    ->formatStateUsing(fn ($state) => $state . '%')
+                    ->alignCenter()
+                    ->color(fn ($state) => match (true) {
+                        $state >= 100 => 'success',
+                        $state > 0 => 'warning',
+                        default => 'gray',
+                    })
+                    ->badge(),
                 TextColumn::make('issue_date')
                     ->label('Issue Date')
                     ->date('d/m/Y')

@@ -71,6 +71,11 @@ class ProformaInvoicesTable
                 TextColumn::make('incoterm')
                     ->label(__('forms.labels.incoterm'))
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('total')
+                    ->label('Products Total')
+                    ->getStateUsing(fn ($record) => $record->total)
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 2))
+                    ->alignEnd(),
                 TextColumn::make('grand_total')
                     ->label(__('forms.labels.total'))
                     ->getStateUsing(fn ($record) => $record->grand_total)
@@ -85,6 +90,17 @@ class ProformaInvoicesTable
                     ->counts('items')
                     ->alignCenter()
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('shipment_progress')
+                    ->label('Shipped')
+                    ->getStateUsing(fn ($record) => $record->shipment_progress)
+                    ->formatStateUsing(fn ($state) => $state . '%')
+                    ->alignCenter()
+                    ->color(fn ($state) => match (true) {
+                        $state >= 100 => 'success',
+                        $state > 0 => 'warning',
+                        default => 'gray',
+                    })
+                    ->badge(),
                 TextColumn::make('issue_date')
                     ->label(__('forms.labels.issue_date'))
                     ->date('d/m/Y')
