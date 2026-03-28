@@ -71,6 +71,12 @@ class ProformaInvoiceResource extends Resource
                 TextColumn::make('incoterm')
                     ->badge()
                     ->placeholder('—'),
+                TextColumn::make('total')
+                    ->label('Products Total')
+                    ->getStateUsing(fn ($record) => $record->total)
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 2))
+                    ->alignRight()
+                    ->visible(fn () => auth()->user()?->can('portal:view-financial-summary')),
                 TextColumn::make('grand_total')
                     ->label('Total')
                     ->getStateUsing(fn ($record) => $record->grand_total)
