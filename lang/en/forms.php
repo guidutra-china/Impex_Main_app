@@ -463,6 +463,8 @@ return array (
     'team_role' => 'Team Role',
     'title' => 'Title',
     'to' => 'To',
+    'products_total' => 'Products Total',
+    'shipped' => 'Shipped',
     'total' => 'Total',
     'total_client' => 'Total (Client)',
     'total_allocated' => 'Total Allocated',

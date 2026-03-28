@@ -457,6 +457,8 @@ return array (
     'team_role' => '团队角色',
     'title' => '标题',
     'to' => '至',
+    'products_total' => '产品总计',
+    'shipped' => '已发货',
     'total' => '总计',
     'total_client' => '客户总计',
     'total_allocated' => '总分配',

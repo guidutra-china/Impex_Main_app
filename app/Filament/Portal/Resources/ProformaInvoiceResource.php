@@ -65,30 +65,30 @@ class ProformaInvoiceResource extends Resource
                 TextColumn::make('status')
                     ->badge(),
                 TextColumn::make('currency_code')
-                    ->label('Currency')
+                    ->label(__('forms.labels.currency'))
                     ->badge()
                     ->color('gray'),
                 TextColumn::make('incoterm')
                     ->badge()
                     ->placeholder('—'),
                 TextColumn::make('total')
-                    ->label('Products Total')
+                    ->label(__('forms.labels.products_total'))
                     ->getStateUsing(fn ($record) => $record->total)
                     ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 2))
                     ->alignRight()
                     ->visible(fn () => auth()->user()?->can('portal:view-financial-summary')),
                 TextColumn::make('grand_total')
-                    ->label('Total')
+                    ->label(__('forms.labels.total'))
                     ->getStateUsing(fn ($record) => $record->grand_total)
                     ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 2))
                     ->alignRight()
                     ->visible(fn () => auth()->user()?->can('portal:view-financial-summary')),
                 TextColumn::make('items_count')
-                    ->label('Items')
+                    ->label(__('forms.labels.items'))
                     ->counts('items')
                     ->alignCenter(),
                 TextColumn::make('shipment_progress')
-                    ->label('Shipped')
+                    ->label(__('forms.labels.shipped'))
                     ->getStateUsing(fn ($record) => $record->shipment_progress)
                     ->formatStateUsing(fn ($state) => $state . '%')
                     ->alignCenter()
@@ -99,7 +99,7 @@ class ProformaInvoiceResource extends Resource
                     })
                     ->badge(),
                 TextColumn::make('issue_date')
-                    ->label('Issue Date')
+                    ->label(__('forms.labels.issue_date'))
                     ->date('d/m/Y')
                     ->sortable()
                     ->placeholder('—'),
@@ -139,21 +139,21 @@ class ProformaInvoiceResource extends Resource
                     TextEntry::make('status')
                         ->badge(),
                     TextEntry::make('currency_code')
-                        ->label('Currency')
+                        ->label(__('forms.labels.currency'))
                         ->badge()
                         ->color('gray'),
                     TextEntry::make('incoterm')
                         ->badge()
                         ->placeholder('—'),
                     TextEntry::make('paymentTerm.name')
-                        ->label('Payment Terms')
+                        ->label(__('forms.labels.payment_terms'))
                         ->placeholder('—'),
                     TextEntry::make('issue_date')
-                        ->label('Issue Date')
+                        ->label(__('forms.labels.issue_date'))
                         ->date('d/m/Y')
                         ->placeholder('—'),
                     TextEntry::make('grand_total')
-                        ->label('Total Value')
+                        ->label(__('forms.labels.total'))
                         ->getStateUsing(fn ($record) => $record->grand_total)
                         ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 2))
                         ->weight('bold')

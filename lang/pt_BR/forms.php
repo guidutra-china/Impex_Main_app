@@ -460,6 +460,8 @@ return array (
     'team_role' => 'Função na Equipe',
     'title' => 'Título',
     'to' => 'Para',
+    'products_total' => 'Total Produtos',
+    'shipped' => 'Enviado',
     'total' => 'Total',
     'total_client' => 'Total (Cliente)',
     'total_allocated' => 'Total Alocado',

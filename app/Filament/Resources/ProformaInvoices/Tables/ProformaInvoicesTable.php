@@ -72,7 +72,7 @@ class ProformaInvoicesTable
                     ->label(__('forms.labels.incoterm'))
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('total')
-                    ->label('Products Total')
+                    ->label(__('forms.labels.products_total'))
                     ->getStateUsing(fn ($record) => $record->total)
                     ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 2))
                     ->alignEnd(),
@@ -91,7 +91,7 @@ class ProformaInvoicesTable
                     ->alignCenter()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('shipment_progress')
-                    ->label('Shipped')
+                    ->label(__('forms.labels.shipped'))
                     ->getStateUsing(fn ($record) => $record->shipment_progress)
                     ->formatStateUsing(fn ($state) => $state . '%')
                     ->alignCenter()
