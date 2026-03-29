@@ -33,6 +33,9 @@ class PortalPanelProvider extends PanelProvider
             ->tenantRoutePrefix('')
             ->sidebarCollapsibleOnDesktop()
             ->brandName('Impex Portal')
+            ->brandLogo(fn () => view('filament.components.brand-logo'))
+            ->brandLogoHeight('3rem')
+            ->favicon(fn () => AdminPanelProvider::logoUrl())
             ->databaseNotifications()
             ->viteTheme('resources/css/filament/portal/theme.css')
             ->colors([

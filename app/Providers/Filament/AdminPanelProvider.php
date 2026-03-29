@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Domain\Settings\DataTransferObjects\CompanySettings;
 use App\Http\Middleware\SetLocale;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -34,7 +35,10 @@ class AdminPanelProvider extends PanelProvider
             ->profile(EditProfile::class)
             ->sidebarCollapsibleOnDesktop()
             ->sidebarFullyCollapsibleOnDesktop()
-            ->brandName('TradingApp')
+            ->brandName('Impex')
+            ->brandLogo(fn () => view('filament.components.brand-logo'))
+            ->brandLogoHeight('3rem')
+            ->favicon(fn () => self::logoUrl())
             ->databaseNotifications()
             ->colors([
                 'primary' => Color::Indigo,
@@ -84,5 +88,12 @@ class AdminPanelProvider extends PanelProvider
         }
 
         return $panel;
+    }
+
+    public static function logoUrl(): ?string
+    {
+        $logoPath = app(CompanySettings::class)->logo_path;
+
+        return $logoPath ? asset('storage/' . $logoPath) : null;
     }
 }
