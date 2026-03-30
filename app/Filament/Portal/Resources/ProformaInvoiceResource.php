@@ -53,13 +53,23 @@ class ProformaInvoiceResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('reference')
-                    ->searchable()
+                    ->searchable(query: function ($query, string $search): void {
+                        $query->where('reference', 'like', "%{$search}%")
+                            ->orWhere('client_reference', 'like', "%{$search}%")
+                            ->orWhereHas('items', function ($q) use ($search) {
+                                $q->where('description', 'like', "%{$search}%")
+                                    ->orWhereHas('product', fn ($pq) => $pq
+                                        ->where('name', 'like', "%{$search}%")
+                                        ->orWhere('model_number', 'like', "%{$search}%")
+                                        ->orWhere('sku', 'like', "%{$search}%")
+                                    );
+                            });
+                    })
                     ->sortable()
                     ->weight('bold')
                     ->copyable(),
                 TextColumn::make('client_reference')
                     ->label(__('forms.labels.client_reference'))
-                    ->searchable()
                     ->sortable()
                     ->placeholder('—'),
                 TextColumn::make('status')

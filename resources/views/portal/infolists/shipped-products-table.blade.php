@@ -13,6 +13,7 @@
                     <th class="px-4 py-2.5 text-center">Qty</th>
                     <th class="px-4 py-2.5 text-center">Unit</th>
                     <th class="px-4 py-2.5">Proforma Invoice</th>
+                    <th class="px-4 py-2.5">Client Ref.</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-white/10">
@@ -30,6 +31,9 @@
                             @else
                                 —
                             @endif
+                        </td>
+                        <td class="px-4 py-2.5 text-gray-600 dark:text-gray-400">
+                            {{ $item->proformaInvoiceItem?->proformaInvoice?->client_reference ?? '—' }}
                         </td>
                     </tr>
                 @endforeach
