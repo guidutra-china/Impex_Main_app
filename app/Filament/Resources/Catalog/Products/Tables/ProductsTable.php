@@ -143,9 +143,23 @@ class ProductsTable
                     ->options(ProductStatus::class),
                 SelectFilter::make('category_id')
                     ->label(__('forms.labels.category'))
-                    ->relationship('category', 'name')
+                    ->multiple()
+                    ->options(
+                        fn () => Category::query()
+                            ->active()
+                            ->with('parent')
+                            ->orderBy('name')
+                            ->get()
+                            ->mapWithKeys(fn (Category $cat) => [$cat->id => $cat->full_path])
+                            ->sort()
+                            ->all()
+                    )
                     ->searchable()
-                    ->preload(),
+                    ->query(function ($query, array $data) {
+                        if (! empty($data['values'])) {
+                            $query->whereIn('category_id', $data['values']);
+                        }
+                    }),
                 SelectFilter::make('has_suppliers')
                     ->label(__('forms.labels.has_suppliers'))
                     ->options([
