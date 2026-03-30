@@ -139,6 +139,12 @@ class ItemsRelationManager extends RelationManager
                     ->searchable()
                     ->limit(30)
                     ->placeholder(__('forms.placeholders.manual_item')),
+                TextColumn::make('product.model_number')
+                    ->label(__('forms.labels.model_number'))
+                    ->searchable()
+                    ->limit(20)
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('description')
                     ->label(__('forms.labels.description'))
                     ->limit(40)
