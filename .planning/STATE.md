@@ -71,7 +71,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None yet.
+1. [Redesign Production Schedule for portal/supplier with daily tracking](.planning/todos/pending/2026-03-30-redesign-production-schedule-for-portal-supplier-with-daily-tracking.md) — Modern UI for supplier input + daily forecast vs actual confirmation
 
 ### Blockers/Concerns
 
