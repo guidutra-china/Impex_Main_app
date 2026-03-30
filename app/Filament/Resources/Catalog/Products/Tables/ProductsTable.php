@@ -64,6 +64,12 @@ class ProductsTable
                     ->limit(50)
                     ->weight('bold')
                     ->description(fn ($record) => $record->commercial_name ?: $record->category?->name),
+                TextColumn::make('category.name')
+                    ->label(__('forms.labels.category'))
+                    ->badge()
+                    ->color('gray')
+                    ->sortable()
+                    ->placeholder('—'),
                 TextColumn::make('model_number')
                     ->label(__('forms.labels.model_number'))
                     ->searchable()
