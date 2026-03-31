@@ -8,6 +8,7 @@ use App\Domain\Infrastructure\Traits\HasReference;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -16,7 +17,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class ProductionSchedule extends Model
 {
-    use HasReference, LogsActivity;
+    use HasFactory, HasReference, LogsActivity;
 
     protected $fillable = [
         'proforma_invoice_id',

@@ -4,11 +4,13 @@ namespace App\Domain\Planning\Models;
 
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
 use App\Domain\PurchaseOrders\Models\PurchaseOrderItem;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ProductionScheduleEntry extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'production_schedule_id',
         'proforma_invoice_item_id',

@@ -10,6 +10,7 @@ use App\Domain\Planning\Models\ShipmentPlanItem;
 use App\Domain\PurchaseOrders\Models\PurchaseOrderItem;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Quotations\Models\QuotationItem;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ProformaInvoiceItem extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'proforma_invoice_id',
         'product_id',
