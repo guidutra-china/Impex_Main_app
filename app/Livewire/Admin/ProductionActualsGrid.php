@@ -34,6 +34,12 @@ class ProductionActualsGrid extends Component
 
     public function isVisible(): bool
     {
+        // Grid is always visible for admin — shows planned data in all statuses
+        return true;
+    }
+
+    public function canEditActuals(): bool
+    {
         return in_array($this->schedule->status, [
             ProductionScheduleStatus::Approved,
             ProductionScheduleStatus::Completed,
@@ -111,11 +117,12 @@ class ProductionActualsGrid extends Component
         }
 
         return view('livewire.admin.production-actuals-grid', [
-            'items' => $items,
-            'dates' => $dates,
-            'planned' => $planned,
-            'today' => $today,
-            'isVisible' => $this->isVisible(),
+            'items'          => $items,
+            'dates'          => $dates,
+            'planned'        => $planned,
+            'today'          => $today,
+            'isVisible'      => $this->isVisible(),
+            'canEditActuals' => $this->canEditActuals(),
         ]);
     }
 }

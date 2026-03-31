@@ -1,7 +1,7 @@
 <div wire:key="actuals-grid-{{ $schedule->id }}">
-    @if(!$isVisible)
+    @if(!$isVisible || count($dates) === 0)
         <p class="text-sm text-gray-400 italic p-4">
-            Actuals entry is available once the schedule is approved.
+            No production entries yet.
         </p>
     @else
         <div class="space-y-4">
@@ -66,15 +66,17 @@
                                                 : '');
                                     @endphp
                                     <td class="px-2 py-1.5 text-center {{ $bgClass }}">
-                                        @if($date <= $today && $plan)
-                                            <div class="flex flex-col items-center gap-0.5">
-                                                <input type="number" min="0" value="{{ $actual ?? '' }}" placeholder="—"
-                                                    wire:change="updateActual({{ $item['id'] }}, '{{ $date }}', $event.target.value)"
-                                                    class="w-16 text-center text-sm border border-gray-300 dark:border-white/20 rounded px-1 py-0.5 bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500">
-                                                <span class="text-xs text-gray-400">/{{ number_format($plan) }}</span>
-                                            </div>
-                                        @elseif($plan)
-                                            <span class="text-gray-400">—/{{ number_format($plan) }}</span>
+                                        @if($plan)
+                                            @if($canEditActuals && $date <= $today)
+                                                <div class="flex flex-col items-center gap-0.5">
+                                                    <input type="number" min="0" value="{{ $actual ?? '' }}" placeholder="—"
+                                                        wire:change="updateActual({{ $item['id'] }}, '{{ $date }}', $event.target.value)"
+                                                        class="w-16 text-center text-sm border border-gray-300 dark:border-white/20 rounded px-1 py-0.5 bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500">
+                                                    <span class="text-xs text-gray-400">/{{ number_format($plan) }}</span>
+                                                </div>
+                                            @else
+                                                <span class="{{ $actual !== null ? ($actual >= $plan ? 'text-green-600 dark:text-green-400 font-bold' : 'text-amber-600 dark:text-amber-400 font-bold') : 'text-gray-400' }}">{{ $actual !== null ? number_format($actual) : '—' }}</span><span class="text-gray-400">/{{ number_format($plan) }}</span>
+                                            @endif
                                         @else
                                             <span class="text-gray-300">—</span>
                                         @endif
@@ -95,11 +97,13 @@
                 </table>
             </div>
 
-            <div class="flex justify-end">
-                <x-filament::button wire:click="saveActuals" wire:loading.attr="disabled" icon="heroicon-o-check" color="primary">
-                    Save Actuals
-                </x-filament::button>
-            </div>
+            @if($canEditActuals)
+                <div class="flex justify-end">
+                    <x-filament::button wire:click="saveActuals" wire:loading.attr="disabled" icon="heroicon-o-check" color="primary">
+                        Save Actuals
+                    </x-filament::button>
+                </div>
+            @endif
         </div>
     @endif
 </div>

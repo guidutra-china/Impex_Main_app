@@ -52,9 +52,7 @@ class ProductionScheduleResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            EntriesRelationManager::class,
-        ];
+        return [];
     }
 
     public static function getPages(): array
