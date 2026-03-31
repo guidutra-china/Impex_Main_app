@@ -6,24 +6,23 @@ use App\Domain\Planning\Actions\GenerateProductionScheduleTemplate;
 use App\Domain\Planning\Models\ProductionScheduleEntry;
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
 use App\Filament\Resources\ProductionSchedules\ProductionScheduleResource;
+use App\Filament\Resources\ProductionSchedules\Widgets\ProductionGridWidget;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\FileUpload;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
-use Filament\Schemas\Schema;
-use Illuminate\Contracts\View\View;
 use OpenSpout\Reader\XLSX\Reader;
 
 class ViewProductionSchedule extends ViewRecord
 {
     protected static string $resource = ProductionScheduleResource::class;
 
-    public function getFooter(): ?View
+    protected function getFooterWidgets(): array
     {
-        return view('filament.production-schedule.view-footer', [
-            'record' => $this->record,
-        ]);
+        return [
+            ProductionGridWidget::class,
+        ];
     }
 
     protected function getHeaderActions(): array
