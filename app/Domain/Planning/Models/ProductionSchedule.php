@@ -28,6 +28,11 @@ class ProductionSchedule extends Model
         'version',
         'notes',
         'created_by',
+        'status',
+        'submitted_at',
+        'approved_by',
+        'approved_at',
+        'approval_notes',
     ];
 
     protected function casts(): array
@@ -35,6 +40,9 @@ class ProductionSchedule extends Model
         return [
             'received_date' => 'date',
             'version' => 'integer',
+            'status' => \App\Domain\Planning\Enums\ProductionScheduleStatus::class,
+            'submitted_at' => 'datetime',
+            'approved_at' => 'datetime',
         ];
     }
 
@@ -84,6 +92,16 @@ class ProductionSchedule extends Model
         return $this->hasMany(ProductionScheduleEntry::class)->orderBy('production_date');
     }
 
+    public function components(): HasMany
+    {
+        return $this->hasMany(ProductionScheduleComponent::class);
+    }
+
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
     // --- Accessors ---
 
     public function getTotalQuantityAttribute(): int
@@ -118,5 +136,32 @@ class ProductionSchedule extends Model
         return $this->entries
             ->where('production_date', '<=', $date)
             ->sum('quantity');
+    }
+
+    // --- Component Risk ---
+
+    public function componentRiskDates(): array
+    {
+        $risk = [];
+        $this->components->each(function (ProductionScheduleComponent $component) use (&$risk) {
+            $key = 'item-' . $component->proforma_invoice_item_id;
+            foreach ($this->entries as $entry) {
+                if ($entry->proforma_invoice_item_id !== $component->proforma_invoice_item_id) {
+                    continue;
+                }
+                if ($component->isRiskForDate($entry->production_date)) {
+                    $risk[$key][] = $entry->production_date->format('Y-m-d');
+                }
+            }
+        });
+        foreach ($risk as $key => $dates) {
+            $risk[$key] = array_values(array_unique($dates));
+        }
+        return $risk;
+    }
+
+    public function hasComponentRisk(): bool
+    {
+        return !empty($this->componentRiskDates());
     }
 }
