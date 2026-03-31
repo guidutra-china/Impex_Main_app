@@ -80,6 +80,14 @@ class ProductionScheduleInfolist
                 ->columns(3)
                 ->collapsible()
                 ->columnSpanFull(),
+
+            Section::make('Production Actuals')
+                ->schema([
+                    ViewEntry::make('actuals_grid')
+                        ->view('filament.production-schedule.actuals-grid-entry')
+                        ->columnSpanFull(),
+                ])
+                ->columnSpanFull(),
         ]);
     }
 }

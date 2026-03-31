@@ -4,9 +4,9 @@ namespace App\Filament\SupplierPortal\Resources;
 
 use App\Domain\Planning\Models\ProductionSchedule;
 use App\Filament\SupplierPortal\Resources\ProductionScheduleResource\Pages;
-use App\Filament\SupplierPortal\Resources\ProductionScheduleResource\RelationManagers\EntriesRelationManager;
 use BackedEnum;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -29,7 +29,7 @@ class ProductionScheduleResource extends Resource
 
     public static function canCreate(): bool
     {
-        return false;
+        return auth()->user()?->can('supplier-portal:manage-production-schedule') ?? false;
     }
 
     public static function canEdit($record): bool
@@ -51,6 +51,9 @@ class ProductionScheduleResource extends Resource
                     ->sortable()
                     ->weight('bold')
                     ->copyable(),
+                TextColumn::make('status')
+                    ->badge()
+                    ->sortable(),
                 TextColumn::make('purchaseOrder.reference')
                     ->label('PO Reference')
                     ->searchable()
@@ -105,20 +108,56 @@ class ProductionScheduleResource extends Resource
                 ])
                 ->columns(3)
                 ->columnSpanFull(),
+
+            Section::make('Production Grid')
+                ->schema([
+                    ViewEntry::make('production_grid')
+                        ->view('filament.supplier-portal.production-schedule-grid-entry')
+                        ->columnSpanFull(),
+                ])
+                ->columnSpanFull(),
+
+            Section::make('Component / Parts Inventory')
+                ->schema([
+                    ViewEntry::make('components_panel')
+                        ->view('filament.supplier-portal.component-inventory-panel-entry')
+                        ->columnSpanFull(),
+                ])
+                ->columnSpanFull(),
+        ]);
+    }
+
+    public static function form(Schema $schema): Schema
+    {
+        return $schema->components([
+            Section::make('New Production Schedule')
+                ->schema([
+                    \Filament\Forms\Components\Select::make('proforma_invoice_id')
+                        ->label('Proforma Invoice')
+                        ->relationship('proformaInvoice', 'reference')
+                        ->searchable()
+                        ->preload()
+                        ->required(),
+                    \Filament\Forms\Components\Select::make('purchase_order_id')
+                        ->label('Purchase Order (optional)')
+                        ->relationship('purchaseOrder', 'reference')
+                        ->searchable()
+                        ->nullable(),
+                ])
+                ->columns(2),
         ]);
     }
 
     public static function getRelations(): array
     {
-        return [
-            EntriesRelationManager::class,
-        ];
+        return []; // Replaced by Livewire components in infolist
     }
 
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListProductionSchedules::route('/'),
+            'create' => Pages\CreateProductionSchedule::route('/create'),
             'view' => Pages\ViewProductionSchedule::route('/{record}'),
         ];
     }

@@ -3,7 +3,6 @@
 namespace App\Filament\SupplierPortal\Resources\ProductionScheduleResource\Pages;
 
 use App\Filament\SupplierPortal\Resources\ProductionScheduleResource;
-use App\Filament\SupplierPortal\Resources\ProductionScheduleResource\RelationManagers\EntriesRelationManager;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewProductionSchedule extends ViewRecord
@@ -17,8 +16,6 @@ class ViewProductionSchedule extends ViewRecord
 
     public function getRelationManagers(): array
     {
-        return [
-            EntriesRelationManager::class,
-        ];
+        return []; // Replaced by Livewire components in infolist
     }
 }

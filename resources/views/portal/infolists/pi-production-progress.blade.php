@@ -136,6 +136,18 @@
                 </div>
             </details>
         @endforeach
+        {{-- Approval widgets per schedule --}}
+        @foreach($schedules->where('status', 'pending_approval') as $pendingSchedule)
+            <div class="mt-4">
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Schedule {{ $pendingSchedule->reference }} — Pending Your Approval
+                </h4>
+                <livewire:portal.schedule-approval-widget
+                    :schedule="$pendingSchedule"
+                    :key="'approval-widget-' . $pendingSchedule->id"
+                />
+            </div>
+        @endforeach
     </div>
 @else
     <p class="text-sm text-gray-500 dark:text-gray-400 italic">No production schedule data available for this proforma invoice.</p>
