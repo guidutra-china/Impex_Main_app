@@ -25,13 +25,13 @@
                     <thead class="bg-gray-50 dark:bg-white/5 text-xs font-medium text-gray-500 dark:text-gray-400">
                         <tr>
                             <th class="px-4 py-2.5 text-left min-w-[150px]">Product</th>
+                            <th class="px-3 py-2.5 text-center">PI Qty</th>
                             @foreach($dates as $date)
                                 @php $isToday = $date === $today; @endphp
                                 <th class="px-3 py-2.5 text-center min-w-[100px] {{ $isToday ? 'bg-blue-50 dark:bg-blue-900/20' : '' }}">
                                     <div class="{{ $isToday ? 'text-blue-600 dark:text-blue-400 font-bold' : '' }}">
                                         {{ \Carbon\Carbon::parse($date)->format('d/m') }}
                                     </div>
-                                    <div class="font-normal">Plan / Actual</div>
                                 </th>
                             @endforeach
                             <th class="px-3 py-2.5 text-center min-w-[100px]">Progress</th>
@@ -39,7 +39,12 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-white/10">
                         @foreach($items as $item)
-                            @php $itemKey = 'item-' . $item['id']; @endphp
+                            @php
+                                $itemKey = 'item-' . $item['id'];
+                                $itemTotalPlanned = array_sum($planned[$itemKey] ?? []);
+                                $itemTotalActual = array_sum(array_filter($actuals[$itemKey] ?? [], fn($v) => $v !== null));
+                                $itemPct = $itemTotalPlanned > 0 ? min(100, (int) round(($itemTotalActual / $itemTotalPlanned) * 100)) : 0;
+                            @endphp
                             <tr class="text-gray-900 dark:text-white">
                                 <td class="px-4 py-2.5">
                                     <div class="font-medium">{{ $item['name'] }}</div>
@@ -47,6 +52,7 @@
                                         <div class="text-xs text-gray-400">{{ $item['sku'] }}</div>
                                     @endif
                                 </td>
+                                <td class="px-3 py-2.5 text-center text-gray-500">{{ number_format($item['pi_quantity']) }}</td>
                                 @foreach($dates as $date)
                                     @php
                                         $plan   = $planned[$itemKey][$date] ?? null;
@@ -60,21 +66,20 @@
                                                 : '');
                                     @endphp
                                     <td class="px-2 py-1.5 text-center {{ $bgClass }}">
-                                        <div class="text-xs text-gray-400 mb-0.5">{{ $plan ? number_format($plan) : '—' }}</div>
-                                        @if($date <= $today)
-                                            <input type="number" min="0" value="{{ $actual ?? '' }}" placeholder="—"
-                                                wire:change="updateActual({{ $item['id'] }}, '{{ $date }}', $event.target.value)"
-                                                class="w-20 text-center text-sm border border-gray-300 dark:border-white/20 rounded-md px-2 py-1 bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500">
+                                        @if($date <= $today && $plan)
+                                            <div class="flex flex-col items-center gap-0.5">
+                                                <input type="number" min="0" value="{{ $actual ?? '' }}" placeholder="—"
+                                                    wire:change="updateActual({{ $item['id'] }}, '{{ $date }}', $event.target.value)"
+                                                    class="w-16 text-center text-sm border border-gray-300 dark:border-white/20 rounded px-1 py-0.5 bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500">
+                                                <span class="text-xs text-gray-400">/{{ number_format($plan) }}</span>
+                                            </div>
+                                        @elseif($plan)
+                                            <span class="text-gray-400">—/{{ number_format($plan) }}</span>
                                         @else
-                                            <span class="text-gray-400 text-sm">—</span>
+                                            <span class="text-gray-300">—</span>
                                         @endif
                                     </td>
                                 @endforeach
-                                @php
-                                    $itemTotalPlanned = array_sum($planned[$itemKey] ?? []);
-                                    $itemTotalActual = array_sum(array_filter($actuals[$itemKey] ?? [], fn($v) => $v !== null));
-                                    $itemPct = $itemTotalPlanned > 0 ? min(100, (int) round(($itemTotalActual / $itemTotalPlanned) * 100)) : 0;
-                                @endphp
                                 <td class="px-3 py-2.5">
                                     <div class="flex items-center gap-1.5">
                                         <div class="flex-1 bg-gray-200 dark:bg-white/10 rounded-full h-2 min-w-[50px]">

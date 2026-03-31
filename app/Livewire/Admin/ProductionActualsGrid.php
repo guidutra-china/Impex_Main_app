@@ -89,9 +89,10 @@ class ProductionActualsGrid extends Component
 
         $items = $this->schedule->proformaInvoice->items
             ->map(fn ($piItem) => [
-                'id' => $piItem->id,
-                'name' => $piItem->product?->name ?? $piItem->description ?? '—',
-                'sku' => $piItem->product?->sku ?? '',
+                'id'          => $piItem->id,
+                'name'        => $piItem->product?->name ?? $piItem->description ?? '—',
+                'sku'         => $piItem->product?->sku ?? '',
+                'pi_quantity' => $piItem->quantity,
             ])
             ->values()
             ->toArray();

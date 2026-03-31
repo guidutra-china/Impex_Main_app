@@ -70,7 +70,10 @@ class ScheduleApprovalWidget extends Component
                     ->map->format('Y-m-d')
                     ->sort()
                     ->values();
-                $quantities  = $itemEntries->pluck('quantity', 'production_date');
+                $quantities = [];
+                foreach ($itemEntries as $entry) {
+                    $quantities[$entry->production_date->format('Y-m-d')] = $entry->quantity;
+                }
 
                 return [
                     'id'          => $piItem->id,
