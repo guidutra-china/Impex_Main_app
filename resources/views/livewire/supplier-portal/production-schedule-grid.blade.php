@@ -8,18 +8,31 @@
             </x-filament::badge>
             <span class="text-sm text-gray-500">{{ $schedule->proformaInvoice->reference }}</span>
         </div>
-        @if($this->canEdit())
-            <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2">
+            @if($this->canEdit())
                 <input type="date" wire:model="newDateInput"
                        class="text-sm border border-gray-300 dark:border-white/20 rounded-md px-2 py-1 bg-white dark:bg-white/5 text-gray-900 dark:text-white h-8">
                 <x-filament::button size="sm" color="gray" wire:click="addDate" icon="heroicon-o-plus">
                     Add Date
                 </x-filament::button>
-                <x-filament::button size="sm" color="primary" wire:click="submit" wire:loading.attr="disabled" icon="heroicon-o-paper-airplane">
-                    Submit for Approval
+                @if($editingMode)
+                    <x-filament::button size="sm" color="primary" wire:click="submit" wire:loading.attr="disabled" icon="heroicon-o-paper-airplane">
+                        Resubmit for Approval
+                    </x-filament::button>
+                    <x-filament::button size="sm" color="gray" wire:click="cancelEditing">
+                        Cancel
+                    </x-filament::button>
+                @else
+                    <x-filament::button size="sm" color="primary" wire:click="submit" wire:loading.attr="disabled" icon="heroicon-o-paper-airplane">
+                        Submit for Approval
+                    </x-filament::button>
+                @endif
+            @elseif($schedule->status->canRequestEdit())
+                <x-filament::button size="sm" color="warning" wire:click="startEditing" icon="heroicon-o-pencil-square">
+                    Edit Schedule
                 </x-filament::button>
-            </div>
-        @endif
+            @endif
+        </div>
     </div>
 
     <div class="overflow-x-auto">

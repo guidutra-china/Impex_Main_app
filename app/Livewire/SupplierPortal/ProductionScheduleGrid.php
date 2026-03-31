@@ -18,6 +18,7 @@ class ProductionScheduleGrid extends Component
     public bool $showAddDate = false;
     public ?string $newDateInput = null;
     public array $riskDates = [];
+    public bool $editingMode = false;
 
     public function mount(ProductionSchedule $schedule): void
     {
@@ -57,7 +58,24 @@ class ProductionScheduleGrid extends Component
 
     public function canEdit(): bool
     {
-        return $this->schedule->status->canBeEditedBySupplier();
+        if ($this->schedule->status->canBeEditedBySupplier()) {
+            return true;
+        }
+
+        return $this->editingMode && $this->schedule->status->canRequestEdit();
+    }
+
+    public function startEditing(): void
+    {
+        if ($this->schedule->status->canRequestEdit()) {
+            $this->editingMode = true;
+        }
+    }
+
+    public function cancelEditing(): void
+    {
+        $this->editingMode = false;
+        $this->loadData();
     }
 
     public function updateQuantity(int $itemId, string $date, ?string $value): void
@@ -86,27 +104,6 @@ class ProductionScheduleGrid extends Component
                 'proforma_invoice_item_id' => $itemId,
                 'production_date'          => $date,
             ])->delete();
-        }
-
-        $this->resubmitIfNeeded();
-    }
-
-    private function resubmitIfNeeded(): void
-    {
-        if ($this->schedule->status->requiresReapprovalOnEdit()) {
-            $this->schedule->update([
-                'status'       => ProductionScheduleStatus::PendingApproval,
-                'submitted_at' => now(),
-                'approved_by'  => null,
-                'approved_at'  => null,
-            ]);
-            $this->schedule->refresh();
-            $this->dispatch('schedule-status-changed');
-
-            Notification::make()
-                ->warning()
-                ->title('Schedule modified — resubmitted for approval')
-                ->send();
         }
     }
 
@@ -167,8 +164,11 @@ class ProductionScheduleGrid extends Component
         $this->schedule->update([
             'status'       => ProductionScheduleStatus::PendingApproval,
             'submitted_at' => now(),
+            'approved_by'  => null,
+            'approved_at'  => null,
         ]);
         $this->schedule->refresh();
+        $this->editingMode = false;
 
         Notification::make()->success()->title('Schedule submitted for approval')->send();
         $this->dispatch('schedule-status-changed');
