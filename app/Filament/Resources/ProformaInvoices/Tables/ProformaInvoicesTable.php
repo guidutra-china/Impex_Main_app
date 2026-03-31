@@ -45,7 +45,7 @@ class ProformaInvoicesTable
                     ->searchable()
                     ->sortable()
                     ->placeholder('—')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(),
                 TextColumn::make('inquiry.reference')
                     ->label(__('forms.labels.inquiry'))
                     ->searchable()
