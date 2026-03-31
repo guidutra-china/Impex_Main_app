@@ -1,0 +1,39 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-03-31T07:08:53.198Z",
+  "phase": "production-schedule-redesign",
+  "phase_name": "Production Schedule Redesign",
+  "phase_dir": ".planning/phases/production-schedule-redesign",
+  "plan": 1,
+  "task": 0,
+  "total_tasks": 9,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": -2, "name": "Design spec (brainstorming)", "status": "done", "commit": "1da6819"},
+    {"id": -1, "name": "Implementation plan (9 tasks)", "status": "done", "commit": "7b50bb1"}
+  ],
+  "remaining_tasks": [
+    {"id": 0, "name": "Test Factories (prerequisite)", "status": "not_started"},
+    {"id": 1, "name": "Migrations (status + components)", "status": "not_started"},
+    {"id": 2, "name": "Enums (ProductionScheduleStatus, ComponentStatus)", "status": "not_started"},
+    {"id": 3, "name": "Domain Models (ProductionScheduleComponent + update ProductionSchedule)", "status": "not_started"},
+    {"id": 4, "name": "ProductionScheduleGrid Livewire (Supplier)", "status": "not_started"},
+    {"id": 5, "name": "ComponentInventoryPanel Livewire (Supplier)", "status": "not_started"},
+    {"id": 6, "name": "ScheduleApprovalWidget Livewire (Client)", "status": "not_started"},
+    {"id": 7, "name": "ProductionActualsGrid Livewire (Admin)", "status": "not_started"},
+    {"id": 8, "name": "Wire Up Filament Pages", "status": "not_started"}
+  ],
+  "blockers": [],
+  "human_actions_pending": [],
+  "decisions": [
+    {"decision": "Grade Calendario layout (rows=products, cols=dates)", "rationale": "Compact spreadsheet-like view familiar to suppliers", "phase": "design"},
+    {"decision": "Mixed component level (simple + expandable sub-components)", "rationale": "Start with product-level status, allow detail when needed", "phase": "design"},
+    {"decision": "Supplier creates agenda, client approves, admin enters actuals", "rationale": "User-specified workflow — reverses current model where admin creates and supplier fills actuals", "phase": "design"},
+    {"decision": "Admin enters realized quantities (not supplier)", "rationale": "Based on physical reports received from factory", "phase": "design"},
+    {"decision": "Components inside Production Schedule page (not separate PO page)", "rationale": "Risk correlation between component ETA and production dates is the core value", "phase": "design"},
+    {"decision": "Full Livewire components (approach 3)", "rationale": "User chose most interactive option — inline edit, auto-save, no modals", "phase": "design"}
+  ],
+  "uncommitted_files": [],
+  "next_action": "Start Task 0: Create test factories for ProductionSchedule, ProductionScheduleEntry, ProformaInvoice, ProformaInvoiceItem. Then proceed to Task 1 (migrations).",
+  "context_notes": "Plan is fully written at docs/superpowers/plans/2026-03-30-production-schedule-redesign.md with complete code for all 9 tasks. Design spec at docs/superpowers/specs/2026-03-30-production-schedule-redesign.md. Visual brainstorm mockups in .superpowers/brainstorm/. Use subagent-driven-development skill for execution."
+}
