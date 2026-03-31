@@ -7,7 +7,7 @@ stopped_at: Completed 01-02-PLAN.md
 last_updated: "2026-03-11T08:28:37.369Z"
 last_activity: 2026-03-11 — Plan 01-03 executed (UpdatePaymentScheduleFromProductionAction + portal wiring)
 progress:
-  total_phases: 3
+  total_phases: 4
   completed_phases: 1
   total_plans: 3
   completed_plans: 3
@@ -72,6 +72,10 @@ Recent decisions affecting current work:
 ### Pending Todos
 
 None
+
+### Roadmap Evolution
+
+- Phase 4 added: Redesign Production Schedule UX — Modern supplier portal UI with calendar/timeline view, daily production confirmation flow, component/parts inventory management, status/approval workflow, and admin risk aggregation
 
 ### Blockers/Concerns
 

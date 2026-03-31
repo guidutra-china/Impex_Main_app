@@ -82,3 +82,13 @@ Phases execute in numeric order: 1 → 2 → 3
 | 1. Production Control | 3/3 | Complete   | 2026-03-11 |
 | 2. Test Coverage | 0/4 | Not started | - |
 | 3. Stability & Cleanup | 0/4 | Not started | - |
+
+### Phase 4: Redesign Production Schedule UX
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 3
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 4 to break down)
