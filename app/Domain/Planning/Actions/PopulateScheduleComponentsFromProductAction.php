@@ -38,6 +38,7 @@ class PopulateScheduleComponentsFromProductAction
                     'production_schedule_id'   => $schedule->id,
                     'proforma_invoice_item_id' => $piItem->id,
                     'component_name'           => $bomComponent->name,
+                    'quantity_required'        => (int) ($bomComponent->quantity_required * $piItem->quantity),
                     'status'                   => ComponentStatus::AtSupplier,
                     'supplier_name'            => $bomComponent->default_supplier_name,
                     'eta'                      => null,

@@ -19,6 +19,7 @@ class ProductionScheduleComponent extends Model
         'component_name',
         'status',
         'supplier_name',
+        'quantity_required',
         'eta',
         'notes',
         'updated_by',
@@ -27,8 +28,9 @@ class ProductionScheduleComponent extends Model
     protected function casts(): array
     {
         return [
-            'status' => ComponentStatus::class,
-            'eta'    => 'date',
+            'status'            => ComponentStatus::class,
+            'eta'               => 'date',
+            'quantity_required' => 'integer',
         ];
     }
 
@@ -45,6 +47,26 @@ class ProductionScheduleComponent extends Model
     public function updatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function deliveries(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ComponentDelivery::class, 'production_schedule_component_id')
+            ->orderBy('expected_date');
+    }
+
+    public function totalReceived(): int
+    {
+        return $this->deliveries->sum(fn ($d) => $d->received_qty ?? 0);
+    }
+
+    public function progressPercent(): int
+    {
+        if ($this->quantity_required <= 0) {
+            return 0;
+        }
+
+        return min(100, (int) round(($this->totalReceived() / $this->quantity_required) * 100));
     }
 
     public function isRiskForDate(\Carbon\Carbon $date): bool
