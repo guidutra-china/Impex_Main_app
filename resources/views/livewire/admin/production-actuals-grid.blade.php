@@ -67,7 +67,7 @@
                                     @endphp
                                     <td class="px-2 py-1.5 text-center {{ $bgClass }}">
                                         @if($plan)
-                                            @if($canEditActuals && $date <= $today)
+                                            @if($canEditActuals)
                                                 <div class="flex flex-col items-center gap-0.5">
                                                     <input type="number" min="0" value="{{ $actual ?? '' }}" placeholder="—"
                                                         wire:change="updateActual({{ $item['id'] }}, '{{ $date }}', $event.target.value)"
