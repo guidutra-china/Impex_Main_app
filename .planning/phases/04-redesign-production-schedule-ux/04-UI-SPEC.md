@@ -46,9 +46,8 @@ Declared values (multiples of 4, matching Tailwind v4 defaults used in existing 
 | 3xl | 64px | Page-level top padding (Filament panel default) |
 
 Exceptions:
-- Table row height: `py-2.5` (10px) — confirmed existing pattern from `pi-production-progress.blade.php` and `shipment-ready-summary.blade.php`. Do not normalise to 8px.
-- Progress bar height: `h-2.5` (10px) — confirmed existing pattern. Keep for visual continuity.
-- Touch targets for "Confirm Today" modal inputs: minimum 44px height (`h-11` Tailwind class) to meet WCAG 2.5.5.
+- **Legacy — do not replicate:** Table row padding `py-2.5` (10px) and progress bar height `h-2.5` (10px) are confirmed in the existing partials `pi-production-progress.blade.php` and `shipment-ready-summary.blade.php`. These break the 4-point grid and must not be used in any new component built in this phase. Existing partials retain these values only to avoid visual regression.
+- Touch targets for "Confirm Today" modal inputs: minimum 48px height (`h-12` Tailwind class) — satisfies WCAG 2.5.5 (44px minimum) and is a valid 4-point multiple.
 
 ---
 
@@ -59,11 +58,11 @@ All sizes use Instrument Sans. Filament 4 applies this font via the app CSS `@th
 | Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
 | Body | 14px (`text-sm`) | 400 (regular) | 1.5 | Table cell content, helper text, relation manager rows |
-| Label | 12px (`text-xs`) | 500 (medium) | 1.4 | Table column headers, status badge labels, timeline date labels |
+| Label | 12px (`text-xs`) | 600 (semibold) | 1.4 | Table column headers, status badge labels, timeline date labels |
 | Heading | 16px (`text-base`) | 600 (semibold) | 1.3 | Section headings in infolists, card titles, modal headings |
 | Display | 20px (`text-xl`) | 600 (semibold) | 1.2 | Page title (Filament `ViewRecord` heading), widget stat values |
 
-**Declared weights:** 400 (regular) and 600 (semibold). Do not introduce 500 or 700 — use `font-medium` only for the Label role `text-xs` headers where existing partials use it (confirmed in `pi-production-progress.blade.php`).
+**Declared weights:** 400 (regular) and 600 (semibold). Do not introduce 500 (font-medium) or 700 in any new component. The Label role uses `font-semibold` (600), not `font-medium` (500). If an existing partial already uses `font-medium` for label-style text (confirmed in `pi-production-progress.blade.php`), leave it as-is to avoid visual regression — but do not carry that pattern forward.
 
 **Numeric data:** All quantities and dates in tables use `tabular-nums` — confirmed existing pattern from `shipment-ready-summary.blade.php`.
 
@@ -279,7 +278,9 @@ No third-party component registries are used. All UI components are built with t
 | Font: Instrument Sans | `resources/css/app.css` `@theme` block |
 | Supplier portal primary: Amber | `app/Providers/Filament/SupplierPortalPanelProvider.php` |
 | Admin panel primary: Indigo | `app/Providers/Filament/AdminPanelProvider.php` |
-| Spacing pattern (px-4 py-2.5, space-y-6) | `pi-production-progress.blade.php`, `shipment-ready-summary.blade.php` |
+| Spacing pattern (px-4 py-2, space-y-6) | `pi-production-progress.blade.php`, `shipment-ready-summary.blade.php` |
+| Legacy 10px exception declared (py-2.5, h-2.5) | Existing partials — do not replicate in new components |
+| Touch target changed from h-11 (44px) to h-12 (48px) | WCAG 2.5.5 compliance + 4-point grid alignment |
 | Status colors (gray/warning/success/danger) | `ProductionScheduleStatus` enum in `04-RESEARCH.md` |
 | Calendar layout: horizontal strip, products as rows | `04-RESEARCH.md` Open Questions — recommendation adopted |
 | Notification: Filament in-app only (no email) | `04-RESEARCH.md` Open Questions — recommendation adopted |
@@ -288,3 +289,4 @@ No third-party component registries are used. All UI components are built with t
 | Icon library: Heroicons | Confirmed from `04-RESEARCH.md` Action patterns (`heroicon-o-check-circle`) |
 | No shadcn | Stack is Laravel/Filament 4, not React/Next.js/Vite — shadcn gate does not apply |
 | Tabular-nums for quantities | `shipment-ready-summary.blade.php` `tabular-nums` class |
+| Typography: Label weight changed from 500 to 600 | Checker Dimension 4 fix — max 2 declared weights (400 + 600) |
