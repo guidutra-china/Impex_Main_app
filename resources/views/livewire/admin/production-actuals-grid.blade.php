@@ -97,13 +97,6 @@
                 </table>
             </div>
 
-            @if($canEditActuals)
-                <div class="flex justify-end">
-                    <x-filament::button wire:click="saveActuals" wire:loading.attr="disabled" icon="heroicon-o-check" color="primary">
-                        Save Actuals
-                    </x-filament::button>
-                </div>
-            @endif
         </div>
     @endif
 </div>

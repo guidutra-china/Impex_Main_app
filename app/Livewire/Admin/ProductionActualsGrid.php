@@ -61,30 +61,21 @@ class ProductionActualsGrid extends Component
             ->where('proforma_invoice_item_id', $itemId)
             ->whereDate('production_date', $date)
             ->update(['actual_quantity' => $quantity]);
+
+        $this->checkAutoComplete();
     }
 
-    public function saveActuals(): void
+    private function checkAutoComplete(): void
     {
-        if (! $this->isVisible()) {
-            return;
-        }
-
-        $actionClass = 'App\\Domain\\Planning\\Actions\\UpdatePaymentScheduleFromProductionAction';
-        if (class_exists($actionClass)) {
-            app($actionClass)->execute($this->schedule);
-        }
-
         $this->schedule->refresh();
         $totalPlanned = $this->schedule->entries->sum('quantity');
         $totalActual = $this->schedule->entries->sum(fn ($e) => $e->actual_quantity ?? 0);
 
-        if ($totalPlanned > 0 && $totalActual >= $totalPlanned) {
+        if ($totalPlanned > 0 && $totalActual >= $totalPlanned && $this->schedule->status === ProductionScheduleStatus::Approved) {
             $this->schedule->update(['status' => ProductionScheduleStatus::Completed]);
             $this->schedule->refresh();
+            Notification::make()->success()->title('Production complete — schedule marked as completed')->send();
         }
-
-        Notification::make()->success()->title('Actuals saved')->send();
-        $this->dispatch('actuals-saved');
     }
 
     public function render(): View
