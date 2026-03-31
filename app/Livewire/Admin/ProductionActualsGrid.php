@@ -40,10 +40,8 @@ class ProductionActualsGrid extends Component
 
     public function canEditActuals(): bool
     {
-        return in_array($this->schedule->status, [
-            ProductionScheduleStatus::Approved,
-            ProductionScheduleStatus::Completed,
-        ]);
+        // Admin can always edit actuals regardless of schedule status
+        return true;
     }
 
     public function updateActual(int $itemId, string $date, ?string $value): void
