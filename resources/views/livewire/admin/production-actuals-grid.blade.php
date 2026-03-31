@@ -29,11 +29,12 @@
                                 @php $isToday = $date === $today; @endphp
                                 <th class="px-3 py-2.5 text-center min-w-[100px] {{ $isToday ? 'bg-blue-50 dark:bg-blue-900/20' : '' }}">
                                     <div class="{{ $isToday ? 'text-blue-600 dark:text-blue-400 font-bold' : '' }}">
-                                        {{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}
+                                        {{ \Carbon\Carbon::parse($date)->format('d/m') }}
                                     </div>
                                     <div class="font-normal">Plan / Actual</div>
                                 </th>
                             @endforeach
+                            <th class="px-3 py-2.5 text-center min-w-[100px]">Progress</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-white/10">
@@ -69,6 +70,20 @@
                                         @endif
                                     </td>
                                 @endforeach
+                                @php
+                                    $itemTotalPlanned = array_sum($planned[$itemKey] ?? []);
+                                    $itemTotalActual = array_sum(array_filter($actuals[$itemKey] ?? [], fn($v) => $v !== null));
+                                    $itemPct = $itemTotalPlanned > 0 ? min(100, (int) round(($itemTotalActual / $itemTotalPlanned) * 100)) : 0;
+                                @endphp
+                                <td class="px-3 py-2.5">
+                                    <div class="flex items-center gap-1.5">
+                                        <div class="flex-1 bg-gray-200 dark:bg-white/10 rounded-full h-2 min-w-[50px]">
+                                            <div class="h-2 rounded-full {{ $itemPct >= 100 ? 'bg-green-500' : ($itemPct > 0 ? 'bg-blue-500' : 'bg-gray-300') }}"
+                                                 style="width: {{ $itemPct }}%"></div>
+                                        </div>
+                                        <span class="text-xs font-medium text-gray-500 w-8 text-right">{{ $itemPct }}%</span>
+                                    </div>
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>

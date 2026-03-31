@@ -10,7 +10,9 @@
         </div>
         @if($this->canEdit())
             <div class="flex items-center gap-2">
-                <x-filament::button size="sm" color="gray" wire:click="$set('showAddDate', true)" icon="heroicon-o-plus">
+                <input type="date" wire:model="newDateInput"
+                       class="text-sm border border-gray-300 dark:border-white/20 rounded-md px-2 py-1 bg-white dark:bg-white/5 text-gray-900 dark:text-white h-8">
+                <x-filament::button size="sm" color="gray" wire:click="addDate" icon="heroicon-o-plus">
                     Add Date
                 </x-filament::button>
                 <x-filament::button size="sm" color="primary" wire:click="submit" wire:loading.attr="disabled" icon="heroicon-o-paper-airplane">
@@ -19,14 +21,6 @@
             </div>
         @endif
     </div>
-
-    @if($showAddDate)
-        <div class="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border-b border-gray-200 dark:border-white/10">
-            <input type="date" wire:model="newDateInput" class="text-sm border border-gray-300 dark:border-white/20 rounded-md px-2 py-1 bg-white dark:bg-white/5 text-gray-900 dark:text-white">
-            <x-filament::button size="xs" wire:click="addDate">Add</x-filament::button>
-            <x-filament::button size="xs" color="gray" wire:click="$set('showAddDate', false)">Cancel</x-filament::button>
-        </div>
-    @endif
 
     <div class="overflow-x-auto">
         <table class="w-full text-sm text-left">

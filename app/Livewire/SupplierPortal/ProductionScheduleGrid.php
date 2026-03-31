@@ -92,7 +92,6 @@ class ProductionScheduleGrid extends Component
     public function addDate(): void
     {
         if (! $this->canEdit() || ! $this->newDateInput) {
-            $this->showAddDate = false;
             return;
         }
 
@@ -102,7 +101,6 @@ class ProductionScheduleGrid extends Component
         }
 
         $this->newDateInput = null;
-        $this->showAddDate  = false;
     }
 
     public function removeDate(string $date): void
