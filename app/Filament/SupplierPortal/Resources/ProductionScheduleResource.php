@@ -117,10 +117,10 @@ class ProductionScheduleResource extends Resource
                 ])
                 ->columnSpanFull(),
 
-            Section::make('Component / Parts Inventory')
+            Section::make('Component Deliveries')
                 ->schema([
-                    ViewEntry::make('components_panel')
-                        ->view('filament.supplier-portal.component-inventory-panel-entry')
+                    ViewEntry::make('component_deliveries')
+                        ->view('filament.supplier-portal.component-delivery-grid-entry')
                         ->columnSpanFull(),
                 ])
                 ->columnSpanFull(),
