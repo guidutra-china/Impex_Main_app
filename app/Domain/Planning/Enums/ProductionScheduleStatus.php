@@ -49,6 +49,11 @@ enum ProductionScheduleStatus: string implements HasLabel, HasColor, HasIcon
 
     public function canBeEditedBySupplier(): bool
     {
-        return in_array($this, [self::Draft, self::Rejected]);
+        return in_array($this, [self::Draft, self::Rejected, self::Approved]);
+    }
+
+    public function requiresReapprovalOnEdit(): bool
+    {
+        return $this === self::Approved;
     }
 }

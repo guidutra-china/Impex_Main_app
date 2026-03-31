@@ -87,6 +87,27 @@ class ProductionScheduleGrid extends Component
                 'production_date'          => $date,
             ])->delete();
         }
+
+        $this->resubmitIfNeeded();
+    }
+
+    private function resubmitIfNeeded(): void
+    {
+        if ($this->schedule->status->requiresReapprovalOnEdit()) {
+            $this->schedule->update([
+                'status'       => ProductionScheduleStatus::PendingApproval,
+                'submitted_at' => now(),
+                'approved_by'  => null,
+                'approved_at'  => null,
+            ]);
+            $this->schedule->refresh();
+            $this->dispatch('schedule-status-changed');
+
+            Notification::make()
+                ->warning()
+                ->title('Schedule modified — resubmitted for approval')
+                ->send();
+        }
     }
 
     public function addDate(): void
