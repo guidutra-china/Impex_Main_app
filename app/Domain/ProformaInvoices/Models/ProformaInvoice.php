@@ -35,6 +35,11 @@ class ProformaInvoice extends Model
 {
     use HasFactory, SoftDeletes, HasReference, HasStateMachine, HasDocuments, HasPaymentSchedule, HasAdditionalCosts, LogsActivity;
 
+    protected static function newFactory(): \Database\Factories\ProformaInvoiceFactory
+    {
+        return \Database\Factories\ProformaInvoiceFactory::new();
+    }
+
     protected $fillable = [
         'reference',
         'client_reference',

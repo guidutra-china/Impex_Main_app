@@ -19,6 +19,11 @@ class ProductionSchedule extends Model
 {
     use HasFactory, HasReference, LogsActivity;
 
+    protected static function newFactory(): \Database\Factories\ProductionScheduleFactory
+    {
+        return \Database\Factories\ProductionScheduleFactory::new();
+    }
+
     protected $fillable = [
         'proforma_invoice_id',
         'purchase_order_id',

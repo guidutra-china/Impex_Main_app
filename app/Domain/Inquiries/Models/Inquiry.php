@@ -25,6 +25,11 @@ class Inquiry extends Model
 {
     use HasFactory, SoftDeletes, HasReference, HasStateMachine, HasDocuments;
 
+    protected static function newFactory(): \Database\Factories\InquiryFactory
+    {
+        return \Database\Factories\InquiryFactory::new();
+    }
+
     protected $fillable = [
         'reference',
         'description',

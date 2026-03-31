@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Domain\CRM\Models\Company;
+use App\Domain\Inquiries\Models\Inquiry;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -15,7 +16,7 @@ class ProformaInvoiceFactory extends Factory
         return [
             'reference'           => 'PI-' . $this->faker->unique()->numerify('####'),
             'client_reference'    => null,
-            'inquiry_id'          => null,
+            'inquiry_id'          => Inquiry::factory(),
             'company_id'          => Company::factory(),
             'contact_id'          => null,
             'payment_term_id'     => null,
