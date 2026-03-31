@@ -13,6 +13,7 @@ use App\Filament\Resources\Catalog\Products\Tables\ProductsTable;
 use App\Filament\Resources\Catalog\Products\RelationManagers\ClientsRelationManager;
 use App\Filament\Resources\Catalog\Products\RelationManagers\SuppliersRelationManager;
 use App\Filament\Resources\Catalog\Products\RelationManagers\AttributeValuesRelationManager;
+use App\Filament\Resources\Catalog\Products\RelationManagers\ComponentsRelationManager;
 use App\Filament\Resources\Catalog\Products\RelationManagers\VariantsRelationManager;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -63,6 +64,7 @@ class ProductResource extends Resource
     {
         return [
             AttributeValuesRelationManager::class,
+            ComponentsRelationManager::class,
             VariantsRelationManager::class,
             SuppliersRelationManager::class,
             ClientsRelationManager::class,

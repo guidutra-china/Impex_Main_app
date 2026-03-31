@@ -149,6 +149,11 @@ class Product extends Model
         return $this->hasMany(ProductAttributeValue::class);
     }
 
+    public function components(): HasMany
+    {
+        return $this->hasMany(ProductComponent::class)->orderBy('sort_order');
+    }
+
     public function companies(): BelongsToMany
     {
         return $this->belongsToMany(Company::class, 'company_product')

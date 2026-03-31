@@ -2,6 +2,7 @@
 
 namespace App\Livewire\SupplierPortal;
 
+use App\Domain\Planning\Actions\PopulateScheduleComponentsFromProductAction;
 use App\Domain\Planning\Enums\ComponentStatus;
 use App\Domain\Planning\Models\ProductionSchedule;
 use App\Domain\Planning\Models\ProductionScheduleComponent;
@@ -19,6 +20,24 @@ class ComponentInventoryPanel extends Component
     public function mount(ProductionSchedule $schedule): void
     {
         $this->schedule = $schedule;
+        $this->autoPopulateFromBom();
+    }
+
+    /**
+     * Auto-populate components from product BOM when the schedule
+     * has no components yet and is in an editable state.
+     */
+    private function autoPopulateFromBom(): void
+    {
+        if (!$this->canEdit()) {
+            return;
+        }
+
+        if ($this->schedule->components()->count() > 0) {
+            return;
+        }
+
+        app(PopulateScheduleComponentsFromProductAction::class)->execute($this->schedule);
     }
 
     public function canEdit(): bool
