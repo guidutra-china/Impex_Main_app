@@ -11,11 +11,20 @@ use Filament\Actions\EditAction;
 use Filament\Forms\Components\FileUpload;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Schemas\Schema;
+use Illuminate\Contracts\View\View;
 use OpenSpout\Reader\XLSX\Reader;
 
 class ViewProductionSchedule extends ViewRecord
 {
     protected static string $resource = ProductionScheduleResource::class;
+
+    public function getFooter(): ?View
+    {
+        return view('filament.production-schedule.view-footer', [
+            'record' => $this->record,
+        ]);
+    }
 
     protected function getHeaderActions(): array
     {
