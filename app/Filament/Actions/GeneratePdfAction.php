@@ -105,7 +105,10 @@ class GeneratePdfAction
             $name = $param->getName();
             $snakeName = Str::snake($name);
 
-            if (array_key_exists($snakeName, $data)) {
+            if ($name === 'options' && $param->getType()?->getName() === 'array') {
+                // Pass all form data as the options array
+                $extraArgs[] = $data;
+            } elseif (array_key_exists($snakeName, $data)) {
                 $extraArgs[] = $data[$snakeName];
             } elseif (array_key_exists($name, $data)) {
                 $extraArgs[] = $data[$name];
