@@ -11,10 +11,17 @@ class CustomPricePdfTemplate extends AbstractPdfTemplate
 {
     protected bool $hideCommission;
 
-    public function __construct(\Illuminate\Database\Eloquent\Model $model, string $locale = 'en', bool $hideCommission = false)
-    {
+    protected ?string $priceFormula;
+
+    public function __construct(
+        \Illuminate\Database\Eloquent\Model $model,
+        string $locale = 'en',
+        bool $hideCommission = false,
+        ?string $priceFormula = null,
+    ) {
         parent::__construct($model, $locale);
         $this->hideCommission = $hideCommission;
+        $this->priceFormula = $priceFormula;
     }
 
     public function getView(): string
@@ -58,10 +65,14 @@ class CustomPricePdfTemplate extends AbstractPdfTemplate
         $currencyCode = $pi->currency_code ?? 'USD';
         $clientId = $pi->company_id;
 
-        $items = $pi->items->sortBy('sort_order')->values()->map(function ($item, $index) use ($currencyCode, $clientId) {
+        $priceFormula = $this->priceFormula;
+
+        $items = $pi->items->sortBy('sort_order')->values()->map(function ($item, $index) use ($currencyCode, $clientId, $priceFormula) {
             $unitPrice = $item->unit_price;
 
-            if ($item->product_id && $clientId) {
+            if ($priceFormula) {
+                $unitPrice = self::applyFormula($unitPrice, $priceFormula);
+            } elseif ($item->product_id && $clientId) {
                 $pivot = CompanyProduct::where('product_id', $item->product_id)
                     ->where('company_id', $clientId)
                     ->where('role', 'client')
@@ -141,6 +152,26 @@ class CustomPricePdfTemplate extends AbstractPdfTemplate
                 'description' => $pi->paymentTerm?->description,
             ],
         ];
+    }
+
+    public static function applyFormula(int $value, string $formula): int
+    {
+        $formula = trim($formula);
+
+        if (preg_match('/^([*\/+\-])\s*([0-9]*\.?[0-9]+)$/', $formula, $matches)) {
+            $operator = $matches[1];
+            $operand = (float) $matches[2];
+
+            return match ($operator) {
+                '*' => (int) round($value * $operand),
+                '/' => $operand != 0 ? (int) round($value / $operand) : $value,
+                '+' => (int) round($value + ($operand * \App\Domain\Infrastructure\Support\Money::SCALE)),
+                '-' => (int) round($value - ($operand * \App\Domain\Infrastructure\Support\Money::SCALE)),
+                default => $value,
+            };
+        }
+
+        return $value;
     }
 
     private function labels(string $key): string
