@@ -104,16 +104,22 @@ class EditProformaInvoice extends EditRecord
                         new DocumentService(),
                     );
 
-                    $content = $service->preview($template);
+                    $document = $service->generate($template);
+
+                    Notification::make()
+                        ->title('Custom Price PDF Generated')
+                        ->body("Version {$document->version} created: {$document->name}")
+                        ->success()
+                        ->send();
 
                     return response()->streamDownload(
-                        function () use ($content) {
-                            echo $content;
+                        function () use ($document) {
+                            echo file_get_contents($document->getFullPath());
                         },
-                        $template->getFilename(),
+                        $document->name,
                         [
                             'Content-Type' => 'application/pdf',
-                            'Content-Disposition' => 'inline; filename="' . $template->getFilename() . '"',
+                            'Content-Disposition' => 'inline; filename="' . $document->name . '"',
                         ],
                     );
                 } catch (\Throwable $e) {
