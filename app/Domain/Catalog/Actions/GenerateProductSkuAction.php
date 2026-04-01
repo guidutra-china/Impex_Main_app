@@ -24,13 +24,7 @@ class GenerateProductSkuAction
                         ->lockForUpdate()
                         ->find($categoryId);
 
-                    if (! $category || ! $category->sku_prefix) {
-                        $count = Product::withTrashed()->lockForUpdate()->count() + 1;
-
-                        return 'PRD-' . str_pad($count, 5, '0', STR_PAD_LEFT);
-                    }
-
-                    $prefix = $category->sku_prefix;
+                    $prefix = $this->resolvePrefix($category);
 
                     $lastSku = Product::withTrashed()
                         ->where('sku', 'like', $prefix . '-%')
@@ -101,13 +95,7 @@ class GenerateProductSkuAction
     {
         $category = Category::find($categoryId);
 
-        if (! $category || ! $category->sku_prefix) {
-            $count = Product::withTrashed()->count() + 1;
-
-            return 'PRD-' . str_pad($count, 5, '0', STR_PAD_LEFT);
-        }
-
-        $prefix = $category->sku_prefix;
+        $prefix = $this->resolvePrefix($category);
 
         $lastSku = Product::withTrashed()
             ->where('sku', 'like', $prefix . '-%')
@@ -119,5 +107,24 @@ class GenerateProductSkuAction
             : 1;
 
         return $prefix . '-' . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Resolve o prefixo do SKU percorrendo a árvore de categorias.
+     * Retorna o sku_prefix da categoria ou do primeiro ancestral que tenha um.
+     * Se nenhum for encontrado, retorna 'PRD' como fallback.
+     */
+    private function resolvePrefix(?Category $category): string
+    {
+        $current = $category;
+
+        while ($current) {
+            if ($current->sku_prefix) {
+                return $current->sku_prefix;
+            }
+            $current = $current->parent;
+        }
+
+        return 'PRD';
     }
 }

@@ -955,4 +955,13 @@ return array (
     'revert_reason_required' => '出于审计跟踪目的，需要提供原因。',
     'container_capacity_limits' => '定义集装箱容量的CBM和重量限制，以帮助规划发货。',
     ),
+    'tooltips' =>
+    array (
+    'regenerate_sku' => '根据当前类别重新生成SKU',
+    ),
+    'modals' =>
+    array (
+    'regenerate_sku_heading' => '重新生成SKU？',
+    'regenerate_sku_description' => '这将根据当前类别生成新的SKU。旧的SKU将被替换。请记得在重新生成后保存产品。',
+    ),
 );

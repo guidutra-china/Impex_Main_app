@@ -964,4 +964,13 @@ return array (
     'revert_reason_required' => 'A reason is required for audit trail purposes.',
     'container_capacity_limits' => 'Define container capacity limits for CBM and weight to help plan shipments.',
     ),
+    'tooltips' =>
+    array (
+    'regenerate_sku' => 'Regenerate SKU based on current category',
+    ),
+    'modals' =>
+    array (
+    'regenerate_sku_heading' => 'Regenerate SKU?',
+    'regenerate_sku_description' => 'This will generate a new SKU based on the current category. The old SKU will be replaced. Make sure to save the product after regenerating.',
+    ),
 );

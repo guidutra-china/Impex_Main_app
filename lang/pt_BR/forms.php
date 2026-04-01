@@ -1092,4 +1092,13 @@ return array (
     'revert_reason_required' => 'Um motivo é obrigatório para fins de auditoria.',
     'container_capacity_limits' => 'Defina os limites de capacidade do contêiner para CBM e peso para auxiliar no planejamento de embarques.',
     ),
+    'tooltips' =>
+    array (
+    'regenerate_sku' => 'Regenerar SKU com base na categoria atual',
+    ),
+    'modals' =>
+    array (
+    'regenerate_sku_heading' => 'Regenerar SKU?',
+    'regenerate_sku_description' => 'Isso irá gerar um novo SKU com base na categoria atual. O SKU antigo será substituído. Lembre-se de salvar o produto após regenerar.',
+    ),
 );
