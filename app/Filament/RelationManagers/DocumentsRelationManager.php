@@ -35,6 +35,8 @@ class DocumentsRelationManager extends RelationManager
         'supplier_quotation' => 'Supplier Quotation',
         'supplier_response' => 'Supplier Response',
         'proforma_invoice' => 'Proforma Invoice',
+        'proforma_invoice_pdf' => 'Proforma Invoice PDF',
+        'custom_price_pdf' => 'Custom Price PDF',
         'commercial_invoice' => 'Commercial Invoice',
         'packing_list' => 'Packing List',
         'bill_of_lading' => 'Bill of Lading',
@@ -56,7 +58,8 @@ class DocumentsRelationManager extends RelationManager
                     ->color(fn (string $state) => match ($state) {
                         'quotation_pdf', 'rfq_pdf' => 'success',
                         'supplier_quotation', 'supplier_response' => 'warning',
-                        'proforma_invoice', 'commercial_invoice' => 'danger',
+                        'proforma_invoice', 'proforma_invoice_pdf', 'commercial_invoice' => 'danger',
+                        'custom_price_pdf' => 'purple',
                         'packing_list', 'bill_of_lading' => 'info',
                         default => 'gray',
                     })
