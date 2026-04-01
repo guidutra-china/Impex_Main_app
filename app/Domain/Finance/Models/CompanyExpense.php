@@ -8,6 +8,7 @@ use App\Domain\Settings\Models\PaymentMethod;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CompanyExpense extends Model
@@ -24,6 +25,7 @@ class CompanyExpense extends Model
         'recurring_day',
         'payment_method_id',
         'bank_account_id',
+        'recurring_source_id',
         'reference',
         'attachment_path',
         'notes',
@@ -67,6 +69,16 @@ class CompanyExpense extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function recurringSource(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'recurring_source_id');
+    }
+
+    public function recurringPayments(): HasMany
+    {
+        return $this->hasMany(self::class, 'recurring_source_id');
+    }
+
     // --- Scopes ---
 
     public function scopeOfCategory($query, ExpenseCategory $category)
@@ -77,6 +89,11 @@ class CompanyExpense extends Model
     public function scopeRecurring($query)
     {
         return $query->where('is_recurring', true);
+    }
+
+    public function scopeExcludeRecurringTemplates($query)
+    {
+        return $query->where('is_recurring', false);
     }
 
     public function scopeInMonth($query, int $year, int $month)

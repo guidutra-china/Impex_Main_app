@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Finance\CompanyExpenses\Pages;
 
 use App\Filament\Resources\Finance\CompanyExpenses\CompanyExpenseResource;
 use App\Filament\Resources\Finance\CompanyExpenses\Widgets\MonthlyExpenseSummary;
+use App\Filament\Resources\Finance\CompanyExpenses\Widgets\RecurringExpensesPending;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
@@ -22,6 +23,7 @@ class ListCompanyExpenses extends ListRecords
     {
         return [
             MonthlyExpenseSummary::class,
+            RecurringExpensesPending::class,
         ];
     }
 }

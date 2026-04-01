@@ -20,6 +20,7 @@ class CompanyExpensesTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->query(fn () => \App\Domain\Finance\Models\CompanyExpense::query()->excludeRecurringTemplates())
             ->columns([
                 TextColumn::make('expense_date')
                     ->label(__('forms.labels.date'))
@@ -90,11 +91,6 @@ class CompanyExpensesTable
                     ->label(__('forms.labels.category'))
                     ->options(ExpenseCategory::class)
                     ->multiple(),
-
-                Filter::make('is_recurring')
-                    ->label(__('forms.labels.recurring_only'))
-                    ->query(fn (Builder $query) => $query->where('is_recurring', true))
-                    ->toggle(),
 
                 Filter::make('current_month')
                     ->label(__('forms.labels.current_month'))

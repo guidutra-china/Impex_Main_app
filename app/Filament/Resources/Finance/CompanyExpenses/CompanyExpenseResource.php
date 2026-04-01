@@ -11,6 +11,7 @@ use App\Filament\Resources\Finance\CompanyExpenses\Schemas\CompanyExpenseForm;
 use App\Filament\Resources\Finance\CompanyExpenses\Schemas\CompanyExpenseInfolist;
 use App\Filament\Resources\Finance\CompanyExpenses\Tables\CompanyExpensesTable;
 use App\Filament\Resources\Finance\CompanyExpenses\Widgets\MonthlyExpenseSummary;
+use App\Filament\Resources\Finance\CompanyExpenses\Widgets\RecurringExpensesPending;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -73,6 +74,7 @@ class CompanyExpenseResource extends Resource
     {
         return [
             MonthlyExpenseSummary::class,
+            RecurringExpensesPending::class,
         ];
     }
 

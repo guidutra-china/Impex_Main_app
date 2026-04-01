@@ -59,6 +59,7 @@ class MonthlyExpenseSummary extends Widget
     private function buildMonthData(int $year, int $month, ?int $baseCurrencyId, string $baseCurrencyCode): array
     {
         $expenses = CompanyExpense::query()
+            ->excludeRecurringTemplates()
             ->inMonth($year, $month)
             ->selectRaw('category, currency_code, SUM(amount) as total')
             ->groupBy('category', 'currency_code')
@@ -114,7 +115,7 @@ class MonthlyExpenseSummary extends Widget
             $unconvertedDisplay[] = $code . ' ' . Money::format($amountMinor);
         }
 
-        $expenseCount = CompanyExpense::query()->inMonth($year, $month)->count();
+        $expenseCount = CompanyExpense::query()->excludeRecurringTemplates()->inMonth($year, $month)->count();
 
         return [
             'total' => Money::format($convertedTotal),
@@ -131,6 +132,7 @@ class MonthlyExpenseSummary extends Widget
     private function buildYearToDate(int $year, ?int $baseCurrencyId, string $baseCurrencyCode): array
     {
         $expenses = CompanyExpense::query()
+            ->excludeRecurringTemplates()
             ->inYear($year)
             ->selectRaw('currency_code, SUM(amount) as total')
             ->groupBy('currency_code')

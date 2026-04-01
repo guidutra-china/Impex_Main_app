@@ -131,6 +131,16 @@ return [
         'category_breakdown' => '分类明细',
     ],
 
+    'recurring' => [
+        'heading' => '定期费用',
+        'pending' => '待处理',
+        'paid' => '已付款',
+        'due_day' => '第:day日',
+        'register_payment' => '登记付款',
+        'payment_registered' => '付款登记成功！',
+        'no_recurring' => '没有登记的定期费用。',
+    ],
+
     // Portal List Stats Widgets
     'list_stats' => [
         'total_shipments' => '总发货量',

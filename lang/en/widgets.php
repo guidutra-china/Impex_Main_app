@@ -131,6 +131,16 @@ return [
         'category_breakdown' => 'Category Breakdown',
     ],
 
+    'recurring' => [
+        'heading' => 'Recurring Expenses',
+        'pending' => 'pending',
+        'paid' => 'paid',
+        'due_day' => 'Day :day',
+        'register_payment' => 'Register Payment',
+        'payment_registered' => 'Payment registered successfully!',
+        'no_recurring' => 'No recurring expenses registered.',
+    ],
+
     // Portal List Stats Widgets
     'list_stats' => [
         'total_shipments' => 'Total Shipments',

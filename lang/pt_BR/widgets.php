@@ -131,6 +131,16 @@ return [
         'category_breakdown' => 'Detalhamento por Categoria',
     ],
 
+    'recurring' => [
+        'heading' => 'Despesas Recorrentes',
+        'pending' => 'pendente(s)',
+        'paid' => 'pago(s)',
+        'due_day' => 'Dia :day',
+        'register_payment' => 'Registrar Pagamento',
+        'payment_registered' => 'Pagamento registrado com sucesso!',
+        'no_recurring' => 'Nenhuma despesa recorrente cadastrada.',
+    ],
+
     // Portal List Stats Widgets
     'list_stats' => [
         'total_shipments' => 'Total de Remessas',
