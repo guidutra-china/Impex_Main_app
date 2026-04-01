@@ -374,62 +374,50 @@ class PackingListRelationManager extends RelationManager
                             ])
                             ->default('separate')
                             ->required()
-                            ->live()
-                            ->helperText(fn (Get $get) => match ($get('generation_mode')) {
-                                'mixed' => __('forms.helpers.mixed_boxes_description'),
-                                default => __('forms.helpers.separate_boxes_description'),
+                            ->live(),
+
+                        Select::make('mixed_packaging_type')
+                            ->label(__('forms.labels.packaging_type'))
+                            ->options(PackagingType::class)
+                            ->default(PackagingType::CARTON->value)
+                            ->visible(fn (Get $get) => $get('generation_mode') === 'mixed'),
+
+                        TextInput::make('mixed_gross_weight')
+                            ->label(__('forms.labels.gross_weight_per_box_kg'))
+                            ->numeric()
+                            ->visible(fn (Get $get) => $get('generation_mode') === 'mixed')
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function (Get $get, Set $set) {
+                                $gw = (float) $get('mixed_gross_weight');
+                                if ($gw > 0 && ! $get('mixed_net_weight')) {
+                                    $set('mixed_net_weight', round($gw * 0.9, 3));
+                                }
                             }),
 
-                        Section::make(__('forms.sections.mixed_box_config'))
-                            ->schema([
-                                Grid::make(2)->schema([
-                                    Select::make('mixed_packaging_type')
-                                        ->label(__('forms.labels.packaging_type'))
-                                        ->options(PackagingType::class)
-                                        ->default(PackagingType::CARTON->value),
+                        TextInput::make('mixed_net_weight')
+                            ->label(__('forms.labels.net_weight_per_box_kg'))
+                            ->numeric()
+                            ->visible(fn (Get $get) => $get('generation_mode') === 'mixed'),
 
-                                    TextInput::make('mixed_gross_weight')
-                                        ->label(__('forms.labels.gross_weight_per_box_kg'))
-                                        ->numeric()
-                                        ->placeholder(__('forms.placeholders.fill_later'))
-                                        ->live(onBlur: true)
-                                        ->afterStateUpdated(function (Get $get, Set $set) {
-                                            $gw = (float) $get('mixed_gross_weight');
-                                            if ($gw > 0 && ! $get('mixed_net_weight')) {
-                                                $set('mixed_net_weight', round($gw * 0.9, 3));
-                                            }
-                                        }),
+                        TextInput::make('mixed_length')
+                            ->label(__('forms.labels.l_cm'))
+                            ->numeric()
+                            ->visible(fn (Get $get) => $get('generation_mode') === 'mixed'),
 
-                                    TextInput::make('mixed_net_weight')
-                                        ->label(__('forms.labels.net_weight_per_box_kg'))
-                                        ->numeric()
-                                        ->placeholder(__('forms.placeholders.fill_later')),
-                                ]),
+                        TextInput::make('mixed_width')
+                            ->label(__('forms.labels.w_cm'))
+                            ->numeric()
+                            ->visible(fn (Get $get) => $get('generation_mode') === 'mixed'),
 
-                                Grid::make(4)->schema([
-                                    TextInput::make('mixed_length')
-                                        ->label(__('forms.labels.l_cm'))
-                                        ->numeric()
-                                        ->placeholder(__('forms.placeholders.optional')),
+                        TextInput::make('mixed_height')
+                            ->label(__('forms.labels.h_cm'))
+                            ->numeric()
+                            ->visible(fn (Get $get) => $get('generation_mode') === 'mixed'),
 
-                                    TextInput::make('mixed_width')
-                                        ->label(__('forms.labels.w_cm'))
-                                        ->numeric()
-                                        ->placeholder(__('forms.placeholders.optional')),
-
-                                    TextInput::make('mixed_height')
-                                        ->label(__('forms.labels.h_cm'))
-                                        ->numeric()
-                                        ->placeholder(__('forms.placeholders.optional')),
-
-                                    TextInput::make('mixed_volume')
-                                        ->label(__('forms.labels.cbmpkg'))
-                                        ->numeric()
-                                        ->placeholder(__('forms.placeholders.auto_calculated')),
-                                ]),
-                            ])
-                            ->visible(fn (Get $get) => $get('generation_mode') === 'mixed')
-                            ->collapsible(),
+                        TextInput::make('mixed_volume')
+                            ->label(__('forms.labels.cbmpkg'))
+                            ->numeric()
+                            ->visible(fn (Get $get) => $get('generation_mode') === 'mixed'),
                     ])
                     ->action(function (array $data) {
                         $shipment = $this->getOwnerRecord();
