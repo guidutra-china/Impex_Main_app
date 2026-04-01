@@ -95,7 +95,10 @@ class GeneratePackingListAction
         $boxWidth = ! empty($config['width']) ? (float) $config['width'] : null;
         $boxHeight = ! empty($config['height']) ? (float) $config['height'] : null;
         $boxVolume = ! empty($config['volume']) ? (float) $config['volume'] : null;
-        $packagingType = PackagingType::tryFrom($config['packaging_type'] ?? '') ?? PackagingType::CARTON;
+        $rawType = $config['packaging_type'] ?? null;
+        $packagingType = $rawType instanceof PackagingType
+            ? $rawType
+            : (PackagingType::tryFrom((string) ($rawType ?? '')) ?? PackagingType::CARTON);
 
         if (! $boxVolume && $boxLength && $boxWidth && $boxHeight) {
             $boxVolume = round(($boxLength * $boxWidth * $boxHeight) / 1_000_000, 4);
