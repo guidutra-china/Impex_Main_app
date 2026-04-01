@@ -58,9 +58,17 @@ class GeneratePackingListAction
 
         foreach ($items as $shipmentItem) {
             $packaging = $shipmentItem->proformaInvoiceItem?->product?->packaging;
-            $pcsPerCarton = $packaging?->pcs_per_carton ?: $shipmentItem->quantity;
+            $totalQty = (int) $shipmentItem->quantity;
 
-            $totalQty = $shipmentItem->quantity;
+            if ($totalQty <= 0) {
+                continue;
+            }
+
+            $pcsPerCarton = (int) ($packaging?->pcs_per_carton ?? 0);
+            if ($pcsPerCarton <= 0) {
+                $pcsPerCarton = $totalQty;
+            }
+
             $boxesNeeded = (int) ceil($totalQty / $pcsPerCarton);
 
             if ($boxesNeeded > $maxBoxes) {
@@ -76,7 +84,7 @@ class GeneratePackingListAction
             ];
         }
 
-        if ($maxBoxes <= 0) {
+        if ($maxBoxes <= 0 || empty($itemData)) {
             return 0;
         }
 

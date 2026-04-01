@@ -402,17 +402,44 @@ class PackingListRelationManager extends RelationManager
                         TextInput::make('mixed_length')
                             ->label(__('forms.labels.l_cm'))
                             ->numeric()
-                            ->visible(fn (Get $get) => $get('generation_mode') === 'mixed'),
+                            ->visible(fn (Get $get) => $get('generation_mode') === 'mixed')
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function (Get $get, Set $set) {
+                                $l = (float) $get('mixed_length');
+                                $w = (float) $get('mixed_width');
+                                $h = (float) $get('mixed_height');
+                                if ($l && $w && $h) {
+                                    $set('mixed_volume', round(($l * $w * $h) / 1_000_000, 4));
+                                }
+                            }),
 
                         TextInput::make('mixed_width')
                             ->label(__('forms.labels.w_cm'))
                             ->numeric()
-                            ->visible(fn (Get $get) => $get('generation_mode') === 'mixed'),
+                            ->visible(fn (Get $get) => $get('generation_mode') === 'mixed')
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function (Get $get, Set $set) {
+                                $l = (float) $get('mixed_length');
+                                $w = (float) $get('mixed_width');
+                                $h = (float) $get('mixed_height');
+                                if ($l && $w && $h) {
+                                    $set('mixed_volume', round(($l * $w * $h) / 1_000_000, 4));
+                                }
+                            }),
 
                         TextInput::make('mixed_height')
                             ->label(__('forms.labels.h_cm'))
                             ->numeric()
-                            ->visible(fn (Get $get) => $get('generation_mode') === 'mixed'),
+                            ->visible(fn (Get $get) => $get('generation_mode') === 'mixed')
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function (Get $get, Set $set) {
+                                $l = (float) $get('mixed_length');
+                                $w = (float) $get('mixed_width');
+                                $h = (float) $get('mixed_height');
+                                if ($l && $w && $h) {
+                                    $set('mixed_volume', round(($l * $w * $h) / 1_000_000, 4));
+                                }
+                            }),
 
                         TextInput::make('mixed_volume')
                             ->label(__('forms.labels.cbmpkg'))
