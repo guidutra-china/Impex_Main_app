@@ -361,19 +361,98 @@ class PackingListRelationManager extends RelationManager
                     ->label(__('forms.labels.generate_from_items'))
                     ->icon('heroicon-o-sparkles')
                     ->color('warning')
-                    ->requiresConfirmation()
                     ->modalHeading('Generate Packing List')
-                    ->modalDescription('This will delete all existing packing list entries and regenerate them from shipment items using product packaging data. Continue?')
+                    ->modalDescription('This will delete all existing packing list entries and regenerate them from shipment items using product packaging data.')
                     ->modalSubmitActionLabel('Generate')
                     ->visible(fn () => $this->getOwnerRecord()->items()->count() > 0 && auth()->user()?->can('edit-shipments'))
-                    ->action(function () {
+                    ->form([
+                        Select::make('generation_mode')
+                            ->label(__('forms.labels.generation_mode'))
+                            ->options([
+                                'separate' => __('forms.labels.separate_boxes'),
+                                'mixed' => __('forms.labels.mixed_boxes'),
+                            ])
+                            ->default('separate')
+                            ->required()
+                            ->live()
+                            ->helperText(fn (Get $get) => match ($get('generation_mode')) {
+                                'mixed' => __('forms.helpers.mixed_boxes_description'),
+                                default => __('forms.helpers.separate_boxes_description'),
+                            }),
+
+                        Section::make(__('forms.sections.mixed_box_config'))
+                            ->schema([
+                                Grid::make(2)->schema([
+                                    Select::make('mixed_packaging_type')
+                                        ->label(__('forms.labels.packaging_type'))
+                                        ->options(PackagingType::class)
+                                        ->default(PackagingType::CARTON->value),
+
+                                    TextInput::make('mixed_gross_weight')
+                                        ->label(__('forms.labels.gross_weight_per_box_kg'))
+                                        ->numeric()
+                                        ->placeholder(__('forms.placeholders.fill_later'))
+                                        ->live(onBlur: true)
+                                        ->afterStateUpdated(function (Get $get, Set $set) {
+                                            $gw = (float) $get('mixed_gross_weight');
+                                            if ($gw > 0 && ! $get('mixed_net_weight')) {
+                                                $set('mixed_net_weight', round($gw * 0.9, 3));
+                                            }
+                                        }),
+
+                                    TextInput::make('mixed_net_weight')
+                                        ->label(__('forms.labels.net_weight_per_box_kg'))
+                                        ->numeric()
+                                        ->placeholder(__('forms.placeholders.fill_later')),
+                                ]),
+
+                                Grid::make(4)->schema([
+                                    TextInput::make('mixed_length')
+                                        ->label(__('forms.labels.l_cm'))
+                                        ->numeric()
+                                        ->placeholder(__('forms.placeholders.optional')),
+
+                                    TextInput::make('mixed_width')
+                                        ->label(__('forms.labels.w_cm'))
+                                        ->numeric()
+                                        ->placeholder(__('forms.placeholders.optional')),
+
+                                    TextInput::make('mixed_height')
+                                        ->label(__('forms.labels.h_cm'))
+                                        ->numeric()
+                                        ->placeholder(__('forms.placeholders.optional')),
+
+                                    TextInput::make('mixed_volume')
+                                        ->label(__('forms.labels.cbmpkg'))
+                                        ->numeric()
+                                        ->placeholder(__('forms.placeholders.auto_calculated')),
+                                ]),
+                            ])
+                            ->visible(fn (Get $get) => $get('generation_mode') === 'mixed')
+                            ->collapsible(),
+                    ])
+                    ->action(function (array $data) {
                         $shipment = $this->getOwnerRecord();
-                        $count = app(GeneratePackingListAction::class)->execute($shipment);
+                        $isMixed = ($data['generation_mode'] ?? 'separate') === 'mixed';
+
+                        $mixedConfig = $isMixed ? [
+                            'packaging_type' => $data['mixed_packaging_type'] ?? null,
+                            'gross_weight' => $data['mixed_gross_weight'] ?? null,
+                            'net_weight' => $data['mixed_net_weight'] ?? null,
+                            'length' => $data['mixed_length'] ?? null,
+                            'width' => $data['mixed_width'] ?? null,
+                            'height' => $data['mixed_height'] ?? null,
+                            'volume' => $data['mixed_volume'] ?? null,
+                        ] : [];
+
+                        $count = app(GeneratePackingListAction::class)->execute($shipment, $isMixed, $mixedConfig);
+
+                        $modeLabel = $isMixed ? 'mixed' : 'separate';
 
                         Notification::make()
                             ->success()
                             ->title('Packing list generated')
-                            ->body("{$count} line(s) created from shipment items.")
+                            ->body("{$count} line(s) created ({$modeLabel} mode). You can edit weights and volumes on each line.")
                             ->send();
                     }),
                 \Filament\Actions\Action::make('renumber_packages')

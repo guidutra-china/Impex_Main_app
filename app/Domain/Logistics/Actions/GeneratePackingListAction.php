@@ -9,10 +9,23 @@ use App\Domain\Logistics\Models\ShipmentItem;
 
 class GeneratePackingListAction
 {
-    public function execute(Shipment $shipment): int
+    public function execute(Shipment $shipment, bool $mixed = false, array $mixedBoxConfig = []): int
     {
         $shipment->packingListItems()->delete();
 
+        if ($mixed) {
+            $count = $this->generateMixed($shipment, $mixedBoxConfig);
+        } else {
+            $count = $this->generateSeparate($shipment);
+        }
+
+        $this->updateShipmentTotals($shipment);
+
+        return $count;
+    }
+
+    protected function generateSeparate(Shipment $shipment): int
+    {
         $cartonCounter = 0;
         $sortOrder = 0;
         $created = 0;
@@ -21,7 +34,119 @@ class GeneratePackingListAction
             $created += $this->generateForItem($shipment, $shipmentItem, $cartonCounter, $sortOrder);
         }
 
-        $this->updateShipmentTotals($shipment);
+        return $created;
+    }
+
+    /**
+     * Generate packing list with mixed boxes — multiple products share the same carton range.
+     *
+     * Each product uses its own pcs_per_carton from packaging data to determine how many
+     * pieces go into each box. The total number of boxes is the maximum needed across
+     * all products. Weight/volume per box can be provided or left for manual edit.
+     */
+    protected function generateMixed(Shipment $shipment, array $config): int
+    {
+        $items = $shipment->items()->with('proformaInvoiceItem.product.packaging')->get();
+
+        if ($items->isEmpty()) {
+            return 0;
+        }
+
+        // Calculate how many boxes each product needs
+        $itemData = [];
+        $maxBoxes = 0;
+
+        foreach ($items as $shipmentItem) {
+            $packaging = $shipmentItem->proformaInvoiceItem?->product?->packaging;
+            $pcsPerCarton = $packaging?->pcs_per_carton ?: $shipmentItem->quantity;
+
+            $totalQty = $shipmentItem->quantity;
+            $boxesNeeded = (int) ceil($totalQty / $pcsPerCarton);
+
+            if ($boxesNeeded > $maxBoxes) {
+                $maxBoxes = $boxesNeeded;
+            }
+
+            $itemData[] = [
+                'shipmentItem' => $shipmentItem,
+                'packaging' => $packaging,
+                'pcsPerCarton' => $pcsPerCarton,
+                'totalQty' => $totalQty,
+                'boxesNeeded' => $boxesNeeded,
+            ];
+        }
+
+        if ($maxBoxes <= 0) {
+            return 0;
+        }
+
+        // Box-level overrides from config (optional)
+        $boxGrossWeight = ! empty($config['gross_weight']) ? (float) $config['gross_weight'] : null;
+        $boxNetWeight = ! empty($config['net_weight']) ? (float) $config['net_weight'] : null;
+        $boxLength = ! empty($config['length']) ? (float) $config['length'] : null;
+        $boxWidth = ! empty($config['width']) ? (float) $config['width'] : null;
+        $boxHeight = ! empty($config['height']) ? (float) $config['height'] : null;
+        $boxVolume = ! empty($config['volume']) ? (float) $config['volume'] : null;
+        $packagingType = PackagingType::tryFrom($config['packaging_type'] ?? '') ?? PackagingType::CARTON;
+
+        if (! $boxVolume && $boxLength && $boxWidth && $boxHeight) {
+            $boxVolume = round(($boxLength * $boxWidth * $boxHeight) / 1_000_000, 4);
+        }
+
+        if (! $boxNetWeight && $boxGrossWeight) {
+            $boxNetWeight = round($boxGrossWeight * 0.9, 3);
+        }
+
+        $cartonFrom = 1;
+        $cartonTo = $maxBoxes;
+        $sortOrder = 0;
+        $created = 0;
+
+        foreach ($itemData as $data) {
+            $sortOrder++;
+            $created++;
+
+            $shipmentItem = $data['shipmentItem'];
+            $totalQty = $data['totalQty'];
+            $pcsPerCarton = $data['pcsPerCarton'];
+            $packaging = $data['packaging'];
+
+            // For weight distribution: if no box-level override, use product packaging
+            // weight proportionally (weight per product in the mixed box)
+            $itemGrossWeight = $boxGrossWeight;
+            $itemNetWeight = $boxNetWeight;
+            $itemLength = $boxLength;
+            $itemWidth = $boxWidth;
+            $itemHeight = $boxHeight;
+            $itemVolume = $boxVolume;
+
+            // If no box-level config, leave weights null so user can fill in later
+            // Only the first item gets the box dimensions (others are sub-items in PDF)
+
+            PackingListItem::create([
+                'shipment_id' => $shipment->id,
+                'shipment_item_id' => $shipmentItem->id,
+                'packaging_type' => $packagingType,
+                'carton_from' => $cartonFrom,
+                'carton_to' => $cartonTo,
+                'quantity' => $maxBoxes,
+                'qty_per_carton' => $pcsPerCarton,
+                'total_quantity' => $totalQty,
+                'gross_weight' => $sortOrder === 1 ? $itemGrossWeight : null,
+                'net_weight' => $sortOrder === 1 ? $itemNetWeight : null,
+                'total_gross_weight' => $sortOrder === 1 && $itemGrossWeight
+                    ? round($itemGrossWeight * $maxBoxes, 3) : null,
+                'total_net_weight' => $sortOrder === 1 && $itemNetWeight
+                    ? round($itemNetWeight * $maxBoxes, 3) : null,
+                'length' => $sortOrder === 1 ? $itemLength : null,
+                'width' => $sortOrder === 1 ? $itemWidth : null,
+                'height' => $sortOrder === 1 ? $itemHeight : null,
+                'volume' => $sortOrder === 1 ? $itemVolume : null,
+                'total_volume' => $sortOrder === 1 && $itemVolume
+                    ? round($itemVolume * $maxBoxes, 4) : null,
+                'sort_order' => $sortOrder,
+            ]);
+        }
 
         return $created;
     }
