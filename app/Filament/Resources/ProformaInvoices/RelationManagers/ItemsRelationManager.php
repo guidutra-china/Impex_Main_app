@@ -137,13 +137,19 @@ class ItemsRelationManager extends RelationManager
                 TextColumn::make('product.name')
                     ->label(__('forms.labels.product'))
                     ->searchable()
-                    ->sortable()
+                    ->sortable(query: fn ($query, string $direction) => $query
+                        ->leftJoin('products', 'products.id', '=', 'proforma_invoice_items.product_id')
+                        ->orderBy('products.name', $direction)
+                        ->select('proforma_invoice_items.*'))
                     ->limit(30)
                     ->placeholder(__('forms.placeholders.manual_item')),
                 TextColumn::make('product.model_number')
                     ->label(__('forms.labels.model_number'))
                     ->searchable()
-                    ->sortable()
+                    ->sortable(query: fn ($query, string $direction) => $query
+                        ->leftJoin('products', 'products.id', '=', 'proforma_invoice_items.product_id')
+                        ->orderBy('products.model_number', $direction)
+                        ->select('proforma_invoice_items.*'))
                     ->limit(20)
                     ->placeholder('—')
                     ->toggleable(),
@@ -153,7 +159,10 @@ class ItemsRelationManager extends RelationManager
                     ->toggleable(),
                 TextColumn::make('supplierCompany.name')
                     ->label(__('forms.labels.supplier'))
-                    ->sortable()
+                    ->sortable(query: fn ($query, string $direction) => $query
+                        ->leftJoin('companies', 'companies.id', '=', 'proforma_invoice_items.supplier_company_id')
+                        ->orderBy('companies.name', $direction)
+                        ->select('proforma_invoice_items.*'))
                     ->limit(20)
                     ->placeholder('—'),
                 TextInputColumn::make('quantity')
