@@ -137,11 +137,13 @@ class ItemsRelationManager extends RelationManager
                 TextColumn::make('product.name')
                     ->label(__('forms.labels.product'))
                     ->searchable()
+                    ->sortable()
                     ->limit(30)
                     ->placeholder(__('forms.placeholders.manual_item')),
                 TextColumn::make('product.model_number')
                     ->label(__('forms.labels.model_number'))
                     ->searchable()
+                    ->sortable()
                     ->limit(20)
                     ->placeholder('—')
                     ->toggleable(),
@@ -151,6 +153,7 @@ class ItemsRelationManager extends RelationManager
                     ->toggleable(),
                 TextColumn::make('supplierCompany.name')
                     ->label(__('forms.labels.supplier'))
+                    ->sortable()
                     ->limit(20)
                     ->placeholder('—'),
                 TextInputColumn::make('quantity')

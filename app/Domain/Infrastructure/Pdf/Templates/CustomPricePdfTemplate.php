@@ -110,6 +110,7 @@ class CustomPricePdfTemplate extends AbstractPdfTemplate
         return [
             'proforma_invoice' => [
                 'reference' => $pi->reference,
+                'client_reference' => $pi->client_reference,
                 'issue_date' => $this->formatDate($pi->issue_date),
                 'valid_until' => $this->formatDate($pi->valid_until),
                 'currency_code' => $currencyCode,
