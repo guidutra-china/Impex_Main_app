@@ -27,6 +27,7 @@ class Company extends Model
     }
 
     protected $fillable = [
+        'parent_company_id',
         'name',
         'legal_name',
         'tax_number',
@@ -133,6 +134,16 @@ class Company extends Model
         return $this->hasOne(SupplierAudit::class, 'company_id')->latestOfMany('conducted_date');
     }
 
+    public function parentCompany(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'parent_company_id');
+    }
+
+    public function branches(): HasMany
+    {
+        return $this->hasMany(Company::class, 'parent_company_id');
+    }
+
     // --- Scopes ---
 
     public function scopeActive($query)
@@ -143,6 +154,11 @@ class Company extends Model
     public function scopeWithRole($query, CompanyRole $role)
     {
         return $query->whereHas('companyRoles', fn ($q) => $q->where('role', $role));
+    }
+
+    public function scopeMatricesOnly($query)
+    {
+        return $query->whereNull('parent_company_id');
     }
 
     // --- Accessors ---
@@ -185,5 +201,15 @@ class Company extends Model
     public function isSupplier(): bool
     {
         return $this->hasRole(CompanyRole::SUPPLIER);
+    }
+
+    public function isMatrix(): bool
+    {
+        return $this->parent_company_id === null;
+    }
+
+    public function isBranch(): bool
+    {
+        return $this->parent_company_id !== null;
     }
 }
