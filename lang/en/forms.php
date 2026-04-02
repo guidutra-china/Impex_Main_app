@@ -750,6 +750,8 @@ return array (
     'clientprovided_specs_dimensions_certifications_etc' => 'Client-provided specs, dimensions, certifications, etc.',
     'commaseparated_list_of_certifications' => 'Comma-separated list of certifications.',
     'commission_embedded_in_the_unit_price' => 'Commission embedded in the unit price.',
+    'commission_separate_creates_payment_schedule' => 'Commission will be added as a separate payment schedule item.',
+    'auto_calculated_from_commission_rate' => 'Auto-calculated from the commission rate.',
     'currency_for_all_cost_values_below' => 'Currency for all cost values below.',
     'custom_instructions_for_this_rfq_leave_empty_to_use_the' => 'Custom instructions for this RFQ. Leave empty to use the default from Company Settings.',
     'date_and_time_the_client_confirmed' => 'Date and time the client confirmed.',

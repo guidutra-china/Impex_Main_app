@@ -17,7 +17,9 @@ use App\Domain\Infrastructure\Services\DocumentService;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
+use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Settings\Models\Currency;
 use App\Domain\Settings\Models\ExchangeRate;
 use BackedEnum;
@@ -57,6 +59,16 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->label(__('forms.labels.description'))
                     ->limit(40)
                     ->tooltip(fn ($record) => $record->description),
+                TextColumn::make('commission_rate')
+                    ->label(__('forms.labels.commission_rate'))
+                    ->formatStateUsing(fn ($state) => $state ? $state . '%' : null)
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('commission_mode')
+                    ->label(__('forms.labels.commission_model'))
+                    ->badge()
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('amount')
                     ->label(__('forms.labels.amount'))
                     ->formatStateUsing(fn ($state) => Money::format($state))
@@ -130,7 +142,12 @@ class AdditionalCostsRelationManager extends RelationManager
             ->form($this->costFormSchema())
             ->action(function (array $data) {
                 $cost = $this->saveCost($data);
-                $this->syncScheduleItem($cost);
+
+                if ($this->isEmbeddedCommission($cost)) {
+                    $this->applyEmbeddedCommission($cost);
+                } else {
+                    $this->syncScheduleItem($cost);
+                }
 
                 Notification::make()
                     ->title('Additional cost added')
@@ -148,6 +165,8 @@ class AdditionalCostsRelationManager extends RelationManager
             ->visible(fn ($record) => $record->status === AdditionalCostStatus::PENDING && auth()->user()?->can('create-payments'))
             ->fillForm(fn ($record) => [
                 'cost_type' => $record->cost_type->value,
+                'commission_rate' => $record->commission_rate,
+                'commission_mode' => $record->commission_mode?->value,
                 'description' => $record->description,
                 'amount' => Money::toMajor($record->amount),
                 'currency_code' => $record->currency_code,
@@ -164,8 +183,25 @@ class AdditionalCostsRelationManager extends RelationManager
             ])
             ->form($this->costFormSchema())
             ->action(function ($record, array $data) {
+                $wasEmbedded = $this->isEmbeddedCommission($record);
+
+                // If it was embedded before, revert the unit_price changes first
+                if ($wasEmbedded) {
+                    $this->revertEmbeddedCommission($record);
+                }
+
                 $cost = $this->saveCost($data, $record);
-                $this->syncScheduleItem($cost);
+
+                if ($this->isEmbeddedCommission($cost)) {
+                    $this->applyEmbeddedCommission($cost);
+                    // Remove any existing schedule item since it's now embedded
+                    PaymentScheduleItem::where('source_type', AdditionalCost::class)
+                        ->where('source_id', $cost->id)
+                        ->whereDoesntHave('allocations')
+                        ->delete();
+                } else {
+                    $this->syncScheduleItem($cost);
+                }
 
                 Notification::make()
                     ->title('Cost updated')
@@ -184,6 +220,11 @@ class AdditionalCostsRelationManager extends RelationManager
             ->modalDescription('This will waive the cost and its linked schedule items. The amounts will no longer be collectible/deductible.')
             ->visible(fn ($record) => in_array($record->status, [AdditionalCostStatus::PENDING, AdditionalCostStatus::INVOICED]) && auth()->user()?->can('approve-payments'))
             ->action(function ($record) {
+                // Revert embedded commission before waiving
+                if ($this->isEmbeddedCommission($record)) {
+                    $this->revertEmbeddedCommission($record);
+                }
+
                 $record->update(['status' => AdditionalCostStatus::WAIVED]);
 
                 PaymentScheduleItem::where('source_type', AdditionalCost::class)
@@ -211,6 +252,11 @@ class AdditionalCostsRelationManager extends RelationManager
             ->modalDescription('This will delete the cost and its linked schedule items.')
             ->visible(fn ($record) => $record->status === AdditionalCostStatus::PENDING && auth()->user()?->can('create-payments'))
             ->action(function ($record) {
+                // Revert embedded commission before deleting
+                if ($this->isEmbeddedCommission($record)) {
+                    $this->revertEmbeddedCommission($record);
+                }
+
                 PaymentScheduleItem::where('source_type', AdditionalCost::class)
                     ->where('source_id', $record->id)
                     ->whereDoesntHave('allocations')
@@ -220,6 +266,18 @@ class AdditionalCostsRelationManager extends RelationManager
 
                 Notification::make()->title('Cost deleted')->danger()->send();
             });
+    }
+
+    protected function isCommissionType($get): bool
+    {
+        $val = $get('cost_type');
+
+        if ($val instanceof AdditionalCostType) {
+            return $val === AdditionalCostType::COMMISSION;
+        }
+
+        return $val === AdditionalCostType::COMMISSION->value
+            || $val === 'commission';
     }
 
     protected function costFormSchema(): array
@@ -235,6 +293,8 @@ class AdditionalCostsRelationManager extends RelationManager
                 || $val === 'freight';
         };
 
+        $isCommission = fn ($get): bool => $this->isCommissionType($get);
+
         return [
             Section::make(__('forms.sections.cost_details'))->columns(2)->schema([
                 Select::make('cost_type')
@@ -248,13 +308,43 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->required()
                     ->maxLength(255)
                     ->columnSpanFull(),
+                Select::make('commission_mode')
+                    ->label(__('forms.labels.commission_model'))
+                    ->options(CommissionType::class)
+                    ->required()
+                    ->live()
+                    ->visible(fn ($get) => $isCommission($get))
+                    ->helperText(fn ($get) => match ($get('commission_mode')) {
+                        CommissionType::EMBEDDED->value, CommissionType::EMBEDDED => __('forms.helpers.commission_embedded_in_the_unit_price'),
+                        CommissionType::SEPARATE->value, CommissionType::SEPARATE => __('forms.helpers.commission_separate_creates_payment_schedule'),
+                        default => __('forms.helpers.embedded_commission_per_item_separate_commission_on_total'),
+                    }),
+                TextInput::make('commission_rate')
+                    ->label(__('forms.labels.commission_rate'))
+                    ->numeric()
+                    ->step('0.01')
+                    ->minValue(0.01)
+                    ->maxValue(100)
+                    ->suffix('%')
+                    ->required()
+                    ->visible(fn ($get) => $isCommission($get))
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(function ($state, $get, $set) {
+                        $owner = $this->getOwnerRecord();
+                        if ($owner instanceof ProformaInvoice && $state > 0) {
+                            $subtotal = $owner->subtotal;
+                            $calculatedAmount = Money::toMajor((int) round($subtotal * ((float) $state / 100)));
+                            $set('amount', number_format($calculatedAmount, 2, '.', ''));
+                        }
+                    }),
                 TextInput::make('amount')
                     ->label(__('forms.labels.amount'))
                     ->numeric()
                     ->step('0.01')
                     ->minValue(0.01)
                     ->required()
-                    ->helperText(fn ($get) => $isFreight($get) ? __('forms.helpers.amount_charged_to_client') : null),
+                    ->helperText(fn ($get) => $isFreight($get) ? __('forms.helpers.amount_charged_to_client') : ($isCommission($get) ? __('forms.helpers.auto_calculated_from_commission_rate') : null))
+                    ->readOnly(fn ($get) => $isCommission($get) && $get('commission_rate') > 0),
                 Select::make('currency_code')
                     ->label(__('forms.labels.currency'))
                     ->options(fn () => Currency::pluck('code', 'code'))
@@ -332,7 +422,20 @@ class AdditionalCostsRelationManager extends RelationManager
     protected function saveCost(array $data, $record = null): AdditionalCost
     {
         $owner = $this->getOwnerRecord();
-        $amountMinor = Money::toMinor((float) $data['amount']);
+
+        // For commission with rate: recalculate amount from percentage
+        $isCommission = ($data['cost_type'] ?? null) === AdditionalCostType::COMMISSION->value
+            || ($data['cost_type'] ?? null) === AdditionalCostType::COMMISSION
+            || ($data['cost_type'] ?? null) === 'commission';
+
+        if ($isCommission && ! empty($data['commission_rate']) && $owner instanceof ProformaInvoice) {
+            $subtotal = $owner->subtotal;
+            $calculatedAmount = (int) round($subtotal * ((float) $data['commission_rate'] / 100));
+            $amountMinor = $calculatedAmount;
+        } else {
+            $amountMinor = Money::toMinor((float) $data['amount']);
+        }
+
         $documentCurrencyCode = $owner->currency_code;
         $costCurrencyCode = $data['currency_code'];
 
@@ -354,6 +457,8 @@ class AdditionalCostsRelationManager extends RelationManager
 
         $payload = [
             'cost_type' => $data['cost_type'],
+            'commission_rate' => $isCommission ? ($data['commission_rate'] ?? null) : null,
+            'commission_mode' => $isCommission ? ($data['commission_mode'] ?? null) : null,
             'description' => $data['description'],
             'amount' => $amountMinor,
             'currency_code' => $costCurrencyCode,
@@ -616,6 +721,65 @@ class AdditionalCostsRelationManager extends RelationManager
         }
 
         return $owner;
+    }
+
+    protected function isEmbeddedCommission($cost): bool
+    {
+        if (! $cost) {
+            return false;
+        }
+
+        $costType = $cost->cost_type;
+        $isCommission = $costType === AdditionalCostType::COMMISSION
+            || (is_string($costType) && $costType === 'commission');
+
+        $mode = $cost->commission_mode;
+        $isEmbedded = $mode === CommissionType::EMBEDDED
+            || (is_string($mode) && $mode === 'embedded');
+
+        return $isCommission && $isEmbedded;
+    }
+
+    protected function applyEmbeddedCommission(AdditionalCost $cost): void
+    {
+        $owner = $this->getOwnerRecord();
+
+        if (! $owner instanceof ProformaInvoice) {
+            return;
+        }
+
+        $rate = (float) $cost->commission_rate;
+        if ($rate <= 0) {
+            return;
+        }
+
+        $multiplier = 1 + ($rate / 100);
+
+        $owner->items()->get()->each(function (ProformaInvoiceItem $item) use ($multiplier) {
+            $newUnitPrice = (int) round($item->unit_price * $multiplier);
+            $item->update(['unit_price' => $newUnitPrice]);
+        });
+    }
+
+    protected function revertEmbeddedCommission(AdditionalCost $cost): void
+    {
+        $owner = $this->getOwnerRecord();
+
+        if (! $owner instanceof ProformaInvoice) {
+            return;
+        }
+
+        $rate = (float) $cost->commission_rate;
+        if ($rate <= 0) {
+            return;
+        }
+
+        $multiplier = 1 + ($rate / 100);
+
+        $owner->items()->get()->each(function (ProformaInvoiceItem $item) use ($multiplier) {
+            $originalUnitPrice = (int) round($item->unit_price / $multiplier);
+            $item->update(['unit_price' => $originalUnitPrice]);
+        });
     }
 
     protected function costStatementAction(): Action

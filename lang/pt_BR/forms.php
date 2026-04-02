@@ -746,6 +746,8 @@ return array (
     'clientprovided_specs_dimensions_certifications_etc' => 'Especificações, dimensões, certificações, etc. fornecidas pelo cliente.',
     'commaseparated_list_of_certifications' => 'Lista separada por vírgulas de certificações.',
     'commission_embedded_in_the_unit_price' => 'Comissão embutida no preço unitário.',
+    'commission_separate_creates_payment_schedule' => 'Comissão será adicionada como item separado no cronograma de pagamento.',
+    'auto_calculated_from_commission_rate' => 'Calculado automaticamente a partir da taxa de comissão.',
     'currency_for_all_cost_values_below' => 'Moeda para todos os valores de custo abaixo.',
     'custom_instructions_for_this_rfq_leave_empty_to_use_the' => 'Instruções personalizadas para este RFQ. Deixe vazio para usar o padrão das Configurações da Empresa.',
     'date_and_time_the_client_confirmed' => 'Data e hora em que o cliente confirmou.',

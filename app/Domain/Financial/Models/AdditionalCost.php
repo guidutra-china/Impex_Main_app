@@ -6,6 +6,7 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
+use App\Domain\Quotations\Enums\CommissionType;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,6 +21,8 @@ class AdditionalCost extends Model
         'costable_type',
         'costable_id',
         'cost_type',
+        'commission_rate',
+        'commission_mode',
         'description',
         'amount',
         'currency_code',
@@ -43,6 +46,8 @@ class AdditionalCost extends Model
     {
         return [
             'cost_type' => AdditionalCostType::class,
+            'commission_rate' => 'decimal:2',
+            'commission_mode' => CommissionType::class,
             'amount' => 'integer',
             'exchange_rate' => 'decimal:8',
             'amount_in_document_currency' => 'integer',
