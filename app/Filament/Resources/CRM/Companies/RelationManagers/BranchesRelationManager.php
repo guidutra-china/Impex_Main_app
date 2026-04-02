@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CRM\Companies\RelationManagers;
 
+use App\Domain\CRM\Enums\CompanyStatus;
 use App\Domain\CRM\Models\Company;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -121,7 +122,12 @@ class BranchesRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make()
-                    ->visible(fn () => auth()->user()?->can('edit-companies')),
+                    ->visible(fn () => auth()->user()?->can('edit-companies'))
+                    ->mutateFormDataUsing(function (array $data): array {
+                        $data['status'] = CompanyStatus::ACTIVE->value;
+
+                        return $data;
+                    }),
             ])
             ->recordActions([
                 EditAction::make()

@@ -20,6 +20,7 @@ class CompaniesTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->query(fn () => Company::query()->with('parentCompany'))
             ->columns([
                 TextColumn::make('name')
                     ->label(__('forms.labels.company'))
