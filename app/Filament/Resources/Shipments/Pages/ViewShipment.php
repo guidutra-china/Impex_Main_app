@@ -14,6 +14,7 @@ use App\Domain\Infrastructure\Services\DocumentService;
 use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Actions\SendDocumentByEmailAction;
 use App\Filament\Resources\Shipments\ShipmentResource;
+use App\Filament\Resources\Shipments\Widgets\ShipmentSummary;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
@@ -29,7 +30,14 @@ class ViewShipment extends ViewRecord
 {
     protected static string $resource = ShipmentResource::class;
 
-protected function getHeaderActions(): array
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            ShipmentSummary::class,
+        ];
+    }
+
+    protected function getHeaderActions(): array
     {
         return [
             ActionGroup::make([
