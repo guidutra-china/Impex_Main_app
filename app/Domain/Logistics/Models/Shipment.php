@@ -33,6 +33,7 @@ class Shipment extends Model
         'client_reference',
         'issue_date',
         'company_id',
+        'company_branch_id',
         'status',
         'transport_mode',
         'container_type',
@@ -134,6 +135,20 @@ class Shipment extends Model
     public function forwarderCompany(): BelongsTo
     {
         return $this->belongsTo(Company::class, 'forwarder_company_id');
+    }
+
+    public function companyBranch(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'company_branch_id');
+    }
+
+    /**
+     * Resolve the effective client for document generation.
+     * Returns the branch if selected, otherwise the main company.
+     */
+    public function getDocumentClient(): Company
+    {
+        return $this->companyBranch ?? $this->company;
     }
 
     public function creator(): BelongsTo
