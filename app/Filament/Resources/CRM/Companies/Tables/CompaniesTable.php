@@ -4,6 +4,7 @@ namespace App\Filament\Resources\CRM\Companies\Tables;
 
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Enums\CompanyStatus;
+use App\Domain\CRM\Models\Company;
 use App\Domain\Catalog\Models\Category;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -24,7 +25,12 @@ class CompaniesTable
                     ->label(__('forms.labels.company'))
                     ->searchable()
                     ->sortable()
-                    ->weight('bold'),
+                    ->weight('bold')
+                    ->icon(fn (Company $record) => $record->isBranch() ? 'heroicon-o-arrow-uturn-right' : null)
+                    ->description(fn (Company $record) => $record->isBranch()
+                        ? __('forms.labels.branch_of', ['company' => $record->parentCompany?->name])
+                        : null
+                    ),
                 TextColumn::make('companyRoles.role')
                     ->label(__('forms.labels.roles'))
                     ->badge()
@@ -77,6 +83,19 @@ class CompaniesTable
                     ->query(function ($query, array $data) {
                         if ($data['value']) {
                             $query->whereHas('companyRoles', fn ($q) => $q->where('role', $data['value']));
+                        }
+                    }),
+                SelectFilter::make('type')
+                    ->label(__('forms.labels.type'))
+                    ->options([
+                        'matrix' => __('forms.labels.matrix'),
+                        'branch' => __('forms.labels.branch'),
+                    ])
+                    ->query(function ($query, array $data) {
+                        if ($data['value'] === 'matrix') {
+                            $query->whereNull('parent_company_id');
+                        } elseif ($data['value'] === 'branch') {
+                            $query->whereNotNull('parent_company_id');
                         }
                     }),
             ])
