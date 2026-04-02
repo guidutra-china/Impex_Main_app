@@ -16,7 +16,9 @@ use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Component;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 
 class ShipmentForm
 {
@@ -31,7 +33,38 @@ class ShipmentForm
                         ->relationship('company', 'name')
                         ->searchable()
                         ->preload()
-                        ->required(),
+                        ->required()
+                        ->live()
+                        ->afterStateUpdated(fn ($set) => $set('company_branch_id', null)),
+                    Select::make('company_branch_id')
+                        ->label(__('forms.labels.branch'))
+                        ->options(function (Component $component) {
+                            $companyId = $component->getContainer()->getState()['company_id'] ?? null;
+
+                            if (! $companyId) {
+                                return [];
+                            }
+
+                            return Company::where('parent_company_id', $companyId)
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->toArray();
+                        })
+                        ->searchable()
+                        ->placeholder(__('forms.placeholders.use_main_company_data'))
+                        ->visible(function (Component $component) {
+                            $companyId = $component->getContainer()->getState()['company_id'] ?? null;
+
+                            if (! $companyId) {
+                                return false;
+                            }
+
+                            return Company::where('parent_company_id', $companyId)->exists();
+                        })
+                        ->live()
+                        ->afterStateHydrated(function (Select $component, $state) {
+                            $component->state($state);
+                        }),
                     TextInput::make('client_reference')
                         ->label(__('forms.labels.client_reference'))
                         ->maxLength(255),
