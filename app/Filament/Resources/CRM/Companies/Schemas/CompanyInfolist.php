@@ -58,6 +58,14 @@ class CompanyInfolist
                             ->color('info')
                             ->separator(', ')
                             ->placeholder(__('forms.placeholders.no_roles_assigned')),
+                        TextEntry::make('parentCompany.name')
+                            ->label(__('forms.labels.parent_company'))
+                            ->icon('heroicon-o-building-office-2')
+                            ->visible(fn (Company $record) => $record->isBranch())
+                            ->url(fn (Company $record) => $record->parent_company_id
+                                ? \App\Filament\Resources\CRM\Companies\CompanyResource::getUrl('view', ['record' => $record->parent_company_id])
+                                : null
+                            ),
                     ])
                     ->columnSpan(['lg' => 1]),
 
