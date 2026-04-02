@@ -134,6 +134,20 @@
         </table>
     </div>
 
+    {{-- === MANUFACTURER(S) === --}}
+    @if(! empty($manufacturers))
+        <div class="section">
+            <div class="section-title">Manufacturer(s)</div>
+            <div class="section-content">
+                <ol style="margin: 0; padding-left: 16px; line-height: 1.8;">
+                    @foreach($manufacturers as $manufacturer)
+                        <li>{{ $manufacturer }}</li>
+                    @endforeach
+                </ol>
+            </div>
+        </div>
+    @endif
+
     {{-- === SHIPPING DETAILS === --}}
     @if(count($shipping_details) > 0)
         <div class="section">

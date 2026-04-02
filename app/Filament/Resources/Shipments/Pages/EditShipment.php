@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\Shipments\Pages;
 
 use App\Domain\Catalog\Models\CompanyProduct;
+use App\Domain\CRM\Enums\CompanyRole;
+use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Infrastructure\Pdf\PdfGeneratorService;
 use App\Domain\Infrastructure\Pdf\PdfRenderer;
@@ -80,12 +82,18 @@ class EditShipment extends EditRecord
         ];
     }
 
-    protected static function commercialInvoiceOptions(): array
+    protected function commercialInvoiceOptions(): array
     {
         return [
             Toggle::make('include_freight')
                 ->label(__('forms.labels.include_freight'))
                 ->default(false),
+            Select::make('manufacturer_ids')
+                ->label('Manufacturer(s)')
+                ->multiple()
+                ->options(fn () => $this->getManufacturerOptionsForShipment())
+                ->default(fn () => $this->getDefaultManufacturerIds())
+                ->helperText('Select the manufacturers to display on the document'),
             Checkbox::make('use_formula')
                 ->label(__('forms.labels.apply_price_formula'))
                 ->live()
@@ -104,6 +112,51 @@ class EditShipment extends EditRecord
         ];
     }
 
+    protected function getManufacturerOptionsForShipment(): array
+    {
+        $record = $this->getRecord();
+        $record->loadMissing('items.proformaInvoiceItem.product.companies.companyRoles');
+
+        $companyIds = $record->items
+            ->map(fn ($item) => $item->proformaInvoiceItem?->product)
+            ->filter()
+            ->flatMap(fn ($product) => $product->companies
+                ->filter(fn ($company) => $company->pivot->role === 'supplier' || $company->pivot->role === 'manufacturer')
+            )
+            ->pluck('id')
+            ->unique()
+            ->toArray();
+
+        return Company::query()
+            ->where(function ($query) use ($companyIds) {
+                $query->whereIn('id', $companyIds)
+                    ->orWhereHas('companyRoles', fn ($q) => $q->whereIn('role', [
+                        CompanyRole::SUPPLIER,
+                        CompanyRole::MANUFACTURER,
+                    ]));
+            })
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->toArray();
+    }
+
+    protected function getDefaultManufacturerIds(): array
+    {
+        $record = $this->getRecord();
+        $record->loadMissing('items.proformaInvoiceItem.product.companies');
+
+        return $record->items
+            ->map(fn ($item) => $item->proformaInvoiceItem?->product)
+            ->filter()
+            ->flatMap(fn ($product) => $product->companies
+                ->filter(fn ($company) => $company->pivot->role === 'supplier' || $company->pivot->role === 'manufacturer')
+            )
+            ->pluck('id')
+            ->unique()
+            ->values()
+            ->toArray();
+    }
+
     protected function commercialInvoiceGenerateAction(): Action
     {
         return Action::make('generateCommercialInvoicePdf')
@@ -115,7 +168,7 @@ class EditShipment extends EditRecord
             ->modalHeading('Generate Commercial Invoice PDF')
             ->modalDescription('This will generate a new PDF version. If a previous version exists, it will be archived.')
             ->modalSubmitActionLabel('Generate')
-            ->form(self::commercialInvoiceOptions())
+            ->form($this->commercialInvoiceOptions())
             ->action(function (array $data) {
                 try {
                     $record = $this->getRecord();
@@ -153,7 +206,7 @@ class EditShipment extends EditRecord
             ->icon('heroicon-o-eye')
             ->color('gray')
             ->visible(fn () => auth()->user()?->can('generate-documents'))
-            ->form(self::commercialInvoiceOptions())
+            ->form($this->commercialInvoiceOptions())
             ->action(function (array $data) {
                 try {
                     $record = $this->getRecord();

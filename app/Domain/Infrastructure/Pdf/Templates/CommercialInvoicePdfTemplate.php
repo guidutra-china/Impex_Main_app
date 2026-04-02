@@ -3,6 +3,7 @@
 namespace App\Domain\Infrastructure\Pdf\Templates;
 
 use App\Domain\Catalog\Models\Product;
+use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Infrastructure\Pdf\Templates\CustomPricePdfTemplate;
 use App\Domain\Logistics\Enums\ImportModality;
@@ -137,6 +138,7 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
             ],
             'shipping_details' => $this->buildShippingDetails($shipment, $incoterm),
             'import_modality' => $this->buildImportModalityData($shipment),
+            'manufacturers' => $this->buildManufacturerNames(),
         ];
     }
 
@@ -269,6 +271,21 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
             'name' => $name,
             'details' => $details,
         ];
+    }
+
+    private function buildManufacturerNames(): array
+    {
+        $ids = $this->options['manufacturer_ids'] ?? [];
+
+        if (empty($ids)) {
+            return [];
+        }
+
+        return Company::whereIn('id', $ids)
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Company $c) => filled($c->legal_name) ? $c->legal_name : $c->name)
+            ->toArray();
     }
 
     private function labels(string $key): string
