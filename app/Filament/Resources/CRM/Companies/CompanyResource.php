@@ -7,6 +7,7 @@ use App\Filament\Resources\CRM\Companies\Pages\CreateCompany;
 use App\Filament\Resources\CRM\Companies\Pages\EditCompany;
 use App\Filament\Resources\CRM\Companies\Pages\ListCompanies;
 use App\Filament\Resources\CRM\Companies\Pages\ViewCompany;
+use App\Filament\Resources\CRM\Companies\RelationManagers\BranchesRelationManager;
 use App\Filament\Resources\CRM\Companies\RelationManagers\CategoriesRelationManager;
 use App\Filament\Resources\CRM\Companies\RelationManagers\ClientProductsRelationManager;
 use App\Filament\Resources\CRM\Companies\RelationManagers\ContactsRelationManager;
@@ -71,6 +72,7 @@ class CompanyResource extends Resource
     public static function getRelations(): array
     {
         return [
+            BranchesRelationManager::class,
             RolesRelationManager::class,
             ContactsRelationManager::class,
             CategoriesRelationManager::class,
