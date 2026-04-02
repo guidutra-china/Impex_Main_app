@@ -203,6 +203,11 @@ class Company extends Model
         return $this->hasRole(CompanyRole::SUPPLIER);
     }
 
+    public function isForwarder(): bool
+    {
+        return $this->hasRole(CompanyRole::FORWARDER);
+    }
+
     public function isMatrix(): bool
     {
         return $this->parent_company_id === null;

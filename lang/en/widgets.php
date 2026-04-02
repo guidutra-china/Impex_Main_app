@@ -51,6 +51,7 @@ return [
     'financial_statement' => [
         'client_receivables' => 'Client Statement — Receivables',
         'supplier_payables' => 'Supplier Statement — Payables',
+        'forwarder_payables' => 'Forwarder Statement — Payables',
         'overdue' => 'Overdue',
     ],
     'landed_cost' => [

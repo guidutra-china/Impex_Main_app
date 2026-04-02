@@ -51,6 +51,7 @@ return [
     'financial_statement' => [
         'client_receivables' => '客户报表 — 应收款',
         'supplier_payables' => '供应商报表 — 应付款',
+        'forwarder_payables' => '货代报表 — 应付款',
         'overdue' => '逾期',
     ],
     'landed_cost' => [

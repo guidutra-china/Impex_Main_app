@@ -51,6 +51,7 @@ return [
     'financial_statement' => [
         'client_receivables' => 'Extrato do Cliente — Contas a Receber',
         'supplier_payables' => 'Extrato do Fornecedor — Contas a Pagar',
+        'forwarder_payables' => 'Extrato do Despachante — Contas a Pagar',
         'overdue' => 'Atrasado',
     ],
     'landed_cost' => [
