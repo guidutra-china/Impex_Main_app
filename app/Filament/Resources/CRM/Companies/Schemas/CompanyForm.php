@@ -11,6 +11,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 
 class CompanyForm
 {
@@ -20,6 +21,18 @@ class CompanyForm
             ->components([
                 Section::make(__('forms.sections.company_information'))
                     ->schema([
+                        Select::make('parent_company_id')
+                            ->label(__('forms.labels.parent_company'))
+                            ->relationship(
+                                'parentCompany',
+                                'name',
+                                fn (Builder $query) => $query->whereNull('parent_company_id')
+                            )
+                            ->searchable()
+                            ->preload()
+                            ->placeholder(__('forms.placeholders.none_this_is_a_matrix'))
+                            ->helperText(__('forms.helpers.select_if_this_company_is_a_branch'))
+                            ->columnSpanFull(),
                         TextInput::make('name')
                             ->label(__('forms.labels.company_name'))
                             ->required()
