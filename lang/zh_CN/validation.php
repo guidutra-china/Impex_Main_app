@@ -179,9 +179,8 @@ return [
     */
 
     'custom' => [
-        'attribute-name' => [
-            'rule-name' => 'custom-message',
-        ],
+        'branch_must_belong_to_selected_company' => '分公司必须属于所选公司。',
+        'parent_company_must_be_matrix' => '母公司本身不能是分公司。',
     ],
 
     /*

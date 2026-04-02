@@ -179,9 +179,8 @@ return [
     */
 
     'custom' => [
-        'attribute-name' => [
-            'rule-name' => 'custom-message',
-        ],
+        'branch_must_belong_to_selected_company' => 'A filial deve pertencer à empresa selecionada.',
+        'parent_company_must_be_matrix' => 'A empresa matriz não pode ser uma filial.',
     ],
 
     /*
