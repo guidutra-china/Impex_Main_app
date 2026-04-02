@@ -14,7 +14,6 @@ use App\Domain\Infrastructure\Services\DocumentService;
 use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Actions\SendDocumentByEmailAction;
 use App\Filament\Resources\Shipments\ShipmentResource;
-use App\Filament\Resources\Shipments\Widgets\LandedCostCalculator;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
@@ -30,14 +29,7 @@ class ViewShipment extends ViewRecord
 {
     protected static string $resource = ShipmentResource::class;
 
-    protected function getHeaderWidgets(): array
-    {
-        return [
-            LandedCostCalculator::class,
-        ];
-    }
-
-    protected function getHeaderActions(): array
+protected function getHeaderActions(): array
     {
         return [
             ActionGroup::make([
