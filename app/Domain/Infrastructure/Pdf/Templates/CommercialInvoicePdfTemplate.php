@@ -42,6 +42,7 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
         $shipment = $this->model;
         $shipment->loadMissing([
             'company',
+            'companyBranch',
             'items.proformaInvoiceItem.product.companies',
             'items.proformaInvoiceItem.proformaInvoice.paymentTerm',
             'additionalCosts',
@@ -103,6 +104,8 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
 
         $documentDate = $shipment->issue_date ?? $shipment->etd ?? $shipment->created_at ?? now();
 
+        $documentClient = $shipment->getDocumentClient();
+
         return [
             'shipment' => [
                 'reference' => $shipment->reference,
@@ -115,12 +118,12 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
                 'incoterm' => $incoterm instanceof \BackedEnum ? $incoterm->value : $incoterm,
             ],
             'client' => [
-                'name' => $shipment->company?->name ?? '—',
-                'legal_name' => $shipment->company?->legal_name,
-                'address' => $shipment->company?->full_address ?? '—',
-                'phone' => $shipment->company?->phone,
-                'email' => $shipment->company?->email,
-                'tax_id' => $shipment->company?->tax_number,
+                'name' => $documentClient->name ?? '—',
+                'legal_name' => $documentClient->legal_name,
+                'address' => $documentClient->full_address ?? '—',
+                'phone' => $documentClient->phone,
+                'email' => $documentClient->email,
+                'tax_id' => $documentClient->tax_number,
             ],
             'items' => $items,
             'totals' => [
@@ -232,17 +235,19 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
             $shipment->company?->contracted_importer_details
         );
 
+        $documentClient = $shipment->getDocumentClient();
+
         return [
             'is_conta_e_ordem' => true,
             'modality_label' => $modality->getEnglishLabel(),
             'importer' => $importerParsed,
             'notify_party' => [
-                'name' => $shipment->company?->name ?? '—',
-                'legal_name' => $shipment->company?->legal_name,
-                'address' => $shipment->company?->full_address ?? '—',
-                'phone' => $shipment->company?->phone,
-                'email' => $shipment->company?->email,
-                'tax_id' => $shipment->company?->tax_number,
+                'name' => $documentClient->name ?? '—',
+                'legal_name' => $documentClient->legal_name,
+                'address' => $documentClient->full_address ?? '—',
+                'phone' => $documentClient->phone,
+                'email' => $documentClient->email,
+                'tax_id' => $documentClient->tax_number,
             ],
         ];
     }
