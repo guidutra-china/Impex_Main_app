@@ -32,7 +32,14 @@ class CompanyForm
                             ->preload()
                             ->placeholder(__('forms.placeholders.none_this_is_a_matrix'))
                             ->helperText(__('forms.helpers.select_if_this_company_is_a_branch'))
-                            ->columnSpanFull(),
+                            ->columnSpanFull()
+                            ->rules([
+                                fn () => function (string $attribute, $value, \Closure $fail) {
+                                    if ($value && Company::where('id', $value)->whereNotNull('parent_company_id')->exists()) {
+                                        $fail(__('validation.custom.parent_company_must_be_matrix'));
+                                    }
+                                },
+                            ]),
                         TextInput::make('name')
                             ->label(__('forms.labels.company_name'))
                             ->required()
@@ -63,28 +70,6 @@ class CompanyForm
                     ])
                     ->columns(2)
                     ->columnSpan(['lg' => fn (?Company $record) => $record === null ? 3 : 2]),
-
-                Section::make(__('forms.sections.parent_company'))
-                    ->schema([
-                        Select::make('parent_company_id')
-                            ->label(__('forms.labels.parent_company'))
-                            ->relationship('parentCompany', 'name')
-                            ->searchable()
-                            ->preload()
-                            ->placeholder(__('forms.placeholders.none_this_is_a_matrix_company'))
-                            ->helperText(__('forms.helpers.select_if_this_company_is_a_branch'))
-                            ->columnSpanFull()
-                            ->rules([
-                                fn () => function (string $attribute, $value, \Closure $fail) {
-                                    if ($value && Company::where('id', $value)->whereNotNull('parent_company_id')->exists()) {
-                                        $fail(__('validation.custom.parent_company_must_be_matrix'));
-                                    }
-                                },
-                            ]),
-                    ])
-                    ->columnSpan(['lg' => 3])
-                    ->collapsible()
-                    ->collapsed(),
 
                 Section::make(__('forms.sections.status_roles'))
                     ->schema([
