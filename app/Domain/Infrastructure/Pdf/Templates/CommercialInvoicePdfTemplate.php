@@ -118,8 +118,8 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
                 'incoterm' => $incoterm instanceof \BackedEnum ? $incoterm->value : $incoterm,
             ],
             'client' => [
-                'name' => $documentClient->name ?? '—',
-                'legal_name' => $documentClient->legal_name,
+                'name' => filled($documentClient->legal_name) ? $documentClient->legal_name : ($documentClient->name ?? '—'),
+                'legal_name' => null,
                 'address' => $documentClient->full_address ?? '—',
                 'phone' => $documentClient->phone,
                 'email' => $documentClient->email,
@@ -242,8 +242,8 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
             'modality_label' => $modality->getEnglishLabel(),
             'importer' => $importerParsed,
             'notify_party' => [
-                'name' => $documentClient->name ?? '—',
-                'legal_name' => $documentClient->legal_name,
+                'name' => filled($documentClient->legal_name) ? $documentClient->legal_name : ($documentClient->name ?? '—'),
+                'legal_name' => null,
                 'address' => $documentClient->full_address ?? '—',
                 'phone' => $documentClient->phone,
                 'email' => $documentClient->email,

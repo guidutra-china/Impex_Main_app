@@ -83,8 +83,8 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
                 'pi_references' => $piReferences,
             ],
             'client' => [
-                'name' => $documentClient->name ?? '—',
-                'legal_name' => $documentClient->legal_name,
+                'name' => filled($documentClient->legal_name) ? $documentClient->legal_name : ($documentClient->name ?? '—'),
+                'legal_name' => null,
                 'address' => $documentClient->full_address ?? '—',
                 'phone' => $documentClient->phone,
                 'email' => $documentClient->email,
@@ -337,8 +337,8 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
             'modality_label' => $modality->getEnglishLabel(),
             'importer' => $importerParsed,
             'notify_party' => [
-                'name' => $documentClient->name ?? '—',
-                'legal_name' => $documentClient->legal_name,
+                'name' => filled($documentClient->legal_name) ? $documentClient->legal_name : ($documentClient->name ?? '—'),
+                'legal_name' => null,
                 'address' => $documentClient->full_address ?? '—',
                 'phone' => $documentClient->phone,
                 'email' => $documentClient->email,
