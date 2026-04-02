@@ -92,6 +92,9 @@
                                 <tr class="border-b-2 border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/5">
                                     <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Reference</th>
                                     <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Date</th>
+                                    @if (($section['type'] ?? '') === 'forwarder')
+                                        <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">ETA</th>
+                                    @endif
                                     <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</th>
                                     <th class="px-4 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Total</th>
                                     <th class="px-4 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Paid</th>
@@ -111,6 +114,9 @@
                                             </a>
                                         </td>
                                         <td class="whitespace-nowrap px-4 py-2.5 text-gray-500 dark:text-gray-400">{{ $row['date'] }}</td>
+                                        @if (($section['type'] ?? '') === 'forwarder')
+                                            <td class="whitespace-nowrap px-4 py-2.5 text-gray-500 dark:text-gray-400">{{ $row['eta'] ?? '—' }}</td>
+                                        @endif
                                         <td class="whitespace-nowrap px-4 py-2.5">
                                             <x-filament::badge :color="$row['status']->getColor()" size="sm">
                                                 {{ $row['status']->getLabel() }}
@@ -139,7 +145,7 @@
                             </tbody>
                             <tfoot>
                                 <tr class="border-t-2 border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/5">
-                                    <td colspan="3" class="px-4 py-3 text-sm font-bold text-gray-700 dark:text-gray-300">
+                                    <td colspan="{{ ($section['type'] ?? '') === 'forwarder' ? 4 : 3 }}" class="px-4 py-3 text-sm font-bold text-gray-700 dark:text-gray-300">
                                         Total ({{ count($section['rows']) }} {{ count($section['rows']) === 1 ? 'record' : 'records' }})
                                     </td>
                                     <td class="whitespace-nowrap px-4 py-3 text-right font-mono font-bold text-gray-900 dark:text-white">

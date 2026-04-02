@@ -215,6 +215,7 @@ class CompanyFinancialStatement extends Widget
             $rows[] = [
                 'reference' => $shipment->reference ?? 'SHP-' . $shipmentId,
                 'status' => $shipment->status,
+                'eta' => $shipment->eta?->format('M d, Y'),
                 'date' => $shipmentCosts->first()->cost_date?->format('M d, Y')
                     ?? $shipmentCosts->first()->created_at->format('M d, Y'),
                 'currency' => $currency,
