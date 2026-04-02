@@ -25,6 +25,11 @@ class SupplierAuditsRelationManager extends RelationManager
 
     protected static string|BackedEnum|null $icon = 'heroicon-o-clipboard-document-check';
 
+    public static function canViewForRecord(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): bool
+    {
+        return $ownerRecord->isMatrix();
+    }
+
     public function table(Table $table): Table
     {
         return $table

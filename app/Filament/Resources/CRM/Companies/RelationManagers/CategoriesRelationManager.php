@@ -21,6 +21,11 @@ class CategoriesRelationManager extends RelationManager
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    public static function canViewForRecord(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): bool
+    {
+        return $ownerRecord->isMatrix();
+    }
+
     public function table(Table $table): Table
     {
         return $table

@@ -21,6 +21,11 @@ class RolesRelationManager extends RelationManager
 
     protected static ?string $recordTitleAttribute = 'role';
 
+    public static function canViewForRecord(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): bool
+    {
+        return $ownerRecord->isMatrix();
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema

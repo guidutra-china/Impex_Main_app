@@ -34,6 +34,11 @@ class DocumentsRelationManager extends RelationManager
 
     protected static ?string $recordTitleAttribute = 'title';
 
+    public static function canViewForRecord(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): bool
+    {
+        return $ownerRecord->isMatrix();
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema

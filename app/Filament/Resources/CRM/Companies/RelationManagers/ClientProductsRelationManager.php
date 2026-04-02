@@ -51,7 +51,8 @@ class ClientProductsRelationManager extends RelationManager
 
     public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
     {
-        return $ownerRecord->companyRoles()->where('role', CompanyRole::CLIENT)->exists();
+        return $ownerRecord->isMatrix()
+            && $ownerRecord->companyRoles()->where('role', CompanyRole::CLIENT)->exists();
     }
 
     public function form(Schema $schema): Schema
