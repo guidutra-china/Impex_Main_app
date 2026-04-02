@@ -61,6 +61,20 @@ class ShipmentForm
 
                             return Company::where('parent_company_id', $companyId)->exists();
                         })
+                        ->rules([
+                            fn (Component $component) => function (string $attribute, $value, \Closure $fail) use ($component) {
+                                if (! $value) {
+                                    return;
+                                }
+
+                                $companyId = $component->getContainer()->getState()['company_id'] ?? null;
+                                $branch = Company::find($value);
+
+                                if (! $branch || $branch->parent_company_id !== (int) $companyId) {
+                                    $fail(__('validation.custom.branch_must_belong_to_selected_company'));
+                                }
+                            },
+                        ])
                         ->live()
                         ->afterStateHydrated(function (Select $component, $state) {
                             $component->state($state);
