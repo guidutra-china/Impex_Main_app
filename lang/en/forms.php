@@ -377,6 +377,8 @@ return array (
     'qty_per_package' => 'Qty per Package',
     'quantity' => 'Quantity',
     'quotations' => 'Quotations',
+    'client_quotations' => 'Client Quotations',
+    'supplier_quotations' => 'Supplier Quotations',
     'quote_prefix' => 'Quote Prefix',
     'rfq_instructions' => 'RFQ Instructions',
     'rate' => 'Rate',

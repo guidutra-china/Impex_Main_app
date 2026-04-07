@@ -374,6 +374,8 @@ return array (
     'qty_per_package' => 'Qtd por Pacote',
     'quantity' => 'Quantidade',
     'quotations' => 'Cotações',
+    'client_quotations' => 'Cotações para Clientes',
+    'supplier_quotations' => 'Cotações de Fornecedores',
     'quote_prefix' => 'Prefixo da Cotação',
     'rfq_instructions' => 'Instruções do RFQ',
     'rate' => 'Taxa',

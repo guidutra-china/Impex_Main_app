@@ -371,6 +371,8 @@ return array (
     'qty_per_package' => '每包数量',
     'quantity' => '数量',
     'quotations' => '报价单',
+    'client_quotations' => '客户报价单',
+    'supplier_quotations' => '供应商报价单',
     'quote_prefix' => '报价前缀',
     'rfq_instructions' => '询价单说明',
     'rate' => '汇率',

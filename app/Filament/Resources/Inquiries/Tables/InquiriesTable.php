@@ -71,8 +71,13 @@ class InquiriesTable
                     ->sortable()
                     ->color(fn ($record) => $record->deadline && $record->deadline->isPast() ? 'danger' : null),
                 TextColumn::make('quotations_count')
-                    ->label(__('forms.labels.quotations'))
+                    ->label(__('forms.labels.client_quotations'))
                     ->counts('quotations')
+                    ->alignCenter()
+                    ->toggleable(isToggledHiddenByDefault: false),
+                TextColumn::make('supplier_quotations_count')
+                    ->label(__('forms.labels.supplier_quotations'))
+                    ->counts('supplierQuotations')
                     ->alignCenter()
                     ->toggleable(isToggledHiddenByDefault: false),
                 TextColumn::make('responsible.name')
