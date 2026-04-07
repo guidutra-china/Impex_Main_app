@@ -102,6 +102,7 @@ return [
     'pages' => [
         'financial_overview' => 'Financial Overview',
         'order_pipeline' => 'Order Pipeline',
+        'client_360' => 'Client 360',
         'company_settings' => 'Company Settings',
         'dashboard' => 'Dashboard',
     ],

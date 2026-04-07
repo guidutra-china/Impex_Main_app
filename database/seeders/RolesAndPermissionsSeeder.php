@@ -141,6 +141,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'view-financial-dashboard',
             'view-operational-dashboard',
             'view-order-pipeline',
+            'view-client-360',
             'send-documents-by-email',
 
             // Audit Log

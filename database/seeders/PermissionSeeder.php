@@ -124,6 +124,9 @@ class PermissionSeeder extends Seeder
             'conduct-supplier-audits',
             'review-supplier-audits',
             'manage-audit-categories',
+
+            // Dashboard & Pipeline
+            'view-client-360',
         ];
 
         foreach ($permissions as $permission) {

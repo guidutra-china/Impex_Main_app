@@ -95,6 +95,7 @@ return [
     'pages' => [
         'financial_overview' => '财务概览',
         'order_pipeline' => '订单流程',
+        'client_360' => '客户 360',
         'company_settings' => '公司设置',
         'dashboard' => '仪表盘',
     ],

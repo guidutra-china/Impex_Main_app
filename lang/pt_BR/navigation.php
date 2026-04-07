@@ -95,6 +95,7 @@ return [
     'pages' => [
         'financial_overview' => 'Visão Financeira',
         'order_pipeline' => 'Pipeline de Pedidos',
+        'client_360' => 'Cliente 360',
         'company_settings' => 'Configurações da Empresa',
         'dashboard' => 'Painel',
     ],
