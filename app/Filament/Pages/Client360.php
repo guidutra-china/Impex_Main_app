@@ -58,15 +58,34 @@ class Client360 extends Page
         return auth()->user()?->can('view-client-360') ?? false;
     }
 
-    /** Searchable client dropdown options keyed by company id. */
+    /**
+     * Searchable client dropdown options keyed by company id.
+     * Each label is enriched with the company role(s) so users can tell
+     * clients apart from suppliers / forwarders before clicking.
+     */
     public function getClientOptionsProperty(): array
     {
         return Company::query()
             ->whereNull('parent_company_id')
             ->where('status', 'active')
+            ->with('companyRoles')
             ->orderBy('name')
             ->limit(500)
-            ->pluck('name', 'id')
+            ->get()
+            ->mapWithKeys(function (Company $company) {
+                $roles = $company->companyRoles
+                    ->pluck('role')
+                    ->map(fn ($role) => $role?->getEnglishLabel())
+                    ->filter()
+                    ->implode(', ');
+
+                $label = $company->name;
+                if ($roles !== '') {
+                    $label .= ' — ' . $roles;
+                }
+
+                return [$company->id => $label];
+            })
             ->all();
     }
 
@@ -77,7 +96,7 @@ class Client360 extends Page
         }
 
         return Company::query()
-            ->with(['branches'])
+            ->with(['branches', 'companyRoles'])
             ->find($this->clientId);
     }
 
@@ -129,6 +148,58 @@ class Client360 extends Page
     public function getBranchesCountProperty(): int
     {
         return $this->client?->branches?->count() ?? 0;
+    }
+
+    // === Role-aware accessors used by the Blade view ===
+
+    public function getIsClientProperty(): bool
+    {
+        return (bool) $this->service?->isClient();
+    }
+
+    public function getIsSupplierProperty(): bool
+    {
+        return (bool) $this->service?->isSupplier();
+    }
+
+    public function getIsForwarderProperty(): bool
+    {
+        return (bool) $this->service?->isForwarder();
+    }
+
+    public function getRolesProperty(): Collection
+    {
+        return $this->service?->roles() ?? collect();
+    }
+
+    public function getSupplierPurchaseOrdersProperty(): Collection
+    {
+        return $this->service?->supplierPurchaseOrders() ?? collect();
+    }
+
+    public function getOutboundPaymentsProperty(): Collection
+    {
+        return $this->service?->outboundPayments(30) ?? collect();
+    }
+
+    public function getSupplierPayablesProperty(): array
+    {
+        return $this->service?->supplierPayables() ?? ['by_currency' => [], 'count_by_currency' => [], 'overdue_by_currency' => []];
+    }
+
+    public function getForwarderShipmentsProperty(): Collection
+    {
+        return $this->service?->forwarderShipments() ?? collect();
+    }
+
+    public function getForwarderFreightCostsProperty(): Collection
+    {
+        return $this->service?->forwarderFreightCosts() ?? collect();
+    }
+
+    public function getForwarderFreightTotalsProperty(): array
+    {
+        return $this->service?->forwarderFreightTotalsByCurrency() ?? [];
     }
 
     /** Drill-down URLs — reuse existing Filament resources, no duplication. */

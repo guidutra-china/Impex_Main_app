@@ -6,6 +6,8 @@ return [
     'search_placeholder' => 'Digite para buscar...',
     'no_results' => 'Nenhum cliente encontrado.',
     'no_client_selected' => 'Selecione um cliente para ver a visão consolidada.',
+    'no_role' => 'Sem papel atribuído',
+    'no_supported_role' => 'Esta empresa não tem papel de cliente, fornecedor ou forwarder atribuído. Não há nada a exibir.',
     'consolidated_with_branches' => 'matriz + :count filial(is) consolidadas',
 
     'kpis' => [
@@ -25,6 +27,10 @@ return [
         'purchase_orders' => 'Pedidos de compra (fornecedores)',
         'shipments' => 'Logística / Embarques',
         'financial' => 'Financeiro',
+        'supplier_purchase_orders' => 'Pedidos recebidos',
+        'supplier_payments' => 'Pagamentos & a pagar (fornecedor)',
+        'forwarder_shipments' => 'Embarques operados (forwarder)',
+        'forwarder_freight' => 'Frete cobrado (forwarder)',
     ],
 
     'columns' => [
@@ -45,6 +51,8 @@ return [
         'invoice_value' => 'Valor invoice',
         'freight' => 'Frete',
         'client_ref' => 'Ref. cliente',
+        'client' => 'Cliente',
+        'description' => 'Descrição',
         'actions' => 'Ações',
     ],
 
@@ -57,6 +65,9 @@ return [
         'inbound' => 'Recebido',
         'outbound' => 'Enviado',
         'no_pending' => 'Sem parcelas pendentes',
+        'payables_to_supplier' => 'A pagar para este fornecedor',
+        'outbound_payments_history' => 'Histórico de pagamentos enviados',
+        'total_billed_by_forwarder' => 'Total cobrado por este forwarder',
     ],
 
     'timeline' => [

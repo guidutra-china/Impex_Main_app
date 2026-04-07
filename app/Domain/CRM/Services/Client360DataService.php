@@ -5,7 +5,10 @@ namespace App\Domain\CRM\Services;
 use App\Domain\CRM\DataTransferObjects\Client360FinancialSummary;
 use App\Domain\CRM\DataTransferObjects\Client360KpiSummary;
 use App\Domain\CRM\DataTransferObjects\Client360TimelineEvent;
+use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
+use App\Domain\Financial\Enums\AdditionalCostType;
+use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\Payment;
@@ -382,6 +385,147 @@ class Client360DataService
             ->sortByDesc(fn (Client360TimelineEvent $e) => $e->occurredAt->getTimestamp())
             ->take($limit)
             ->values();
+    }
+
+    // === Role-aware helpers (the company may also be a supplier and/or a forwarder) ===
+
+    public function isClient(): bool
+    {
+        return $this->client->isClient();
+    }
+
+    public function isSupplier(): bool
+    {
+        return $this->client->isSupplier();
+    }
+
+    public function isForwarder(): bool
+    {
+        return $this->client->isForwarder();
+    }
+
+    /** @return Collection<int, CompanyRole> */
+    public function roles(): Collection
+    {
+        return $this->client->companyRoles->pluck('role');
+    }
+
+    // === Supplier-side queries (used when the company is a supplier) ===
+
+    /**
+     * Purchase orders this company received as a supplier.
+     * Branch consolidation is intentionally NOT applied here — supplier
+     * branches are rare and PO supplier_company_id always points at one
+     * specific entity.
+     */
+    public function supplierPurchaseOrders(): Collection
+    {
+        return PurchaseOrder::query()
+            ->whereIn('supplier_company_id', $this->companyIds())
+            ->with(['proformaInvoice.company', 'items', 'paymentScheduleItems'])
+            ->orderByDesc('issue_date')
+            ->orderByDesc('created_at')
+            ->get();
+    }
+
+    /**
+     * Outbound payments sent to this company (when it acts as supplier or forwarder).
+     */
+    public function outboundPayments(int $limit = 30): Collection
+    {
+        return Payment::query()
+            ->where('direction', PaymentDirection::OUTBOUND)
+            ->whereIn('company_id', $this->companyIds())
+            ->with(['allocations.scheduleItem'])
+            ->orderByDesc('payment_date')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get();
+    }
+
+    /**
+     * Pending payment schedule items grouped by currency for POs sent to
+     * this supplier — i.e. what we still owe them.
+     *
+     * @return array{by_currency: array<string, int>, count_by_currency: array<string, int>, overdue_by_currency: array<string, int>}
+     */
+    public function supplierPayables(): array
+    {
+        $poIds = PurchaseOrder::query()
+            ->whereIn('supplier_company_id', $this->companyIds())
+            ->pluck('id')
+            ->all();
+
+        if ($poIds === []) {
+            return ['by_currency' => [], 'count_by_currency' => [], 'overdue_by_currency' => []];
+        }
+
+        $unresolved = [
+            PaymentScheduleStatus::PENDING->value,
+            PaymentScheduleStatus::DUE->value,
+            PaymentScheduleStatus::OVERDUE->value,
+        ];
+
+        $items = PaymentScheduleItem::query()
+            ->where('payable_type', PurchaseOrder::class)
+            ->whereIn('payable_id', $poIds)
+            ->where('is_credit', false)
+            ->whereIn('status', $unresolved)
+            ->get(['id', 'currency_code', 'amount', 'status']);
+
+        return [
+            'by_currency' => $this->sumByCurrency($items),
+            'count_by_currency' => $this->countByCurrency($items),
+            'overdue_by_currency' => $this->sumByCurrency(
+                $items->where('status', PaymentScheduleStatus::OVERDUE),
+            ),
+        ];
+    }
+
+    // === Forwarder-side queries (used when the company is a forwarder) ===
+
+    /**
+     * Shipments this company is handling as the forwarder.
+     */
+    public function forwarderShipments(): Collection
+    {
+        return Shipment::query()
+            ->whereIn('forwarder_company_id', $this->companyIds())
+            ->with(['company', 'companyBranch'])
+            ->orderByDesc('etd')
+            ->orderByDesc('created_at')
+            ->get();
+    }
+
+    /**
+     * Freight additional costs billed by this forwarder.
+     * Used to show "what was charged to us by this forwarder".
+     */
+    public function forwarderFreightCosts(): Collection
+    {
+        return AdditionalCost::query()
+            ->whereIn('forwarder_company_id', $this->companyIds())
+            ->where('cost_type', AdditionalCostType::FREIGHT)
+            ->with(['costable'])
+            ->orderByDesc('cost_date')
+            ->orderByDesc('created_at')
+            ->get();
+    }
+
+    /**
+     * Sum forwarder freight costs by currency.
+     *
+     * @return array<string, int>
+     */
+    public function forwarderFreightTotalsByCurrency(): array
+    {
+        $result = [];
+        foreach ($this->forwarderFreightCosts() as $cost) {
+            $currency = $cost->currency_code ?: 'USD';
+            $result[$currency] = ($result[$currency] ?? 0) + (int) $cost->amount;
+        }
+
+        return $result;
     }
 
     // === Internal helpers ===

@@ -6,6 +6,7 @@
         </label>
 
         <div
+            wire:ignore
             x-data="{
                 open: false,
                 query: @js($this->client?->name ?? ''),
@@ -123,6 +124,32 @@
             </p>
         </div>
     @else
+        {{-- ================== Company header (name + role badges) ================== --}}
+        <div class="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <h2 class="text-base font-bold text-gray-900 dark:text-white">{{ $this->client->name }}</h2>
+            @forelse ($this->roles as $role)
+                <x-filament::badge :color="$role->getColor() ?? 'gray'" size="sm">
+                    {{ $role->getEnglishLabel() }}
+                </x-filament::badge>
+            @empty
+                <x-filament::badge color="gray" size="sm">{{ __('client_360.no_role') }}</x-filament::badge>
+            @endforelse
+            @if ($this->branchesCount > 0)
+                <span class="text-xs text-gray-500 dark:text-gray-400">
+                    · {{ __('client_360.consolidated_with_branches', ['count' => $this->branchesCount]) }}
+                </span>
+            @endif
+        </div>
+
+        @if (! $this->isClient && ! $this->isSupplier && ! $this->isForwarder)
+            <div class="rounded-xl border border-dashed border-warning-300 bg-warning-50/50 p-6 text-center dark:border-warning-500/30 dark:bg-warning-500/5">
+                <p class="text-sm text-warning-700 dark:text-warning-400">
+                    {{ __('client_360.no_supported_role') }}
+                </p>
+            </div>
+        @endif
+
+        @if ($this->isClient)
         @php($kpis = $this->kpis)
         @php($financial = $this->financialSummary)
 
@@ -305,5 +332,28 @@
             'financial' => $financial,
             'recentPayments' => $this->recentPayments,
         ])
+        @endif
+
+        {{-- ================== Supplier sections ================== --}}
+        @if ($this->isSupplier)
+            @include('filament.pages.client360.section-supplier-purchase-orders', [
+                'purchaseOrders' => $this->supplierPurchaseOrders,
+            ])
+            @include('filament.pages.client360.section-supplier-payments', [
+                'outboundPayments' => $this->outboundPayments,
+                'payables' => $this->supplierPayables,
+            ])
+        @endif
+
+        {{-- ================== Forwarder sections ================== --}}
+        @if ($this->isForwarder)
+            @include('filament.pages.client360.section-forwarder-shipments', [
+                'shipments' => $this->forwarderShipments,
+            ])
+            @include('filament.pages.client360.section-forwarder-freight', [
+                'freightCosts' => $this->forwarderFreightCosts,
+                'freightTotals' => $this->forwarderFreightTotals,
+            ])
+        @endif
     @endif
 </x-filament-panels::page>

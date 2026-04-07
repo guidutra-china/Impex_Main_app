@@ -6,6 +6,8 @@ return [
     'search_placeholder' => 'Type to search...',
     'no_results' => 'No clients match your search.',
     'no_client_selected' => 'Select a client to see their consolidated view.',
+    'no_role' => 'No role assigned',
+    'no_supported_role' => 'This company has no client, supplier or forwarder role assigned. There is nothing to show.',
     'consolidated_with_branches' => 'matrix + :count branch(es) consolidated',
 
     'kpis' => [
@@ -25,6 +27,10 @@ return [
         'purchase_orders' => 'Purchase orders (suppliers)',
         'shipments' => 'Shipping / Logistics',
         'financial' => 'Financial',
+        'supplier_purchase_orders' => 'Purchase orders received',
+        'supplier_payments' => 'Payments & payables (supplier)',
+        'forwarder_shipments' => 'Shipments handled (forwarder)',
+        'forwarder_freight' => 'Freight billed (forwarder)',
     ],
 
     'columns' => [
@@ -45,6 +51,8 @@ return [
         'invoice_value' => 'Invoice value',
         'freight' => 'Freight',
         'client_ref' => 'Client ref',
+        'client' => 'Client',
+        'description' => 'Description',
         'actions' => 'Actions',
     ],
 
@@ -57,6 +65,9 @@ return [
         'inbound' => 'Received',
         'outbound' => 'Sent',
         'no_pending' => 'No pending items',
+        'payables_to_supplier' => 'Pending payables to this supplier',
+        'outbound_payments_history' => 'Outbound payments history',
+        'total_billed_by_forwarder' => 'Total billed by this forwarder',
     ],
 
     'timeline' => [
