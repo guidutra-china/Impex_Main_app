@@ -132,34 +132,27 @@ class GeneratePdfAction
             ->color('gray')
             ->visible(fn () => auth()->user()?->can('generate-documents'))
             ->form($formSchema)
-            ->action(function ($record, array $data = []) use ($templateClass) {
+            ->modalHeading('PDF Preview')
+            ->modalWidth('7xl')
+            ->modalSubmitAction(false)
+            ->modalCancelActionLabel('Close')
+            ->modalContent(function (Action $action, $record) use ($templateClass) {
                 try {
+                    $data = $action->getRawFormData();
+
                     $template = self::createTemplate($templateClass, $record, $data);
-                    $service = new PdfGeneratorService(
-                        new PdfRenderer(),
-                        new DocumentService(),
-                    );
+                    $html = view($template->getView(), $template->getData())->render();
 
-                    $content = $service->preview($template);
-
-                    return response()->streamDownload(
-                        function () use ($content) {
-                            echo $content;
-                        },
-                        $template->getFilename(),
-                        [
-                            'Content-Type' => 'application/pdf',
-                            'Content-Disposition' => 'inline; filename="' . $template->getFilename() . '"',
-                        ],
-                    );
+                    return view('filament.partials.pdf-html-preview', [
+                        'html' => $html,
+                    ]);
                 } catch (\Throwable $e) {
                     report($e);
 
-                    Notification::make()
-                        ->title('Preview Failed')
-                        ->body($e->getMessage())
-                        ->danger()
-                        ->send();
+                    return view('filament.partials.pdf-html-preview', [
+                        'html' => '<p style="padding:24px;font-family:sans-serif;color:#b91c1c;">Preview failed: '
+                            . e($e->getMessage()) . '</p>',
+                    ]);
                 }
             });
     }

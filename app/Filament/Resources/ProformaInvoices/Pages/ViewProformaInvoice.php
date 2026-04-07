@@ -62,6 +62,7 @@ class ViewProformaInvoice extends ViewRecord
                 formSchema: [
                     Checkbox::make('with_images')
                         ->label('Include product photos')
+                        ->live()
                         ->helperText('Preview the PDF with product photos in each line item.'),
                 ],
             ),

@@ -41,6 +41,7 @@ class ViewSupplierQuotation extends ViewRecord
                     Toggle::make('show_target_price')
                         ->label('Include Target Price')
                         ->helperText('Show the client\'s target price in the RFQ document')
+                        ->live()
                         ->default(false),
                 ],
             ),
