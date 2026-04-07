@@ -3,6 +3,8 @@
 return [
     'title' => 'Client 360',
     'select_client' => 'Select client',
+    'search_placeholder' => 'Type to search...',
+    'no_results' => 'No clients match your search.',
     'no_client_selected' => 'Select a client to see their consolidated view.',
     'consolidated_with_branches' => 'matrix + :count branch(es) consolidated',
 

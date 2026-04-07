@@ -3,6 +3,8 @@
 return [
     'title' => 'Cliente 360',
     'select_client' => 'Selecionar cliente',
+    'search_placeholder' => 'Digite para buscar...',
+    'no_results' => 'Nenhum cliente encontrado.',
     'no_client_selected' => 'Selecione um cliente para ver a visão consolidada.',
     'consolidated_with_branches' => 'matriz + :count filial(is) consolidadas',
 

@@ -1,19 +1,106 @@
 <x-filament-panels::page>
-    {{-- ================== Client selector ================== --}}
+    {{-- ================== Client selector (searchable combobox) ================== --}}
     <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-        <label for="client-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             {{ __('client_360.select_client') }}
         </label>
-        <select
-            id="client-select"
-            wire:model.live="clientId"
-            class="block w-full rounded-lg border-gray-300 bg-white text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+
+        <div
+            x-data="{
+                open: false,
+                search: '',
+                options: @js($this->clientOptions),
+                selectedLabel: @js($this->client?->name ?? ''),
+                get filtered() {
+                    const entries = Object.entries(this.options);
+                    if (! this.search.trim()) return entries;
+                    const q = this.search.toLowerCase();
+                    return entries.filter(([id, name]) => name.toLowerCase().includes(q));
+                },
+                pick(id, name) {
+                    this.selectedLabel = name;
+                    this.open = false;
+                    this.search = '';
+                    $wire.set('clientId', id);
+                },
+                clear() {
+                    this.selectedLabel = '';
+                    this.search = '';
+                    $wire.set('clientId', null);
+                },
+                openDropdown() {
+                    this.open = true;
+                    this.$nextTick(() => this.$refs.searchInput?.focus());
+                },
+            }"
+            @click.outside="open = false"
+            @keydown.escape.window="open = false"
+            class="relative"
         >
-            <option value="">— {{ __('client_360.select_client') }} —</option>
-            @foreach ($this->clientOptions as $id => $name)
-                <option value="{{ $id }}">{{ $name }}</option>
-            @endforeach
-        </select>
+            {{-- Trigger button --}}
+            <button
+                type="button"
+                @click="openDropdown()"
+                class="flex w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-left text-sm shadow-sm hover:border-primary-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+            >
+                <span class="flex items-center gap-2 truncate">
+                    <x-filament::icon icon="heroicon-o-magnifying-glass" class="h-4 w-4 text-gray-400 flex-shrink-0" />
+                    <span x-show="selectedLabel" x-text="selectedLabel" class="text-gray-900 dark:text-white truncate"></span>
+                    <span x-show="! selectedLabel" class="text-gray-400">— {{ __('client_360.select_client') }} —</span>
+                </span>
+                <div class="flex items-center gap-1 flex-shrink-0">
+                    <button
+                        type="button"
+                        x-show="selectedLabel"
+                        @click.stop="clear()"
+                        class="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
+                    >
+                        <x-filament::icon icon="heroicon-m-x-mark" class="h-4 w-4" />
+                    </button>
+                    <x-filament::icon icon="heroicon-m-chevron-down" class="h-4 w-4 text-gray-400" />
+                </div>
+            </button>
+
+            {{-- Dropdown panel --}}
+            <div
+                x-show="open"
+                x-transition:enter="transition ease-out duration-100"
+                x-transition:enter-start="opacity-0 scale-95"
+                x-transition:enter-end="opacity-100 scale-100"
+                x-cloak
+                class="absolute z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
+            >
+                <div class="border-b border-gray-100 p-2 dark:border-gray-700">
+                    <div class="relative">
+                        <x-filament::icon icon="heroicon-o-magnifying-glass" class="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                        <input
+                            type="text"
+                            x-ref="searchInput"
+                            x-model="search"
+                            placeholder="{{ __('client_360.search_placeholder') }}"
+                            class="block w-full rounded-md border-gray-300 bg-white pl-8 text-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                        />
+                    </div>
+                </div>
+
+                <ul class="max-h-72 overflow-y-auto py-1 text-sm">
+                    <template x-for="[id, name] in filtered" :key="id">
+                        <li>
+                            <button
+                                type="button"
+                                @click="pick(id, name)"
+                                class="flex w-full items-center px-3 py-2 text-left text-gray-700 hover:bg-primary-50 hover:text-primary-700 dark:text-gray-200 dark:hover:bg-primary-500/10 dark:hover:text-primary-300"
+                            >
+                                <span x-text="name" class="truncate"></span>
+                            </button>
+                        </li>
+                    </template>
+                    <li x-show="filtered.length === 0" class="px-3 py-4 text-center text-xs text-gray-400">
+                        {{ __('client_360.no_results') }}
+                    </li>
+                </ul>
+            </div>
+        </div>
 
         @if ($this->client && $this->branchesCount > 0)
             <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
