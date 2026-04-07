@@ -1,65 +1,84 @@
 <x-filament-panels::page>
-    {{-- ================== Client selector (searchable combobox) ================== --}}
+    {{-- ================== Client selector (single-input searchable combobox) ================== --}}
     <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label for="client-360-search" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             {{ __('client_360.select_client') }}
         </label>
 
         <div
             x-data="{
                 open: false,
-                search: '',
+                query: @js($this->client?->name ?? ''),
                 options: @js($this->clientOptions),
-                selectedLabel: @js($this->client?->name ?? ''),
                 get filtered() {
                     const entries = Object.entries(this.options);
-                    if (! this.search.trim()) return entries;
-                    const q = this.search.toLowerCase();
+                    if (! this.query.trim()) return entries;
+                    const q = this.query.toLowerCase();
                     return entries.filter(([id, name]) => name.toLowerCase().includes(q));
                 },
                 pick(id, name) {
-                    this.selectedLabel = name;
+                    this.query = name;
                     this.open = false;
-                    this.search = '';
                     $wire.set('clientId', id);
                 },
                 clear() {
-                    this.selectedLabel = '';
-                    this.search = '';
-                    $wire.set('clientId', null);
-                },
-                openDropdown() {
+                    this.query = '';
                     this.open = true;
-                    this.$nextTick(() => this.$refs.searchInput?.focus());
+                    $wire.set('clientId', null);
+                    this.$nextTick(() => this.$refs.input?.focus());
                 },
             }"
             @click.outside="open = false"
             @keydown.escape.window="open = false"
             class="relative"
         >
-            {{-- Trigger button --}}
-            <button
-                type="button"
-                @click="openDropdown()"
-                class="flex w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-left text-sm shadow-sm hover:border-primary-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+            {{-- Single fake input made of flex children: lupa + native input + buttons --}}
+            <div
+                class="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 shadow-sm focus-within:border-primary-500 focus-within:ring-1 focus-within:ring-primary-500 dark:border-gray-600 dark:bg-gray-900"
+                style="height: 2.5rem;"
+                @click="$refs.input.focus()"
             >
-                <span class="flex items-center gap-2 truncate">
-                    <x-filament::icon icon="heroicon-o-magnifying-glass" class="h-4 w-4 text-gray-400 flex-shrink-0" />
-                    <span x-show="selectedLabel" x-text="selectedLabel" class="text-gray-900 dark:text-white truncate"></span>
-                    <span x-show="! selectedLabel" class="text-gray-400">— {{ __('client_360.select_client') }} —</span>
-                </span>
-                <div class="flex items-center gap-1 flex-shrink-0">
-                    <button
-                        type="button"
-                        x-show="selectedLabel"
-                        @click.stop="clear()"
-                        class="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
-                    >
-                        <x-filament::icon icon="heroicon-m-x-mark" class="h-4 w-4" />
-                    </button>
-                    <x-filament::icon icon="heroicon-m-chevron-down" class="h-4 w-4 text-gray-400" />
-                </div>
-            </button>
+                {{-- Magnifying glass (inline SVG to avoid component CSS quirks) --}}
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-4 w-4 flex-shrink-0 text-gray-400">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                </svg>
+
+                <input
+                    id="client-360-search"
+                    type="text"
+                    x-ref="input"
+                    x-model="query"
+                    @focus="open = true"
+                    @input="open = true"
+                    placeholder="{{ __('client_360.search_placeholder') }}"
+                    autocomplete="off"
+                    class="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 dark:text-white dark:placeholder-gray-500"
+                />
+
+                {{-- Clear button --}}
+                <button
+                    type="button"
+                    x-show="query"
+                    @click.stop="clear()"
+                    class="flex-shrink-0 rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
+                    title="Clear"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                        <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+                    </svg>
+                </button>
+
+                {{-- Chevron toggle --}}
+                <button
+                    type="button"
+                    @click.stop="open = ! open; if (open) $refs.input.focus();"
+                    class="flex-shrink-0 rounded p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 transition-transform" x-bind:class="open ? 'rotate-180' : ''">
+                        <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
 
             {{-- Dropdown panel --}}
             <div
@@ -70,19 +89,6 @@
                 x-cloak
                 class="absolute z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
             >
-                <div class="border-b border-gray-100 p-2 dark:border-gray-700">
-                    <div class="relative">
-                        <x-filament::icon icon="heroicon-o-magnifying-glass" class="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                        <input
-                            type="text"
-                            x-ref="searchInput"
-                            x-model="search"
-                            placeholder="{{ __('client_360.search_placeholder') }}"
-                            class="block w-full rounded-md border-gray-300 bg-white pl-8 text-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                        />
-                    </div>
-                </div>
-
                 <ul class="max-h-72 overflow-y-auto py-1 text-sm">
                     <template x-for="[id, name] in filtered" :key="id">
                         <li>
