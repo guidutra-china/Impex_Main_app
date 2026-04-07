@@ -98,15 +98,24 @@ abstract class AbstractPdfTemplate
 
     protected function resolveLogoPath(?string $logoPath): ?string
     {
-        if (empty($logoPath)) {
+        return $this->resolveImagePath($logoPath);
+    }
+
+    /**
+     * Resolve a stored image path (e.g. product avatar) to a base64 data URI
+     * suitable for embedding in PDFs rendered by DomPDF.
+     */
+    protected function resolveImagePath(?string $imagePath): ?string
+    {
+        if (empty($imagePath)) {
             return null;
         }
 
         $candidates = [
-            storage_path('app/public/' . $logoPath),
-            storage_path('app/' . $logoPath),
-            public_path('storage/' . $logoPath),
-            public_path($logoPath),
+            storage_path('app/public/' . $imagePath),
+            storage_path('app/' . $imagePath),
+            public_path('storage/' . $imagePath),
+            public_path($imagePath),
         ];
 
         foreach ($candidates as $path) {

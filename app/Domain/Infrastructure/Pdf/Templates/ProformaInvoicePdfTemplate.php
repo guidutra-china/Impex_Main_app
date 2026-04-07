@@ -9,11 +9,25 @@ use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
 {
     protected bool $hideCommission;
+    protected bool $withImages;
 
-    public function __construct(\Illuminate\Database\Eloquent\Model $model, string $locale = 'en', bool $hideCommission = false)
-    {
+    public function __construct(
+        \Illuminate\Database\Eloquent\Model $model,
+        string $locale = 'en',
+        bool $hideCommission = false,
+        bool $withImages = false,
+    ) {
         parent::__construct($model, $locale);
         $this->hideCommission = $hideCommission;
+        $this->withImages = $withImages;
+    }
+
+    public function getFilename(): string
+    {
+        $reference = $this->model->reference ?? $this->model->getKey();
+        $picSuffix = $this->withImages ? '-PIC' : '';
+
+        return $reference . $picSuffix . '-v' . $this->getNextVersion() . '.pdf';
     }
 
     public function getView(): string
@@ -60,6 +74,7 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
                 'unit_price' => $this->formatMoney($item->unit_price, $currencyCode),
                 'line_total' => $this->formatMoney($item->line_total, $currencyCode, 2),
                 'incoterm' => $item->incoterm instanceof \BackedEnum ? $item->incoterm->value : $item->incoterm,
+                'image' => $this->withImages ? $this->resolveImagePath($item->product?->avatar) : null,
             ];
         });
 
@@ -106,6 +121,7 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
                 'contact_email' => $pi->contact?->email,
             ],
             'items' => $items->toArray(),
+            'with_images' => $this->withImages,
             'service_fees' => $serviceFees,
             'totals' => [
                 'subtotal' => $this->formatMoney($subtotal, $currencyCode, 2),

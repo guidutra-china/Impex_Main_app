@@ -56,6 +56,9 @@
         <thead>
             <tr>
                 <th style="width: 30px;">{{ $labels['item'] }}</th>
+                @if(! empty($with_images))
+                    <th class="text-center" style="width: 55px;">{{ $labels['photo'] ?? 'Photo' }}</th>
+                @endif
                 <th style="width: 80px;">{{ $labels['product_code'] }}</th>
                 <th>{{ $labels['description'] }}</th>
                 <th class="text-center" style="width: 55px;">{{ $labels['quantity'] }}</th>
@@ -68,6 +71,13 @@
             @foreach($items as $item)
                 <tr>
                     <td class="text-center">{{ $item['index'] }}</td>
+                    @if(! empty($with_images))
+                        <td class="text-center">
+                            @if(! empty($item['image']))
+                                <img src="{{ $item['image'] }}" alt="" style="max-width: 50px; max-height: 50px;">
+                            @endif
+                        </td>
+                    @endif
                     <td>{{ $item['product_code'] }}</td>
                     <td>
                         {{ $item['description'] }}

@@ -7,6 +7,25 @@ use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 
 class PurchaseOrderPdfTemplate extends AbstractPdfTemplate
 {
+    protected bool $withImages;
+
+    public function __construct(
+        \Illuminate\Database\Eloquent\Model $model,
+        string $locale = 'en',
+        bool $withImages = false,
+    ) {
+        parent::__construct($model, $locale);
+        $this->withImages = $withImages;
+    }
+
+    public function getFilename(): string
+    {
+        $reference = $this->model->reference ?? $this->model->getKey();
+        $picSuffix = $this->withImages ? '-PIC' : '';
+
+        return $reference . $picSuffix . '-v' . $this->getNextVersion() . '.pdf';
+    }
+
     public function getView(): string
     {
         return 'pdf.purchase-order';
@@ -49,6 +68,7 @@ class PurchaseOrderPdfTemplate extends AbstractPdfTemplate
                 'unit_cost' => $this->formatMoney($item->unit_cost, $currencyCode),
                 'line_total' => $this->formatMoney($item->line_total, $currencyCode, 2),
                 'incoterm' => $item->incoterm instanceof \BackedEnum ? $item->incoterm->value : $item->incoterm,
+                'image' => $this->withImages ? $this->resolveImagePath($item->product?->avatar) : null,
             ];
         });
 
@@ -78,6 +98,7 @@ class PurchaseOrderPdfTemplate extends AbstractPdfTemplate
                 'contact_email' => $po->contact?->email,
             ],
             'items' => $items->toArray(),
+            'with_images' => $this->withImages,
             'totals' => [
                 'grand_total' => $this->formatMoney($total, $currencyCode, 2),
             ],

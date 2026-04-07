@@ -46,6 +46,11 @@ class ViewProformaInvoice extends ViewRecord
             GeneratePdfAction::make(
                 templateClass: ProformaInvoicePdfTemplate::class,
                 label: 'Generate PDF',
+                formSchema: [
+                    Checkbox::make('with_images')
+                        ->label('Include product photos')
+                        ->helperText('If checked, each line item will display the product photo and the filename will include "PIC".'),
+                ],
             ),
             GeneratePdfAction::download(
                 documentType: 'proforma_invoice_pdf',
@@ -54,6 +59,11 @@ class ViewProformaInvoice extends ViewRecord
             GeneratePdfAction::preview(
                 templateClass: ProformaInvoicePdfTemplate::class,
                 label: 'Preview PDF',
+                formSchema: [
+                    Checkbox::make('with_images')
+                        ->label('Include product photos')
+                        ->helperText('Preview the PDF with product photos in each line item.'),
+                ],
             ),
             SendDocumentByEmailAction::make(
                 documentType: 'proforma_invoice_pdf',
