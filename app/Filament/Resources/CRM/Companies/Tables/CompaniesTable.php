@@ -42,6 +42,7 @@ class CompaniesTable
                     ->color('info')
                     ->separator(',')
                     ->limitList(3)
+                    ->searchable()
                     ->toggleable(),
                 TextColumn::make('address_city')
                     ->label(__('forms.labels.city'))
