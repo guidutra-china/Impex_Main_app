@@ -18,6 +18,7 @@ return [
     'invoice_finalized' => 'Invoice Finalized',
     'invoice_reopened' => 'Invoice Reopened',
     'blocked_by_payment' => 'Blocked by Payment Requirements',
+    'authorization_request_subject' => 'Authorization request: PO generation for :reference',
     'no_pos_created' => 'No POs Created',
     'status_change_blocked' => 'Status Change Blocked',
     'document_updated' => 'Document updated',
