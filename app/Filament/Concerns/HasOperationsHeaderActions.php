@@ -2,7 +2,6 @@
 
 namespace App\Filament\Concerns;
 
-use App\Filament\Actions\DiscussAction;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
@@ -74,7 +73,13 @@ trait HasOperationsHeaderActions
             }
         }
 
-        $header[] = DiscussAction::make();
+        // DiscussAction ships with the messaging module. Guard the reference
+        // so this trait is safe to use in environments where the messaging
+        // module hasn't been deployed yet — the slot simply disappears
+        // instead of 500'ing on a missing class.
+        if (class_exists(\App\Filament\Actions\DiscussAction::class)) {
+            $header[] = \App\Filament\Actions\DiscussAction::make();
+        }
 
         foreach (['documentsActionGroup', 'workflowActionGroup', 'statusActionGroup'] as $slot) {
             if (method_exists($this, $slot)) {
