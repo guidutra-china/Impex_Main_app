@@ -30,6 +30,9 @@ class ProformaInvoiceItem extends Model
         'unit',
         'unit_price',
         'unit_cost',
+        'cost_currency_code',
+        'cost_exchange_rate',
+        'unit_cost_in_document_currency',
         'incoterm',
         'notes',
         'sort_order',
@@ -41,9 +44,33 @@ class ProformaInvoiceItem extends Model
             'quantity' => 'integer',
             'unit_price' => 'integer',
             'unit_cost' => 'integer',
+            'cost_exchange_rate' => 'decimal:8',
+            'unit_cost_in_document_currency' => 'integer',
             'incoterm' => Incoterm::class,
             'sort_order' => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (ProformaInvoiceItem $item) {
+            // Skip when an unrelated field is being updated on an existing row.
+            if ($item->exists && ! $item->isDirty(['unit_cost', 'cost_exchange_rate'])) {
+                return;
+            }
+
+            // Treat null/non-positive rate as 1 (matches the column default and
+            // avoids silently zeroing the cached doc-currency cost).
+            $rate = $item->cost_exchange_rate;
+            if ($rate === null || (float) $rate <= 0) {
+                $rate = 1.0;
+                $item->cost_exchange_rate = 1.0;
+            }
+
+            $item->unit_cost_in_document_currency = (int) round(
+                (int) $item->unit_cost * (float) $rate
+            );
+        });
     }
 
     // --- Relationships ---
@@ -104,16 +131,17 @@ class ProformaInvoiceItem extends Model
 
     public function getCostTotalAttribute(): int
     {
-        return $this->unit_cost * $this->quantity;
+        return $this->unit_cost_in_document_currency * $this->quantity;
     }
 
     public function getMarginAttribute(): float
     {
-        if ($this->unit_cost <= 0) {
+        $cost = $this->unit_cost_in_document_currency;
+        if ($cost <= 0) {
             return 0;
         }
 
-        return round((($this->unit_price - $this->unit_cost) / $this->unit_cost) * 100, 2);
+        return round((($this->unit_price - $cost) / $cost) * 100, 2);
     }
 
     public function getProductNameAttribute(): string

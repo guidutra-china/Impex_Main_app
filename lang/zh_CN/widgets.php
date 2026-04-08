@@ -35,6 +35,7 @@ return [
         'financial_summary' => '财务摘要',
         'invoice_total' => '发票总额',
         'cost_margin' => '成本 / 利润',
+        'fx_snapshot' => '汇率锁定',
         'margin' => '利润',
         'paid' => '已付款',
         'remaining' => '剩余',

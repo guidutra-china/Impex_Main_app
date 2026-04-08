@@ -578,6 +578,12 @@ return array (
     'reconcile' => 'Reconciliar',
     'reconcile_shipment_plan' => 'Reconciliar Plano de Embarque',
     'only_import_available_quantities' => 'Importar apenas quantidades disponíveis (excluir já embarcadas/planejadas)',
+    'cost_currency' => 'Moeda do Custo',
+    'cost_currency_short' => 'Moeda',
+    'cost_in_pi_currency' => 'Custo na moeda do documento',
+    'multi_currency_costs' => 'Custos em múltiplas moedas',
+    'refresh_all_rates' => 'Atualizar todas as taxas pela tabela de câmbio',
+    'original_cost' => 'Custo original',
     ),
     'sections' => 
     array (
@@ -862,6 +868,8 @@ return array (
     'day_of_month' => 'Dia do mês em que esta despesa se repete (1-31)',
     'enter_all_contracted_importer_details_as_they_should_appear' => 'Informe todos os dados como devem aparecer nos documentos (nome, CNPJ, endereço, telefone)',
     'type_to_search_by_name_sku_or_code_use_filters_above' => 'Digite para buscar por nome, SKU ou código do fornecedor/cliente. Use os filtros acima para refinar. ★ = produto do cliente.',
+    'cost_currency_to_pi_currency' => 'Taxa da moeda de custo para a moeda da PI, congelada no item.',
+    'multi_currency_explanation' => 'Alguns itens foram cotados em moeda diferente da PI. A taxa foi congelada no momento da criação. Use o botão abaixo para recalcular todas as taxas com base na tabela de câmbio atual.',
     ),
     'placeholders' => 
     array (

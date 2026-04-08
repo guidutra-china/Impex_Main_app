@@ -581,8 +581,14 @@ return array (
     'reconcile' => 'Reconcile',
     'reconcile_shipment_plan' => 'Reconcile Shipment Plan',
     'only_import_available_quantities' => 'Only import available quantities (exclude already shipped/planned)',
+    'cost_currency' => 'Cost Currency',
+    'cost_currency_short' => 'Cur',
+    'cost_in_pi_currency' => 'Cost in document currency',
+    'multi_currency_costs' => 'Multi-currency costs',
+    'refresh_all_rates' => 'Refresh all rates from FX table',
+    'original_cost' => 'Original cost',
     ),
-    'sections' => 
+    'sections' =>
     array (
     'access_role' => 'Access & Role',
     'account_details' => 'Account Details',
@@ -866,8 +872,10 @@ return array (
     'day_of_month' => 'Day of the month when this expense recurs (1-31)',
     'enter_all_contracted_importer_details_as_they_should_appear' => 'Enter all details as they should appear on documents (name, CNPJ, address, phone)',
     'type_to_search_by_name_sku_or_code_use_filters_above' => 'Type to search by name, SKU, or supplier/client code. Use filters above to narrow results. ★ = client product.',
+    'cost_currency_to_pi_currency' => 'Rate from cost currency to the PI currency, frozen on the item.',
+    'multi_currency_explanation' => 'Some item costs were quoted in a different currency than this PI. The rate snapshot was taken when each item was created. Use the button below to refresh all rates against today\'s FX table.',
     ),
-    'placeholders' => 
+    'placeholders' =>
     array (
     'no_location' => 'No location',
     'no_documents_uploaded_yet' => 'No documents uploaded yet.',

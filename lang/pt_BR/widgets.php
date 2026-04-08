@@ -35,6 +35,7 @@ return [
         'financial_summary' => 'Resumo Financeiro',
         'invoice_total' => 'Total da Fatura',
         'cost_margin' => 'Custo / Margem',
+        'fx_snapshot' => 'Taxa congelada',
         'margin' => 'Margem',
         'paid' => 'Pago',
         'remaining' => 'Restante',

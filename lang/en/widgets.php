@@ -35,6 +35,7 @@ return [
         'financial_summary' => 'Financial Summary',
         'invoice_total' => 'Invoice Total',
         'cost_margin' => 'Cost / Margin',
+        'fx_snapshot' => 'FX snapshot',
         'margin' => 'Margin',
         'paid' => 'Paid',
         'remaining' => 'Remaining',

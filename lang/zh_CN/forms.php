@@ -575,6 +575,12 @@ return array (
     'reconcile' => '对账',
     'reconcile_shipment_plan' => '对账发货计划',
     'only_import_available_quantities' => '仅导入可用数量（排除已发货/已计划）',
+    'cost_currency' => '成本币种',
+    'cost_currency_short' => '币种',
+    'cost_in_pi_currency' => '以单据币种表示的成本',
+    'multi_currency_costs' => '多币种成本',
+    'refresh_all_rates' => '从汇率表刷新所有汇率',
+    'original_cost' => '原始成本',
     ),
     'sections' => 
     array (
@@ -858,8 +864,10 @@ return array (
     'enter_all_contracted_importer_details_as_they_should_appear' => '输入所有信息，格式与文件上显示的一致（名称、CNPJ、地址、电话）',
     'type_to_search_by_name_sku_or_code_use_filters_above' => '输入名称、SKU或供应商/客户代码进行搜索。使用上方筛选器缩小范围。★ = 客户产品。',
     'person_responsible_for_this_inquiry' => '负责管理此项目的内部用户。',
+    'cost_currency_to_pi_currency' => '从成本币种到形式发票币种的汇率,创建时已锁定。',
+    'multi_currency_explanation' => '部分商品以与本形式发票不同的币种报价。汇率在商品创建时已锁定。点击下方按钮可根据最新汇率表刷新所有汇率。',
     ),
-    'placeholders' => 
+    'placeholders' =>
     array (
     'no_location' => '无地点',
     'no_documents_uploaded_yet' => '尚未上传文件。',

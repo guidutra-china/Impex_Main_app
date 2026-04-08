@@ -124,4 +124,7 @@ return [
     'shipment_created' => 'Shipment Created',
     'reconcile_shipment_plan_description' => 'This will compare the planned quantities with the actual shipment quantities and adjust the BEFORE_ARRIVAL payment schedule items accordingly.',
     'reconciliation_complete' => 'Reconciliation Complete',
+
+    // Proforma Invoice multi-currency
+    'fx_rates_refreshed' => ':count item(s) refreshed from the FX table',
 ];

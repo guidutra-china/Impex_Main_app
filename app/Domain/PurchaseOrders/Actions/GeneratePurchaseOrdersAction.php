@@ -69,6 +69,8 @@ class GeneratePurchaseOrdersAction
                     'specifications' => $piItem->specifications,
                     'quantity' => $piItem->quantity,
                     'unit' => $piItem->unit,
+                    // TODO: multi-currency — when PurchaseOrders gain cost_currency_code,
+                    // propagate cost_currency_code/cost_exchange_rate from the PI item.
                     'unit_cost' => $piItem->unit_cost,
                     'incoterm' => $piItem->incoterm,
                     'notes' => $piItem->notes,
@@ -98,6 +100,8 @@ class GeneratePurchaseOrdersAction
                     'specifications' => $piItem->specifications,
                     'quantity'       => $piItem->quantity,
                     'unit'           => $piItem->unit,
+                    // TODO: multi-currency — when PurchaseOrders gain cost_currency_code,
+                    // propagate cost_currency_code/cost_exchange_rate from the PI item.
                     'unit_cost'      => $piItem->unit_cost,
                     'incoterm'       => $piItem->incoterm,
                     'notes'          => $piItem->notes,
@@ -112,6 +116,8 @@ class GeneratePurchaseOrdersAction
                     'specifications'           => $piItem->specifications,
                     'quantity'                 => $piItem->quantity,
                     'unit'                     => $piItem->unit,
+                    // TODO: multi-currency — when PurchaseOrders gain cost_currency_code,
+                    // propagate cost_currency_code/cost_exchange_rate from the PI item.
                     'unit_cost'                => $piItem->unit_cost,
                     'incoterm'                 => $piItem->incoterm,
                     'notes'                    => $piItem->notes,

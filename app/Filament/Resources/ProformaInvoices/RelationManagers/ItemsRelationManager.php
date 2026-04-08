@@ -17,6 +17,7 @@ use App\Domain\Inquiries\Models\InquiryItem;
 use App\Domain\Quotations\Models\Quotation;
 use App\Domain\Quotations\Models\QuotationItem;
 use App\Domain\SupplierQuotations\Models\SupplierQuotation;
+use App\Domain\ProformaInvoices\Services\ProformaInvoiceItemCurrencyResolver;
 use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -25,6 +26,8 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use App\Domain\Settings\Models\Currency;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -112,7 +115,43 @@ class ItemsRelationManager extends RelationManager
                 ->prefix('$')
                 ->step(0.0001)
                 ->minValue(0)
-                ->default(0),
+                ->default(0)
+                ->live(onBlur: true),
+
+            Select::make('cost_currency_code')
+                ->label(__('forms.labels.cost_currency'))
+                ->options(fn () => Currency::where('is_active', true)->pluck('code', 'code'))
+                ->default(fn () => $this->getOwnerRecord()->currency_code)
+                ->required()
+                ->live()
+                ->afterStateUpdated(function (Get $get, Set $set) {
+                    $pi = $this->getOwnerRecord();
+                    $resolver = app(ProformaInvoiceItemCurrencyResolver::class);
+                    $resolved = $resolver->resolve(
+                        $get('cost_currency_code'),
+                        $pi->currency_code,
+                        $pi->issue_date?->toDateString(),
+                    );
+                    $set('cost_exchange_rate', $resolved['rate']);
+                }),
+
+            TextInput::make('cost_exchange_rate')
+                ->label(__('forms.labels.exchange_rate'))
+                ->numeric()
+                ->step(0.00000001)
+                ->default(1)
+                ->required()
+                ->live(onBlur: true)
+                ->helperText(__('forms.helpers.cost_currency_to_pi_currency')),
+
+            Placeholder::make('unit_cost_doc_preview')
+                ->label(__('forms.labels.cost_in_pi_currency'))
+                ->content(function (Get $get) {
+                    $cost = (float) ($get('unit_cost') ?? 0);
+                    $rate = (float) ($get('cost_exchange_rate') ?? 1);
+                    $pi = $this->getOwnerRecord();
+                    return $pi->currency_code . ' ' . number_format($cost * $rate, 2);
+                }),
 
             Select::make('incoterm')
                 ->label(__('forms.labels.incoterm'))
@@ -190,18 +229,40 @@ class ItemsRelationManager extends RelationManager
                         return number_format($floatValue, 4, '.', '');
                     })
                     ->alignEnd(),
+                TextColumn::make('cost_currency_code')
+                    ->label(__('forms.labels.cost_currency_short'))
+                    ->alignCenter()
+                    ->badge()
+                    ->color(fn ($record) => $record->cost_currency_code
+                        && $record->proformaInvoice?->currency_code
+                        && $record->cost_currency_code !== $record->proformaInvoice->currency_code
+                            ? 'warning'
+                            : 'gray')
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextInputColumn::make('unit_cost')
                     ->label(__('forms.labels.cost'))
                     ->type('number')
                     ->inputMode('decimal')
                     ->step('0.0001')
-                    ->prefix('$')
+                    ->prefix(fn ($record) => ($record->cost_currency_code
+                        ?? $record->proformaInvoice?->currency_code
+                        ?? '—') . ' ')
                     ->rules(['required', 'numeric', 'min:0'])
+                    ->tooltip(function ($record) {
+                        $piCurrency = $record->proformaInvoice?->currency_code;
+                        if (! $piCurrency || ! $record->cost_currency_code || $record->cost_currency_code === $piCurrency) {
+                            return null;
+                        }
+                        $converted = Money::format($record->unit_cost_in_document_currency ?? 0);
+                        return '≈ ' . $piCurrency . ' ' . $converted
+                            . ' @ ' . number_format((float) $record->cost_exchange_rate, 6);
+                    })
                     ->getStateUsing(fn ($record) => number_format(Money::toMajor($record->unit_cost ?? 0), 4, '.', ''))
                     ->updateStateUsing(function ($record, $state) {
                         $floatValue = (float) str_replace(',', '', (string) $state);
                         $record->unit_cost = Money::toMinor($floatValue);
-                        $record->save();
+                        $record->save(); // saving hook recomputes unit_cost_in_document_currency
                         return number_format($floatValue, 4, '.', '');
                     })
                     ->alignEnd(),
@@ -316,6 +377,8 @@ class ItemsRelationManager extends RelationManager
                 $imported = 0;
                 $linkedQuotationIds = [];
 
+                $resolver = app(ProformaInvoiceItemCurrencyResolver::class);
+
                 foreach ($items as $item) {
                     $supplierId = $item->selected_supplier_id;
 
@@ -325,6 +388,12 @@ class ItemsRelationManager extends RelationManager
                             ->first();
                         $supplierId = $preferred?->id;
                     }
+
+                    $resolved = $resolver->resolve(
+                        $item->quotation?->currency_code,
+                        $pi->currency_code,
+                        $pi->issue_date?->toDateString(),
+                    );
 
                     // Quotation import: use quotation values directly
                     ProformaInvoiceItem::create([
@@ -338,6 +407,8 @@ class ItemsRelationManager extends RelationManager
                         'unit' => 'pcs',
                         'unit_price' => $item->unit_price,
                         'unit_cost' => $item->unit_cost,
+                        'cost_currency_code' => $resolved['currency'],
+                        'cost_exchange_rate' => $resolved['rate'],
                         'incoterm' => $item->incoterm,
                         'notes' => $item->notes,
                         'sort_order' => ++$maxSort,
@@ -438,12 +509,22 @@ class ItemsRelationManager extends RelationManager
 
                 $existingPiItemsByProduct = $pi->items()->get()->keyBy('product_id');
 
+                $resolver = app(ProformaInvoiceItemCurrencyResolver::class);
+
                 foreach ($items as $sqItem) {
-                    // If product already exists in PI, update cost and supplier
+                    $resolved = $resolver->resolve(
+                        $sqItem->supplierQuotation?->currency_code,
+                        $pi->currency_code,
+                        $pi->issue_date?->toDateString(),
+                    );
+
+                    // If product already exists in PI, update cost + currency snapshot
                     if ($sqItem->product_id && isset($existingPiItemsByProduct[$sqItem->product_id])) {
                         $existingItem = $existingPiItemsByProduct[$sqItem->product_id];
                         $existingItem->update([
                             'unit_cost' => $sqItem->unit_cost,
+                            'cost_currency_code' => $resolved['currency'],
+                            'cost_exchange_rate' => $resolved['rate'],
                             'supplier_company_id' => $sqItem->supplierQuotation->company_id ?? $existingItem->supplier_company_id,
                         ]);
                         $imported++;
@@ -478,6 +559,8 @@ class ItemsRelationManager extends RelationManager
                         'unit'                => $sqItem->unit ?? 'pcs',
                         'unit_price'          => $unitPrice,
                         'unit_cost'           => $sqItem->unit_cost,
+                        'cost_currency_code'  => $resolved['currency'],
+                        'cost_exchange_rate'  => $resolved['rate'],
                         'incoterm'            => null,
                         'notes'               => $sqItem->notes,
                         'sort_order'          => ++$maxSort,
@@ -555,11 +638,14 @@ class ItemsRelationManager extends RelationManager
                 $maxSort = $pi->items()->max('sort_order') ?? 0;
                 $imported = 0;
 
+                $resolver = app(ProformaInvoiceItemCurrencyResolver::class);
+
                 foreach ($items as $item) {
                     $supplierId = null;
                     $unitCost = 0;
                     $unitPrice = $item->target_price ?? 0;
                     $incoterm = null;
+                    $costCurrency = null;
 
                     if ($item->product) {
                         // Get preferred supplier and their unit_cost from product catalog
@@ -571,6 +657,7 @@ class ItemsRelationManager extends RelationManager
                             $supplierId = $preferred->id;
                             $unitCost = $preferred->pivot->unit_price ?? 0;
                             $incoterm = $preferred->pivot->incoterm ?? null;
+                            $costCurrency = $preferred->pivot->currency_code ?? null;
                         }
 
                         // Get client-specific price if available
@@ -584,6 +671,12 @@ class ItemsRelationManager extends RelationManager
                         }
                     }
 
+                    $resolved = $resolver->resolve(
+                        $costCurrency,
+                        $pi->currency_code,
+                        $pi->issue_date?->toDateString(),
+                    );
+
                     ProformaInvoiceItem::create([
                         'proforma_invoice_id' => $pi->id,
                         'product_id' => $item->product_id,
@@ -595,6 +688,8 @@ class ItemsRelationManager extends RelationManager
                         'unit' => $item->unit ?? 'pcs',
                         'unit_price' => $unitPrice,
                         'unit_cost' => $unitCost,
+                        'cost_currency_code' => $resolved['currency'],
+                        'cost_exchange_rate' => $resolved['rate'],
                         'incoterm' => $incoterm,
                         'notes' => $item->notes,
                         'sort_order' => ++$maxSort,
@@ -674,6 +769,8 @@ class ItemsRelationManager extends RelationManager
             ->orderByDesc('company_product.is_preferred')
             ->first();
 
+        $pi = $this->getOwnerRecord();
+
         if ($preferred) {
             $set('supplier_company_id', $preferred->id);
             $set('unit_cost', Money::toMajor($preferred->pivot->unit_price));
@@ -681,9 +778,18 @@ class ItemsRelationManager extends RelationManager
             if ($preferred->pivot->incoterm ?? null) {
                 $set('incoterm', $preferred->pivot->incoterm);
             }
+
+            $resolver = app(ProformaInvoiceItemCurrencyResolver::class);
+            $resolved = $resolver->resolve(
+                $preferred->pivot->currency_code ?? null,
+                $pi->currency_code,
+                $pi->issue_date?->toDateString(),
+            );
+
+            $set('cost_currency_code', $resolved['currency']);
+            $set('cost_exchange_rate', $resolved['rate']);
         }
 
-        $pi = $this->getOwnerRecord();
         $clientPivot = $product->clients()
             ->where('companies.id', $pi->company_id)
             ->first()

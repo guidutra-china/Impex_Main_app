@@ -16,6 +16,7 @@ use App\Domain\Infrastructure\Services\DocumentService;
 use App\Domain\ProformaInvoices\Actions\CancelProformaInvoiceAction;
 use App\Domain\ProformaInvoices\Actions\SyncClientProductPricesAction;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
+use App\Domain\ProformaInvoices\Services\ProformaInvoiceItemCurrencyResolver;
 use App\Domain\PurchaseOrders\Actions\GeneratePurchaseOrdersAction;
 use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Actions\SendDocumentByEmailAction;
@@ -37,9 +38,71 @@ trait ProformaInvoiceHeaderActions
     protected function primaryLifecycleActions(): array
     {
         return [
+            $this->multiCurrencyBadgeAction(),
             $this->finalizeAction(),
             $this->reopenAction(),
         ];
+    }
+
+    protected function multiCurrencyBadgeAction(): Action
+    {
+        return Action::make('multiCurrencyCosts')
+            ->label(__('forms.labels.multi_currency_costs'))
+            ->icon('heroicon-o-currency-dollar')
+            ->color('warning')
+            ->visible(function () {
+                $record = $this->getRecord();
+                if (! $record) {
+                    return false;
+                }
+
+                return $record->items()
+                    ->whereNotNull('cost_currency_code')
+                    ->where('cost_currency_code', '!=', $record->currency_code)
+                    ->exists();
+            })
+            ->modalHeading(__('forms.labels.multi_currency_costs'))
+            ->modalDescription(__('forms.helpers.multi_currency_explanation'))
+            ->modalContent(function () {
+                $record = $this->getRecord();
+                $items = $record->items()
+                    ->with('product')
+                    ->whereNotNull('cost_currency_code')
+                    ->where('cost_currency_code', '!=', $record->currency_code)
+                    ->get();
+
+                return view('filament.modals.proforma-invoice-multi-currency', [
+                    'items' => $items,
+                    'piCurrency' => $record->currency_code,
+                ]);
+            })
+            ->modalSubmitActionLabel(__('forms.labels.refresh_all_rates'))
+            ->action(function () {
+                $record = $this->getRecord();
+                $resolver = app(ProformaInvoiceItemCurrencyResolver::class);
+                $updated = 0;
+
+                foreach ($record->items as $item) {
+                    if (! $item->cost_currency_code || $item->cost_currency_code === $record->currency_code) {
+                        continue;
+                    }
+
+                    $resolved = $resolver->resolve(
+                        $item->cost_currency_code,
+                        $record->currency_code,
+                        today()->toDateString(),
+                    );
+
+                    $item->cost_exchange_rate = $resolved['rate'];
+                    $item->save(); // saving hook recomputes unit_cost_in_document_currency
+                    $updated++;
+                }
+
+                Notification::make()
+                    ->title(__('messages.fx_rates_refreshed', ['count' => $updated]))
+                    ->success()
+                    ->send();
+            });
     }
 
     protected function documentsActionGroup(): ?ActionGroup

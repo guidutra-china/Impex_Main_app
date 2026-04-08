@@ -35,6 +35,11 @@ class ProformaInvoiceStats extends Widget
         $costTotal = $pi->cost_total;
         $margin = $pi->margin;
 
+        $hasMultiCurrency = $pi->items->contains(
+            fn ($item) => $item->cost_currency_code
+                && $item->cost_currency_code !== $currency
+        );
+
         $scheduleItems = $pi->paymentScheduleItems->sortBy('sort_order');
         $regularItems = $scheduleItems->where('is_credit', false);
         $creditItems = $scheduleItems->where('is_credit', true);
@@ -69,7 +74,8 @@ class ProformaInvoiceStats extends Widget
             [
                 'label' => __('widgets.document_summary.cost_margin'),
                 'value' => $currency . ' ' . Money::format($costTotal),
-                'description' => __('widgets.document_summary.margin') . ': ' . $margin . '%',
+                'description' => __('widgets.document_summary.margin') . ': ' . $margin . '%'
+                    . ($hasMultiCurrency ? ' · ' . __('widgets.document_summary.fx_snapshot') : ''),
                 'icon' => 'heroicon-o-calculator',
                 'color' => $margin > 0 ? 'success' : 'danger',
             ],

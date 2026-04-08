@@ -124,4 +124,5 @@ return [
     'shipment_created' => 'Embarque Criado',
     'reconcile_shipment_plan_description' => 'Isso irá comparar as quantidades planejadas com as quantidades reais de embarque e ajustar os itens do cronograma de pagamento ANTES_DA_CHEGADA de acordo.',
     'reconciliation_complete' => 'Reconciliação Concluída',
+    'fx_rates_refreshed' => ':count item(ns) atualizado(s) pela tabela de câmbio',
 ];
