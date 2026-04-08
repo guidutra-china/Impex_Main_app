@@ -107,4 +107,15 @@ class RequestPaymentOverrideAuthorizationTest extends TestCase
         $this->assertTrue($conversation->fresh()->hasParticipant($this->authorizer));
         $this->assertTrue($conversation->fresh()->hasParticipant($this->requester));
     }
+
+    public function test_only_users_with_override_permission_appear_in_authorizer_list(): void
+    {
+        $unrelated = User::factory()->create(['name' => 'Unrelated']);
+
+        $eligible = User::permission('override-payment-block')->pluck('id')->all();
+
+        $this->assertContains($this->authorizer->id, $eligible);
+        $this->assertNotContains($unrelated->id, $eligible);
+        $this->assertNotContains($this->requester->id, $eligible);
+    }
 }

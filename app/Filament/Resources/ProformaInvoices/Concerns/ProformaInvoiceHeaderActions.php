@@ -4,7 +4,9 @@ namespace App\Filament\Resources\ProformaInvoices\Concerns;
 
 use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\Financial\Actions\OverridePaymentBlocksAction;
+use App\Domain\Financial\Actions\RequestPaymentOverrideAuthorizationAction;
 use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Models\User;
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Infrastructure\Pdf\PdfGeneratorService;
 use App\Domain\Infrastructure\Pdf\PdfRenderer;
@@ -82,6 +84,7 @@ trait ProformaInvoiceHeaderActions
     {
         return ActionGroup::make([
             $this->generatePurchaseOrdersAction(),
+            $this->requestPaymentOverrideAuthorizationAction(),
         ])
             ->label(__('forms.labels.workflow'))
             ->icon('heroicon-o-arrows-right-left')
@@ -464,6 +467,88 @@ trait ProformaInvoiceHeaderActions
                 Notification::make()
                     ->title($title)
                     ->body($refs)
+                    ->success()
+                    ->send();
+            });
+    }
+
+    protected function requestPaymentOverrideAuthorizationAction(): Action
+    {
+        return Action::make('requestPaymentOverrideAuthorization')
+            ->label(__('messages.request_authorization'))
+            ->icon('heroicon-o-paper-airplane')
+            ->color('info')
+            ->modalHeading(__('messages.request_authorization'))
+            ->modalDescription(function () {
+                $authorizers = User::permission('override-payment-block')->get();
+
+                if ($authorizers->isEmpty()) {
+                    return __('messages.no_authorized_users');
+                }
+
+                return 'Send a request to one or more authorized users. They will receive a notification with the PI reference and the list of pending blockers.';
+            })
+            ->form(function () {
+                $authorizers = User::permission('override-payment-block')->get();
+
+                if ($authorizers->isEmpty()) {
+                    return [];
+                }
+
+                return [
+                    Select::make('authorizer_ids')
+                        ->label(__('messages.request_authorization'))
+                        ->multiple()
+                        ->options($authorizers->pluck('name', 'id')->toArray())
+                        ->required(),
+                    Textarea::make('justification')
+                        ->label(__('messages.override_reason'))
+                        ->rows(3)
+                        ->required()
+                        ->minLength(10),
+                ];
+            })
+            ->modalSubmitActionLabel(__('messages.request_authorization'))
+            ->modalSubmitAction(function ($action) {
+                $authorizers = User::permission('override-payment-block')->get();
+                if ($authorizers->isEmpty()) {
+                    return $action->hidden();
+                }
+                return $action;
+            })
+            ->visible(function () {
+                $record = $this->getRecord();
+                if (! in_array($record->status, [ProformaInvoiceStatus::CONFIRMED, ProformaInvoiceStatus::REOPENED])) {
+                    return false;
+                }
+                if (auth()->user()?->can('override-payment-block')) {
+                    return false;
+                }
+                if (! auth()->user()?->can('generate-purchase-orders')) {
+                    return false;
+                }
+                $blockers = $this->getCachedPaymentBlockersFor($record);
+                return count($blockers) > 0;
+            })
+            ->action(function (array $data) {
+                $record = $this->getRecord();
+
+                $authorizers = collect($data['authorizer_ids'] ?? [])->map(fn ($id) => (int) $id)->all();
+                if (empty($authorizers)) {
+                    return;
+                }
+
+                app(RequestPaymentOverrideAuthorizationAction::class)->execute(
+                    $record,
+                    auth()->user(),
+                    $authorizers,
+                    $data['justification'] ?? '',
+                );
+
+                $names = User::whereIn('id', $authorizers)->pluck('name')->implode(', ');
+
+                Notification::make()
+                    ->title(__('messages.authorization_request_sent', ['names' => $names]))
                     ->success()
                     ->send();
             });
