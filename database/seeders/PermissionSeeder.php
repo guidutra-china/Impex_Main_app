@@ -102,6 +102,7 @@ class PermissionSeeder extends Seeder
             'approve-payments',
             'reject-payments',
             'waive-payments',
+            'override-payment-block',
             'view-payment-schedule',
             'generate-payment-schedule',
             'view-costs',
