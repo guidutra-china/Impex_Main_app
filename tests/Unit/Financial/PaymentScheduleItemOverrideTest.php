@@ -87,13 +87,22 @@ class PaymentScheduleItemOverrideTest extends TestCase
         $pi = ProformaInvoice::factory()->create();
         $item = $this->makeBlockingItem($pi, CalculationBase::BEFORE_SHIPMENT);
 
-        // BEFORE_SHIPMENT items don't block PO generation in the first place,
-        // so blocksPurchaseOrderGeneration() is false regardless of override.
+        // BEFORE_SHIPMENT items don't block PO generation in the first place.
         $this->assertFalse($item->blocksPurchaseOrderGeneration());
 
-        // But they DO block the 'shipped' transition. Override (granted for PO
-        // purposes) must NOT bypass that — the cycle scoping is enforced by
-        // limiting overrides to PO-related due_conditions only.
+        // Baseline: a non-overridden BEFORE_SHIPMENT item blocks the 'shipped'
+        // transition.
         $this->assertTrue($item->blocksTransitionTo('shipped'));
+
+        // Adversarial case: even if someone applies an override to a
+        // BEFORE_SHIPMENT item, the 'shipped' transition must STILL be
+        // blocked. The override is scoped to PO-cycle transitions only.
+        $item->update([
+            'overridden_by'   => User::factory()->create()->id,
+            'overridden_at'   => now(),
+            'override_reason' => 'Pre-authorized by management.',
+        ]);
+
+        $this->assertTrue($item->fresh()->blocksTransitionTo('shipped'));
     }
 }

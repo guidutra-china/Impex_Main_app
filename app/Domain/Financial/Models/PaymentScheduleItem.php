@@ -90,6 +90,11 @@ class PaymentScheduleItem extends Model
         return $this->belongsTo(User::class, 'waived_by');
     }
 
+    public function overriddenByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'overridden_by');
+    }
+
     public function allocations(): HasMany
     {
         return $this->hasMany(PaymentAllocation::class);
