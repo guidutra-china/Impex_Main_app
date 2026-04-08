@@ -287,7 +287,7 @@ trait ProformaInvoiceHeaderActions
         $key = spl_object_id($record);
 
         if (! array_key_exists($key, $cache)) {
-            $cache[$key] = $this->getCachedPaymentBlockersFor($record);
+            $cache[$key] = PaymentScheduleItem::blockingPurchaseOrderGeneration($record);
         }
 
         return $cache[$key];
