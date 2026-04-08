@@ -21,6 +21,7 @@ return [
     'override_payment_block' => 'Autorizar geração de POs mesmo com pagamentos pendentes',
     'override_reason' => 'Justificativa da autorização',
     'request_authorization' => 'Solicitar autorização',
+    'select_authorizers' => 'Selecione usuários autorizados',
     'authorization_request_subject' => 'Solicitação de autorização: geração de PO para :reference',
     'authorization_request_sent' => 'Solicitação de autorização enviada para :names',
     'no_authorized_users' => 'Nenhum usuário com permissão de autorização — contate o administrador',

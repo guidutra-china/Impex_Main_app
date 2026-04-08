@@ -21,6 +21,7 @@ return [
     'override_payment_block' => 'Authorize PO generation despite pending payments',
     'override_reason' => 'Override reason',
     'request_authorization' => 'Request authorization',
+    'select_authorizers' => 'Select authorized users',
     'authorization_request_subject' => 'Authorization request: PO generation for :reference',
     'authorization_request_sent' => 'Authorization request sent to :names',
     'no_authorized_users' => 'No users with payment override permission found — contact your administrator',

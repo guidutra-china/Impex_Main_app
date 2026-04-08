@@ -293,6 +293,19 @@ trait ProformaInvoiceHeaderActions
         return $cache[$key];
     }
 
+    /**
+     * Memoized lookup for users who hold the `override-payment-block`
+     * permission. Mirrors getCachedPaymentBlockersFor: the request-authorization
+     * action's modalDescription, form, and modalSubmitAction callbacks all
+     * need this list and Filament re-renders the modal on every Livewire
+     * round trip.
+     */
+    protected function getCachedPaymentOverrideAuthorizers(): \Illuminate\Database\Eloquent\Collection
+    {
+        static $cache = null;
+        return $cache ??= User::permission('override-payment-block')->get();
+    }
+
     protected function generatePurchaseOrdersAction(): Action
     {
         return Action::make('generatePurchaseOrders')
@@ -480,7 +493,7 @@ trait ProformaInvoiceHeaderActions
             ->color('info')
             ->modalHeading(__('messages.request_authorization'))
             ->modalDescription(function () {
-                $authorizers = User::permission('override-payment-block')->get();
+                $authorizers = $this->getCachedPaymentOverrideAuthorizers();
 
                 if ($authorizers->isEmpty()) {
                     return __('messages.no_authorized_users');
@@ -489,7 +502,7 @@ trait ProformaInvoiceHeaderActions
                 return 'Send a request to one or more authorized users. They will receive a notification with the PI reference and the list of pending blockers.';
             })
             ->form(function () {
-                $authorizers = User::permission('override-payment-block')->get();
+                $authorizers = $this->getCachedPaymentOverrideAuthorizers();
 
                 if ($authorizers->isEmpty()) {
                     return [];
@@ -497,7 +510,7 @@ trait ProformaInvoiceHeaderActions
 
                 return [
                     Select::make('authorizer_ids')
-                        ->label(__('messages.request_authorization'))
+                        ->label(__('messages.select_authorizers'))
                         ->multiple()
                         ->options($authorizers->pluck('name', 'id')->toArray())
                         ->required(),
@@ -510,7 +523,7 @@ trait ProformaInvoiceHeaderActions
             })
             ->modalSubmitActionLabel(__('messages.request_authorization'))
             ->modalSubmitAction(function ($action) {
-                $authorizers = User::permission('override-payment-block')->get();
+                $authorizers = $this->getCachedPaymentOverrideAuthorizers();
                 if ($authorizers->isEmpty()) {
                     return $action->hidden();
                 }
