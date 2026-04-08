@@ -37,6 +37,9 @@ class PaymentScheduleItem extends Model
         'notes',
         'waived_by',
         'waived_at',
+        'overridden_by',
+        'overridden_at',
+        'override_reason',
     ];
 
     protected function casts(): array
@@ -51,6 +54,7 @@ class PaymentScheduleItem extends Model
             'is_credit' => 'boolean',
             'sort_order' => 'integer',
             'waived_at' => 'datetime',
+            'overridden_at' => 'datetime',
         ];
     }
 
@@ -188,6 +192,15 @@ class PaymentScheduleItem extends Model
             return false;
         }
 
+        if ($this->overridden_at !== null) {
+            // Override is scoped to PO-related cycles. We only short-circuit
+            // transitions that the PO override is meant to unblock.
+            $poCycleTransitions = ['confirmed', 'in_production'];
+            if (in_array($targetStatus, $poCycleTransitions)) {
+                return false;
+            }
+        }
+
         return match ($this->due_condition) {
             CalculationBase::BEFORE_PRODUCTION => $targetStatus === 'in_production',
             CalculationBase::BEFORE_SHIPMENT => $targetStatus === 'shipped',
@@ -200,6 +213,10 @@ class PaymentScheduleItem extends Model
     public function blocksPurchaseOrderGeneration(): bool
     {
         if (! $this->is_blocking || $this->isResolved() || $this->is_credit) {
+            return false;
+        }
+
+        if ($this->overridden_at !== null) {
             return false;
         }
 
