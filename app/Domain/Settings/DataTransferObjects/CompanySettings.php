@@ -28,6 +28,14 @@ class CompanySettings extends Settings
     public string $commercial_invoice_prefix;
     public ?string $bank_details_for_documents;
 
+    public ?string $email_default_message_quotation;
+    public ?string $email_default_message_purchase_order;
+    public ?string $email_default_message_proforma_invoice;
+    public ?string $email_default_message_rfq;
+    public ?string $email_default_message_packing_list;
+    public ?string $email_default_message_commercial_invoice;
+    public ?string $email_default_message_fair_inquiry;
+
 
     public static function group(): string
     {

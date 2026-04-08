@@ -16,6 +16,7 @@ class SendDocumentByEmailAction
 {
     public static function make(
         string $documentType,
+        string $settingsKey,
         string $label = 'Send by Email',
         string $icon = 'heroicon-o-envelope',
         ?string $name = null,
@@ -26,7 +27,7 @@ class SendDocumentByEmailAction
             ->color('warning')
             ->visible(fn ($record) => $record->getLatestDocument($documentType) !== null
                 && auth()->user()?->can('send-documents-by-email'))
-            ->form(fn ($record): array => static::buildForm($record))
+            ->form(fn ($record): array => static::buildForm($record, $settingsKey, $documentType))
             ->action(function (array $data, $record) use ($documentType) {
                 $document = $record->getLatestDocument($documentType);
 
@@ -86,13 +87,14 @@ class SendDocumentByEmailAction
             });
     }
 
-    private static function buildForm($record): array
+    private static function buildForm($record, string $settingsKey, string $documentType): array
     {
         $contact = $record->contact ?? null;
         $company = static::resolveCompany($record);
         $emailOptions = static::buildEmailOptions($company, $contact);
         $emailSuggestions = static::buildEmailSuggestions($company, $contact);
         $defaultTo = static::resolveDefaultTo($contact, $emailOptions);
+        $defaultMessage = static::resolveDefaultMessage($settingsKey, $record, $contact, $company, $documentType);
 
         return [
             Select::make('to')
@@ -126,9 +128,42 @@ class SendDocumentByEmailAction
 
             Textarea::make('message')
                 ->label(__('forms.labels.message_optional'))
+                ->default($defaultMessage)
                 ->placeholder(__('forms.placeholders.add_a_custom_message_to_the_email'))
-                ->rows(4),
+                ->helperText('Available placeholders (already resolved above): {recipient_name}, {company_name}, {reference}, {document_name}')
+                ->rows(6),
         ];
+    }
+
+    private static function resolveDefaultMessage(
+        string $settingsKey,
+        $record,
+        $contact,
+        $company,
+        string $documentType,
+    ): string {
+        $settings = app(\App\Domain\Settings\DataTransferObjects\CompanySettings::class);
+
+        // Dynamic property access — must be one of the known email_default_message_* keys.
+        $template = property_exists($settings, $settingsKey) ? $settings->{$settingsKey} : null;
+
+        if ($template === null || $template === '') {
+            return '';
+        }
+
+        $document = method_exists($record, 'getLatestDocument')
+            ? $record->getLatestDocument($documentType)
+            : null;
+
+        $context = [
+            'recipient_name' => $contact?->name ?? $company?->name ?? '',
+            'company_name'   => $company?->name ?? '',
+            'reference'      => $record->reference ?? '',
+            'document_name'  => $document?->name ?? '',
+        ];
+
+        return app(\App\Domain\Infrastructure\Services\EmailMessagePlaceholderResolver::class)
+            ->resolve($template, $context);
     }
 
     private static function buildEmailOptions($company, $contact): array

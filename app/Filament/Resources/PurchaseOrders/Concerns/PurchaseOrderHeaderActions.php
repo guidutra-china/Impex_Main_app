@@ -49,6 +49,7 @@ trait PurchaseOrderHeaderActions
             ),
             SendDocumentByEmailAction::make(
                 documentType: 'purchase_order_pdf',
+                settingsKey: 'email_default_message_purchase_order',
                 label: 'Send by Email',
             ),
         ])

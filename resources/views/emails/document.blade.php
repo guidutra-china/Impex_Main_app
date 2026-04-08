@@ -3,8 +3,6 @@ Dear {{ $recipientName }},
 
 @if($customMessage)
 {{ $customMessage }}
-@else
-Please find the attached document for your reference.
 @endif
 
 **Document:** {{ $document->name }}

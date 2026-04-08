@@ -48,6 +48,7 @@ trait QuotationHeaderActions
             ),
             SendDocumentByEmailAction::make(
                 documentType: 'quotation_pdf',
+                settingsKey: 'email_default_message_quotation',
                 label: 'Send by Email',
             ),
         ])

@@ -5,8 +5,6 @@ It was a pleasure visiting your booth at **{{ $tradeFairName }}**.
 
 @if($customMessage)
 {{ $customMessage }}
-@else
-We are interested in your products and would like to request more information, including pricing, specifications, and minimum order quantities for the following items:
 @endif
 
 @if(count($productNames) > 0)

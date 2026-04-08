@@ -152,6 +152,45 @@ class ManageCompanySettings extends SettingsPage
                                             ->helperText(__('forms.helpers.default_terms_and_conditions_for_purchase_orders'))
                                             ->columnSpanFull(),
                                     ]),
+                                Section::make('Email Templates')
+                                    ->description('Default message body for each "Send by Email" action. Supports placeholders listed under each field. Leave blank to open the email modal with an empty message textarea.')
+                                    ->schema([
+                                        Textarea::make('email_default_message_quotation')
+                                            ->label('Quotation email message')
+                                            ->rows(4)
+                                            ->helperText('Available placeholders: {recipient_name}, {company_name}, {reference}, {document_name}')
+                                            ->columnSpanFull(),
+                                        Textarea::make('email_default_message_purchase_order')
+                                            ->label('Purchase Order email message')
+                                            ->rows(4)
+                                            ->helperText('Available placeholders: {recipient_name}, {company_name}, {reference}, {document_name}')
+                                            ->columnSpanFull(),
+                                        Textarea::make('email_default_message_proforma_invoice')
+                                            ->label('Proforma Invoice email message')
+                                            ->rows(4)
+                                            ->helperText('Available placeholders: {recipient_name}, {company_name}, {reference}, {document_name}')
+                                            ->columnSpanFull(),
+                                        Textarea::make('email_default_message_rfq')
+                                            ->label('RFQ email message (PDF and Excel)')
+                                            ->rows(4)
+                                            ->helperText('Available placeholders: {recipient_name}, {company_name}, {reference}, {document_name}')
+                                            ->columnSpanFull(),
+                                        Textarea::make('email_default_message_packing_list')
+                                            ->label('Packing List email message')
+                                            ->rows(4)
+                                            ->helperText('Available placeholders: {recipient_name}, {company_name}, {reference}, {document_name}')
+                                            ->columnSpanFull(),
+                                        Textarea::make('email_default_message_commercial_invoice')
+                                            ->label('Commercial Invoice email message')
+                                            ->rows(4)
+                                            ->helperText('Available placeholders: {recipient_name}, {company_name}, {reference}, {document_name}')
+                                            ->columnSpanFull(),
+                                        Textarea::make('email_default_message_fair_inquiry')
+                                            ->label('Fair Inquiry email message')
+                                            ->rows(4)
+                                            ->helperText('Available placeholders: {recipient_name}, {company_name}, {trade_fair_name}, {product_names}')
+                                            ->columnSpanFull(),
+                                    ]),
                             ]),
                         Tabs\Tab::make(__('forms.tabs.bank_details_for_documents'))
                             ->icon('heroicon-o-building-library')

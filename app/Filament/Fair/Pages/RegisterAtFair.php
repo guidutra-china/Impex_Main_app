@@ -898,9 +898,36 @@ PROMPT;
 
                         Textarea::make('email_message')
                             ->label('Custom Message')
+                            ->default(function () {
+                                $settings = app(\App\Domain\Settings\DataTransferObjects\CompanySettings::class);
+                                $template = $settings->email_default_message_fair_inquiry;
+
+                                if ($template === null || $template === '') {
+                                    return '';
+                                }
+
+                                $tradeFair = ! empty($this->data['trade_fair_id'])
+                                    ? TradeFair::find($this->data['trade_fair_id'])
+                                    : null;
+
+                                $productNames = collect($this->data['products'] ?? [])
+                                    ->pluck('name')
+                                    ->filter()
+                                    ->implode(', ');
+
+                                $context = [
+                                    'recipient_name'  => $this->data['contact_name'] ?? '',
+                                    'company_name'    => $this->data['company_name'] ?? '',
+                                    'trade_fair_name' => $tradeFair?->name ?? '',
+                                    'product_names'   => $productNames,
+                                ];
+
+                                return app(\App\Domain\Infrastructure\Services\EmailMessagePlaceholderResolver::class)
+                                    ->resolve($template, $context);
+                            })
                             ->placeholder('Add any additional message to the supplier...')
-                            ->rows(4)
-                            ->helperText('Optional. A standard inquiry template will be used if left blank.'),
+                            ->rows(6)
+                            ->helperText('Available placeholders (already resolved above): {recipient_name}, {company_name}, {trade_fair_name}, {product_names}'),
                     ]),
             ]);
     }

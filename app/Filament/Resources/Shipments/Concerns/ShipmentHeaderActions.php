@@ -53,6 +53,7 @@ trait ShipmentHeaderActions
                 )->name('previewPackingListPdf'),
                 SendDocumentByEmailAction::make(
                     documentType: 'packing_list_pdf',
+                    settingsKey: 'email_default_message_packing_list',
                     label: 'Send by Email',
                 )->name('sendPackingListByEmail'),
             ])
@@ -73,6 +74,7 @@ trait ShipmentHeaderActions
                 )->name('previewCommercialInvoicePdf'),
                 SendDocumentByEmailAction::make(
                     documentType: 'commercial_invoice_pdf',
+                    settingsKey: 'email_default_message_commercial_invoice',
                     label: 'Send by Email',
                 )->name('sendCommercialInvoiceByEmail'),
             ])

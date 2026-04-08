@@ -69,10 +69,12 @@ trait SupplierQuotationHeaderActions
             ),
             SendDocumentByEmailAction::make(
                 documentType: 'rfq_pdf',
+                settingsKey: 'email_default_message_rfq',
                 label: 'Send RFQ PDF',
             ),
             SendDocumentByEmailAction::make(
                 documentType: 'rfq_excel',
+                settingsKey: 'email_default_message_rfq',
                 label: 'Send RFQ Excel',
                 icon: 'heroicon-o-envelope',
             ),

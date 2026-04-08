@@ -70,6 +70,7 @@ trait ProformaInvoiceHeaderActions
             ),
             SendDocumentByEmailAction::make(
                 documentType: 'proforma_invoice_pdf',
+                settingsKey: 'email_default_message_proforma_invoice',
                 label: 'Send by Email',
             ),
             $this->customPricePdfAction(),
