@@ -2,3 +2,5 @@
 
 @source '../../../views/filament/**/*.blade.php';
 @source '../../../../app/Filament/**/*.php';
+@source '../../../views/livewire/**/*.blade.php';
+@source '../../../../app/Livewire/**/*.php';

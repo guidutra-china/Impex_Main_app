@@ -49,6 +49,10 @@ class PortalRolesSeeder extends Seeder
             // Portal: Dashboard
             'portal:view-dashboard',
             'portal:view-financial-summary',
+
+            // Messaging (cross-panel)
+            'view-messaging',
+            'send-messages',
         ];
     }
 
@@ -68,6 +72,8 @@ class PortalRolesSeeder extends Seeder
             'portal:download-documents',
             'portal:view-dashboard',
             'portal:view-financial-summary',
+            'view-messaging',
+            'send-messages',
         ]);
 
         // Client Operations — no financial visibility
@@ -82,6 +88,8 @@ class PortalRolesSeeder extends Seeder
             'portal:view-proforma-invoice-details',
             'portal:download-documents',
             'portal:view-dashboard',
+            'view-messaging',
+            'send-messages',
         ]);
     }
 }

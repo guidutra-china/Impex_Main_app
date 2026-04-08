@@ -49,4 +49,18 @@ return [
         'key' => env('OPENAI_API_KEY'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Anthropic (Claude AI)
+    |--------------------------------------------------------------------------
+    |
+    | API key for Claude AI services — used for pre-import analysis:
+    | fuzzy product code matching and semantic data validation.
+    |
+    */
+    'anthropic' => [
+        'key' => env('ANTHROPIC_API_KEY'),
+        'model' => env('ANTHROPIC_MODEL', 'claude-haiku-4-5-20251001'),
+    ],
+
 ];

@@ -48,6 +48,10 @@ class SupplierPortalRolesSeeder extends Seeder
             // Supplier Portal: Production Schedules
             'supplier-portal:view-production-schedules',
             'supplier-portal:update-production-actuals',
+
+            // Messaging (cross-panel)
+            'view-messaging',
+            'send-messages',
         ];
     }
 
@@ -66,6 +70,8 @@ class SupplierPortalRolesSeeder extends Seeder
             'supplier-portal:view-dashboard',
             'supplier-portal:view-production-schedules',
             'supplier-portal:update-production-actuals',
+            'view-messaging',
+            'send-messages',
         ]);
 
         // Supplier Operations — no payment visibility
@@ -79,6 +85,8 @@ class SupplierPortalRolesSeeder extends Seeder
             'supplier-portal:view-dashboard',
             'supplier-portal:view-production-schedules',
             'supplier-portal:update-production-actuals',
+            'view-messaging',
+            'send-messages',
         ]);
     }
 }

@@ -4,6 +4,11 @@ namespace App\Providers;
 
 use App\Domain\Inquiries\Models\ProjectTeamMember;
 use App\Domain\Inquiries\Observers\ProjectTeamMemberObserver;
+use App\Domain\Messaging\Models\Conversation;
+use App\Domain\Messaging\Models\Message;
+use App\Policies\ConversationPolicy;
+use App\Policies\MessagePolicy;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -22,5 +27,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         ProjectTeamMember::observe(ProjectTeamMemberObserver::class);
+
+        // Messaging policies live outside Filament Shield's auto-discovery.
+        Gate::policy(Conversation::class, ConversationPolicy::class);
+        Gate::policy(Message::class, MessagePolicy::class);
     }
 }

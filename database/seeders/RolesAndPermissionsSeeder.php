@@ -137,6 +137,13 @@ class RolesAndPermissionsSeeder extends Seeder
             'review-supplier-audits',
             'manage-audit-categories',
 
+            // Projects
+            'view-projects',
+            'create-projects',
+            'edit-projects',
+            'delete-projects',
+            'manage-project-templates',
+
             // Dashboard & Pipeline
             'view-financial-dashboard',
             'view-operational-dashboard',
@@ -157,6 +164,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'edit-users',
             'delete-users',
             'manage-roles',
+
+            // Messaging (cross-panel — same permission name in portal and supplier-portal seeders)
+            'view-messaging',
+            'send-messages',
         ];
     }
 
@@ -236,5 +247,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'view-users',
             'view-settings',
         ])));
+
+        // Messaging is granted to every internal role.
+        foreach ([$admin, $manager, $operator, $viewer] as $role) {
+            $role->givePermissionTo(['view-messaging', 'send-messages']);
+        }
     }
 }

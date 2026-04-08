@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Domain\CRM\Models\Company;
+use App\Domain\Messaging\Models\Conversation;
+use App\Domain\Messaging\Models\ConversationParticipant;
 use App\Domain\Users\Enums\UserType;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasTenants;
@@ -11,6 +13,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
@@ -95,6 +98,38 @@ class User extends Authenticatable implements FilamentUser, HasTenants
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function conversations(): BelongsToMany
+    {
+        return $this->belongsToMany(Conversation::class, 'conversation_participants')
+            ->using(ConversationParticipant::class)
+            ->withPivot(['role', 'last_read_at', 'muted_at', 'left_at'])
+            ->withTimestamps()
+            ->wherePivotNull('left_at');
+    }
+
+    /**
+     * Count of unread messages across all conversations the user participates in.
+     * Counts messages newer than the user's per-conversation last_read_at,
+     * excluding messages the user authored themselves.
+     */
+    public function unreadMessagesCount(): int
+    {
+        return \App\Domain\Messaging\Models\Message::query()
+            ->whereHas('conversation.participants', function ($query) {
+                $query->where('user_id', $this->id)->whereNull('left_at');
+            })
+            ->where('sender_id', '!=', $this->id)
+            ->whereRaw(
+                '(messages.created_at > (
+                    select coalesce(last_read_at, "1970-01-01") from conversation_participants
+                    where conversation_participants.conversation_id = messages.conversation_id
+                      and conversation_participants.user_id = ?
+                ))',
+                [$this->id]
+            )
+            ->count();
     }
 
     // --- Helpers ---
