@@ -3,6 +3,7 @@
 namespace App\Domain\Financial\Actions;
 
 use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Messaging\Models\Conversation;
 use App\Domain\Messaging\Services\MessagingService;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
@@ -62,7 +63,7 @@ class RequestPaymentOverrideAuthorizationAction
         ];
 
         foreach ($blockers as $item) {
-            $amount = number_format($item->amount / 10000, 2);
+            $amount = Money::format($item->amount);
             $lines[] = "- {$item->label} — {$item->currency_code} {$amount} ({$item->status->getEnglishLabel()})";
         }
 
