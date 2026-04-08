@@ -104,6 +104,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'approve-payments',
             'reject-payments',
             'waive-payments',
+            'override-payment-block',
             'view-payment-schedule',
             'generate-payment-schedule',
 
@@ -222,6 +223,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'approve-payments',
             'reject-payments',
             'waive-payments',
+            'override-payment-block',
             'confirm-proforma-invoices',
             'reopen-proforma-invoices',
             'view-costs',
