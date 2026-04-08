@@ -112,4 +112,32 @@ class OverridePaymentBlocksActionTest extends TestCase
         $this->assertSame(0, $count);
         $this->assertNull($shipment->fresh()->overridden_at);
     }
+
+    public function test_skips_already_overridden_items(): void
+    {
+        // Idempotency: re-calling the action on items that are already
+        // overridden must be a no-op. The original override metadata stays
+        // intact and the returned count is 0.
+        $item = $this->makeItem();
+
+        $first = $this->action->execute($this->pi, 'Initial authorization.');
+        $this->assertSame(1, $first);
+
+        $originalOverriddenAt = $item->fresh()->overridden_at;
+        $originalOverriddenBy = $item->fresh()->overridden_by;
+        $originalReason       = $item->fresh()->override_reason;
+
+        // Wait a tick so a re-write would produce a different timestamp.
+        \Illuminate\Support\Carbon::setTestNow(now()->addMinute());
+
+        $second = $this->action->execute($this->pi, 'Different reason.');
+        $this->assertSame(0, $second);
+
+        $fresh = $item->fresh();
+        $this->assertEquals($originalOverriddenAt, $fresh->overridden_at);
+        $this->assertSame($originalOverriddenBy, $fresh->overridden_by);
+        $this->assertSame($originalReason, $fresh->override_reason);
+
+        \Illuminate\Support\Carbon::setTestNow(); // reset
+    }
 }
