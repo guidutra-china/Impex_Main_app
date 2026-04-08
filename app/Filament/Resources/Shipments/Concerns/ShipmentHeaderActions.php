@@ -66,7 +66,11 @@ trait ShipmentHeaderActions
                     documentType: 'commercial_invoice_pdf',
                     label: 'Download PDF',
                 )->name('downloadCommercialInvoicePdf'),
-                $this->commercialInvoicePreviewAction(),
+                GeneratePdfAction::preview(
+                    templateClass: CommercialInvoicePdfTemplate::class,
+                    label: 'Preview PDF',
+                    formSchema: $this->commercialInvoiceOptions(),
+                )->name('previewCommercialInvoicePdf'),
                 SendDocumentByEmailAction::make(
                     documentType: 'commercial_invoice_pdf',
                     label: 'Send by Email',
@@ -149,27 +153,36 @@ trait ShipmentHeaderActions
         return [
             Toggle::make('include_freight')
                 ->label(__('forms.labels.include_freight'))
-                ->default(false),
+                ->default(false)
+                ->live(),
+            Toggle::make('use_custom_prices')
+                ->label(__('forms.labels.use_client_custom_prices'))
+                ->default(true)
+                ->live()
+                ->helperText(__('forms.helpers.use_client_custom_prices')),
             Select::make('manufacturer_ids')
                 ->label('Manufacturer(s)')
                 ->multiple()
                 ->options(fn () => $this->getManufacturerOptionsForShipment())
                 ->default(fn () => $this->getDefaultManufacturerIds())
-                ->helperText('Select the manufacturers to display on the document'),
+                ->helperText('Select the manufacturers to display on the document')
+                ->live(),
             Checkbox::make('use_formula')
                 ->label(__('forms.labels.apply_price_formula'))
+                ->visible(fn (Get $get) => ! $get('use_custom_prices'))
                 ->live()
                 ->helperText(__('forms.helpers.apply_formula_to_recalculate_prices')),
             TextInput::make('price_formula')
                 ->label(__('forms.labels.formula'))
                 ->placeholder('e.g. *0.70, *1.15, +10, -5')
-                ->visible(fn (Get $get) => $get('use_formula'))
+                ->visible(fn (Get $get) => ! $get('use_custom_prices') && $get('use_formula'))
                 ->requiredIf('use_formula', true)
                 ->regex('/^[*\/+\-]\s*[0-9]*\.?[0-9]+$/')
-                ->helperText(__('forms.helpers.formula_operators')),
+                ->helperText(__('forms.helpers.formula_operators'))
+                ->live(onBlur: true),
             Checkbox::make('save_as_custom_price')
                 ->label(__('forms.labels.save_as_custom_price'))
-                ->visible(fn (Get $get) => $get('use_formula'))
+                ->visible(fn (Get $get) => ! $get('use_custom_prices') && $get('use_formula'))
                 ->helperText(__('forms.helpers.save_formula_prices_to_custom_price')),
         ];
     }
@@ -254,49 +267,6 @@ trait ShipmentHeaderActions
 
                     Notification::make()
                         ->title('PDF Generation Failed')
-                        ->body($e->getMessage())
-                        ->danger()
-                        ->send();
-                }
-            });
-    }
-
-    protected function commercialInvoicePreviewAction(): Action
-    {
-        return Action::make('previewCommercialInvoicePdf')
-            ->label('Preview PDF')
-            ->icon('heroicon-o-eye')
-            ->color('gray')
-            ->visible(fn () => auth()->user()?->can('generate-documents'))
-            ->form($this->commercialInvoiceOptions())
-            ->action(function (array $data) {
-                try {
-                    $record = $this->getRecord();
-                    $this->handleSaveCustomPrices($record, $data);
-
-                    $template = new CommercialInvoicePdfTemplate($record, 'en', $data);
-                    $service = new PdfGeneratorService(
-                        new PdfRenderer(),
-                        new DocumentService(),
-                    );
-
-                    $content = $service->preview($template);
-
-                    return response()->streamDownload(
-                        function () use ($content) {
-                            echo $content;
-                        },
-                        $template->getFilename(),
-                        [
-                            'Content-Type' => 'application/pdf',
-                            'Content-Disposition' => 'inline; filename="' . $template->getFilename() . '"',
-                        ],
-                    );
-                } catch (\Throwable $e) {
-                    report($e);
-
-                    Notification::make()
-                        ->title('Preview Failed')
                         ->body($e->getMessage())
                         ->danger()
                         ->send();

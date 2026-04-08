@@ -73,25 +73,13 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
         $priceFormula = ($this->options['use_formula'] ?? false)
             ? ($this->options['price_formula'] ?? null)
             : null;
+        $useCustomPrices = (bool) ($this->options['use_custom_prices'] ?? true);
 
-        $items = $this->buildInvoiceItems($shipment, $currencyCode, $priceFormula);
+        $items = $this->buildInvoiceItems($shipment, $currencyCode, $priceFormula, $useCustomPrices);
 
-        $subtotal = $shipment->items->sum(function ($item) use ($priceFormula) {
-            $unitPrice = $item->unit_price;
-
-            if ($priceFormula) {
-                $unitPrice = CustomPricePdfTemplate::applyFormula($unitPrice, $priceFormula);
-            } else {
-                $product = $item->proformaInvoiceItem?->product;
-                $pivot = $this->getClientPivot($product);
-
-                if ($pivot && filled($pivot->custom_price) && $pivot->custom_price > 0) {
-                    $unitPrice = $pivot->custom_price;
-                }
-            }
-
-            return $unitPrice * $item->quantity;
-        });
+        $subtotal = $shipment->items->sum(
+            fn ($item) => $this->effectiveUnitPrice($item, $priceFormula, $useCustomPrices) * $item->quantity
+        );
 
         $includeFreight = $this->options['include_freight'] ?? false;
 
@@ -142,24 +130,17 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
         ];
     }
 
-    private function buildInvoiceItems(Shipment $shipment, string $currencyCode, ?string $priceFormula = null): array
+    private function buildInvoiceItems(Shipment $shipment, string $currencyCode, ?string $priceFormula = null, bool $useCustomPrices = true): array
     {
         return $shipment->items
             ->sortBy('sort_order')
             ->values()
-            ->map(function ($item, $index) use ($currencyCode, $priceFormula) {
+            ->map(function ($item, $index) use ($currencyCode, $priceFormula, $useCustomPrices) {
                 $product = $item->proformaInvoiceItem?->product;
                 $piItem = $item->proformaInvoiceItem;
                 $pivot = $this->getClientPivot($product);
 
-                $unitPrice = $item->unit_price;
-
-                if ($priceFormula) {
-                    $unitPrice = CustomPricePdfTemplate::applyFormula($unitPrice, $priceFormula);
-                } elseif ($pivot && filled($pivot->custom_price) && $pivot->custom_price > 0) {
-                    $unitPrice = $pivot->custom_price;
-                }
-
+                $unitPrice = $this->effectiveUnitPrice($item, $priceFormula, $useCustomPrices);
                 $lineTotal = $unitPrice * $item->quantity;
 
                 return [
@@ -174,6 +155,32 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
                 ];
             })
             ->toArray();
+    }
+
+    /**
+     * Resolve the effective unit price for an item, applying — in priority order —
+     * the manual formula (if provided), then the client custom price from the
+     * company_product pivot (if enabled and present), falling back to the PI
+     * item's unit_price. Formula and custom_prices are mutually exclusive in
+     * the UI, but this method handles both flags safely with formula winning.
+     */
+    private function effectiveUnitPrice($item, ?string $priceFormula, bool $useCustomPrices): int
+    {
+        $base = (int) $item->unit_price;
+
+        if ($priceFormula) {
+            return (int) CustomPricePdfTemplate::applyFormula($base, $priceFormula);
+        }
+
+        if ($useCustomPrices) {
+            $pivot = $this->getClientPivot($item->proformaInvoiceItem?->product);
+
+            if ($pivot && filled($pivot->custom_price) && $pivot->custom_price > 0) {
+                return (int) $pivot->custom_price;
+            }
+        }
+
+        return $base;
     }
 
     private function buildShippingDetails(Shipment $shipment, $incoterm): array
