@@ -7,6 +7,7 @@ use App\Domain\ProformaInvoices\Actions\CancelProformaInvoiceAction;
 use App\Domain\ProformaInvoices\Actions\SyncClientProductPricesAction;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Filament\Actions\StatusTransitionActions;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -148,6 +149,7 @@ class ProformaInvoicesTable
                 TrashedFilter::make(),
             ])
             ->recordActions([
+                ActionGroup::make([
                 StatusTransitionActions::make(ProformaInvoiceStatus::class, [
                     'confirmed' => [
                         'icon' => 'heroicon-o-check-circle',
@@ -173,6 +175,9 @@ class ProformaInvoicesTable
                 ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
+                ])
+                    ->icon('heroicon-m-ellipsis-vertical')
+                    ->color('gray'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

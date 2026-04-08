@@ -5,6 +5,7 @@ namespace App\Filament\Resources\SupplierQuotations\Tables;
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
 use App\Filament\Actions\StatusTransitionActions;
 use App\Filament\Resources\Inquiries\InquiryResource;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
@@ -104,9 +105,13 @@ class SupplierQuotationsTable
                     ->query(fn ($query) => $query->where('responsible_user_id', auth()->id())),
             ])
             ->recordActions([
-                StatusTransitionActions::make(SupplierQuotationStatus::class),
-                ViewAction::make(),
-                EditAction::make(),
+                ActionGroup::make([
+                    StatusTransitionActions::make(SupplierQuotationStatus::class),
+                    ViewAction::make(),
+                    EditAction::make(),
+                ])
+                    ->icon('heroicon-m-ellipsis-vertical')
+                    ->color('gray'),
             ])
             ->persistFiltersInSession()
             ->persistSearchInSession()

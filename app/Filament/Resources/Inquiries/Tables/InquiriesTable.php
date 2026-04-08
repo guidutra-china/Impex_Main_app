@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Inquiries\Tables;
 use App\Domain\Inquiries\Enums\InquirySource;
 use App\Domain\Inquiries\Enums\InquiryStatus;
 use App\Filament\Actions\StatusTransitionActions;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -111,10 +112,14 @@ class InquiriesTable
                 TrashedFilter::make(),
             ])
             ->recordActions([
-                StatusTransitionActions::make(InquiryStatus::class),
-                ViewAction::make(),
-                EditAction::make(),
-                DeleteAction::make(),
+                ActionGroup::make([
+                    StatusTransitionActions::make(InquiryStatus::class),
+                    ViewAction::make(),
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ])
+                    ->icon('heroicon-m-ellipsis-vertical')
+                    ->color('gray'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

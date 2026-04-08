@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ShipmentPlans\Tables;
 
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Planning\Enums\ShipmentPlanStatus;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -69,9 +70,13 @@ class ShipmentPlansTable
                     ->preload(),
             ])
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
-                DeleteAction::make(),
+                ActionGroup::make([
+                    ViewAction::make(),
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ])
+                    ->icon('heroicon-m-ellipsis-vertical')
+                    ->color('gray'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

@@ -6,6 +6,7 @@ use App\Domain\Infrastructure\Support\Money;
 use App\Domain\PurchaseOrders\Actions\SyncSupplierProductPricesAction;
 use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
 use App\Filament\Actions\StatusTransitionActions;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -126,6 +127,7 @@ class PurchaseOrdersTable
                 TrashedFilter::make(),
             ])
             ->recordActions([
+                ActionGroup::make([
                 StatusTransitionActions::make(PurchaseOrderStatus::class, [
                     'confirmed' => [
                         'icon' => 'heroicon-o-check-circle',
@@ -137,6 +139,9 @@ class PurchaseOrdersTable
                 ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
+                ])
+                    ->icon('heroicon-m-ellipsis-vertical')
+                    ->color('gray'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
