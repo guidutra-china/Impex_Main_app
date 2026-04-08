@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ProformaInvoices\Concerns;
 
 use App\Domain\Catalog\Models\CompanyProduct;
+use App\Domain\Financial\Actions\OverridePaymentBlocksAction;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Infrastructure\Pdf\PdfGeneratorService;
@@ -277,7 +278,6 @@ trait ProformaInvoiceHeaderActions
             ->label(__('forms.labels.generate_pos'))
             ->icon('heroicon-o-shopping-cart')
             ->color('warning')
-            ->requiresConfirmation()
             ->modalHeading('Generate Purchase Orders')
             ->modalDescription(function () {
                 $record = $this->getRecord();
@@ -297,10 +297,18 @@ trait ProformaInvoiceHeaderActions
                 $blockers = PaymentScheduleItem::blockingPurchaseOrderGeneration($record);
 
                 if (count($blockers) > 0) {
-                    $labels = collect($blockers)->pluck('label')->implode(', ');
-                    return "**Cannot generate POs.** The following upfront payments must be resolved first:\n\n"
-                        . $labels
-                        . "\n\nPlease record and approve the required payments, or waive them to proceed.";
+                    $labels = collect($blockers)->map(function ($item) {
+                        $amount = number_format($item->amount / 10000, 2);
+                        return "• {$item->label} — {$item->currency_code} {$amount}";
+                    })->implode("\n");
+
+                    if (auth()->user()?->can('override-payment-block')) {
+                        return "**The following upfront payments are pending:**\n\n{$labels}\n\n"
+                            . "Tick the box below to authorize PO generation anyway. The obligation will remain pending in the schedule.";
+                    }
+
+                    return "**Cannot generate POs.** The following upfront payments must be resolved first:\n\n{$labels}\n\n"
+                        . "Use 'Request authorization' to ask a manager to bypass this check.";
                 }
 
                 $action = new GeneratePurchaseOrdersAction();
@@ -340,26 +348,80 @@ trait ProformaInvoiceHeaderActions
 
                 return implode("\n\n", $lines);
             })
+            ->form(function () {
+                $record = $this->getRecord();
+                $blockers = PaymentScheduleItem::blockingPurchaseOrderGeneration($record);
+
+                if (count($blockers) === 0) {
+                    return [];
+                }
+
+                if (! auth()->user()?->can('override-payment-block')) {
+                    return [];
+                }
+
+                return [
+                    Checkbox::make('override_payment_block')
+                        ->label(__('messages.override_payment_block'))
+                        ->live()
+                        ->default(false),
+                    Textarea::make('override_reason')
+                        ->label(__('messages.override_reason'))
+                        ->rows(3)
+                        ->visible(fn (Get $get) => (bool) $get('override_payment_block'))
+                        ->requiredIf('override_payment_block', true)
+                        ->minLength(10),
+                ];
+            })
             ->modalSubmitActionLabel('Generate')
+            ->modalSubmitAction(function ($action) {
+                $record = $this->getRecord();
+                $blockers = PaymentScheduleItem::blockingPurchaseOrderGeneration($record);
+
+                // Hide the submit button entirely when there are blockers and
+                // the user cannot override — Branch B (Task 8) adds the
+                // "Request authorization" extra action below.
+                if (count($blockers) > 0 && ! auth()->user()?->can('override-payment-block')) {
+                    return $action->hidden();
+                }
+
+                return $action;
+            })
             ->visible(fn () => in_array($this->getRecord()->status, [
                     ProformaInvoiceStatus::CONFIRMED,
                     ProformaInvoiceStatus::REOPENED,
                 ])
                 && $this->getRecord()->items()->exists()
                 && auth()->user()?->can('generate-purchase-orders'))
-            ->action(function () {
+            ->action(function (array $data) {
                 $record = $this->getRecord();
 
                 $blockers = PaymentScheduleItem::blockingPurchaseOrderGeneration($record);
 
                 if (count($blockers) > 0) {
-                    Notification::make()
-                        ->title(__('messages.blocked_by_payment'))
-                        ->body(__('messages.resolve_payments_first'))
-                        ->danger()
-                        ->send();
+                    if (! ($data['override_payment_block'] ?? false)) {
+                        Notification::make()
+                            ->title(__('messages.blocked_by_payment'))
+                            ->body(__('messages.resolve_payments_first'))
+                            ->danger()
+                            ->send();
 
-                    return;
+                        return;
+                    }
+
+                    if (! auth()->user()?->can('override-payment-block')) {
+                        Notification::make()
+                            ->title(__('messages.blocked_by_payment'))
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
+                    app(OverridePaymentBlocksAction::class)->execute(
+                        $record,
+                        $data['override_reason'] ?? '',
+                    );
                 }
 
                 $action = new GeneratePurchaseOrdersAction();
@@ -377,8 +439,12 @@ trait ProformaInvoiceHeaderActions
 
                 $refs = $result->pluck('reference')->implode(', ');
 
+                $title = ($data['override_payment_block'] ?? false)
+                    ? __('messages.generated_with_payment_override')
+                    : ($result->count() . ' ' . __('messages.pos_generated'));
+
                 Notification::make()
-                    ->title($result->count() . ' ' . __('messages.pos_generated'))
+                    ->title($title)
                     ->body($refs)
                     ->success()
                     ->send();
