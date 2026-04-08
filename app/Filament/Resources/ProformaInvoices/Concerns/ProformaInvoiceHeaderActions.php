@@ -272,6 +272,24 @@ trait ProformaInvoiceHeaderActions
             });
     }
 
+    /**
+     * Memoized accessor for the PI's PO-blocking payment items. The form,
+     * description, submit-action, and action callbacks all need this list and
+     * Filament re-renders the modal on every Livewire round trip. Without
+     * caching, each render fires 4+ identical queries.
+     */
+    protected function getCachedPaymentBlockersFor($record): array
+    {
+        static $cache = [];
+        $key = spl_object_id($record);
+
+        if (! array_key_exists($key, $cache)) {
+            $cache[$key] = $this->getCachedPaymentBlockersFor($record);
+        }
+
+        return $cache[$key];
+    }
+
     protected function generatePurchaseOrdersAction(): Action
     {
         return Action::make('generatePurchaseOrders')
@@ -294,7 +312,7 @@ trait ProformaInvoiceHeaderActions
                     }
                 }
 
-                $blockers = PaymentScheduleItem::blockingPurchaseOrderGeneration($record);
+                $blockers = $this->getCachedPaymentBlockersFor($record);
 
                 if (count($blockers) > 0) {
                     $labels = collect($blockers)->map(function ($item) {
@@ -350,7 +368,7 @@ trait ProformaInvoiceHeaderActions
             })
             ->form(function () {
                 $record = $this->getRecord();
-                $blockers = PaymentScheduleItem::blockingPurchaseOrderGeneration($record);
+                $blockers = $this->getCachedPaymentBlockersFor($record);
 
                 if (count($blockers) === 0) {
                     return [];
@@ -376,7 +394,7 @@ trait ProformaInvoiceHeaderActions
             ->modalSubmitActionLabel('Generate')
             ->modalSubmitAction(function ($action) {
                 $record = $this->getRecord();
-                $blockers = PaymentScheduleItem::blockingPurchaseOrderGeneration($record);
+                $blockers = $this->getCachedPaymentBlockersFor($record);
 
                 // Hide the submit button entirely when there are blockers and
                 // the user cannot override — Branch B (Task 8) adds the
@@ -396,7 +414,7 @@ trait ProformaInvoiceHeaderActions
             ->action(function (array $data) {
                 $record = $this->getRecord();
 
-                $blockers = PaymentScheduleItem::blockingPurchaseOrderGeneration($record);
+                $blockers = $this->getCachedPaymentBlockersFor($record);
 
                 if (count($blockers) > 0) {
                     if (! ($data['override_payment_block'] ?? false)) {
