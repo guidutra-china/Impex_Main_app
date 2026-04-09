@@ -13,7 +13,7 @@
     </table>
 @endsection
 
-@section('document-recipient')
+@section('client-info')
     <table class="recipient-table">
         <tr>
             <td class="recipient-label">{{ __('statements.company', [], $locale) }}</td>
@@ -35,7 +35,7 @@
     </table>
 @endsection
 
-@section('document-body')
+@section('content')
     @if($report->financialSummary)
         <div style="margin-bottom: 10px;">
             <div class="section-title" style="font-size: 9pt; font-weight: bold; color: #1e40af; border-bottom: 1px solid #d1d5db; padding-bottom: 3px; margin-bottom: 6px;">
