@@ -1,0 +1,69 @@
+<?php
+
+return [
+    'title' => 'Statement',
+    'preferred_language' => 'Preferred Language',
+    'use_system_default' => 'Use system default',
+    'period' => 'Period',
+    'generated_at' => 'Generated',
+    'company' => 'Company',
+    'no_records' => 'No records found for the selected filters.',
+
+    'financial_summary' => 'Financial Summary',
+    'totals_by_currency' => 'Totals by currency',
+    'aging' => 'Aging (open balance)',
+    'breakdown_by_document_type' => 'Breakdown by document type',
+    'invoiced' => 'Invoiced',
+    'paid' => 'Paid',
+    'open' => 'Open',
+    'days_0_30' => '0-30 days',
+    'days_31_60' => '31-60 days',
+    'days_61_90' => '61-90 days',
+    'days_90_plus' => '90+ days',
+
+    'sections' => [
+        'inquiries' => 'Inquiries',
+        'quotations' => 'Quotations',
+        'proforma_invoices' => 'Proforma Invoices',
+        'shipments' => 'Shipments',
+        'purchase_orders' => 'Purchase Orders',
+        'rfqs' => 'Requests for Quotation',
+    ],
+
+    'columns' => [
+        'number' => '#',
+        'client_reference' => 'Client Ref.',
+        'date' => 'Date',
+        'status' => 'Status',
+        'items' => 'Items',
+        'total' => 'Total',
+        'paid' => 'Paid',
+        'balance' => 'Balance',
+        'currency' => 'Currency',
+        'valid_until' => 'Valid until',
+        'etd' => 'ETD',
+        'eta' => 'ETA',
+        'transport_mode' => 'Mode',
+        'booking_number' => 'Booking #',
+    ],
+
+    'filters' => [
+        'title' => 'Generate Statement',
+        'from' => 'From',
+        'to' => 'To',
+        'status_scope' => 'Status',
+        'status_active' => 'Active',
+        'status_closed' => 'Closed',
+        'status_all' => 'All',
+        'sections' => 'Sections',
+        'currency' => 'Currency',
+        'language' => 'Language',
+        'generate' => 'Generate',
+    ],
+
+    'actions' => [
+        'download_pdf' => 'Download PDF',
+        'send_email' => 'Send by Email',
+        'print' => 'Print',
+    ],
+];

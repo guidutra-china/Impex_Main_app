@@ -1,0 +1,69 @@
+<?php
+
+return [
+    'title' => 'Extrato',
+    'preferred_language' => 'Idioma preferido',
+    'use_system_default' => 'Usar padrão do sistema',
+    'period' => 'Período',
+    'generated_at' => 'Gerado em',
+    'company' => 'Empresa',
+    'no_records' => 'Nenhum registro encontrado para os filtros selecionados.',
+
+    'financial_summary' => 'Resumo financeiro',
+    'totals_by_currency' => 'Totais por moeda',
+    'aging' => 'Envelhecimento (saldo em aberto)',
+    'breakdown_by_document_type' => 'Detalhamento por tipo de documento',
+    'invoiced' => 'Faturado',
+    'paid' => 'Pago',
+    'open' => 'Em aberto',
+    'days_0_30' => '0-30 dias',
+    'days_31_60' => '31-60 dias',
+    'days_61_90' => '61-90 dias',
+    'days_90_plus' => '90+ dias',
+
+    'sections' => [
+        'inquiries' => 'Cotações recebidas',
+        'quotations' => 'Propostas',
+        'proforma_invoices' => 'Proformas',
+        'shipments' => 'Embarques',
+        'purchase_orders' => 'Ordens de compra',
+        'rfqs' => 'Solicitações de cotação',
+    ],
+
+    'columns' => [
+        'number' => 'Nº',
+        'client_reference' => 'Ref. Cliente',
+        'date' => 'Data',
+        'status' => 'Status',
+        'items' => 'Itens',
+        'total' => 'Total',
+        'paid' => 'Pago',
+        'balance' => 'Saldo',
+        'currency' => 'Moeda',
+        'valid_until' => 'Válido até',
+        'etd' => 'ETD',
+        'eta' => 'ETA',
+        'transport_mode' => 'Modal',
+        'booking_number' => 'Booking',
+    ],
+
+    'filters' => [
+        'title' => 'Gerar extrato',
+        'from' => 'De',
+        'to' => 'Até',
+        'status_scope' => 'Status',
+        'status_active' => 'Ativos',
+        'status_closed' => 'Fechados',
+        'status_all' => 'Todos',
+        'sections' => 'Seções',
+        'currency' => 'Moeda',
+        'language' => 'Idioma',
+        'generate' => 'Gerar',
+    ],
+
+    'actions' => [
+        'download_pdf' => 'Baixar PDF',
+        'send_email' => 'Enviar por e-mail',
+        'print' => 'Imprimir',
+    ],
+];

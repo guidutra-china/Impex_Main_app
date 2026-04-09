@@ -1,0 +1,69 @@
+<?php
+
+return [
+    'title' => '对账单',
+    'preferred_language' => '首选语言',
+    'use_system_default' => '使用系统默认',
+    'period' => '期间',
+    'generated_at' => '生成时间',
+    'company' => '公司',
+    'no_records' => '所选筛选条件下未找到记录。',
+
+    'financial_summary' => '财务汇总',
+    'totals_by_currency' => '按货币合计',
+    'aging' => '账龄（未结余额）',
+    'breakdown_by_document_type' => '按单据类型细分',
+    'invoiced' => '已开票',
+    'paid' => '已付款',
+    'open' => '未结',
+    'days_0_30' => '0-30 天',
+    'days_31_60' => '31-60 天',
+    'days_61_90' => '61-90 天',
+    'days_90_plus' => '90+ 天',
+
+    'sections' => [
+        'inquiries' => '询盘',
+        'quotations' => '报价',
+        'proforma_invoices' => '形式发票',
+        'shipments' => '发货',
+        'purchase_orders' => '采购订单',
+        'rfqs' => '询价请求',
+    ],
+
+    'columns' => [
+        'number' => '编号',
+        'client_reference' => '客户参考',
+        'date' => '日期',
+        'status' => '状态',
+        'items' => '项目数',
+        'total' => '合计',
+        'paid' => '已付',
+        'balance' => '余额',
+        'currency' => '货币',
+        'valid_until' => '有效至',
+        'etd' => '开航日',
+        'eta' => '到港日',
+        'transport_mode' => '运输方式',
+        'booking_number' => '订舱号',
+    ],
+
+    'filters' => [
+        'title' => '生成对账单',
+        'from' => '从',
+        'to' => '至',
+        'status_scope' => '状态',
+        'status_active' => '进行中',
+        'status_closed' => '已关闭',
+        'status_all' => '全部',
+        'sections' => '章节',
+        'currency' => '货币',
+        'language' => '语言',
+        'generate' => '生成',
+    ],
+
+    'actions' => [
+        'download_pdf' => '下载 PDF',
+        'send_email' => '邮件发送',
+        'print' => '打印',
+    ],
+];

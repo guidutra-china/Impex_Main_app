@@ -67,6 +67,15 @@ class CompanyForm
                             ->url()
                             ->maxLength(255)
                             ->prefix('https://'),
+                        Select::make('preferred_language')
+                            ->label(__('statements.preferred_language'))
+                            ->options([
+                                'en' => 'English',
+                                'pt_BR' => 'Português (Brasil)',
+                                'zh_CN' => '中文 (简体)',
+                            ])
+                            ->placeholder(__('statements.use_system_default'))
+                            ->nullable(),
                     ])
                     ->columns(2)
                     ->columnSpan(['lg' => fn (?Company $record) => $record === null ? 3 : 2]),

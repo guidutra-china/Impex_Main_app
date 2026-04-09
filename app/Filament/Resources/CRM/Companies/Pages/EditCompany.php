@@ -4,6 +4,7 @@ namespace App\Filament\Resources\CRM\Companies\Pages;
 
 use App\Domain\CRM\Models\CompanyRoleAssignment;
 use App\Filament\Resources\CRM\Companies\CompanyResource;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,10 @@ class EditCompany extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('generateStatement')
+                ->label(__('statements.filters.title'))
+                ->icon('heroicon-o-document-text')
+                ->url(fn (): string => url('/panel/statement?company=' . $this->record->id)),
             DeleteAction::make(),
         ];
     }

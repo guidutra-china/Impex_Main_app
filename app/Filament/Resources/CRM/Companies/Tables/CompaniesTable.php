@@ -6,6 +6,7 @@ use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Enums\CompanyStatus;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Catalog\Models\Category;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -104,6 +105,10 @@ class CompaniesTable
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
+                Action::make('generateStatement')
+                    ->label(__('statements.filters.title'))
+                    ->icon('heroicon-o-document-text')
+                    ->url(fn (Company $record): string => url('/panel/statement?company=' . $record->id)),
                 DeleteAction::make(),
             ])
             ->toolbarActions([

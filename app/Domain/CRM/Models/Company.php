@@ -47,6 +47,7 @@ class Company extends Model
         'trade_fair_id',
         'business_card_path',
         'business_card_disk',
+        'preferred_language',
     ];
 
     protected function casts(): array
