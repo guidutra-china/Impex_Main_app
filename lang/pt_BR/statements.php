@@ -33,6 +33,8 @@ return [
     'columns' => [
         'number' => 'Nº',
         'client_reference' => 'Ref. Cliente',
+        'incoterm' => 'Incoterm',
+        'payment_term' => 'Cond. Pagamento',
         'date' => 'Data',
         'status' => 'Status',
         'items' => 'Itens',

@@ -35,7 +35,7 @@ final class ProformaInvoiceSectionBuilder implements SectionBuilder
             $query->where('currency_code', $filters->currency);
         }
 
-        $rows = $query->with(['items', 'paymentScheduleItems.allocations.payment'])
+        $rows = $query->with(['items', 'paymentScheduleItems.allocations.payment', 'paymentTerm'])
             ->get()
             ->map(function (ProformaInvoice $pi) {
                 $total = (int) $pi->grand_total;
@@ -46,6 +46,8 @@ final class ProformaInvoiceSectionBuilder implements SectionBuilder
                     'client_reference' => (string) ($pi->client_reference ?? ''),
                     'date' => optional($pi->issue_date)->format('Y-m-d'),
                     'status' => $pi->status instanceof \BackedEnum ? $pi->status->value : (string) $pi->status,
+                    'incoterm' => $pi->incoterm instanceof \BackedEnum ? $pi->incoterm->value : (string) ($pi->incoterm ?? ''),
+                    'payment_term' => (string) ($pi->paymentTerm?->name ?? ''),
                     'total' => round($total / Money::SCALE, 2),
                     'paid' => round($paid / Money::SCALE, 2),
                     'balance' => round(($total - $paid) / Money::SCALE, 2),
@@ -57,7 +59,7 @@ final class ProformaInvoiceSectionBuilder implements SectionBuilder
         return new StatementSection(
             key: 'proforma_invoices',
             titleKey: 'statements.sections.proforma_invoices',
-            columns: ['number', 'client_reference', 'date', 'status', 'total', 'paid', 'balance', 'currency'],
+            columns: ['number', 'client_reference', 'date', 'status', 'incoterm', 'payment_term', 'total', 'paid', 'balance', 'currency'],
             rows: $rows,
         );
     }

@@ -35,10 +35,11 @@ final class QuotationSectionBuilder implements SectionBuilder
             $query->where('currency_code', $filters->currency);
         }
 
-        $rows = $query->with('items')->get()->map(fn (Quotation $q) => [
+        $rows = $query->with(['items', 'paymentTerm'])->get()->map(fn (Quotation $q) => [
             'number' => $q->reference ?? (string) $q->id,
             'date' => optional($q->created_at)->format('Y-m-d'),
             'status' => $q->status instanceof \BackedEnum ? $q->status->value : (string) $q->status,
+            'payment_term' => (string) ($q->paymentTerm?->name ?? ''),
             'total' => round($q->total / Money::SCALE, 2),
             'currency' => (string) ($q->currency_code ?? ''),
             'valid_until' => optional($q->valid_until)->format('Y-m-d'),
@@ -47,7 +48,7 @@ final class QuotationSectionBuilder implements SectionBuilder
         return new StatementSection(
             key: 'quotations',
             titleKey: 'statements.sections.quotations',
-            columns: ['number', 'date', 'status', 'total', 'currency', 'valid_until'],
+            columns: ['number', 'date', 'status', 'payment_term', 'total', 'currency', 'valid_until'],
             rows: $rows,
         );
     }

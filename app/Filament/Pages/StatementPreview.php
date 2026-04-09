@@ -6,7 +6,9 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Reports\CompanyStatementService;
 use App\Domain\CRM\Reports\DTOs\StatementFilters;
 use App\Domain\CRM\Reports\DTOs\StatementReport;
+use App\Domain\Infrastructure\Pdf\DocumentLabels;
 use App\Domain\Infrastructure\Pdf\PdfRenderer;
+use App\Domain\Settings\DataTransferObjects\CompanySettings;
 use Carbon\CarbonImmutable;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\App;
@@ -62,8 +64,36 @@ abstract class StatementPreview extends Page
         $previous = App::getLocale();
         try {
             App::setLocale($report->locale);
+
+            $companySettings = app(CompanySettings::class);
+            $logoPath = $this->resolveLogoPath($companySettings->logo_path);
+
+            $pdfData = [
+                'report' => $report,
+                'title' => __('statements.title'),
+                'locale' => $report->locale,
+                'labels' => DocumentLabels::all($report->locale),
+                'company' => [
+                    'name' => $companySettings->company_name,
+                    'logo_path' => $logoPath,
+                    'address' => $companySettings->address,
+                    'city' => $companySettings->city,
+                    'state' => $companySettings->state,
+                    'zip_code' => $companySettings->zip_code,
+                    'country' => $companySettings->country,
+                    'phone' => $companySettings->phone,
+                    'email' => $companySettings->email,
+                    'website' => $companySettings->website,
+                    'tax_id' => $companySettings->tax_id,
+                    'registration_number' => $companySettings->registration_number,
+                    'footer_text' => $companySettings->footer_text,
+                    'bank_details' => $companySettings->bank_details_for_documents,
+                ],
+                'document_version' => 1,
+            ];
+
             $renderer = app(PdfRenderer::class);
-            $pdfBinary = $renderer->render('statements.preview', ['report' => $report]);
+            $pdfBinary = $renderer->render('pdf.statement', $pdfData);
         } finally {
             App::setLocale($previous);
         }
@@ -76,6 +106,30 @@ abstract class StatementPreview extends Page
             $filename,
             ['Content-Type' => 'application/pdf'],
         );
+    }
+
+    protected function resolveLogoPath(?string $logoPath): ?string
+    {
+        if (empty($logoPath)) {
+            return null;
+        }
+
+        $candidates = [
+            storage_path('app/public/' . $logoPath),
+            storage_path('app/' . $logoPath),
+            public_path('storage/' . $logoPath),
+            public_path($logoPath),
+        ];
+
+        foreach ($candidates as $path) {
+            if (file_exists($path)) {
+                $mime = mime_content_type($path);
+                $data = base64_encode(file_get_contents($path));
+                return "data:{$mime};base64,{$data}";
+            }
+        }
+
+        return null;
     }
 
     protected function buildReport(): StatementReport
