@@ -839,14 +839,17 @@ class PackingListBuilder extends Component
      */
     public function setFillTarget(string $target): void
     {
-        if ($target === '' || $target === 'loose') {
+        if ($target === '') {
             $this->fillTargetType = null;
             $this->fillTargetId = null;
 
             return;
         }
 
-        if (str_starts_with($target, 'container:')) {
+        if ($target === 'loose') {
+            $this->fillTargetType = 'loose';
+            $this->fillTargetId = null;
+        } elseif (str_starts_with($target, 'container:')) {
             $this->fillTargetType = 'container';
             $this->fillTargetId = (int) substr($target, 10);
         } elseif (str_starts_with($target, 'pallet:')) {
@@ -899,8 +902,8 @@ class PackingListBuilder extends Component
     {
         $fillPieces = (int) $this->fillPieces;
 
-        if (! $this->fillTargetType || ! $this->fillTargetId || ! $this->fillItemId || $fillPieces <= 0) {
-            Notification::make()->warning()->title('Select a product and quantity')->send();
+        if (! $this->fillTargetType || ! $this->fillItemId || $fillPieces <= 0) {
+            Notification::make()->warning()->title('Select a destination and quantity')->send();
 
             return;
         }
@@ -930,6 +933,7 @@ class PackingListBuilder extends Component
                 return;
             }
         }
+        // 'loose' → both null, cartons created without parent
 
         try {
             $created = app(BulkFillAction::class)->execute($item, $fillPieces, $container, $pallet);

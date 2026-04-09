@@ -136,6 +136,10 @@
                                     <select onchange="@this.call('setFillTarget', this.value)"
                                         class="mt-0.5 block w-full rounded-lg border-gray-300 text-sm dark:border-gray-700 dark:bg-gray-900">
                                         <option value="">Select target…</option>
+                                        <option value="loose"
+                                            @if($fillTargetType === 'loose') selected @endif>
+                                            📦 Loose boxes (no container/pallet)
+                                        </option>
                                         @foreach ($this->containers as $c)
                                             <option value="container:{{ $c->id }}"
                                                 @if($fillTargetType === 'container' && $fillTargetId === $c->id) selected @endif>
