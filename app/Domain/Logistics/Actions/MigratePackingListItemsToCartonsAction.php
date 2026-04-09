@@ -106,7 +106,7 @@ class MigratePackingListItemsToCartonsAction
                 'pallet_number' => $item->pallet_number,
                 'packaging_type' => $item->packaging_type?->value ?? 'CARTON',
                 'gross_weight' => $item->gross_weight,
-                'net_weight' => $item->net_weight,
+                'net_weight' => $item->net_weight ?? ($item->gross_weight ? round((float) $item->gross_weight * 0.9, 3) : null),
                 'length' => $item->length,
                 'width' => $item->width,
                 'height' => $item->height,

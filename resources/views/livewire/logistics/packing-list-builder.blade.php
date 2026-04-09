@@ -113,12 +113,77 @@
                                     Clear split
                                 </x-filament::button>
                             @elseif ($remaining > 0)
+                                <x-filament::button wire:click="startPackProduct({{ $item->id }})" size="xs" color="success" icon="heroicon-o-archive-box-arrow-down">
+                                    Pack
+                                </x-filament::button>
                                 <x-filament::button wire:click="startSplit({{ $item->id }})" size="xs" color="gray">
                                     ✂ Split
                                 </x-filament::button>
                             @endif
                         </div>
                     </div>
+
+                    {{-- Pack product form (shown when initiated from this product) --}}
+                    @if ($fillFromProduct && $fillItemId === $item->id)
+                        <div class="mt-3 rounded-md border border-green-300 bg-green-50 p-3 dark:border-green-700 dark:bg-green-950/30">
+                            <h4 class="mb-2 flex items-center gap-1.5 text-sm font-semibold text-green-900 dark:text-green-100">
+                                <x-heroicon-o-archive-box-arrow-down class="h-4 w-4" />
+                                Pack {{ $item->product_name }}
+                            </h4>
+                            <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                <label class="block">
+                                    <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Destination</span>
+                                    <select onchange="@this.call('setFillTarget', this.value)"
+                                        class="mt-0.5 block w-full rounded-lg border-gray-300 text-sm dark:border-gray-700 dark:bg-gray-900">
+                                        <option value="">Select target…</option>
+                                        @foreach ($this->containers as $c)
+                                            <option value="container:{{ $c->id }}"
+                                                @if($fillTargetType === 'container' && $fillTargetId === $c->id) selected @endif>
+                                                📦 {{ $c->label }}@if ($c->container_number) · {{ $c->container_number }}@endif
+                                            </option>
+                                            @foreach ($c->pallets as $p)
+                                                <option value="pallet:{{ $p->id }}"
+                                                    @if($fillTargetType === 'pallet' && $fillTargetId === $p->id) selected @endif>
+                                                    &nbsp;&nbsp;🟨 {{ $p->label }}
+                                                </option>
+                                            @endforeach
+                                        @endforeach
+                                        @foreach ($this->loosePallets as $p)
+                                            <option value="pallet:{{ $p->id }}"
+                                                @if($fillTargetType === 'pallet' && $fillTargetId === $p->id) selected @endif>
+                                                🟨 {{ $p->label }} (loose)
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </label>
+                                <label class="block">
+                                    <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Pieces</span>
+                                    <input type="number" min="1" wire:model.live.debounce.300ms="fillPieces"
+                                        class="mt-0.5 block w-full rounded-lg border-gray-300 text-sm dark:border-gray-700 dark:bg-gray-900" />
+                                </label>
+                                <div class="flex items-end gap-2">
+                                    <x-filament::button wire:click="confirmFill" size="sm" color="success">Pack</x-filament::button>
+                                    <x-filament::button wire:click="cancelFill" size="sm" color="gray">Cancel</x-filament::button>
+                                </div>
+                            </div>
+                            @php $preview = $this->fillPreview; @endphp
+                            @if ($preview['cartons'] > 0 || $preview['remainder'] > 0)
+                                <div class="mt-2 rounded bg-white p-2 text-sm dark:bg-gray-900">
+                                    @if ($preview['cartons'] > 0)
+                                        <span class="font-semibold text-green-700 dark:text-green-400">→ {{ number_format($preview['cartons']) }} carton(s)</span>
+                                        @if ($preview['per_carton'] > 0)
+                                            <span class="text-gray-500">@ {{ $preview['per_carton'] }} pcs/carton</span>
+                                        @endif
+                                    @endif
+                                    @if ($preview['remainder'] > 0)
+                                        <span class="text-amber-600 dark:text-amber-400">
+                                            · {{ $preview['remainder'] }} pcs remaining (add manually)
+                                        </span>
+                                    @endif
+                                </div>
+                            @endif
+                        </div>
+                    @endif
 
                     @if ($isSplit && $progress)
                         <div class="mt-3 space-y-2 border-t border-gray-200 pt-3 dark:border-gray-700">

@@ -80,12 +80,13 @@ class PackingListBuilder extends Component
     // "Move pallet" target
     public ?int $movePalletId = null;
 
-    // "Bulk fill" form state
+    // "Bulk fill" / "Pack product" form state
     // fillTargetType: 'container' | 'pallet' | null
     public ?string $fillTargetType = null;
     public ?int $fillTargetId = null;
     public ?int $fillItemId = null;
     public mixed $fillPieces = 0; // mixed: browser sends "" when input cleared
+    public bool $fillFromProduct = false; // true when initiated from product card (pick target)
 
     public function mount(Shipment $shipment): void
     {
@@ -779,12 +780,30 @@ class PackingListBuilder extends Component
         $this->fillPieces = 0;
     }
 
+    /**
+     * Start fill from product card — user picks the target container/pallet.
+     */
+    public function startPackProduct(int $itemId): void
+    {
+        $this->fillFromProduct = true;
+        $this->fillTargetType = null;
+        $this->fillTargetId = null;
+        $this->fillItemId = $itemId;
+
+        $item = $this->shipment->items()->find($itemId);
+        if ($item) {
+            $progress = app(PackingProgressService::class)->forShipmentItem($item);
+            $this->fillPieces = $progress->remaining();
+        }
+    }
+
     public function cancelFill(): void
     {
         $this->fillTargetType = null;
         $this->fillTargetId = null;
         $this->fillItemId = null;
         $this->fillPieces = 0;
+        $this->fillFromProduct = false;
     }
 
     public function updatedFillItemId($value): void
@@ -805,6 +824,35 @@ class PackingListBuilder extends Component
 
         $progress = app(PackingProgressService::class)->forShipmentItem($item);
         $this->fillPieces = $progress->remaining();
+    }
+
+    /**
+     * When user picks a target in the "Pack product" form.
+     */
+    public function updatedFillTargetId(): void
+    {
+        // Auto-detect type from the value (set by the select)
+    }
+
+    /**
+     * Set fill target from the combined select (used by pack-from-product form).
+     */
+    public function setFillTarget(string $target): void
+    {
+        if ($target === '' || $target === 'loose') {
+            $this->fillTargetType = null;
+            $this->fillTargetId = null;
+
+            return;
+        }
+
+        if (str_starts_with($target, 'container:')) {
+            $this->fillTargetType = 'container';
+            $this->fillTargetId = (int) substr($target, 10);
+        } elseif (str_starts_with($target, 'pallet:')) {
+            $this->fillTargetType = 'pallet';
+            $this->fillTargetId = (int) substr($target, 7);
+        }
     }
 
     /**
