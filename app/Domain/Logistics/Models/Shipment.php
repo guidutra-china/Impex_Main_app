@@ -6,11 +6,9 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Traits\HasAdditionalCosts;
 use App\Domain\Financial\Traits\HasPaymentSchedule;
 use App\Domain\Infrastructure\Enums\DocumentType;
-use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Infrastructure\Traits\HasDocuments;
 use App\Domain\Infrastructure\Traits\HasReference;
 use App\Domain\Infrastructure\Traits\HasStateMachine;
-
 use App\Domain\Logistics\Enums\ImportModality;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Enums\TransportMode;
@@ -26,7 +24,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Shipment extends Model
 {
-    use HasFactory, SoftDeletes, HasReference, HasStateMachine, HasDocuments, HasAdditionalCosts, HasPaymentSchedule, LogsActivity;
+    use HasAdditionalCosts, HasDocuments, HasFactory, HasPaymentSchedule, HasReference, HasStateMachine, LogsActivity, SoftDeletes;
 
     protected $fillable = [
         'reference',
@@ -176,12 +174,28 @@ class Shipment extends Model
         return $this->hasMany(PackingListItem::class)->orderBy('sort_order');
     }
 
+    public function cartons(): HasMany
+    {
+        return $this->hasMany(Carton::class)->orderBy('sort_order');
+    }
+
+    public function shipmentContainers(): HasMany
+    {
+        return $this->hasMany(ShipmentContainer::class)->orderBy('sort_order')->orderBy('label');
+    }
+
+    public function shipmentPallets(): HasMany
+    {
+        return $this->hasMany(ShipmentPallet::class)->orderBy('sort_order')->orderBy('label');
+    }
+
     // --- Accessors ---
 
     public function getTotalValueAttribute(): int
     {
         return $this->items->sum(function ($item) {
             $piItem = $item->proformaInvoiceItem;
+
             return $piItem ? $piItem->unit_price * $item->quantity : 0;
         });
     }

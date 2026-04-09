@@ -4,12 +4,15 @@ namespace App\Domain\Infrastructure\Pdf\Templates;
 
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Logistics\Enums\ImportModality;
+use App\Domain\Logistics\Models\Carton;
 use App\Domain\Logistics\Models\Shipment;
-
+use App\Domain\Logistics\Services\PackingProgressService;
+use Illuminate\Support\Collection;
 
 class PackingListPdfTemplate extends AbstractPdfTemplate
 {
     private ?int $clientCompanyId = null;
+
     private array $clientPivotCache = [];
 
     public function getView(): string
@@ -31,7 +34,7 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
     {
         $reference = $this->model->reference ?? $this->model->getKey();
 
-        return 'PL-' . $reference . '-v' . $this->getNextVersion() . '.pdf';
+        return 'PL-'.$reference.'-v'.$this->getNextVersion().'.pdf';
     }
 
     public function getOrientation(): string
@@ -48,7 +51,9 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
             'companyBranch',
             'items.proformaInvoiceItem.product.companies',
             'items.proformaInvoiceItem.proformaInvoice',
-            'packingListItems.shipmentItem.proformaInvoiceItem.product.companies',
+            'cartons.contents.shipmentItem.proformaInvoiceItem.product.companies',
+            'cartons.shipmentContainer',
+            'cartons.pallet.container',
         ]);
 
         $this->clientCompanyId = $shipment->company_id;
@@ -62,9 +67,8 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
             ->unique()
             ->implode(', ');
 
-        $containerGroups = $this->buildContainerGroups($shipment);
-
-        $totals = $this->calculateDedupedTotals($shipment->packingListItems);
+        $containerGroups = $this->buildContainerGroupsFromCartons($shipment);
+        $totals = $this->computeShipmentTotals($shipment);
 
         $documentDate = $shipment->issue_date ?? $shipment->etd ?? $shipment->created_at ?? now();
 
@@ -97,173 +101,241 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
         ];
     }
 
-    private function buildContainerGroups(Shipment $shipment): array
+    /**
+     * @return array<int, array{container_number: ?string, lines: array, totals: array}>
+     */
+    private function buildContainerGroupsFromCartons(Shipment $shipment): array
     {
-        $items = $shipment->packingListItems
-            ->sortBy('carton_from')
+        $cartons = $shipment->cartons
+            ->sortBy([['sort_order', 'asc'], ['label', 'asc']])
             ->values();
 
-        $grouped = $items->groupBy(fn ($item) => $item->container_number ?? '__none__');
+        $grouped = $cartons->groupBy(function (Carton $c) {
+            $effective = $c->getEffectiveContainer();
+            if ($effective) {
+                return $effective->container_number ?: $effective->label;
+            }
+
+            return $c->container_number ?: '__none__';
+        });
 
         $containerGroups = [];
 
-        foreach ($grouped as $containerNumber => $containerItems) {
-            $lines = $this->buildMergedLines($containerItems);
-
-            $containerTotals = $this->calculateDedupedTotals($containerItems);
+        foreach ($grouped as $containerNumber => $containerCartons) {
+            $lines = $this->buildLinesFromCartons($containerCartons);
 
             $containerGroups[] = [
                 'container_number' => $containerNumber === '__none__' ? null : $containerNumber,
                 'lines' => $lines,
-                'totals' => $containerTotals,
+                'totals' => $this->computeCartonSubtotals($containerCartons),
             ];
         }
 
         return $containerGroups;
     }
 
-    private function buildMergedLines(mixed $containerItems): array
+    /**
+     * @param  Collection<int, Carton>  $cartons
+     */
+    private function buildLinesFromCartons(Collection $cartons): array
     {
-        $sorted = $containerItems->sortBy('carton_from')->values();
-
-        $cartonGroups = $sorted->groupBy(fn ($item) => $item->carton_from . '-' . $item->carton_to);
-
         $lines = [];
 
-        foreach ($cartonGroups as $cartonKey => $groupItems) {
-            $isMixed = $groupItems->count() > 1;
+        foreach ($cartons as $carton) {
+            $contents = $carton->contents->sortBy('sort_order')->values();
 
-            if ($isMixed) {
-                $totalGW = $groupItems->sum(fn ($i) => (float) $i->total_gross_weight);
-                $totalNW = $groupItems->sum(fn ($i) => (float) $i->total_net_weight);
-                $totalVol = $groupItems->sum(fn ($i) => (float) $i->total_volume);
-                $totalPkgs = $groupItems->first()->quantity;
+            if ($contents->isEmpty()) {
+                // Empty carton — single placeholder line with box info
+                $lines[] = $this->buildEmptyCartonLine($carton);
 
-                $firstItem = $groupItems->first();
-                $firstProduct = $firstItem->shipmentItem?->proformaInvoiceItem?->product;
-                $firstPivot = $this->getClientPivot($firstProduct);
+                continue;
+            }
 
-                $lines[] = [
-                    'package_no' => $this->formatPackageNumber($firstItem->carton_from, $firstItem->carton_to),
-                    'pallet' => $firstItem->pallet_number ? 'PLT-' . str_pad($firstItem->pallet_number, 2, '0', STR_PAD_LEFT) : null,
-                    'model_no' => $firstPivot?->external_code ?: ($firstProduct?->model_number ?: ($firstProduct?->sku ?? '')),
-                    'product_name' => $firstPivot?->external_name ?: $firstItem->product_name,
-                    'description' => $firstItem->description,
-                    'unit' => $firstItem->shipmentItem?->unit ?? 'pcs',
-                    'equipment_qty' => $firstItem->total_quantity,
-                    'package_qty' => $totalPkgs,
-                    'net_weight' => $totalNW ? number_format($totalNW, 1) : '',
-                    'gross_weight' => $totalGW ? number_format($totalGW, 1) : '',
-                    'dimensions' => $this->formatDimensions($firstItem),
-                    'volume' => $totalVol ? number_format($totalVol, 2) : '',
-                    'is_sub_item' => false,
-                ];
-
-                foreach ($groupItems->skip(1) as $subItem) {
-                    $subProduct = $subItem->shipmentItem?->proformaInvoiceItem?->product;
-                    $subPivot = $this->getClientPivot($subProduct);
-
-                    $lines[] = [
-                        'package_no' => '',
-                        'pallet' => null,
-                        'model_no' => $subPivot?->external_code ?: ($subProduct?->model_number ?: ($subProduct?->sku ?? '')),
-                        'product_name' => $subPivot?->external_name ?: $subItem->product_name,
-                        'description' => $subItem->description,
-                        'unit' => $subItem->shipmentItem?->unit ?? 'pcs',
-                        'equipment_qty' => $subItem->total_quantity,
-                        'package_qty' => '',
-                        'net_weight' => '',
-                        'gross_weight' => '',
-                        'dimensions' => '',
-                        'volume' => '',
-                        'is_sub_item' => true,
-                    ];
-                }
-            } else {
-                $item = $groupItems->first();
-                $product = $item->shipmentItem?->proformaInvoiceItem?->product;
-                $pivot = $this->getClientPivot($product);
-
-                $lines[] = [
-                    'package_no' => $this->formatPackageNumber($item->carton_from, $item->carton_to),
-                    'pallet' => $item->pallet_number ? 'PLT-' . str_pad($item->pallet_number, 2, '0', STR_PAD_LEFT) : null,
-                    'model_no' => $pivot?->external_code ?: ($product?->model_number ?: ($product?->sku ?? '')),
-                    'product_name' => $pivot?->external_name ?: $item->product_name,
-                    'description' => $item->description,
-                    'unit' => $item->shipmentItem?->unit ?? 'pcs',
-                    'equipment_qty' => $item->total_quantity,
-                    'package_qty' => $item->quantity,
-                    'net_weight' => $item->total_net_weight ? number_format((float) $item->total_net_weight, 1) : '',
-                    'gross_weight' => $item->total_gross_weight ? number_format((float) $item->total_gross_weight, 1) : '',
-                    'dimensions' => $this->formatDimensions($item),
-                    'volume' => $item->total_volume ? number_format((float) $item->total_volume, 2) : '',
-                    'is_sub_item' => false,
-                ];
+            foreach ($contents as $index => $content) {
+                $isFirst = $index === 0;
+                $lines[] = $this->buildContentLine($carton, $content, $isFirst);
             }
         }
 
         return $lines;
     }
 
-    private function formatPackageNumber(?int $from, ?int $to): string
+    private function buildEmptyCartonLine(Carton $carton): array
     {
-        if (! $from) {
-            return '';
-        }
-
-        if (! $to || $from === $to) {
-            return (string) $from;
-        }
-
-        return $from . '-' . $to;
+        return [
+            'package_no' => $carton->label,
+            'pallet' => $this->resolvePalletLabel($carton),
+            'model_no' => '',
+            'product_name' => '—',
+            'description' => null,
+            'unit' => '',
+            'equipment_qty' => '',
+            'package_qty' => 1,
+            'net_weight' => $carton->net_weight ? number_format((float) $carton->net_weight, 1) : '',
+            'gross_weight' => $carton->gross_weight ? number_format((float) $carton->gross_weight, 1) : '',
+            'dimensions' => $this->formatCartonDimensions($carton),
+            'volume' => $carton->volume ? number_format((float) $carton->volume, 2) : '',
+            'is_sub_item' => false,
+        ];
     }
 
-    private function formatDimensions($item): string
+    private function buildContentLine(Carton $carton, $content, bool $isFirst): array
     {
-        if (! $item->length && ! $item->width && ! $item->height) {
+        $shipmentItem = $content->shipmentItem;
+        $product = $shipmentItem?->proformaInvoiceItem?->product;
+        $pivot = $this->getClientPivot($product);
+
+        $productName = $pivot?->external_name ?: ($shipmentItem?->product_name ?? '—');
+        if (filled($content->part_label)) {
+            $productName .= ' — '.$content->part_label;
+        }
+
+        if ($isFirst) {
+            return [
+                'package_no' => $carton->label,
+                'pallet' => $this->resolvePalletLabel($carton),
+                'model_no' => $pivot?->external_code ?: ($product?->model_number ?: ($product?->sku ?? '')),
+                'product_name' => $productName,
+                'description' => $shipmentItem?->notes,
+                'unit' => $shipmentItem?->unit ?? 'pcs',
+                'equipment_qty' => (int) $content->pieces,
+                'package_qty' => 1,
+                'net_weight' => $this->formatContentNetWeight($carton, $content, true),
+                'gross_weight' => $this->formatContentGrossWeight($carton, $content, true),
+                'dimensions' => $this->formatCartonDimensions($carton),
+                'volume' => $carton->volume ? number_format((float) $carton->volume, 2) : '',
+                'is_sub_item' => false,
+            ];
+        }
+
+        return [
+            'package_no' => '',
+            'pallet' => null,
+            'model_no' => $pivot?->external_code ?: ($product?->model_number ?: ($product?->sku ?? '')),
+            'product_name' => $productName,
+            'description' => $shipmentItem?->notes,
+            'unit' => $shipmentItem?->unit ?? 'pcs',
+            'equipment_qty' => (int) $content->pieces,
+            'package_qty' => '',
+            'net_weight' => $this->formatContentNetWeight($carton, $content, false),
+            'gross_weight' => $this->formatContentGrossWeight($carton, $content, false),
+            'dimensions' => '',
+            'volume' => '',
+            'is_sub_item' => true,
+        ];
+    }
+
+    private function formatContentGrossWeight(Carton $carton, $content, bool $isFirst): string
+    {
+        // Prefer weight_share when set; otherwise only show carton gross on first line.
+        if ($content->weight_share !== null) {
+            return number_format((float) $content->weight_share, 1);
+        }
+
+        if ($isFirst && $carton->gross_weight !== null) {
+            return number_format((float) $carton->gross_weight, 1);
+        }
+
+        return '';
+    }
+
+    private function formatContentNetWeight(Carton $carton, $content, bool $isFirst): string
+    {
+        // Net weight follows the same pattern — no per-content net_weight field,
+        // so only the first line carries the carton's net weight.
+        if ($isFirst && $carton->net_weight !== null) {
+            return number_format((float) $carton->net_weight, 1);
+        }
+
+        return '';
+    }
+
+    /**
+     * Resolve the pallet label for a carton — prefers the Pallet relation
+     * (new hierarchy), falls back to the legacy pallet_number integer column.
+     */
+    private function resolvePalletLabel(Carton $carton): ?string
+    {
+        if ($carton->shipment_pallet_id && $carton->pallet) {
+            return $carton->pallet->label;
+        }
+
+        if ($carton->pallet_number) {
+            return 'PLT-'.str_pad((string) $carton->pallet_number, 2, '0', STR_PAD_LEFT);
+        }
+
+        return null;
+    }
+
+    private function formatCartonDimensions(Carton $carton): string
+    {
+        if (! $carton->length && ! $carton->width && ! $carton->height) {
             return '';
         }
 
-        $l = $item->length ? number_format((float) $item->length, 0) : '—';
-        $w = $item->width ? number_format((float) $item->width, 0) : '—';
-        $h = $item->height ? number_format((float) $item->height, 0) : '—';
+        $l = $carton->length ? number_format((float) $carton->length, 0) : '—';
+        $w = $carton->width ? number_format((float) $carton->width, 0) : '—';
+        $h = $carton->height ? number_format((float) $carton->height, 0) : '—';
 
         return "{$l} × {$w} × {$h}";
     }
 
-    private function calculateDedupedTotals($items): array
+    /**
+     * Grand totals — uses PackingProgressService to dedupe multi-box sets for equipment_qty.
+     */
+    private function computeShipmentTotals(Shipment $shipment): array
     {
-        $seenCartonRanges = [];
-        $totalPackages = 0;
-        $totalEquipmentQty = 0;
-        $totalGrossWeight = 0;
-        $totalNetWeight = 0;
-        $totalVolume = 0;
+        $cartons = $shipment->cartons;
 
-        foreach ($items as $item) {
-            $rangeKey = $item->carton_from . '-' . $item->carton_to;
+        $totalPackages = $cartons->count();
+        $totalGross = (float) $cartons->sum(fn ($c) => (float) $c->gross_weight);
+        $totalNet = (float) $cartons->sum(fn ($c) => (float) $c->net_weight);
+        $totalVolume = (float) $cartons->sum(fn ($c) => (float) $c->volume);
 
-            if (! isset($seenCartonRanges[$rangeKey])) {
-                $seenCartonRanges[$rangeKey] = true;
-                $totalPackages += (int) $item->quantity;
-            }
-
-            $totalEquipmentQty += (int) $item->total_quantity;
-            $totalGrossWeight += (float) $item->total_gross_weight;
-            $totalNetWeight += (float) $item->total_net_weight;
-            $totalVolume += (float) $item->total_volume;
-        }
+        $progress = app(PackingProgressService::class)->forShipment($shipment);
+        $totalEquipmentQty = (int) $progress->sum(fn ($p) => $p->packedComplete);
 
         return [
             'total_packages' => $totalPackages,
-            'total_gross_weight' => $totalGrossWeight,
-            'total_net_weight' => $totalNetWeight,
+            'total_gross_weight' => $totalGross,
+            'total_net_weight' => $totalNet,
             'total_volume' => $totalVolume,
             'total_equipment_qty' => $totalEquipmentQty,
             'packages' => $totalPackages,
             'equipment_qty' => $totalEquipmentQty,
-            'gross_weight' => $totalGrossWeight,
-            'net_weight' => $totalNetWeight,
+            'gross_weight' => $totalGross,
+            'net_weight' => $totalNet,
+            'volume' => $totalVolume,
+        ];
+    }
+
+    /**
+     * Per-container subtotals — no dedupe needed because the grand total handles it.
+     * Sums pieces directly for equipment_qty display.
+     *
+     * @param  Collection<int, Carton>  $cartons
+     */
+    private function computeCartonSubtotals(Collection $cartons): array
+    {
+        $totalPackages = $cartons->count();
+        $totalGross = (float) $cartons->sum(fn ($c) => (float) $c->gross_weight);
+        $totalNet = (float) $cartons->sum(fn ($c) => (float) $c->net_weight);
+        $totalVolume = (float) $cartons->sum(fn ($c) => (float) $c->volume);
+
+        $totalEquipmentQty = (int) $cartons
+            ->flatMap(fn (Carton $c) => $c->contents)
+            ->sum(fn ($content) => (int) $content->pieces);
+
+        return [
+            'total_packages' => $totalPackages,
+            'total_gross_weight' => $totalGross,
+            'total_net_weight' => $totalNet,
+            'total_volume' => $totalVolume,
+            'total_equipment_qty' => $totalEquipmentQty,
+            'packages' => $totalPackages,
+            'equipment_qty' => $totalEquipmentQty,
+            'gross_weight' => $totalGross,
+            'net_weight' => $totalNet,
             'volume' => $totalVolume,
         ];
     }
@@ -275,35 +347,29 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
         }
 
         foreach ($shipment->items as $item) {
-            $product = $item->proformaInvoiceItem?->product;
-            if (! $product || isset($this->clientPivotCache[$product->id])) {
-                continue;
-            }
-
-            $clientPivot = $product->companies
-                ->where('pivot.company_id', $this->clientCompanyId)
-                ->where('pivot.role', 'client')
-                ->first();
-
-            if ($clientPivot) {
-                $this->clientPivotCache[$product->id] = $clientPivot->pivot;
-            }
+            $this->cachePivotForProduct($item->proformaInvoiceItem?->product);
         }
 
-        foreach ($shipment->packingListItems as $plItem) {
-            $product = $plItem->shipmentItem?->proformaInvoiceItem?->product;
-            if (! $product || isset($this->clientPivotCache[$product->id])) {
-                continue;
+        foreach ($shipment->cartons as $carton) {
+            foreach ($carton->contents as $content) {
+                $this->cachePivotForProduct($content->shipmentItem?->proformaInvoiceItem?->product);
             }
+        }
+    }
 
-            $clientPivot = $product->companies
-                ->where('pivot.company_id', $this->clientCompanyId)
-                ->where('pivot.role', 'client')
-                ->first();
+    private function cachePivotForProduct(?Product $product): void
+    {
+        if (! $product || isset($this->clientPivotCache[$product->id])) {
+            return;
+        }
 
-            if ($clientPivot) {
-                $this->clientPivotCache[$product->id] = $clientPivot->pivot;
-            }
+        $clientPivot = $product->companies
+            ->where('pivot.company_id', $this->clientCompanyId)
+            ->where('pivot.role', 'client')
+            ->first();
+
+        if ($clientPivot) {
+            $this->clientPivotCache[$product->id] = $clientPivot->pivot;
         }
     }
 

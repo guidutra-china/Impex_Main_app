@@ -8,9 +8,9 @@ use App\Filament\RelationManagers\DocumentsRelationManager;
 use App\Filament\Resources\Shipments\Pages\CreateShipment;
 use App\Filament\Resources\Shipments\Pages\EditShipment;
 use App\Filament\Resources\Shipments\Pages\ListShipments;
+use App\Filament\Resources\Shipments\Pages\ManagePackingList;
 use App\Filament\Resources\Shipments\Pages\ViewShipment;
 use App\Filament\Resources\Shipments\RelationManagers\ItemsRelationManager;
-use App\Filament\Resources\Shipments\RelationManagers\PackingListRelationManager;
 use App\Filament\Resources\Shipments\RelationManagers\PaymentScheduleRelationManager;
 use App\Filament\Resources\Shipments\Schemas\ShipmentForm;
 use App\Filament\Resources\Shipments\Schemas\ShipmentInfolist;
@@ -58,7 +58,8 @@ class ShipmentResource extends Resource
     {
         return [
             ItemsRelationManager::class,
-            PackingListRelationManager::class,
+            // PackingListRelationManager removed in PR #3 — replaced by ManagePackingList page
+            // which hosts the PackingListBuilder Livewire component.
             AdditionalCostsRelationManager::class,
             PaymentScheduleRelationManager::class,
             DocumentsRelationManager::class,
@@ -72,6 +73,7 @@ class ShipmentResource extends Resource
             'create' => CreateShipment::route('/create'),
             'view' => ViewShipment::route('/{record}'),
             'edit' => EditShipment::route('/{record}/edit'),
+            'packing-list' => ManagePackingList::route('/{record}/packing-list'),
         ];
     }
 

@@ -8,6 +8,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PackingListItem extends Model
 {
+    /**
+     * NOTE: `package_label` and `is_primary_package` are intentionally kept in
+     * $fillable so the `PackingListItemObserver` can continue to sync multi-box
+     * siblings during the PR #2–#3 transition window (reads from legacy data).
+     * The UI (deleted in PR #3) no longer writes these fields. PR #4 drops the
+     * entire `packing_list_items` table and these field references become dead
+     * code; removed there.
+     */
     protected $fillable = [
         'shipment_id',
         'shipment_item_id',
@@ -17,6 +25,8 @@ class PackingListItem extends Model
         'carton_from',
         'carton_to',
         'description',
+        'package_label',
+        'is_primary_package',
         'quantity',
         'qty_per_carton',
         'total_quantity',
@@ -40,6 +50,7 @@ class PackingListItem extends Model
             'pallet_number' => 'integer',
             'carton_from' => 'integer',
             'carton_to' => 'integer',
+            'is_primary_package' => 'boolean',
             'quantity' => 'integer',
             'qty_per_carton' => 'integer',
             'total_quantity' => 'integer',
@@ -76,7 +87,7 @@ class PackingListItem extends Model
             return (string) $this->carton_from;
         }
 
-        return $this->carton_from . ' - ' . $this->carton_to;
+        return $this->carton_from.' - '.$this->carton_to;
     }
 
     public function getCartonCountAttribute(): int

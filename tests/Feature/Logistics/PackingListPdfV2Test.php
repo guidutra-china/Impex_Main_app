@@ -1,0 +1,283 @@
+<?php
+
+namespace Tests\Feature\Logistics;
+
+use App\Domain\CRM\Models\Company;
+use App\Domain\Infrastructure\Pdf\Templates\PackingListPdfTemplate;
+use App\Domain\Inquiries\Models\Inquiry;
+use App\Domain\Logistics\Models\Carton;
+use App\Domain\Logistics\Models\CartonContent;
+use App\Domain\Logistics\Models\Shipment;
+use App\Domain\Logistics\Models\ShipmentItem;
+use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
+use ReflectionMethod;
+use Tests\TestCase;
+
+class PackingListPdfV2Test extends TestCase
+{
+    use RefreshDatabase;
+
+    private function makeShipmentWithItems(array $itemQuantities): array
+    {
+        $client = Company::create(['name' => 'Client PL-'.uniqid(), 'status' => 'active']);
+        $client->companyRoles()->create(['role' => 'client']);
+
+        $inquiry = Inquiry::create([
+            'reference' => 'INQ-PL-'.uniqid(),
+            'company_id' => $client->id,
+            'status' => 'received',
+            'source' => 'email',
+            'currency_code' => 'USD',
+        ]);
+
+        $pi = ProformaInvoice::create([
+            'reference' => 'PI-PL-'.uniqid(),
+            'inquiry_id' => $inquiry->id,
+            'company_id' => $client->id,
+            'currency_code' => 'USD',
+            'issue_date' => '2026-04-08',
+            'status' => 'confirmed',
+        ]);
+
+        $shipment = Shipment::create([
+            'reference' => 'SHIP-PL-'.uniqid(),
+            'company_id' => $client->id,
+            'currency_code' => 'USD',
+            'status' => 'draft',
+            'transport_mode' => 'sea',
+            'origin_port' => 'Shanghai',
+            'destination_port' => 'Santos',
+            'issue_date' => '2026-04-08',
+        ]);
+
+        $items = [];
+        foreach ($itemQuantities as $name => $qty) {
+            $piItem = ProformaInvoiceItem::create([
+                'proforma_invoice_id' => $pi->id,
+                'description' => $name,
+                'quantity' => $qty,
+                'unit_price' => 1000,
+                'unit' => 'pcs',
+            ]);
+
+            $items[$name] = ShipmentItem::create([
+                'shipment_id' => $shipment->id,
+                'proforma_invoice_item_id' => $piItem->id,
+                'quantity' => $qty,
+                'unit' => 'pcs',
+                'sort_order' => count($items),
+            ]);
+        }
+
+        return [$shipment, $items];
+    }
+
+    private function makeCarton(Shipment $shipment, string $label, array $attrs = []): Carton
+    {
+        return Carton::create(array_merge([
+            'shipment_id' => $shipment->id,
+            'label' => $label,
+            'packaging_type' => 'CARTON',
+            'sort_order' => $shipment->cartons()->count() + 1,
+        ], $attrs));
+    }
+
+    private function addContent(Carton $carton, ?int $shipmentItemId, int $pieces, ?string $setId = null, ?string $partLabel = null): CartonContent
+    {
+        return CartonContent::create([
+            'carton_id' => $carton->id,
+            'shipment_item_id' => $shipmentItemId,
+            'pieces' => $pieces,
+            'multi_box_set_id' => $setId,
+            'part_label' => $partLabel,
+            'sort_order' => $carton->contents()->count() + 1,
+        ]);
+    }
+
+    private function getData(Shipment $shipment): array
+    {
+        $template = new PackingListPdfTemplate($shipment);
+        $method = new ReflectionMethod($template, 'getDocumentData');
+        $method->setAccessible(true);
+
+        return $method->invoke($template);
+    }
+
+    public function test_scenario_1_normal_10_cartons_of_sandals(): void
+    {
+        [$shipment, $items] = $this->makeShipmentWithItems(['sandals' => 100]);
+
+        for ($i = 1; $i <= 10; $i++) {
+            $box = $this->makeCarton($shipment, 'BOX-'.str_pad((string) $i, 3, '0', STR_PAD_LEFT), [
+                'gross_weight' => 5.0,
+                'net_weight' => 4.5,
+                'volume' => 0.020,
+            ]);
+            $this->addContent($box, $items['sandals']->id, 10);
+        }
+
+        $data = $this->getData($shipment);
+
+        $this->assertCount(1, $data['container_groups']);
+        $this->assertCount(10, $data['container_groups'][0]['lines']);
+        $this->assertEquals(10, $data['totals']['total_packages']);
+        $this->assertEquals(100, $data['totals']['total_equipment_qty']);
+        $this->assertEqualsWithDelta(50.0, $data['totals']['total_gross_weight'], 0.01);
+
+        // Every line should be a main line (no sub-items since each carton has 1 content)
+        foreach ($data['container_groups'][0]['lines'] as $line) {
+            $this->assertFalse($line['is_sub_item']);
+            $this->assertEquals(10, $line['equipment_qty']);
+            $this->assertEquals(1, $line['package_qty']);
+        }
+    }
+
+    public function test_scenario_2_overflow_mixed_carton(): void
+    {
+        [$shipment, $items] = $this->makeShipmentWithItems([
+            'sandals' => 95,
+            'socks' => 3,
+        ]);
+
+        // 9 full cartons of sandals
+        for ($i = 1; $i <= 9; $i++) {
+            $box = $this->makeCarton($shipment, 'BOX-'.str_pad((string) $i, 3, '0', STR_PAD_LEFT), [
+                'gross_weight' => 5.0,
+            ]);
+            $this->addContent($box, $items['sandals']->id, 10);
+        }
+
+        // 1 mixed carton: 5 sandals + 3 socks
+        $mixed = $this->makeCarton($shipment, 'BOX-010', ['gross_weight' => 3.0]);
+        $this->addContent($mixed, $items['sandals']->id, 5);
+        $this->addContent($mixed, $items['socks']->id, 3);
+
+        $data = $this->getData($shipment);
+
+        $this->assertEquals(10, $data['totals']['total_packages']);
+        $this->assertEquals(98, $data['totals']['total_equipment_qty']); // 95 sandals + 3 socks
+
+        // Total lines: 9 main + 1 main + 1 sub-item = 11
+        $this->assertCount(11, $data['container_groups'][0]['lines']);
+
+        // Find the sub-item
+        $subItems = array_filter($data['container_groups'][0]['lines'], fn ($l) => $l['is_sub_item']);
+        $this->assertCount(1, $subItems);
+    }
+
+    public function test_scenario_3_multi_box_product(): void
+    {
+        [$shipment, $items] = $this->makeShipmentWithItems(['machine' => 1]);
+
+        $setId = (string) Str::ulid();
+        $items['machine']->update([
+            'packing_split' => ['set_id' => $setId, 'part_labels' => ['Frame', 'Accessories']],
+        ]);
+
+        $box1 = $this->makeCarton($shipment, 'BOX-001', ['gross_weight' => 50.0]);
+        $box2 = $this->makeCarton($shipment, 'BOX-002', ['gross_weight' => 15.0]);
+
+        $this->addContent($box1, $items['machine']->id, 1, $setId, 'Frame');
+        $this->addContent($box2, $items['machine']->id, 1, $setId, 'Accessories');
+
+        $data = $this->getData($shipment);
+
+        $this->assertEquals(2, $data['totals']['total_packages']);
+        $this->assertEquals(1, $data['totals']['total_equipment_qty'], 'Multi-box set must dedupe to 1 unit');
+        $this->assertEqualsWithDelta(65.0, $data['totals']['total_gross_weight'], 0.01);
+
+        $this->assertCount(2, $data['container_groups'][0]['lines']);
+
+        // Both lines should show the part_label in product_name
+        $productNames = array_map(fn ($l) => $l['product_name'], $data['container_groups'][0]['lines']);
+        $this->assertStringContainsString('Frame', $productNames[0]);
+        $this->assertStringContainsString('Accessories', $productNames[1]);
+    }
+
+    public function test_scenario_4_multi_box_plus_sharing(): void
+    {
+        [$shipment, $items] = $this->makeShipmentWithItems([
+            'machine' => 1,
+            'sandals' => 5,
+            'socks' => 3,
+        ]);
+
+        $setId = (string) Str::ulid();
+        $items['machine']->update([
+            'packing_split' => ['set_id' => $setId, 'part_labels' => ['Frame', 'Accessories']],
+        ]);
+
+        $box1 = $this->makeCarton($shipment, 'BOX-001', ['gross_weight' => 50.0]);
+        $box2 = $this->makeCarton($shipment, 'BOX-002', ['gross_weight' => 20.0]);
+
+        $this->addContent($box1, $items['machine']->id, 1, $setId, 'Frame');
+        $this->addContent($box2, $items['machine']->id, 1, $setId, 'Accessories');
+        $this->addContent($box2, $items['sandals']->id, 5);
+        $this->addContent($box2, $items['socks']->id, 3);
+
+        $data = $this->getData($shipment);
+
+        $this->assertEquals(2, $data['totals']['total_packages']);
+        // 1 machine (deduped) + 5 sandals + 3 socks
+        $this->assertEquals(9, $data['totals']['total_equipment_qty']);
+
+        // BOX-001: 1 line, BOX-002: 3 lines (1 main + 2 sub-items) = 4 total
+        $this->assertCount(4, $data['container_groups'][0]['lines']);
+
+        // Count sub-items: should be 2 (the sandals + socks under BOX-002)
+        $subItems = array_filter($data['container_groups'][0]['lines'], fn ($l) => $l['is_sub_item']);
+        $this->assertCount(2, $subItems);
+    }
+
+    public function test_grouping_by_container_number(): void
+    {
+        [$shipment, $items] = $this->makeShipmentWithItems(['sandals' => 20]);
+
+        $this->addContent(
+            $this->makeCarton($shipment, 'BOX-001', ['container_number' => 'CCLU1111', 'gross_weight' => 5.0]),
+            $items['sandals']->id,
+            10,
+        );
+        $this->addContent(
+            $this->makeCarton($shipment, 'BOX-002', ['container_number' => 'CCLU1111', 'gross_weight' => 5.0]),
+            $items['sandals']->id,
+            5,
+        );
+        $this->addContent(
+            $this->makeCarton($shipment, 'BOX-003', ['container_number' => 'CCLU2222', 'gross_weight' => 5.0]),
+            $items['sandals']->id,
+            5,
+        );
+
+        $data = $this->getData($shipment);
+
+        $this->assertCount(2, $data['container_groups']);
+        $this->assertTrue($data['has_multiple_containers']);
+
+        $containerA = collect($data['container_groups'])->firstWhere('container_number', 'CCLU1111');
+        $containerB = collect($data['container_groups'])->firstWhere('container_number', 'CCLU2222');
+
+        $this->assertNotNull($containerA);
+        $this->assertNotNull($containerB);
+        $this->assertCount(2, $containerA['lines']);
+        $this->assertCount(1, $containerB['lines']);
+    }
+
+    public function test_package_no_uses_carton_label(): void
+    {
+        [$shipment, $items] = $this->makeShipmentWithItems(['widget' => 5]);
+
+        $this->addContent(
+            $this->makeCarton($shipment, 'BOX-042', ['gross_weight' => 10.0]),
+            $items['widget']->id,
+            5,
+        );
+
+        $data = $this->getData($shipment);
+
+        $this->assertEquals('BOX-042', $data['container_groups'][0]['lines'][0]['package_no']);
+    }
+}

@@ -10,21 +10,27 @@ class RecalculateShipmentTotalsAction
     {
         $this->syncCurrencyCode($shipment);
 
-        $packingTotals = $shipment->packingListItems()
-            ->selectRaw('SUM(total_gross_weight) as total_gross, SUM(total_net_weight) as total_net, SUM(total_volume) as total_vol, SUM(quantity) as total_pkgs')
+        $cartonTotals = $shipment->cartons()
+            ->selectRaw('
+                COUNT(*) as total_packages,
+                COALESCE(SUM(gross_weight), 0) as total_gross,
+                COALESCE(SUM(net_weight), 0) as total_net,
+                COALESCE(SUM(volume), 0) as total_vol
+            ')
             ->first();
 
-        if ($packingTotals && $packingTotals->total_pkgs > 0) {
+        if ($cartonTotals && (int) $cartonTotals->total_packages > 0) {
             $shipment->update([
-                'total_gross_weight' => $packingTotals->total_gross,
-                'total_net_weight' => $packingTotals->total_net,
-                'total_volume' => $packingTotals->total_vol,
-                'total_packages' => $packingTotals->total_pkgs,
+                'total_packages' => (int) $cartonTotals->total_packages,
+                'total_gross_weight' => $cartonTotals->total_gross,
+                'total_net_weight' => $cartonTotals->total_net,
+                'total_volume' => $cartonTotals->total_vol,
             ]);
 
             return;
         }
 
+        // Fallback: no cartons → use shipment_items totals (preserves current behavior).
         $itemTotals = $shipment->items()
             ->selectRaw('SUM(total_weight) as total_weight, SUM(total_volume) as total_volume')
             ->first();

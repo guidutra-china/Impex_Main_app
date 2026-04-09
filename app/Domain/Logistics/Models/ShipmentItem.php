@@ -21,6 +21,7 @@ class ShipmentItem extends Model
         'total_volume',
         'notes',
         'sort_order',
+        'packing_split',
     ];
 
     protected function casts(): array
@@ -31,6 +32,7 @@ class ShipmentItem extends Model
             'total_weight' => 'decimal:3',
             'total_volume' => 'decimal:4',
             'sort_order' => 'integer',
+            'packing_split' => 'array',
         ];
     }
 
