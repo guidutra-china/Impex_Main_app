@@ -2,6 +2,7 @@
 
 namespace App\Domain\CRM\Reports\SectionBuilders;
 
+use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Reports\DTOs\StatementFilters;
 use App\Domain\CRM\Reports\DTOs\StatementSection;
@@ -11,6 +12,10 @@ use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 
 final class PurchaseOrderSectionBuilder implements SectionBuilder
 {
+    public function __construct(private readonly CompanyRole $role = CompanyRole::SUPPLIER)
+    {
+    }
+
     public function key(): string
     {
         return 'purchase_orders';
@@ -19,9 +24,16 @@ final class PurchaseOrderSectionBuilder implements SectionBuilder
     public function build(Company $company, StatementFilters $filters): StatementSection
     {
         $query = PurchaseOrder::query()
-            ->where('supplier_company_id', $company->id)
             ->whereBetween('issue_date', [$filters->from->toDateString(), $filters->to->toDateString()])
             ->orderBy('issue_date');
+
+        match ($this->role) {
+            CompanyRole::CLIENT => $query->whereHas(
+                'proformaInvoice',
+                fn ($q) => $q->where('company_id', $company->id),
+            ),
+            default => $query->where('supplier_company_id', $company->id),
+        };
 
         $scope = StatusScopeFilter::whereClause($filters->statusScope);
         if ($scope !== null) {

@@ -21,6 +21,7 @@ final class StatementSectionResolver
                 new InquirySectionBuilder(),
                 new QuotationSectionBuilder(),
                 new ProformaInvoiceSectionBuilder(),
+                new PurchaseOrderSectionBuilder(CompanyRole::CLIENT),
                 new ShipmentSectionBuilder(CompanyRole::CLIENT),
             ],
             CompanyRole::SUPPLIER => [
