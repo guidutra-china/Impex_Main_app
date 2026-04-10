@@ -39,7 +39,7 @@ class AdminStatementPreview extends StatementPreview
     {
         return [
             Action::make('back')
-                ->label(__('filament-panels::resources/pages/view-record.actions.back.label', default: __('statements.actions.back')))
+                ->label(__('statements.actions.back'))
                 ->url(CompanyResource::getUrl('view', ['record' => $this->companyId]))
                 ->color('gray')
                 ->icon('heroicon-o-arrow-left'),
