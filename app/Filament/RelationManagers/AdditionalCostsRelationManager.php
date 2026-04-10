@@ -568,7 +568,7 @@ class AdditionalCostsRelationManager extends RelationManager
         $isCredit = $billableTo === BillableTo::SUPPLIER;
 
         $costTypeLabel = $cost->cost_type instanceof AdditionalCostType
-            ? $cost->cost_type->getLabel()
+            ? $cost->cost_type->getEnglishLabel()
             : $cost->cost_type;
 
         $label = $isCredit
@@ -659,7 +659,7 @@ class AdditionalCostsRelationManager extends RelationManager
         $payable = $owner instanceof Shipment ? $owner : $owner;
 
         $costTypeLabel = $cost->cost_type instanceof AdditionalCostType
-            ? $cost->cost_type->getLabel()
+            ? $cost->cost_type->getEnglishLabel()
             : $cost->cost_type;
 
         $forwarderName = $cost->forwarderCompany?->name ?? 'Forwarder';

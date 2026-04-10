@@ -639,7 +639,7 @@ class GeneratePaymentScheduleAction
                 // Still create forwarder payable if forwarder data exists
                 if ($cost->forwarder_amount && $cost->forwarder_company_id) {
                     $costTypeLabel = $cost->cost_type instanceof AdditionalCostType
-                        ? $cost->cost_type->getLabel()
+                        ? $cost->cost_type->getEnglishLabel()
                         : $cost->cost_type;
                     $forwarderTag = '[forwarder-payable]';
                     $forwarderName = $cost->forwarderCompany?->name ?? 'Forwarder';
@@ -686,7 +686,7 @@ class GeneratePaymentScheduleAction
 
             $isCredit = $billableTo === BillableTo::SUPPLIER;
             $costTypeLabel = $cost->cost_type instanceof AdditionalCostType
-                ? $cost->cost_type->getLabel()
+                ? $cost->cost_type->getEnglishLabel()
                 : $cost->cost_type;
 
             $label = $isCredit
