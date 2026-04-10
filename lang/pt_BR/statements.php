@@ -65,6 +65,7 @@ return [
     ],
 
     'actions' => [
+        'back' => 'Voltar',
         'download_pdf' => 'Baixar PDF',
         'send_email' => 'Enviar por e-mail',
         'print' => 'Imprimir',

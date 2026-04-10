@@ -65,6 +65,7 @@ return [
     ],
 
     'actions' => [
+        'back' => 'Back',
         'download_pdf' => 'Download PDF',
         'send_email' => 'Send by Email',
         'print' => 'Print',

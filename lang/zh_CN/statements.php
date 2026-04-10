@@ -65,6 +65,7 @@ return [
     ],
 
     'actions' => [
+        'back' => '返回',
         'download_pdf' => '下载 PDF',
         'send_email' => '邮件发送',
         'print' => '打印',

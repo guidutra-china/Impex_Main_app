@@ -3,7 +3,9 @@
 namespace App\Filament\Pages;
 
 use App\Domain\CRM\Models\Company;
+use App\Filament\Resources\CRM\Companies\CompanyResource;
 use BackedEnum;
+use Filament\Actions\Action;
 use Livewire\Attributes\Url;
 
 class AdminStatementPreview extends StatementPreview
@@ -31,6 +33,17 @@ class AdminStatementPreview extends StatementPreview
     public function getTitle(): string|\Illuminate\Contracts\Support\Htmlable
     {
         return __('statements.title') . ' — ' . $this->resolveCompany()->name;
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('back')
+                ->label(__('filament-panels::resources/pages/view-record.actions.back.label', default: __('statements.actions.back')))
+                ->url(CompanyResource::getUrl('view', ['record' => $this->companyId]))
+                ->color('gray')
+                ->icon('heroicon-o-arrow-left'),
+        ];
     }
 
     protected function resolveCompany(): Company

@@ -8,6 +8,7 @@ use App\Domain\CRM\Reports\DTOs\StatementFilters;
 use App\Domain\CRM\Reports\DTOs\StatementSection;
 use App\Domain\CRM\Reports\StatusScopeFilter;
 use App\Domain\Logistics\Models\Shipment;
+use Illuminate\Support\Facades\DB;
 
 final class ShipmentSectionBuilder implements SectionBuilder
 {
@@ -22,9 +23,11 @@ final class ShipmentSectionBuilder implements SectionBuilder
 
     public function build(Company $company, StatementFilters $filters): StatementSection
     {
+        $dateExpr = DB::raw('COALESCE(issue_date, etd, created_at)');
+
         $query = Shipment::query()
-            ->whereBetween('issue_date', [$filters->from->toDateString(), $filters->to->toDateString()])
-            ->orderBy('issue_date');
+            ->whereBetween($dateExpr, [$filters->from->toDateString(), $filters->to->toDateString()])
+            ->orderBy($dateExpr);
 
         match ($this->role) {
             CompanyRole::CLIENT => $query->where('company_id', $company->id),
