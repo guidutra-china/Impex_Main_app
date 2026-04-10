@@ -33,6 +33,7 @@ return [
     'columns' => [
         'number' => '编号',
         'client_reference' => '客户参考',
+        'supplier' => '供应商',
         'incoterm' => '贸易条款',
         'payment_term' => '付款条件',
         'date' => '日期',
