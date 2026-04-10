@@ -544,10 +544,18 @@ class AdditionalCostsRelationManager extends RelationManager
         $billableTo = $cost->billable_to instanceof BillableTo ? $cost->billable_to : BillableTo::from($cost->billable_to);
 
         if ($billableTo === BillableTo::COMPANY) {
+            // Remove client schedule items (company absorbs the cost, not billed to client)
             PaymentScheduleItem::where('source_type', AdditionalCost::class)
                 ->where('source_id', $cost->id)
+                ->where(function ($q) {
+                    $q->whereNull('notes')
+                        ->orWhere('notes', 'NOT LIKE', '%[forwarder-payable]%');
+                })
                 ->whereDoesntHave('allocations')
                 ->delete();
+
+            // Still create forwarder payable if forwarder data exists
+            $this->syncForwarderScheduleItem($cost, $owner);
             return;
         }
 
@@ -666,8 +674,8 @@ class AdditionalCostsRelationManager extends RelationManager
             'payable_id' => $payable->getKey(),
             'label' => $label,
             'percentage' => 0,
-            'amount' => $cost->forwarder_amount_in_document_currency,
-            'currency_code' => $payable->currency_code ?? $cost->forwarder_currency_code ?? 'USD',
+            'amount' => $cost->forwarder_amount,
+            'currency_code' => $cost->forwarder_currency_code ?? $payable->currency_code ?? 'USD',
             'status' => PaymentScheduleStatus::DUE->value,
             'is_blocking' => false,
             'is_credit' => false,
@@ -682,6 +690,7 @@ class AdditionalCostsRelationManager extends RelationManager
                 $existing->update([
                     'label' => $scheduleData['label'],
                     'amount' => $scheduleData['amount'],
+                    'currency_code' => $scheduleData['currency_code'],
                     'notes' => $scheduleData['notes'],
                 ]);
             } else {

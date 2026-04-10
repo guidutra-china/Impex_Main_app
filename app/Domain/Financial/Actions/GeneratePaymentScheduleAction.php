@@ -626,6 +626,56 @@ class GeneratePaymentScheduleAction
             $billableTo = $cost->billable_to instanceof BillableTo ? $cost->billable_to : BillableTo::from($cost->billable_to);
 
             if ($billableTo === BillableTo::COMPANY) {
+                // Remove client schedule items (company absorbs the cost)
+                PaymentScheduleItem::where('source_type', AdditionalCost::class)
+                    ->where('source_id', $cost->id)
+                    ->where(function ($q) {
+                        $q->whereNull('notes')
+                            ->orWhere('notes', 'NOT LIKE', '%[forwarder-payable]%');
+                    })
+                    ->whereDoesntHave('allocations')
+                    ->delete();
+
+                // Still create forwarder payable if forwarder data exists
+                if ($cost->forwarder_amount && $cost->forwarder_company_id) {
+                    $costTypeLabel = $cost->cost_type instanceof AdditionalCostType
+                        ? $cost->cost_type->getLabel()
+                        : $cost->cost_type;
+                    $forwarderTag = '[forwarder-payable]';
+                    $forwarderName = $cost->forwarderCompany?->name ?? 'Forwarder';
+                    $forwarderLabel = mb_substr("{$costTypeLabel} payable: {$forwarderName} - {$cost->description}", 0, 100);
+
+                    $existingForwarder = PaymentScheduleItem::where('source_type', AdditionalCost::class)
+                        ->where('source_id', $cost->id)
+                        ->where('notes', 'LIKE', "%{$forwarderTag}%")
+                        ->first();
+
+                    if (! $existingForwarder) {
+                        $maxSortOrder++;
+                        PaymentScheduleItem::create([
+                            'payable_type' => get_class($payable),
+                            'payable_id' => $payable->getKey(),
+                            'label' => $forwarderLabel,
+                            'percentage' => 0,
+                            'amount' => $cost->forwarder_amount,
+                            'currency_code' => $cost->forwarder_currency_code ?? $payable->currency_code ?? 'USD',
+                            'status' => PaymentScheduleStatus::DUE->value,
+                            'is_blocking' => false,
+                            'is_credit' => false,
+                            'source_type' => AdditionalCost::class,
+                            'source_id' => $cost->id,
+                            'sort_order' => $maxSortOrder,
+                            'notes' => "{$forwarderTag} {$cost->notes}",
+                        ]);
+                    } else {
+                        $existingForwarder->update([
+                            'label' => $forwarderLabel,
+                            'amount' => $cost->forwarder_amount,
+                            'currency_code' => $cost->forwarder_currency_code ?? $payable->currency_code ?? 'USD',
+                        ]);
+                    }
+                }
+
                 continue;
             }
 
@@ -695,8 +745,8 @@ class GeneratePaymentScheduleAction
                         'payable_id' => $schedulePayable->getKey(),
                         'label' => $forwarderLabel,
                         'percentage' => 0,
-                        'amount' => $cost->forwarder_amount_in_document_currency,
-                        'currency_code' => $schedulePayable->currency_code ?? $cost->forwarder_currency_code ?? 'USD',
+                        'amount' => $cost->forwarder_amount,
+                        'currency_code' => $cost->forwarder_currency_code ?? $schedulePayable->currency_code ?? 'USD',
                         'status' => PaymentScheduleStatus::DUE->value,
                         'is_blocking' => false,
                         'is_credit' => false,
@@ -708,7 +758,8 @@ class GeneratePaymentScheduleAction
                 } else {
                     $existingForwarder->update([
                         'label' => $forwarderLabel,
-                        'amount' => $cost->forwarder_amount_in_document_currency,
+                        'amount' => $cost->forwarder_amount,
+                        'currency_code' => $cost->forwarder_currency_code ?? $schedulePayable->currency_code ?? 'USD',
                     ]);
                 }
             }
