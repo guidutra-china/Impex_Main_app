@@ -33,6 +33,7 @@ return [
 
     'columns' => [
         'number' => 'Nº',
+        'ci_number' => 'CI Nº',
         'client_reference' => 'Ref. Cliente',
         'supplier' => 'Fornecedor',
         'incoterm' => 'Incoterm',

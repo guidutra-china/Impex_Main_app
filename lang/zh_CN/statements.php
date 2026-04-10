@@ -33,6 +33,7 @@ return [
 
     'columns' => [
         'number' => '编号',
+        'ci_number' => '商业发票号',
         'client_reference' => '客户参考',
         'supplier' => '供应商',
         'incoterm' => '贸易条款',

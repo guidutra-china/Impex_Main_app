@@ -7,6 +7,7 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Reports\DTOs\StatementFilters;
 use App\Domain\CRM\Reports\DTOs\StatementSection;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
+use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Infrastructure\Support\Money;
@@ -31,6 +32,11 @@ final class AdditionalCostSectionBuilder implements SectionBuilder
         $query = AdditionalCost::query()
             ->whereNot('status', AdditionalCostStatus::WAIVED)
             ->where('costable_type', '!=', (new ProformaInvoice)->getMorphClass())
+            ->where(function ($q) {
+                // Exclude freight billable to client — already included in Shipment total
+                $q->where('cost_type', '!=', AdditionalCostType::FREIGHT)
+                    ->orWhere('billable_to', '!=', BillableTo::CLIENT);
+            })
             ->whereBetween($dateExpr, [$filters->from->toDateString(), $filters->to->toDateString()])
             ->with('costable')
             ->orderBy($dateExpr);
