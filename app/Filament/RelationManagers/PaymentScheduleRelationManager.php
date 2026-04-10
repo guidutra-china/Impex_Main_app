@@ -8,6 +8,7 @@ use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Settings\Enums\CalculationBase;
+use App\Domain\Settings\Models\Currency;
 use BackedEnum;
 use Illuminate\Support\HtmlString;
 use Filament\Actions\Action;
@@ -67,21 +68,21 @@ class PaymentScheduleRelationManager extends RelationManager
                     ->formatStateUsing(fn ($state, $record) => $record->is_credit
                         ? '-' . Money::format($state)
                         : Money::format($state))
-                    ->prefix('$ ')
+                    ->prefix(fn ($record) => $this->getCurrencySymbol($record->currency_code) . ' ')
                     ->alignEnd()
                     ->color(fn ($record) => $record->is_credit ? 'success' : null),
                 TextColumn::make('paid_amount')
                     ->label(__('forms.labels.paid'))
                     ->getStateUsing(fn ($record) => $record->paid_amount)
                     ->formatStateUsing(fn ($state) => Money::format($state))
-                    ->prefix('$ ')
+                    ->prefix(fn ($record) => $this->getCurrencySymbol($record->currency_code) . ' ')
                     ->alignEnd()
                     ->color('success'),
                 TextColumn::make('remaining_amount')
                     ->label(__('forms.labels.remaining'))
                     ->getStateUsing(fn ($record) => $record->remaining_amount)
                     ->formatStateUsing(fn ($state) => Money::format($state))
-                    ->prefix('$ ')
+                    ->prefix(fn ($record) => $this->getCurrencySymbol($record->currency_code) . ' ')
                     ->alignEnd()
                     ->color(fn ($state) => $state > 0 ? 'danger' : 'success'),
                 TextColumn::make('due_condition')
@@ -117,6 +118,22 @@ class PaymentScheduleRelationManager extends RelationManager
             ->emptyStateHeading('No payment schedule')
             ->emptyStateDescription('Generate a payment schedule from the payment terms.')
             ->emptyStateIcon('heroicon-o-calendar-days');
+    }
+
+    protected function getCurrencySymbol(?string $currencyCode): string
+    {
+        static $cache = [];
+
+        if (! $currencyCode) {
+            return '$';
+        }
+
+        if (! isset($cache[$currencyCode])) {
+            $currency = Currency::where('code', $currencyCode)->first();
+            $cache[$currencyCode] = $currency?->symbol ?? $currencyCode;
+        }
+
+        return $cache[$currencyCode];
     }
 
     protected function generateScheduleAction(): Action
