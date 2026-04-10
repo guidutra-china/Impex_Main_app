@@ -69,6 +69,7 @@ class ProformaInvoiceResource extends Resource
             AdditionalCostsRelationManager::class,
             PaymentScheduleRelationManager::class,
             PaymentsRelationManager::class,
+            \App\Filament\RelationManagers\DebitNotesRelationManager::class,
             ProductionSchedulesRelationManager::class,
             ShipmentPlansRelationManager::class,
             DocumentsRelationManager::class,

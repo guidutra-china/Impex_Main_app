@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\Payments\Schemas;
+namespace App\Filament\Resources\Finance\Concerns;
 
 use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\PaymentDirection;
@@ -15,48 +15,39 @@ use App\Domain\Settings\Models\Currency;
 use App\Domain\Settings\Models\PaymentMethod;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
-use Filament\Schemas\Components\Section;
-use Filament\Schemas\Schema;
+use Illuminate\Support\Collection;
 use Illuminate\Support\HtmlString;
 
-class PaymentForm
+trait HasPaymentFormSections
 {
-    public static function configure(Schema $schema): Schema
+    public static function formSchema(PaymentDirection $direction): array
     {
-        return $schema->components([
+        $companyLabel = $direction === PaymentDirection::INBOUND
+            ? __('forms.labels.client')
+            : __('forms.labels.supplier');
+
+        return [
             Section::make(__('forms.sections.payment_information'))->columns(2)->columnSpanFull()->schema([
-                Select::make('direction')
-                    ->label(__('forms.labels.direction'))
-                    ->options(PaymentDirection::class)
-                    ->required()
-                    ->live()
-                    ->afterStateUpdated(function (Set $set) {
-                        $set('company_id', null);
-                        $set('allocations', []);
-                        $set('credit_applications', []);
-                        $set('amount', null);
-                    }),
+                Hidden::make('direction')->default($direction->value),
                 Select::make('company_id')
-                    ->label(__('forms.labels.company'))
-                    ->options(function (Get $get) {
-                        $direction = $get('direction');
-                        if (! $direction) {
-                            return [];
-                        }
-                        $directionValue = $direction instanceof PaymentDirection ? $direction->value : $direction;
+                    ->label($companyLabel)
+                    ->options(function () use ($direction) {
                         $query = Company::query();
-                        if ($directionValue === PaymentDirection::INBOUND->value || $directionValue === 'inbound') {
+                        if ($direction === PaymentDirection::INBOUND) {
                             $query->whereHas('companyRoles', fn ($q) => $q->where('role', 'client'));
                         } else {
                             $query->whereHas('companyRoles', fn ($q) => $q->whereIn('role', ['supplier', 'forwarder']));
                         }
+
                         return $query->pluck('name', 'id');
                     })
                     ->searchable()
@@ -119,9 +110,8 @@ class PaymentForm
                 ->schema([
                     Placeholder::make('combined_overview')
                         ->label('')
-                        ->content(function (Get $get) {
+                        ->content(function (Get $get) use ($direction) {
                             $companyId = (int) $get('company_id');
-                            $direction = $get('direction');
 
                             if (! $companyId) {
                                 return 'Select a company to see outstanding items.';
@@ -161,12 +151,12 @@ class PaymentForm
                         ->schema([
                             Select::make('payment_schedule_item_id')
                                 ->label(__('forms.labels.schedule_item'))
-                                ->options(function (Get $get) {
+                                ->options(function (Get $get) use ($direction) {
                                     $companyId = $get('../../company_id');
-                                    $direction = $get('../../direction');
                                     if (! $companyId) {
                                         return [];
                                     }
+
                                     return static::getCompanyScheduleItems((int) $companyId, $direction)
                                         ->mapWithKeys(fn ($item) => [
                                             $item->id => static::formatScheduleItemLabel($item),
@@ -174,6 +164,7 @@ class PaymentForm
                                 })
                                 ->getOptionLabelUsing(function ($value): ?string {
                                     $item = PaymentScheduleItem::with('payable')->find($value);
+
                                     return $item ? static::formatScheduleItemLabel($item) : null;
                                 })
                                 ->required()
@@ -245,6 +236,7 @@ class PaymentForm
                             }
 
                             $html .= '</div>';
+
                             return new HtmlString($html);
                         }),
                 ])
@@ -253,7 +245,7 @@ class PaymentForm
             Section::make(__('forms.sections.credit_applications'))
                 ->description(__('forms.descriptions.apply_credits_to_offset_schedule_item_balances_this_does'))
                 ->visible(fn (Get $get) => filled($get('company_id'))
-                    && static::getCompanyCreditItems((int) $get('company_id'), $get('direction'))->isNotEmpty())
+                    && static::getCompanyCreditItems((int) $get('company_id'), $direction)->isNotEmpty())
                 ->collapsed()
                 ->schema([
                     Repeater::make('credit_applications')
@@ -261,12 +253,12 @@ class PaymentForm
                         ->schema([
                             Select::make('credit_schedule_item_id')
                                 ->label(__('forms.labels.credit'))
-                                ->options(function (Get $get) {
+                                ->options(function (Get $get) use ($direction) {
                                     $companyId = $get('../../company_id');
-                                    $direction = $get('../../direction');
                                     if (! $companyId) {
                                         return [];
                                     }
+
                                     return static::getCompanyCreditItems((int) $companyId, $direction)
                                         ->mapWithKeys(fn ($item) => [
                                             $item->id => static::formatCreditItemLabel($item),
@@ -274,6 +266,7 @@ class PaymentForm
                                 })
                                 ->getOptionLabelUsing(function ($value): ?string {
                                     $item = PaymentScheduleItem::with('payable')->find($value);
+
                                     return $item ? static::formatCreditItemLabel($item) : null;
                                 })
                                 ->required()
@@ -282,12 +275,12 @@ class PaymentForm
                                 ->columnSpan(4),
                             Select::make('payment_schedule_item_id')
                                 ->label(__('forms.labels.apply_to'))
-                                ->options(function (Get $get) {
+                                ->options(function (Get $get) use ($direction) {
                                     $companyId = $get('../../company_id');
-                                    $direction = $get('../../direction');
                                     if (! $companyId) {
                                         return [];
                                     }
+
                                     return static::getCompanyScheduleItems((int) $companyId, $direction)
                                         ->mapWithKeys(fn ($item) => [
                                             $item->id => static::formatScheduleItemLabel($item),
@@ -295,6 +288,7 @@ class PaymentForm
                                 })
                                 ->getOptionLabelUsing(function ($value): ?string {
                                     $item = PaymentScheduleItem::with('payable')->find($value);
+
                                     return $item ? static::formatScheduleItemLabel($item) : null;
                                 })
                                 ->required()
@@ -331,10 +325,141 @@ class PaymentForm
                         ->columnSpanFull(),
                 ])
                 ->columnSpanFull(),
-        ]);
+        ];
     }
 
-    protected static function buildOutstandingTable(\Illuminate\Support\Collection $items): string
+    public static function getCompanyScheduleItems(int $companyId, mixed $direction): Collection
+    {
+        $directionValue = $direction instanceof PaymentDirection ? $direction->value : $direction;
+
+        $isForwarder = Company::find($companyId)?->isForwarder() ?? false;
+
+        $query = PaymentScheduleItem::query()
+            ->where('is_credit', false)
+            ->whereNotIn('status', [
+                PaymentScheduleStatus::PAID->value,
+                PaymentScheduleStatus::WAIVED->value,
+            ]);
+
+        if (! $isForwarder) {
+            $query->where(function ($q) {
+                $q->whereNull('notes')
+                    ->orWhere('notes', 'NOT LIKE', '%[forwarder-payable]%');
+            });
+        }
+
+        if ($directionValue === PaymentDirection::INBOUND->value || $directionValue === 'inbound') {
+            $piIds = ProformaInvoice::where('company_id', $companyId)->pluck('id');
+            $shipmentIds = Shipment::where('company_id', $companyId)->pluck('id');
+
+            $query->where(function ($q) use ($piIds, $shipmentIds) {
+                $q->where(function ($q2) use ($piIds) {
+                    $q2->where('payable_type', ProformaInvoice::class)->whereIn('payable_id', $piIds);
+                });
+                if ($shipmentIds->isNotEmpty()) {
+                    $q->orWhere(function ($q2) use ($shipmentIds) {
+                        $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $shipmentIds);
+                    });
+                }
+            });
+        } else {
+            if ($isForwarder) {
+                $costableIds = \App\Domain\Financial\Models\AdditionalCost::where('forwarder_company_id', $companyId)
+                    ->where('costable_type', (new Shipment)->getMorphClass())
+                    ->pluck('costable_id')
+                    ->unique();
+
+                $forwarderCostIds = \App\Domain\Financial\Models\AdditionalCost::where('forwarder_company_id', $companyId)
+                    ->pluck('id');
+
+                $query->where(function ($q) use ($costableIds, $forwarderCostIds) {
+                    $q->where(function ($q2) use ($costableIds) {
+                        $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $costableIds);
+                    });
+                    $q->where('notes', 'LIKE', '%[forwarder-payable]%');
+                });
+            } else {
+                $poIds = PurchaseOrder::where('supplier_company_id', $companyId)->pluck('id');
+                $shipmentIds = Shipment::whereHas('items.purchaseOrderItem.purchaseOrder', function ($q) use ($companyId) {
+                    $q->where('supplier_company_id', $companyId);
+                })->pluck('id');
+
+                $query->where(function ($q) use ($poIds, $shipmentIds) {
+                    $q->where(function ($q2) use ($poIds) {
+                        $q2->where('payable_type', PurchaseOrder::class)->whereIn('payable_id', $poIds);
+                    });
+                    if ($shipmentIds->isNotEmpty()) {
+                        $q->orWhere(function ($q2) use ($shipmentIds) {
+                            $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $shipmentIds);
+                        });
+                    }
+                });
+            }
+        }
+
+        return $query->with(['payable', 'shipment'])->get();
+    }
+
+    public static function getCompanyCreditItems(int $companyId, mixed $direction): Collection
+    {
+        $directionValue = $direction instanceof PaymentDirection ? $direction->value : $direction;
+
+        $isForwarder = Company::find($companyId)?->isForwarder() ?? false;
+
+        $query = PaymentScheduleItem::query()
+            ->where('is_credit', true)
+            ->whereNotIn('status', [
+                PaymentScheduleStatus::PAID->value,
+                PaymentScheduleStatus::WAIVED->value,
+            ]);
+
+        if ($directionValue === PaymentDirection::INBOUND->value || $directionValue === 'inbound') {
+            $piIds = ProformaInvoice::where('company_id', $companyId)->pluck('id');
+            $shipmentIds = Shipment::where('company_id', $companyId)->pluck('id');
+
+            $query->where(function ($q) use ($piIds, $shipmentIds) {
+                $q->where(function ($q2) use ($piIds) {
+                    $q2->where('payable_type', ProformaInvoice::class)->whereIn('payable_id', $piIds);
+                });
+                if ($shipmentIds->isNotEmpty()) {
+                    $q->orWhere(function ($q2) use ($shipmentIds) {
+                        $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $shipmentIds);
+                    });
+                }
+            });
+        } else {
+            if ($isForwarder) {
+                $costableIds = \App\Domain\Financial\Models\AdditionalCost::where('forwarder_company_id', $companyId)
+                    ->where('costable_type', (new Shipment)->getMorphClass())
+                    ->pluck('costable_id')
+                    ->unique();
+
+                $query->where(function ($q) use ($costableIds) {
+                    $q->where('payable_type', Shipment::class)->whereIn('payable_id', $costableIds);
+                });
+            } else {
+                $poIds = PurchaseOrder::where('supplier_company_id', $companyId)->pluck('id');
+                $shipmentIds = Shipment::whereHas('items.purchaseOrderItem.purchaseOrder', function ($q) use ($companyId) {
+                    $q->where('supplier_company_id', $companyId);
+                })->pluck('id');
+
+                $query->where(function ($q) use ($poIds, $shipmentIds) {
+                    $q->where(function ($q2) use ($poIds) {
+                        $q2->where('payable_type', PurchaseOrder::class)->whereIn('payable_id', $poIds);
+                    });
+                    if ($shipmentIds->isNotEmpty()) {
+                        $q->orWhere(function ($q2) use ($shipmentIds) {
+                            $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $shipmentIds);
+                        });
+                    }
+                });
+            }
+        }
+
+        return $query->with(['payable', 'shipment'])->get();
+    }
+
+    public static function buildOutstandingTable(Collection $items): string
     {
         $grouped = $items->groupBy(fn ($item) => $item->payable?->reference ?? 'Unknown');
 
@@ -399,7 +524,7 @@ class PaymentForm
         return $html;
     }
 
-    protected static function buildCreditsTable(\Illuminate\Support\Collection $credits): string
+    public static function buildCreditsTable(Collection $credits): string
     {
         $html = '<div class="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider mb-2">Available Credits</div>';
         $html .= '<table class="w-full text-sm border-collapse">';
@@ -436,7 +561,7 @@ class PaymentForm
         return $html;
     }
 
-    protected static function recalculateTotal(Get $get, Set $set): void
+    public static function recalculateTotal(Get $get, Set $set): void
     {
         $currentAmount = (float) ($get('../../amount') ?? $get('amount') ?? 0);
 
@@ -457,144 +582,12 @@ class PaymentForm
         }
     }
 
-    public static function getCompanyScheduleItems(int $companyId, mixed $direction): \Illuminate\Support\Collection
-    {
-        $directionValue = $direction instanceof PaymentDirection ? $direction->value : $direction;
-
-        $isForwarder = Company::find($companyId)?->isForwarder() ?? false;
-
-        $query = PaymentScheduleItem::query()
-            ->where('is_credit', false)
-            ->whereNotIn('status', [
-                PaymentScheduleStatus::PAID->value,
-                PaymentScheduleStatus::WAIVED->value,
-            ]);
-
-        if (! $isForwarder) {
-            $query->where(function ($q) {
-                $q->whereNull('notes')
-                  ->orWhere('notes', 'NOT LIKE', '%[forwarder-payable]%');
-            });
-        }
-
-        if ($directionValue === PaymentDirection::INBOUND->value || $directionValue === 'inbound') {
-            $piIds = ProformaInvoice::where('company_id', $companyId)->pluck('id');
-            $shipmentIds = Shipment::where('company_id', $companyId)->pluck('id');
-
-            $query->where(function ($q) use ($piIds, $shipmentIds) {
-                $q->where(function ($q2) use ($piIds) {
-                    $q2->where('payable_type', ProformaInvoice::class)->whereIn('payable_id', $piIds);
-                });
-                if ($shipmentIds->isNotEmpty()) {
-                    $q->orWhere(function ($q2) use ($shipmentIds) {
-                        $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $shipmentIds);
-                    });
-                }
-            });
-        } else {
-            if ($isForwarder) {
-                // Forwarder: find shipments where this company has forwarder-payable costs
-                $costableIds = \App\Domain\Financial\Models\AdditionalCost::where('forwarder_company_id', $companyId)
-                    ->where('costable_type', (new Shipment)->getMorphClass())
-                    ->pluck('costable_id')
-                    ->unique();
-
-                $forwarderCostIds = \App\Domain\Financial\Models\AdditionalCost::where('forwarder_company_id', $companyId)
-                    ->pluck('id');
-
-                $query->where(function ($q) use ($costableIds, $forwarderCostIds) {
-                    $q->where(function ($q2) use ($costableIds) {
-                        $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $costableIds);
-                    });
-                    $q->where('notes', 'LIKE', '%[forwarder-payable]%');
-                });
-            } else {
-                $poIds = PurchaseOrder::where('supplier_company_id', $companyId)->pluck('id');
-                $shipmentIds = Shipment::whereHas('items.purchaseOrderItem.purchaseOrder', function ($q) use ($companyId) {
-                    $q->where('supplier_company_id', $companyId);
-                })->pluck('id');
-
-                $query->where(function ($q) use ($poIds, $shipmentIds) {
-                    $q->where(function ($q2) use ($poIds) {
-                        $q2->where('payable_type', PurchaseOrder::class)->whereIn('payable_id', $poIds);
-                    });
-                    if ($shipmentIds->isNotEmpty()) {
-                        $q->orWhere(function ($q2) use ($shipmentIds) {
-                            $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $shipmentIds);
-                        });
-                    }
-                });
-            }
-        }
-
-        return $query->with(['payable', 'shipment'])->get();
-    }
-
-    public static function getCompanyCreditItems(int $companyId, mixed $direction): \Illuminate\Support\Collection
-    {
-        $directionValue = $direction instanceof PaymentDirection ? $direction->value : $direction;
-
-        $isForwarder = Company::find($companyId)?->isForwarder() ?? false;
-
-        $query = PaymentScheduleItem::query()
-            ->where('is_credit', true)
-            ->whereNotIn('status', [
-                PaymentScheduleStatus::PAID->value,
-                PaymentScheduleStatus::WAIVED->value,
-            ]);
-
-        if ($directionValue === PaymentDirection::INBOUND->value || $directionValue === 'inbound') {
-            $piIds = ProformaInvoice::where('company_id', $companyId)->pluck('id');
-            $shipmentIds = Shipment::where('company_id', $companyId)->pluck('id');
-
-            $query->where(function ($q) use ($piIds, $shipmentIds) {
-                $q->where(function ($q2) use ($piIds) {
-                    $q2->where('payable_type', ProformaInvoice::class)->whereIn('payable_id', $piIds);
-                });
-                if ($shipmentIds->isNotEmpty()) {
-                    $q->orWhere(function ($q2) use ($shipmentIds) {
-                        $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $shipmentIds);
-                    });
-                }
-            });
-        } else {
-            if ($isForwarder) {
-                $costableIds = \App\Domain\Financial\Models\AdditionalCost::where('forwarder_company_id', $companyId)
-                    ->where('costable_type', (new Shipment)->getMorphClass())
-                    ->pluck('costable_id')
-                    ->unique();
-
-                $query->where(function ($q) use ($costableIds) {
-                    $q->where('payable_type', Shipment::class)->whereIn('payable_id', $costableIds);
-                });
-            } else {
-                $poIds = PurchaseOrder::where('supplier_company_id', $companyId)->pluck('id');
-                $shipmentIds = Shipment::whereHas('items.purchaseOrderItem.purchaseOrder', function ($q) use ($companyId) {
-                    $q->where('supplier_company_id', $companyId);
-                })->pluck('id');
-
-                $query->where(function ($q) use ($poIds, $shipmentIds) {
-                    $q->where(function ($q2) use ($poIds) {
-                        $q2->where('payable_type', PurchaseOrder::class)->whereIn('payable_id', $poIds);
-                    });
-                    if ($shipmentIds->isNotEmpty()) {
-                        $q->orWhere(function ($q2) use ($shipmentIds) {
-                            $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $shipmentIds);
-                        });
-                    }
-                });
-            }
-        }
-
-        return $query->with(['payable', 'shipment'])->get();
-    }
-
-    protected static function cleanLabel(PaymentScheduleItem $item): string
+    public static function cleanLabel(PaymentScheduleItem $item): string
     {
         return preg_replace('/\s*\x{2014}\s*\[.*\]\s*$/u', '', $item->label ?? '');
     }
 
-    protected static function shipmentRef(PaymentScheduleItem $item): ?string
+    public static function shipmentRef(PaymentScheduleItem $item): ?string
     {
         // Check the direct shipment relation first
         $shipment = $item->relationLoaded('shipment') ? $item->shipment : $item->shipment()->first();
@@ -607,7 +600,7 @@ class PaymentForm
         return $shipment ? ($shipment->bl_number ?: null) : null;
     }
 
-    protected static function formatDocRef(PaymentScheduleItem $item): string
+    public static function formatDocRef(PaymentScheduleItem $item): string
     {
         $payable = $item->payable;
         if ($payable instanceof Shipment && $payable->bl_number) {
@@ -617,7 +610,7 @@ class PaymentForm
         return $payable?->reference ?? 'Unknown';
     }
 
-    protected static function formatScheduleItemLabel(PaymentScheduleItem $item): string
+    public static function formatScheduleItemLabel(PaymentScheduleItem $item): string
     {
         $docRef = static::formatDocRef($item);
         $label = static::cleanLabel($item);
@@ -637,7 +630,7 @@ class PaymentForm
         return $parts;
     }
 
-    protected static function formatCreditItemLabel(PaymentScheduleItem $item): string
+    public static function formatCreditItemLabel(PaymentScheduleItem $item): string
     {
         $docRef = static::formatDocRef($item);
         $label = static::cleanLabel($item);

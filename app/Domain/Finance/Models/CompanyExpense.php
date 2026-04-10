@@ -2,6 +2,7 @@
 
 namespace App\Domain\Finance\Models;
 
+use App\Domain\Finance\Enums\ExpenseApprovalStatus;
 use App\Domain\Finance\Enums\ExpenseCategory;
 use App\Domain\Settings\Models\BankAccount;
 use App\Domain\Settings\Models\PaymentMethod;
@@ -29,6 +30,10 @@ class CompanyExpense extends Model
         'reference',
         'attachment_path',
         'notes',
+        'status',
+        'approved_by',
+        'approved_at',
+        'rejected_reason',
         'created_by',
     ];
 
@@ -36,10 +41,12 @@ class CompanyExpense extends Model
     {
         return [
             'category' => ExpenseCategory::class,
+            'status' => ExpenseApprovalStatus::class,
             'amount' => 'integer',
             'expense_date' => 'date',
             'is_recurring' => 'boolean',
             'recurring_day' => 'integer',
+            'approved_at' => 'datetime',
         ];
     }
 
@@ -67,6 +74,11 @@ class CompanyExpense extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function approvedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 
     public function recurringSource(): BelongsTo
@@ -105,6 +117,16 @@ class CompanyExpense extends Model
     public function scopeInYear($query, int $year)
     {
         return $query->whereYear('expense_date', $year);
+    }
+
+    public function scopeApproved($query)
+    {
+        return $query->where('status', ExpenseApprovalStatus::APPROVED);
+    }
+
+    public function scopePendingApproval($query)
+    {
+        return $query->where('status', ExpenseApprovalStatus::PENDING_APPROVAL);
     }
 
     public function scopeInDateRange($query, $start, $end)

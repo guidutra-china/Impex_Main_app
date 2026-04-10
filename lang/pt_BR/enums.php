@@ -342,7 +342,22 @@ return array (
     'client' => 'Cliente',
     'supplier' => 'Fornecedor',
     ),
-    'expense_category' => 
+    'debit_note_status' =>
+    array (
+    'draft' => 'Rascunho',
+    'issued' => 'Emitido',
+    'partially_paid' => 'Parcialmente Pago',
+    'paid' => 'Pago',
+    'cancelled' => 'Cancelado',
+    ),
+    'expense_approval_status' =>
+    array (
+    'draft' => 'Rascunho',
+    'pending_approval' => 'Aguardando Aprovação',
+    'approved' => 'Aprovado',
+    'rejected' => 'Rejeitado',
+    ),
+    'expense_category' =>
     array (
     'rent' => 'Aluguel',
     'salary' => 'Salários e Encargos',

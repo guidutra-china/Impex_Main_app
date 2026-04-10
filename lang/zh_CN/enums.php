@@ -342,7 +342,22 @@ return array (
     'client' => '客户',
     'supplier' => '供应商',
     ),
-    'expense_category' => 
+    'debit_note_status' =>
+    array (
+    'draft' => '草稿',
+    'issued' => '已开具',
+    'partially_paid' => '部分付款',
+    'paid' => '已付款',
+    'cancelled' => '已取消',
+    ),
+    'expense_approval_status' =>
+    array (
+    'draft' => '草稿',
+    'pending_approval' => '待审批',
+    'approved' => '已批准',
+    'rejected' => '已拒绝',
+    ),
+    'expense_category' =>
     array (
     'rent' => '房租',
     'salary' => '工资与薪酬',

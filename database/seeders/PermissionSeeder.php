@@ -96,6 +96,7 @@ class PermissionSeeder extends Seeder
             'create-company-expenses',
             'edit-company-expenses',
             'delete-company-expenses',
+            'approve-company-expenses',
             'create-payments',
             'edit-payments',
             'delete-payments',

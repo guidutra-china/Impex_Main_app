@@ -8,7 +8,10 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Services\Client360DataService;
 use App\Filament\Resources\CRM\Companies\CompanyResource;
 use App\Filament\Resources\Inquiries\InquiryResource;
-use App\Filament\Resources\Payments\PaymentResource;
+use App\Domain\Financial\Enums\PaymentDirection;
+use App\Domain\Financial\Models\Payment;
+use App\Filament\Resources\Finance\AccountsPayable\AccountsPayableResource;
+use App\Filament\Resources\Finance\AccountsReceivable\AccountsReceivableResource;
 use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
 use App\Filament\Resources\PurchaseOrders\PurchaseOrderResource;
 use App\Filament\Resources\Shipments\ShipmentResource;
@@ -225,7 +228,12 @@ class Client360 extends Page
 
     public function paymentUrl(int $id): string
     {
-        return PaymentResource::getUrl('view', ['record' => $id]);
+        $payment = Payment::find($id);
+        if ($payment && $payment->direction === PaymentDirection::OUTBOUND) {
+            return AccountsPayableResource::getUrl('view', ['record' => $id]);
+        }
+
+        return AccountsReceivableResource::getUrl('view', ['record' => $id]);
     }
 
     public function companyUrl(int $id): string

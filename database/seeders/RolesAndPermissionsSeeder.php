@@ -113,6 +113,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'create-company-expenses',
             'edit-company-expenses',
             'delete-company-expenses',
+            'approve-company-expenses',
 
             // Additional Costs
             'view-additional-costs',

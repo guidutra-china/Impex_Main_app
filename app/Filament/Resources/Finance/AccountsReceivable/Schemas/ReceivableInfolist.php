@@ -1,25 +1,22 @@
 <?php
 
-namespace App\Filament\Resources\Payments\Schemas;
+namespace App\Filament\Resources\Finance\AccountsReceivable\Schemas;
 
 use App\Domain\Infrastructure\Support\Money;
+use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Components\ImageEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
-class PaymentInfolist
+class ReceivableInfolist
 {
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
             Section::make(__('forms.sections.payment_details'))->columns(3)->columnSpanFull()->schema([
-                TextEntry::make('direction')
-                    ->label(__('forms.labels.direction'))
-                    ->badge(),
                 TextEntry::make('company.name')
-                    ->label(__('forms.labels.company'))
+                    ->label(__('forms.labels.client'))
                     ->placeholder('—'),
                 TextEntry::make('payment_date')
                     ->label(__('forms.labels.payment_date'))
@@ -73,7 +70,6 @@ class PaymentInfolist
                     ->columnSpanFull()
                     ->visible(fn ($record) => filled($record->attachment_path)),
             ]),
-
             Section::make(__('forms.sections.allocations'))->columnSpanFull()->schema([
                 RepeatableEntry::make('allocations')
                     ->label('')
@@ -90,7 +86,7 @@ class PaymentInfolist
                         TextEntry::make('allocated_amount')
                             ->label(__('forms.labels.allocated'))
                             ->formatStateUsing(fn ($state, $record) => $record->isCreditApplication()
-                                ? 'Credit: ' . Money::format($record->allocated_amount_in_document_currency)
+                                ? 'Credit: '.Money::format($record->allocated_amount_in_document_currency)
                                 : Money::format($state)),
                         TextEntry::make('exchange_rate')
                             ->label(__('forms.labels.exchange_rate'))

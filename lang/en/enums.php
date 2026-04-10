@@ -342,7 +342,22 @@ return array (
     'client' => 'Client',
     'supplier' => 'Supplier',
     ),
-    'expense_category' => 
+    'debit_note_status' =>
+    array (
+    'draft' => 'Draft',
+    'issued' => 'Issued',
+    'partially_paid' => 'Partially Paid',
+    'paid' => 'Paid',
+    'cancelled' => 'Cancelled',
+    ),
+    'expense_approval_status' =>
+    array (
+    'draft' => 'Draft',
+    'pending_approval' => 'Pending Approval',
+    'approved' => 'Approved',
+    'rejected' => 'Rejected',
+    ),
+    'expense_category' =>
     array (
     'rent' => 'Rent',
     'salary' => 'Salary & Wages',

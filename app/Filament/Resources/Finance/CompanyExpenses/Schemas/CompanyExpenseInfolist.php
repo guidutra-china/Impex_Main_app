@@ -45,9 +45,28 @@ class CompanyExpenseInfolist
                     ->label(__('forms.labels.reference'))
                     ->placeholder('—'),
 
+                TextEntry::make('status')
+                    ->label(__('forms.labels.status'))
+                    ->badge(),
+
                 TextEntry::make('creator.name')
                     ->label(__('forms.labels.created_by'))
                     ->placeholder('—'),
+
+                TextEntry::make('approvedByUser.name')
+                    ->label(__('forms.labels.approved_by'))
+                    ->placeholder('—'),
+
+                TextEntry::make('approved_at')
+                    ->label(__('forms.labels.approved_at'))
+                    ->dateTime('d/m/Y H:i')
+                    ->placeholder('—'),
+
+                TextEntry::make('rejected_reason')
+                    ->label(__('forms.labels.rejection_reason'))
+                    ->placeholder('—')
+                    ->visible(fn ($record) => filled($record->rejected_reason))
+                    ->columnSpanFull(),
             ]),
 
             Section::make(__('forms.sections.recurrence'))->columns(3)->columnSpanFull()->schema([

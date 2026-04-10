@@ -37,6 +37,8 @@ return [
     'available_amount' => 'Available amount',
     'payment_approved' => 'Payment approved',
     'payment_rejected' => 'Payment rejected',
+    'expense_approved' => 'Expense approved',
+    'expense_rejected' => 'Expense rejected',
     'payment_schedule_recalculated' => 'Payment schedule recalculated',
     'payment_restored' => 'Payment restored to pending',
     'confirm_transition' => 'Change status from :from to :to?',

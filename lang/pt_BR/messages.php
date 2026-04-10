@@ -37,6 +37,8 @@ return [
     'available_amount' => 'Valor disponível',
     'payment_approved' => 'Pagamento aprovado',
     'payment_rejected' => 'Pagamento rejeitado',
+    'expense_approved' => 'Despesa aprovada',
+    'expense_rejected' => 'Despesa rejeitada',
     'payment_schedule_recalculated' => 'Cronograma de pagamento recalculado',
     'payment_restored' => 'Pagamento restaurado para pendente',
     'confirm_transition' => 'Alterar status de :from para :to?',

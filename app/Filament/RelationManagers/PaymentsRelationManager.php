@@ -5,7 +5,9 @@ namespace App\Filament\RelationManagers;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
-use App\Filament\Resources\Payments\PaymentResource;
+use App\Domain\Financial\Enums\PaymentDirection;
+use App\Filament\Resources\Finance\AccountsPayable\AccountsPayableResource;
+use App\Filament\Resources\Finance\AccountsReceivable\AccountsReceivableResource;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -142,17 +144,20 @@ class PaymentsRelationManager extends RelationManager
                     ->visible(fn () => auth()->user()?->can('create-payments'))
                     ->url(function () {
                         $owner = $this->getOwnerRecord();
-                        $params = [];
 
                         if ($owner instanceof \App\Domain\PurchaseOrders\Models\PurchaseOrder) {
-                            $params['direction'] = 'outbound';
-                            $params['company_id'] = $owner->supplier_company_id;
-                        } elseif ($owner instanceof \App\Domain\ProformaInvoices\Models\ProformaInvoice) {
-                            $params['direction'] = 'inbound';
-                            $params['company_id'] = $owner->company_id;
+                            return AccountsPayableResource::getUrl('create', [
+                                'company_id' => $owner->supplier_company_id,
+                            ]);
                         }
 
-                        return PaymentResource::getUrl('create', $params);
+                        if ($owner instanceof \App\Domain\ProformaInvoices\Models\ProformaInvoice) {
+                            return AccountsReceivableResource::getUrl('create', [
+                                'company_id' => $owner->company_id,
+                            ]);
+                        }
+
+                        return AccountsReceivableResource::getUrl('create');
                     })
                     ->openUrlInNewTab(),
             ])
@@ -285,7 +290,9 @@ class PaymentsRelationManager extends RelationManager
                     default => '#9ca3af',
                 };
                 $statusLabel = $payment->status instanceof BackedEnum ? ucfirst($payment->status->value) : $payment->status;
-                $viewUrl = PaymentResource::getUrl('view', ['record' => $payment]);
+                $viewUrl = $payment->direction === PaymentDirection::INBOUND
+                    ? AccountsReceivableResource::getUrl('view', ['record' => $payment])
+                    : AccountsPayableResource::getUrl('view', ['record' => $payment]);
 
                 $html .= '<tr>';
                 $html .= '<td style="' . $tdStyle . '">' . $date . '</td>';

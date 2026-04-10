@@ -914,7 +914,7 @@ class GeneratePaymentScheduleAction
             ->get();
 
         foreach ($items as $item) {
-            if ($item->status === PaymentScheduleStatus::WAIVED) {
+            if (in_array($item->status, [PaymentScheduleStatus::WAIVED, PaymentScheduleStatus::PAID])) {
                 continue;
             }
 

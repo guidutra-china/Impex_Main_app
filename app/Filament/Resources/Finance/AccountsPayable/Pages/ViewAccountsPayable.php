@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\Payments\Pages;
+namespace App\Filament\Resources\Finance\AccountsPayable\Pages;
 
 use App\Domain\Financial\Actions\ApprovePaymentAction;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
@@ -10,8 +10,8 @@ use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Settings\Models\Currency;
 use App\Domain\Settings\Models\ExchangeRate;
-use App\Filament\Resources\Payments\PaymentResource;
-use App\Filament\Resources\Payments\Schemas\PaymentForm;
+use App\Filament\Resources\Finance\AccountsPayable\AccountsPayableResource;
+use App\Filament\Resources\Finance\Concerns\HasPaymentFormSections;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Repeater;
@@ -25,9 +25,9 @@ use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 
-class ViewPayment extends ViewRecord
+class ViewAccountsPayable extends ViewRecord
 {
-    protected static string $resource = PaymentResource::class;
+    protected static string $resource = AccountsPayableResource::class;
 
     protected function getHeaderActions(): array
     {
@@ -73,7 +73,7 @@ class ViewPayment extends ViewRecord
                             ->label(__('forms.labels.schedule_item'))
                             ->options(function () {
                                 $payment = $this->record;
-                                $items = PaymentForm::getCompanyScheduleItems(
+                                $items = HasPaymentFormSections::getCompanyScheduleItems(
                                     $payment->company_id,
                                     $payment->direction
                                 );
@@ -81,11 +81,11 @@ class ViewPayment extends ViewRecord
                                 return $items->mapWithKeys(function ($item) {
                                     $clientRef = $item->payable?->client_reference;
                                     $label = '['.($item->payable?->reference ?? '?').'] '
-                                        .($item->label ?? $item->paymentTermStage?->name ?? '—');
+                                        .($item->label ?? $item->paymentTermStage?->name ?? '---');
                                     if ($clientRef) {
                                         $label .= " (Ref: {$clientRef})";
                                     }
-                                    $label .= ' — '.$item->currency_code.' '.Money::format($item->remaining_amount)
+                                    $label .= ' --- '.$item->currency_code.' '.Money::format($item->remaining_amount)
                                         .' remaining';
 
                                     return [$item->id => $label];
@@ -99,11 +99,11 @@ class ViewPayment extends ViewRecord
 
                                 $clientRef = $item->payable?->client_reference;
                                 $labelText = '['.($item->payable?->reference ?? '?').'] '
-                                    .($item->label ?? $item->paymentTermStage?->name ?? '—');
+                                    .($item->label ?? $item->paymentTermStage?->name ?? '---');
                                 if ($clientRef) {
                                     $labelText .= " (Ref: {$clientRef})";
                                 }
-                                $labelText .= ' — '.$item->currency_code.' '.Money::format($item->remaining_amount)
+                                $labelText .= ' --- '.$item->currency_code.' '.Money::format($item->remaining_amount)
                                     .' remaining';
 
                                 return $labelText;
@@ -218,7 +218,6 @@ class ViewPayment extends ViewRecord
                         'allocated_amount_in_document_currency' => $allocatedInDocCurrency,
                     ]);
 
-                    // Recalculate schedule item status since payment is already approved
                     if ($scheduleItem->status !== PaymentScheduleStatus::WAIVED) {
                         $scheduleItem->refresh();
                         $scheduleItem->update([
@@ -251,7 +250,7 @@ class ViewPayment extends ViewRecord
             ->modalHeading('Approve Payment')
             ->modalDescription(fn () => 'Approve payment of '
                 .Money::format($this->record->amount).' '
-                .$this->record->currency_code.' to/from '
+                .$this->record->currency_code.' to '
                 .($this->record->company?->name ?? 'Unknown').'?')
             ->visible(fn () => $this->record->status === PaymentStatus::PENDING_APPROVAL
                 && auth()->user()?->can('approve-payments'))

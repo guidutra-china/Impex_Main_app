@@ -91,6 +91,11 @@ class AdditionalCost extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function debitNoteLineItems(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(DebitNoteLineItem::class);
+    }
+
     // --- Scopes ---
 
     public function scopeBillableToClient($query)

@@ -2,10 +2,16 @@
 
 namespace App\Filament\Resources\Finance\CompanyExpenses\Tables;
 
+use App\Domain\Finance\Actions\ApproveCompanyExpenseAction;
+use App\Domain\Finance\Enums\ExpenseApprovalStatus;
 use App\Domain\Finance\Enums\ExpenseCategory;
 use App\Domain\Infrastructure\Support\Money;
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Textarea;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
@@ -50,6 +56,11 @@ class CompanyExpensesTable
                 TextColumn::make('currency_code')
                     ->label(__('forms.labels.currency')),
 
+                TextColumn::make('status')
+                    ->label(__('forms.labels.status'))
+                    ->badge()
+                    ->sortable(),
+
                 IconColumn::make('is_recurring')
                     ->label(__('forms.labels.recurring'))
                     ->boolean()
@@ -87,6 +98,10 @@ class CompanyExpensesTable
                     ->collapsible(),
             ])
             ->filters([
+                SelectFilter::make('status')
+                    ->label(__('forms.labels.status'))
+                    ->options(ExpenseApprovalStatus::class),
+
                 SelectFilter::make('category')
                     ->label(__('forms.labels.category'))
                     ->options(ExpenseCategory::class)
@@ -105,6 +120,41 @@ class CompanyExpensesTable
                     ->options(fn () => \App\Domain\Settings\Models\Currency::pluck('code', 'code')),
             ])
             ->recordActions([
+                ActionGroup::make([
+                    Action::make('approve')
+                        ->label(__('forms.labels.approve'))
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->visible(fn ($record) => $record->status === ExpenseApprovalStatus::PENDING_APPROVAL
+                            && auth()->user()?->can('approve-company-expenses'))
+                        ->action(function ($record) {
+                            app(ApproveCompanyExpenseAction::class)->approve($record);
+                            Notification::make()->title(__('messages.expense_approved'))->success()->send();
+                        }),
+                    Action::make('reject')
+                        ->label(__('forms.labels.reject'))
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->form([
+                            Textarea::make('reason')
+                                ->label(__('forms.labels.rejection_reason'))
+                                ->rows(2)
+                                ->required(),
+                        ])
+                        ->visible(fn ($record) => $record->status === ExpenseApprovalStatus::PENDING_APPROVAL
+                            && auth()->user()?->can('approve-company-expenses'))
+                        ->action(function ($record, array $data) {
+                            app(ApproveCompanyExpenseAction::class)->reject($record, $data['reason']);
+                            Notification::make()->title(__('messages.expense_rejected'))->danger()->send();
+                        }),
+                ])
+                    ->label(__('forms.labels.change_status'))
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('warning')
+                    ->size('sm')
+                    ->visible(fn ($record) => $record->status === ExpenseApprovalStatus::PENDING_APPROVAL),
                 ViewAction::make(),
                 EditAction::make(),
             ]);
