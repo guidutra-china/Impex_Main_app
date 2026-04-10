@@ -45,7 +45,21 @@ class PaymentScheduleRelationManager extends RelationManager
                         $label = preg_replace('/\s*\x{2014}\s*\[.*\]\s*$/u', '', $state ?? '');
                         $label = e($label);
 
-                        $html = '<span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-800 dark:bg-white/10 dark:text-gray-200">' . $label . '</span>';
+                        $isForwarderPayable = str_contains($record->notes ?? '', '[forwarder-payable]');
+
+                        if ($isForwarderPayable) {
+                            $badgeClass = 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20 dark:bg-red-400/10 dark:text-red-400 dark:ring-red-400/30';
+                        } else {
+                            $badgeClass = 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-400/10 dark:text-emerald-400 dark:ring-emerald-400/30';
+                        }
+
+                        $html = '<span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ' . $badgeClass . '">' . $label . '</span>';
+
+                        $directionLabel = $isForwarderPayable ? 'OUT' : 'IN';
+                        $directionClass = $isForwarderPayable
+                            ? 'bg-red-50 text-red-700 dark:bg-red-400/10 dark:text-red-400'
+                            : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400';
+                        $html .= ' <span class="inline-flex items-center rounded-md px-1.5 py-0.5 text-[0.6rem] font-semibold uppercase ' . $directionClass . '">' . $directionLabel . '</span>';
 
                         $record->loadMissing('shipment');
                         if ($record->shipment) {
