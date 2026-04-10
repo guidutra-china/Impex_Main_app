@@ -10,6 +10,7 @@ use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use Illuminate\Support\Facades\DB;
 
 final class AdditionalCostSectionBuilder implements SectionBuilder
@@ -29,6 +30,7 @@ final class AdditionalCostSectionBuilder implements SectionBuilder
 
         $query = AdditionalCost::query()
             ->whereNot('status', AdditionalCostStatus::WAIVED)
+            ->where('costable_type', '!=', (new ProformaInvoice)->getMorphClass())
             ->whereBetween($dateExpr, [$filters->from->toDateString(), $filters->to->toDateString()])
             ->with('costable')
             ->orderBy($dateExpr);
