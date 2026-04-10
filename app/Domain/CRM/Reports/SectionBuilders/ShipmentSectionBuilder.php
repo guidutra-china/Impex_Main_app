@@ -7,6 +7,7 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Reports\DTOs\StatementFilters;
 use App\Domain\CRM\Reports\DTOs\StatementSection;
 use App\Domain\CRM\Reports\StatusScopeFilter;
+use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Models\Shipment;
 use Illuminate\Support\Facades\DB;
 
@@ -47,20 +48,26 @@ final class ShipmentSectionBuilder implements SectionBuilder
                 : $query->whereNotIn('status', $values);
         }
 
-        $rows = $query->get()->map(fn (Shipment $s) => [
-            'number' => $s->reference ?? (string) $s->id,
-            'client_reference' => (string) ($s->client_reference ?? ''),
-            'etd' => optional($s->etd)->format('Y-m-d'),
-            'eta' => optional($s->eta)->format('Y-m-d'),
-            'status' => $s->status instanceof \BackedEnum ? $s->status->value : (string) $s->status,
-            'transport_mode' => $s->transport_mode instanceof \BackedEnum ? $s->transport_mode->value : (string) ($s->transport_mode ?? ''),
-            'booking_number' => (string) ($s->booking_number ?? ''),
-        ])->all();
+        $rows = $query->with('items.proformaInvoiceItem')->get()->map(function (Shipment $s) {
+            $ciTotal = $s->items->sum(fn ($item) => $item->line_total);
+
+            return [
+                'number' => $s->reference ?? (string) $s->id,
+                'client_reference' => (string) ($s->client_reference ?? ''),
+                'etd' => optional($s->etd)->format('Y-m-d'),
+                'eta' => optional($s->eta)->format('Y-m-d'),
+                'status' => $s->status instanceof \BackedEnum ? $s->status->value : (string) $s->status,
+                'transport_mode' => $s->transport_mode instanceof \BackedEnum ? $s->transport_mode->value : (string) ($s->transport_mode ?? ''),
+                'booking_number' => (string) ($s->booking_number ?? ''),
+                'total' => round($ciTotal / Money::SCALE, 2),
+                'currency' => (string) ($s->currency_code ?? ''),
+            ];
+        })->all();
 
         return new StatementSection(
             key: 'shipments',
             titleKey: 'statements.sections.shipments',
-            columns: ['number', 'client_reference', 'etd', 'eta', 'status', 'transport_mode', 'booking_number'],
+            columns: ['number', 'client_reference', 'etd', 'eta', 'status', 'transport_mode', 'booking_number', 'total', 'currency'],
             rows: $rows,
         );
     }
