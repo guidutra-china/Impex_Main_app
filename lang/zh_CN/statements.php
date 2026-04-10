@@ -50,6 +50,7 @@ return [
         'eta' => '到港日',
         'transport_mode' => '运输方式',
         'booking_number' => '订舱号',
+        'bl_number' => '提单号',
         'goods' => '货值',
         'freight' => '运费',
         'document' => '文件',

@@ -68,7 +68,7 @@ final class ShipmentSectionBuilder implements SectionBuilder
                 'eta' => optional($s->eta)->format('Y-m-d'),
                 'status' => $s->status instanceof \BackedEnum ? $s->status->value : (string) $s->status,
                 'transport_mode' => $s->transport_mode instanceof \BackedEnum ? $s->transport_mode->value : (string) ($s->transport_mode ?? ''),
-                'booking_number' => (string) ($s->booking_number ?? ''),
+                'bl_number' => (string) ($s->bl_number ?? ''),
                 'goods' => round($ciTotal / Money::SCALE, 2),
                 'freight' => round($freight / Money::SCALE, 2),
                 'total' => round(($ciTotal + $freight) / Money::SCALE, 2),
@@ -79,7 +79,7 @@ final class ShipmentSectionBuilder implements SectionBuilder
         return new StatementSection(
             key: 'shipments',
             titleKey: 'statements.sections.shipments',
-            columns: ['number', 'ci_number', 'client_reference', 'etd', 'eta', 'status', 'transport_mode', 'booking_number', 'goods', 'freight', 'total', 'currency'],
+            columns: ['number', 'ci_number', 'client_reference', 'etd', 'eta', 'status', 'transport_mode', 'bl_number', 'goods', 'freight', 'total', 'currency'],
             rows: $rows,
         );
     }

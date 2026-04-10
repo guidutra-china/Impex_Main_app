@@ -50,6 +50,7 @@ return [
         'eta' => 'ETA',
         'transport_mode' => 'Mode',
         'booking_number' => 'Booking #',
+        'bl_number' => 'B/L #',
         'goods' => 'Goods',
         'freight' => 'Freight',
         'document' => 'Document',
