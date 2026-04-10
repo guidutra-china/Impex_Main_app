@@ -2,6 +2,8 @@
     <x-filament::section
         :heading="__('widgets.fulfillment.shipment_fulfillment')"
         icon="heroicon-o-truck"
+        collapsible
+        :collapsed="count($items) > 5"
     >
         {{-- Summary Cards --}}
         <div class="grid grid-cols-2 gap-3 mb-6 sm:grid-cols-{{ count($cards) }}">

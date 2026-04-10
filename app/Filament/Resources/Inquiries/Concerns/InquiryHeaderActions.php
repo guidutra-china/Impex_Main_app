@@ -19,6 +19,7 @@ use App\Domain\Quotations\Models\QuotationItem;
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
 use App\Domain\SupplierQuotations\Models\SupplierQuotation;
 use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
+use App\Domain\ProformaInvoices\Services\ProformaInvoiceItemCurrencyResolver;
 use App\Filament\Actions\RevertInquiryStatusAction;
 use App\Filament\Resources\Inquiries\InquiryResource;
 use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
@@ -715,10 +716,13 @@ trait InquiryHeaderActions
                     $supplierCostMap[$sqItem->product_id] = [
                         'unit_cost' => $sqItem->unit_cost,
                         'supplier_company_id' => $sqItem->supplierQuotation->company_id ?? null,
+                        'currency_code' => $sqItem->supplierQuotation->currency_code ?? null,
                     ];
                 }
             }
         }
+
+        $resolver = app(ProformaInvoiceItemCurrencyResolver::class);
 
         $pi->items()
             ->whereNotNull('product_id')
@@ -757,6 +761,12 @@ trait InquiryHeaderActions
 
                 $supplierData = $supplierCostMap[$item->product_id] ?? null;
 
+                $resolved = $resolver->resolve(
+                    $supplierData['currency_code'] ?? null,
+                    $pi->currency_code,
+                    $pi->issue_date?->toDateString(),
+                );
+
                 ProformaInvoiceItem::create([
                     'proforma_invoice_id' => $pi->id,
                     'product_id'          => $item->product_id,
@@ -768,6 +778,8 @@ trait InquiryHeaderActions
                     'unit'                => $item->unit ?? 'pcs',
                     'unit_price'          => $clientPrice,
                     'unit_cost'           => $supplierData['unit_cost'] ?? 0,
+                    'cost_currency_code'  => $resolved['currency'],
+                    'cost_exchange_rate'  => $resolved['rate'],
                     'incoterm'            => null,
                     'notes'               => $item->notes,
                     'sort_order'          => $maxSort,

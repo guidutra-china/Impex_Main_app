@@ -21,11 +21,13 @@ use App\Domain\ProformaInvoices\Services\ProformaInvoiceItemCurrencyResolver;
 use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Illuminate\Database\Eloquent\Collection;
 use App\Domain\Settings\Models\Currency;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -314,6 +316,9 @@ class ItemsRelationManager extends RelationManager
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    $this->bulkChangeCurrencyAction(),
+                    $this->bulkChangeSupplierAction(),
+                    $this->bulkChangeUnitAction(),
                     DeleteBulkAction::make()
                         ->visible(fn () => auth()->user()?->can('edit-proforma-invoices')),
                 ]),
@@ -753,6 +758,102 @@ class ItemsRelationManager extends RelationManager
                 'notes' => 'Auto-generated from ' . $quotation->reference . ' (Separate commission ' . $quotation->commission_rate . '%)',
             ]);
         }
+    }
+
+    protected function bulkChangeCurrencyAction(): BulkAction
+    {
+        return BulkAction::make('bulkChangeCurrency')
+            ->label(__('forms.labels.change_cost_currency'))
+            ->icon('heroicon-o-currency-dollar')
+            ->color('warning')
+            ->visible(fn () => auth()->user()?->can('edit-proforma-invoices'))
+            ->form([
+                Select::make('cost_currency_code')
+                    ->label(__('forms.labels.cost_currency'))
+                    ->options(fn () => Currency::where('is_active', true)->pluck('code', 'code'))
+                    ->required(),
+            ])
+            ->action(function (Collection $records, array $data) {
+                $pi = $this->getOwnerRecord();
+                $resolver = app(ProformaInvoiceItemCurrencyResolver::class);
+                $resolved = $resolver->resolve(
+                    $data['cost_currency_code'],
+                    $pi->currency_code,
+                    $pi->issue_date?->toDateString(),
+                );
+
+                foreach ($records as $record) {
+                    $record->update([
+                        'cost_currency_code' => $resolved['currency'],
+                        'cost_exchange_rate' => $resolved['rate'],
+                    ]);
+                }
+
+                Notification::make()
+                    ->title(__('messages.currency_updated_for_items', ['count' => $records->count()]))
+                    ->success()
+                    ->send();
+            })
+            ->deselectRecordsAfterCompletion();
+    }
+
+    protected function bulkChangeSupplierAction(): BulkAction
+    {
+        return BulkAction::make('bulkChangeSupplier')
+            ->label(__('forms.labels.change_supplier'))
+            ->icon('heroicon-o-building-office')
+            ->color('info')
+            ->visible(fn () => auth()->user()?->can('edit-proforma-invoices'))
+            ->form([
+                Select::make('supplier_company_id')
+                    ->label(__('forms.labels.supplier'))
+                    ->options(
+                        fn () => Company::query()
+                            ->whereHas('companyRoles', fn ($q) => $q->where('role', CompanyRole::SUPPLIER))
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                    )
+                    ->searchable()
+                    ->required(),
+            ])
+            ->action(function (Collection $records, array $data) {
+                $records->each(fn ($record) => $record->update([
+                    'supplier_company_id' => $data['supplier_company_id'],
+                ]));
+
+                Notification::make()
+                    ->title(__('messages.supplier_updated_for_items', ['count' => $records->count()]))
+                    ->success()
+                    ->send();
+            })
+            ->deselectRecordsAfterCompletion();
+    }
+
+    protected function bulkChangeUnitAction(): BulkAction
+    {
+        return BulkAction::make('bulkChangeUnit')
+            ->label(__('forms.labels.change_unit'))
+            ->icon('heroicon-o-scale')
+            ->color('gray')
+            ->visible(fn () => auth()->user()?->can('edit-proforma-invoices'))
+            ->form([
+                TextInput::make('unit')
+                    ->label(__('forms.labels.unit'))
+                    ->required()
+                    ->maxLength(20)
+                    ->default('pcs'),
+            ])
+            ->action(function (Collection $records, array $data) {
+                $records->each(fn ($record) => $record->update([
+                    'unit' => $data['unit'],
+                ]));
+
+                Notification::make()
+                    ->title(__('messages.unit_updated_for_items', ['count' => $records->count()]))
+                    ->success()
+                    ->send();
+            })
+            ->deselectRecordsAfterCompletion();
     }
 
     protected function fillFromProduct(int $productId, Get $get, Set $set): void
