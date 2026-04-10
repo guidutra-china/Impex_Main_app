@@ -30,7 +30,7 @@ abstract class StatementPreview extends Page
     /** @return list<string> */
     protected function availableSections(): array
     {
-        return ['inquiries', 'quotations', 'proforma_invoices', 'shipments', 'purchase_orders', 'rfqs'];
+        return ['inquiries', 'quotations', 'proforma_invoices', 'shipments', 'purchase_orders', 'rfqs', 'additional_costs'];
     }
 
     protected function initializeStatement(): void

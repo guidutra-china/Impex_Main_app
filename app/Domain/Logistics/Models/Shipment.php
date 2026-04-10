@@ -80,6 +80,15 @@ class Shipment extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::creating(function (Shipment $shipment) {
+            if (empty($shipment->issue_date)) {
+                $shipment->issue_date = now()->toDateString();
+            }
+        });
+    }
+
     // --- Activity Log ---
 
     public function getActivitylogOptions(): LogOptions

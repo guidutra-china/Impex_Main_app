@@ -28,6 +28,7 @@ return [
         'shipments' => 'Shipments',
         'purchase_orders' => 'Purchase Orders',
         'rfqs' => 'Requests for Quotation',
+        'additional_costs' => 'Additional Costs',
     ],
 
     'columns' => [
@@ -48,6 +49,10 @@ return [
         'eta' => 'ETA',
         'transport_mode' => 'Mode',
         'booking_number' => 'Booking #',
+        'document' => 'Document',
+        'cost_type' => 'Type',
+        'description' => 'Description',
+        'amount' => 'Amount',
     ],
 
     'filters' => [

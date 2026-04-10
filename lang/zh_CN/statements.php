@@ -28,6 +28,7 @@ return [
         'shipments' => '发货',
         'purchase_orders' => '采购订单',
         'rfqs' => '询价请求',
+        'additional_costs' => '附加费用',
     ],
 
     'columns' => [
@@ -48,6 +49,10 @@ return [
         'eta' => '到港日',
         'transport_mode' => '运输方式',
         'booking_number' => '订舱号',
+        'document' => '文件',
+        'cost_type' => '类型',
+        'description' => '描述',
+        'amount' => '金额',
     ],
 
     'filters' => [

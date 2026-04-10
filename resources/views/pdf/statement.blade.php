@@ -127,7 +127,7 @@
                 <thead>
                     <tr>
                         @foreach($section->columns as $col)
-                            <th @if(in_array($col, ['total','paid','balance','items'])) style="text-align: right;" @endif>
+                            <th @if(in_array($col, ['total','paid','balance','amount','items'])) style="text-align: right;" @endif>
                                 {{ __('statements.columns.' . $col, [], $locale) }}
                             </th>
                         @endforeach
@@ -138,7 +138,7 @@
                         <tr>
                             @foreach($section->columns as $col)
                                 @php($val = $row[$col] ?? null)
-                                @php($isMoney = in_array($col, ['total','paid','balance']))
+                                @php($isMoney = in_array($col, ['total','paid','balance','amount']))
                                 @php($isCount = $col === 'items')
                                 <td @if($isMoney || $isCount) style="text-align: right;" @endif>
                                     @if($val === null || $val === '')

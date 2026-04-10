@@ -3,6 +3,7 @@
 namespace App\Domain\CRM\Reports;
 
 use App\Domain\CRM\Enums\CompanyRole;
+use App\Domain\CRM\Reports\SectionBuilders\AdditionalCostSectionBuilder;
 use App\Domain\CRM\Reports\SectionBuilders\InquirySectionBuilder;
 use App\Domain\CRM\Reports\SectionBuilders\ProformaInvoiceSectionBuilder;
 use App\Domain\CRM\Reports\SectionBuilders\PurchaseOrderSectionBuilder;
@@ -23,14 +24,17 @@ final class StatementSectionResolver
                 new ProformaInvoiceSectionBuilder(),
                 new PurchaseOrderSectionBuilder(CompanyRole::CLIENT),
                 new ShipmentSectionBuilder(CompanyRole::CLIENT),
+                new AdditionalCostSectionBuilder(CompanyRole::CLIENT),
             ],
             CompanyRole::SUPPLIER => [
                 new RfqSectionBuilder(),
                 new PurchaseOrderSectionBuilder(),
                 new ShipmentSectionBuilder(CompanyRole::SUPPLIER),
+                new AdditionalCostSectionBuilder(CompanyRole::SUPPLIER),
             ],
             CompanyRole::FORWARDER => [
                 new ShipmentSectionBuilder(CompanyRole::FORWARDER),
+                new AdditionalCostSectionBuilder(CompanyRole::FORWARDER),
             ],
             default => [],
         };

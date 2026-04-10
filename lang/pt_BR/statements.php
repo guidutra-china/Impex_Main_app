@@ -28,6 +28,7 @@ return [
         'shipments' => 'Embarques',
         'purchase_orders' => 'Ordens de compra',
         'rfqs' => 'Solicitações de cotação',
+        'additional_costs' => 'Custos Adicionais',
     ],
 
     'columns' => [
@@ -48,6 +49,10 @@ return [
         'eta' => 'ETA',
         'transport_mode' => 'Modal',
         'booking_number' => 'Booking',
+        'document' => 'Documento',
+        'cost_type' => 'Tipo',
+        'description' => 'Descrição',
+        'amount' => 'Valor',
     ],
 
     'filters' => [

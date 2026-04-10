@@ -97,7 +97,7 @@
             <thead>
                 <tr style="background: #f3f4f6;">
                     @foreach($section->columns as $col)
-                        <th style="{{ in_array($col, ['total','paid','balance','items']) ? 'text-align: right;' : 'text-align: left;' }} padding: 6px 8px; font-size: 12px; border-bottom: 2px solid #e5e7eb;">
+                        <th style="{{ in_array($col, ['total','paid','balance','amount','items']) ? 'text-align: right;' : 'text-align: left;' }} padding: 6px 8px; font-size: 12px; border-bottom: 2px solid #e5e7eb;">
                             {{ __('statements.columns.' . $col) }}
                         </th>
                     @endforeach
@@ -108,7 +108,7 @@
                     <tr>
                         @foreach($section->columns as $col)
                             @php($val = $row[$col] ?? null)
-                            @php($isMoney = in_array($col, ['total','paid','balance']))
+                            @php($isMoney = in_array($col, ['total','paid','balance','amount']))
                             @php($isCount = $col === 'items')
                             <td style="{{ ($isMoney || $isCount) ? 'text-align: right;' : '' }} padding: 5px 8px; border-bottom: 1px solid #f3f4f6; font-size: 12px;">
                                 @if($val === null || $val === '')
