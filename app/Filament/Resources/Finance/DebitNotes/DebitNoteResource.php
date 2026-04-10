@@ -9,6 +9,7 @@ use App\Filament\Resources\Finance\DebitNotes\Pages\ListDebitNotes;
 use App\Filament\Resources\Finance\DebitNotes\Pages\ViewDebitNote;
 use App\Filament\Resources\Finance\DebitNotes\Schemas\DebitNoteForm;
 use App\Filament\Resources\Finance\DebitNotes\Schemas\DebitNoteInfolist;
+use App\Filament\Resources\Finance\DebitNotes\Tables\DebitNotesTable;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -26,12 +27,9 @@ class DebitNoteResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'reference';
 
-    protected static bool $shouldRegisterNavigation = false;
-
-    // TODO: Re-enable when DebitNotes feature is complete (Tables/DebitNotesTable.php missing)
     public static function canAccess(): bool
     {
-        return false;
+        return auth()->user()?->can('view-payments') ?? false;
     }
 
     public static function getGloballySearchableAttributes(): array
@@ -51,8 +49,7 @@ class DebitNoteResource extends Resource
 
     public static function table(Table $table): Table
     {
-        // TODO: Restore DebitNotesTable::configure($table) when feature is complete
-        return $table;
+        return DebitNotesTable::configure($table);
     }
 
     public static function getRelations(): array
