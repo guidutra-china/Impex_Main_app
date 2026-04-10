@@ -2,11 +2,14 @@
 
 namespace App\Filament\Resources\Catalog\Products\Pages;
 
+use App\Domain\Catalog\Actions\ProductDeletionGuard;
 use App\Domain\Catalog\Enums\ProductStatus;
+use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\ProductCosting;
 use App\Domain\Catalog\Models\ProductPackaging;
 use App\Domain\Catalog\Models\ProductSpecification;
 use App\Filament\Resources\Catalog\Products\ProductResource;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\ReplicateAction;
@@ -99,7 +102,23 @@ class EditProduct extends EditRecord
                 })
                 ->successRedirectUrl(fn (Model $replica): string => ProductResource::getUrl('edit', ['record' => $replica]))
                 ->successNotificationTitle('Product cloned — redirecting to edit page'),
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->before(function (Action $action) {
+                    /** @var Product $product */
+                    $product = $this->getRecord();
+                    $blocking = app(ProductDeletionGuard::class)->check($product);
+
+                    if ($blocking->isNotEmpty()) {
+                        Notification::make()
+                            ->danger()
+                            ->title('Cannot delete product')
+                            ->body('Referenced in active documents: ' . $blocking->unique()->implode(', '))
+                            ->persistent()
+                            ->send();
+
+                        $action->cancel();
+                    }
+                }),
             RestoreAction::make(),
             ForceDeleteAction::make(),
         ];

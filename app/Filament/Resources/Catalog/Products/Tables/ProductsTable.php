@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Catalog\Products\Tables;
 
+use App\Domain\Catalog\Actions\ProductDeletionGuard;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Support\Money;
@@ -266,7 +267,21 @@ class ProductsTable
                     })
                     ->successRedirectUrl(fn (Model $replica): string => ProductResource::getUrl('edit', ['record' => $replica]))
                     ->successNotificationTitle('Product cloned'),
-                DeleteAction::make(),
+                DeleteAction::make()
+                    ->before(function (DeleteAction $action, Product $record) {
+                        $blocking = app(ProductDeletionGuard::class)->check($record);
+
+                        if ($blocking->isNotEmpty()) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Cannot delete product')
+                                ->body('Referenced in active documents: ' . $blocking->unique()->implode(', '))
+                                ->persistent()
+                                ->send();
+
+                            $action->cancel();
+                        }
+                    }),
                 RestoreAction::make(),
                 ForceDeleteAction::make(),
             ])

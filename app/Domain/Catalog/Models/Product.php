@@ -3,8 +3,14 @@
 namespace App\Domain\Catalog\Models;
 
 use App\Domain\Catalog\Actions\GenerateProductSkuAction;
+use App\Domain\Catalog\Actions\ProductDeletionGuard;
 use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\CRM\Models\Company;
+use App\Domain\Inquiries\Models\InquiryItem;
+use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
+use App\Domain\PurchaseOrders\Models\PurchaseOrderItem;
+use App\Domain\Quotations\Models\QuotationItem;
+use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
 use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -57,6 +63,21 @@ class Product extends Model
             if ($product->avatar) {
                 self::deleteAvatarIfOrphan($product->avatar, $product->id);
             }
+        });
+
+        // Prevent soft-delete when product is referenced in active documents
+        static::deleting(function (Product $product) {
+            if ($product->isForceDeleting()) {
+                return true;
+            }
+
+            $blocking = app(ProductDeletionGuard::class)->check($product);
+
+            if ($blocking->isNotEmpty()) {
+                return false;
+            }
+
+            return true;
         });
     }
 
@@ -183,6 +204,31 @@ class Product extends Model
     public function clients(): BelongsToMany
     {
         return $this->companies()->wherePivot('role', 'client');
+    }
+
+    public function proformaInvoiceItems(): HasMany
+    {
+        return $this->hasMany(ProformaInvoiceItem::class);
+    }
+
+    public function purchaseOrderItems(): HasMany
+    {
+        return $this->hasMany(PurchaseOrderItem::class);
+    }
+
+    public function quotationItems(): HasMany
+    {
+        return $this->hasMany(QuotationItem::class);
+    }
+
+    public function inquiryItems(): HasMany
+    {
+        return $this->hasMany(InquiryItem::class);
+    }
+
+    public function supplierQuotationItems(): HasMany
+    {
+        return $this->hasMany(SupplierQuotationItem::class);
     }
 
     // --- Scopes ---
