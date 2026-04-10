@@ -127,4 +127,7 @@ return [
 
     // Proforma Invoice multi-currency
     'fx_rates_refreshed' => ':count item(s) refreshed from the FX table',
+    'currency_updated_for_items' => 'Cost currency updated for :count item(s)',
+    'supplier_updated_for_items' => 'Supplier updated for :count item(s)',
+    'unit_updated_for_items' => 'Unit updated for :count item(s)',
 ];

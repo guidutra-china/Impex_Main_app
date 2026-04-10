@@ -117,4 +117,7 @@ return [
     'reconcile_shipment_plan_description' => '这将比较计划数量与实际发货数量，并相应调整到达前付款计划项。',
     'reconciliation_complete' => '对账完成',
     'fx_rates_refreshed' => '已根据汇率表刷新 :count 项',
+    'currency_updated_for_items' => '已更新 :count 项的成本货币',
+    'supplier_updated_for_items' => '已更新 :count 项的供应商',
+    'unit_updated_for_items' => '已更新 :count 项的单位',
 ];
