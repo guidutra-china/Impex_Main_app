@@ -27,6 +27,11 @@ class StatementsPage extends StatementPreview
         return __('statements.title');
     }
 
+    protected function availableSections(): array
+    {
+        return ['inquiries', 'quotations', 'proforma_invoices', 'shipments'];
+    }
+
     protected function resolveCompany(): Company
     {
         $user = auth()->user();

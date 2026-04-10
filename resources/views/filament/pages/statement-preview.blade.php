@@ -37,7 +37,7 @@
                 <div class="mb-4">
                     <label class="fi-fo-field-wrp-label text-sm font-medium text-gray-950 dark:text-white mb-2 block">{{ __('statements.filters.sections') }}</label>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
-                        @foreach(['inquiries', 'quotations', 'proforma_invoices', 'shipments', 'purchase_orders', 'rfqs'] as $section)
+                        @foreach($this->availableSections() as $section)
                             <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                                 <input type="checkbox" wire:model="sectionToggles.{{ $section }}"
                                     class="fi-checkbox-input rounded border-gray-300 text-primary-600 shadow-sm dark:border-white/10 dark:bg-white/5" />

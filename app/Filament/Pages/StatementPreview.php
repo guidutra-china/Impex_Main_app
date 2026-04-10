@@ -27,6 +27,12 @@ abstract class StatementPreview extends Page
 
     abstract protected function resolveCompany(): Company;
 
+    /** @return list<string> */
+    protected function availableSections(): array
+    {
+        return ['inquiries', 'quotations', 'proforma_invoices', 'shipments', 'purchase_orders', 'rfqs'];
+    }
+
     protected function initializeStatement(): void
     {
         abort_unless(auth()->user()?->can('view-statements'), 403);
@@ -39,7 +45,7 @@ abstract class StatementPreview extends Page
             ?? auth()->user()?->locale
             ?? config('app.locale');
 
-        foreach (['inquiries', 'quotations', 'proforma_invoices', 'shipments', 'purchase_orders', 'rfqs'] as $section) {
+        foreach ($this->availableSections() as $section) {
             $this->sectionToggles[$section] = true;
         }
     }
@@ -137,7 +143,7 @@ abstract class StatementPreview extends Page
         $company = $this->resolveCompany();
 
         $sectionKeys = array_values(array_filter(
-            ['inquiries', 'quotations', 'proforma_invoices', 'shipments', 'purchase_orders', 'rfqs'],
+            $this->availableSections(),
             fn (string $key) => ($this->sectionToggles[$key] ?? false) === true,
         ));
 
