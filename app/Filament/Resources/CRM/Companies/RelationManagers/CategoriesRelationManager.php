@@ -7,11 +7,16 @@ use Filament\Actions\AttachAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DetachAction;
 use Filament\Actions\DetachBulkAction;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 
 class CategoriesRelationManager extends RelationManager
 {
@@ -55,7 +60,31 @@ class CategoriesRelationManager extends RelationManager
                     ->recordSelectOptionsQuery(fn ($query) => $query->active()->orderBy('name'))
                     ->recordTitle(fn (Category $record): string => $record->full_path)
                     ->form(fn (AttachAction $action): array => [
-                        $action->getRecordSelect(),
+                        $action->getRecordSelect()
+                            ->createOptionForm([
+                                TextInput::make('name')
+                                    ->label(__('forms.labels.name'))
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state))),
+                                TextInput::make('slug')
+                                    ->label(__('forms.labels.slug'))
+                                    ->required()
+                                    ->maxLength(255),
+                                Select::make('parent_id')
+                                    ->label(__('forms.labels.parent_category'))
+                                    ->options(fn () => Category::query()->active()->orderBy('name')->get()->mapWithKeys(fn (Category $cat) => [$cat->id => $cat->full_path]))
+                                    ->searchable()
+                                    ->placeholder(__('forms.placeholders.none_root_category')),
+                                TextInput::make('sku_prefix')
+                                    ->label(__('forms.labels.sku_prefix'))
+                                    ->maxLength(10),
+                                Toggle::make('is_active')
+                                    ->label(__('forms.labels.active'))
+                                    ->default(true),
+                            ])
+                            ->createOptionUsing(fn (array $data): int => Category::create($data)->getKey()),
                         Textarea::make('notes')
                             ->label(__('forms.labels.notes'))
                             ->rows(2)
