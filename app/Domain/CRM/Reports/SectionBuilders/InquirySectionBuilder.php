@@ -32,6 +32,7 @@ final class InquirySectionBuilder implements SectionBuilder
 
         $rows = $query->with('items')->get()->map(fn (Inquiry $i) => [
             'number' => $i->reference ?? (string) $i->id,
+            'description' => (string) ($i->description ?? ''),
             'date' => optional($i->received_at)->format('Y-m-d'),
             'status' => $i->status instanceof \BackedEnum ? $i->status->value : (string) $i->status,
             'items' => $i->items->count(),
@@ -40,7 +41,7 @@ final class InquirySectionBuilder implements SectionBuilder
         return new StatementSection(
             key: 'inquiries',
             titleKey: 'statements.sections.inquiries',
-            columns: ['number', 'date', 'status', 'items'],
+            columns: ['number', 'description', 'date', 'status', 'items'],
             rows: $rows,
         );
     }
