@@ -373,7 +373,7 @@ class ProductsTable
                 Notification::make()
                     ->success()
                     ->title("Updated {$updated} products")
-                    ->body("Status set to {$data['status']}")
+                    ->body("Status set to {$data['status']->value}")
                     ->send();
             })
             ->deselectRecordsAfterCompletion();
