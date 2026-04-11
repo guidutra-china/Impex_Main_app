@@ -604,6 +604,9 @@ return array (
     'multi_currency_costs' => 'Multi-currency costs',
     'refresh_all_rates' => 'Refresh all rates from FX table',
     'original_cost' => 'Original cost',
+    'revert_status' => 'Revert Status',
+    'revert_to' => 'Revert To',
+    'revert_reason' => 'Reason for Revert',
     ),
     'sections' =>
     array (
@@ -733,11 +736,8 @@ return array (
     'filter_by_category' => 'Filter by Category',
     'filter_by_search' => 'Search Products',
     'filter_by_supplier' => 'Filter by Supplier',
-    'revert_status' => 'Revert Status',
-    'revert_to' => 'Revert To',
-    'revert_reason' => 'Reason for Revert',
     ),
-    'helpers' => 
+    'helpers' =>
     array (
     'a_descriptive_name_to_identify_this_account' => 'A descriptive name to identify this account.',
     'add_branches_for_different_addresses' => 'Add branches to use different addresses on documents.',
@@ -892,6 +892,7 @@ return array (
     'type_to_search_by_name_sku_or_code_use_filters_above' => 'Type to search by name, SKU, or supplier/client code. Use filters above to narrow results. ★ = client product.',
     'cost_currency_to_pi_currency' => 'Rate from cost currency to the PI currency, frozen on the item.',
     'multi_currency_explanation' => 'Some item costs were quoted in a different currency than this PI. The rate snapshot was taken when each item was created. Use the button below to refresh all rates against today\'s FX table.',
+    'revert_reason_required' => 'A reason is required for audit trail purposes.',
     ),
     'placeholders' =>
     array (
@@ -1025,7 +1026,6 @@ return array (
     'record_how_and_when_the_supplier_confirmed_this_purchase' => 'Record how and when the supplier confirmed this purchase order.',
     'this_text_will_appear_on_invoices_and_other_financial' => 'This text will appear on invoices and other financial documents. Format it as you want it to be printed.',
     'contracted_importer_details_for_conta_e_ordem' => 'Enter the details of the contracted importer for "Conta e Ordem" operations. This will appear on the Commercial Invoice and Packing List.',
-    'revert_reason_required' => 'A reason is required for audit trail purposes.',
     'container_capacity_limits' => 'Define container capacity limits for CBM and weight to help plan shipments.',
     ),
     'tooltips' =>

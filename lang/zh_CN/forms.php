@@ -584,8 +584,11 @@ return array (
     'multi_currency_costs' => '多币种成本',
     'refresh_all_rates' => '从汇率表刷新所有汇率',
     'original_cost' => '原始成本',
+    'revert_status' => '恢复状态',
+    'revert_to' => '恢复到',
+    'revert_reason' => '恢复原因',
     ),
-    'sections' => 
+    'sections' =>
     array (
     'access_role' => '访问与角色',
     'account_details' => '账户详情',
@@ -711,11 +714,8 @@ return array (
     'filter_by_category' => '按类别筛选',
     'filter_by_search' => '搜索产品',
     'filter_by_supplier' => '按供应商筛选',
-    'revert_status' => '恢复状态',
-    'revert_to' => '恢复到',
-    'revert_reason' => '恢复原因',
     ),
-    'helpers' => 
+    'helpers' =>
     array (
     'a_descriptive_name_to_identify_this_account' => '用于识别此账户的描述性名称。',
     'add_branches_for_different_addresses' => '添加分公司以在文档中使用不同地址。',
@@ -869,6 +869,7 @@ return array (
     'person_responsible_for_this_inquiry' => '负责管理此项目的内部用户。',
     'cost_currency_to_pi_currency' => '从成本币种到形式发票币种的汇率,创建时已锁定。',
     'multi_currency_explanation' => '部分商品以与本形式发票不同的币种报价。汇率在商品创建时已锁定。点击下方按钮可根据最新汇率表刷新所有汇率。',
+    'revert_reason_required' => '出于审计跟踪目的，需要提供原因。',
     ),
     'placeholders' =>
     array (
@@ -1000,7 +1001,6 @@ return array (
     'record_how_and_when_the_supplier_confirmed_this_purchase' => '记录供应商如何及何时确认此采购订单。',
     'this_text_will_appear_on_invoices_and_other_financial' => '此文本将显示在发票及其他财务文件上。请按打印格式编辑。',
     'contracted_importer_details_for_conta_e_ordem' => '输入代理进口商的详细信息，用于"Conta e Ordem"操作。这些信息将显示在商业发票和装箱单上。',
-    'revert_reason_required' => '出于审计跟踪目的，需要提供原因。',
     'container_capacity_limits' => '定义集装箱容量的CBM和重量限制，以帮助规划发货。',
     ),
     'tooltips' =>

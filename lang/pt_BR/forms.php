@@ -600,8 +600,11 @@ return array (
     'multi_currency_costs' => 'Custos em múltiplas moedas',
     'refresh_all_rates' => 'Atualizar todas as taxas pela tabela de câmbio',
     'original_cost' => 'Custo original',
+    'revert_status' => 'Reverter Status',
+    'revert_to' => 'Reverter Para',
+    'revert_reason' => 'Motivo da Reversão',
     ),
-    'sections' => 
+    'sections' =>
     array (
     'access_role' => 'Acesso & Função',
     'account_details' => 'Detalhes da Conta',
@@ -728,11 +731,8 @@ return array (
     'filter_by_category' => 'Filtrar por Categoria',
     'filter_by_search' => 'Buscar Produtos',
     'filter_by_supplier' => 'Filtrar por Fornecedor',
-    'revert_status' => 'Reverter Status',
-    'revert_to' => 'Reverter Para',
-    'revert_reason' => 'Motivo da Reversão',
     ),
-    'helpers' => 
+    'helpers' =>
     array (
     'a_descriptive_name_to_identify_this_account' => 'Um nome descritivo para identificar esta conta.',
     'add_branches_for_different_addresses' => 'Adicione filiais para usar endereços diferentes nos documentos.',
@@ -887,8 +887,9 @@ return array (
     'type_to_search_by_name_sku_or_code_use_filters_above' => 'Digite para buscar por nome, SKU ou código do fornecedor/cliente. Use os filtros acima para refinar. ★ = produto do cliente.',
     'cost_currency_to_pi_currency' => 'Taxa da moeda de custo para a moeda da PI, congelada no item.',
     'multi_currency_explanation' => 'Alguns itens foram cotados em moeda diferente da PI. A taxa foi congelada no momento da criação. Use o botão abaixo para recalcular todas as taxas com base na tabela de câmbio atual.',
+    'revert_reason_required' => 'Um motivo é obrigatório para fins de auditoria.',
     ),
-    'placeholders' => 
+    'placeholders' =>
     array (
     'no_location' => 'Sem localização',
     'no_documents_uploaded_yet' => 'Nenhum documento enviado ainda.',
@@ -1025,7 +1026,6 @@ return array (
     'record_how_and_when_the_supplier_confirmed_this_purchase' => 'Registre como e quando o fornecedor confirmou esta compra.',
     'this_text_will_appear_on_invoices_and_other_financial' => 'Este texto aparecerá em faturas e outros documentos financeiros. Formate como deseja que seja impresso.',
     'contracted_importer_details_for_conta_e_ordem' => 'Informe os dados da importadora contratada para operações de "Conta e Ordem". Esses dados aparecerão na Commercial Invoice e no Packing List.',
-    'revert_reason_required' => 'Um motivo é obrigatório para fins de auditoria.',
     'container_capacity_limits' => 'Defina os limites de capacidade do contêiner para CBM e peso para auxiliar no planejamento de embarques.',
     ),
     'placeholders' =>
@@ -1155,7 +1155,6 @@ return array (
     'record_how_and_when_the_supplier_confirmed_this_purchase' => 'Registre como e quando o fornecedor confirmou esta compra.',
     'this_text_will_appear_on_invoices_and_other_financial' => 'Este texto aparecerá em faturas e outros documentos financeiros. Formate como deseja que seja impresso.',
     'contracted_importer_details_for_conta_e_ordem' => 'Informe os dados da importadora contratada para operações de "Conta e Ordem". Esses dados aparecerão na Commercial Invoice e no Packing List.',
-    'revert_reason_required' => 'Um motivo é obrigatório para fins de auditoria.',
     'container_capacity_limits' => 'Defina os limites de capacidade do contêiner para CBM e peso para auxiliar no planejamento de embarques.',
     ),
     'tooltips' =>
