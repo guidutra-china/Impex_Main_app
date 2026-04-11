@@ -34,7 +34,7 @@ class RevertInquiryStatusAction
 
     protected static function canRevert(Inquiry $record): bool
     {
-        if (! auth()->user()?->is_admin) {
+        if (! auth()->user()?->hasRole('admin')) {
             return false;
         }
 
