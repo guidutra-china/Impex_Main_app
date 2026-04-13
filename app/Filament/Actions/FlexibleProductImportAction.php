@@ -3,6 +3,8 @@
 namespace App\Filament\Actions;
 
 use App\Domain\Catalog\Actions\GenerateProductSkuAction;
+use App\Domain\Catalog\Actions\Import\GenerateProductImportTemplate;
+use App\Domain\Catalog\Actions\Import\PreImportAnalysis;
 use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\CompanyProduct;
@@ -16,6 +18,7 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -70,6 +73,8 @@ class FlexibleProductImportAction
         @unlink(self::tempPath('images'));
         @unlink(self::tempPath('mapping'));
         @unlink(self::tempPath('row_origins'));
+        @unlink(self::tempPath('ai_analysis'));
+        @unlink(self::tempPath('enable_ai'));
     }
 
     public static function make(string $role, \Closure $getCompany): Action
@@ -191,10 +196,19 @@ class FlexibleProductImportAction
                             ->disk('local')
                             ->directory('temp-imports')
                             ->helperText('Upload .xlsx or .xls file (max 50MB). Product images in the spreadsheet will be imported automatically.'),
+                        Toggle::make('enable_ai_analysis')
+                            ->label('AI Analysis')
+                            ->helperText('Use Claude AI to detect fuzzy product code matches and validate data quality before importing.')
+                            ->default(fn () => (new PreImportAnalysis())->isAvailable()),
                     ])
                     ->afterValidation(function (Get $get, Set $set) use ($fieldPatterns) {
                         ini_set('memory_limit', '512M');
                         \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: afterValidation START');
+
+                        // Cache AI toggle value so Step 2 can read it reliably
+                        $enableAi = (bool) $get('enable_ai_analysis');
+                        self::putCache('enable_ai', $enableAi);
+                        \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: enable_ai_analysis = ' . ($enableAi ? 'true' : 'false'));
 
                         try {
                             $raw = $get('spreadsheet');
@@ -302,6 +316,13 @@ class FlexibleProductImportAction
                     ->description('Assign fields to columns and define import blocks')
                     ->afterValidation(function (Get $get) {
                         $headerRow = (int) ($get('header_row') ?? 1);
+                        // Read AI toggle from cache (set in Step 1) as primary source,
+                        // fall back to $get() which may return null across wizard steps
+                        $enableAi = self::getCache('enable_ai', null);
+                        if ($enableAi === null) {
+                            $enableAi = (bool) $get('enable_ai_analysis');
+                        }
+                        \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT Map step: enableAi = ' . ($enableAi ? 'true' : 'false'));
 
                         $colMapping = [];
                         for ($c = 0; $c < 15; $c++) {
@@ -316,13 +337,44 @@ class FlexibleProductImportAction
                             }
                         }
 
+                        $blocks = array_values($get('import_blocks') ?? []);
+
                         self::putCache('mapping', [
                             'columns' => $colMapping,
                             'header_row' => $headerRow,
-                            'blocks' => array_values($get('import_blocks') ?? []),
+                            'blocks' => $blocks,
                             'currency_code' => $get('currency_code') ?? 'USD',
                             'custom_price_formula' => $get('custom_price_formula'),
                         ]);
+
+                        // --- AI Analysis (runs between Map and Confirm steps) ---
+                        $aiResult = ['ai_matches' => [], 'ai_warnings' => [], 'ai_available' => false];
+                        if ($enableAi) {
+                            Notification::make()->title('AI Analysis')->body('Analyzing data for duplicates...')->info()->send();
+
+                            try {
+                                $rows = self::getCachedRows();
+                                $categoryIds = collect($blocks)->pluck('category_id')->filter()->unique()->values()->toArray();
+                                $firstCategoryName = ! empty($categoryIds) ? (Category::find($categoryIds[0])?->name ?? 'Unknown') : 'Unknown';
+
+                                // Gather all mapped items across blocks for analysis
+                                $allItems = [];
+                                foreach ($blocks as $block) {
+                                    $startRow = (int) ($block['start_row'] ?? 1);
+                                    $endRow = (int) ($block['end_row'] ?? count($rows));
+                                    $items = self::applyMappingWithRange($rows, $colMapping, $headerRow, null, $startRow, $endRow);
+                                    $allItems = array_merge($allItems, $items);
+                                }
+
+                                if (! empty($allItems)) {
+                                    $analyzer = new PreImportAnalysis();
+                                    $aiResult = $analyzer->analyzeFlexibleImport($allItems, $categoryIds, $firstCategoryName);
+                                }
+                            } catch (\Throwable $e) {
+                                \Illuminate\Support\Facades\Log::warning('AI analysis failed: ' . $e->getMessage());
+                            }
+                        }
+                        self::putCache('ai_analysis', $aiResult);
                     })
                     ->schema(function () use ($isClient) {
                         $rows = self::getCache('rows', []);
@@ -577,7 +629,12 @@ class FlexibleProductImportAction
                                 if ($totalImages > 0) {
                                     $html .= " {$totalImages} image(s) will be saved.";
                                 }
-                                $html .= '</p></div>';
+                                $html .= '</p>';
+
+                                // --- AI Analysis Results ---
+                                $html .= self::buildAiAnalysisHtml();
+
+                                $html .= '</div>';
 
                                 return new HtmlString($html);
                             }),
@@ -1096,6 +1153,113 @@ class FlexibleProductImportAction
         return $items;
     }
 
+    /**
+     * Build HTML for AI analysis results shown in the Confirm step.
+     */
+    protected static function buildAiAnalysisHtml(): string
+    {
+        $aiResult = self::getCache('ai_analysis', []);
+        $aiAvailable = $aiResult['ai_available'] ?? false;
+        $aiMatches = $aiResult['ai_matches'] ?? [];
+        $aiWarnings = $aiResult['ai_warnings'] ?? [];
+
+        if (! $aiAvailable && empty($aiMatches) && empty($aiWarnings)) {
+            return '';
+        }
+
+        $debug = $aiResult['_debug'] ?? [];
+
+        $html = '<hr class="my-4 border-gray-200 dark:border-gray-700">';
+        $html .= '<p class="text-sm font-medium mb-2 text-purple-600 dark:text-purple-400">AI Analysis</p>';
+
+        // Debug info — shows what data was analyzed
+        $importCount = $debug['import_rows'] ?? '?';
+        $existingCount = $debug['existing_products'] ?? '?';
+        $aiConfigured = ($debug['ai_configured'] ?? false) ? 'Yes' : 'No';
+        $html .= '<p class="text-xs text-gray-400 dark:text-gray-500 mb-2">'
+            . "Analyzed {$importCount} import rows vs {$existingCount} existing products. Claude API: {$aiConfigured}"
+            . '</p>';
+
+        if (! $aiAvailable) {
+            $html .= '<div class="rounded-lg border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20 p-3 text-sm text-yellow-700 dark:text-yellow-400">'
+                . 'AI not configured. Set <code class="rounded bg-gray-100 dark:bg-gray-700 px-1 text-xs">ANTHROPIC_API_KEY</code> in <code class="rounded bg-gray-100 dark:bg-gray-700 px-1 text-xs">.env</code> to enable.'
+                . '</div>';
+
+            return $html;
+        }
+
+        // Separate intra-batch duplicates from DB matches
+        $intraBatch = collect($aiMatches)->where('type', 'intra_batch')->values();
+        $vsDatabase = collect($aiMatches)->where('type', 'vs_database')->values();
+
+        // Intra-batch duplicates (most important!)
+        if ($intraBatch->isNotEmpty()) {
+            $html .= '<div class="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3 mb-3">';
+            $html .= '<p class="text-sm font-medium text-red-700 dark:text-red-300 mb-1">Possible Duplicates in Spreadsheet (' . $intraBatch->count() . ')</p>';
+            $html .= '<ul class="list-disc pl-5 text-xs text-gray-700 dark:text-gray-300 space-y-1">';
+            foreach ($intraBatch as $m) {
+                $conf = $m['confidence'] ?? 'medium';
+                $badge = $conf === 'high'
+                    ? '<span class="inline-flex items-center rounded-full bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 text-xs font-medium text-red-700 dark:text-red-300">HIGH</span>'
+                    : '<span class="inline-flex items-center rounded-full bg-yellow-50 dark:bg-yellow-900/30 px-1.5 py-0.5 text-xs font-medium text-yellow-700 dark:text-yellow-300">MED</span>';
+
+                $dupRow = $m['duplicate_row'] ?? '?';
+                $html .= '<li>Row ' . ($m['row'] ?? '?') . ' &harr; Row ' . $dupRow . ': '
+                    . '<code class="rounded bg-gray-100 dark:bg-gray-700 px-1">' . e($m['imported_code'] ?? '') . '</code>'
+                    . ' vs <code class="rounded bg-gray-100 dark:bg-gray-700 px-1">' . e($m['matched_code'] ?? '') . '</code>'
+                    . ' ' . $badge
+                    . '<br><span class="text-gray-500 dark:text-gray-400">' . e($m['reason'] ?? '') . '</span></li>';
+            }
+            $html .= '</ul></div>';
+        }
+
+        // Database matches
+        if ($vsDatabase->isNotEmpty()) {
+            $html .= '<div class="rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/20 p-3 mb-3">';
+            $html .= '<p class="text-sm font-medium text-purple-700 dark:text-purple-300 mb-1">Matches with Existing Products (' . $vsDatabase->count() . ')</p>';
+            $html .= '<ul class="list-disc pl-5 text-xs text-gray-700 dark:text-gray-300 space-y-1">';
+            foreach ($vsDatabase as $m) {
+                $conf = $m['confidence'] ?? 'medium';
+                $badge = $conf === 'high'
+                    ? '<span class="inline-flex items-center rounded-full bg-green-50 dark:bg-green-900/30 px-1.5 py-0.5 text-xs font-medium text-green-700 dark:text-green-300">HIGH</span>'
+                    : '<span class="inline-flex items-center rounded-full bg-yellow-50 dark:bg-yellow-900/30 px-1.5 py-0.5 text-xs font-medium text-yellow-700 dark:text-yellow-300">MED</span>';
+
+                $html .= '<li>Row ' . ($m['row'] ?? '?') . ': '
+                    . '<code class="rounded bg-gray-100 dark:bg-gray-700 px-1">' . e($m['imported_code'] ?? '') . '</code>'
+                    . ' &rarr; <code class="rounded bg-gray-100 dark:bg-gray-700 px-1">' . e($m['matched_code'] ?? '') . '</code>'
+                    . ' (' . e($m['matched_name'] ?? '') . ') ' . $badge
+                    . '<br><span class="text-gray-500 dark:text-gray-400">' . e($m['reason'] ?? '') . '</span></li>';
+            }
+            $html .= '</ul></div>';
+        }
+
+        if ($intraBatch->isEmpty() && $vsDatabase->isEmpty()) {
+            $html .= '<div class="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-2 mb-3 text-xs text-green-700 dark:text-green-400">'
+                . 'No duplicates or fuzzy matches found — all codes appear unique.</div>';
+        }
+
+        // Warnings
+        if (! empty($aiWarnings)) {
+            $html .= '<div class="rounded-lg border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20 p-3 mb-3">';
+            $html .= '<p class="text-sm font-medium text-yellow-700 dark:text-yellow-300 mb-1">Data Quality Warnings (' . count($aiWarnings) . ')</p>';
+            $html .= '<ul class="list-disc pl-5 text-xs text-gray-700 dark:text-gray-300 space-y-1">';
+            foreach ($aiWarnings as $w) {
+                $isError = ($w['severity'] ?? 'warning') === 'error';
+                $dot = $isError ? '<span class="text-red-500">&#9679;</span>' : '<span class="text-yellow-500">&#9679;</span>';
+                $suggestion = ! empty($w['suggestion'])
+                    ? '<br><span class="text-green-600 dark:text-green-400">Sugestao: ' . e($w['suggestion']) . '</span>'
+                    : '';
+
+                $html .= '<li>' . $dot . ' Row ' . ($w['row'] ?? '?')
+                    . ' — <strong>' . e($w['field'] ?? '') . '</strong>: '
+                    . e($w['message'] ?? '') . $suggestion . '</li>';
+            }
+            $html .= '</ul></div>';
+        }
+
+        return $html;
+    }
+
     protected static function buildFullPreviewTable(array $rows, int $headerRowNumber): string
     {
         $rowOrigins = self::getCache('row_origins', []);
@@ -1235,5 +1399,75 @@ class FlexibleProductImportAction
         $html .= '</tbody></table></div>';
 
         return $html;
+    }
+
+    public static function makeDownloadTemplate(string $role): Action
+    {
+        $crossRole = $role === 'client' ? 'supplier' : 'client';
+        $crossLabel = $role === 'client' ? 'Supplier' : 'Client';
+        $roleLabel = $role === 'client' ? 'Client' : 'Supplier';
+
+        return Action::make('downloadProductTemplate')
+            ->label('Full Template')
+            ->icon('heroicon-o-document-arrow-down')
+            ->color('gray')
+            ->modalHeading('Download Full Product Import Template')
+            ->modalWidth('md')
+            ->form([
+                Select::make('category_id')
+                    ->label(__('forms.labels.product_category'))
+                    ->options(fn () => Category::active()->pluck('name', 'id'))
+                    ->searchable()
+                    ->required()
+                    ->helperText(__('forms.helpers.select_the_category_to_generate_the_template_with_the')),
+
+                Toggle::make('include_cross_company')
+                    ->label("Include {$crossLabel} columns")
+                    ->helperText("If enabled, the template will have two sets of company link columns: one for {$roleLabel} data and one for {$crossLabel} data (external codes, prices, etc.).")
+                    ->default(false),
+            ])
+            ->action(function (array $data) use ($role) {
+                $category = Category::findOrFail($data['category_id']);
+                $includeCross = $data['include_cross_company'] ?? false;
+                $generator = new GenerateProductImportTemplate();
+                $path = $generator->execute($category, $role, $includeCross);
+
+                return response()->download($path)->deleteFileAfterSend();
+            });
+    }
+
+    public static function makeDownloadSimpleTemplate(string $role): Action
+    {
+        $crossRole = $role === 'client' ? 'supplier' : 'client';
+        $crossLabel = $role === 'client' ? 'Supplier' : 'Client';
+        $roleLabel = $role === 'client' ? 'Client' : 'Supplier';
+
+        return Action::make('downloadSimpleTemplate')
+            ->label('Simple Template')
+            ->icon('heroicon-o-document-arrow-down')
+            ->color('gray')
+            ->modalHeading('Download Simple Product Import Template')
+            ->modalWidth('md')
+            ->form([
+                Select::make('category_id')
+                    ->label(__('forms.labels.product_category'))
+                    ->options(fn () => Category::active()->pluck('name', 'id'))
+                    ->searchable()
+                    ->required()
+                    ->helperText('Template will include required attributes for this category.'),
+
+                Toggle::make('include_cross_company')
+                    ->label("Include {$crossLabel} columns")
+                    ->helperText("Add a second set of company link columns for {$crossLabel} data (external codes, prices, etc.).")
+                    ->default(false),
+            ])
+            ->action(function (array $data) use ($role) {
+                $category = Category::findOrFail($data['category_id']);
+                $includeCross = $data['include_cross_company'] ?? false;
+                $generator = new GenerateProductImportTemplate();
+                $path = $generator->executeSimple($category, $role, $includeCross);
+
+                return response()->download($path)->deleteFileAfterSend();
+            });
     }
 }

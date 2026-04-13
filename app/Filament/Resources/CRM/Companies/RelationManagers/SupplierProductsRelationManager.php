@@ -12,7 +12,6 @@ use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Settings\Models\Currency;
 use App\Filament\Actions\FlexibleProductImportAction;
-use App\Filament\Actions\ImportProductsFromExcelAction;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\AttachAction;
@@ -176,11 +175,9 @@ class SupplierProductsRelationManager extends RelationManager
             ])
             ->headerActions([
                 FlexibleProductImportAction::make('supplier', fn () => $this->getOwnerRecord()),
-                ImportProductsFromExcelAction::make('supplier', fn () => $this->getOwnerRecord())
+                FlexibleProductImportAction::makeDownloadSimpleTemplate('supplier')
                     ->visible(fn () => auth()->user()?->can('edit-companies')),
-                ImportProductsFromExcelAction::makeDownloadSimpleTemplate('supplier')
-                    ->visible(fn () => auth()->user()?->can('edit-companies')),
-                ImportProductsFromExcelAction::makeDownloadTemplate('supplier')
+                FlexibleProductImportAction::makeDownloadTemplate('supplier')
                     ->visible(fn () => auth()->user()?->can('edit-companies')),
                 AttachAction::make()
                     ->label(__('forms.labels.add_product'))

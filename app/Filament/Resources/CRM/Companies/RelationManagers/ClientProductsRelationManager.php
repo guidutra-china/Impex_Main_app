@@ -12,7 +12,6 @@ use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Settings\Models\Currency;
 use BackedEnum;
 use App\Filament\Actions\FlexibleProductImportAction;
-use App\Filament\Actions\ImportProductsFromExcelAction;
 use Filament\Actions\Action;
 use Filament\Actions\AttachAction;
 use Filament\Actions\BulkAction;
@@ -168,11 +167,9 @@ class ClientProductsRelationManager extends RelationManager
             ])
             ->headerActions([
                 FlexibleProductImportAction::make('client', fn () => $this->getOwnerRecord()),
-                ImportProductsFromExcelAction::make('client', fn () => $this->getOwnerRecord())
+                FlexibleProductImportAction::makeDownloadSimpleTemplate('client')
                     ->visible(fn () => auth()->user()?->can('edit-companies')),
-                ImportProductsFromExcelAction::makeDownloadSimpleTemplate('client')
-                    ->visible(fn () => auth()->user()?->can('edit-companies')),
-                ImportProductsFromExcelAction::makeDownloadTemplate('client')
+                FlexibleProductImportAction::makeDownloadTemplate('client')
                     ->visible(fn () => auth()->user()?->can('edit-companies')),
                 AttachAction::make()
                     ->label(__('forms.labels.add_product'))
