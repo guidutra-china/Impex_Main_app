@@ -48,10 +48,12 @@ class GeneratePurchaseOrdersAction
                 continue;
             }
 
+            $poCurrency = $this->resolveCurrencyForSupplierItems($items, $pi->currency_code);
+
             $po = PurchaseOrder::create([
                 'proforma_invoice_id' => $pi->id,
                 'supplier_company_id' => $supplierId,
-                'currency_code' => $pi->currency_code,
+                'currency_code' => $poCurrency,
                 'incoterm' => $pi->incoterm,
                 'payment_term_id' => $pi->payment_term_id,
                 'issue_date' => now()->toDateString(),
@@ -69,9 +71,7 @@ class GeneratePurchaseOrdersAction
                     'specifications' => $piItem->specifications,
                     'quantity' => $piItem->quantity,
                     'unit' => $piItem->unit,
-                    // TODO: multi-currency — when PurchaseOrders gain cost_currency_code,
-                    // propagate cost_currency_code/cost_exchange_rate from the PI item.
-                    'unit_cost' => $piItem->unit_cost,
+                    'unit_cost' => $this->resolveUnitCost($piItem, $poCurrency, $pi->currency_code),
                     'incoterm' => $piItem->incoterm,
                     'notes' => $piItem->notes,
                     'sort_order' => ++$sortOrder,
@@ -87,6 +87,8 @@ class GeneratePurchaseOrdersAction
     protected function syncPoItems(PurchaseOrder $po, Collection $piItems): void
     {
         $existingPoItems = $po->items()->get()->keyBy('proforma_invoice_item_id');
+        $poCurrency = $po->currency_code;
+        $piCurrency = $po->proformaInvoice?->currency_code ?? $poCurrency;
 
         $sortOrder = 0;
         foreach ($piItems as $piItem) {
@@ -100,9 +102,7 @@ class GeneratePurchaseOrdersAction
                     'specifications' => $piItem->specifications,
                     'quantity'       => $piItem->quantity,
                     'unit'           => $piItem->unit,
-                    // TODO: multi-currency — when PurchaseOrders gain cost_currency_code,
-                    // propagate cost_currency_code/cost_exchange_rate from the PI item.
-                    'unit_cost'      => $piItem->unit_cost,
+                    'unit_cost'      => $this->resolveUnitCost($piItem, $poCurrency, $piCurrency),
                     'incoterm'       => $piItem->incoterm,
                     'notes'          => $piItem->notes,
                     'sort_order'     => $sortOrder,
@@ -116,9 +116,7 @@ class GeneratePurchaseOrdersAction
                     'specifications'           => $piItem->specifications,
                     'quantity'                 => $piItem->quantity,
                     'unit'                     => $piItem->unit,
-                    // TODO: multi-currency — when PurchaseOrders gain cost_currency_code,
-                    // propagate cost_currency_code/cost_exchange_rate from the PI item.
-                    'unit_cost'                => $piItem->unit_cost,
+                    'unit_cost'                => $this->resolveUnitCost($piItem, $poCurrency, $piCurrency),
                     'incoterm'                 => $piItem->incoterm,
                     'notes'                    => $piItem->notes,
                     'sort_order'               => $sortOrder,
@@ -132,6 +130,45 @@ class GeneratePurchaseOrdersAction
             ->whereNotIn('proforma_invoice_item_id', $piItemIds)
             ->whereDoesntHave('shipmentItems')
             ->delete();
+    }
+
+    /**
+     * Determine the PO currency from the PI items' cost_currency_code.
+     * If all items share the same cost currency, use it; otherwise fall back to the PI currency.
+     */
+    protected function resolveCurrencyForSupplierItems(Collection $items, string $piCurrency): string
+    {
+        $costCurrencies = $items
+            ->pluck('cost_currency_code')
+            ->filter()
+            ->unique();
+
+        if ($costCurrencies->count() === 1) {
+            return $costCurrencies->first();
+        }
+
+        return $piCurrency;
+    }
+
+    /**
+     * Return the correct unit_cost value for a PO item.
+     * When the PO currency matches the item's cost_currency_code, use the original unit_cost.
+     * Otherwise fall back to unit_cost_in_document_currency.
+     */
+    protected function resolveUnitCost(
+        \App\Domain\ProformaInvoices\Models\ProformaInvoiceItem $piItem,
+        string $poCurrency,
+        string $piCurrency,
+    ): int {
+        if ($piItem->cost_currency_code && $piItem->cost_currency_code === $poCurrency) {
+            return $piItem->unit_cost;
+        }
+
+        if ($poCurrency === $piCurrency) {
+            return $piItem->unit_cost_in_document_currency ?? $piItem->unit_cost;
+        }
+
+        return $piItem->unit_cost;
     }
 
     public function getSkippedSuppliers(ProformaInvoice $pi): Collection
