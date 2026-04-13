@@ -12,6 +12,7 @@ use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
+use Illuminate\Support\Facades\Route;
 use Filament\Widgets\Widget;
 
 class OperationalAlertsWidget extends Widget
@@ -44,7 +45,7 @@ class OperationalAlertsWidget extends Widget
                 'icon' => 'heroicon-o-exclamation-circle',
                 'title' => $overduePayments . ' overdue payment' . ($overduePayments > 1 ? 's' : ''),
                 'description' => __('widgets.alerts.overdue_payments_desc'),
-                'url' => route('filament.admin.resources.payments.index'),
+                'url' => Route::has('filament.admin.resources.payments.index') ? route('filament.admin.resources.payments.index') : '#',
                 'action' => __('widgets.alerts.view_payments'),
             ];
         }
@@ -59,7 +60,7 @@ class OperationalAlertsWidget extends Widget
                 'icon' => 'heroicon-o-clock',
                 'title' => $pendingApproval . ' payment' . ($pendingApproval > 1 ? 's' : '') . ' awaiting approval',
                 'description' => __('widgets.alerts.pending_approval_desc'),
-                'url' => route('filament.admin.resources.payments.index'),
+                'url' => Route::has('filament.admin.resources.payments.index') ? route('filament.admin.resources.payments.index') : '#',
                 'action' => __('widgets.alerts.review_payments'),
             ];
         }
@@ -127,7 +128,7 @@ class OperationalAlertsWidget extends Widget
                 'icon' => 'heroicon-o-calendar',
                 'title' => $dueThisWeek . ' payment' . ($dueThisWeek > 1 ? 's' : '') . ' due this week',
                 'description' => __('widgets.alerts.due_this_week_desc'),
-                'url' => route('filament.admin.resources.payments.index'),
+                'url' => Route::has('filament.admin.resources.payments.index') ? route('filament.admin.resources.payments.index') : '#',
                 'action' => __('widgets.alerts.view_schedule'),
             ];
         }
