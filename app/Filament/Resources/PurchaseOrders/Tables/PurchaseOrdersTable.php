@@ -129,12 +129,9 @@ class PurchaseOrdersTable
                             ->pluck('company_id'))
                         ->orderBy('name')
                         ->pluck('name', 'id'))
-                    ->query(fn ($query, array $data) => $query->when(
-                        $data['value'],
-                        fn ($q, $companyId) => $q->whereHas(
-                            'proformaInvoice',
-                            fn ($pi) => $pi->where('company_id', $companyId),
-                        ),
+                    ->modifyQueryUsing(fn ($query, $state) => $query->whereHas(
+                        'proformaInvoice',
+                        fn ($pi) => $pi->where('company_id', $state),
                     ))
                     ->searchable(),
                 Filter::make('my_projects')
