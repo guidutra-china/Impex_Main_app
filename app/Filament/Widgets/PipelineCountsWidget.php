@@ -49,11 +49,12 @@ class PipelineCountsWidget extends Widget
                 PurchaseOrderStatus::SENT,
                 PurchaseOrderStatus::CONFIRMED,
                 PurchaseOrderStatus::IN_PRODUCTION,
+                PurchaseOrderStatus::AWAITING_SHIPMENT,
             ])
             ->count();
 
         $inProductionPOs = PurchaseOrder::query()
-            ->where('status', PurchaseOrderStatus::IN_PRODUCTION)
+            ->whereIn('status', [PurchaseOrderStatus::IN_PRODUCTION, PurchaseOrderStatus::AWAITING_SHIPMENT])
             ->count();
 
         $activeShipments = Shipment::query()

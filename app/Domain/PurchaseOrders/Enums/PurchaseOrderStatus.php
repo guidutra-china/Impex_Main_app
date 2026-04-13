@@ -12,6 +12,7 @@ enum PurchaseOrderStatus: string implements HasLabel, HasColor, HasIcon
     case SENT = 'sent';
     case CONFIRMED = 'confirmed';
     case IN_PRODUCTION = 'in_production';
+    case AWAITING_SHIPMENT = 'awaiting_shipment';
     case SHIPPED = 'shipped';
     case COMPLETED = 'completed';
     case CANCELLED = 'cancelled';
@@ -29,6 +30,7 @@ enum PurchaseOrderStatus: string implements HasLabel, HasColor, HasIcon
             self::SENT => 'info',
             self::CONFIRMED => 'success',
             self::IN_PRODUCTION => 'warning',
+            self::AWAITING_SHIPMENT => 'info',
             self::SHIPPED => 'primary',
             self::COMPLETED => 'success',
             self::CANCELLED => 'danger',
@@ -42,6 +44,7 @@ enum PurchaseOrderStatus: string implements HasLabel, HasColor, HasIcon
             self::SENT => 'heroicon-o-paper-airplane',
             self::CONFIRMED => 'heroicon-o-check-circle',
             self::IN_PRODUCTION => 'heroicon-o-cog-6-tooth',
+            self::AWAITING_SHIPMENT => 'heroicon-o-clock',
             self::SHIPPED => 'heroicon-o-truck',
             self::COMPLETED => 'heroicon-o-check-badge',
             self::CANCELLED => 'heroicon-o-x-circle',
@@ -55,6 +58,7 @@ enum PurchaseOrderStatus: string implements HasLabel, HasColor, HasIcon
             self::SENT => 'Sent',
             self::CONFIRMED => 'Confirmed',
             self::IN_PRODUCTION => 'In Production',
+            self::AWAITING_SHIPMENT => 'Awaiting Shipment',
             self::SHIPPED => 'Shipped',
             self::COMPLETED => 'Completed',
             self::CANCELLED => 'Cancelled',

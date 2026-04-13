@@ -194,6 +194,7 @@ return array (
     'sent' => 'Enviado',
     'confirmed' => 'Confirmado',
     'in_production' => 'Em Produção',
+    'awaiting_shipment' => 'Aguardando Embarque',
     'shipped' => 'Enviado',
     'completed' => 'Concluído',
     'cancelled' => 'Cancelado',

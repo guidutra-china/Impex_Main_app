@@ -116,7 +116,7 @@ class MyProjectsWidget extends Widget
                         $q->whereIn('inquiry_id', $myInquiryIds);
                     });
             })
-            ->whereIn('status', [PurchaseOrderStatus::CONFIRMED, PurchaseOrderStatus::IN_PRODUCTION])
+            ->whereIn('status', [PurchaseOrderStatus::CONFIRMED, PurchaseOrderStatus::IN_PRODUCTION, PurchaseOrderStatus::AWAITING_SHIPMENT])
             ->where('updated_at', '<', now()->subDays(10))
             ->count();
 

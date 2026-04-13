@@ -102,6 +102,11 @@ class PurchaseOrder extends Model
                 PurchaseOrderStatus::CANCELLED->value,
             ],
             PurchaseOrderStatus::IN_PRODUCTION->value => [
+                PurchaseOrderStatus::AWAITING_SHIPMENT->value,
+                PurchaseOrderStatus::SHIPPED->value,
+                PurchaseOrderStatus::CANCELLED->value,
+            ],
+            PurchaseOrderStatus::AWAITING_SHIPMENT->value => [
                 PurchaseOrderStatus::SHIPPED->value,
                 PurchaseOrderStatus::CANCELLED->value,
             ],

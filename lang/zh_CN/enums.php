@@ -194,6 +194,7 @@ return array (
     'sent' => '已发送',
     'confirmed' => '已确认',
     'in_production' => '生产中',
+    'awaiting_shipment' => '待发货',
     'shipped' => '已发货',
     'completed' => '已完成',
     'cancelled' => '已取消',

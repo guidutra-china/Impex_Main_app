@@ -51,6 +51,7 @@ class CancelProformaInvoiceAction
             PurchaseOrderStatus::SENT,
             PurchaseOrderStatus::CONFIRMED,
             PurchaseOrderStatus::IN_PRODUCTION,
+            PurchaseOrderStatus::AWAITING_SHIPMENT,
         ];
 
         $pi->purchaseOrders()

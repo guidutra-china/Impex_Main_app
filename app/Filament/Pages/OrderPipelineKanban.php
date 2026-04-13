@@ -164,6 +164,7 @@ class OrderPipelineKanban extends Page
             ->whereIn('status', [
                 PurchaseOrderStatus::CONFIRMED,
                 PurchaseOrderStatus::IN_PRODUCTION,
+                PurchaseOrderStatus::AWAITING_SHIPMENT,
             ])
             ->orderBy('updated_at', 'desc')
             ->limit(50)

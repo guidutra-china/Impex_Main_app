@@ -85,6 +85,7 @@ class OperationalAlertsWidget extends Widget
             ->whereIn('status', [
                 PurchaseOrderStatus::CONFIRMED,
                 PurchaseOrderStatus::IN_PRODUCTION,
+                PurchaseOrderStatus::AWAITING_SHIPMENT,
             ])
             ->where('updated_at', '<', now()->subDays(15))
             ->count();

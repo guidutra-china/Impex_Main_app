@@ -103,6 +103,7 @@ class Client360DataService
                 PurchaseOrderStatus::SENT,
                 PurchaseOrderStatus::CONFIRMED,
                 PurchaseOrderStatus::IN_PRODUCTION,
+                PurchaseOrderStatus::AWAITING_SHIPMENT,
                 PurchaseOrderStatus::SHIPPED,
             ])
             ->count();

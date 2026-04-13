@@ -9,6 +9,7 @@ use App\Domain\CRM\Reports\StatusScopeFilter;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Planning\Enums\ProductionScheduleStatus;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
 
 final class ProformaInvoiceSectionBuilder implements SectionBuilder
 {
@@ -36,10 +37,20 @@ final class ProformaInvoiceSectionBuilder implements SectionBuilder
             $query->where('currency_code', $filters->currency);
         }
 
+        $productionStatuses = [
+            PurchaseOrderStatus::IN_PRODUCTION,
+            PurchaseOrderStatus::AWAITING_SHIPMENT,
+            PurchaseOrderStatus::SHIPPED,
+            PurchaseOrderStatus::COMPLETED,
+        ];
+
         $pis = $query->with([
             'items',
             'paymentScheduleItems.allocations.payment',
             'paymentTerm',
+            'purchaseOrders' => function ($q) use ($productionStatuses) {
+                $q->whereIn('status', $productionStatuses);
+            },
             'productionSchedules' => function ($q) {
                 $q->whereIn('status', [ProductionScheduleStatus::Approved, ProductionScheduleStatus::Completed])
                     ->with('entries');
@@ -52,6 +63,7 @@ final class ProformaInvoiceSectionBuilder implements SectionBuilder
                 $total = (int) $pi->grand_total;
                 $paid = (int) $pi->schedule_paid_total;
 
+                // Try production schedules first (detailed tracking)
                 $planned = 0;
                 $actual = 0;
                 foreach ($pi->productionSchedules as $schedule) {
@@ -66,6 +78,22 @@ final class ProformaInvoiceSectionBuilder implements SectionBuilder
                     $hasProduction = true;
                     $pct = min(100, round(($actual / $planned) * 100));
                     $production = $pct . '%';
+                } elseif ($pi->purchaseOrders->isNotEmpty()) {
+                    // Fallback: use the most advanced PO status
+                    $statusPriority = [
+                        PurchaseOrderStatus::COMPLETED->value => 4,
+                        PurchaseOrderStatus::SHIPPED->value => 3,
+                        PurchaseOrderStatus::AWAITING_SHIPMENT->value => 2,
+                        PurchaseOrderStatus::IN_PRODUCTION->value => 1,
+                    ];
+
+                    $bestStatus = $pi->purchaseOrders
+                        ->sortByDesc(fn ($po) => $statusPriority[$po->status->value] ?? 0)
+                        ->first()
+                        ->status;
+
+                    $hasProduction = true;
+                    $production = $bestStatus->getLabel();
                 }
 
                 return [
