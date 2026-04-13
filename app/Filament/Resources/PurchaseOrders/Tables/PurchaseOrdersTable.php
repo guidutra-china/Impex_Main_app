@@ -134,13 +134,14 @@ class PurchaseOrdersTable
                                 ->pluck('name', 'id'))
                             ->searchable(),
                     ])
-                    ->query(fn ($query, array $data) => $query->when(
-                        $data['company_id'] ?? null,
-                        fn ($q, $companyId) => $q->whereHas(
-                            'proformaInvoice',
-                            fn ($pi) => $pi->where('company_id', $companyId),
-                        ),
-                    )),
+                    ->query(function ($query, array $data) {
+                        if (filled($data['company_id'] ?? null)) {
+                            $query->whereHas(
+                                'proformaInvoice',
+                                fn ($pi) => $pi->where('company_id', $data['company_id']),
+                            );
+                        }
+                    }),
                 Filter::make('my_projects')
                     ->label(__('forms.labels.my_projects'))
                     ->toggle()
