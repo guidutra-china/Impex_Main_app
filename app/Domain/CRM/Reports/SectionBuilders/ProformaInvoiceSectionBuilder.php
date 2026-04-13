@@ -40,10 +40,10 @@ final class ProformaInvoiceSectionBuilder implements SectionBuilder
             'items',
             'paymentScheduleItems.allocations.payment',
             'paymentTerm',
-            'purchaseOrders.productionSchedules' => function ($q) {
-                $q->whereIn('status', [ProductionScheduleStatus::Approved, ProductionScheduleStatus::Completed]);
+            'productionSchedules' => function ($q) {
+                $q->whereIn('status', [ProductionScheduleStatus::Approved, ProductionScheduleStatus::Completed])
+                    ->with('entries');
             },
-            'purchaseOrders.productionSchedules.entries',
         ])->get();
 
         $hasProduction = false;
@@ -54,12 +54,10 @@ final class ProformaInvoiceSectionBuilder implements SectionBuilder
 
                 $planned = 0;
                 $actual = 0;
-                foreach ($pi->purchaseOrders as $po) {
-                    foreach ($po->productionSchedules as $schedule) {
-                        foreach ($schedule->entries as $entry) {
-                            $planned += (int) $entry->quantity;
-                            $actual += (int) $entry->actual_quantity;
-                        }
+                foreach ($pi->productionSchedules as $schedule) {
+                    foreach ($schedule->entries as $entry) {
+                        $planned += (int) $entry->quantity;
+                        $actual += (int) $entry->actual_quantity;
                     }
                 }
 
