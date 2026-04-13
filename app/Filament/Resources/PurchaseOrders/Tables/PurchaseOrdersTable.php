@@ -120,28 +120,20 @@ class PurchaseOrdersTable
                     ->relationship('supplierCompany', 'name')
                     ->searchable()
                     ->preload(),
-                Filter::make('client')
+                SelectFilter::make('client')
                     ->label(__('forms.labels.client'))
-                    ->form([
-                        \Filament\Forms\Components\Select::make('company_id')
-                            ->label(__('forms.labels.client'))
-                            ->options(fn () => \App\Domain\CRM\Models\Company::query()
-                                ->whereIn('id', \App\Domain\ProformaInvoices\Models\ProformaInvoice::query()
-                                    ->has('purchaseOrders')
-                                    ->distinct()
-                                    ->pluck('company_id'))
-                                ->orderBy('name')
-                                ->pluck('name', 'id'))
-                            ->searchable(),
-                    ])
-                    ->query(function ($query, array $data) {
-                        if (filled($data['company_id'] ?? null)) {
-                            $query->whereHas(
-                                'proformaInvoice',
-                                fn ($pi) => $pi->where('company_id', $data['company_id']),
-                            );
-                        }
-                    }),
+                    ->options(fn () => \App\Domain\CRM\Models\Company::query()
+                        ->whereIn('id', \App\Domain\ProformaInvoices\Models\ProformaInvoice::query()
+                            ->has('purchaseOrders')
+                            ->distinct()
+                            ->pluck('company_id'))
+                        ->orderBy('name')
+                        ->pluck('name', 'id'))
+                    ->query(fn ($query, array $data) => filled($data['value'] ?? null)
+                        ? $query->whereHas('proformaInvoice', fn ($pi) => $pi->where('company_id', $data['value']))
+                        : $query)
+                    ->searchable()
+                    ->preload(),
                 Filter::make('my_projects')
                     ->label(__('forms.labels.my_projects'))
                     ->toggle()
