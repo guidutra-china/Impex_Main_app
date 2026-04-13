@@ -122,16 +122,7 @@ class PurchaseOrdersTable
                     ->preload(),
                 SelectFilter::make('client')
                     ->label(__('forms.labels.client'))
-                    ->options(fn () => \App\Domain\CRM\Models\Company::query()
-                        ->whereIn('id', \App\Domain\ProformaInvoices\Models\ProformaInvoice::query()
-                            ->has('purchaseOrders')
-                            ->distinct()
-                            ->pluck('company_id'))
-                        ->orderBy('name')
-                        ->pluck('name', 'id'))
-                    ->query(fn ($query, array $data) => filled($data['value'] ?? null)
-                        ? $query->whereHas('proformaInvoice', fn ($pi) => $pi->where('company_id', $data['value']))
-                        : $query)
+                    ->relationship('proformaInvoice.company', 'name')
                     ->searchable()
                     ->preload(),
                 Filter::make('my_projects')
