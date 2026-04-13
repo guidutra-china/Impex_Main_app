@@ -130,13 +130,11 @@ class PurchaseOrdersTable
                         ->orderBy('name')
                         ->pluck('name', 'id'))
                     ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data): void {
-                        logger('CLIENT FILTER', $data);
                         if (filled($data['value'] ?? null)) {
                             $piIds = \App\Domain\ProformaInvoices\Models\ProformaInvoice::query()
                                 ->where('company_id', $data['value'])
                                 ->pluck('id');
 
-                            logger('CLIENT FILTER piIds', $piIds->toArray());
                             $query->whereIn('proforma_invoice_id', $piIds);
                         }
                     })

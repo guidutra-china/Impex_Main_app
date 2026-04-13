@@ -37,25 +37,29 @@ final class ProformaInvoiceSectionBuilder implements SectionBuilder
             $query->where('currency_code', $filters->currency);
         }
 
-        $productionStatuses = [
-            PurchaseOrderStatus::IN_PRODUCTION,
-            PurchaseOrderStatus::AWAITING_SHIPMENT,
-            PurchaseOrderStatus::SHIPPED,
-            PurchaseOrderStatus::COMPLETED,
-        ];
-
         $pis = $query->with([
             'items',
             'paymentScheduleItems.allocations.payment',
             'paymentTerm',
-            'purchaseOrders' => function ($q) use ($productionStatuses) {
-                $q->whereIn('status', $productionStatuses);
+        ])->get();
+
+        $pis->load([
+            'purchaseOrders' => function ($q) {
+                $q->whereIn('status', [
+                    PurchaseOrderStatus::IN_PRODUCTION,
+                    PurchaseOrderStatus::AWAITING_SHIPMENT,
+                    PurchaseOrderStatus::SHIPPED,
+                    PurchaseOrderStatus::COMPLETED,
+                ]);
             },
+        ]);
+
+        $pis->load([
             'productionSchedules' => function ($q) {
                 $q->whereIn('status', [ProductionScheduleStatus::Approved, ProductionScheduleStatus::Completed])
                     ->with('entries');
             },
-        ])->get();
+        ]);
 
         $hasProduction = false;
 
