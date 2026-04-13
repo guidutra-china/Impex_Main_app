@@ -7,6 +7,7 @@ use App\Domain\CRM\Reports\DTOs\StatementFilters;
 use App\Domain\CRM\Reports\DTOs\StatementSection;
 use App\Domain\CRM\Reports\StatusScopeFilter;
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\Planning\Enums\ProductionScheduleStatus;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 
 final class ProformaInvoiceSectionBuilder implements SectionBuilder
@@ -35,11 +36,39 @@ final class ProformaInvoiceSectionBuilder implements SectionBuilder
             $query->where('currency_code', $filters->currency);
         }
 
-        $rows = $query->with(['items', 'paymentScheduleItems.allocations.payment', 'paymentTerm'])
-            ->get()
-            ->map(function (ProformaInvoice $pi) {
+        $pis = $query->with([
+            'items',
+            'paymentScheduleItems.allocations.payment',
+            'paymentTerm',
+            'purchaseOrders.productionSchedules' => function ($q) {
+                $q->whereIn('status', [ProductionScheduleStatus::Approved, ProductionScheduleStatus::Completed]);
+            },
+            'purchaseOrders.productionSchedules.entries',
+        ])->get();
+
+        $hasProduction = false;
+
+        $rows = $pis->map(function (ProformaInvoice $pi) use (&$hasProduction) {
                 $total = (int) $pi->grand_total;
                 $paid = (int) $pi->schedule_paid_total;
+
+                $planned = 0;
+                $actual = 0;
+                foreach ($pi->purchaseOrders as $po) {
+                    foreach ($po->productionSchedules as $schedule) {
+                        foreach ($schedule->entries as $entry) {
+                            $planned += (int) $entry->quantity;
+                            $actual += (int) $entry->actual_quantity;
+                        }
+                    }
+                }
+
+                $production = null;
+                if ($planned > 0) {
+                    $hasProduction = true;
+                    $pct = min(100, round(($actual / $planned) * 100));
+                    $production = $pct . '%';
+                }
 
                 return [
                     'number' => $pi->reference ?? (string) $pi->id,
@@ -52,14 +81,20 @@ final class ProformaInvoiceSectionBuilder implements SectionBuilder
                     'paid' => round($paid / Money::SCALE, 2),
                     'balance' => round(($total - $paid) / Money::SCALE, 2),
                     'currency' => (string) ($pi->currency_code ?? ''),
+                    'production' => $production,
                 ];
             })
             ->all();
 
+        $columns = ['number', 'client_reference', 'date', 'status', 'incoterm', 'payment_term', 'total', 'paid', 'balance', 'currency'];
+        if ($hasProduction) {
+            $columns[] = 'production';
+        }
+
         return new StatementSection(
             key: 'proforma_invoices',
             titleKey: 'statements.sections.proforma_invoices',
-            columns: ['number', 'client_reference', 'date', 'status', 'incoterm', 'payment_term', 'total', 'paid', 'balance', 'currency'],
+            columns: $columns,
             rows: $rows,
         );
     }

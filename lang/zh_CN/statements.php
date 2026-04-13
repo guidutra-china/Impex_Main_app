@@ -57,6 +57,7 @@ return [
         'cost_type' => '类型',
         'description' => '描述',
         'amount' => '金额',
+        'production' => '生产进度',
     ],
 
     'filters' => [

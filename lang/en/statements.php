@@ -57,6 +57,7 @@ return [
         'cost_type' => 'Type',
         'description' => 'Description',
         'amount' => 'Amount',
+        'production' => 'Production',
     ],
 
     'filters' => [
