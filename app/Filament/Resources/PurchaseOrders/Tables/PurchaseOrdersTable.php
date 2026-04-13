@@ -28,6 +28,9 @@ class PurchaseOrdersTable
                     ->label(__('forms.labels.reference'))
                     ->searchable(query: function ($query, string $search): void {
                         $query->where('reference', 'like', "%{$search}%")
+                            ->orWhereHas('proformaInvoice.company', fn ($q) => $q
+                                ->where('name', 'like', "%{$search}%")
+                            )
                             ->orWhereHas('items', function ($q) use ($search) {
                                 $q->where('description', 'like', "%{$search}%")
                                     ->orWhereHas('product', fn ($pq) => $pq
