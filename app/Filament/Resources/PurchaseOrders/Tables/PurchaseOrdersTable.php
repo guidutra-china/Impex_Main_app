@@ -120,20 +120,27 @@ class PurchaseOrdersTable
                     ->relationship('supplierCompany', 'name')
                     ->searchable()
                     ->preload(),
-                SelectFilter::make('client')
+                Filter::make('client')
                     ->label(__('forms.labels.client'))
-                    ->options(fn () => \App\Domain\CRM\Models\Company::query()
-                        ->whereIn('id', \App\Domain\ProformaInvoices\Models\ProformaInvoice::query()
-                            ->has('purchaseOrders')
-                            ->distinct()
-                            ->pluck('company_id'))
-                        ->orderBy('name')
-                        ->pluck('name', 'id'))
-                    ->modifyQueryUsing(fn ($query, $state) => $query->whereHas(
-                        'proformaInvoice',
-                        fn ($pi) => $pi->where('company_id', $state),
-                    ))
-                    ->searchable(),
+                    ->form([
+                        \Filament\Forms\Components\Select::make('company_id')
+                            ->label(__('forms.labels.client'))
+                            ->options(fn () => \App\Domain\CRM\Models\Company::query()
+                                ->whereIn('id', \App\Domain\ProformaInvoices\Models\ProformaInvoice::query()
+                                    ->has('purchaseOrders')
+                                    ->distinct()
+                                    ->pluck('company_id'))
+                                ->orderBy('name')
+                                ->pluck('name', 'id'))
+                            ->searchable(),
+                    ])
+                    ->query(fn ($query, array $data) => $query->when(
+                        $data['company_id'] ?? null,
+                        fn ($q, $companyId) => $q->whereHas(
+                            'proformaInvoice',
+                            fn ($pi) => $pi->where('company_id', $companyId),
+                        ),
+                    )),
                 Filter::make('my_projects')
                     ->label(__('forms.labels.my_projects'))
                     ->toggle()
