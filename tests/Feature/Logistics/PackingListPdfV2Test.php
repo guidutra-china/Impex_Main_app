@@ -122,17 +122,18 @@ class PackingListPdfV2Test extends TestCase
         $data = $this->getData($shipment);
 
         $this->assertCount(1, $data['container_groups']);
-        $this->assertCount(10, $data['container_groups'][0]['lines']);
+        // 10 identical cartons are grouped into 1 consolidated line
+        $this->assertCount(1, $data['container_groups'][0]['lines']);
         $this->assertEquals(10, $data['totals']['total_packages']);
         $this->assertEquals(100, $data['totals']['total_equipment_qty']);
         $this->assertEqualsWithDelta(50.0, $data['totals']['total_gross_weight'], 0.01);
 
-        // Every line should be a main line (no sub-items since each carton has 1 content)
-        foreach ($data['container_groups'][0]['lines'] as $line) {
-            $this->assertFalse($line['is_sub_item']);
-            $this->assertEquals(10, $line['equipment_qty']);
-            $this->assertEquals(1, $line['package_qty']);
-        }
+        // The single grouped line should show the range and totals
+        $line = $data['container_groups'][0]['lines'][0];
+        $this->assertFalse($line['is_sub_item']);
+        $this->assertEquals(100, $line['equipment_qty']);
+        $this->assertEquals(10, $line['package_qty']);
+        $this->assertEquals('BOX-001 ~ BOX-010', $line['package_no']);
     }
 
     public function test_scenario_2_overflow_mixed_carton(): void
@@ -160,10 +161,10 @@ class PackingListPdfV2Test extends TestCase
         $this->assertEquals(10, $data['totals']['total_packages']);
         $this->assertEquals(98, $data['totals']['total_equipment_qty']); // 95 sandals + 3 socks
 
-        // Total lines: 9 main + 1 main + 1 sub-item = 11
-        $this->assertCount(11, $data['container_groups'][0]['lines']);
+        // 9 identical sandal cartons grouped into 1 line + 1 mixed carton (1 main + 1 sub) = 3 lines
+        $this->assertCount(3, $data['container_groups'][0]['lines']);
 
-        // Find the sub-item
+        // Find the sub-item (socks in the mixed carton)
         $subItems = array_filter($data['container_groups'][0]['lines'], fn ($l) => $l['is_sub_item']);
         $this->assertCount(1, $subItems);
     }

@@ -141,23 +141,151 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
     {
         $lines = [];
 
+        // Separate cartons into groupable (single-product, identical specs) and ungroupable
+        $groups = [];
+        $ungroupable = [];
+
         foreach ($cartons as $carton) {
             $contents = $carton->contents->sortBy('sort_order')->values();
 
             if ($contents->isEmpty()) {
-                // Empty carton — single placeholder line with box info
-                $lines[] = $this->buildEmptyCartonLine($carton);
+                $ungroupable[] = ['carton' => $carton, 'contents' => $contents];
 
                 continue;
             }
 
-            foreach ($contents as $index => $content) {
-                $isFirst = $index === 0;
-                $lines[] = $this->buildContentLine($carton, $content, $isFirst);
+            // Only group cartons with exactly 1 content (single-product boxes)
+            if ($contents->count() === 1) {
+                $signature = $this->buildCartonSignature($carton, $contents->first());
+                $groups[$signature][] = ['carton' => $carton, 'content' => $contents->first()];
+            } else {
+                $ungroupable[] = ['carton' => $carton, 'contents' => $contents];
+            }
+        }
+
+        // Build consolidated lines for grouped cartons (preserving original sort order)
+        // We track the first carton's sort_order to interleave groups with ungroupable cartons
+        $sortableLines = [];
+
+        foreach ($groups as $group) {
+            $firstCarton = $group[0]['carton'];
+            $sortKey = $firstCarton->sort_order ?? 0;
+
+            if (count($group) === 1) {
+                // Single carton in group — render normally
+                $sortableLines[] = [
+                    'sort_key' => $sortKey,
+                    'lines' => [$this->buildContentLine($firstCarton, $group[0]['content'], true)],
+                ];
+            } else {
+                // Multiple identical cartons — consolidate into one line
+                $sortableLines[] = [
+                    'sort_key' => $sortKey,
+                    'lines' => $this->buildGroupedLines($group),
+                ];
+            }
+        }
+
+        foreach ($ungroupable as $item) {
+            $carton = $item['carton'];
+            $contents = $item['contents'];
+            $sortKey = $carton->sort_order ?? 0;
+            $itemLines = [];
+
+            if ($contents->isEmpty()) {
+                $itemLines[] = $this->buildEmptyCartonLine($carton);
+            } else {
+                foreach ($contents as $index => $content) {
+                    $isFirst = $index === 0;
+                    $itemLines[] = $this->buildContentLine($carton, $content, $isFirst);
+                }
+            }
+
+            $sortableLines[] = [
+                'sort_key' => $sortKey,
+                'lines' => $itemLines,
+            ];
+        }
+
+        // Sort by original carton order, then flatten
+        usort($sortableLines, fn ($a, $b) => $a['sort_key'] <=> $b['sort_key']);
+
+        foreach ($sortableLines as $entry) {
+            foreach ($entry['lines'] as $line) {
+                $lines[] = $line;
             }
         }
 
         return $lines;
+    }
+
+    /**
+     * Build a signature string to identify cartons that can be grouped together.
+     * Cartons with the same signature have identical product, qty, dimensions and weight.
+     */
+    private function buildCartonSignature(Carton $carton, $content): string
+    {
+        return implode('|', [
+            $content->shipment_item_id,
+            (int) $content->pieces,
+            $content->part_label ?? '',
+            (string) ($carton->gross_weight ?? ''),
+            (string) ($carton->net_weight ?? ''),
+            (string) ($carton->length ?? ''),
+            (string) ($carton->width ?? ''),
+            (string) ($carton->height ?? ''),
+            (string) ($carton->packaging_type ?? ''),
+            $this->resolvePalletLabel($carton) ?? '',
+        ]);
+    }
+
+    /**
+     * Build a consolidated line for a group of identical cartons.
+     *
+     * @param  array<int, array{carton: Carton, content: mixed}>  $group
+     */
+    private function buildGroupedLines(array $group): array
+    {
+        $firstCarton = $group[0]['carton'];
+        $lastCarton = $group[count($group) - 1]['carton'];
+        $content = $group[0]['content'];
+        $count = count($group);
+
+        $shipmentItem = $content->shipmentItem;
+        $product = $shipmentItem?->proformaInvoiceItem?->product;
+        $pivot = $this->getClientPivot($product);
+
+        $productName = $pivot?->external_name ?: ($shipmentItem?->product_name ?? '—');
+        if (filled($content->part_label)) {
+            $productName .= ' — '.$content->part_label;
+        }
+
+        // Build package range label (e.g. "CTN-001 ~ CTN-050")
+        $packageRange = $firstCarton->label.' ~ '.$lastCarton->label;
+
+        // Sum totals across all cartons in the group
+        $totalEquipmentQty = (int) $content->pieces * $count;
+        $totalGrossWeight = (float) $firstCarton->gross_weight * $count;
+        $totalNetWeight = (float) $firstCarton->net_weight * $count;
+        $totalVolume = (float) $firstCarton->volume * $count;
+
+        return [
+            [
+                'package_no' => $packageRange,
+                'pallet' => $this->resolvePalletLabel($firstCarton),
+                'model_no' => $pivot?->external_code ?: ($product?->model_number ?: ($product?->sku ?? '')),
+                'product_name' => $productName,
+                'description' => $shipmentItem?->notes,
+                'unit' => $shipmentItem?->unit ?? 'pcs',
+                'equipment_qty' => $totalEquipmentQty,
+                'package_qty' => $count,
+                'net_weight' => $totalNetWeight > 0 ? number_format($totalNetWeight, 1) : '',
+                'gross_weight' => $totalGrossWeight > 0 ? number_format($totalGrossWeight, 1) : '',
+                'dimensions' => $this->formatCartonDimensions($firstCarton),
+                'volume' => $totalVolume > 0 ? number_format($totalVolume, 2) : '',
+                'is_sub_item' => false,
+            ],
+        ];
     }
 
     private function buildEmptyCartonLine(Carton $carton): array
