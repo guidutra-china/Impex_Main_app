@@ -540,25 +540,28 @@ class GeneratePaymentScheduleAction
             );
 
             foreach ($shipmentStages as $stage) {
-                // Skip if an item already exists for this shipment + stage (idempotency guard)
+                $amount = (int) round($piValue * ($stage->percentage / 100));
+                $dueDate = $this->calculateShipmentDueDate($shipment, $stage);
+                $label = $this->generateShipmentLabel($stage, $pi->reference, $shipment->reference);
+
+                // Idempotency guard: match by stage AND PI reference (label).
+                // A shipment may contain items from multiple PIs — each PI has
+                // its own schedule items for the same stage.
                 $existingItem = PaymentScheduleItem::where('payable_type', get_class($shipment))
                     ->where('payable_id', $shipment->id)
                     ->where('payment_term_stage_id', $stage->id)
                     ->whereNull('source_type')
+                    ->where('label', 'LIKE', '%/ ' . $pi->reference . ']%')
                     ->first();
 
                 if ($existingItem) {
-                    // Update amount and due_date on existing item
                     $existingItem->update([
-                        'amount' => (int) round($piValue * ($stage->percentage / 100)),
-                        'due_date' => $this->calculateShipmentDueDate($shipment, $stage),
+                        'amount' => $amount,
+                        'due_date' => $dueDate,
+                        'label' => $label,
                     ]);
                     continue;
                 }
-
-                $amount = (int) round($piValue * ($stage->percentage / 100));
-                $dueDate = $this->calculateShipmentDueDate($shipment, $stage);
-                $label = $this->generateShipmentLabel($stage, $pi->reference, $shipment->reference);
 
                 PaymentScheduleItem::create([
                     'payable_type' => get_class($shipment),
@@ -666,11 +669,16 @@ class GeneratePaymentScheduleAction
             foreach ($shipmentStages as $stage) {
                 $dueDate = $this->calculateShipmentDueDate($shipment, $stage);
                 $correctAmount = (int) round($piValue * ($stage->percentage / 100));
+                $label = $this->generateShipmentLabel($stage, $pi->reference, $shipment->reference);
 
-                // Check for a surviving item (paid/waived/with allocations — not deleted above)
+                // Match existing item by stage AND PI reference (label).
+                // A single shipment can have items from multiple PIs — each PI has
+                // its own schedule items for the same stage, distinguished only by
+                // the PI reference in the label (e.g. "[SH-001 / PI-002]").
                 $existingItem = PaymentScheduleItem::where('payable_type', get_class($shipment))
                     ->where('payable_id', $shipment->id)
                     ->where('payment_term_stage_id', $stage->id)
+                    ->where('label', 'LIKE', '%/ ' . $pi->reference . ']%')
                     ->first();
 
                 if ($existingItem) {
@@ -679,12 +687,12 @@ class GeneratePaymentScheduleAction
                     $existingItem->update([
                         'due_date' => $dueDate,
                         'amount' => $correctAmount,
+                        'label' => $label,
                     ]);
                     continue;
                 }
 
                 // No existing item — create new one
-                $label = $this->generateShipmentLabel($stage, $pi->reference, $shipment->reference);
 
                 PaymentScheduleItem::create([
                     'payable_type' => get_class($shipment),
