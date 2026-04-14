@@ -57,17 +57,12 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
                 ->where('billable_to', BillableTo::CLIENT)
                 ->sum('amount_in_document_currency');
 
-            $duty = $s->additionalCosts
-                ->where('cost_type', AdditionalCostType::CUSTOMS)
-                ->where('billable_to', BillableTo::CLIENT)
-                ->sum('amount_in_document_currency');
-
             $otherCosts = $s->additionalCosts
-                ->whereNotIn('cost_type', [AdditionalCostType::FREIGHT, AdditionalCostType::CUSTOMS])
+                ->where('cost_type', '!=', AdditionalCostType::FREIGHT)
                 ->where('billable_to', BillableTo::CLIENT)
                 ->sum('amount_in_document_currency');
 
-            $totalCosts = $freight + $duty + $otherCosts;
+            $totalCosts = $freight + $otherCosts;
 
             // Check if costs have been paid via additional cost status
             $paidCosts = $s->additionalCosts
@@ -77,12 +72,12 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
 
             return [
                 'number' => $s->reference ?? (string) $s->id,
+                'bl_number' => (string) ($s->bl_number ?? ''),
+                'client_reference' => (string) ($s->client_reference ?? ''),
                 'etd' => optional($s->etd)->format('Y-m-d'),
                 'eta' => optional($s->eta)->format('Y-m-d'),
                 'status' => $s->status instanceof \BackedEnum ? $s->status->value : (string) $s->status,
-                'goods' => round($goodsValue / Money::SCALE, 2),
                 'freight' => round($freight / Money::SCALE, 2),
-                'customs' => round($duty / Money::SCALE, 2),
                 'other_costs' => round($otherCosts / Money::SCALE, 2),
                 'total_costs' => round($totalCosts / Money::SCALE, 2),
                 'paid' => round($paidCosts / Money::SCALE, 2),
@@ -94,7 +89,7 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
         return new StatementSection(
             key: 'shipments',
             titleKey: 'financial_report.sections.shipments',
-            columns: ['number', 'etd', 'eta', 'status', 'goods', 'freight', 'customs', 'other_costs', 'total_costs', 'paid', 'balance', 'currency'],
+            columns: ['number', 'bl_number', 'client_reference', 'etd', 'eta', 'status', 'freight', 'other_costs', 'total_costs', 'paid', 'balance', 'currency'],
             rows: $rows,
         );
     }
