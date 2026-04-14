@@ -12,6 +12,8 @@ use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Support\Money;
+use App\Filament\Actions\Concerns\HasImportCache;
+use App\Filament\Actions\Concerns\HasSpreadsheetImages;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
@@ -26,55 +28,18 @@ use Filament\Schemas\Components\Wizard\Step;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use PhpOffice\PhpSpreadsheet\IOFactory;
-use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
-use PhpOffice\PhpSpreadsheet\Worksheet\MemoryDrawing;
 
 class FlexibleProductImportAction
 {
-    protected static function tempPath(string $suffix): string
-    {
-        return storage_path('app/private/flex-import-' . session()->getId() . '-' . $suffix . '.json');
-    }
+    use HasImportCache;
+    use HasSpreadsheetImages;
 
-    protected static function putCache(string $suffix, mixed $data): void
-    {
-        $path = self::tempPath($suffix);
-        $dir = dirname($path);
-        if (! is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-        file_put_contents($path, json_encode($data, JSON_UNESCAPED_UNICODE));
-    }
-
-    protected static array $memoryCache = [];
-
-    protected static function getCache(string $suffix, mixed $default = null): mixed
-    {
-        if (isset(self::$memoryCache[$suffix])) {
-            return self::$memoryCache[$suffix];
-        }
-
-        $path = self::tempPath($suffix);
-        if (! file_exists($path)) {
-            return $default;
-        }
-
-        $data = json_decode(file_get_contents($path), true) ?? $default;
-        self::$memoryCache[$suffix] = $data;
-
-        return $data;
-    }
+    protected const CACHE_PREFIX = 'flex-import';
 
     protected static function forgetCache(): void
     {
-        @unlink(self::tempPath('rows'));
-        @unlink(self::tempPath('images'));
-        @unlink(self::tempPath('mapping'));
-        @unlink(self::tempPath('row_origins'));
-        @unlink(self::tempPath('ai_analysis'));
-        @unlink(self::tempPath('enable_ai'));
+        self::forgetCacheKeys(['rows', 'images', 'mapping', 'row_origins', 'ai_analysis', 'enable_ai']);
     }
 
     public static function make(string $role, \Closure $getCompany): Action
@@ -186,16 +151,19 @@ class FlexibleProductImportAction
                                 ? 'Optionally link imported products to a supplier as well'
                                 : 'Optionally link imported products to a client as well'),
                         FileUpload::make('spreadsheet')
-                            ->label('Excel File')
+                            ->label('Spreadsheet File')
                             ->acceptedFileTypes([
                                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                                 'application/vnd.ms-excel',
+                                'text/csv',
+                                'text/plain',
+                                'text/tab-separated-values',
                             ])
                             ->required()
                             ->maxSize(51200)
                             ->disk('local')
                             ->directory('temp-imports')
-                            ->helperText('Upload .xlsx or .xls file (max 50MB). Product images in the spreadsheet will be imported automatically.'),
+                            ->helperText('Upload .xlsx, .xls, or .csv file (max 50MB). Product images in Excel files will be imported automatically.'),
                         Toggle::make('enable_ai_analysis')
                             ->label('AI Analysis')
                             ->helperText('Use Claude AI to detect fuzzy product code matches and validate data quality before importing.')
@@ -225,32 +193,49 @@ class FlexibleProductImportAction
                                 return;
                             }
 
-                            \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: loading spreadsheet...');
-                            $spreadsheet = IOFactory::load($path);
-                            \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: spreadsheet loaded OK');
-                            $worksheet = $spreadsheet->getActiveSheet();
+                            \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: loading file...');
 
-                            // Use toArray() for memory efficiency and limit to actual data range
-                            $highestRow = $worksheet->getHighestDataRow();
-                            $highestCol = $worksheet->getHighestDataColumn();
-                            \Illuminate\Support\Facades\Log::info("FLEXIBLE IMPORT: data range = A1:{$highestCol}{$highestRow}");
+                            $isCsv = \App\Domain\Catalog\Actions\Import\SpreadsheetReader::isCsv($path);
+                            $images = [];
 
-                            $rawData = $worksheet->toArray(null, true, false, false);
-                            \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: toArray returned ' . count($rawData) . ' rows');
+                            if ($isCsv) {
+                                // CSV: use SpreadsheetReader (handles encoding, delimiter detection)
+                                $parsed = \App\Domain\Catalog\Actions\Import\SpreadsheetReader::read($path);
+                                $rows = $parsed['rows'];
+                                $rowOrigins = $parsed['row_origins'];
+                                \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: CSV loaded — ' . count($rows) . ' rows');
+                            } else {
+                                // Excel: use PhpSpreadsheet for data + image extraction
+                                $spreadsheet = IOFactory::load($path);
+                                $worksheet = $spreadsheet->getActiveSheet();
 
-                            // Filter out completely empty rows and trim values
-                            // Preserve original spreadsheet row numbers for image matching
-                            $rows = [];
-                            $rowOrigins = []; // maps filtered index → original 1-based row number
-                            $maxRows = min(count($rawData), 5000); // Safety limit
-                            for ($r = 0; $r < $maxRows; $r++) {
-                                $values = array_map(fn ($v) => trim((string) ($v ?? '')), $rawData[$r]);
-                                if (implode('', $values) !== '') {
-                                    $rowOrigins[count($rows)] = $r + 1; // 1-based spreadsheet row
-                                    $rows[] = $values;
+                                $rawData = $worksheet->toArray(null, true, false, false);
+                                \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: toArray returned ' . count($rawData) . ' rows');
+
+                                $rows = [];
+                                $rowOrigins = [];
+                                $maxRows = min(count($rawData), 5000);
+                                for ($r = 0; $r < $maxRows; $r++) {
+                                    $values = array_map(fn ($v) => trim((string) ($v ?? '')), $rawData[$r]);
+                                    if (implode('', $values) !== '') {
+                                        $rowOrigins[count($rows)] = $r + 1;
+                                        $rows[] = $values;
+                                    }
                                 }
+                                unset($rawData);
+
+                                // Extract images (non-critical)
+                                try {
+                                    $images = self::extractImagesByRow($worksheet);
+                                    \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: extracted ' . count($images) . ' images');
+                                } catch (\Throwable $e) {
+                                    \Illuminate\Support\Facades\Log::warning('Image extraction failed: ' . $e->getMessage());
+                                }
+
+                                $spreadsheet->disconnectWorksheets();
+                                unset($spreadsheet, $worksheet);
                             }
-                            unset($rawData);
+
                             self::putCache('row_origins', $rowOrigins);
                             \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: filtered to ' . count($rows) . ' non-empty rows');
 
@@ -259,19 +244,6 @@ class FlexibleProductImportAction
 
                                 return;
                             }
-
-                            // Extract images (non-critical — catch errors separately)
-                            $images = [];
-                            try {
-                                $images = self::extractImagesByRow($worksheet);
-                                \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: extracted ' . count($images) . ' images');
-                            } catch (\Throwable $e) {
-                                \Illuminate\Support\Facades\Log::warning('Image extraction failed: ' . $e->getMessage());
-                            }
-
-                            // Free memory before storing in session
-                            $spreadsheet->disconnectWorksheets();
-                            unset($spreadsheet, $worksheet);
 
                             self::putCache('images', $images);
                             self::putCache('rows', $rows);
@@ -855,160 +827,6 @@ class FlexibleProductImportAction
     }
 
     // ── Helper methods (reused from PasteItemsFromSpreadsheetAction) ──
-
-    protected static function resolveUploadPath(mixed $filePath): ?string
-    {
-        if (empty($filePath)) {
-            return null;
-        }
-
-        if ($filePath instanceof TemporaryUploadedFile) {
-            $realPath = $filePath->getRealPath();
-
-            return ($realPath && file_exists($realPath)) ? $realPath : null;
-        }
-
-        if (is_array($filePath)) {
-            foreach ($filePath as $value) {
-                if ($value instanceof TemporaryUploadedFile) {
-                    $realPath = $value->getRealPath();
-                    if ($realPath && file_exists($realPath)) {
-                        return $realPath;
-                    }
-                }
-
-                if (is_string($value) && str_starts_with($value, 'livewire-file:')) {
-                    $filename = substr($value, strlen('livewire-file:'));
-                    try {
-                        $tmpFile = TemporaryUploadedFile::createFromLivewire($filename);
-                        $realPath = $tmpFile->getRealPath();
-                        if ($realPath && file_exists($realPath)) {
-                            return $realPath;
-                        }
-                    } catch (\Throwable $e) {
-                    }
-                }
-            }
-
-            $filePath = reset($filePath);
-            if (! is_string($filePath)) {
-                return null;
-            }
-        }
-
-        if (! is_string($filePath)) {
-            return null;
-        }
-
-        if (str_starts_with($filePath, 'livewire-file:')) {
-            $filename = substr($filePath, strlen('livewire-file:'));
-            try {
-                $tmpFile = TemporaryUploadedFile::createFromLivewire($filename);
-                $realPath = $tmpFile->getRealPath();
-                if ($realPath && file_exists($realPath)) {
-                    return $realPath;
-                }
-            } catch (\Throwable $e) {
-            }
-        }
-
-        if (file_exists($filePath)) {
-            return $filePath;
-        }
-
-        $path = storage_path('app/private/' . $filePath);
-        if (file_exists($path)) {
-            return $path;
-        }
-
-        $path = storage_path('app/' . $filePath);
-
-        return file_exists($path) ? $path : null;
-    }
-
-    protected static function extractImagesByRow(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $worksheet): array
-    {
-        $imagesByRow = [];
-        $hashMap = []; // md5 hash => stored filename (deduplication)
-
-        foreach ($worksheet->getDrawingCollection() as $drawing) {
-            $coordinate = $drawing->getCoordinates();
-
-            if (empty($coordinate)) {
-                \Illuminate\Support\Facades\Log::warning('FLEXIBLE IMPORT: image with no coordinates, skipping');
-                continue;
-            }
-
-            // Extract row number from cell reference (e.g., "B5" → 5)
-            $row = (int) preg_replace('/[A-Z]+/i', '', $coordinate);
-
-            if ($row < 1) {
-                \Illuminate\Support\Facades\Log::warning("FLEXIBLE IMPORT: invalid row from coordinate '{$coordinate}', skipping");
-                continue;
-            }
-
-            if (isset($imagesByRow[$row])) {
-                continue;
-            }
-
-            $imageData = null;
-            $extension = 'png';
-
-            try {
-                if ($drawing instanceof MemoryDrawing) {
-                    $imageResource = $drawing->getImageResource();
-                    if ($imageResource) {
-                        ob_start();
-                        $renderFunc = match ($drawing->getRenderingFunction()) {
-                            MemoryDrawing::RENDERING_JPEG => 'imagejpeg',
-                            MemoryDrawing::RENDERING_GIF => 'imagegif',
-                            default => 'imagepng',
-                        };
-                        $renderFunc($imageResource);
-                        $imageData = ob_get_clean();
-                        $extension = match ($drawing->getRenderingFunction()) {
-                            MemoryDrawing::RENDERING_JPEG => 'jpg',
-                            MemoryDrawing::RENDERING_GIF => 'gif',
-                            default => 'png',
-                        };
-                    }
-                } elseif ($drawing instanceof Drawing && $drawing->getPath()) {
-                    $sourcePath = $drawing->getPath();
-
-                    if (str_starts_with($sourcePath, 'zip://')) {
-                        $imageData = @file_get_contents($sourcePath);
-                    } elseif (file_exists($sourcePath)) {
-                        $imageData = file_get_contents($sourcePath);
-                    }
-
-                    if ($imageData) {
-                        $extension = strtolower($drawing->getExtension() ?: pathinfo($sourcePath, PATHINFO_EXTENSION) ?: 'png');
-                    }
-                }
-            } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning("FLEXIBLE IMPORT: failed to extract image at {$coordinate}: {$e->getMessage()}");
-                continue;
-            }
-
-            if ($imageData && strlen($imageData) > 100) { // Skip tiny/corrupt images
-                $hash = md5($imageData);
-
-                if (isset($hashMap[$hash])) {
-                    // Reuse already-saved file for identical image content
-                    $imagesByRow[$row] = $hashMap[$hash];
-                    \Illuminate\Support\Facades\Log::info("FLEXIBLE IMPORT: image at row {$row} deduplicated → {$hashMap[$hash]}");
-                } else {
-                    $filename = 'products/' . uniqid('import_') . '.' . $extension;
-                    Storage::disk('public')->put($filename, $imageData);
-                    $hashMap[$hash] = $filename;
-                    $imagesByRow[$row] = $filename;
-                    \Illuminate\Support\Facades\Log::info("FLEXIBLE IMPORT: image extracted at row {$row} → {$filename}");
-                }
-            }
-        }
-
-        return $imagesByRow;
-    }
 
     protected static function getCachedRows(): array
     {

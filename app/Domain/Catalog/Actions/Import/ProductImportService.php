@@ -6,6 +6,7 @@ use App\Domain\Catalog\Actions\GenerateProductSkuAction;
 use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\CompanyProduct;
+use App\Domain\Catalog\Models\ImportLog;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\ProductAttributeValue;
 use App\Domain\Catalog\Models\ProductCosting;
@@ -34,12 +35,19 @@ class ProductImportService
     public function parseFile(string $filePath, Category $category, string $role = 'client'): array
     {
         ini_set('memory_limit', '512M');
-        $hasCross = $this->detectCrossColumns($filePath, $category, $role);
-        $columnMap = $this->templateGenerator->buildColumnMap($category, $role, $hasCross);
-        $columnKeys = array_keys($columnMap);
 
+        // Load spreadsheet once and reuse for both cross-column detection and parsing
         $spreadsheet = IOFactory::load($filePath);
         $worksheet = $spreadsheet->getActiveSheet();
+
+        $singleColumnCount = count($this->templateGenerator->buildColumnMap($category, $role, false));
+        $actualColumnCount = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString(
+            $worksheet->getHighestColumn()
+        );
+        $hasCross = $actualColumnCount > $singleColumnCount;
+
+        $columnMap = $this->templateGenerator->buildColumnMap($category, $role, $hasCross);
+        $columnKeys = array_keys($columnMap);
 
         // Extract images mapped by row number
         $imagesByRow = $this->extractImagesByRow($worksheet);
@@ -201,6 +209,72 @@ class ProductImportService
         return $conflicts;
     }
 
+    /**
+     * Simulate an import without persisting any data.
+     * Returns a preview of what would happen: creates, updates, skips, and potential issues.
+     */
+    public function dryRun(
+        array $rows,
+        Category $category,
+        Company $company,
+        string $role,
+    ): array {
+        $preview = ['would_create' => [], 'would_update' => [], 'would_skip' => [], 'errors' => []];
+
+        foreach ($rows as $row) {
+            $rowNum = $row['_row'] ?? '?';
+            $productName = $row['name'] ?? '';
+            $refCode = $row['reference_code'] ?? '';
+
+            if (empty($productName) && empty($refCode)) {
+                $preview['would_skip'][] = [
+                    'row' => $rowNum,
+                    'reason' => 'Sem nome e sem código de referência',
+                ];
+
+                continue;
+            }
+
+            // Check for existing product
+            $existing = null;
+            if (! empty($refCode)) {
+                $existing = Product::where('reference_code', trim($refCode))->first();
+            }
+            if (! $existing && ! empty($productName)) {
+                $existing = Product::where('name', $productName)->first();
+            }
+
+            if ($existing) {
+                $alreadyLinked = CompanyProduct::where('product_id', $existing->id)
+                    ->where('company_id', $company->id)
+                    ->where('role', $role)
+                    ->exists();
+
+                $preview['would_update'][] = [
+                    'row' => $rowNum,
+                    'name' => $productName ?: $existing->name,
+                    'existing_sku' => $existing->sku,
+                    'already_linked' => $alreadyLinked,
+                ];
+            } else {
+                $preview['would_create'][] = [
+                    'row' => $rowNum,
+                    'name' => $productName ?: ($category->name . ' ' . ($row['model_number'] ?? '')),
+                    'reference_code' => $refCode,
+                ];
+            }
+        }
+
+        $preview['summary'] = [
+            'total' => count($rows),
+            'create' => count($preview['would_create']),
+            'update' => count($preview['would_update']),
+            'skip' => count($preview['would_skip']),
+        ];
+
+        return $preview;
+    }
+
     public function import(
         array $rows,
         Category $category,
@@ -209,15 +283,30 @@ class ProductImportService
         array $conflictResolutions = [],
         ?Company $crossCompany = null,
         ?string $crossRole = null,
+        ?string $fileName = null,
     ): array {
         $stats = ['created' => 0, 'updated' => 0, 'skipped' => 0, 'linked' => 0, 'images' => 0, 'errors' => []];
         $skuGenerator = app(GenerateProductSkuAction::class);
         $hasCross = ! empty($rows[0]['_has_cross']);
 
+        // Audit log
+        $importLog = ImportLog::start(
+            importType: 'product_template',
+            fileName: $fileName ?? 'unknown',
+            rowCount: count($rows),
+            companyId: $company->id,
+            metadata: [
+                'category' => $category->name,
+                'role' => $role,
+                'has_cross' => $hasCross,
+                'cross_company_id' => $crossCompany?->id,
+            ],
+        );
+
         // Build a map of reference_code → row index for quick lookup
         $refCodeMap = [];
 
-        return DB::transaction(function () use ($rows, $category, $company, $role, $conflictResolutions, &$stats, $skuGenerator, &$refCodeMap, $crossCompany, $crossRole, $hasCross) {
+        return DB::transaction(function () use ($rows, $category, $company, $role, $conflictResolutions, &$stats, $skuGenerator, &$refCodeMap, $crossCompany, $crossRole, $hasCross, $importLog) {
             // First pass: base products (no parent_ref)
             foreach ($rows as $row) {
                 if (! empty($row['parent_ref'])) {
@@ -275,6 +364,8 @@ class ProductImportService
                     $stats['errors'][] = "Row {$row['_row']}: {$e->getMessage()}";
                 }
             }
+
+            $importLog->markCompleted($stats);
 
             return $stats;
         });
@@ -522,19 +613,6 @@ class ProductImportService
         }
     }
 
-    private function detectCrossColumns(string $filePath, Category $category, string $role): bool
-    {
-        $singleColumnCount = count($this->templateGenerator->buildColumnMap($category, $role, false));
-
-        $spreadsheet = IOFactory::load($filePath);
-        $worksheet = $spreadsheet->getActiveSheet();
-        $actualColumnCount = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString(
-            $worksheet->getHighestColumn()
-        );
-
-        return $actualColumnCount > $singleColumnCount;
-    }
-
     /**
      * Extract images from worksheet and map them to row numbers.
      * Saves each image to storage and returns [rowNumber => storedPath].
@@ -589,13 +667,50 @@ class ProductImportService
             }
 
             if ($imageData && strlen($imageData) > 100) {
-                $hash = md5($imageData);
+                // Validate extension whitelist
+                $allowedExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
+                if (! in_array($extension, $allowedExtensions)) {
+                    continue;
+                }
+
+                // Validate image magic bytes to prevent malicious file uploads
+                $magicBytes = substr($imageData, 0, 8);
+                $isValidImage = str_starts_with($magicBytes, "\xFF\xD8\xFF") // JPEG
+                    || str_starts_with($magicBytes, "\x89PNG") // PNG
+                    || str_starts_with($magicBytes, "GIF87a") || str_starts_with($magicBytes, "GIF89a") // GIF
+                    || str_starts_with($magicBytes, "RIFF"); // WebP (RIFF container)
+
+                if (! $isValidImage) {
+                    continue;
+                }
+
+                // Strip EXIF data by reprocessing through GD (prevents EXIF-based payloads)
+                $gdImage = @imagecreatefromstring($imageData);
+                if ($gdImage === false) {
+                    continue;
+                }
+
+                ob_start();
+                match ($extension) {
+                    'jpg', 'jpeg' => imagejpeg($gdImage, null, 90),
+                    'gif' => imagegif($gdImage),
+                    'webp' => imagewebp($gdImage, null, 90),
+                    default => imagepng($gdImage, null, 6),
+                };
+                $cleanImageData = ob_get_clean();
+                imagedestroy($gdImage);
+
+                if (empty($cleanImageData)) {
+                    continue;
+                }
+
+                $hash = md5($cleanImageData);
 
                 if (isset($hashMap[$hash])) {
                     $imagesByRow[$row] = $hashMap[$hash];
                 } else {
                     $filename = 'products/' . uniqid('import_') . '.' . $extension;
-                    Storage::disk('public')->put($filename, $imageData);
+                    Storage::disk('public')->put($filename, $cleanImageData);
                     $hashMap[$hash] = $filename;
                     $imagesByRow[$row] = $filename;
                 }
@@ -611,7 +726,27 @@ class ProductImportService
             return null;
         }
 
-        return trim((string) $value);
+        $value = (string) $value;
+
+        // Strip BOM (Byte Order Mark) - common in files from Chinese suppliers
+        $value = preg_replace('/^\xEF\xBB\xBF/', '', $value);
+
+        // Strip invisible/zero-width characters
+        $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $value);
+        $value = preg_replace('/[\x{200B}\x{200C}\x{200D}\x{FEFF}\x{00A0}]/u', ' ', $value);
+
+        // Normalize encoding: detect and convert to UTF-8 if needed
+        if (! mb_check_encoding($value, 'UTF-8')) {
+            $detected = mb_detect_encoding($value, ['UTF-8', 'GB2312', 'GBK', 'GB18030', 'ISO-8859-1', 'Windows-1252'], true);
+            if ($detected && $detected !== 'UTF-8') {
+                $value = mb_convert_encoding($value, 'UTF-8', $detected);
+            }
+        }
+
+        // Collapse multiple spaces into one, then trim
+        $value = preg_replace('/\s+/', ' ', $value);
+
+        return trim($value) ?: null;
     }
 
     private function toDecimal(?string $value): ?float

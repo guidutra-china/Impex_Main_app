@@ -14,6 +14,8 @@ use App\Domain\Catalog\Models\ProductSpecification;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Support\Money;
+use App\Filament\Actions\Concerns\HasImportCache;
+use App\Filament\Actions\Concerns\HasSpreadsheetImages;
 use Filament\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\FileUpload;
@@ -28,52 +30,18 @@ use Filament\Schemas\Components\Wizard\Step;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use PhpOffice\PhpSpreadsheet\IOFactory;
-use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
-use PhpOffice\PhpSpreadsheet\Worksheet\MemoryDrawing;
 
 class ImportProductsFromSpreadsheetAction
 {
-    protected static function tempPath(string $suffix): string
-    {
-        return storage_path('app/private/product-import-' . session()->getId() . '-' . $suffix . '.json');
-    }
+    use HasImportCache;
+    use HasSpreadsheetImages;
 
-    protected static function putCache(string $suffix, mixed $data): void
-    {
-        $dir = dirname(self::tempPath($suffix));
-        if (! is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-        file_put_contents(self::tempPath($suffix), json_encode($data, JSON_UNESCAPED_UNICODE));
-    }
-
-    protected static array $memoryCache = [];
-
-    protected static function getCache(string $suffix, mixed $default = null): mixed
-    {
-        if (isset(self::$memoryCache[$suffix])) {
-            return self::$memoryCache[$suffix];
-        }
-
-        $path = self::tempPath($suffix);
-        if (! file_exists($path)) {
-            return $default;
-        }
-
-        $data = json_decode(file_get_contents($path), true) ?? $default;
-        self::$memoryCache[$suffix] = $data;
-
-        return $data;
-    }
+    protected const CACHE_PREFIX = 'product-import';
 
     protected static function forgetCache(): void
     {
-        @unlink(self::tempPath('rows'));
-        @unlink(self::tempPath('images'));
-        @unlink(self::tempPath('mapping'));
-        @unlink(self::tempPath('row_origins'));
+        self::forgetCacheKeys(['rows', 'images', 'mapping', 'row_origins']);
     }
 
     public static function make(): Action
@@ -104,16 +72,19 @@ class ImportProductsFromSpreadsheetAction
             ->description('Upload spreadsheet and select companies to link')
             ->schema([
                 FileUpload::make('spreadsheet')
-                    ->label('Excel File')
+                    ->label('Spreadsheet File')
                     ->acceptedFileTypes([
                         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                         'application/vnd.ms-excel',
+                        'text/csv',
+                        'text/plain',
+                        'text/tab-separated-values',
                     ])
                     ->required()
                     ->maxSize(51200)
                     ->disk('local')
                     ->directory('temp-imports')
-                    ->helperText('Upload .xlsx or .xls file (max 50MB).'),
+                    ->helperText('Upload .xlsx, .xls, or .csv file (max 50MB).'),
                 Select::make('client_company_id')
                     ->label('Link to Client')
                     ->options(fn () => Company::withRole(CompanyRole::CLIENT)->orderBy('name')->pluck('name', 'id'))
@@ -197,11 +168,22 @@ class ImportProductsFromSpreadsheetAction
                 $headerData = $rows[max(0, $headerRow - 1)] ?? [];
 
                 // Collect inverted mapping from col_map_X fields (max 15, matching schema)
+                // Each column can map to multiple fields (e.g. same column → model_number + reference_code)
                 $colMapping = [];
                 for ($c = 0; $c < 15; $c++) {
-                    $field = $get("col_map_{$c}");
-                    if ($field && $field !== '' && $field !== 'skip') {
-                        $colMapping[$field] = (string) $c;
+                    $fields = $get("col_map_{$c}");
+                    if (empty($fields)) {
+                        continue;
+                    }
+                    // $fields is now an array (multiple select)
+                    if (is_array($fields)) {
+                        foreach ($fields as $field) {
+                            if ($field && $field !== 'skip') {
+                                $colMapping[$field] = (string) $c;
+                            }
+                        }
+                    } elseif ($fields !== 'skip') {
+                        $colMapping[$fields] = (string) $c;
                     }
                 }
 
@@ -246,14 +228,8 @@ class ImportProductsFromSpreadsheetAction
                         ->maxValue(50)
                         ->required()
                         ->live(onBlur: true),
-                    Placeholder::make('column_mapping_label')
-                        ->content(new HtmlString(
-                            '<p class="text-sm font-medium text-gray-700 dark:text-gray-300">'
-                            . 'Assign a field to each spreadsheet column:'
-                            . '</p>'
-                        ))
-                        ->columnSpanFull(),
-                    ...self::buildInvertedColumnSelects(),
+
+                    // ── Category blocks first (so attributes can filter by selected categories) ──
                     Placeholder::make('blocks_divider')
                         ->content(new HtmlString(
                             '<hr class="my-2 border-gray-200 dark:border-gray-700">'
@@ -301,25 +277,30 @@ class ImportProductsFromSpreadsheetAction
                         ->defaultItems(1)
                         ->addActionLabel('Add category block')
                         ->reorderable(false)
+                        ->live()
                         ->columnSpanFull(),
+
+                    // ── Column mapping (attributes filtered by selected categories) ──
+                    Placeholder::make('column_mapping_label')
+                        ->content(new HtmlString(
+                            '<hr class="my-2 border-gray-200 dark:border-gray-700">'
+                            . '<p class="text-sm font-medium text-gray-700 dark:text-gray-300">'
+                            . 'Assign fields to each spreadsheet column:'
+                            . '</p>'
+                        ))
+                        ->columnSpanFull(),
+                    ...self::buildInvertedColumnSelects(),
                 ];
             })
             ->columns(3);
     }
 
-    protected static function buildInvertedColumnSelects(): array
+    /**
+     * Build the base field options (without attributes — those are dynamic).
+     */
+    protected static function baseFieldOptions(): array
     {
-        $rows = self::getCache('rows', []);
-        if (empty($rows)) {
-            return [];
-        }
-
-        $headerData = $rows[0] ?? [];
-        $displayCols = min(count($headerData), 15);
-
-        // Base product fields
-        $fieldOptions = [
-            'skip' => '— Skip —',
+        return [
             'Product' => [
                 'commercial_name' => 'Commercial Name',
                 'model_number' => 'Model Number',
@@ -362,10 +343,24 @@ class ImportProductsFromSpreadsheetAction
                 'custom_price' => 'Custom Price (CI Override)',
             ],
         ];
+    }
 
-        // Add category attributes from all active categories
+    /**
+     * Build field options including attributes filtered by the given category IDs.
+     */
+    protected static function fieldOptionsForCategories(array $categoryIds): array
+    {
+        $fieldOptions = self::baseFieldOptions();
+
+        if (empty($categoryIds)) {
+            return $fieldOptions;
+        }
+
         $attrOptions = [];
-        $categories = Category::active()->with('categoryAttributes')->get();
+        $categories = Category::whereIn('id', $categoryIds)
+            ->with('categoryAttributes')
+            ->get();
+
         foreach ($categories as $cat) {
             foreach ($cat->categoryAttributes as $attr) {
                 $key = "attr_{$attr->id}";
@@ -375,9 +370,24 @@ class ImportProductsFromSpreadsheetAction
                 }
             }
         }
+
         if (! empty($attrOptions)) {
+            asort($attrOptions);
             $fieldOptions['Attributes'] = $attrOptions;
         }
+
+        return $fieldOptions;
+    }
+
+    protected static function buildInvertedColumnSelects(): array
+    {
+        $rows = self::getCache('rows', []);
+        if (empty($rows)) {
+            return [];
+        }
+
+        $headerData = $rows[0] ?? [];
+        $displayCols = min(count($headerData), 15);
 
         $selects = [];
         for ($c = 0; $c < $displayCols; $c++) {
@@ -387,8 +397,20 @@ class ImportProductsFromSpreadsheetAction
 
             $selects[] = Select::make("col_map_{$c}")
                 ->label(mb_substr($label, 0, 40))
-                ->options($fieldOptions)
-                ->default('skip')
+                ->options(function (Get $get) {
+                    // Collect category IDs from the import_blocks repeater
+                    $blocks = $get('import_blocks') ?? [];
+                    $categoryIds = collect($blocks)
+                        ->pluck('category_id')
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->toArray();
+
+                    return self::fieldOptionsForCategories($categoryIds);
+                })
+                ->multiple()
+                ->placeholder('— Skip —')
                 ->native(false);
         }
 
@@ -420,11 +442,8 @@ class ImportProductsFromSpreadsheetAction
                         $totalProducts = 0;
                         $totalImages = 0;
 
-                        // Get mapped field labels for preview
-                        $previewFields = array_intersect_key(
-                            array_flip($colMapping),
-                            array_flip(array_values($colMapping))
-                        );
+                        // Get unique column indices that have at least one field mapped
+                        $previewFields = array_unique(array_values($colMapping));
 
                         $html = '<div class="space-y-4">';
 
@@ -955,140 +974,5 @@ class ImportProductsFromSpreadsheetAction
         }
 
         return $letter;
-    }
-
-    protected static function resolveUploadPath(mixed $filePath): ?string
-    {
-        if (empty($filePath)) {
-            return null;
-        }
-
-        if ($filePath instanceof TemporaryUploadedFile) {
-            $realPath = $filePath->getRealPath();
-
-            return ($realPath && file_exists($realPath)) ? $realPath : null;
-        }
-
-        if (is_array($filePath)) {
-            foreach ($filePath as $value) {
-                if ($value instanceof TemporaryUploadedFile) {
-                    $realPath = $value->getRealPath();
-                    if ($realPath && file_exists($realPath)) {
-                        return $realPath;
-                    }
-                }
-
-                if (is_string($value) && str_starts_with($value, 'livewire-file:')) {
-                    try {
-                        $tmpFile = TemporaryUploadedFile::createFromLivewire(substr($value, strlen('livewire-file:')));
-                        $realPath = $tmpFile->getRealPath();
-                        if ($realPath && file_exists($realPath)) {
-                            return $realPath;
-                        }
-                    } catch (\Throwable $e) {
-                    }
-                }
-            }
-
-            $filePath = reset($filePath);
-            if (! is_string($filePath)) {
-                return null;
-            }
-        }
-
-        if (! is_string($filePath)) {
-            return null;
-        }
-
-        if (str_starts_with($filePath, 'livewire-file:')) {
-            try {
-                $tmpFile = TemporaryUploadedFile::createFromLivewire(substr($filePath, strlen('livewire-file:')));
-                $realPath = $tmpFile->getRealPath();
-                if ($realPath && file_exists($realPath)) {
-                    return $realPath;
-                }
-            } catch (\Throwable $e) {
-            }
-        }
-
-        if (file_exists($filePath)) {
-            return $filePath;
-        }
-
-        $path = storage_path('app/private/' . $filePath);
-        if (file_exists($path)) {
-            return $path;
-        }
-
-        $path = storage_path('app/' . $filePath);
-
-        return file_exists($path) ? $path : null;
-    }
-
-    protected static function extractImagesByRow(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $worksheet): array
-    {
-        $imagesByRow = [];
-        $hashMap = []; // md5 hash => stored filename (deduplication)
-
-        foreach ($worksheet->getDrawingCollection() as $drawing) {
-            $coordinate = $drawing->getCoordinates();
-            if (empty($coordinate)) {
-                continue;
-            }
-
-            $row = (int) preg_replace('/[A-Z]+/i', '', $coordinate);
-            if ($row < 1 || isset($imagesByRow[$row])) {
-                continue;
-            }
-
-            $imageData = null;
-            $extension = 'png';
-
-            try {
-                if ($drawing instanceof MemoryDrawing) {
-                    $imageResource = $drawing->getImageResource();
-                    if ($imageResource) {
-                        ob_start();
-                        $renderFunc = match ($drawing->getRenderingFunction()) {
-                            MemoryDrawing::RENDERING_JPEG => 'imagejpeg',
-                            MemoryDrawing::RENDERING_GIF => 'imagegif',
-                            default => 'imagepng',
-                        };
-                        $renderFunc($imageResource);
-                        $imageData = ob_get_clean();
-                        $extension = match ($drawing->getRenderingFunction()) {
-                            MemoryDrawing::RENDERING_JPEG => 'jpg',
-                            MemoryDrawing::RENDERING_GIF => 'gif',
-                            default => 'png',
-                        };
-                    }
-                } elseif ($drawing instanceof Drawing && $drawing->getPath()) {
-                    $sourcePath = $drawing->getPath();
-                    $imageData = str_starts_with($sourcePath, 'zip://')
-                        ? @file_get_contents($sourcePath)
-                        : (file_exists($sourcePath) ? file_get_contents($sourcePath) : null);
-                    if ($imageData) {
-                        $extension = strtolower($drawing->getExtension() ?: pathinfo($sourcePath, PATHINFO_EXTENSION) ?: 'png');
-                    }
-                }
-            } catch (\Throwable $e) {
-                continue;
-            }
-
-            if ($imageData && strlen($imageData) > 100) {
-                $hash = md5($imageData);
-
-                if (isset($hashMap[$hash])) {
-                    $imagesByRow[$row] = $hashMap[$hash];
-                } else {
-                    $filename = 'products/' . uniqid('import_') . '.' . $extension;
-                    Storage::disk('public')->put($filename, $imageData);
-                    $hashMap[$hash] = $filename;
-                    $imagesByRow[$row] = $filename;
-                }
-            }
-        }
-
-        return $imagesByRow;
     }
 }

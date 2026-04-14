@@ -4,6 +4,7 @@ namespace App\Filament\Actions;
 
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Infrastructure\Support\Money;
+use App\Filament\Actions\Concerns\HasSpreadsheetImages;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
@@ -16,129 +17,18 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
-use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class PasteItemsFromSpreadsheetAction
 {
+    use HasSpreadsheetImages;
     /**
-     * Read a spreadsheet file (.xlsx or .xls) and return all rows as arrays.
+     * Read a spreadsheet file (.xlsx, .xls, or .csv) and return all rows as arrays.
      */
     protected static function readSpreadsheet(string $path): array
     {
-        ini_set('memory_limit', '512M');
+        $parsed = \App\Domain\Catalog\Actions\Import\SpreadsheetReader::read($path);
 
-        $spreadsheet = IOFactory::load($path);
-        $worksheet = $spreadsheet->getActiveSheet();
-
-        $rawData = $worksheet->toArray(null, true, false, false);
-
-        // Free memory immediately
-        $spreadsheet->disconnectWorksheets();
-        unset($spreadsheet, $worksheet);
-
-        $rows = [];
-        $maxRows = min(count($rawData), 5000);
-        for ($r = 0; $r < $maxRows; $r++) {
-            $values = array_map(fn ($v) => trim((string) ($v ?? '')), $rawData[$r]);
-
-            if (implode('', $values) === '') {
-                continue;
-            }
-
-            $rows[] = $values;
-        }
-
-        unset($rawData);
-
-        return $rows;
-    }
-
-    /**
-     * Resolve the uploaded file to an absolute path.
-     * Handles Livewire TemporaryUploadedFile objects, serialized file references, and stored file paths.
-     */
-    protected static function resolveUploadPath(mixed $filePath): ?string
-    {
-        if (empty($filePath)) {
-            return null;
-        }
-
-        // Handle TemporaryUploadedFile object directly
-        if ($filePath instanceof TemporaryUploadedFile) {
-            $realPath = $filePath->getRealPath();
-            if ($realPath && file_exists($realPath)) {
-                return $realPath;
-            }
-
-            return null;
-        }
-
-        // Handle array state from Filament FileUpload: {uuid: TemporaryUploadedFile} or {uuid: string}
-        if (is_array($filePath)) {
-            foreach ($filePath as $value) {
-                // Value may be a TemporaryUploadedFile object (during Livewire request lifecycle)
-                if ($value instanceof TemporaryUploadedFile) {
-                    $realPath = $value->getRealPath();
-                    if ($realPath && file_exists($realPath)) {
-                        return $realPath;
-                    }
-                }
-
-                // Value may be a serialized Livewire file reference string
-                if (is_string($value) && str_starts_with($value, 'livewire-file:')) {
-                    $filename = substr($value, strlen('livewire-file:'));
-                    try {
-                        $tmpFile = TemporaryUploadedFile::createFromLivewire($filename);
-                        $realPath = $tmpFile->getRealPath();
-                        if ($realPath && file_exists($realPath)) {
-                            return $realPath;
-                        }
-                    } catch (\Throwable $e) {
-                        // Invalid file reference
-                    }
-                }
-            }
-
-            // Fallback: treat as simple array with file path string
-            $filePath = reset($filePath);
-            if (! is_string($filePath)) {
-                return null;
-            }
-        }
-
-        if (! is_string($filePath)) {
-            return null;
-        }
-
-        // Serialized Livewire file reference
-        if (str_starts_with($filePath, 'livewire-file:')) {
-            $filename = substr($filePath, strlen('livewire-file:'));
-            try {
-                $tmpFile = TemporaryUploadedFile::createFromLivewire($filename);
-                $realPath = $tmpFile->getRealPath();
-                if ($realPath && file_exists($realPath)) {
-                    return $realPath;
-                }
-            } catch (\Throwable $e) {
-                // Invalid file reference
-            }
-        }
-
-        // Direct absolute path
-        if (file_exists($filePath)) {
-            return $filePath;
-        }
-
-        // Relative to storage
-        $path = storage_path('app/private/' . $filePath);
-        if (file_exists($path)) {
-            return $path;
-        }
-
-        $path = storage_path('app/' . $filePath);
-
-        return file_exists($path) ? $path : null;
+        return $parsed['rows'];
     }
 
     /**
@@ -575,19 +465,22 @@ class PasteItemsFromSpreadsheetAction
             ->steps([
                 Step::make('Upload')
                     ->label('Upload File')
-                    ->description('Upload an Excel spreadsheet (.xlsx or .xls)')
+                    ->description('Upload a spreadsheet (.xlsx, .xls, or .csv)')
                     ->schema([
                         FileUpload::make('spreadsheet')
-                            ->label('Excel File')
+                            ->label('Spreadsheet File')
                             ->acceptedFileTypes([
                                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                                 'application/vnd.ms-excel',
+                                'text/csv',
+                                'text/plain',
+                                'text/tab-separated-values',
                             ])
                             ->required()
                             ->maxSize(51200)
                             ->disk('local')
                             ->directory('temp-imports')
-                            ->helperText('Upload an .xlsx or .xls file (max 50MB).'),
+                            ->helperText('Upload .xlsx, .xls, or .csv file (max 50MB).'),
                     ])
                     ->afterValidation(function (Get $get, Set $set) use ($fieldPatterns) {
                         $raw = $get('spreadsheet');
