@@ -115,6 +115,12 @@ final class PaymentSectionBuilder implements FinancialSectionBuilder
         $ref = $payable->reference ?? $payable->getKey();
 
         $label = "{$type} {$ref}";
+
+        $clientRef = $payable->client_reference ?? null;
+        if ($clientRef) {
+            $label .= " [{$clientRef}]";
+        }
+
         if ($itemLabel) {
             $label .= " ({$itemLabel})";
         }
