@@ -189,7 +189,7 @@ class ProformaInvoice extends Model
 
     public function items(): HasMany
     {
-        return $this->hasMany(ProformaInvoiceItem::class)->orderBy('sort_order');
+        return $this->hasMany(ProformaInvoiceItem::class);
     }
 
     public function purchaseOrders(): HasMany
