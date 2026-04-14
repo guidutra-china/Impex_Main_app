@@ -540,6 +540,22 @@ class GeneratePaymentScheduleAction
             );
 
             foreach ($shipmentStages as $stage) {
+                // Skip if an item already exists for this shipment + stage (idempotency guard)
+                $existingItem = PaymentScheduleItem::where('payable_type', get_class($shipment))
+                    ->where('payable_id', $shipment->id)
+                    ->where('payment_term_stage_id', $stage->id)
+                    ->whereNull('source_type')
+                    ->first();
+
+                if ($existingItem) {
+                    // Update amount and due_date on existing item
+                    $existingItem->update([
+                        'amount' => (int) round($piValue * ($stage->percentage / 100)),
+                        'due_date' => $this->calculateShipmentDueDate($shipment, $stage),
+                    ]);
+                    continue;
+                }
+
                 $amount = (int) round($piValue * ($stage->percentage / 100));
                 $dueDate = $this->calculateShipmentDueDate($shipment, $stage);
                 $label = $this->generateShipmentLabel($stage, $pi->reference, $shipment->reference);
@@ -580,7 +596,11 @@ class GeneratePaymentScheduleAction
     public function regenerateForShipment(Shipment $shipment): int
     {
         return DB::transaction(function () use ($shipment) {
-            // Delete all deletable schedule items
+            // Step 1: Sync statuses BEFORE deletion — items with approved allocations
+            // should be marked PAID so they're protected by the status filter.
+            $this->recalculateAllStatuses($shipment);
+
+            // Step 2: Delete all deletable schedule items (not paid/waived, no allocations)
             PaymentScheduleItem::where('payable_type', get_class($shipment))
                 ->where('payable_id', $shipment->id)
                 ->whereNull('source_type')
@@ -591,10 +611,110 @@ class GeneratePaymentScheduleAction
                 ->whereDoesntHave('allocations')
                 ->delete();
 
-            $count = $this->executeForShipment($shipment);
+            // Step 3: Rebuild — but respect surviving items (paid/waived/with allocations)
+            $count = $this->rebuildShipmentSchedule($shipment);
+
+            // Step 4: Sync additional costs
+            $this->syncAdditionalCosts($shipment);
+
+            // Step 5: Final status recalculation
+            $this->recalculateAllStatuses($shipment);
 
             return $count;
         });
+    }
+
+    /**
+     * Rebuild shipment schedule items respecting existing paid/allocated items.
+     * Unlike executeForShipment() which creates blindly, this checks for
+     * surviving items and only updates due_date/amount instead of duplicating.
+     */
+    protected function rebuildShipmentSchedule(Shipment $shipment): int
+    {
+        $shipment->loadMissing(['items.proformaInvoiceItem.proformaInvoice.paymentTerm.stages']);
+
+        $itemsByPi = $shipment->items
+            ->filter(fn ($item) => $item->proformaInvoiceItem?->proformaInvoice)
+            ->groupBy(fn ($item) => $item->proformaInvoiceItem->proforma_invoice_id);
+
+        $created = 0;
+        $sortOrder = PaymentScheduleItem::where('payable_type', get_class($shipment))
+            ->where('payable_id', $shipment->id)
+            ->max('sort_order') ?? 0;
+
+        foreach ($itemsByPi as $piId => $shipmentItems) {
+            $pi = $shipmentItems->first()->proformaInvoiceItem->proformaInvoice;
+            $paymentTerm = $pi->paymentTerm;
+
+            if (! $paymentTerm || $paymentTerm->stages->isEmpty()) {
+                continue;
+            }
+
+            $piValue = $shipmentItems->sum(function ($item) {
+                $piItem = $item->proformaInvoiceItem;
+                return $piItem ? $piItem->unit_price * $item->quantity : 0;
+            });
+
+            if ($piValue <= 0) {
+                continue;
+            }
+
+            $shipmentStages = $paymentTerm->stages->filter(
+                fn ($stage) => $stage->calculation_base?->isShipmentDependent()
+            );
+
+            foreach ($shipmentStages as $stage) {
+                $dueDate = $this->calculateShipmentDueDate($shipment, $stage);
+                $correctAmount = (int) round($piValue * ($stage->percentage / 100));
+
+                // Check for a surviving item (paid/waived/with allocations — not deleted above)
+                $existingItem = PaymentScheduleItem::where('payable_type', get_class($shipment))
+                    ->where('payable_id', $shipment->id)
+                    ->where('payment_term_stage_id', $stage->id)
+                    ->first();
+
+                if ($existingItem) {
+                    // Update due_date (the main purpose of regenerate on ETA change)
+                    // and amount to match current value — but preserve paid status
+                    $existingItem->update([
+                        'due_date' => $dueDate,
+                        'amount' => $correctAmount,
+                    ]);
+                    continue;
+                }
+
+                // No existing item — create new one
+                $label = $this->generateShipmentLabel($stage, $pi->reference, $shipment->reference);
+
+                PaymentScheduleItem::create([
+                    'payable_type' => get_class($shipment),
+                    'payable_id' => $shipment->id,
+                    'shipment_id' => $shipment->id,
+                    'payment_term_stage_id' => $stage->id,
+                    'label' => $label,
+                    'percentage' => $stage->percentage,
+                    'amount' => $correctAmount,
+                    'currency_code' => $pi->currency_code ?? $shipment->currency_code,
+                    'due_condition' => $stage->calculation_base,
+                    'due_date' => $dueDate,
+                    'status' => PaymentScheduleStatus::PENDING,
+                    'is_blocking' => $this->isBlockingCondition($stage->calculation_base),
+                    'sort_order' => ++$sortOrder,
+                ]);
+
+                $created++;
+            }
+        }
+
+        // Also update each PI's schedule to split shipped vs remaining
+        foreach ($itemsByPi as $piId => $shipmentItems) {
+            $pi = $shipmentItems->first()->proformaInvoiceItem->proformaInvoice;
+            if ($pi->paymentTerm && $pi->hasPaymentSchedule()) {
+                $this->regenerateShipmentItemsForPi($pi);
+            }
+        }
+
+        return $created;
     }
 
     // ─── Shared helpers ───
