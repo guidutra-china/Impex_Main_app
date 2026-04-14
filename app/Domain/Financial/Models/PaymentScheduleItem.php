@@ -119,7 +119,61 @@ class PaymentScheduleItem extends Model
             ->whereHas('payment', fn ($q) => $q->where('status', PaymentStatus::APPROVED))
             ->sum('allocated_amount_in_document_currency');
 
-        return $paymentAmount + $creditAmount;
+        $ownTotal = $paymentAmount + $creditAmount;
+
+        // For Shipment-owned items, allocations are typically created against
+        // the mirror PI/PO items (since users record payments via AR/AP on
+        // the document, not on the shipment). We include those mirror
+        // allocations here so the Shipment view shows the real paid amount.
+        if ($this->payable_type === Shipment::class) {
+            $ownTotal += $this->getMirrorPaidAmount();
+        }
+
+        return $ownTotal;
+    }
+
+    /**
+     * Sums paid_amount of mirror items on the corresponding PI/PO for a
+     * Shipment-owned schedule item. Mirrors are identified by matching
+     * shipment_id + payment_term_stage_id + document reference extracted
+     * from the label ("[SH-XXX / PI-YYY]").
+     */
+    protected function getMirrorPaidAmount(): int
+    {
+        if (! $this->shipment_id || ! $this->payment_term_stage_id || ! $this->label) {
+            return 0;
+        }
+
+        if (! preg_match('#/\s*((?:PI|PO)-[\w-]+)\]#', $this->label, $m)) {
+            return 0;
+        }
+
+        $docRef = $m[1];
+        $isPi = str_starts_with($docRef, 'PI');
+        $docClass = $isPi
+            ? \App\Domain\ProformaInvoices\Models\ProformaInvoice::class
+            : \App\Domain\PurchaseOrders\Models\PurchaseOrder::class;
+
+        $docId = $docClass::where('reference', $docRef)->value('id');
+        if (! $docId) {
+            return 0;
+        }
+
+        $mirrors = static::where('payable_type', $docClass)
+            ->where('payable_id', $docId)
+            ->where('shipment_id', $this->shipment_id)
+            ->where('payment_term_stage_id', $this->payment_term_stage_id)
+            ->where('id', '!=', $this->id)
+            ->pluck('id');
+
+        if ($mirrors->isEmpty()) {
+            return 0;
+        }
+
+        return (int) \App\Domain\Financial\Models\PaymentAllocation::query()
+            ->whereIn('payment_schedule_item_id', $mirrors)
+            ->whereHas('payment', fn ($q) => $q->where('status', PaymentStatus::APPROVED))
+            ->sum('allocated_amount_in_document_currency');
     }
 
     public function getCreditAppliedAmountAttribute(): int
