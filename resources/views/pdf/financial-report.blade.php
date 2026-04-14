@@ -94,6 +94,7 @@
 
     @php($sections = $report->nonEmptySections())
     @php($moneyColumns = ['total','paid','balance','amount','goods','freight','other_costs','total_costs','grand_total','additional_costs','allocated','unallocated','revenue','cost','commission','total_revenue','margin_amount'])
+    @php($smallColumns = ['total','additional_costs','grand_total','paid','balance','currency','amount','allocated','unallocated'])
 
     @forelse($sections as $section)
         <div style="margin-bottom: 10px;">
@@ -104,7 +105,7 @@
                 <thead>
                     <tr>
                         @foreach($section->columns as $col)
-                            <th @if(in_array($col, $moneyColumns)) style="text-align: right;" @endif>
+                            <th style="{{ in_array($col, $moneyColumns) ? 'text-align: right;' : '' }}{{ $col === 'payment_term' ? ' min-width: 100px;' : '' }}{{ in_array($col, $smallColumns) ? ' font-size: 6pt;' : '' }}">
                                 {{ __('financial_report.columns.' . $col, [], $locale) }}
                             </th>
                         @endforeach
@@ -118,7 +119,8 @@
                             @foreach($section->columns as $col)
                                 @php($val = $row[$col] ?? null)
                                 @php($isMoney = in_array($col, $moneyColumns))
-                                <td @if($isMoney) style="text-align: right;" @endif>
+                                @php($isSmall = in_array($col, $smallColumns) && !$isDetail)
+                                <td style="{{ $isMoney ? 'text-align: right;' : '' }}{{ $isSmall ? ' font-size: 6pt;' : '' }}{{ $col === 'payment_term' ? ' white-space: nowrap;' : '' }}">
                                     @if($val === null || $val === '')
                                         {{ $isDetail ? '' : '—' }}
                                     @elseif($isMoney)
