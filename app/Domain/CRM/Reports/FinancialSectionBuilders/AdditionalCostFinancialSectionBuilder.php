@@ -6,9 +6,11 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Reports\DTOs\FinancialReportFilters;
 use App\Domain\CRM\Reports\DTOs\StatementSection;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
+use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\Logistics\Models\Shipment;
 use Illuminate\Support\Facades\DB;
 
 final class AdditionalCostFinancialSectionBuilder implements FinancialSectionBuilder
@@ -25,6 +27,11 @@ final class AdditionalCostFinancialSectionBuilder implements FinancialSectionBui
         $query = AdditionalCost::query()
             ->whereNot('status', AdditionalCostStatus::WAIVED)
             ->whereBetween($dateExpr, [$filters->from->toDateString(), $filters->to->toDateString()])
+            ->where(function ($q) {
+                // Exclude costs already shown in the Shipments section (freight/other on shipments billable to client)
+                $q->where('costable_type', '!=', (new Shipment)->getMorphClass())
+                    ->orWhere('billable_to', '!=', BillableTo::CLIENT);
+            })
             ->with('costable')
             ->orderBy($dateExpr);
 
