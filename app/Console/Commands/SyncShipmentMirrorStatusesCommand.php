@@ -17,10 +17,13 @@ class SyncShipmentMirrorStatusesCommand extends Command
     {
         $dryRun = (bool) $this->option('dry-run');
 
+        // Shipment-owned items whose label references a mirror (PI/PO)
         $mirrors = PaymentScheduleItem::where('payable_type', Shipment::class)
-            ->whereNotNull('shipment_id')
-            ->whereNotNull('payment_term_stage_id')
             ->where('is_credit', false)
+            ->where(function ($q) {
+                $q->where('label', 'LIKE', '%/%PI-%]%')
+                    ->orWhere('label', 'LIKE', '%/%PO-%]%');
+            })
             ->get();
 
         $this->info("Found {$mirrors->count()} shipment-owned schedule items to check.");

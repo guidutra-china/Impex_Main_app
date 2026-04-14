@@ -181,12 +181,21 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
      */
     private function getMirrorAllocations(PaymentScheduleItem $item): Collection
     {
-        if (! $item->shipment_id || ! $item->payment_term_stage_id || ! $item->label) {
+        if (! $item->label) {
             return collect();
         }
 
         $docRef = $this->extractMirrorDocRef($item->label);
         if ($docRef === null) {
+            return collect();
+        }
+
+        // Shipment-owned items have payable_id = shipment id; fall back to shipment_id
+        $shipmentId = $item->payable_type === Shipment::class
+            ? $item->payable_id
+            : $item->shipment_id;
+
+        if (! $shipmentId) {
             return collect();
         }
 
@@ -199,12 +208,21 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
             return collect();
         }
 
-        $mirrorIds = PaymentScheduleItem::where('payable_type', $docClass)
+        $query = PaymentScheduleItem::where('payable_type', $docClass)
             ->where('payable_id', $docId)
-            ->where('shipment_id', $item->shipment_id)
-            ->where('payment_term_stage_id', $item->payment_term_stage_id)
-            ->where('id', '!=', $item->id)
-            ->pluck('id');
+            ->where('shipment_id', $shipmentId)
+            ->where('id', '!=', $item->id);
+
+        if ($item->payment_term_stage_id) {
+            $query->where('payment_term_stage_id', $item->payment_term_stage_id);
+        } else {
+            $cleanLabel = trim(preg_replace('#\s*\x{2014}?\s*\[[^\]]+\]\s*$#u', '', (string) $item->label));
+            if ($cleanLabel !== '') {
+                $query->where('label', 'LIKE', $cleanLabel.'%');
+            }
+        }
+
+        $mirrorIds = $query->pluck('id');
 
         if ($mirrorIds->isEmpty()) {
             return collect();

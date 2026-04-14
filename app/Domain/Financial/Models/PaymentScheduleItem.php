@@ -134,17 +134,28 @@ class PaymentScheduleItem extends Model
 
     /**
      * Sums paid_amount of mirror items on the corresponding PI/PO for a
-     * Shipment-owned schedule item. Mirrors are identified by matching
-     * shipment_id + payment_term_stage_id + document reference extracted
-     * from the label ("[SH-XXX / PI-YYY]").
+     * Shipment-owned schedule item. Mirrors are identified by the document
+     * reference extracted from the label ("[SH-XXX / PI-YYY]"), the shipment
+     * (payable_id when the item is Shipment-owned, fallback to shipment_id),
+     * and when available, payment_term_stage_id.
      */
     protected function getMirrorPaidAmount(): int
     {
-        if (! $this->shipment_id || ! $this->payment_term_stage_id || ! $this->label) {
+        if (! $this->label) {
             return 0;
         }
 
         if (! preg_match('#/\s*((?:PI|PO)-[\w-]+)\]#', $this->label, $m)) {
+            return 0;
+        }
+
+        // For Shipment-owned items, the shipment is identified by payable_id.
+        // Fall back to shipment_id if available.
+        $shipmentId = $this->payable_type === Shipment::class
+            ? $this->payable_id
+            : $this->shipment_id;
+
+        if (! $shipmentId) {
             return 0;
         }
 
@@ -159,12 +170,23 @@ class PaymentScheduleItem extends Model
             return 0;
         }
 
-        $mirrors = static::where('payable_type', $docClass)
+        $query = static::where('payable_type', $docClass)
             ->where('payable_id', $docId)
-            ->where('shipment_id', $this->shipment_id)
-            ->where('payment_term_stage_id', $this->payment_term_stage_id)
-            ->where('id', '!=', $this->id)
-            ->pluck('id');
+            ->where('shipment_id', $shipmentId)
+            ->where('id', '!=', $this->id);
+
+        // Narrow by stage only when this item has it set
+        if ($this->payment_term_stage_id) {
+            $query->where('payment_term_stage_id', $this->payment_term_stage_id);
+        } else {
+            // Match on stage-identifying prefix of the label (strip "[SH.../PI-...]")
+            $cleanLabel = trim(preg_replace('#\s*\x{2014}?\s*\[[^\]]+\]\s*$#u', '', (string) $this->label));
+            if ($cleanLabel !== '') {
+                $query->where('label', 'LIKE', $cleanLabel.'%');
+            }
+        }
+
+        $mirrors = $query->pluck('id');
 
         if ($mirrors->isEmpty()) {
             return 0;
