@@ -51,7 +51,7 @@
         <x-filament::section>
             <div class="text-xs uppercase text-gray-500">{{ __('accounts_payable.kpis.overdue') }}</div>
             @foreach ($report->overdueTotalsByCurrency as $currency => $amount)
-                <div class="text-lg font-semibold text-danger-600">{{ $currency }} {{ number_format($amount / 100, 2) }}</div>
+                <div class="text-lg font-semibold text-danger-600">{{ $currency }} {{ number_format($amount / 10000, 2) }}</div>
             @endforeach
             @if (empty($report->overdueTotalsByCurrency))
                 <div class="text-lg font-semibold">—</div>
@@ -61,7 +61,7 @@
         <x-filament::section>
             <div class="text-xs uppercase text-gray-500">{{ __('accounts_payable.kpis.period') }}</div>
             @foreach ($report->periodTotalsByCurrency as $currency => $amount)
-                <div class="text-lg font-semibold">{{ $currency }} {{ number_format($amount / 100, 2) }}</div>
+                <div class="text-lg font-semibold">{{ $currency }} {{ number_format($amount / 10000, 2) }}</div>
             @endforeach
             @if (empty($report->periodTotalsByCurrency))
                 <div class="text-lg font-semibold">—</div>
@@ -71,7 +71,7 @@
         <x-filament::section>
             <div class="text-xs uppercase text-gray-500">{{ __('accounts_payable.kpis.total') }}</div>
             @foreach ($report->grandTotalsByCurrency as $currency => $amount)
-                <div class="text-lg font-semibold">{{ $currency }} {{ number_format($amount / 100, 2) }}</div>
+                <div class="text-lg font-semibold">{{ $currency }} {{ number_format($amount / 10000, 2) }}</div>
             @endforeach
             @if (empty($report->grandTotalsByCurrency))
                 <div class="text-lg font-semibold">—</div>

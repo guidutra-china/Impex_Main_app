@@ -26,9 +26,9 @@
                 </td>
                 <td class="p-2">{{ $item->label }}</td>
                 <td class="p-2">{{ $item->currency_code }}</td>
-                <td class="p-2 text-right">{{ number_format($item->amount / 100, 2) }}</td>
-                <td class="p-2 text-right">{{ number_format($item->paid_amount / 100, 2) }}</td>
-                <td class="p-2 text-right font-medium">{{ number_format($item->remaining_amount / 100, 2) }}</td>
+                <td class="p-2 text-right">{{ number_format($item->amount / 10000, 2) }}</td>
+                <td class="p-2 text-right">{{ number_format($item->paid_amount / 10000, 2) }}</td>
+                <td class="p-2 text-right font-medium">{{ number_format($item->remaining_amount / 10000, 2) }}</td>
                 <td class="p-2">
                     <span class="inline-flex px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800">
                         {{ $item->status->getLabel() }}
