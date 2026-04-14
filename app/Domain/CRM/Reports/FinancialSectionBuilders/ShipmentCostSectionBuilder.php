@@ -144,6 +144,10 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
                     ? '(no payments)'
                     : implode(' | ', $allocationDetails);
 
+                // Derive status from actual paid_amount (includes mirrors)
+                // since shipment item status doesn't auto-sync from PI payments.
+                $derivedStatus = $this->deriveDetailStatus($item, $itemPaid, $itemAmount);
+
                 $rows[] = [
                     '_row_type' => 'detail',
                     'number' => '  ↳ '.($item->label ?? 'Installment'),
@@ -151,7 +155,7 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
                     'client_reference' => $allocationsText,
                     'etd' => '',
                     'eta' => '',
-                    'status' => $item->status instanceof \BackedEnum ? $item->status->value : (string) $item->status,
+                    'status' => $derivedStatus,
                     'freight' => '',
                     'other_costs' => '',
                     'total_costs' => round($itemAmount / Money::SCALE, 2),
@@ -222,5 +226,30 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
         }
 
         return null;
+    }
+
+    /**
+     * Derive a display status for a schedule item based on actual paid amount
+     * (which includes mirror allocations). The stored status doesn't auto-sync
+     * when payments are recorded against the mirror PI/PO item.
+     */
+    private function deriveDetailStatus(PaymentScheduleItem $item, int $paid, int $amount): string
+    {
+        // Paid in full (100 minor unit tolerance for rounding)
+        if ($amount > 0 && ($amount - $paid) <= 100) {
+            return 'paid';
+        }
+
+        if ($paid > 0) {
+            return 'partial';
+        }
+
+        if ($item->due_date && $item->due_date->isPast()) {
+            return 'overdue';
+        }
+
+        return $item->status instanceof \BackedEnum
+            ? $item->status->value
+            : (string) $item->status;
     }
 }
