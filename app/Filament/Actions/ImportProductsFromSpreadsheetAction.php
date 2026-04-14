@@ -109,9 +109,12 @@ class ImportProductsFromSpreadsheetAction
             ])
             ->afterValidation(function (Get $get, Set $set) {
                 ini_set('memory_limit', '512M');
+                \Illuminate\Support\Facades\Log::info('SPREADSHEET IMPORT: Step 1 afterValidation START');
 
                 try {
                     $path = self::resolveUploadPath($get('spreadsheet'));
+                    \Illuminate\Support\Facades\Log::info('SPREADSHEET IMPORT: resolved path', ['path' => $path]);
+
                     if (! $path) {
                         Notification::make()->title('Could not resolve file path')->danger()->send();
 
@@ -138,6 +141,7 @@ class ImportProductsFromSpreadsheetAction
                     try {
                         $images = self::extractImagesByRow($worksheet);
                     } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning('SPREADSHEET IMPORT: image extraction failed', ['error' => $e->getMessage()]);
                     }
 
                     $spreadsheet->disconnectWorksheets();
@@ -147,8 +151,19 @@ class ImportProductsFromSpreadsheetAction
                     self::putCache('row_origins', $rowOrigins);
                     self::putCache('images', $images);
 
+                    \Illuminate\Support\Facades\Log::info('SPREADSHEET IMPORT: Step 1 complete', [
+                        'rows' => count($rows),
+                        'images' => count($images),
+                        'row_origins_sample' => array_slice($rowOrigins, 0, 5, true),
+                    ]);
+
                     $set('header_row', '1');
                 } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error('SPREADSHEET IMPORT: Step 1 FAILED', [
+                        'error' => $e->getMessage(),
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
+                    ]);
                     Notification::make()->title('Error reading file')->body($e->getMessage())->danger()->send();
                 }
             });
