@@ -326,6 +326,7 @@ class ImportProductsFromSpreadsheetAction
     {
         return [
             'Product' => [
+                'name' => 'Product Name',
                 'commercial_name' => 'Commercial Name',
                 'model_number' => 'Model Number',
                 'product_family' => 'Product Family',
