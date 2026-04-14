@@ -98,6 +98,7 @@ final class PiFinancialSectionBuilder implements FinancialSectionBuilder
                     'balance' => round($itemRemaining / Money::SCALE, 2),
                     'currency' => '',
                 ];
+            }
         }
 
         return new StatementSection(
