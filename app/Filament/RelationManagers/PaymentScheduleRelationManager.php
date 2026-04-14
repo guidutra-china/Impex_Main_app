@@ -67,6 +67,19 @@ class PaymentScheduleRelationManager extends RelationManager
                             $html .= ' <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-[0.65rem] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-400/10 dark:text-blue-400 dark:ring-blue-400/30">' . $ref . '</span>';
                         }
 
+                        // When owner is a Shipment, surface the related PI/PO reference and
+                        // its client_reference so users can tell which document the schedule
+                        // item belongs to (a shipment may carry items from several PIs).
+                        if ($this->getOwnerRecord() instanceof Shipment) {
+                            [$docRef, $clientRef] = $this->resolveDocContext($record);
+                            if ($docRef) {
+                                $html .= ' <span class="inline-flex items-center rounded-md bg-purple-50 px-2 py-0.5 text-[0.65rem] font-semibold text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-400/10 dark:text-purple-400 dark:ring-purple-400/30">' . e($docRef) . '</span>';
+                            }
+                            if ($clientRef) {
+                                $html .= ' <span class="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 text-[0.65rem] font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-400/10 dark:text-amber-300 dark:ring-amber-400/30" title="Client Reference">Ref: ' . e($clientRef) . '</span>';
+                            }
+                        }
+
                         if ($record->is_credit) {
                             $html .= ' <span class="inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-[0.6rem] font-semibold text-green-700 uppercase dark:bg-green-400/10 dark:text-green-400">Credit</span>';
                         }
@@ -155,6 +168,37 @@ class PaymentScheduleRelationManager extends RelationManager
             ->emptyStateHeading('No payment schedule')
             ->emptyStateDescription('Generate a payment schedule from the payment terms.')
             ->emptyStateIcon('heroicon-o-calendar-days');
+    }
+
+    /**
+     * Resolve [docReference, clientReference] for a schedule item belonging
+     * to a Shipment. Extracts PI/PO reference from the label suffix and
+     * looks up the matching document to retrieve its client_reference.
+     *
+     * @return array{0: ?string, 1: ?string}
+     */
+    protected function resolveDocContext($record): array
+    {
+        static $cache = [];
+
+        if (! $record->label || ! preg_match('#/\s*((?:PI|PO)-[\w-]+)\]#', $record->label, $m)) {
+            return [null, null];
+        }
+
+        $docRef = $m[1];
+        if (array_key_exists($docRef, $cache)) {
+            return [$docRef, $cache[$docRef]];
+        }
+
+        // client_reference only exists on proforma_invoices — not on purchase_orders.
+        $isPi = str_starts_with($docRef, 'PI');
+        $clientRef = $isPi
+            ? \App\Domain\ProformaInvoices\Models\ProformaInvoice::where('reference', $docRef)->value('client_reference')
+            : null;
+
+        $cache[$docRef] = $clientRef;
+
+        return [$docRef, $clientRef];
     }
 
     protected function getCurrencySymbol(?string $currencyCode): string
