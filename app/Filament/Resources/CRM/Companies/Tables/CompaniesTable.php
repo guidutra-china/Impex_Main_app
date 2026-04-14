@@ -109,6 +109,10 @@ class CompaniesTable
                     ->label(__('statements.filters.title'))
                     ->icon('heroicon-o-document-text')
                     ->url(fn (Company $record): string => url('/panel/statement?company=' . $record->id)),
+                Action::make('financialReport')
+                    ->label(__('financial_report.title'))
+                    ->icon('heroicon-o-currency-dollar')
+                    ->url(fn (Company $record): string => url('/panel/financial-report?company=' . $record->id)),
                 DeleteAction::make(),
             ])
             ->toolbarActions([

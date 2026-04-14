@@ -20,6 +20,10 @@ class EditCompany extends EditRecord
                 ->label(__('statements.filters.title'))
                 ->icon('heroicon-o-document-text')
                 ->url(fn (): string => url('/panel/statement?company=' . $this->record->id)),
+            Action::make('financialReport')
+                ->label(__('financial_report.title'))
+                ->icon('heroicon-o-currency-dollar')
+                ->url(fn (): string => url('/panel/financial-report?company=' . $this->record->id)),
             DeleteAction::make(),
         ];
     }
