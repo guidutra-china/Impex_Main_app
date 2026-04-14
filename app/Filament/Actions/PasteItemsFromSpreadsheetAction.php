@@ -376,67 +376,84 @@ class PasteItemsFromSpreadsheetAction
     }
 
     /**
-     * Build an HTML preview table showing the first rows of the spreadsheet.
+     * Build a paginated HTML preview table showing all rows of the spreadsheet.
      * Highlights the header row and shows where data starts.
      */
     protected static function buildPreviewTable(array $rows, int $headerRowNumber): string
     {
-        $maxPreviewRows = min(count($rows), max($headerRowNumber + 3, 8));
+        $totalRows = count($rows);
         $maxCols = 0;
-        for ($i = 0; $i < $maxPreviewRows; $i++) {
-            $maxCols = max($maxCols, count($rows[$i] ?? []));
+        foreach ($rows as $row) {
+            $maxCols = max($maxCols, count($row));
         }
-
-        $html = '<div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">';
-        $html .= '<table class="min-w-full text-xs">';
+        $displayCols = min($maxCols, 10);
+        $perPage = 25;
+        $totalPages = max(1, (int) ceil($totalRows / $perPage));
 
         // Column letter headers
-        $html .= '<thead><tr class="bg-gray-50 dark:bg-gray-800">';
-        $html .= '<th class="px-2 py-1 text-gray-400 font-normal">#</th>';
-        for ($c = 0; $c < $maxCols; $c++) {
-            $html .= '<th class="px-2 py-1 text-gray-400 font-normal">' . self::columnLetter($c) . '</th>';
+        $thead = '<thead class="sticky top-0 z-10"><tr class="bg-gray-50 dark:bg-gray-800">';
+        $thead .= '<th class="px-2 py-1 text-gray-400 font-normal text-left">Row</th>';
+        for ($c = 0; $c < $displayCols; $c++) {
+            $thead .= '<th class="px-2 py-1 text-gray-400 font-normal text-left">' . self::columnLetter($c) . '</th>';
         }
-        $html .= '</tr></thead>';
+        if ($maxCols > $displayCols) {
+            $thead .= '<th class="px-2 py-1 text-gray-400 font-normal">…</th>';
+        }
+        $thead .= '</tr></thead>';
 
-        $html .= '<tbody>';
-        for ($i = 0; $i < $maxPreviewRows; $i++) {
+        $tbody = '<tbody>';
+        for ($i = 0; $i < $totalRows; $i++) {
             $rowNum = $i + 1;
+            $page = (int) floor($i / $perPage) + 1;
             $isHeader = ($rowNum === $headerRowNumber);
             $isSkipped = ($headerRowNumber > 0 && $rowNum < $headerRowNumber);
 
-            $rowClass = '';
+            $bgClass = '';
             if ($isHeader) {
-                $rowClass = 'bg-blue-50 dark:bg-blue-900/30 font-semibold';
+                $bgClass = 'bg-blue-50 dark:bg-blue-900/30 font-semibold';
             } elseif ($isSkipped) {
-                $rowClass = 'bg-gray-50 dark:bg-gray-800/50 text-gray-400 line-through';
+                $bgClass = 'bg-gray-50 dark:bg-gray-800/50 text-gray-400 line-through';
+            } else {
+                $bgClass = $i % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-800/30';
             }
 
-            $html .= "<tr class=\"{$rowClass} border-t border-gray-100 dark:border-gray-700\">";
+            $display = $page === 1 ? '' : ' style="display:none"';
 
-            $labelBadge = '';
+            $tbody .= "<tr data-page=\"{$page}\" class=\"{$bgClass} border-t border-gray-100 dark:border-gray-700\"{$display}>";
+
+            $badge = '';
             if ($isHeader) {
-                $labelBadge = ' <span class="ml-1 text-[10px] bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 px-1 rounded">HEADER</span>';
+                $badge = ' <span class="text-[10px] bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 px-1 rounded">HDR</span>';
             } elseif ($isSkipped) {
-                $labelBadge = ' <span class="ml-1 text-[10px] bg-gray-200 dark:bg-gray-700 text-gray-500 px-1 rounded">SKIP</span>';
+                $badge = ' <span class="text-[10px] bg-gray-200 dark:bg-gray-700 text-gray-500 px-1 rounded">SKIP</span>';
             }
 
-            $html .= "<td class=\"px-2 py-1 text-gray-400 whitespace-nowrap\">{$rowNum}{$labelBadge}</td>";
+            $tbody .= "<td class=\"px-2 py-1 text-gray-400 whitespace-nowrap font-mono\">{$rowNum}{$badge}</td>";
 
             $row = $rows[$i] ?? [];
-            for ($c = 0; $c < $maxCols; $c++) {
-                $value = htmlspecialchars(mb_substr($row[$c] ?? '', 0, 60));
-                $html .= "<td class=\"px-2 py-1 max-w-[200px] truncate\">{$value}</td>";
+            for ($c = 0; $c < $displayCols; $c++) {
+                $value = htmlspecialchars(mb_substr($row[$c] ?? '', 0, 35));
+                $cls = $value === '' ? 'text-gray-300' : '';
+                $tbody .= "<td class=\"px-2 py-1 whitespace-nowrap max-w-[180px] truncate {$cls}\">{$value}</td>";
             }
-
-            $html .= '</tr>';
+            if ($maxCols > $displayCols) {
+                $tbody .= '<td class="px-2 py-1 text-gray-400">…</td>';
+            }
+            $tbody .= '</tr>';
         }
+        $tbody .= '</tbody>';
 
-        if (count($rows) > $maxPreviewRows) {
-            $remaining = count($rows) - $maxPreviewRows;
-            $html .= "<tr><td colspan=\"" . ($maxCols + 1) . "\" class=\"px-2 py-1 text-gray-400 text-center\">... and {$remaining} more rows</td></tr>";
-        }
-
-        $html .= '</tbody></table></div>';
+        $html = '<div x-data="{ page: 1, total: ' . $totalPages . ' }" class="space-y-2">';
+        $html .= '<div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700" style="max-height: 400px; overflow-y: auto">';
+        $html .= '<table class="min-w-full text-xs">' . $thead . $tbody . '</table>';
+        $html .= '</div>';
+        $html .= '<div class="flex items-center justify-between text-xs text-gray-500">';
+        $html .= '<span>' . $totalRows . ' rows</span>';
+        $html .= '<div class="flex items-center gap-2">';
+        $html .= '<button type="button" x-on:click="page = Math.max(1, page - 1); $el.closest(\'[x-data]\').querySelectorAll(\'tbody tr\').forEach(r => r.style.display = r.dataset.page == page ? \'\' : \'none\')" x-bind:disabled="page === 1" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed">&larr; Prev</button>';
+        $html .= '<span x-text="`Page ${page} of ${total}`">Page 1 of ' . $totalPages . '</span>';
+        $html .= '<button type="button" x-on:click="page = Math.min(total, page + 1); $el.closest(\'[x-data]\').querySelectorAll(\'tbody tr\').forEach(r => r.style.display = r.dataset.page == page ? \'\' : \'none\')" x-bind:disabled="page === total" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed">Next &rarr;</button>';
+        $html .= '</div></div></div>';
 
         return $html;
     }
