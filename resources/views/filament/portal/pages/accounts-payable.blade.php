@@ -92,6 +92,19 @@
         </x-filament::section>
     @endif
 
+    {{-- No due date section (freight, commission, other additional costs) --}}
+    @if ($report->noDueDateItems->isNotEmpty())
+        <x-filament::section>
+            <x-slot name="heading">
+                <span>🕘 {{ __('accounts_payable.groups.no_due_date') }}</span>
+                <span class="text-sm text-gray-500">
+                    ({{ trans_choice('accounts_payable.groups.items_count', $report->noDueDateItems->count(), ['count' => $report->noDueDateItems->count()]) }})
+                </span>
+            </x-slot>
+            @include('filament.portal.pages.partials.accounts-payable-table', ['items' => $report->noDueDateItems])
+        </x-filament::section>
+    @endif
+
     {{-- Period groups --}}
     @forelse ($report->periodGroups as $group)
         <x-filament::section>
@@ -104,7 +117,7 @@
             @include('filament.portal.pages.partials.accounts-payable-table', ['items' => $group->items])
         </x-filament::section>
     @empty
-        @if ($report->overdueItems->isEmpty())
+        @if ($report->overdueItems->isEmpty() && $report->noDueDateItems->isEmpty())
             <x-filament::section>
                 <p class="text-center text-gray-500 py-8">{{ __('accounts_payable.empty_state') }}</p>
             </x-filament::section>

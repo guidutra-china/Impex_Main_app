@@ -23,12 +23,14 @@ return [
     ],
     'groups' => [
         'overdue' => '逾期',
+        'no_due_date' => '无到期日',
         'items_count' => ':count 项',
     ],
     'columns' => [
         'due_date' => '到期日',
         'reference' => '参考',
         'description' => '说明',
+        'client_reference' => '客户参考',
         'currency' => '货币',
         'amount' => '金额',
         'paid' => '已付',

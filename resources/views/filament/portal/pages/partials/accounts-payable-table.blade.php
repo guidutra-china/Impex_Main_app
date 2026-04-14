@@ -13,18 +13,34 @@
     </thead>
     <tbody>
         @foreach ($items as $item)
+            @php
+                $payable = $item->payable;
+                $isShipment = $payable instanceof \App\Domain\Logistics\Models\Shipment;
+                $isPi = $payable instanceof \App\Domain\ProformaInvoices\Models\ProformaInvoice;
+                $resourceUrl = match (true) {
+                    $isPi => \App\Filament\Portal\Resources\ProformaInvoiceResource::getUrl('view', ['record' => $payable]),
+                    $isShipment => \App\Filament\Portal\Resources\ShipmentResource::getUrl('view', ['record' => $payable]),
+                    default => null,
+                };
+                $clientRef = $payable?->client_reference;
+            @endphp
             <tr class="border-t border-gray-100 dark:border-gray-700">
-                <td class="p-2">{{ $item->due_date?->format('d/m/Y') }}</td>
+                <td class="p-2">{{ $item->due_date?->format('d/m/Y') ?? '—' }}</td>
                 <td class="p-2">
-                    @if ($item->payable)
-                        <a href="{{ \App\Filament\Portal\Resources\ProformaInvoiceResource::getUrl('view', ['record' => $item->payable]) }}" class="text-primary-600 underline">
-                            {{ $item->payable->reference ?? '—' }}
+                    @if ($resourceUrl)
+                        <a href="{{ $resourceUrl }}" class="text-primary-600 underline">
+                            {{ $payable->reference ?? $payable->number ?? '—' }}
                         </a>
                     @else
                         —
                     @endif
                 </td>
-                <td class="p-2">{{ $item->label }}</td>
+                <td class="p-2">
+                    <div>{{ $item->label }}</div>
+                    @if (! empty($clientRef))
+                        <div class="text-xs text-gray-500">{{ __('accounts_payable.columns.client_reference') }}: {{ $clientRef }}</div>
+                    @endif
+                </td>
                 <td class="p-2">{{ $item->currency_code }}</td>
                 <td class="p-2 text-right">{{ number_format($item->amount / 10000, 2) }}</td>
                 <td class="p-2 text-right">{{ number_format($item->paid_amount / 10000, 2) }}</td>

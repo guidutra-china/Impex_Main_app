@@ -6,6 +6,7 @@ use App\Domain\Financial\DataTransferObjects\AccountsPayablePeriodGroup;
 use App\Domain\Financial\DataTransferObjects\AccountsPayableReport;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -13,10 +14,13 @@ use Illuminate\Support\Collection;
 /**
  * Builds the accounts payable report for a client company.
  *
- * Scope: only PaymentScheduleItem rows where payable_type is ProformaInvoice
- * and the PI belongs to the given company_id. Shipment mirror items and
- * PurchaseOrder items are excluded to avoid double counting and to match
- * the client's perspective (they only owe on PIs).
+ * Scope: PaymentScheduleItem rows whose payable is either a ProformaInvoice
+ * or a Shipment belonging to the given company_id. Shipment items are
+ * included so that freight, commission, and other additional-cost items
+ * scheduled at the shipment level surface in the client's AP view.
+ * Items with a NULL due_date (typical for additional-cost items) are
+ * returned in a dedicated "no due date" bucket so they remain visible
+ * regardless of the selected period.
  */
 final class AccountsPayableQuery
 {
@@ -44,13 +48,29 @@ final class AccountsPayableQuery
             ->where('company_id', $companyId)
             ->pluck('id');
 
-        if ($piIds->isEmpty()) {
+        $shipmentIds = Shipment::query()
+            ->where('company_id', $companyId)
+            ->pluck('id');
+
+        if ($piIds->isEmpty() && $shipmentIds->isEmpty()) {
             return $this->emptyReport($dateFrom, $dateTo);
         }
 
         $base = PaymentScheduleItem::query()
-            ->where('payable_type', ProformaInvoice::class)
-            ->whereIn('payable_id', $piIds)
+            ->where(function ($q) use ($piIds, $shipmentIds) {
+                if ($piIds->isNotEmpty()) {
+                    $q->orWhere(function ($sub) use ($piIds) {
+                        $sub->where('payable_type', ProformaInvoice::class)
+                            ->whereIn('payable_id', $piIds);
+                    });
+                }
+                if ($shipmentIds->isNotEmpty()) {
+                    $q->orWhere(function ($sub) use ($shipmentIds) {
+                        $sub->where('payable_type', Shipment::class)
+                            ->whereIn('payable_id', $shipmentIds);
+                    });
+                }
+            })
             ->where('is_credit', false)
             ->with('payable');
 
@@ -67,6 +87,7 @@ final class AccountsPayableQuery
         if ($includeOverdue) {
             $overdueItems = (clone $base)
                 ->whereIn('status', $openStatuses)
+                ->whereNotNull('due_date')
                 ->whereDate('due_date', '<', $today)
                 ->orderBy('due_date')
                 ->get()
@@ -74,13 +95,27 @@ final class AccountsPayableQuery
                 ->values();
         }
 
+        // Items with NULL due_date — additional costs (freight, commission, ...)
+        // typically arrive here. Always shown regardless of period filter; only
+        // hidden when includePaid=false AND the item is effectively paid.
+        $noDueDateQuery = (clone $base)->whereNull('due_date');
+        if (! $includePaid) {
+            $noDueDateQuery->whereIn('status', $openStatuses);
+        }
+        $noDueDateItems = $noDueDateQuery
+            ->orderBy('id')
+            ->get()
+            ->reject(
+                fn (PaymentScheduleItem $item) => ! $includePaid && $item->remaining_amount <= self::NEARLY_PAID_THRESHOLD_CENTS
+            )
+            ->values();
+
         // Period items: due_date within [dateFrom, dateTo]
         $periodQuery = (clone $base)
+            ->whereNotNull('due_date')
             ->whereBetween('due_date', [$dateFrom->toDateString(), $dateTo->toDateString()]);
 
-        if ($includePaid) {
-            // All statuses allowed
-        } else {
+        if (! $includePaid) {
             $periodQuery->whereIn('status', $openStatuses);
         }
 
@@ -97,8 +132,12 @@ final class AccountsPayableQuery
         $periodGroups = $this->groupItems($periodItems, $groupingMode);
 
         $overdueTotals = $this->totalsByCurrency($overdueItems);
+        $noDueDateTotals = $this->totalsByCurrency($noDueDateItems);
         $periodTotals = $this->totalsByCurrency($periodItems);
-        $grandTotals = $this->mergeTotals($overdueTotals, $periodTotals);
+        $grandTotals = $this->mergeTotals(
+            $this->mergeTotals($overdueTotals, $noDueDateTotals),
+            $periodTotals,
+        );
 
         return new AccountsPayableReport(
             dateFrom: $dateFrom,
@@ -106,6 +145,8 @@ final class AccountsPayableQuery
             groupingMode: $groupingMode,
             overdueItems: $overdueItems,
             overdueTotalsByCurrency: $overdueTotals,
+            noDueDateItems: $noDueDateItems,
+            noDueDateTotalsByCurrency: $noDueDateTotals,
             periodGroups: $periodGroups,
             periodTotalsByCurrency: $periodTotals,
             grandTotalsByCurrency: $grandTotals,
@@ -122,6 +163,8 @@ final class AccountsPayableQuery
             groupingMode: $groupingMode,
             overdueItems: collect(),
             overdueTotalsByCurrency: [],
+            noDueDateItems: collect(),
+            noDueDateTotalsByCurrency: [],
             periodGroups: collect(),
             periodTotalsByCurrency: [],
             grandTotalsByCurrency: [],

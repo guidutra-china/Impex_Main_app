@@ -23,12 +23,14 @@ return [
     ],
     'groups' => [
         'overdue' => 'Vencidas',
+        'no_due_date' => 'Sem data de vencimento',
         'items_count' => ':count itens',
     ],
     'columns' => [
         'due_date' => 'Vencimento',
         'reference' => 'Referência',
         'description' => 'Descrição',
+        'client_reference' => 'Ref. cliente',
         'currency' => 'Moeda',
         'amount' => 'Valor',
         'paid' => 'Pago',

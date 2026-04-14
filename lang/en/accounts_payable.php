@@ -23,12 +23,14 @@ return [
     ],
     'groups' => [
         'overdue' => 'Overdue',
+        'no_due_date' => 'No due date',
         'items_count' => ':count items',
     ],
     'columns' => [
         'due_date' => 'Due date',
         'reference' => 'Reference',
         'description' => 'Description',
+        'client_reference' => 'Client ref.',
         'currency' => 'Currency',
         'amount' => 'Amount',
         'paid' => 'Paid',

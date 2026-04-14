@@ -19,6 +19,10 @@ final class AccountsPayableReport
         public readonly Collection $overdueItems,
         /** @var array<string, int> */
         public readonly array $overdueTotalsByCurrency,
+        /** @var Collection<int, \App\Domain\Financial\Models\PaymentScheduleItem> */
+        public readonly Collection $noDueDateItems,
+        /** @var array<string, int> */
+        public readonly array $noDueDateTotalsByCurrency,
         /** @var Collection<int, AccountsPayablePeriodGroup> */
         public readonly Collection $periodGroups,
         /** @var array<string, int> */
@@ -30,6 +34,8 @@ final class AccountsPayableReport
 
     public function hasAnyItems(): bool
     {
-        return $this->overdueItems->isNotEmpty() || $this->periodGroups->isNotEmpty();
+        return $this->overdueItems->isNotEmpty()
+            || $this->noDueDateItems->isNotEmpty()
+            || $this->periodGroups->isNotEmpty();
     }
 }
