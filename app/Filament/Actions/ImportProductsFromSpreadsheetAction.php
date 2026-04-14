@@ -389,36 +389,36 @@ class ImportProductsFromSpreadsheetAction
 
     /**
      * Build field options including attributes filtered by the given category IDs.
+     * Returns flat array (not grouped) for compatibility with Select::multiple().
      */
     protected static function fieldOptionsForCategories(array $categoryIds): array
     {
-        $fieldOptions = self::baseFieldOptions();
+        $grouped = self::baseFieldOptions();
+        $flat = [];
 
-        if (empty($categoryIds)) {
-            return $fieldOptions;
+        foreach ($grouped as $group => $fields) {
+            foreach ($fields as $key => $label) {
+                $flat[$key] = "[{$group}] {$label}";
+            }
         }
 
-        $attrOptions = [];
-        $categories = Category::whereIn('id', $categoryIds)
-            ->with('categoryAttributes')
-            ->get();
+        if (! empty($categoryIds)) {
+            $categories = Category::whereIn('id', $categoryIds)
+                ->with('categoryAttributes')
+                ->get();
 
-        foreach ($categories as $cat) {
-            foreach ($cat->categoryAttributes as $attr) {
-                $key = "attr_{$attr->id}";
-                if (! isset($attrOptions[$key])) {
-                    $label = $attr->name . ($attr->unit ? " ({$attr->unit})" : '');
-                    $attrOptions[$key] = $label;
+            foreach ($categories as $cat) {
+                foreach ($cat->categoryAttributes as $attr) {
+                    $key = "attr_{$attr->id}";
+                    if (! isset($flat[$key])) {
+                        $label = $attr->name . ($attr->unit ? " ({$attr->unit})" : '');
+                        $flat[$key] = "[Attributes] {$label}";
+                    }
                 }
             }
         }
 
-        if (! empty($attrOptions)) {
-            asort($attrOptions);
-            $fieldOptions['Attributes'] = $attrOptions;
-        }
-
-        return $fieldOptions;
+        return $flat;
     }
 
     protected static function buildInvertedColumnSelects(): array
@@ -469,29 +469,38 @@ class ImportProductsFromSpreadsheetAction
             ->schema([
                 Placeholder::make('import_preview')
                     ->label('')
-                    ->content(function () {
-                        $mapping = self::getCache('mapping', []);
+                    ->content(function (Get $get) {
                         $rows = self::getCache('rows', []);
                         $images = self::getCache('images', []);
-                        $blocks = $mapping['blocks'] ?? [];
+
+                        // Read mapping from form data (same as executeImport)
+                        $colMapping = [];
+                        for ($c = 0; $c < 15; $c++) {
+                            $fields = $get("col_map_{$c}") ?? [];
+                            if (is_string($fields)) {
+                                $fields = [$fields];
+                            }
+                            foreach ($fields as $field) {
+                                if ($field && $field !== '' && $field !== 'skip') {
+                                    $colMapping[$field] = (string) $c;
+                                }
+                            }
+                        }
+                        $blocks = array_values($get('import_blocks') ?? []);
+                        $headerRow = (int) ($get('header_row') ?? 1);
 
                         if (empty($rows) || empty($blocks)) {
                             return new HtmlString('<p class="text-red-500">No data. Go back and configure blocks.</p>');
                         }
 
-                        $headerRow = $mapping['header_row'] ?? 1;
-                        $colMapping = $mapping['columns'] ?? [];
                         $totalProducts = 0;
                         $totalImages = 0;
-
-                        // Get unique column indices that have at least one field mapped
-                        $previewFields = array_unique(array_values($colMapping));
 
                         $html = '<div class="space-y-4">';
 
                         // Show company links
-                        $clientId = $mapping['client_company_id'] ?? null;
-                        $supplierId = $mapping['supplier_company_id'] ?? null;
+                        $clientId = $get('client_company_id');
+                        $supplierId = $get('supplier_company_id');
                         if ($clientId || $supplierId) {
                             $html .= '<div class="text-sm text-gray-600 dark:text-gray-400">';
                             if ($clientId) {
@@ -500,8 +509,8 @@ class ImportProductsFromSpreadsheetAction
                             if ($supplierId) {
                                 $html .= 'Supplier: <strong>' . e(Company::find($supplierId)?->name ?? '—') . '</strong>';
                             }
-                            $html .= ' | Currency: <strong>' . e($mapping['currency_code'] ?? 'USD') . '</strong>';
-                            $formula = $mapping['custom_price_formula'] ?? null;
+                            $html .= ' | Currency: <strong>' . e($get('currency_code') ?? 'USD') . '</strong>';
+                            $formula = $get('custom_price_formula');
                             if ($formula) {
                                 $html .= ' | Custom Price: <strong>Unit Price ' . e($formula) . '</strong>';
                             }
@@ -583,16 +592,35 @@ class ImportProductsFromSpreadsheetAction
 
     protected static function executeImport(array $data): void
     {
-        $mapping = self::getCache('mapping', []);
         $rows = self::getCache('rows', []);
         $images = self::getCache('images', []);
-        $headerRow = $mapping['header_row'] ?? 1;
-        $blocks = $mapping['blocks'] ?? [];
-        $currencyCode = $mapping['currency_code'] ?? 'USD';
-        $customPriceFormula = $mapping['custom_price_formula'] ?? null;
-        $clientCompanyId = $mapping['client_company_id'] ?? null;
-        $supplierCompanyId = $mapping['supplier_company_id'] ?? null;
-        $colMapping = $mapping['columns'] ?? [];
+
+        // Ensure spreadsheet is parsed (fallback if cache was lost)
+        if (empty($rows)) {
+            self::parseAndCacheSpreadsheet($data['spreadsheet'] ?? null);
+            $rows = self::getCache('rows', []);
+            $images = self::getCache('images', []);
+        }
+
+        // Collect mapping directly from form data (more reliable than cache)
+        $headerRow = (int) ($data['header_row'] ?? 1);
+        $colMapping = [];
+        for ($c = 0; $c < 15; $c++) {
+            $fields = $data["col_map_{$c}"] ?? [];
+            if (is_string($fields)) {
+                $fields = [$fields];
+            }
+            foreach ($fields as $field) {
+                if ($field && $field !== '' && $field !== 'skip') {
+                    $colMapping[$field] = (string) $c;
+                }
+            }
+        }
+        $blocks = array_values($data['import_blocks'] ?? []);
+        $currencyCode = $data['currency_code'] ?? 'USD';
+        $customPriceFormula = $data['custom_price_formula'] ?? null;
+        $clientCompanyId = $data['client_company_id'] ?? null;
+        $supplierCompanyId = $data['supplier_company_id'] ?? null;
 
         \Illuminate\Support\Facades\Log::info('SPREADSHEET IMPORT: executeImport', [
             'colMapping' => $colMapping,
