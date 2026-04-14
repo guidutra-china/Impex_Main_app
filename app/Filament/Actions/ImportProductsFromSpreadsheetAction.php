@@ -286,7 +286,8 @@ class ImportProductsFromSpreadsheetAction
                                 ->label('Category')
                                 ->options(fn () => Category::active()->orderBy('name')->get()->mapWithKeys(fn (Category $cat) => [$cat->id => $cat->full_path]))
                                 ->searchable()
-                                ->required(),
+                                ->required()
+                                ->live(),
                             TextInput::make('product_family')
                                 ->label('Product Family')
                                 ->maxLength(255)
