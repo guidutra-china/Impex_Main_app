@@ -399,12 +399,10 @@ class ImportProductsFromSpreadsheetAction
 
         if (! empty($categoryIds)) {
             $attrOptions = [];
-            $categories = Category::whereIn('id', $categoryIds)
-                ->with('categoryAttributes')
-                ->get();
+            $categories = Category::whereIn('id', $categoryIds)->get();
 
             foreach ($categories as $cat) {
-                foreach ($cat->categoryAttributes as $attr) {
+                foreach ($cat->getAllAttributes() as $attr) {
                     $key = "attr_{$attr->id}";
                     if (! isset($attrOptions[$key])) {
                         $label = $attr->name . ($attr->unit ? " ({$attr->unit})" : '');
