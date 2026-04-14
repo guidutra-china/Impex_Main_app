@@ -93,7 +93,7 @@
     @endif
 
     @php($sections = $report->nonEmptySections())
-    @php($moneyColumns = ['total','paid','balance','amount','goods','freight','duty','other_costs','total_costs','grand_total','additional_costs','allocated','unallocated','revenue','cost','margin_amount'])
+    @php($moneyColumns = ['total','paid','balance','amount','goods','freight','other_costs','total_costs','grand_total','additional_costs','allocated','unallocated','revenue','cost','commission','margin_amount'])
 
     @forelse($sections as $section)
         <div style="margin-bottom: 10px;">

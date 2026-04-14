@@ -35,18 +35,25 @@ final class MarginAnalysisSectionBuilder implements FinancialSectionBuilder
             $query->where('currency_code', $filters->currency);
         }
 
-        $rows = $query->with(['items'])
+        $rows = $query->with(['items', 'additionalCosts'])
             ->get()
             ->map(function (ProformaInvoice $pi) {
                 $revenue = (int) $pi->total;
                 $cost = (int) $pi->cost_total;
-                $marginAmount = $revenue - $cost;
-                $marginPct = $cost > 0 ? round(($marginAmount / $cost) * 100, 1) : 0;
+
+                $commission = (int) $pi->additionalCosts
+                    ->where('cost_type', \App\Domain\Financial\Enums\AdditionalCostType::COMMISSION)
+                    ->sum('amount_in_document_currency');
+
+                $totalCost = $cost + $commission;
+                $marginAmount = $revenue - $totalCost;
+                $marginPct = $totalCost > 0 ? round(($marginAmount / $totalCost) * 100, 1) : 0;
 
                 return [
                     'pi_reference' => $pi->reference ?? (string) $pi->id,
                     'revenue' => round($revenue / Money::SCALE, 2),
                     'cost' => round($cost / Money::SCALE, 2),
+                    'commission' => round($commission / Money::SCALE, 2),
                     'margin_amount' => round($marginAmount / Money::SCALE, 2),
                     'margin_pct' => $marginPct . '%',
                     'currency' => (string) ($pi->currency_code ?? ''),
@@ -57,7 +64,7 @@ final class MarginAnalysisSectionBuilder implements FinancialSectionBuilder
         return new StatementSection(
             key: 'margin_analysis',
             titleKey: 'financial_report.sections.margin_analysis',
-            columns: ['pi_reference', 'revenue', 'cost', 'margin_amount', 'margin_pct', 'currency'],
+            columns: ['pi_reference', 'revenue', 'cost', 'commission', 'margin_amount', 'margin_pct', 'currency'],
             rows: $rows,
         );
     }

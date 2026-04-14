@@ -63,6 +63,7 @@ return [
         'pi_reference' => 'PI Reference',
         'revenue' => 'Revenue',
         'cost' => 'Cost',
+        'commission' => 'Commission',
         'margin_amount' => 'Margin',
         'margin_pct' => 'Margin %',
         'installment' => 'Installment',

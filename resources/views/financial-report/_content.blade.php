@@ -66,7 +66,7 @@
     @endif
 
     @php($sections = $report->nonEmptySections())
-    @php($moneyColumns = ['total','paid','balance','amount','goods','freight','duty','other_costs','total_costs','grand_total','additional_costs','allocated','unallocated','revenue','cost','margin_amount'])
+    @php($moneyColumns = ['total','paid','balance','amount','goods','freight','other_costs','total_costs','grand_total','additional_costs','allocated','unallocated','revenue','cost','commission','margin_amount'])
 
     @forelse($sections as $section)
         <h3 style="font-size: 15px; font-weight: 600; margin: 20px 0 8px 0; border-bottom: 1px solid #d1d5db; padding-bottom: 4px;">{{ __($section->titleKey) }} ({{ count($section->rows) }})</h3>
