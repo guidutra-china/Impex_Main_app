@@ -88,10 +88,20 @@ class PaymentScheduleRelationManager extends RelationManager
                 TextColumn::make('paid_amount')
                     ->label(__('forms.labels.paid'))
                     ->getStateUsing(fn ($record) => $record->paid_amount)
-                    ->formatStateUsing(fn ($state) => Money::format($state))
+                    ->formatStateUsing(function ($state, $record) {
+                        $formatted = Money::format($state);
+                        if ($record->is_overpaid) {
+                            $overpaid = Money::format($record->overpaid_amount);
+                            return $formatted . ' ⚠ +' . $overpaid;
+                        }
+                        return $formatted;
+                    })
                     ->prefix(fn ($record) => $this->getCurrencySymbol($record->currency_code) . ' ')
                     ->alignEnd()
-                    ->color('success'),
+                    ->tooltip(fn ($record) => $record->is_overpaid
+                        ? 'Overpaid by ' . $this->getCurrencySymbol($record->currency_code) . ' ' . Money::format($record->overpaid_amount)
+                        : null)
+                    ->color(fn ($record) => $record->is_overpaid ? 'warning' : 'success'),
                 TextColumn::make('remaining_amount')
                     ->label(__('forms.labels.remaining'))
                     ->getStateUsing(fn ($record) => $record->remaining_amount)
@@ -117,7 +127,20 @@ class PaymentScheduleRelationManager extends RelationManager
                 TextColumn::make('status')
                     ->label(__('forms.labels.status'))
                     ->badge()
-                    ->description(fn ($record) => $record->is_credit && $record->is_credit_applied ? 'Credit Applied' : null),
+                    ->formatStateUsing(function ($state, $record) {
+                        $label = $state instanceof \BackedEnum ? ($state->getLabel() ?? $state->value) : (string) $state;
+                        return $record->is_overpaid ? $label . ' · Overpaid' : $label;
+                    })
+                    ->color(fn ($state, $record) => $record->is_overpaid
+                        ? 'warning'
+                        : ($state instanceof \Filament\Support\Contracts\HasColor ? $state->getColor() : 'gray'))
+                    ->icon(fn ($record) => $record->is_overpaid ? 'heroicon-o-exclamation-triangle' : null)
+                    ->description(function ($record) {
+                        if ($record->is_overpaid) {
+                            return 'Overpaid by ' . $this->getCurrencySymbol($record->currency_code) . ' ' . Money::format($record->overpaid_amount);
+                        }
+                        return $record->is_credit && $record->is_credit_applied ? 'Credit Applied' : null;
+                    }),
             ])
             ->headerActions([
                 $this->generateScheduleAction(),

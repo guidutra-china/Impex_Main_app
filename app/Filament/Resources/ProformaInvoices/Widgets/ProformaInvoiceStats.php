@@ -102,9 +102,9 @@ class ProformaInvoiceStats extends Widget
             'label_clean' => preg_replace('/\s*\x{2014}\s*\[.*\]\s*$/u', '', $item->label ?? ''),
             'shipment_ref' => $item->shipment ? ($item->shipment->bl_number ?: $item->shipment->reference) : null,
             'status_value' => $item->status->value,
-            'status_label' => $item->status->getLabel(),
-            'status_color' => $item->status->getColor(),
-            'status_icon' => $item->status->getIcon(),
+            'status_label' => $item->status->getLabel() . ($item->is_overpaid ? ' · Overpaid' : ''),
+            'status_color' => $item->is_overpaid ? 'warning' : $item->status->getColor(),
+            'status_icon' => $item->is_overpaid ? 'heroicon-o-exclamation-triangle' : $item->status->getIcon(),
             'due_date' => $item->due_date?->format('M d, Y'),
             'due_date_sort' => $item->due_date?->format('Y-m-d') ?? '',
             'percentage' => $item->percentage,
@@ -116,6 +116,9 @@ class ProformaInvoiceStats extends Widget
             'remaining_raw' => $item->remaining_amount,
             'is_credit' => $item->is_credit,
             'is_blocking' => $item->is_blocking,
+            'is_overpaid' => $item->is_overpaid,
+            'overpaid_amount' => Money::format($item->overpaid_amount),
+            'overpaid_amount_raw' => $item->overpaid_amount,
         ])->all();
 
         $statusOptions = $scheduleItems
@@ -128,6 +131,7 @@ class ProformaInvoiceStats extends Widget
         $totalScheduleAmount = $regularItems->sum('amount');
         $totalSchedulePaid = $regularItems->sum(fn ($i) => $i->paid_amount);
         $totalScheduleRemaining = max(0, $totalScheduleAmount - $totalSchedulePaid);
+        $totalOverpaid = $regularItems->sum(fn ($i) => $i->overpaid_amount);
 
         return [
             'heading' => __('widgets.document_summary.financial_summary'),
@@ -142,6 +146,8 @@ class ProformaInvoiceStats extends Widget
                 'paid' => Money::format($totalSchedulePaid),
                 'remaining' => Money::format($totalScheduleRemaining),
                 'remaining_raw' => $totalScheduleRemaining,
+                'overpaid' => Money::format($totalOverpaid),
+                'overpaid_raw' => $totalOverpaid,
             ],
             'unallocatedTotal' => $unallocatedTotal,
             'unallocatedFormatted' => Money::format($unallocatedTotal),

@@ -298,8 +298,18 @@
                                         <template x-if="item.is_credit">
                                             <span class="text-gray-300 dark:text-gray-600">&mdash;</span>
                                         </template>
-                                        <template x-if="!item.is_credit">
+                                        <template x-if="!item.is_credit && !item.is_overpaid">
                                             <span class="text-success-600 dark:text-success-400" x-text="item.paid"></span>
+                                        </template>
+                                        <template x-if="!item.is_credit && item.is_overpaid">
+                                            <span
+                                                class="inline-flex items-center gap-1 font-bold text-warning-700 dark:text-warning-400"
+                                                :title="'Overpaid by ' + currency + ' ' + item.overpaid_amount"
+                                            >
+                                                <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
+                                                <span x-text="item.paid"></span>
+                                                <span class="text-[0.7rem] font-semibold" x-text="'+' + item.overpaid_amount"></span>
+                                            </span>
                                         </template>
                                     </td>
                                     <td class="whitespace-nowrap px-4 py-2.5 text-right font-mono font-medium">
@@ -342,6 +352,23 @@
             <div class="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-10 dark:border-gray-700 dark:bg-white/5">
                 <x-filament::icon icon="heroicon-o-calendar-days" class="h-8 w-8 text-gray-300 dark:text-gray-600" />
                 <span class="text-sm text-gray-500 dark:text-gray-400">No payment schedule defined.</span>
+            </div>
+        @endif
+
+        {{-- Overpayment Alert --}}
+        @if (!empty($totals['overpaid_raw']) && $totals['overpaid_raw'] > 0)
+            <div class="mt-4 flex items-center gap-3 rounded-xl border-2 border-dashed border-warning-400 bg-warning-50 px-4 py-3 dark:border-warning-500/40 dark:bg-warning-500/5">
+                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-warning-200 dark:bg-warning-500/20">
+                    <x-filament::icon icon="heroicon-o-exclamation-triangle" class="h-4 w-4 text-warning-600 dark:text-warning-400" />
+                </div>
+                <div>
+                    <p class="text-sm font-bold text-warning-800 dark:text-warning-300">
+                        {{ $currency }} {{ $totals['overpaid'] }} overpaid
+                    </p>
+                    <p class="text-xs text-warning-600 dark:text-warning-400">
+                        One or more schedule items received payments above the scheduled amount.
+                    </p>
+                </div>
             </div>
         @endif
 

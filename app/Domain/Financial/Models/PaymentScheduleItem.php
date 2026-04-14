@@ -148,6 +148,26 @@ class PaymentScheduleItem extends Model
         return max(0, $this->amount - $this->paid_amount);
     }
 
+    /**
+     * Amount paid beyond the scheduled amount (overpayment).
+     * Returns 0 if not overpaid. Uses 100 minor unit tolerance for rounding.
+     */
+    public function getOverpaidAmountAttribute(): int
+    {
+        if ($this->is_credit) {
+            return 0;
+        }
+
+        $diff = $this->paid_amount - $this->amount;
+
+        return $diff > 100 ? $diff : 0;
+    }
+
+    public function getIsOverpaidAttribute(): bool
+    {
+        return $this->overpaid_amount > 0;
+    }
+
     public function getEffectiveAmountAttribute(): int
     {
         return $this->is_credit ? -$this->amount : $this->amount;

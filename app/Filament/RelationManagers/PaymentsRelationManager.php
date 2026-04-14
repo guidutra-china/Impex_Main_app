@@ -68,9 +68,20 @@ class PaymentsRelationManager extends RelationManager
                 TextColumn::make('paid_amount')
                     ->label(__('forms.labels.paid'))
                     ->getStateUsing(fn ($record) => $record->paid_amount)
-                    ->formatStateUsing(fn ($state, $record) => $record->currency_code . ' ' . Money::format($state))
+                    ->formatStateUsing(function ($state, $record) {
+                        $base = $record->currency_code . ' ' . Money::format($state);
+                        if ($record->is_overpaid) {
+                            return $base . ' ⚠ +' . Money::format($record->overpaid_amount);
+                        }
+                        return $base;
+                    })
+                    ->tooltip(fn ($record) => $record->is_overpaid
+                        ? 'Overpaid by ' . $record->currency_code . ' ' . Money::format($record->overpaid_amount)
+                        : null)
                     ->alignEnd()
-                    ->color(fn ($record) => $record->is_paid_in_full ? 'success' : ($record->paid_amount > 0 ? 'info' : 'gray'))
+                    ->color(fn ($record) => $record->is_overpaid
+                        ? 'warning'
+                        : ($record->is_paid_in_full ? 'success' : ($record->paid_amount > 0 ? 'info' : 'gray')))
                     ->visible(fn () => ! $this->hasOnlyCredits()),
                 TextColumn::make('remaining_amount')
                     ->label(__('forms.labels.remaining'))
@@ -81,7 +92,15 @@ class PaymentsRelationManager extends RelationManager
                     ->visible(fn () => ! $this->hasOnlyCredits()),
                 TextColumn::make('status')
                     ->label(__('forms.labels.status'))
-                    ->badge(),
+                    ->badge()
+                    ->formatStateUsing(function ($state, $record) {
+                        $label = $state instanceof \BackedEnum ? ($state->getLabel() ?? $state->value) : (string) $state;
+                        return $record->is_overpaid ? $label . ' · Overpaid' : $label;
+                    })
+                    ->color(fn ($state, $record) => $record->is_overpaid
+                        ? 'warning'
+                        : ($state instanceof \Filament\Support\Contracts\HasColor ? $state->getColor() : 'gray'))
+                    ->icon(fn ($record) => $record->is_overpaid ? 'heroicon-o-exclamation-triangle' : null),
                 TextColumn::make('allocations_detail')
                     ->label(__('forms.labels.deposits'))
                     ->wrap()
