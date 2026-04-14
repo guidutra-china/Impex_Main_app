@@ -49,7 +49,7 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
                 : $query->whereNotIn('status', $values);
         }
 
-        $rows = $query->with(['items.proformaInvoiceItem', 'additionalCosts'])->get()->map(function (Shipment $s) {
+        $rows = $query->with(['items.proformaInvoiceItem', 'additionalCosts', 'paymentScheduleItems.allocations.payment'])->get()->map(function (Shipment $s) {
             $goodsValue = $s->items->sum(fn ($item) => $item->line_total);
 
             $freight = $s->additionalCosts
@@ -64,11 +64,7 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
 
             $totalCosts = $freight + $otherCosts;
 
-            // Check if costs have been paid via additional cost status
-            $paidCosts = $s->additionalCosts
-                ->where('billable_to', BillableTo::CLIENT)
-                ->where('status', \App\Domain\Financial\Enums\AdditionalCostStatus::PAID)
-                ->sum('amount_in_document_currency');
+            $paidCosts = (int) $s->schedule_paid_total;
 
             return [
                 'number' => $s->reference ?? (string) $s->id,
