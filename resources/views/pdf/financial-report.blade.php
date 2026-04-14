@@ -1,5 +1,11 @@
 @extends('pdf.layouts.document')
 
+@section('extra-styles')
+    @page {
+        margin: 20mm 10mm 8mm 10mm;
+    }
+@endsection
+
 @section('document-meta')
     <table class="document-meta-table">
         <tr>
