@@ -179,8 +179,8 @@ class ItemsRelationManager extends RelationManager
                     ->label(__('forms.labels.product'))
                     ->searchable()
                     ->sortable(query: fn ($query, string $direction) => $query
-                        ->leftJoin('products', 'products.id', '=', 'proforma_invoice_items.product_id')
-                        ->orderBy('products.name', $direction)
+                        ->join('products as p_name', 'p_name.id', '=', 'proforma_invoice_items.product_id')
+                        ->orderBy('p_name.name', $direction)
                         ->select('proforma_invoice_items.*'))
                     ->limit(30)
                     ->placeholder(__('forms.placeholders.manual_item')),
@@ -188,8 +188,8 @@ class ItemsRelationManager extends RelationManager
                     ->label(__('forms.labels.model_number'))
                     ->searchable()
                     ->sortable(query: fn ($query, string $direction) => $query
-                        ->leftJoin('products', 'products.id', '=', 'proforma_invoice_items.product_id')
-                        ->orderBy('products.model_number', $direction)
+                        ->join('products as p_model', 'p_model.id', '=', 'proforma_invoice_items.product_id')
+                        ->orderBy('p_model.model_number', $direction)
                         ->select('proforma_invoice_items.*'))
                     ->limit(20)
                     ->placeholder('—')
@@ -323,7 +323,8 @@ class ItemsRelationManager extends RelationManager
                         ->visible(fn () => auth()->user()?->can('edit-proforma-invoices')),
                 ]),
             ])
-            ->reorderable('sort_order');
+            ->reorderable('sort_order')
+            ->defaultSort('sort_order');
     }
 
     protected function importFromQuotationsAction(): Action
