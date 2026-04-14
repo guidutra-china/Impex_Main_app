@@ -44,6 +44,55 @@ class ImportProductsFromSpreadsheetAction
         self::forgetCacheKeys(['rows', 'images', 'mapping', 'row_origins']);
     }
 
+    /**
+     * Parse a spreadsheet file and store rows/images/origins in cache.
+     * Called from Step 1 afterValidation, and as fallback from Step 2 schema.
+     */
+    protected static function parseAndCacheSpreadsheet(mixed $rawFile): void
+    {
+        $path = self::resolveUploadPath($rawFile);
+        \Illuminate\Support\Facades\Log::info('SPREADSHEET IMPORT: parseAndCache', ['path' => $path]);
+
+        if (! $path) {
+            return;
+        }
+
+        $spreadsheet = IOFactory::load($path);
+        $worksheet = $spreadsheet->getActiveSheet();
+        $rawData = $worksheet->toArray(null, true, false, false);
+
+        $rows = [];
+        $rowOrigins = [];
+        $maxRows = min(count($rawData), 5000);
+        for ($r = 0; $r < $maxRows; $r++) {
+            $values = array_map(fn ($v) => trim((string) ($v ?? '')), $rawData[$r]);
+            if (implode('', $values) !== '') {
+                $rowOrigins[count($rows)] = $r + 1;
+                $rows[] = $values;
+            }
+        }
+        unset($rawData);
+
+        $images = [];
+        try {
+            $images = self::extractImagesByRow($worksheet);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('SPREADSHEET IMPORT: image extraction failed', ['error' => $e->getMessage()]);
+        }
+
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet, $worksheet);
+
+        self::putCache('rows', $rows);
+        self::putCache('row_origins', $rowOrigins);
+        self::putCache('images', $images);
+
+        \Illuminate\Support\Facades\Log::info('SPREADSHEET IMPORT: cached', [
+            'rows' => count($rows),
+            'images' => count($images),
+        ]);
+    }
+
     public static function make(): Action
     {
         return Action::make('importFromSpreadsheet')
@@ -112,51 +161,7 @@ class ImportProductsFromSpreadsheetAction
                 \Illuminate\Support\Facades\Log::info('SPREADSHEET IMPORT: Step 1 afterValidation START');
 
                 try {
-                    $path = self::resolveUploadPath($get('spreadsheet'));
-                    \Illuminate\Support\Facades\Log::info('SPREADSHEET IMPORT: resolved path', ['path' => $path]);
-
-                    if (! $path) {
-                        Notification::make()->title('Could not resolve file path')->danger()->send();
-
-                        return;
-                    }
-
-                    $spreadsheet = IOFactory::load($path);
-                    $worksheet = $spreadsheet->getActiveSheet();
-                    $rawData = $worksheet->toArray(null, true, false, false);
-
-                    $rows = [];
-                    $rowOrigins = [];
-                    $maxRows = min(count($rawData), 5000);
-                    for ($r = 0; $r < $maxRows; $r++) {
-                        $values = array_map(fn ($v) => trim((string) ($v ?? '')), $rawData[$r]);
-                        if (implode('', $values) !== '') {
-                            $rowOrigins[count($rows)] = $r + 1;
-                            $rows[] = $values;
-                        }
-                    }
-                    unset($rawData);
-
-                    $images = [];
-                    try {
-                        $images = self::extractImagesByRow($worksheet);
-                    } catch (\Throwable $e) {
-                        \Illuminate\Support\Facades\Log::warning('SPREADSHEET IMPORT: image extraction failed', ['error' => $e->getMessage()]);
-                    }
-
-                    $spreadsheet->disconnectWorksheets();
-                    unset($spreadsheet, $worksheet);
-
-                    self::putCache('rows', $rows);
-                    self::putCache('row_origins', $rowOrigins);
-                    self::putCache('images', $images);
-
-                    \Illuminate\Support\Facades\Log::info('SPREADSHEET IMPORT: Step 1 complete', [
-                        'rows' => count($rows),
-                        'images' => count($images),
-                        'row_origins_sample' => array_slice($rowOrigins, 0, 5, true),
-                    ]);
-
+                    self::parseAndCacheSpreadsheet($get('spreadsheet'));
                     $set('header_row', '1');
                 } catch (\Throwable $e) {
                     \Illuminate\Support\Facades\Log::error('SPREADSHEET IMPORT: Step 1 FAILED', [
@@ -221,8 +226,20 @@ class ImportProductsFromSpreadsheetAction
                     'supplier_company_id' => $get('supplier_company_id'),
                 ]);
             })
-            ->schema(function () {
+            ->schema(function (Get $get) {
                 $rows = self::getCache('rows', []);
+
+                // Fallback: if Step 1 afterValidation didn't populate cache, parse now
+                if (empty($rows)) {
+                    \Illuminate\Support\Facades\Log::info('SPREADSHEET IMPORT: Step 2 fallback — parsing spreadsheet');
+                    try {
+                        self::parseAndCacheSpreadsheet($get('spreadsheet'));
+                        $rows = self::getCache('rows', []);
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::error('SPREADSHEET IMPORT: fallback parse failed', ['error' => $e->getMessage()]);
+                    }
+                }
+
                 $rowOrigins = self::getCache('row_origins', []);
                 $lastRow = ! empty($rowOrigins) ? max($rowOrigins) : count($rows);
 
