@@ -10,8 +10,13 @@ use App\Domain\CRM\Reports\StatusScopeFilter;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\PaymentStatus;
+use App\Domain\Financial\Models\PaymentAllocation;
+use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Models\Shipment;
+use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\PurchaseOrders\Models\PurchaseOrder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
@@ -75,16 +80,14 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
                 return $isClientReport ? ! $isForwarderPayable : $isForwarderPayable;
             });
 
+            // Use the paid_amount accessor which includes mirror allocations
+            // from PI/PO schedule items (users pay on PI/PO, not directly on shipment)
             $paidCosts = 0;
             foreach ($relevantScheduleItems as $item) {
                 if ($item->is_credit) {
                     continue;
                 }
-                foreach ($item->allocations as $allocation) {
-                    if ($allocation->payment && $allocation->payment->status === PaymentStatus::APPROVED) {
-                        $paidCosts += (int) ($allocation->allocated_amount_in_document_currency ?? 0);
-                    }
-                }
+                $paidCosts += (int) $item->paid_amount;
             }
 
             // Shipment header row
@@ -113,17 +116,26 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
                 }
 
                 $itemAmount = (int) $item->amount;
-                $itemPaid = 0;
+                $itemPaid = (int) $item->paid_amount;
                 $allocationDetails = [];
 
+                // Direct allocations on this shipment schedule item
                 foreach ($item->allocations as $allocation) {
                     if ($allocation->payment && $allocation->payment->status === PaymentStatus::APPROVED) {
                         $allocAmount = (int) ($allocation->allocated_amount_in_document_currency ?? 0);
-                        $itemPaid += $allocAmount;
                         $allocationDetails[] = $allocation->payment->reference
                             .' ('.optional($allocation->payment->payment_date)->format('d/m/Y').')'
                             .': '.number_format($allocAmount / Money::SCALE, 2);
                     }
+                }
+
+                // Mirror allocations from PI/PO schedule item (same stage + shipment)
+                foreach ($this->getMirrorAllocations($item) as $allocation) {
+                    $allocAmount = (int) ($allocation->allocated_amount_in_document_currency ?? 0);
+                    $allocationDetails[] = $allocation->payment->reference
+                        .' ('.optional($allocation->payment->payment_date)->format('d/m/Y').')'
+                        .' [via '.$this->extractMirrorDocRef($item->label).']'
+                        .': '.number_format($allocAmount / Money::SCALE, 2);
                 }
 
                 $itemRemaining = max(0, $itemAmount - $itemPaid);
@@ -156,5 +168,59 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
             columns: ['number', 'bl_number', 'client_reference', 'etd', 'eta', 'status', 'freight', 'other_costs', 'total_costs', 'paid', 'balance', 'currency'],
             rows: $rows,
         );
+    }
+
+    /**
+     * Get approved payment allocations from mirror PI/PO schedule items.
+     * Shipment schedule items often mirror PI/PO items — users record
+     * payments against the PI/PO, so we need to surface those here too.
+     */
+    private function getMirrorAllocations(PaymentScheduleItem $item): Collection
+    {
+        if (! $item->shipment_id || ! $item->payment_term_stage_id || ! $item->label) {
+            return collect();
+        }
+
+        $docRef = $this->extractMirrorDocRef($item->label);
+        if ($docRef === null) {
+            return collect();
+        }
+
+        $docClass = str_starts_with($docRef, 'PI')
+            ? ProformaInvoice::class
+            : PurchaseOrder::class;
+
+        $docId = $docClass::where('reference', $docRef)->value('id');
+        if (! $docId) {
+            return collect();
+        }
+
+        $mirrorIds = PaymentScheduleItem::where('payable_type', $docClass)
+            ->where('payable_id', $docId)
+            ->where('shipment_id', $item->shipment_id)
+            ->where('payment_term_stage_id', $item->payment_term_stage_id)
+            ->where('id', '!=', $item->id)
+            ->pluck('id');
+
+        if ($mirrorIds->isEmpty()) {
+            return collect();
+        }
+
+        return PaymentAllocation::with('payment')
+            ->whereIn('payment_schedule_item_id', $mirrorIds)
+            ->whereHas('payment', fn ($q) => $q->where('status', PaymentStatus::APPROVED))
+            ->get();
+    }
+
+    private function extractMirrorDocRef(?string $label): ?string
+    {
+        if (! $label) {
+            return null;
+        }
+        if (preg_match('#/\s*((?:PI|PO)-[\w-]+)\]#', $label, $m)) {
+            return $m[1];
+        }
+
+        return null;
     }
 }
