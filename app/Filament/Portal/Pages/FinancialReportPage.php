@@ -24,6 +24,11 @@ class FinancialReportPage extends FinancialReportPreview
         return __('financial_report.title');
     }
 
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.finance');
+    }
+
     public function getTitle(): string|\Illuminate\Contracts\Support\Htmlable
     {
         return __('financial_report.title');
