@@ -51,6 +51,7 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
         }
 
         $rows = [];
+        $isClientReport = $this->role === CompanyRole::CLIENT;
 
         foreach ($query->with(['items.proformaInvoiceItem', 'additionalCosts', 'paymentScheduleItems.allocations.payment'])->get() as $s) {
             $freight = $s->additionalCosts
@@ -64,7 +65,27 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
                 ->sum('amount_in_document_currency');
 
             $totalCosts = $freight + $otherCosts;
-            $paidCosts = (int) $s->schedule_paid_total;
+
+            // Filter schedule items by direction:
+            // - CLIENT report: exclude forwarder-payable items (those are outbound payments)
+            // - SUPPLIER/forwarder report: include only forwarder-payable items
+            $relevantScheduleItems = $s->paymentScheduleItems->filter(function ($item) use ($isClientReport) {
+                $isForwarderPayable = str_contains((string) $item->notes, '[forwarder-payable]');
+
+                return $isClientReport ? ! $isForwarderPayable : $isForwarderPayable;
+            });
+
+            $paidCosts = 0;
+            foreach ($relevantScheduleItems as $item) {
+                if ($item->is_credit) {
+                    continue;
+                }
+                foreach ($item->allocations as $allocation) {
+                    if ($allocation->payment && $allocation->payment->status === PaymentStatus::APPROVED) {
+                        $paidCosts += (int) ($allocation->allocated_amount_in_document_currency ?? 0);
+                    }
+                }
+            }
 
             // Shipment header row
             $rows[] = [
@@ -84,7 +105,7 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
             ];
 
             // Schedule item detail rows with allocation breakdown
-            $scheduleItems = $s->paymentScheduleItems->sortBy('sort_order');
+            $scheduleItems = $relevantScheduleItems->sortBy('sort_order');
 
             foreach ($scheduleItems as $item) {
                 if ($item->is_credit) {
