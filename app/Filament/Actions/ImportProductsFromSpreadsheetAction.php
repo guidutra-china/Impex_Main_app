@@ -187,10 +187,19 @@ class ImportProductsFromSpreadsheetAction
                     }
                 }
 
+                $blocks = array_values($get('import_blocks') ?? []);
+
+                \Illuminate\Support\Facades\Log::info('SPREADSHEET IMPORT: mapping collected', [
+                    'colMapping' => $colMapping,
+                    'headerRow' => $headerRow,
+                    'blocks' => $blocks,
+                    'total_rows' => count($rows),
+                ]);
+
                 self::putCache('mapping', [
                     'columns' => $colMapping,
                     'header_row' => $headerRow,
-                    'blocks' => array_values($get('import_blocks') ?? []),
+                    'blocks' => $blocks,
                     'currency_code' => $get('currency_code') ?? 'USD',
                     'custom_price_formula' => $get('custom_price_formula'),
                     'client_company_id' => $get('client_company_id'),
@@ -552,6 +561,14 @@ class ImportProductsFromSpreadsheetAction
         $supplierCompanyId = $mapping['supplier_company_id'] ?? null;
         $colMapping = $mapping['columns'] ?? [];
 
+        \Illuminate\Support\Facades\Log::info('SPREADSHEET IMPORT: executeImport', [
+            'colMapping' => $colMapping,
+            'headerRow' => $headerRow,
+            'blocks' => $blocks,
+            'rows_count' => count($rows),
+            'images_count' => count($images),
+        ]);
+
         if (empty($blocks)) {
             Notification::make()->title('No import blocks defined')->warning()->send();
 
@@ -577,6 +594,15 @@ class ImportProductsFromSpreadsheetAction
                     $category = Category::findOrFail($categoryId);
                     $items = self::applyInvertedMapping($rows, $colMapping, $headerRow, $startRow, $endRow);
                     $totalItems += count($items);
+
+                    \Illuminate\Support\Facades\Log::info('SPREADSHEET IMPORT: block processed', [
+                        'category' => $category->name,
+                        'startRow' => $startRow,
+                        'endRow' => $endRow,
+                        'items_found' => count($items),
+                        'sample_item' => $items[0] ?? 'EMPTY',
+                        'row_origins_sample' => array_slice(self::getCache('row_origins', []), 0, 5, true),
+                    ]);
 
                     foreach ($items as $item) {
                         // Auto-generate name: Category + Model Number (same as product form)
