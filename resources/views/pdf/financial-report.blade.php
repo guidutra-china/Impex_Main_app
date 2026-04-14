@@ -105,7 +105,7 @@
                 <thead>
                     <tr>
                         @foreach($section->columns as $col)
-                            <th style="{{ in_array($col, $moneyColumns) ? 'text-align: right;' : '' }}{{ $col === 'payment_term' ? ' min-width: 100px;' : '' }}{{ in_array($col, $smallColumns) ? ' font-size: 6pt;' : '' }}">
+                            <th style="{{ in_array($col, $moneyColumns) ? 'text-align: right;' : '' }}{{ in_array($col, $smallColumns) ? ' font-size: 6pt;' : '' }}">
                                 {{ __('financial_report.columns.' . $col, [], $locale) }}
                             </th>
                         @endforeach
@@ -120,7 +120,7 @@
                                 @php($val = $row[$col] ?? null)
                                 @php($isMoney = in_array($col, $moneyColumns))
                                 @php($isSmall = in_array($col, $smallColumns) && !$isDetail)
-                                <td style="{{ $isMoney ? 'text-align: right;' : '' }}{{ $isSmall ? ' font-size: 6pt;' : '' }}{{ $col === 'payment_term' ? ' white-space: nowrap;' : '' }}">
+                                <td style="{{ $isMoney ? 'text-align: right;' : '' }}{{ $isSmall ? ' font-size: 6pt;' : '' }}">
                                     @if($val === null || $val === '')
                                         {{ $isDetail ? '' : '—' }}
                                     @elseif($isMoney)

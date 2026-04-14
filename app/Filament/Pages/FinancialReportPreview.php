@@ -96,7 +96,7 @@ abstract class FinancialReportPreview extends Page
             ];
 
             $renderer = app(PdfRenderer::class);
-            $pdfBinary = $renderer->render('pdf.financial-report', $pdfData);
+            $pdfBinary = $renderer->render('pdf.financial-report', $pdfData, 'a4', 'landscape');
         } finally {
             App::setLocale($previous);
         }
