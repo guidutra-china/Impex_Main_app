@@ -28,10 +28,12 @@ final class AdditionalCostFinancialSectionBuilder implements FinancialSectionBui
             ->whereNot('status', AdditionalCostStatus::WAIVED)
             ->whereBetween($dateExpr, [$filters->from->toDateString(), $filters->to->toDateString()])
             ->where(function ($q) {
-                // Exclude costs already shown in the Shipments section (freight/other on shipments billable to client)
+                // Exclude costs already shown in the Shipments section (on shipments billable to client)
                 $q->where('costable_type', '!=', (new Shipment)->getMorphClass())
                     ->orWhere('billable_to', '!=', BillableTo::CLIENT);
             })
+            // Exclude commissions — already included in PI payment schedule
+            ->where('cost_type', '!=', AdditionalCostType::COMMISSION)
             ->with('costable')
             ->orderBy($dateExpr);
 
