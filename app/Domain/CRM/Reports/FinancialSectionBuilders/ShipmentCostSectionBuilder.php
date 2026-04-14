@@ -9,6 +9,7 @@ use App\Domain\CRM\Reports\DTOs\StatementSection;
 use App\Domain\CRM\Reports\StatusScopeFilter;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
+use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Models\Shipment;
 use Illuminate\Support\Facades\DB;
@@ -49,9 +50,9 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
                 : $query->whereNotIn('status', $values);
         }
 
-        $rows = $query->with(['items.proformaInvoiceItem', 'additionalCosts', 'paymentScheduleItems.allocations.payment'])->get()->map(function (Shipment $s) {
-            $goodsValue = $s->items->sum(fn ($item) => $item->line_total);
+        $rows = [];
 
+        foreach ($query->with(['items.proformaInvoiceItem', 'additionalCosts', 'paymentScheduleItems.allocations.payment'])->get() as $s) {
             $freight = $s->additionalCosts
                 ->where('cost_type', AdditionalCostType::FREIGHT)
                 ->where('billable_to', BillableTo::CLIENT)
@@ -63,10 +64,11 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
                 ->sum('amount_in_document_currency');
 
             $totalCosts = $freight + $otherCosts;
-
             $paidCosts = (int) $s->schedule_paid_total;
 
-            return [
+            // Shipment header row
+            $rows[] = [
+                '_row_type' => 'header',
                 'number' => $s->reference ?? (string) $s->id,
                 'bl_number' => (string) ($s->bl_number ?? ''),
                 'client_reference' => (string) ($s->client_reference ?? ''),
@@ -80,7 +82,52 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
                 'balance' => round(($totalCosts - $paidCosts) / Money::SCALE, 2),
                 'currency' => (string) ($s->currency_code ?? ''),
             ];
-        })->all();
+
+            // Schedule item detail rows with allocation breakdown
+            $scheduleItems = $s->paymentScheduleItems->sortBy('sort_order');
+
+            foreach ($scheduleItems as $item) {
+                if ($item->is_credit) {
+                    continue;
+                }
+
+                $itemAmount = (int) $item->amount;
+                $itemPaid = 0;
+                $allocationDetails = [];
+
+                foreach ($item->allocations as $allocation) {
+                    if ($allocation->payment && $allocation->payment->status === PaymentStatus::APPROVED) {
+                        $allocAmount = (int) ($allocation->allocated_amount_in_document_currency ?? 0);
+                        $itemPaid += $allocAmount;
+                        $allocationDetails[] = $allocation->payment->reference
+                            .' ('.optional($allocation->payment->payment_date)->format('d/m/Y').')'
+                            .': '.number_format($allocAmount / Money::SCALE, 2);
+                    }
+                }
+
+                $itemRemaining = max(0, $itemAmount - $itemPaid);
+
+                $allocationsText = empty($allocationDetails)
+                    ? '(no payments)'
+                    : implode(' | ', $allocationDetails);
+
+                $rows[] = [
+                    '_row_type' => 'detail',
+                    'number' => '  ↳ '.($item->label ?? 'Installment'),
+                    'bl_number' => optional($item->due_date)->format('d/m/Y') ?? '',
+                    'client_reference' => $allocationsText,
+                    'etd' => '',
+                    'eta' => '',
+                    'status' => $item->status instanceof \BackedEnum ? $item->status->value : (string) $item->status,
+                    'freight' => '',
+                    'other_costs' => '',
+                    'total_costs' => round($itemAmount / Money::SCALE, 2),
+                    'paid' => round($itemPaid / Money::SCALE, 2),
+                    'balance' => round($itemRemaining / Money::SCALE, 2),
+                    'currency' => (string) ($item->currency_code ?? ''),
+                ];
+            }
+        }
 
         return new StatementSection(
             key: 'shipments',
