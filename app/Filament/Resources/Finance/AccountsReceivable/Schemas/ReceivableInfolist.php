@@ -76,6 +76,9 @@ class ReceivableInfolist
                     ->schema([
                         TextEntry::make('scheduleItem.payable.reference')
                             ->label(__('forms.labels.document')),
+                        TextEntry::make('scheduleItem.payable.client_reference')
+                            ->label(__('forms.labels.client_reference'))
+                            ->placeholder('—'),
                         TextEntry::make('scheduleItem.label')
                             ->label(__('forms.labels.schedule_item')),
                         TextEntry::make('type')
@@ -96,7 +99,7 @@ class ReceivableInfolist
                             ->formatStateUsing(fn ($state) => Money::format($state))
                             ->placeholder('—'),
                     ])
-                    ->columns(6),
+                    ->columns(7),
             ]),
         ]);
     }

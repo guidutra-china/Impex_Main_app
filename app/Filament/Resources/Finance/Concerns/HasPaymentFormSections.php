@@ -467,6 +467,7 @@ trait HasPaymentFormSections
         $html .= '<table class="w-full text-sm border-collapse">';
         $html .= '<thead><tr class="border-b border-gray-200 dark:border-gray-700">';
         $html .= '<th class="text-left py-1.5 px-2 font-medium text-gray-600 dark:text-gray-400">Document</th>';
+        $html .= '<th class="text-left py-1.5 px-2 font-medium text-gray-600 dark:text-gray-400">Client Ref.</th>';
         $html .= '<th class="text-left py-1.5 px-2 font-medium text-gray-600 dark:text-gray-400">Stage</th>';
         $html .= '<th class="text-right py-1.5 px-2 font-medium text-gray-600 dark:text-gray-400">Due</th>';
         $html .= '<th class="text-right py-1.5 px-2 font-medium text-gray-600 dark:text-gray-400">Paid</th>';
@@ -503,7 +504,10 @@ trait HasPaymentFormSections
                 }
 
                 $html .= '<tr class="border-b border-gray-100 dark:border-gray-800">';
+                $clientRef = $item->payable?->client_reference ?? '';
+
                 $html .= '<td class="py-1.5 px-2 font-medium">' . e($displayRef) . '</td>';
+                $html .= '<td class="py-1.5 px-2">' . e($clientRef) . '</td>';
                 $html .= '<td class="py-1.5 px-2">' . $stageBadge . '</td>';
                 $html .= '<td class="py-1.5 px-2 text-right">' . Money::format($item->amount) . '</td>';
                 $html .= '<td class="py-1.5 px-2 text-right">' . Money::format($item->paid_amount) . '</td>';
@@ -516,7 +520,7 @@ trait HasPaymentFormSections
 
         $html .= '</tbody>';
         $html .= '<tfoot><tr class="border-t-2 border-gray-300 dark:border-gray-600">';
-        $html .= '<td colspan="4" class="py-1.5 px-2 font-bold text-right">Total Remaining:</td>';
+        $html .= '<td colspan="5" class="py-1.5 px-2 font-bold text-right">Total Remaining:</td>';
         $html .= '<td class="py-1.5 px-2 text-right font-bold text-primary-600">' . Money::format($totalRemaining) . '</td>';
         $html .= '<td colspan="2"></td>';
         $html .= '</tr></tfoot></table>';
