@@ -8,6 +8,10 @@ use App\Domain\CRM\Reports\DTOs\StatementSection;
 use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Models\Payment;
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\Logistics\Models\Shipment;
+use App\Domain\Planning\Models\ShipmentPlan;
+use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 
 final class PaymentSectionBuilder implements FinancialSectionBuilder
 {
@@ -34,25 +38,51 @@ final class PaymentSectionBuilder implements FinancialSectionBuilder
             $query->where('currency_code', $filters->currency);
         }
 
-        $rows = $query->with(['paymentMethod', 'allocations'])
-            ->get()
-            ->map(function (Payment $payment) {
-                $amount = (int) $payment->amount;
-                $allocated = (int) $payment->allocated_total;
+        $payments = $query->with([
+            'paymentMethod',
+            'allocations.scheduleItem.payable',
+        ])->get();
 
-                return [
-                    'reference' => (string) ($payment->reference ?? ''),
-                    'date' => optional($payment->payment_date)->format('Y-m-d'),
-                    'direction' => $payment->direction instanceof \BackedEnum ? $payment->direction->value : (string) $payment->direction,
-                    'amount' => round($amount / Money::SCALE, 2),
-                    'currency' => (string) ($payment->currency_code ?? ''),
-                    'method' => (string) ($payment->paymentMethod?->name ?? ''),
-                    'allocated' => round($allocated / Money::SCALE, 2),
-                    'unallocated' => round(($amount - $allocated) / Money::SCALE, 2),
-                    'status' => $payment->status instanceof \BackedEnum ? $payment->status->value : (string) $payment->status,
+        $rows = [];
+
+        foreach ($payments as $payment) {
+            $amount = (int) $payment->amount;
+            $allocated = (int) $payment->allocations->sum('allocated_amount');
+
+            // Payment header row
+            $rows[] = [
+                '_row_type' => 'header',
+                'reference' => (string) ($payment->reference ?? ''),
+                'date' => optional($payment->payment_date)->format('Y-m-d'),
+                'direction' => $payment->direction instanceof \BackedEnum ? $payment->direction->value : (string) $payment->direction,
+                'amount' => round($amount / Money::SCALE, 2),
+                'currency' => (string) ($payment->currency_code ?? ''),
+                'method' => (string) ($payment->paymentMethod?->name ?? ''),
+                'allocated' => round($allocated / Money::SCALE, 2),
+                'unallocated' => round(($amount - $allocated) / Money::SCALE, 2),
+                'status' => $payment->status instanceof \BackedEnum ? $payment->status->value : (string) $payment->status,
+            ];
+
+            // Allocation detail rows
+            foreach ($payment->allocations as $allocation) {
+                $scheduleItem = $allocation->scheduleItem;
+                $payable = $scheduleItem?->payable;
+                $allocatedAmount = (int) $allocation->allocated_amount;
+
+                $rows[] = [
+                    '_row_type' => 'detail',
+                    'reference' => '',
+                    'date' => '',
+                    'direction' => '',
+                    'amount' => round($allocatedAmount / Money::SCALE, 2),
+                    'currency' => '',
+                    'method' => '  ↳ ' . $this->documentLabel($payable, $scheduleItem?->label),
+                    'allocated' => '',
+                    'unallocated' => '',
+                    'status' => '',
                 ];
-            })
-            ->all();
+            }
+        }
 
         $columns = ['reference', 'date'];
         if ($filters->isAdmin()) {
@@ -66,5 +96,29 @@ final class PaymentSectionBuilder implements FinancialSectionBuilder
             columns: $columns,
             rows: $rows,
         );
+    }
+
+    private function documentLabel($payable, ?string $itemLabel): string
+    {
+        if ($payable === null) {
+            return $itemLabel ?? __('financial_report.columns.installment');
+        }
+
+        $type = match (true) {
+            $payable instanceof ProformaInvoice => 'PI',
+            $payable instanceof PurchaseOrder => 'PO',
+            $payable instanceof Shipment => 'SHP',
+            $payable instanceof ShipmentPlan => 'SP',
+            default => class_basename($payable),
+        };
+
+        $ref = $payable->reference ?? $payable->getKey();
+
+        $label = "{$type} {$ref}";
+        if ($itemLabel) {
+            $label .= " ({$itemLabel})";
+        }
+
+        return $label;
     }
 }
