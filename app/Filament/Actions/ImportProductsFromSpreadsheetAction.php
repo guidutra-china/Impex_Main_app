@@ -330,7 +330,8 @@ class ImportProductsFromSpreadsheetAction
                             . '</p>'
                         ))
                         ->columnSpanFull(),
-                    ...self::buildInvertedColumnSelects(),
+                    // Always create 15 selects to keep form state stable across wizard steps
+                    ...self::buildFixedColumnSelects($rows),
                 ];
             })
             ->columns(3);
@@ -389,20 +390,14 @@ class ImportProductsFromSpreadsheetAction
 
     /**
      * Build field options including attributes filtered by the given category IDs.
-     * Returns flat array (not grouped) for compatibility with Select::multiple().
+     * Returns grouped array with category-filtered attributes.
      */
     protected static function fieldOptionsForCategories(array $categoryIds): array
     {
-        $grouped = self::baseFieldOptions();
-        $flat = [];
-
-        foreach ($grouped as $group => $fields) {
-            foreach ($fields as $key => $label) {
-                $flat[$key] = "[{$group}] {$label}";
-            }
-        }
+        $fieldOptions = self::baseFieldOptions();
 
         if (! empty($categoryIds)) {
+            $attrOptions = [];
             $categories = Category::whereIn('id', $categoryIds)
                 ->with('categoryAttributes')
                 ->get();
@@ -410,37 +405,39 @@ class ImportProductsFromSpreadsheetAction
             foreach ($categories as $cat) {
                 foreach ($cat->categoryAttributes as $attr) {
                     $key = "attr_{$attr->id}";
-                    if (! isset($flat[$key])) {
+                    if (! isset($attrOptions[$key])) {
                         $label = $attr->name . ($attr->unit ? " ({$attr->unit})" : '');
-                        $flat[$key] = "[Attributes] {$label}";
+                        $attrOptions[$key] = $label;
                     }
                 }
             }
+
+            if (! empty($attrOptions)) {
+                asort($attrOptions);
+                $fieldOptions['Attributes'] = $attrOptions;
+            }
         }
 
-        return $flat;
+        return $fieldOptions;
     }
 
-    protected static function buildInvertedColumnSelects(): array
+    /**
+     * Build 15 fixed column selects. Visible ones show header labels,
+     * extras are hidden. Always creates all 15 to keep form state stable.
+     */
+    protected static function buildFixedColumnSelects(array $rows): array
     {
-        $rows = self::getCache('rows', []);
-        if (empty($rows)) {
-            return [];
-        }
-
         $headerData = $rows[0] ?? [];
         $displayCols = min(count($headerData), 15);
 
         $selects = [];
-        for ($c = 0; $c < $displayCols; $c++) {
+        for ($c = 0; $c < 15; $c++) {
             $letter = self::columnLetter($c);
             $headerLabel = $headerData[$c] ?? '';
             $label = "Col {$letter}" . ($headerLabel ? ": {$headerLabel}" : '');
 
-            $selects[] = Select::make("col_map_{$c}")
-                ->label(mb_substr($label, 0, 40))
+            $select = Select::make("col_map_{$c}")
                 ->options(function (Get $get) {
-                    // Collect category IDs from the import_blocks repeater
                     $blocks = $get('import_blocks') ?? [];
                     $categoryIds = collect($blocks)
                         ->pluck('category_id')
@@ -452,8 +449,18 @@ class ImportProductsFromSpreadsheetAction
                     return self::fieldOptionsForCategories($categoryIds);
                 })
                 ->multiple()
+                ->searchable()
+                ->default([])
                 ->placeholder('— Skip —')
                 ->native(false);
+
+            if ($c < $displayCols) {
+                $select->label(mb_substr($label, 0, 40));
+            } else {
+                $select->hidden();
+            }
+
+            $selects[] = $select;
         }
 
         return $selects;
@@ -603,6 +610,13 @@ class ImportProductsFromSpreadsheetAction
         }
 
         // Collect mapping directly from form data (more reliable than cache)
+        $dataKeys = array_filter(array_keys($data), fn ($k) => str_starts_with($k, 'col_map_'));
+        \Illuminate\Support\Facades\Log::info('SPREADSHEET IMPORT: form data keys', [
+            'all_keys' => array_keys($data),
+            'col_map_keys' => $dataKeys,
+            'col_map_values' => array_intersect_key($data, array_flip($dataKeys)),
+        ]);
+
         $headerRow = (int) ($data['header_row'] ?? 1);
         $colMapping = [];
         for ($c = 0; $c < 15; $c++) {
