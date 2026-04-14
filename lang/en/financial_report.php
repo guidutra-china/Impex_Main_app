@@ -56,6 +56,7 @@ return [
         'total_costs' => 'Total Costs',
         'proforma_invoice' => 'Proforma Invoice',
         'due_date' => 'Due Date',
+        'paid_date' => 'Paid Date',
         'document' => 'Document',
         'cost_type' => 'Type',
         'description' => 'Description',

@@ -58,6 +58,8 @@ final class PiFinancialSectionBuilder implements FinancialSectionBuilder
                 'number' => $pi->reference ?? (string) $pi->id,
                 'client_reference' => (string) ($pi->client_reference ?? ''),
                 'date' => optional($pi->issue_date)->format('Y-m-d'),
+                'due_date' => '',
+                'paid_date' => '',
                 'status' => $pi->status instanceof \BackedEnum ? $pi->status->value : (string) $pi->status,
                 'payment_term' => (string) ($pi->paymentTerm?->name ?? ''),
                 'total' => round($total / Money::SCALE, 2),
@@ -84,7 +86,9 @@ final class PiFinancialSectionBuilder implements FinancialSectionBuilder
                     '_row_type' => 'detail',
                     'number' => '',
                     'client_reference' => '',
-                    'date' => optional($item->due_date)->format('Y-m-d'),
+                    'date' => '',
+                    'due_date' => optional($item->due_date)->format('Y-m-d'),
+                    'paid_date' => $this->latestPaymentDate($item),
                     'status' => $item->status instanceof \BackedEnum ? $item->status->value : (string) $item->status,
                     'payment_term' => '  ↳ ' . ($item->label ?? __('financial_report.columns.installment')),
                     'total' => '',
@@ -94,13 +98,12 @@ final class PiFinancialSectionBuilder implements FinancialSectionBuilder
                     'balance' => round($itemRemaining / Money::SCALE, 2),
                     'currency' => '',
                 ];
-            }
         }
 
         return new StatementSection(
             key: 'proforma_invoices',
             titleKey: 'financial_report.sections.proforma_invoices',
-            columns: ['number', 'client_reference', 'date', 'status', 'payment_term', 'total', 'additional_costs', 'grand_total', 'paid', 'balance', 'currency'],
+            columns: ['number', 'client_reference', 'date', 'due_date', 'paid_date', 'status', 'payment_term', 'total', 'additional_costs', 'grand_total', 'paid', 'balance', 'currency'],
             rows: $rows,
         );
     }
@@ -115,5 +118,21 @@ final class PiFinancialSectionBuilder implements FinancialSectionBuilder
         }
 
         return $total;
+    }
+
+    private function latestPaymentDate(PaymentScheduleItem $item): ?string
+    {
+        $latest = null;
+
+        foreach ($item->allocations as $allocation) {
+            $payment = $allocation->payment;
+            if ($payment && $payment->status === PaymentStatus::APPROVED && $payment->payment_date) {
+                if ($latest === null || $payment->payment_date->gt($latest)) {
+                    $latest = $payment->payment_date;
+                }
+            }
+        }
+
+        return $latest?->format('Y-m-d');
     }
 }
