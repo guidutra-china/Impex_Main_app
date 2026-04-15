@@ -380,17 +380,24 @@ trait HasPaymentFormSections
                 });
             } else {
                 $poIds = PurchaseOrder::where('supplier_company_id', $companyId)->pluck('id');
-                $shipmentIds = Shipment::whereHas('items.purchaseOrderItem.purchaseOrder', function ($q) use ($companyId) {
-                    $q->where('supplier_company_id', $companyId);
-                })->pluck('id');
 
-                $query->where(function ($q) use ($poIds, $shipmentIds) {
+                // Shipment-level items only surface if they are additional costs
+                // whose supplier_company_id matches the selected supplier.
+                // Without this filter, freight/commission items belonging to
+                // other parties on the same shipment would leak into this
+                // supplier's outstanding list.
+                $supplierAdditionalCostIds = \App\Domain\Financial\Models\AdditionalCost::query()
+                    ->where('supplier_company_id', $companyId)
+                    ->pluck('id');
+
+                $query->where(function ($q) use ($poIds, $supplierAdditionalCostIds) {
                     $q->where(function ($q2) use ($poIds) {
                         $q2->where('payable_type', PurchaseOrder::class)->whereIn('payable_id', $poIds);
                     });
-                    if ($shipmentIds->isNotEmpty()) {
-                        $q->orWhere(function ($q2) use ($shipmentIds) {
-                            $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $shipmentIds);
+                    if ($supplierAdditionalCostIds->isNotEmpty()) {
+                        $q->orWhere(function ($q2) use ($supplierAdditionalCostIds) {
+                            $q2->where('source_type', \App\Domain\Financial\Models\AdditionalCost::class)
+                                ->whereIn('source_id', $supplierAdditionalCostIds);
                         });
                     }
                 });
@@ -439,17 +446,24 @@ trait HasPaymentFormSections
                 });
             } else {
                 $poIds = PurchaseOrder::where('supplier_company_id', $companyId)->pluck('id');
-                $shipmentIds = Shipment::whereHas('items.purchaseOrderItem.purchaseOrder', function ($q) use ($companyId) {
-                    $q->where('supplier_company_id', $companyId);
-                })->pluck('id');
 
-                $query->where(function ($q) use ($poIds, $shipmentIds) {
+                // Shipment-level items only surface if they are additional costs
+                // whose supplier_company_id matches the selected supplier.
+                // Without this filter, freight/commission items belonging to
+                // other parties on the same shipment would leak into this
+                // supplier's outstanding list.
+                $supplierAdditionalCostIds = \App\Domain\Financial\Models\AdditionalCost::query()
+                    ->where('supplier_company_id', $companyId)
+                    ->pluck('id');
+
+                $query->where(function ($q) use ($poIds, $supplierAdditionalCostIds) {
                     $q->where(function ($q2) use ($poIds) {
                         $q2->where('payable_type', PurchaseOrder::class)->whereIn('payable_id', $poIds);
                     });
-                    if ($shipmentIds->isNotEmpty()) {
-                        $q->orWhere(function ($q2) use ($shipmentIds) {
-                            $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $shipmentIds);
+                    if ($supplierAdditionalCostIds->isNotEmpty()) {
+                        $q->orWhere(function ($q2) use ($supplierAdditionalCostIds) {
+                            $q2->where('source_type', \App\Domain\Financial\Models\AdditionalCost::class)
+                                ->whereIn('source_id', $supplierAdditionalCostIds);
                         });
                     }
                 });
@@ -621,8 +635,12 @@ trait HasPaymentFormSections
         $remaining = Money::format($item->remaining_amount);
         $shipRef = static::shipmentRef($item);
         $clientRef = $item->payable?->client_reference;
+        $piRef = static::proformaInvoiceRef($item);
 
         $parts = "[{$docRef}] {$label}";
+        if ($piRef && $piRef !== $docRef) {
+            $parts .= " (PI: {$piRef})";
+        }
         if ($clientRef) {
             $parts .= " (Ref: {$clientRef})";
         }
@@ -632,6 +650,21 @@ trait HasPaymentFormSections
         $parts .= " — {$item->currency_code} {$remaining} remaining";
 
         return $parts;
+    }
+
+    public static function proformaInvoiceRef(PaymentScheduleItem $item): ?string
+    {
+        $payable = $item->payable;
+
+        if ($payable instanceof ProformaInvoice) {
+            return $payable->reference;
+        }
+
+        if ($payable instanceof PurchaseOrder) {
+            return $payable->proformaInvoice?->reference;
+        }
+
+        return null;
     }
 
     public static function formatCreditItemLabel(PaymentScheduleItem $item): string
