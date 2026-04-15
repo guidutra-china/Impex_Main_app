@@ -15,6 +15,8 @@ return [
         'date_to' => '至',
         'include_overdue' => '包含逾期',
         'include_paid' => '包含已付',
+        'include_freight' => '包含运费',
+        'include_commission' => '包含佣金',
     ],
     'kpis' => [
         'overdue' => '逾期',

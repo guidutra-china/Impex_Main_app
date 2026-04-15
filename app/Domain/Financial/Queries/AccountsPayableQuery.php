@@ -4,7 +4,9 @@ namespace App\Domain\Financial\Queries;
 
 use App\Domain\Financial\DataTransferObjects\AccountsPayablePeriodGroup;
 use App\Domain\Financial\DataTransferObjects\AccountsPayableReport;
+use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
+use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
@@ -43,6 +45,8 @@ final class AccountsPayableQuery
         CarbonImmutable $dateTo,
         bool $includePaid,
         bool $includeOverdue,
+        bool $includeFreight = true,
+        bool $includeCommission = true,
     ): AccountsPayableReport {
         $piIds = ProformaInvoice::query()
             ->where('company_id', $companyId)
@@ -72,7 +76,7 @@ final class AccountsPayableQuery
                 }
             })
             ->where('is_credit', false)
-            ->with('payable');
+            ->with(['payable', 'source']);
 
         $openStatuses = [
             PaymentScheduleStatus::PENDING,
@@ -81,6 +85,14 @@ final class AccountsPayableQuery
         ];
 
         $today = CarbonImmutable::now()->startOfDay();
+
+        $rejectByCostType = fn (PaymentScheduleItem $item): bool => $this->isExcludedByCostType(
+            $item,
+            $includeFreight,
+            $includeCommission,
+        );
+        $rejectIfEffectivelyPaid = fn (PaymentScheduleItem $item): bool => ! $includePaid
+            && $item->remaining_amount <= self::NEARLY_PAID_THRESHOLD_CENTS;
 
         // Overdue items (only if toggle is on): due_date < today and not resolved
         $overdueItems = collect();
@@ -92,6 +104,7 @@ final class AccountsPayableQuery
                 ->orderBy('due_date')
                 ->get()
                 ->filter(fn (PaymentScheduleItem $item) => $item->remaining_amount > 0)
+                ->reject($rejectByCostType)
                 ->values();
         }
 
@@ -105,9 +118,8 @@ final class AccountsPayableQuery
         $noDueDateItems = $noDueDateQuery
             ->orderBy('id')
             ->get()
-            ->reject(
-                fn (PaymentScheduleItem $item) => ! $includePaid && $item->remaining_amount <= self::NEARLY_PAID_THRESHOLD_CENTS
-            )
+            ->reject($rejectIfEffectivelyPaid)
+            ->reject($rejectByCostType)
             ->values();
 
         // Period items: due_date within [dateFrom, dateTo]
@@ -122,9 +134,8 @@ final class AccountsPayableQuery
         $periodItems = $periodQuery
             ->orderBy('due_date')
             ->get()
-            ->reject(
-                fn (PaymentScheduleItem $item) => ! $includePaid && $item->remaining_amount <= self::NEARLY_PAID_THRESHOLD_CENTS
-            )
+            ->reject($rejectIfEffectivelyPaid)
+            ->reject($rejectByCostType)
             ->values();
 
         $groupingMode = $this->resolveGroupingMode($dateFrom, $dateTo);
@@ -224,6 +235,30 @@ final class AccountsPayableQuery
             ->groupBy('currency_code')
             ->map(fn (Collection $bucket) => (int) $bucket->sum('remaining_amount'))
             ->all();
+    }
+
+    /**
+     * Returns true if the item should be excluded based on its underlying
+     * AdditionalCost cost_type and the freight/commission toggles. Items not
+     * sourced from an AdditionalCost (e.g., regular PI/PO payment terms) are
+     * never excluded by this filter.
+     */
+    private function isExcludedByCostType(
+        PaymentScheduleItem $item,
+        bool $includeFreight,
+        bool $includeCommission,
+    ): bool {
+        if ($item->source_type !== AdditionalCost::class || ! $item->source) {
+            return false;
+        }
+
+        $type = $item->source->cost_type ?? null;
+
+        return match ($type) {
+            AdditionalCostType::FREIGHT => ! $includeFreight,
+            AdditionalCostType::COMMISSION => ! $includeCommission,
+            default => false,
+        };
     }
 
     private function resolveGroupingMode(CarbonImmutable $dateFrom, CarbonImmutable $dateTo): string

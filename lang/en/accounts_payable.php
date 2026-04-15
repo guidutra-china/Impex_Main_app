@@ -15,6 +15,8 @@ return [
         'date_to' => 'To',
         'include_overdue' => 'Include overdue',
         'include_paid' => 'Include paid',
+        'include_freight' => 'Include freight',
+        'include_commission' => 'Include commission',
     ],
     'kpis' => [
         'overdue' => 'Overdue',

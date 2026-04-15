@@ -29,6 +29,10 @@ class AccountsPayablePage extends Page
 
     public bool $includePaid = false;
 
+    public bool $includeFreight = true;
+
+    public bool $includeCommission = true;
+
     protected ?Company $resolvedCompany = null;
 
     public static function getNavigationLabel(): string
@@ -62,6 +66,8 @@ class AccountsPayablePage extends Page
             dateTo: $to,
             includePaid: $this->includePaid,
             includeOverdue: $this->includeOverdue,
+            includeFreight: $this->includeFreight,
+            includeCommission: $this->includeCommission,
         );
     }
 

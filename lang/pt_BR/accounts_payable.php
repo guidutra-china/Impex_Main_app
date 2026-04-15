@@ -15,6 +15,8 @@ return [
         'date_to' => 'Até',
         'include_overdue' => 'Incluir vencidas',
         'include_paid' => 'Incluir pagas',
+        'include_freight' => 'Incluir fretes',
+        'include_commission' => 'Incluir comissões',
     ],
     'kpis' => [
         'overdue' => 'Vencido',

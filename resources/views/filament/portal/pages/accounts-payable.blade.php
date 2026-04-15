@@ -31,7 +31,7 @@
                 </label>
             @endif
 
-            <div class="md:col-span-2 flex items-center gap-6 mt-6">
+            <div class="md:col-span-6 flex flex-wrap items-center gap-x-6 gap-y-2 mt-2">
                 <label class="flex items-center gap-2">
                     <input type="checkbox" wire:model.live="includeOverdue" />
                     <span>{{ __('accounts_payable.filters.include_overdue') }}</span>
@@ -40,6 +40,16 @@
                 <label class="flex items-center gap-2">
                     <input type="checkbox" wire:model.live="includePaid" />
                     <span>{{ __('accounts_payable.filters.include_paid') }}</span>
+                </label>
+
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" wire:model.live="includeFreight" />
+                    <span>{{ __('accounts_payable.filters.include_freight') }}</span>
+                </label>
+
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" wire:model.live="includeCommission" />
+                    <span>{{ __('accounts_payable.filters.include_commission') }}</span>
                 </label>
             </div>
         </div>
