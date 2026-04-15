@@ -1,0 +1,136 @@
+<x-filament-panels::page>
+    {{-- Filters (all inputs use wire:model.live, no submit needed) --}}
+    <div class="fi-section-content p-6 space-y-4 bg-white rounded-xl shadow-sm dark:bg-gray-900">
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
+            <label class="md:col-span-2">
+                <span class="block text-sm font-medium mb-1">{{ __('accounts_receivable.filters.period') }}</span>
+                <x-filament::input.wrapper>
+                    <x-filament::input.select wire:model.live="preset">
+                        <option value="7">{{ __('accounts_receivable.filters.preset_7_days') }}</option>
+                        <option value="30">{{ __('accounts_receivable.filters.preset_30_days') }}</option>
+                        <option value="90">{{ __('accounts_receivable.filters.preset_90_days') }}</option>
+                        <option value="this_month">{{ __('accounts_receivable.filters.preset_this_month') }}</option>
+                        <option value="next_month">{{ __('accounts_receivable.filters.preset_next_month') }}</option>
+                        <option value="custom">{{ __('accounts_receivable.filters.preset_custom') }}</option>
+                    </x-filament::input.select>
+                </x-filament::input.wrapper>
+            </label>
+
+            @if ($preset === 'custom')
+                <label>
+                    <span class="block text-sm font-medium mb-1">{{ __('accounts_receivable.filters.date_from') }}</span>
+                    <x-filament::input.wrapper>
+                        <x-filament::input type="date" wire:model.live="customFrom" />
+                    </x-filament::input.wrapper>
+                </label>
+                <label>
+                    <span class="block text-sm font-medium mb-1">{{ __('accounts_receivable.filters.date_to') }}</span>
+                    <x-filament::input.wrapper>
+                        <x-filament::input type="date" wire:model.live="customTo" />
+                    </x-filament::input.wrapper>
+                </label>
+            @endif
+
+            <div class="md:col-span-6 flex flex-wrap items-center gap-x-6 gap-y-2 mt-2">
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" wire:model.live="includeOverdue" />
+                    <span>{{ __('accounts_receivable.filters.include_overdue') }}</span>
+                </label>
+
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" wire:model.live="includePaid" />
+                    <span>{{ __('accounts_receivable.filters.include_paid') }}</span>
+                </label>
+
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" wire:model.live="includeFreight" />
+                    <span>{{ __('accounts_receivable.filters.include_freight') }}</span>
+                </label>
+
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" wire:model.live="includeCommission" />
+                    <span>{{ __('accounts_receivable.filters.include_commission') }}</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    {{-- KPI cards --}}
+    @php $report = $this->getReport(); @endphp
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <x-filament::section>
+            <div class="text-xs uppercase text-gray-500">{{ __('accounts_receivable.kpis.overdue') }}</div>
+            @foreach ($report->overdueTotalsByCurrency as $currency => $amount)
+                <div class="text-lg font-semibold text-danger-600">{{ $currency }} {{ number_format($amount / 10000, 2) }}</div>
+            @endforeach
+            @if (empty($report->overdueTotalsByCurrency))
+                <div class="text-lg font-semibold">—</div>
+            @endif
+        </x-filament::section>
+
+        <x-filament::section>
+            <div class="text-xs uppercase text-gray-500">{{ __('accounts_receivable.kpis.period') }}</div>
+            @foreach ($report->periodTotalsByCurrency as $currency => $amount)
+                <div class="text-lg font-semibold">{{ $currency }} {{ number_format($amount / 10000, 2) }}</div>
+            @endforeach
+            @if (empty($report->periodTotalsByCurrency))
+                <div class="text-lg font-semibold">—</div>
+            @endif
+        </x-filament::section>
+
+        <x-filament::section>
+            <div class="text-xs uppercase text-gray-500">{{ __('accounts_receivable.kpis.total') }}</div>
+            @foreach ($report->grandTotalsByCurrency as $currency => $amount)
+                <div class="text-lg font-semibold">{{ $currency }} {{ number_format($amount / 10000, 2) }}</div>
+            @endforeach
+            @if (empty($report->grandTotalsByCurrency))
+                <div class="text-lg font-semibold">—</div>
+            @endif
+        </x-filament::section>
+    </div>
+
+    {{-- Overdue section --}}
+    @if ($report->overdueItems->isNotEmpty())
+        <x-filament::section>
+            <x-slot name="heading">
+                <span class="text-danger-600">🔴 {{ __('accounts_receivable.groups.overdue') }}</span>
+                <span class="text-sm text-gray-500">
+                    ({{ trans_choice('accounts_receivable.groups.items_count', $report->overdueItems->count(), ['count' => $report->overdueItems->count()]) }})
+                </span>
+            </x-slot>
+            @include('filament.supplier-portal.pages.partials.accounts-receivable-table', ['items' => $report->overdueItems])
+        </x-filament::section>
+    @endif
+
+    {{-- No due date section --}}
+    @if ($report->noDueDateItems->isNotEmpty())
+        <x-filament::section>
+            <x-slot name="heading">
+                <span>🕘 {{ __('accounts_receivable.groups.no_due_date') }}</span>
+                <span class="text-sm text-gray-500">
+                    ({{ trans_choice('accounts_receivable.groups.items_count', $report->noDueDateItems->count(), ['count' => $report->noDueDateItems->count()]) }})
+                </span>
+            </x-slot>
+            @include('filament.supplier-portal.pages.partials.accounts-receivable-table', ['items' => $report->noDueDateItems])
+        </x-filament::section>
+    @endif
+
+    {{-- Period groups --}}
+    @forelse ($report->periodGroups as $group)
+        <x-filament::section>
+            <x-slot name="heading">
+                📅 {{ $group->label }}
+                <span class="text-sm text-gray-500">
+                    ({{ trans_choice('accounts_receivable.groups.items_count', $group->count(), ['count' => $group->count()]) }})
+                </span>
+            </x-slot>
+            @include('filament.supplier-portal.pages.partials.accounts-receivable-table', ['items' => $group->items])
+        </x-filament::section>
+    @empty
+        @if ($report->overdueItems->isEmpty() && $report->noDueDateItems->isEmpty())
+            <x-filament::section>
+                <p class="text-center text-gray-500 py-8">{{ __('accounts_receivable.empty_state') }}</p>
+            </x-filament::section>
+        @endif
+    @endforelse
+</x-filament-panels::page>
