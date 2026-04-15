@@ -67,10 +67,15 @@ final class PoFinancialSectionBuilder implements FinancialSectionBuilder
             $total = (int) $po->total;
             $paid = (int) $po->schedule_paid_total;
 
+            $poNumber = $po->reference ?? (string) $po->id;
+            if (! empty($po->supplier_invoice_number)) {
+                $poNumber .= ' / ' . $po->supplier_invoice_number;
+            }
+
             // PO header row
             $rows[] = [
                 '_row_type' => 'header',
-                'number' => $po->reference ?? (string) $po->id,
+                'number' => $poNumber,
                 'supplier' => (string) ($po->supplierCompany?->name ?? ''),
                 'date' => optional($po->issue_date)->format('Y-m-d'),
                 'status' => $po->status instanceof \BackedEnum ? $po->status->value : (string) $po->status,
