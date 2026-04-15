@@ -481,7 +481,7 @@ trait HasPaymentFormSections
         $html .= '<table class="w-full text-sm border-collapse">';
         $html .= '<thead><tr class="border-b border-gray-200 dark:border-gray-700">';
         $html .= '<th class="text-left py-1.5 px-2 font-medium text-gray-600 dark:text-gray-400">Document</th>';
-        $html .= '<th class="text-left py-1.5 px-2 font-medium text-gray-600 dark:text-gray-400">Client Ref.</th>';
+        $html .= '<th class="text-left py-1.5 px-2 font-medium text-gray-600 dark:text-gray-400">Supplier Invoice</th>';
         $html .= '<th class="text-left py-1.5 px-2 font-medium text-gray-600 dark:text-gray-400">Stage</th>';
         $html .= '<th class="text-right py-1.5 px-2 font-medium text-gray-600 dark:text-gray-400">Due</th>';
         $html .= '<th class="text-right py-1.5 px-2 font-medium text-gray-600 dark:text-gray-400">Paid</th>';
@@ -518,10 +518,10 @@ trait HasPaymentFormSections
                 }
 
                 $html .= '<tr class="border-b border-gray-100 dark:border-gray-800">';
-                $clientRef = $item->payable?->client_reference ?? '';
+                $supplierInvoice = static::supplierInvoiceNumber($item) ?? '';
 
                 $html .= '<td class="py-1.5 px-2 font-medium">' . e($displayRef) . '</td>';
-                $html .= '<td class="py-1.5 px-2">' . e($clientRef) . '</td>';
+                $html .= '<td class="py-1.5 px-2">' . e($supplierInvoice) . '</td>';
                 $html .= '<td class="py-1.5 px-2">' . $stageBadge . '</td>';
                 $html .= '<td class="py-1.5 px-2 text-right">' . Money::format($item->amount) . '</td>';
                 $html .= '<td class="py-1.5 px-2 text-right">' . Money::format($item->paid_amount) . '</td>';
@@ -634,15 +634,11 @@ trait HasPaymentFormSections
         $label = static::cleanLabel($item);
         $remaining = Money::format($item->remaining_amount);
         $shipRef = static::shipmentRef($item);
-        $clientRef = $item->payable?->client_reference;
-        $piRef = static::proformaInvoiceRef($item);
+        $supplierInvoice = static::supplierInvoiceNumber($item);
 
         $parts = "[{$docRef}] {$label}";
-        if ($piRef && $piRef !== $docRef) {
-            $parts .= " (PI: {$piRef})";
-        }
-        if ($clientRef) {
-            $parts .= " (Ref: {$clientRef})";
+        if ($supplierInvoice) {
+            $parts .= " (Inv: {$supplierInvoice})";
         }
         if ($shipRef) {
             $parts .= " [{$shipRef}]";
@@ -652,16 +648,12 @@ trait HasPaymentFormSections
         return $parts;
     }
 
-    public static function proformaInvoiceRef(PaymentScheduleItem $item): ?string
+    public static function supplierInvoiceNumber(PaymentScheduleItem $item): ?string
     {
         $payable = $item->payable;
 
-        if ($payable instanceof ProformaInvoice) {
-            return $payable->reference;
-        }
-
         if ($payable instanceof PurchaseOrder) {
-            return $payable->proformaInvoice?->reference;
+            return $payable->supplier_invoice_number ?: null;
         }
 
         return null;
