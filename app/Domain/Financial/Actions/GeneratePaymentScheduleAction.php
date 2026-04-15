@@ -787,6 +787,7 @@ class GeneratePaymentScheduleAction
                             'percentage' => 0,
                             'amount' => $cost->forwarder_amount,
                             'currency_code' => $cost->forwarder_currency_code ?? $payable->currency_code ?? 'USD',
+                            'due_date' => $this->resolveAdditionalCostDueDate($cost, $payable),
                             'status' => PaymentScheduleStatus::DUE->value,
                             'is_blocking' => false,
                             'is_credit' => false,
@@ -839,6 +840,7 @@ class GeneratePaymentScheduleAction
                     'percentage' => 0,
                     'amount' => $cost->amount_in_document_currency,
                     'currency_code' => $schedulePayable->currency_code ?? $cost->currency_code ?? 'USD',
+                    'due_date' => $this->resolveAdditionalCostDueDate($cost, $schedulePayable),
                     'status' => PaymentScheduleStatus::DUE->value,
                     'is_blocking' => false,
                     'is_credit' => $isCredit,
@@ -875,6 +877,7 @@ class GeneratePaymentScheduleAction
                         'percentage' => 0,
                         'amount' => $cost->forwarder_amount,
                         'currency_code' => $cost->forwarder_currency_code ?? $schedulePayable->currency_code ?? 'USD',
+                        'due_date' => $this->resolveAdditionalCostDueDate($cost, $schedulePayable),
                         'status' => PaymentScheduleStatus::DUE->value,
                         'is_blocking' => false,
                         'is_credit' => false,
@@ -917,6 +920,33 @@ class GeneratePaymentScheduleAction
         }
 
         return $owner;
+    }
+
+    /**
+     * Business rule: when an AdditionalCost of type FREIGHT is scheduled
+     * against a Shipment that has an ETA, default the due_date to ETA - 3 days.
+     * Other cost types and non-Shipment payables fall through to NULL so the
+     * caller's existing behavior is preserved.
+     */
+    protected function resolveAdditionalCostDueDate(AdditionalCost $cost, Model $payable): ?\Carbon\Carbon
+    {
+        if (! $payable instanceof Shipment) {
+            return null;
+        }
+
+        $costType = $cost->cost_type instanceof AdditionalCostType
+            ? $cost->cost_type
+            : (is_string($cost->cost_type) ? AdditionalCostType::tryFrom($cost->cost_type) : null);
+
+        if ($costType !== AdditionalCostType::FREIGHT) {
+            return null;
+        }
+
+        if (! $payable->eta) {
+            return null;
+        }
+
+        return \Carbon\Carbon::parse($payable->eta)->subDays(3);
     }
 
     protected function isBlockingCondition(?CalculationBase $condition): bool
