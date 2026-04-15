@@ -76,6 +76,12 @@ final class AccountsPayableQuery
                 }
             })
             ->where('is_credit', false)
+            // Exclude forwarder-payable mirror items: those are amounts Impex
+            // owes the forwarder, not amounts the client owes.
+            ->where(function ($q) {
+                $q->whereNull('notes')
+                    ->orWhere('notes', 'NOT LIKE', '%[forwarder-payable]%');
+            })
             ->with(['payable', 'source']);
 
         $openStatuses = [
