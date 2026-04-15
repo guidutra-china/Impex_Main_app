@@ -2,6 +2,7 @@
 
 namespace App\Filament\SupplierPortal\Pages;
 
+use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Filament\Pages\StatementPreview;
 use BackedEnum;
@@ -33,5 +34,10 @@ class StatementsPage extends StatementPreview
         abort_unless($user && $user->company_id, 403);
 
         return Company::findOrFail($user->company_id);
+    }
+
+    protected function resolveRole(): ?CompanyRole
+    {
+        return CompanyRole::SUPPLIER;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Reports\CompanyStatementService;
 use App\Domain\CRM\Reports\DTOs\StatementFilters;
@@ -26,6 +27,16 @@ abstract class StatementPreview extends Page
     public string $locale = 'en';
 
     abstract protected function resolveCompany(): Company;
+
+    /**
+     * Optional role override so portal pages can force the statement to be
+     * rendered from a specific perspective (supplier vs client vs forwarder)
+     * regardless of which other roles the company may also have.
+     */
+    protected function resolveRole(): ?CompanyRole
+    {
+        return null;
+    }
 
     /** @return list<string> */
     protected function availableSections(): array
@@ -160,7 +171,7 @@ abstract class StatementPreview extends Page
         try {
             App::setLocale($this->locale);
 
-            return app(CompanyStatementService::class)->build($company, $filters);
+            return app(CompanyStatementService::class)->build($company, $filters, $this->resolveRole());
         } finally {
             App::setLocale($previous);
         }

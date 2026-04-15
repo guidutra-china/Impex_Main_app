@@ -16,9 +16,9 @@ final class CompanyStatementService
     ) {
     }
 
-    public function build(Company $company, StatementFilters $filters): StatementReport
+    public function build(Company $company, StatementFilters $filters, ?CompanyRole $roleOverride = null): StatementReport
     {
-        $role = $this->resolvePrimaryRole($company);
+        $role = $roleOverride ?? $this->resolvePrimaryRole($company);
         $builders = $this->resolver->resolve($role);
 
         $sections = [];
