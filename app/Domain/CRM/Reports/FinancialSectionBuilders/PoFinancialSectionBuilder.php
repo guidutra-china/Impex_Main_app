@@ -26,8 +26,20 @@ final class PoFinancialSectionBuilder implements FinancialSectionBuilder
 
         if ($filters->isSupplier()) {
             $query->where('supplier_company_id', $company->id);
+        } elseif ($filters->isAdmin()) {
+            // Admin context: the company being inspected may be a client,
+            // a supplier, or both. Include POs where the company is the
+            // supplier OR owns the linked proforma invoice, so admins see
+            // the full set of POs related to this company either way.
+            $query->where(function ($q) use ($company) {
+                $q->where('supplier_company_id', $company->id)
+                    ->orWhereHas(
+                        'proformaInvoice',
+                        fn ($sub) => $sub->where('company_id', $company->id),
+                    );
+            });
         } else {
-            // Admin: show POs linked to this company's PIs
+            // Client portal: POs linked to this company's PIs
             $query->whereHas(
                 'proformaInvoice',
                 fn ($q) => $q->where('company_id', $company->id),
