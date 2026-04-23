@@ -14,6 +14,7 @@ return [
 
     'columns' => [
         'document' => 'Document',
+        'client_reference' => 'Client Ref.',
         'installment' => 'Installment',
         'due_date' => 'Due Date',
         'amount' => 'Amount',

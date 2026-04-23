@@ -93,6 +93,7 @@ final class AccountsPayableBuilder
 
             $rows[] = [
                 'document' => $this->documentLabel($parent),
+                'client_reference' => (string) ($parent->client_reference ?? ''),
                 'installment' => (string) ($item->label ?? __('client_accounts_payable.columns.installment')),
                 'due_date' => optional($item->due_date)->format('Y-m-d'),
                 'amount' => round($amount / Money::SCALE, 2),

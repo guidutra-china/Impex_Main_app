@@ -58,6 +58,7 @@
             <thead>
                 <tr>
                     <th>{{ __('client_accounts_payable.columns.document', [], $locale) }}</th>
+                    <th>{{ __('client_accounts_payable.columns.client_reference', [], $locale) }}</th>
                     <th>{{ __('client_accounts_payable.columns.installment', [], $locale) }}</th>
                     <th>{{ __('client_accounts_payable.columns.due_date', [], $locale) }}</th>
                     <th style="text-align: right;">{{ __('client_accounts_payable.columns.amount', [], $locale) }}</th>
@@ -71,6 +72,7 @@
             @foreach($report->rows as $row)
                 <tr>
                     <td>{{ $row['document'] }}</td>
+                    <td>{{ $row['client_reference'] !== '' ? $row['client_reference'] : '—' }}</td>
                     <td>
                         {{ $row['installment'] }}
                         @if(! empty($row['days_overdue']))

@@ -70,6 +70,7 @@
                     <thead>
                         <tr style="background: #f3f4f6;">
                             <th style="text-align: left; padding: 6px 8px; border-bottom: 2px solid #e5e7eb;">{{ __('client_accounts_payable.columns.document') }}</th>
+                            <th style="text-align: left; padding: 6px 8px; border-bottom: 2px solid #e5e7eb;">{{ __('client_accounts_payable.columns.client_reference') }}</th>
                             <th style="text-align: left; padding: 6px 8px; border-bottom: 2px solid #e5e7eb;">{{ __('client_accounts_payable.columns.installment') }}</th>
                             <th style="text-align: left; padding: 6px 8px; border-bottom: 2px solid #e5e7eb;">{{ __('client_accounts_payable.columns.due_date') }}</th>
                             <th style="text-align: right; padding: 6px 8px; border-bottom: 2px solid #e5e7eb;">{{ __('client_accounts_payable.columns.amount') }}</th>
@@ -84,6 +85,7 @@
                         @php($isOverdue = ! empty($row['days_overdue']))
                         <tr style="{{ $isOverdue ? 'background: #fef2f2;' : '' }}">
                             <td style="padding: 5px 8px; border-bottom: 1px solid #f3f4f6;">{{ $row['document'] }}</td>
+                            <td style="padding: 5px 8px; border-bottom: 1px solid #f3f4f6; color: #6b7280;">{{ $row['client_reference'] !== '' ? $row['client_reference'] : '—' }}</td>
                             <td style="padding: 5px 8px; border-bottom: 1px solid #f3f4f6;">
                                 {{ $row['installment'] }}
                                 @if($isOverdue)

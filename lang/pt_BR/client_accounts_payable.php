@@ -14,6 +14,7 @@ return [
 
     'columns' => [
         'document' => 'Documento',
+        'client_reference' => 'Ref. Cliente',
         'installment' => 'Parcela',
         'due_date' => 'Vencimento',
         'amount' => 'Valor',
