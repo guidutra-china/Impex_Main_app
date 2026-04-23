@@ -118,6 +118,10 @@ class CompaniesTable
                         ->label(__('custom_financial_report.title'))
                         ->icon('heroicon-o-document-chart-bar')
                         ->url(fn (Company $record): string => url('/panel/custom-financial-report?company='.$record->id)),
+                    Action::make('clientAccountsPayable')
+                        ->label(__('client_accounts_payable.title'))
+                        ->icon('heroicon-o-clipboard-document-list')
+                        ->url(fn (Company $record): string => url('/panel/client-accounts-payable?company='.$record->id)),
                 ])
                     ->label(__('custom_financial_report.group_label'))
                     ->icon('heroicon-m-document-chart-bar')

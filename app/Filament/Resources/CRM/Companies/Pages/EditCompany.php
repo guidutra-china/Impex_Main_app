@@ -30,6 +30,10 @@ class EditCompany extends EditRecord
                     ->label(__('custom_financial_report.title'))
                     ->icon('heroicon-o-document-chart-bar')
                     ->url(fn (): string => url('/panel/custom-financial-report?company='.$this->record->id)),
+                Action::make('clientAccountsPayable')
+                    ->label(__('client_accounts_payable.title'))
+                    ->icon('heroicon-o-clipboard-document-list')
+                    ->url(fn (): string => url('/panel/client-accounts-payable?company='.$this->record->id)),
             ])
                 ->label(__('custom_financial_report.group_label'))
                 ->icon('heroicon-m-document-chart-bar')
