@@ -55,26 +55,32 @@ final class AdditionalCostFinancialSectionBuilder implements FinancialSectionBui
             $query->where('currency_code', $filters->currency);
         }
 
-        $rows = $query->get()->map(function (AdditionalCost $cost) use ($filters) {
-            $parent = $cost->costable;
-            $parentRef = $parent?->reference ?? class_basename($cost->costable_type) . '-' . $cost->costable_id;
+        $rows = $query->get()
+            ->reject(fn (AdditionalCost $cost) => $filters->isExcluded('additional_costs', (int) $cost->id))
+            ->map(function (AdditionalCost $cost) use ($filters) {
+                $parent = $cost->costable;
+                $parentRef = $parent?->reference ?? class_basename($cost->costable_type).'-'.$cost->costable_id;
 
-            $row = [
-                'document' => $parentRef,
-                'cost_type' => $cost->cost_type instanceof \BackedEnum ? $cost->cost_type->getEnglishLabel() : (string) $cost->cost_type,
-                'description' => (string) ($cost->description ?? ''),
-                'amount' => round($cost->amount / Money::SCALE, 2),
-                'currency' => (string) ($cost->currency_code ?? ''),
-                'status' => $cost->status instanceof \BackedEnum ? $cost->status->value : (string) $cost->status,
-                'date' => ($cost->cost_date ?? $cost->created_at)?->format('Y-m-d'),
-            ];
+                $row = [
+                    '_row_type' => 'header',
+                    '_entity_id' => (int) $cost->id,
+                    'document' => $parentRef,
+                    'cost_type' => $cost->cost_type instanceof \BackedEnum ? $cost->cost_type->getEnglishLabel() : (string) $cost->cost_type,
+                    'description' => (string) ($cost->description ?? ''),
+                    'amount' => round($cost->amount / Money::SCALE, 2),
+                    'currency' => (string) ($cost->currency_code ?? ''),
+                    'status' => $cost->status instanceof \BackedEnum ? $cost->status->value : (string) $cost->status,
+                    'date' => ($cost->cost_date ?? $cost->created_at)?->format('Y-m-d'),
+                ];
 
-            if ($filters->isAdmin()) {
-                $row['billable_to'] = $cost->billable_to instanceof \BackedEnum ? $cost->billable_to->value : (string) ($cost->billable_to ?? '');
-            }
+                if ($filters->isAdmin()) {
+                    $row['billable_to'] = $cost->billable_to instanceof \BackedEnum ? $cost->billable_to->value : (string) ($cost->billable_to ?? '');
+                }
 
-            return $row;
-        })->all();
+                return $row;
+            })
+            ->values()
+            ->all();
 
         $columns = ['document', 'cost_type', 'description', 'amount', 'currency', 'date', 'status'];
         if ($filters->isAdmin()) {

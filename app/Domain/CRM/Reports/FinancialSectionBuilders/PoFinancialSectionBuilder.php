@@ -64,17 +64,22 @@ final class PoFinancialSectionBuilder implements FinancialSectionBuilder
         $rows = [];
 
         foreach ($pos as $po) {
+            if ($filters->isExcluded('purchase_orders', (int) $po->id)) {
+                continue;
+            }
+
             $total = (int) $po->total;
             $paid = (int) $po->schedule_paid_total;
 
             $poNumber = $po->reference ?? (string) $po->id;
             if (! empty($po->supplier_invoice_number)) {
-                $poNumber .= ' / ' . $po->supplier_invoice_number;
+                $poNumber .= ' / '.$po->supplier_invoice_number;
             }
 
             // PO header row
             $rows[] = [
                 '_row_type' => 'header',
+                '_entity_id' => (int) $po->id,
                 'number' => $poNumber,
                 'supplier' => (string) ($po->supplierCompany?->name ?? ''),
                 'date' => optional($po->issue_date)->format('Y-m-d'),
@@ -85,6 +90,10 @@ final class PoFinancialSectionBuilder implements FinancialSectionBuilder
                 'balance' => round(($total - $paid) / Money::SCALE, 2),
                 'currency' => (string) ($po->currency_code ?? ''),
             ];
+
+            if (! $filters->showDetails) {
+                continue;
+            }
 
             // Payment schedule detail rows
             $scheduleItems = $po->paymentScheduleItems->sortBy('sort_order');
@@ -104,7 +113,7 @@ final class PoFinancialSectionBuilder implements FinancialSectionBuilder
                     'supplier' => '',
                     'date' => optional($item->due_date)->format('Y-m-d'),
                     'status' => $item->status instanceof \BackedEnum ? $item->status->value : (string) $item->status,
-                    'payment_term' => '  ↳ ' . ($item->label ?? __('financial_report.columns.installment')),
+                    'payment_term' => '  ↳ '.($item->label ?? __('financial_report.columns.installment')),
                     'total' => round($itemAmount / Money::SCALE, 2),
                     'paid' => round($itemPaid / Money::SCALE, 2),
                     'balance' => round($itemRemaining / Money::SCALE, 2),

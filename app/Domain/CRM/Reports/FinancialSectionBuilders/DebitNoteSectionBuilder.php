@@ -36,10 +36,13 @@ final class DebitNoteSectionBuilder implements FinancialSectionBuilder
 
         $rows = $query->with(['proformaInvoice', 'lineItems'])
             ->get()
+            ->reject(fn (DebitNote $dn) => $filters->isExcluded('debit_notes', (int) $dn->id))
             ->map(function (DebitNote $dn) {
                 $total = (int) $dn->total_amount;
 
                 return [
+                    '_row_type' => 'header',
+                    '_entity_id' => (int) $dn->id,
                     'reference' => (string) ($dn->reference ?? ''),
                     'proforma_invoice' => (string) ($dn->proformaInvoice?->reference ?? ''),
                     'date' => optional($dn->issued_at)->format('Y-m-d'),
@@ -49,6 +52,7 @@ final class DebitNoteSectionBuilder implements FinancialSectionBuilder
                     'currency' => (string) ($dn->currency_code ?? ''),
                 ];
             })
+            ->values()
             ->all();
 
         return new StatementSection(

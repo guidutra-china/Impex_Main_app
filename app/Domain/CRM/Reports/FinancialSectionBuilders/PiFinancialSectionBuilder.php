@@ -47,6 +47,10 @@ final class PiFinancialSectionBuilder implements FinancialSectionBuilder
         $rows = [];
 
         foreach ($pis as $pi) {
+            if ($filters->isExcluded('proforma_invoices', (int) $pi->id)) {
+                continue;
+            }
+
             $total = (int) $pi->total;
             $additionalCosts = (int) $pi->client_billable_costs_total;
             $grandTotal = (int) $pi->grand_total;
@@ -55,6 +59,7 @@ final class PiFinancialSectionBuilder implements FinancialSectionBuilder
             // PI header row
             $rows[] = [
                 '_row_type' => 'header',
+                '_entity_id' => (int) $pi->id,
                 'number' => $pi->reference ?? (string) $pi->id,
                 'client_reference' => (string) ($pi->client_reference ?? ''),
                 'date' => optional($pi->issue_date)->format('Y-m-d'),
@@ -69,6 +74,10 @@ final class PiFinancialSectionBuilder implements FinancialSectionBuilder
                 'balance' => round(($grandTotal - $paid) / Money::SCALE, 2),
                 'currency' => (string) ($pi->currency_code ?? ''),
             ];
+
+            if (! $filters->showDetails) {
+                continue;
+            }
 
             // Payment schedule detail rows
             $scheduleItems = $pi->paymentScheduleItems->sortBy('sort_order');
@@ -90,7 +99,7 @@ final class PiFinancialSectionBuilder implements FinancialSectionBuilder
                     'due_date' => optional($item->due_date)->format('Y-m-d'),
                     'paid_date' => $this->latestPaymentDate($item),
                     'status' => $item->status instanceof \BackedEnum ? $item->status->value : (string) $item->status,
-                    'payment_term' => '  ↳ ' . ($item->label ?? __('financial_report.columns.installment')),
+                    'payment_term' => '  ↳ '.($item->label ?? __('financial_report.columns.installment')),
                     'total' => '',
                     'additional_costs' => '',
                     'grand_total' => round($itemAmount / Money::SCALE, 2),

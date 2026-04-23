@@ -16,6 +16,7 @@ use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use Filament\Widgets\Widget;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Route;
 
 class CompanyFinancialStatement extends Widget
 {
@@ -213,7 +214,7 @@ class CompanyFinancialStatement extends Widget
             $totalPaid += $paid;
 
             $rows[] = [
-                'reference' => $shipment->reference ?? 'SHP-' . $shipmentId,
+                'reference' => $shipment->reference ?? 'SHP-'.$shipmentId,
                 'status' => $shipment->status,
                 'eta' => $shipment->eta?->format('M d, Y'),
                 'date' => $shipmentCosts->first()->cost_date?->format('M d, Y')
@@ -253,12 +254,14 @@ class CompanyFinancialStatement extends Widget
             ->get()
             ->filter(fn ($p) => $p->unallocated_amount > 0)
             ->map(fn ($p) => [
-                'reference' => $p->reference ?? 'PAY-' . $p->id,
+                'reference' => $p->reference ?? 'PAY-'.$p->id,
                 'date' => $p->payment_date?->format('M d, Y') ?? $p->created_at->format('M d, Y'),
                 'currency' => $p->currency_code ?? 'USD',
                 'total' => Money::format($p->amount),
                 'unallocated' => Money::format($p->unallocated_amount),
-                'url' => route('filament.admin.resources.payments.view', $p),
+                'url' => Route::has('filament.admin.resources.payments.view')
+                    ? route('filament.admin.resources.payments.view', $p)
+                    : '#',
             ])
             ->values()
             ->toArray();

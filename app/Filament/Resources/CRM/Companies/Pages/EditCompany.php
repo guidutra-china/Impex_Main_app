@@ -5,6 +5,7 @@ namespace App\Filament\Resources\CRM\Companies\Pages;
 use App\Domain\CRM\Models\CompanyRoleAssignment;
 use App\Filament\Resources\CRM\Companies\CompanyResource;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\DB;
@@ -16,14 +17,24 @@ class EditCompany extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('generateStatement')
-                ->label(__('statements.filters.title'))
-                ->icon('heroicon-o-document-text')
-                ->url(fn (): string => url('/panel/statement?company=' . $this->record->id)),
-            Action::make('financialReport')
-                ->label(__('financial_report.title'))
-                ->icon('heroicon-o-currency-dollar')
-                ->url(fn (): string => url('/panel/financial-report?company=' . $this->record->id)),
+            ActionGroup::make([
+                Action::make('generateStatement')
+                    ->label(__('statements.filters.title'))
+                    ->icon('heroicon-o-document-text')
+                    ->url(fn (): string => url('/panel/statement?company='.$this->record->id)),
+                Action::make('financialReport')
+                    ->label(__('financial_report.title'))
+                    ->icon('heroicon-o-currency-dollar')
+                    ->url(fn (): string => url('/panel/financial-report?company='.$this->record->id)),
+                Action::make('customFinancialReport')
+                    ->label(__('custom_financial_report.title'))
+                    ->icon('heroicon-o-document-chart-bar')
+                    ->url(fn (): string => url('/panel/custom-financial-report?company='.$this->record->id)),
+            ])
+                ->label(__('custom_financial_report.group_label'))
+                ->icon('heroicon-m-document-chart-bar')
+                ->button()
+                ->color('gray'),
             DeleteAction::make(),
         ];
     }

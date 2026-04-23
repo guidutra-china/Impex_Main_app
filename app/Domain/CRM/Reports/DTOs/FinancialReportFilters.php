@@ -10,6 +10,10 @@ final class FinancialReportFilters
      * @param  list<string>  $sectionKeys
      * @param  'active'|'closed'|'all'  $statusScope
      * @param  'admin'|'client'|'supplier'  $context
+     * @param  array<string,list<int>>  $excluded  Entity IDs to omit, keyed by section key
+     *                                             (e.g. ['proforma_invoices' => [1,5], 'shipments' => [2]])
+     * @param  bool  $showDetails  When false, section builders skip payment-schedule / allocation detail rows
+     *                             and emit only the summary (header) row per entity.
      */
     public function __construct(
         public readonly CarbonImmutable $from,
@@ -19,12 +23,18 @@ final class FinancialReportFilters
         public readonly ?string $currency,
         public readonly string $locale,
         public readonly string $context,
-    ) {
-    }
+        public readonly array $excluded = [],
+        public readonly bool $showDetails = true,
+    ) {}
 
     public function includes(string $sectionKey): bool
     {
         return in_array($sectionKey, $this->sectionKeys, true);
+    }
+
+    public function isExcluded(string $sectionKey, int $id): bool
+    {
+        return in_array($id, $this->excluded[$sectionKey] ?? [], true);
     }
 
     public function isAdmin(): bool

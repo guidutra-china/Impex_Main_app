@@ -21,9 +21,7 @@ use Illuminate\Support\Facades\DB;
 
 final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
 {
-    public function __construct(private readonly CompanyRole $role)
-    {
-    }
+    public function __construct(private readonly CompanyRole $role) {}
 
     public function key(): string
     {
@@ -59,14 +57,20 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
         $isClientReport = $this->role === CompanyRole::CLIENT;
 
         foreach ($query->with(['items.proformaInvoiceItem', 'additionalCosts', 'paymentScheduleItems.allocations.payment'])->get() as $s) {
-            $freight = $s->additionalCosts
-                ->where('cost_type', AdditionalCostType::FREIGHT)
+            if ($filters->isExcluded('shipments', (int) $s->id)) {
+                continue;
+            }
+
+            $eligibleCosts = $s->additionalCosts
                 ->where('billable_to', BillableTo::CLIENT)
+                ->reject(fn ($cost) => $filters->isExcluded('additional_costs', (int) $cost->id));
+
+            $freight = $eligibleCosts
+                ->where('cost_type', AdditionalCostType::FREIGHT)
                 ->sum('amount_in_document_currency');
 
-            $otherCosts = $s->additionalCosts
+            $otherCosts = $eligibleCosts
                 ->where('cost_type', '!=', AdditionalCostType::FREIGHT)
-                ->where('billable_to', BillableTo::CLIENT)
                 ->sum('amount_in_document_currency');
 
             $totalCosts = $freight + $otherCosts;
@@ -93,6 +97,7 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
             // Shipment header row
             $rows[] = [
                 '_row_type' => 'header',
+                '_entity_id' => (int) $s->id,
                 'number' => $s->reference ?? (string) $s->id,
                 'bl_number' => (string) ($s->bl_number ?? ''),
                 'client_reference' => (string) ($s->client_reference ?? ''),
@@ -106,6 +111,10 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
                 'balance' => round(($totalCosts - $paidCosts) / Money::SCALE, 2),
                 'currency' => (string) ($s->currency_code ?? ''),
             ];
+
+            if (! $filters->showDetails) {
+                continue;
+            }
 
             // Schedule item detail rows with allocation breakdown
             $scheduleItems = $relevantScheduleItems->sortBy('sort_order');

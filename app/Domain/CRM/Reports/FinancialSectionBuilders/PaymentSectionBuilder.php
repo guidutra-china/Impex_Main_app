@@ -46,12 +46,17 @@ final class PaymentSectionBuilder implements FinancialSectionBuilder
         $rows = [];
 
         foreach ($payments as $payment) {
+            if ($filters->isExcluded('payments', (int) $payment->id)) {
+                continue;
+            }
+
             $amount = (int) $payment->amount;
             $allocated = (int) $payment->allocations->sum('allocated_amount');
 
             // Payment header row
             $rows[] = [
                 '_row_type' => 'header',
+                '_entity_id' => (int) $payment->id,
                 'reference' => (string) ($payment->reference ?? ''),
                 'date' => optional($payment->payment_date)->format('Y-m-d'),
                 'direction' => $payment->direction instanceof \BackedEnum ? $payment->direction->value : (string) $payment->direction,
@@ -62,6 +67,10 @@ final class PaymentSectionBuilder implements FinancialSectionBuilder
                 'unallocated' => round(($amount - $allocated) / Money::SCALE, 2),
                 'status' => $payment->status instanceof \BackedEnum ? $payment->status->value : (string) $payment->status,
             ];
+
+            if (! $filters->showDetails) {
+                continue;
+            }
 
             // Allocation detail rows
             foreach ($payment->allocations as $allocation) {
@@ -76,7 +85,7 @@ final class PaymentSectionBuilder implements FinancialSectionBuilder
                     'direction' => '',
                     'amount' => round($allocatedAmount / Money::SCALE, 2),
                     'currency' => '',
-                    'method' => '  ↳ ' . $this->documentLabel($payable, $scheduleItem?->label),
+                    'method' => '  ↳ '.$this->documentLabel($payable, $scheduleItem?->label),
                     'allocated' => '',
                     'unallocated' => '',
                     'status' => '',

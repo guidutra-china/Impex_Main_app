@@ -5,8 +5,8 @@ namespace App\Filament\Resources\CRM\Companies\Tables;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Enums\CompanyStatus;
 use App\Domain\CRM\Models\Company;
-use App\Domain\Catalog\Models\Category;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -105,14 +105,24 @@ class CompaniesTable
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
-                Action::make('generateStatement')
-                    ->label(__('statements.filters.title'))
-                    ->icon('heroicon-o-document-text')
-                    ->url(fn (Company $record): string => url('/panel/statement?company=' . $record->id)),
-                Action::make('financialReport')
-                    ->label(__('financial_report.title'))
-                    ->icon('heroicon-o-currency-dollar')
-                    ->url(fn (Company $record): string => url('/panel/financial-report?company=' . $record->id)),
+                ActionGroup::make([
+                    Action::make('generateStatement')
+                        ->label(__('statements.filters.title'))
+                        ->icon('heroicon-o-document-text')
+                        ->url(fn (Company $record): string => url('/panel/statement?company='.$record->id)),
+                    Action::make('financialReport')
+                        ->label(__('financial_report.title'))
+                        ->icon('heroicon-o-currency-dollar')
+                        ->url(fn (Company $record): string => url('/panel/financial-report?company='.$record->id)),
+                    Action::make('customFinancialReport')
+                        ->label(__('custom_financial_report.title'))
+                        ->icon('heroicon-o-document-chart-bar')
+                        ->url(fn (Company $record): string => url('/panel/custom-financial-report?company='.$record->id)),
+                ])
+                    ->label(__('custom_financial_report.group_label'))
+                    ->icon('heroicon-m-document-chart-bar')
+                    ->button()
+                    ->color('gray'),
                 DeleteAction::make(),
             ])
             ->toolbarActions([
