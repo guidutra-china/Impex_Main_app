@@ -35,6 +35,7 @@ return [
     'actions' => [
         'back' => 'Back',
         'download_pdf' => 'Download PDF',
+        'download_excel' => 'Download Excel',
         'save_and_send' => 'Save & Send by Email',
     ],
 

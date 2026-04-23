@@ -6,6 +6,7 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Reports\AccountsPayableBuilder;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\Infrastructure\Excel\Templates\ClientAccountsPayableExcelTemplate;
 use App\Domain\Infrastructure\Models\Document;
 use App\Domain\Infrastructure\Pdf\PdfGeneratorService;
 use App\Domain\Infrastructure\Pdf\Templates\ClientAccountsPayablePdfTemplate;
@@ -281,6 +282,43 @@ class ClientAccountsPayableTest extends TestCase
         $this->assertSame($company->id, $d1->documentable_id);
         $this->assertSame(1, $d1->version);
         $this->assertSame(2, $d2->version);
+    }
+
+    public function test_excel_template_produces_xlsx_file_with_rows_and_totals(): void
+    {
+        $company = Company::factory()->create();
+        $pi = ProformaInvoice::factory()->create(['company_id' => $company->id]);
+        PaymentScheduleItem::create([
+            'payable_type' => ProformaInvoice::class,
+            'payable_id' => $pi->id,
+            'label' => 'Installment 1',
+            'percentage' => 0,
+            'amount' => 10000,
+            'currency_code' => 'USD',
+            'status' => PaymentScheduleStatus::DUE->value,
+            'is_blocking' => false,
+            'is_credit' => false,
+            'sort_order' => 1,
+            'due_date' => now()->addDays(5),
+        ]);
+
+        $report = app(AccountsPayableBuilder::class)->build($company);
+
+        $template = new ClientAccountsPayableExcelTemplate(
+            $company,
+            ['report' => $report, 'locale' => 'en'],
+        );
+        $path = $template->generate();
+
+        try {
+            $this->assertFileExists($path);
+            $this->assertGreaterThan(0, filesize($path));
+            // xlsx files are zip archives — first bytes are "PK"
+            $this->assertSame('PK', substr(file_get_contents($path, false, null, 0, 2), 0, 2));
+            $this->assertStringEndsWith('.xlsx', $template->getFilename());
+        } finally {
+            @unlink($path);
+        }
     }
 
     public function test_isolated_report_does_not_flag_due_date_scoping_period(): void

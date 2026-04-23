@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Reports\AccountsPayableBuilder;
 use App\Domain\CRM\Reports\DTOs\AccountsPayableReport;
+use App\Domain\Infrastructure\Excel\Templates\ClientAccountsPayableExcelTemplate;
 use App\Domain\Infrastructure\Models\Document;
 use App\Domain\Infrastructure\Pdf\PdfGeneratorService;
 use App\Domain\Infrastructure\Pdf\PdfRenderer;
@@ -137,6 +138,33 @@ class ClientAccountsPayable extends Page
         );
     }
 
+    public function downloadExcel(): StreamedResponse
+    {
+        $report = $this->buildReport();
+
+        $previous = App::getLocale();
+        try {
+            App::setLocale($report->locale);
+
+            $template = new ClientAccountsPayableExcelTemplate(
+                $report->company,
+                ['report' => $report, 'locale' => $report->locale],
+            );
+            $path = $template->generate();
+            $filename = $template->getFilename();
+            $content = file_get_contents($path);
+            @unlink($path);
+        } finally {
+            App::setLocale($previous);
+        }
+
+        return response()->streamDownload(
+            fn () => print ($content),
+            $filename,
+            ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+        );
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -151,6 +179,12 @@ class ClientAccountsPayable extends Page
                 ->color('primary')
                 ->icon('heroicon-o-arrow-down-tray')
                 ->action('downloadPdf'),
+
+            Action::make('downloadExcel')
+                ->label(__('client_accounts_payable.actions.download_excel'))
+                ->color('gray')
+                ->icon('heroicon-o-table-cells')
+                ->action('downloadExcel'),
 
             Action::make('saveAndSend')
                 ->label(__('client_accounts_payable.actions.save_and_send'))
