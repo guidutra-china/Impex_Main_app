@@ -635,10 +635,14 @@ trait HasPaymentFormSections
         $remaining = Money::format($item->remaining_amount);
         $shipRef = static::shipmentRef($item);
         $supplierInvoice = static::supplierInvoiceNumber($item);
+        $clientRef = $item->payable?->client_reference ?: null;
 
         $parts = "[{$docRef}] {$label}";
         if ($supplierInvoice) {
             $parts .= " (Inv: {$supplierInvoice})";
+        }
+        if ($clientRef) {
+            $parts .= " (Ref: {$clientRef})";
         }
         if ($shipRef) {
             $parts .= " [{$shipRef}]";
