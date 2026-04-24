@@ -132,9 +132,10 @@ Three sections stacked:
    `parent_company_id`); same query pattern as `Client360::getClientOptionsProperty`.
 2. **Filter row** — period (from/to), presentation currency, status multi-select.
    Default period: start of current year → today. Default statuses:
-   `[confirmed, partially_paid, paid]`. Default presentation currency: the
-   most frequent `currency_code` among the client's PIs in range; ties broken
-   by most recent `issue_date`; ultimate fallback USD.
+   `[SENT, CONFIRMED, FINALIZED, REOPENED]` (excludes DRAFT and CANCELLED).
+   Default presentation currency: the most frequent `currency_code` among
+   the client's PIs in range; ties broken by most recent `issue_date`;
+   ultimate fallback USD.
 3. **Four KPI cards** visible only after a client is selected:
    - Total Received (in presentation currency)
    - Total Paid to Suppliers
@@ -294,10 +295,16 @@ readonly class AdditionalCostRow {
     public AdditionalCostType $type;
     public int $totalOriginal;
     public int $attributedOriginal;
-    public int $paidOriginal;
     public ?int $attributedPresentation;
 }
 ```
+
+Note: `AdditionalCostRow` deliberately has no `paid` field. Additional costs
+are not individually allocated — payments target `PaymentScheduleItem` rows,
+some of which may reference an `AdditionalCost` via their `source` polymorphic
+link (for `commission_mode = separate`), but reconstructing a per-cost paid
+amount adds complexity without clear value: the shipment's consolidated
+`paidOriginal` already covers everything paid toward that shipment.
 
 ### `DealTotals`
 
@@ -531,7 +538,7 @@ Three sub-tables in order:
   - Isolated PI (one PO, one exclusive shipment) — numbers match expectations.
   - Shared shipment across two PIs — each PI gets proportional attribution.
   - PI with no POs / no shipments — blocks render as empty arrays.
-  - Default status filter excludes DRAFT and CANCELLED.
+  - Default status filter is `[SENT, CONFIRMED, FINALIZED, REOPENED]` (excludes DRAFT and CANCELLED).
   - Multi-currency client (USD PI + EUR PI) converts to BRL presentation.
   - KPI totals equal sum of per-deal totals (skipping `null` values).
   - Matrix client includes branch PIs.
