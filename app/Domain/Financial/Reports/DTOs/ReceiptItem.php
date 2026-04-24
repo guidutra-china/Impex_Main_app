@@ -13,7 +13,7 @@ final readonly class ReceiptItem
         public int $amountOriginal,
         public ?int $amountPresentation,
         public ?float $exchangeRateToPresentation,
-        public string $paymentUrl,
+        public ?string $paymentUrl,
     ) {
     }
 }

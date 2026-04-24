@@ -41,13 +41,16 @@ final class DealBreakdownReportService
             ->with([
                 'items',
                 'paymentScheduleItems.allocations.payment',
+                'paymentScheduleItems.allocations.scheduleItem',
                 'paymentScheduleItems.paymentTermStage',
                 'purchaseOrders.items',
                 'purchaseOrders.supplierCompany:id,name',
                 'purchaseOrders.paymentScheduleItems.allocations.payment',
+                'purchaseOrders.paymentScheduleItems.allocations.scheduleItem',
                 'items.shipmentItems.shipment.items.proformaInvoiceItem',
                 'items.shipmentItems.shipment.forwarderCompany:id,name',
                 'items.shipmentItems.shipment.paymentScheduleItems.allocations.payment',
+                'items.shipmentItems.shipment.paymentScheduleItems.allocations.scheduleItem',
                 'items.shipmentItems.shipment.additionalCosts',
             ])
             ->orderByDesc('issue_date')
@@ -161,7 +164,7 @@ final class DealBreakdownReportService
                     amountOriginal: $amt,
                     amountPresentation: $pres,
                     exchangeRateToPresentation: null,
-                    paymentUrl: '#',
+                    paymentUrl: null,
                 );
             }
         }
