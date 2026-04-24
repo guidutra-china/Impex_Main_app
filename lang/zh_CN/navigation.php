@@ -103,6 +103,7 @@ return [
     ],
     'pages' => [
         'financial_overview' => '财务概览',
+        'client_deal_breakdown' => 'Client Deal Breakdown',
         'order_pipeline' => '订单流程',
         'client_360' => '客户 360',
         'company_settings' => '公司设置',

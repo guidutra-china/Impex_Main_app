@@ -1,0 +1,50 @@
+<?php
+
+return [
+    'title' => 'Análise de Operações por Cliente',
+    'select_client_prompt' => 'Selecione um cliente para começar.',
+    'empty_state' => 'Nenhuma operação corresponde aos filtros atuais.',
+    'filters' => [
+        'from' => 'De',
+        'to' => 'Até',
+        'presentation_currency' => 'Moeda de apresentação',
+        'statuses' => 'Status',
+        'client' => 'Cliente',
+    ],
+    'kpi' => [
+        'total_received' => 'Total Recebido',
+        'total_paid_suppliers' => 'Pago a Fornecedores',
+        'total_paid_shipments' => 'Pago a Shipments',
+        'total_margin' => 'Margem',
+    ],
+    'columns' => [
+        'pi' => 'PI',
+        'client_reference' => 'ref cliente',
+        'issue_date' => 'Data',
+        'status' => 'Status',
+        'total' => 'Total',
+        'received' => 'Recebido',
+        'paid_suppliers' => 'Pago Forn.',
+        'paid_shipments' => 'Pago Frete',
+        'cash_balance' => 'Saldo Caixa',
+        'margin' => 'Margem',
+        'currency' => 'Moeda',
+    ],
+    'sections' => [
+        'receipts' => 'Recebido do Cliente',
+        'purchase_orders' => 'Purchase Orders',
+        'shipments' => 'Shipments',
+        'additional_costs' => 'Custos Adicionais',
+    ],
+    'basis' => [
+        'weight' => 'rateio: peso',
+        'volume' => 'rateio: volume',
+        'quantity' => 'rateio: qtd (peso ausente)',
+        'value' => 'rateio: valor (peso/volume/qtd ausentes)',
+        'none' => 'rateio: indisponível',
+    ],
+    'fx_unavailable_tooltip' => 'Taxa de câmbio indisponível para um ou mais pares de moedas no período.',
+    'no_pos' => 'Nenhum PO vinculado',
+    'no_shipments' => 'Nenhum shipment vinculado',
+    'no_receipts' => 'Nenhum pagamento recebido ainda',
+];

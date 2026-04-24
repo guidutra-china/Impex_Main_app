@@ -110,6 +110,7 @@ return [
     // Page Titles
     'pages' => [
         'financial_overview' => 'Financial Overview',
+        'client_deal_breakdown' => 'Client Deal Breakdown',
         'order_pipeline' => 'Order Pipeline',
         'client_360' => 'Client 360',
         'company_settings' => 'Company Settings',

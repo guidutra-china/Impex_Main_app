@@ -1,0 +1,50 @@
+<?php
+
+return [
+    'title' => 'Client Deal Breakdown',
+    'select_client_prompt' => 'Select a client to begin.',
+    'empty_state' => 'No operations match the current filters.',
+    'filters' => [
+        'from' => 'From',
+        'to' => 'To',
+        'presentation_currency' => 'Presentation currency',
+        'statuses' => 'Statuses',
+        'client' => 'Client',
+    ],
+    'kpi' => [
+        'total_received' => 'Total Received',
+        'total_paid_suppliers' => 'Paid to Suppliers',
+        'total_paid_shipments' => 'Paid to Shipments',
+        'total_margin' => 'Margin',
+    ],
+    'columns' => [
+        'pi' => 'PI',
+        'client_reference' => 'client ref',
+        'issue_date' => 'Date',
+        'status' => 'Status',
+        'total' => 'Total',
+        'received' => 'Received',
+        'paid_suppliers' => 'Paid Sup.',
+        'paid_shipments' => 'Paid Freight',
+        'cash_balance' => 'Cash Balance',
+        'margin' => 'Margin',
+        'currency' => 'Currency',
+    ],
+    'sections' => [
+        'receipts' => 'Received from Client',
+        'purchase_orders' => 'Purchase Orders',
+        'shipments' => 'Shipments',
+        'additional_costs' => 'Additional Costs',
+    ],
+    'basis' => [
+        'weight' => 'allocation: weight',
+        'volume' => 'allocation: volume',
+        'quantity' => 'allocation: qty (weight missing)',
+        'value' => 'allocation: value (weight/volume/qty missing)',
+        'none' => 'allocation: unavailable',
+    ],
+    'fx_unavailable_tooltip' => 'FX rate not available for one or more currency pairs in this range.',
+    'no_pos' => 'No linked purchase orders',
+    'no_shipments' => 'No linked shipments',
+    'no_receipts' => 'No payments received yet',
+];

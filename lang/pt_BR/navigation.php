@@ -103,6 +103,7 @@ return [
     ],
     'pages' => [
         'financial_overview' => 'Visão Financeira',
+        'client_deal_breakdown' => 'Análise de Operações por Cliente',
         'order_pipeline' => 'Pipeline de Pedidos',
         'client_360' => 'Cliente 360',
         'company_settings' => 'Configurações da Empresa',
