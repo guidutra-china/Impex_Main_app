@@ -4,9 +4,9 @@ namespace App\Domain\Financial\Models;
 
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
-use App\Domain\Settings\Enums\CalculationBase;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Planning\Models\ShipmentPlan;
+use App\Domain\Settings\Enums\CalculationBase;
 use App\Domain\Settings\Models\PaymentTermStage;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -267,6 +267,38 @@ class PaymentScheduleItem extends Model
     public function isFromAdditionalCost(): bool
     {
         return $this->source_type === AdditionalCost::class;
+    }
+
+    /**
+     * Reconcile the stored status against the live paid_amount accessor.
+     *
+     * Call this whenever an allocation is created, deleted, or when the
+     * parent payment's approval state changes. Refuses to touch WAIVED
+     * items (terminal) and credit items (status semantics differ and are
+     * managed elsewhere).
+     *
+     * Without this, mass-delete of allocations via Query Builder bypasses
+     * model events and leaves items stuck at PAID with paid_amount = 0.
+     */
+    public function recalculateStatus(): void
+    {
+        if ($this->is_credit || $this->status === PaymentScheduleStatus::WAIVED) {
+            return;
+        }
+
+        $this->refresh();
+
+        $paid = $this->paid_amount;
+
+        $newStatus = match (true) {
+            $paid <= 0 => PaymentScheduleStatus::PENDING,
+            $this->is_paid_in_full => PaymentScheduleStatus::PAID,
+            default => PaymentScheduleStatus::DUE,
+        };
+
+        if ($this->status !== $newStatus) {
+            $this->update(['status' => $newStatus->value]);
+        }
     }
 
     // --- Blocking Logic ---

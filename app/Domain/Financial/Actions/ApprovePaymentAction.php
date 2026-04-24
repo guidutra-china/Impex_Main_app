@@ -28,7 +28,7 @@ class ApprovePaymentAction
             'approved_by' => auth()->id(),
             'approved_at' => now(),
             'notes' => $reason
-                ? ($payment->notes ? $payment->notes . "\n\nRejection: " . $reason : 'Rejection: ' . $reason)
+                ? ($payment->notes ? $payment->notes."\n\nRejection: ".$reason : 'Rejection: '.$reason)
                 : $payment->notes,
         ]);
     }
@@ -40,7 +40,7 @@ class ApprovePaymentAction
         $payment->update([
             'status' => PaymentStatus::CANCELLED,
             'notes' => $reason
-                ? ($payment->notes ? $payment->notes . "\n\nCancelled: " . $reason : 'Cancelled: ' . $reason)
+                ? ($payment->notes ? $payment->notes."\n\nCancelled: ".$reason : 'Cancelled: '.$reason)
                 : $payment->notes,
         ]);
 
@@ -51,47 +51,29 @@ class ApprovePaymentAction
 
     protected function recalculateScheduleItemStatuses(Payment $payment): void
     {
-        $allocations = $payment->allocations()->with('scheduleItem')->get();
-
-        foreach ($allocations as $allocation) {
-            $scheduleItem = $allocation->scheduleItem;
-
-            if (! $scheduleItem || $scheduleItem->status === PaymentScheduleStatus::WAIVED) {
-                continue;
-            }
-
-            $scheduleItem->update([
-                'status' => $scheduleItem->is_paid_in_full
-                    ? PaymentScheduleStatus::PAID
-                    : PaymentScheduleStatus::DUE,
-            ]);
-
-            $this->syncShipmentMirrorStatus($scheduleItem);
-        }
+        $this->reconcileScheduleItems($payment);
     }
 
     protected function rollbackScheduleItemStatuses(Payment $payment): void
+    {
+        // After cancellation, paid_amount accessor returns 0 for this payment's
+        // allocations (filter by APPROVED), so recalculateStatus correctly
+        // transitions items back to PENDING/DUE. Same call path as recalc.
+        $this->reconcileScheduleItems($payment);
+    }
+
+    protected function reconcileScheduleItems(Payment $payment): void
     {
         $allocations = $payment->allocations()->with('scheduleItem')->get();
 
         foreach ($allocations as $allocation) {
             $scheduleItem = $allocation->scheduleItem;
 
-            if (! $scheduleItem || $scheduleItem->status === PaymentScheduleStatus::WAIVED) {
+            if (! $scheduleItem) {
                 continue;
             }
 
-            // Recalculate: the cancelled payment's allocations no longer count
-            // because paid_amount accessor only sums APPROVED payments
-            $scheduleItem->refresh();
-
-            if ($scheduleItem->is_paid_in_full) {
-                $scheduleItem->update(['status' => PaymentScheduleStatus::PAID]);
-            } elseif ($scheduleItem->paid_amount > 0) {
-                $scheduleItem->update(['status' => PaymentScheduleStatus::DUE]);
-            } else {
-                $scheduleItem->update(['status' => PaymentScheduleStatus::PENDING]);
-            }
+            $scheduleItem->recalculateStatus();
 
             $this->syncShipmentMirrorStatus($scheduleItem);
         }

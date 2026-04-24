@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Finance\Concerns;
 
-use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Financial\Support\AllocationCalculator;
@@ -155,14 +154,10 @@ trait HasManageAllocationsAction
                         'allocated_amount_in_document_currency' => $resolved['allocated_amount_in_document_currency'],
                     ]);
 
-                    if ($scheduleItem->status !== PaymentScheduleStatus::WAIVED) {
-                        $scheduleItem->refresh();
-                        $scheduleItem->update([
-                            'status' => $scheduleItem->is_paid_in_full
-                                ? PaymentScheduleStatus::PAID
-                                : PaymentScheduleStatus::DUE,
-                        ]);
-                    }
+                    // PaymentAllocationObserver::created also recalculates the
+                    // item, but we refresh+recalc here to keep the feedback
+                    // deterministic within this request.
+                    $scheduleItem->recalculateStatus();
                 }
 
                 Notification::make()

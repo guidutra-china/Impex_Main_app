@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Finance\AccountsPayable\Pages;
 
-use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
@@ -66,6 +65,11 @@ class EditAccountsPayable extends EditRecord
     {
         $payment = $this->record;
 
+        $previousScheduleItemIds = $payment->allocations()
+            ->pluck('payment_schedule_item_id')
+            ->unique()
+            ->toArray();
+
         $previousCreditItemIds = $payment->allocations()
             ->whereNotNull('credit_schedule_item_id')
             ->pluck('credit_schedule_item_id')
@@ -74,16 +78,15 @@ class EditAccountsPayable extends EditRecord
 
         $payment->allocations()->delete();
 
-        foreach ($previousCreditItemIds as $creditItemId) {
-            $creditItem = PaymentScheduleItem::find($creditItemId);
-            if ($creditItem && $creditItem->status === PaymentScheduleStatus::PAID) {
-                $hasOtherApplications = PaymentAllocation::where('credit_schedule_item_id', $creditItemId)
-                    ->exists();
-
-                if (! $hasOtherApplications) {
-                    $creditItem->update(['status' => PaymentScheduleStatus::PENDING->value]);
-                }
-            }
+        // Mass-delete via Query Builder bypasses the PaymentAllocation
+        // deleted observer, so reconcile status here explicitly for every
+        // schedule item that previously carried an allocation from this
+        // payment. Without this, items stay stuck at PAID with paid_amount
+        // reverting to 0, hiding them from the allocation list and AP
+        // report.
+        foreach (array_unique(array_merge($previousScheduleItemIds, $previousCreditItemIds)) as $itemId) {
+            $item = PaymentScheduleItem::find($itemId);
+            $item?->recalculateStatus();
         }
 
         $this->persistAllocations($payment, $payment->currency_code);

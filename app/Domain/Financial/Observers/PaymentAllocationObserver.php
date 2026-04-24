@@ -12,12 +12,39 @@ class PaymentAllocationObserver
 {
     public function created(PaymentAllocation $allocation): void
     {
+        $this->recalculateScheduleItemStatus($allocation);
         $this->checkDebitNoteReconciliation($allocation);
     }
 
     public function deleted(PaymentAllocation $allocation): void
     {
+        $this->recalculateScheduleItemStatus($allocation);
         $this->checkDebitNoteReconciliation($allocation);
+    }
+
+    /**
+     * Keep the schedule item's stored status in sync with its live
+     * paid_amount. Without this, removing an allocation (for example by
+     * editing a payment or cancelling it) leaves the item stuck at PAID
+     * even after paid_amount falls back to 0.
+     *
+     * Note: mass-delete via Query Builder ($payment->allocations()->delete())
+     * bypasses model events, so callers performing bulk deletion must invoke
+     * PaymentScheduleItem::recalculateStatus() explicitly. This observer
+     * covers the per-model deletion path.
+     */
+    protected function recalculateScheduleItemStatus(PaymentAllocation $allocation): void
+    {
+        $scheduleItem = $allocation->scheduleItem;
+
+        if ($scheduleItem) {
+            $scheduleItem->recalculateStatus();
+        }
+
+        if ($allocation->credit_schedule_item_id) {
+            $creditItem = PaymentScheduleItem::find($allocation->credit_schedule_item_id);
+            $creditItem?->recalculateStatus();
+        }
     }
 
     /**
