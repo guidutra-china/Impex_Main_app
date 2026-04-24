@@ -8,6 +8,7 @@ use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\Payment;
 use App\Domain\Financial\Models\PaymentAllocation;
+use App\Domain\Inquiries\Models\Inquiry;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Logistics\Models\ShipmentItem;
@@ -51,14 +52,20 @@ class DealScenarioBuilder
         ProformaInvoiceStatus $status = ProformaInvoiceStatus::CONFIRMED,
         int $itemCount = 1,
     ): self {
+        $inquiry = Inquiry::factory()->create([
+            'company_id' => $this->client->id,
+            'currency_code' => $currency,
+        ]);
+
         $this->pi = ProformaInvoice::create([
             'reference' => $reference,
             'client_reference' => null,
+            'inquiry_id' => $inquiry->id,
             'company_id' => $this->client->id,
             'currency_code' => $currency,
             'issue_date' => $issueDate,
             'status' => $status,
-            'created_by' => 1,
+            'created_by' => null,
         ]);
 
         for ($i = 1; $i <= $itemCount; $i++) {
@@ -126,7 +133,7 @@ class DealScenarioBuilder
             'currency_code' => $currency,
             'issue_date' => $issueDate,
             'status' => PurchaseOrderStatus::CONFIRMED,
-            'created_by' => 1,
+            'created_by' => null,
         ]);
 
         PurchaseOrderItem::create([
@@ -182,10 +189,11 @@ class DealScenarioBuilder
     ): self {
         $shipment = Shipment::create([
             'reference' => $reference,
+            'company_id' => $this->client->id,
             'issue_date' => $issueDate,
             'status' => ShipmentStatus::BOOKED,
             'currency_code' => $currency,
-            'created_by' => 1,
+            'created_by' => null,
         ]);
 
         foreach ($this->pi->items as $index => $piItem) {
@@ -200,13 +208,18 @@ class DealScenarioBuilder
         }
 
         if ($otherItemsWeight > 0) {
+            $otherInquiry = Inquiry::factory()->create([
+                'company_id' => $this->client->id,
+                'currency_code' => $currency,
+            ]);
             $other = ProformaInvoice::create([
                 'reference' => $reference . '-OTHER-PI',
+                'inquiry_id' => $otherInquiry->id,
                 'company_id' => $this->client->id,
                 'currency_code' => $currency,
                 'issue_date' => $issueDate,
                 'status' => ProformaInvoiceStatus::CONFIRMED,
-                'created_by' => 1,
+                'created_by' => null,
             ]);
             $otherItem = ProformaInvoiceItem::create([
                 'proforma_invoice_id' => $other->id,
