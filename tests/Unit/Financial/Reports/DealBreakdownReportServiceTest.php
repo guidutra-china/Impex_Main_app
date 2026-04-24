@@ -55,4 +55,93 @@ class DealBreakdownReportServiceTest extends TestCase
         $this->assertSame(0, $report->kpi->totalPaidShipments);
         $this->assertSame(1, $report->kpi->dealCount);
     }
+
+    public function test_shared_shipment_attribution_by_weight(): void
+    {
+        $client = Company::factory()->create(['status' => 'active']);
+        $supplier = Company::factory()->create(['status' => 'active']);
+
+        DealScenarioBuilder::make()
+            ->forClient($client)
+            ->withPi(reference: 'PI-200', totalMinor: 1_000_000_0)
+            ->withPo(supplier: $supplier, reference: 'PO-200', totalMinor: 500_000_0)
+            ->withShipment(
+                reference: 'SHP-200',
+                totalCostMinor: 100_000_0,
+                paidMinor: 50_000_0,
+                myItemsWeight: 300.0,
+                otherItemsWeight: 200.0,
+            )
+            ->build();
+
+        $filters = new DealBreakdownFilters(
+            from: CarbonImmutable::parse('2026-01-01'),
+            to: CarbonImmutable::parse('2026-12-31'),
+            presentationCurrency: 'USD',
+            statuses: DealBreakdownFilters::defaultStatuses(),
+        );
+
+        $report = app(DealBreakdownReportService::class)->build($client, $filters);
+
+        $deal = collect($report->deals)->firstWhere(fn ($d) => $d->pi->reference === 'PI-200');
+
+        $this->assertNotNull($deal);
+        $this->assertCount(1, $deal->shipments);
+        $shipRow = $deal->shipments[0];
+
+        $this->assertEqualsWithDelta(0.6, $shipRow->attributionPct, 0.001);
+        $this->assertSame(\App\Domain\Financial\Reports\DTOs\AttributionBasis::WEIGHT, $shipRow->basis);
+        $this->assertSame(60_000_0, $shipRow->attributedOriginal);
+        $this->assertSame(30_000_0, $shipRow->paidOriginal);
+    }
+
+    public function test_draft_and_cancelled_excluded_by_default_status_filter(): void
+    {
+        $client = Company::factory()->create(['status' => 'active']);
+
+        DealScenarioBuilder::make()->forClient($client)->withPi(
+            reference: 'PI-DRAFT',
+            status: \App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus::DRAFT,
+        )->build();
+
+        DealScenarioBuilder::make()->forClient($client)->withPi(
+            reference: 'PI-OK',
+            status: \App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus::CONFIRMED,
+        )->build();
+
+        $filters = new DealBreakdownFilters(
+            from: CarbonImmutable::parse('2026-01-01'),
+            to: CarbonImmutable::parse('2026-12-31'),
+            presentationCurrency: 'USD',
+            statuses: DealBreakdownFilters::defaultStatuses(),
+        );
+
+        $report = app(DealBreakdownReportService::class)->build($client, $filters);
+
+        $refs = collect($report->deals)->pluck('pi.reference')->all();
+        $this->assertNotContains('PI-DRAFT', $refs);
+        $this->assertContains('PI-OK', $refs);
+    }
+
+    public function test_matrix_client_includes_branch_pis(): void
+    {
+        $matrix = Company::factory()->create(['status' => 'active', 'parent_company_id' => null]);
+        $branch = Company::factory()->create(['status' => 'active', 'parent_company_id' => $matrix->id]);
+
+        DealScenarioBuilder::make()->forClient($matrix)->withPi(reference: 'PI-MATRIX')->build();
+        DealScenarioBuilder::make()->forClient($branch)->withPi(reference: 'PI-BRANCH')->build();
+
+        $filters = new DealBreakdownFilters(
+            from: CarbonImmutable::parse('2026-01-01'),
+            to: CarbonImmutable::parse('2026-12-31'),
+            presentationCurrency: 'USD',
+            statuses: DealBreakdownFilters::defaultStatuses(),
+        );
+
+        $report = app(DealBreakdownReportService::class)->build($matrix, $filters);
+
+        $refs = collect($report->deals)->pluck('pi.reference')->all();
+        $this->assertContains('PI-MATRIX', $refs);
+        $this->assertContains('PI-BRANCH', $refs);
+    }
 }
