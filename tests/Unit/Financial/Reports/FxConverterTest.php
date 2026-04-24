@@ -4,7 +4,7 @@ namespace Tests\Unit\Financial\Reports;
 
 use App\Domain\Financial\Reports\Support\FxConverter;
 use Carbon\CarbonImmutable;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class FxConverterTest extends TestCase
 {
@@ -60,5 +60,31 @@ class FxConverterTest extends TestCase
         $result = $converter->convertDocument(100_0000, 'USD', CarbonImmutable::parse('2026-03-15'));
 
         $this->assertNull($result);
+    }
+
+    public function test_convert_payment_returns_null_when_currency_unknown(): void
+    {
+        $allocation = new \App\Domain\Financial\Models\PaymentAllocation();
+        $allocation->allocated_amount_in_document_currency = 100_0000;
+        // No scheduleItem, no payment relation loaded — currency chain returns null
+
+        $converter = new FxConverter('USD', []);
+
+        $this->assertNull($converter->convertPayment($allocation));
+    }
+
+    public function test_convert_payment_returns_null_when_payment_date_missing(): void
+    {
+        $payment = new \App\Domain\Financial\Models\Payment();
+        $payment->currency_code = 'BRL';
+        // payment_date is null
+
+        $allocation = new \App\Domain\Financial\Models\PaymentAllocation();
+        $allocation->allocated_amount_in_document_currency = 100_0000;
+        $allocation->setRelation('payment', $payment);
+
+        $converter = new FxConverter('USD', ['BRL>USD|2026-03-15' => 0.18]);
+
+        $this->assertNull($converter->convertPayment($allocation));
     }
 }

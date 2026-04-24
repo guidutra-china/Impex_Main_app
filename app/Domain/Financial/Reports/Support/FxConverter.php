@@ -12,7 +12,7 @@ use Carbon\CarbonImmutable;
  * using a pre-fetched rate cache. Returns null when no applicable rate exists,
  * which the caller must surface in the UI ("FX indisponivel").
  *
- * Cache key format: "<FROM>><TO>|<YYYY-MM-DD>" e.g. "USD>BRL|2026-03-15".
+ * Cache key format: "{FROM}>{TO}|{YYYY-MM-DD}" (example: "USD>BRL|2026-03-15").
  * Values are decimal multipliers (float).
  */
 final class FxConverter
@@ -50,9 +50,13 @@ final class FxConverter
             return null;
         }
 
-        $paymentDate = $allocation->payment?->payment_date instanceof CarbonImmutable
+        if ($allocation->payment === null || $allocation->payment->payment_date === null) {
+            return null;
+        }
+
+        $paymentDate = $allocation->payment->payment_date instanceof CarbonImmutable
             ? $allocation->payment->payment_date
-            : CarbonImmutable::parse((string) $allocation->payment?->payment_date);
+            : CarbonImmutable::parse((string) $allocation->payment->payment_date);
 
         return $this->convertDocument($docAmount, $docCurrency, $paymentDate);
     }
