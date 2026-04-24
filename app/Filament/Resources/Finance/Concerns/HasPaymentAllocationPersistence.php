@@ -5,9 +5,10 @@ namespace App\Filament\Resources\Finance\Concerns;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\Financial\Support\AllocationCalculator;
 use App\Domain\Infrastructure\Support\Money;
-use App\Domain\Settings\Models\Currency;
-use App\Domain\Settings\Models\ExchangeRate;
+use Filament\Notifications\Notification;
+use InvalidArgumentException;
 
 trait HasPaymentAllocationPersistence
 {
@@ -30,44 +31,52 @@ trait HasPaymentAllocationPersistence
                 continue;
             }
 
-            $allocatedMinor = Money::toMinor((float) ($allocationData['allocated_amount'] ?? 0));
+            $pmtMajor = isset($allocationData['allocated_amount'])
+                ? (float) $allocationData['allocated_amount']
+                : null;
+            $docMajor = isset($allocationData['allocated_amount_in_document_currency'])
+                ? (float) $allocationData['allocated_amount_in_document_currency']
+                : null;
+            $rate = isset($allocationData['exchange_rate']) && $allocationData['exchange_rate'] !== ''
+                ? (float) $allocationData['exchange_rate']
+                : null;
 
-            if ($allocatedMinor <= 0) {
+            if (($pmtMajor === null || $pmtMajor <= 0)
+                && ($docMajor === null || $docMajor <= 0)) {
                 continue;
             }
 
-            $exchangeRate = ! empty($allocationData['exchange_rate']) ? (float) $allocationData['exchange_rate'] : null;
-            $documentCurrencyCode = $scheduleItem->currency_code;
-            $allocatedInDocCurrency = $allocatedMinor;
+            try {
+                $resolved = AllocationCalculator::resolve(
+                    $paymentCurrencyCode,
+                    $scheduleItem->currency_code,
+                    $pmtMajor,
+                    $docMajor,
+                    $rate,
+                );
+            } catch (InvalidArgumentException $e) {
+                Notification::make()
+                    ->title(__('messages.allocation_conversion_incomplete', [], 'en')
+                        ?: 'Incomplete allocation data')
+                    ->body(
+                        $e->getMessage().' '
+                        ."[{$paymentCurrencyCode} → {$scheduleItem->currency_code}]"
+                    )
+                    ->danger()
+                    ->persistent()
+                    ->send();
 
-            if ($paymentCurrencyCode !== $documentCurrencyCode) {
-                if ($exchangeRate) {
-                    $allocatedInDocCurrency = (int) round($allocatedMinor * $exchangeRate);
-                } else {
-                    $paymentCurrency = Currency::where('code', $paymentCurrencyCode)->first();
-                    $documentCurrency = Currency::where('code', $documentCurrencyCode)->first();
+                $this->halt();
 
-                    if ($paymentCurrency && $documentCurrency) {
-                        $converted = ExchangeRate::convert(
-                            $paymentCurrency->id,
-                            $documentCurrency->id,
-                            Money::toMajor($allocatedMinor)
-                        );
-
-                        if ($converted !== null) {
-                            $allocatedInDocCurrency = Money::toMinor($converted);
-                            $exchangeRate = $allocatedInDocCurrency / max($allocatedMinor, 1);
-                        }
-                    }
-                }
+                return;
             }
 
             PaymentAllocation::create([
                 'payment_id' => $payment->id,
                 'payment_schedule_item_id' => $scheduleItemId,
-                'allocated_amount' => $allocatedMinor,
-                'exchange_rate' => $exchangeRate,
-                'allocated_amount_in_document_currency' => $allocatedInDocCurrency,
+                'allocated_amount' => $resolved['allocated_amount'],
+                'exchange_rate' => $resolved['exchange_rate'],
+                'allocated_amount_in_document_currency' => $resolved['allocated_amount_in_document_currency'],
             ]);
         }
     }

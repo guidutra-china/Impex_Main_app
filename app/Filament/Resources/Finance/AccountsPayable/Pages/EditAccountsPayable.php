@@ -28,7 +28,9 @@ class EditAccountsPayable extends EditRecord
 
         $data['allocations'] = $regularAllocations->map(fn ($alloc) => [
             'payment_schedule_item_id' => $alloc->payment_schedule_item_id,
+            'document_currency_code' => $alloc->scheduleItem?->currency_code,
             'allocated_amount' => Money::toMajor($alloc->allocated_amount),
+            'allocated_amount_in_document_currency' => Money::toMajor($alloc->allocated_amount_in_document_currency),
             'exchange_rate' => $alloc->exchange_rate,
         ])->toArray();
 

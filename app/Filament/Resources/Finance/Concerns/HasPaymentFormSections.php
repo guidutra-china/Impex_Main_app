@@ -6,6 +6,7 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\Financial\Support\AllocationCalculator;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
@@ -81,7 +82,7 @@ trait HasPaymentFormSections
                 Select::make('bank_account_id')
                     ->label(__('forms.labels.bank_account'))
                     ->options(fn () => BankAccount::active()->get()->mapWithKeys(fn ($ba) => [
-                        $ba->id => $ba->bank_name . ' — ' . $ba->account_name . ' (' . $ba->currency?->code . ')',
+                        $ba->id => $ba->bank_name.' — '.$ba->account_name.' ('.$ba->currency?->code.')',
                     ])),
                 TextInput::make('reference')
                     ->label(__('forms.labels.reference_swift_transfer'))
@@ -148,59 +149,8 @@ trait HasPaymentFormSections
                 ->schema([
                     Repeater::make('allocations')
                         ->label('')
-                        ->schema([
-                            Select::make('payment_schedule_item_id')
-                                ->label(__('forms.labels.schedule_item'))
-                                ->options(function (Get $get) use ($direction) {
-                                    $companyId = $get('../../company_id');
-                                    if (! $companyId) {
-                                        return [];
-                                    }
-
-                                    return static::getCompanyScheduleItems((int) $companyId, $direction)
-                                        ->mapWithKeys(fn ($item) => [
-                                            $item->id => static::formatScheduleItemLabel($item),
-                                        ]);
-                                })
-                                ->getOptionLabelUsing(function ($value): ?string {
-                                    $item = PaymentScheduleItem::with('payable')->find($value);
-
-                                    return $item ? static::formatScheduleItemLabel($item) : null;
-                                })
-                                ->required()
-                                ->distinct()
-                                ->searchable()
-                                ->live()
-                                ->afterStateUpdated(function ($state, Set $set, Get $get) {
-                                    if (! $state) {
-                                        return;
-                                    }
-                                    $item = PaymentScheduleItem::find($state);
-                                    if ($item) {
-                                        $set('allocated_amount', number_format(Money::toMajor($item->remaining_amount), 2, '.', ''));
-                                        static::recalculateTotal($get, $set);
-                                    }
-                                })
-                                ->columnSpan(5),
-                            TextInput::make('allocated_amount')
-                                ->label(__('forms.labels.amount'))
-                                ->numeric()
-                                ->step('0.01')
-                                ->minValue(0.01)
-                                ->required()
-                                ->live(onBlur: true)
-                                ->afterStateUpdated(function (Get $get, Set $set) {
-                                    static::recalculateTotal($get, $set);
-                                })
-                                ->columnSpan(3),
-                            TextInput::make('exchange_rate')
-                                ->label(__('forms.labels.exchange_rate'))
-                                ->numeric()
-                                ->step('0.00000001')
-                                ->placeholder(__('forms.placeholders.auto'))
-                                ->columnSpan(2),
-                        ])
-                        ->columns(10)
+                        ->schema(static::allocationRepeaterSchema($direction))
+                        ->columns(12)
                         ->defaultItems(0)
                         ->addActionLabel('+ Add Allocation')
                         ->deleteAction(fn ($action) => $action->after(function (Get $get, Set $set) {
@@ -212,32 +162,11 @@ trait HasPaymentFormSections
                     Placeholder::make('allocation_summary')
                         ->label('')
                         ->content(function (Get $get) {
-                            $allocations = $get('allocations') ?? [];
-                            $totalAllocated = 0;
-                            foreach ($allocations as $alloc) {
-                                $totalAllocated += (float) ($alloc['allocated_amount'] ?? 0);
-                            }
-                            $wireAmount = (float) ($get('amount') ?? 0);
-                            $remaining = $wireAmount - $totalAllocated;
-                            $currency = $get('currency_code') ?? '';
-
-                            $html = '<div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">';
-                            $html .= '<span class="text-gray-500">Wire Transfer: <span class="font-semibold text-gray-900 dark:text-white">' . $currency . ' ' . number_format($wireAmount, 2) . '</span></span>';
-                            $html .= '<span class="text-gray-500">Allocated: <span class="font-semibold text-blue-600">' . $currency . ' ' . number_format($totalAllocated, 2) . '</span></span>';
-
-                            if ($wireAmount > 0 && abs($remaining) > 0.001) {
-                                if ($remaining > 0) {
-                                    $html .= '<span class="text-gray-500">Remaining: <span class="font-semibold text-yellow-600">' . $currency . ' ' . number_format($remaining, 2) . '</span></span>';
-                                } else {
-                                    $html .= '<span class="text-gray-500">Over-allocated: <span class="font-semibold text-red-600">' . $currency . ' ' . number_format(abs($remaining), 2) . '</span></span>';
-                                }
-                            } elseif ($wireAmount > 0) {
-                                $html .= '<span class="font-semibold text-green-600">Fully Allocated</span>';
-                            }
-
-                            $html .= '</div>';
-
-                            return new HtmlString($html);
+                            return new HtmlString(static::buildAllocationSummary(
+                                $get('allocations') ?? [],
+                                (float) ($get('amount') ?? 0),
+                                (string) ($get('currency_code') ?? ''),
+                            ));
                         }),
                 ])
                 ->columnSpanFull(),
@@ -312,7 +241,7 @@ trait HasPaymentFormSections
                                         }
                                         $maxAmount = Money::toMajor($creditItem->amount);
                                         if ((float) $value > $maxAmount) {
-                                            $fail("Amount cannot exceed the credit value of {$creditItem->currency_code} " . number_format($maxAmount, 2) . '.');
+                                            $fail("Amount cannot exceed the credit value of {$creditItem->currency_code} ".number_format($maxAmount, 2).'.');
                                         }
                                     },
                                 ])
@@ -372,7 +301,7 @@ trait HasPaymentFormSections
                 $forwarderCostIds = \App\Domain\Financial\Models\AdditionalCost::where('forwarder_company_id', $companyId)
                     ->pluck('id');
 
-                $query->where(function ($q) use ($costableIds, $forwarderCostIds) {
+                $query->where(function ($q) use ($costableIds) {
                     $q->where(function ($q2) use ($costableIds) {
                         $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $costableIds);
                     });
@@ -506,9 +435,9 @@ trait HasPaymentFormSections
                 $cleanLabel = e(static::cleanLabel($item));
                 $shipRef = static::shipmentRef($item);
 
-                $stageBadge = '<span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-800 dark:bg-white/10 dark:text-gray-200">' . $cleanLabel . '</span>';
+                $stageBadge = '<span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-800 dark:bg-white/10 dark:text-gray-200">'.$cleanLabel.'</span>';
                 if ($shipRef) {
-                    $stageBadge .= ' <span class="inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-[0.65rem] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-400/10 dark:text-blue-400 dark:ring-blue-400/30">' . e($shipRef) . '</span>';
+                    $stageBadge .= ' <span class="inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-[0.65rem] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-400/10 dark:text-blue-400 dark:ring-blue-400/30">'.e($shipRef).'</span>';
                 }
 
                 // Show B/L number instead of SH reference when payable is Shipment
@@ -520,14 +449,14 @@ trait HasPaymentFormSections
                 $html .= '<tr class="border-b border-gray-100 dark:border-gray-800">';
                 $supplierInvoice = static::supplierInvoiceNumber($item) ?? '';
 
-                $html .= '<td class="py-1.5 px-2 font-medium">' . e($displayRef) . '</td>';
-                $html .= '<td class="py-1.5 px-2">' . e($supplierInvoice) . '</td>';
-                $html .= '<td class="py-1.5 px-2">' . $stageBadge . '</td>';
-                $html .= '<td class="py-1.5 px-2 text-right">' . Money::format($item->amount) . '</td>';
-                $html .= '<td class="py-1.5 px-2 text-right">' . Money::format($item->paid_amount) . '</td>';
-                $html .= '<td class="py-1.5 px-2 text-right font-semibold">' . Money::format($remaining) . '</td>';
-                $html .= '<td class="py-1.5 px-2">' . e($item->currency_code) . '</td>';
-                $html .= '<td class="py-1.5 px-2 ' . $statusColor . ' capitalize">' . e($statusLabel) . '</td>';
+                $html .= '<td class="py-1.5 px-2 font-medium">'.e($displayRef).'</td>';
+                $html .= '<td class="py-1.5 px-2">'.e($supplierInvoice).'</td>';
+                $html .= '<td class="py-1.5 px-2">'.$stageBadge.'</td>';
+                $html .= '<td class="py-1.5 px-2 text-right">'.Money::format($item->amount).'</td>';
+                $html .= '<td class="py-1.5 px-2 text-right">'.Money::format($item->paid_amount).'</td>';
+                $html .= '<td class="py-1.5 px-2 text-right font-semibold">'.Money::format($remaining).'</td>';
+                $html .= '<td class="py-1.5 px-2">'.e($item->currency_code).'</td>';
+                $html .= '<td class="py-1.5 px-2 '.$statusColor.' capitalize">'.e($statusLabel).'</td>';
                 $html .= '</tr>';
             }
         }
@@ -535,7 +464,7 @@ trait HasPaymentFormSections
         $html .= '</tbody>';
         $html .= '<tfoot><tr class="border-t-2 border-gray-300 dark:border-gray-600">';
         $html .= '<td colspan="5" class="py-1.5 px-2 font-bold text-right">Total Remaining:</td>';
-        $html .= '<td class="py-1.5 px-2 text-right font-bold text-primary-600">' . Money::format($totalRemaining) . '</td>';
+        $html .= '<td class="py-1.5 px-2 text-right font-bold text-primary-600">'.Money::format($totalRemaining).'</td>';
         $html .= '<td colspan="2"></td>';
         $html .= '</tr></tfoot></table>';
 
@@ -557,14 +486,14 @@ trait HasPaymentFormSections
             $docRef = static::formatDocRef($credit);
             $cleanLabel = e(static::cleanLabel($credit));
 
-            $descBadge = '<span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-800 dark:bg-white/10 dark:text-gray-200">' . $cleanLabel . '</span>';
+            $descBadge = '<span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-800 dark:bg-white/10 dark:text-gray-200">'.$cleanLabel.'</span>';
             $descBadge .= ' <span class="inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-[0.6rem] font-semibold text-green-700 uppercase dark:bg-green-400/10 dark:text-green-400">Credit</span>';
 
             $html .= '<tr class="border-b border-gray-100 dark:border-gray-800">';
-            $html .= '<td class="py-1.5 px-2 font-medium">' . e($docRef) . '</td>';
-            $html .= '<td class="py-1.5 px-2">' . $descBadge . '</td>';
-            $html .= '<td class="py-1.5 px-2 text-right font-semibold text-green-600">' . Money::format($credit->amount) . '</td>';
-            $html .= '<td class="py-1.5 px-2">' . e($credit->currency_code) . '</td>';
+            $html .= '<td class="py-1.5 px-2 font-medium">'.e($docRef).'</td>';
+            $html .= '<td class="py-1.5 px-2">'.$descBadge.'</td>';
+            $html .= '<td class="py-1.5 px-2 text-right font-semibold text-green-600">'.Money::format($credit->amount).'</td>';
+            $html .= '<td class="py-1.5 px-2">'.e($credit->currency_code).'</td>';
             $html .= '</tr>';
         }
 
@@ -572,7 +501,7 @@ trait HasPaymentFormSections
         $html .= '</tbody>';
         $html .= '<tfoot><tr class="border-t-2 border-gray-300 dark:border-gray-600">';
         $html .= '<td colspan="2" class="py-1.5 px-2 font-bold text-right">Total Credit:</td>';
-        $html .= '<td class="py-1.5 px-2 text-right font-bold text-green-600">' . Money::format($totalCredit) . '</td>';
+        $html .= '<td class="py-1.5 px-2 text-right font-bold text-green-600">'.Money::format($totalCredit).'</td>';
         $html .= '<td></td>';
         $html .= '</tr></tfoot></table>';
 
@@ -598,6 +527,282 @@ trait HasPaymentFormSections
         if ($total > 0) {
             $set('../../amount', number_format($total, 2, '.', ''));
         }
+    }
+
+    /**
+     * Dual-currency allocation row schema. Each row holds four live-linked
+     * fields: schedule item, amount in payment currency, amount in document
+     * currency, and exchange rate. The three amount fields are
+     * algebraically tied by doc = pmt × rate and cross-update whenever one
+     * of them changes. The fields for document currency and exchange rate
+     * are hidden when the payment and document currencies coincide.
+     */
+    protected static function allocationRepeaterSchema(PaymentDirection $direction): array
+    {
+        return [
+            Hidden::make('document_currency_code'),
+
+            Select::make('payment_schedule_item_id')
+                ->label(__('forms.labels.schedule_item'))
+                ->options(function (Get $get) use ($direction) {
+                    $companyId = $get('../../company_id');
+                    if (! $companyId) {
+                        return [];
+                    }
+
+                    return static::getCompanyScheduleItems((int) $companyId, $direction)
+                        ->mapWithKeys(fn ($item) => [
+                            $item->id => static::formatScheduleItemLabel($item),
+                        ]);
+                })
+                ->getOptionLabelUsing(function ($value): ?string {
+                    $item = PaymentScheduleItem::with('payable')->find($value);
+
+                    return $item ? static::formatScheduleItemLabel($item) : null;
+                })
+                ->required()
+                ->distinct()
+                ->searchable()
+                ->live()
+                ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                    if (! $state) {
+                        return;
+                    }
+                    static::prefillAllocationRowForItem((int) $state, $get, $set);
+                    static::recalculateTotal($get, $set);
+                })
+                ->columnSpan(12),
+
+            TextInput::make('allocated_amount')
+                ->label(fn (Get $get) => static::allocationFieldLabel(
+                    __('forms.labels.amount'),
+                    (string) ($get('../../currency_code') ?? '')
+                ))
+                ->numeric()
+                ->step('0.01')
+                ->minValue(0.01)
+                ->required()
+                ->live(onBlur: true)
+                ->afterStateUpdated(function (Get $get, Set $set) {
+                    static::syncAllocationRow($get, $set, 'allocated_amount');
+                    static::recalculateTotal($get, $set);
+                })
+                ->columnSpan(4),
+
+            TextInput::make('allocated_amount_in_document_currency')
+                ->label(fn (Get $get) => static::allocationFieldLabel(
+                    __('forms.labels.in_document_currency'),
+                    (string) ($get('document_currency_code') ?? '')
+                ))
+                ->numeric()
+                ->step('0.01')
+                ->minValue(0.01)
+                ->live(onBlur: true)
+                ->visible(fn (Get $get) => static::rowHasDifferingCurrencies($get))
+                ->required(fn (Get $get) => static::rowHasDifferingCurrencies($get))
+                ->afterStateUpdated(function (Get $get, Set $set) {
+                    static::syncAllocationRow($get, $set, 'allocated_amount_in_document_currency');
+                })
+                ->columnSpan(4),
+
+            TextInput::make('exchange_rate')
+                ->label(fn (Get $get) => static::exchangeRateLabel($get))
+                ->numeric()
+                ->step('0.00000001')
+                ->live(onBlur: true)
+                ->visible(fn (Get $get) => static::rowHasDifferingCurrencies($get))
+                ->afterStateUpdated(function (Get $get, Set $set) {
+                    static::syncAllocationRow($get, $set, 'exchange_rate');
+                })
+                ->columnSpan(4),
+        ];
+    }
+
+    /**
+     * Pre-fill the three amount fields and the hidden currency tracker when
+     * a schedule item is selected. Uses the current ExchangeRate when the
+     * currencies differ; when no approved rate exists, the payment-currency
+     * amount and the rate are left blank for the user to enter manually
+     * (no silent fallback).
+     */
+    protected static function prefillAllocationRowForItem(int $itemId, Get $get, Set $set): void
+    {
+        $item = PaymentScheduleItem::find($itemId);
+        if (! $item) {
+            return;
+        }
+
+        $docCurrency = (string) $item->currency_code;
+        $pmtCurrency = (string) ($get('../../currency_code') ?? '');
+        $remainingDocMajor = Money::toMajor($item->remaining_amount);
+
+        $set('document_currency_code', $docCurrency);
+
+        if ($pmtCurrency === '' || $pmtCurrency === $docCurrency) {
+            $set('allocated_amount', number_format($remainingDocMajor, 2, '.', ''));
+            $set('allocated_amount_in_document_currency', number_format($remainingDocMajor, 2, '.', ''));
+            $set('exchange_rate', null);
+
+            return;
+        }
+
+        $set('allocated_amount_in_document_currency', number_format($remainingDocMajor, 2, '.', ''));
+
+        $rate = AllocationCalculator::lookupRate($pmtCurrency, $docCurrency);
+
+        if ($rate !== null && $rate > 0) {
+            $set('exchange_rate', number_format($rate, 8, '.', ''));
+            $set('allocated_amount', number_format($remainingDocMajor / $rate, 2, '.', ''));
+        } else {
+            $set('exchange_rate', null);
+            $set('allocated_amount', null);
+        }
+    }
+
+    /**
+     * Keep the three tied values coherent while the user types in any of
+     * them. The rule is: doc = pmt × rate. Whichever field the user just
+     * changed determines which of the remaining two is recomputed, choosing
+     * the branch that preserves the most user input.
+     */
+    protected static function syncAllocationRow(Get $get, Set $set, string $changedField): void
+    {
+        $pmtCurrency = (string) ($get('../../currency_code') ?? '');
+        $docCurrency = (string) ($get('document_currency_code') ?? '');
+
+        $pmt = (float) ($get('allocated_amount') ?? 0);
+        $doc = (float) ($get('allocated_amount_in_document_currency') ?? 0);
+        $rate = (float) ($get('exchange_rate') ?? 0);
+
+        // Same currency (or doc currency unknown): mirror pmt <-> doc, clear rate.
+        if ($pmtCurrency === '' || $docCurrency === '' || $pmtCurrency === $docCurrency) {
+            if ($changedField === 'allocated_amount' && $pmt > 0) {
+                $set('allocated_amount_in_document_currency', number_format($pmt, 2, '.', ''));
+            } elseif ($changedField === 'allocated_amount_in_document_currency' && $doc > 0) {
+                $set('allocated_amount', number_format($doc, 2, '.', ''));
+            }
+            $set('exchange_rate', null);
+
+            return;
+        }
+
+        switch ($changedField) {
+            case 'allocated_amount':
+                if ($rate > 0 && $pmt > 0) {
+                    $set('allocated_amount_in_document_currency', number_format($pmt * $rate, 2, '.', ''));
+                } elseif ($pmt > 0 && $doc > 0) {
+                    $set('exchange_rate', number_format($doc / $pmt, 8, '.', ''));
+                }
+                break;
+
+            case 'allocated_amount_in_document_currency':
+                if ($rate > 0 && $doc > 0) {
+                    $set('allocated_amount', number_format($doc / $rate, 2, '.', ''));
+                } elseif ($pmt > 0 && $doc > 0) {
+                    $set('exchange_rate', number_format($doc / $pmt, 8, '.', ''));
+                }
+                break;
+
+            case 'exchange_rate':
+                if ($rate > 0 && $pmt > 0) {
+                    $set('allocated_amount_in_document_currency', number_format($pmt * $rate, 2, '.', ''));
+                } elseif ($rate > 0 && $doc > 0) {
+                    $set('allocated_amount', number_format($doc / $rate, 2, '.', ''));
+                }
+                break;
+        }
+    }
+
+    protected static function rowHasDifferingCurrencies(Get $get): bool
+    {
+        $pmtCurrency = (string) ($get('../../currency_code') ?? '');
+        $docCurrency = (string) ($get('document_currency_code') ?? '');
+
+        if ($pmtCurrency === '' || $docCurrency === '') {
+            return false;
+        }
+
+        return $pmtCurrency !== $docCurrency;
+    }
+
+    protected static function allocationFieldLabel(string $base, string $currencyCode): string
+    {
+        return $currencyCode !== '' ? "{$base} ({$currencyCode})" : $base;
+    }
+
+    protected static function exchangeRateLabel(Get $get): string
+    {
+        $pmt = (string) ($get('../../currency_code') ?? '');
+        $doc = (string) ($get('document_currency_code') ?? '');
+
+        $base = __('forms.labels.exchange_rate');
+
+        if ($pmt !== '' && $doc !== '' && $pmt !== $doc) {
+            return "{$base} ({$pmt} → {$doc})";
+        }
+
+        return $base;
+    }
+
+    public static function buildAllocationSummary(array $allocations, float $wireAmount, string $currency): string
+    {
+        $totalAllocated = 0.0;
+        $docTotals = [];
+        $incompleteRows = 0;
+
+        foreach ($allocations as $alloc) {
+            $pmt = (float) ($alloc['allocated_amount'] ?? 0);
+            $totalAllocated += $pmt;
+
+            $docCurrency = (string) ($alloc['document_currency_code'] ?? '');
+            $docAmount = (float) ($alloc['allocated_amount_in_document_currency'] ?? 0);
+
+            if ($docCurrency !== '' && $docCurrency !== $currency && $docAmount > 0) {
+                $docTotals[$docCurrency] = ($docTotals[$docCurrency] ?? 0.0) + $docAmount;
+            }
+
+            if ($docCurrency !== '' && $docCurrency !== $currency) {
+                $rate = (float) ($alloc['exchange_rate'] ?? 0);
+                $present = (int) ($pmt > 0) + (int) ($docAmount > 0) + (int) ($rate > 0);
+                if ($present < 2) {
+                    $incompleteRows++;
+                }
+            }
+        }
+
+        $remaining = $wireAmount - $totalAllocated;
+
+        $html = '<div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">';
+        $html .= '<span class="text-gray-500">Wire Transfer: <span class="font-semibold text-gray-900 dark:text-white">'
+            .e($currency).' '.number_format($wireAmount, 2).'</span></span>';
+        $html .= '<span class="text-gray-500">Allocated: <span class="font-semibold text-blue-600">'
+            .e($currency).' '.number_format($totalAllocated, 2).'</span></span>';
+
+        if ($wireAmount > 0 && abs($remaining) > 0.001) {
+            if ($remaining > 0) {
+                $html .= '<span class="text-gray-500">Remaining: <span class="font-semibold text-yellow-600">'
+                    .e($currency).' '.number_format($remaining, 2).'</span></span>';
+            } else {
+                $html .= '<span class="text-gray-500">Over-allocated: <span class="font-semibold text-red-600">'
+                    .e($currency).' '.number_format(abs($remaining), 2).'</span></span>';
+            }
+        } elseif ($wireAmount > 0) {
+            $html .= '<span class="font-semibold text-green-600">Fully Allocated</span>';
+        }
+
+        foreach ($docTotals as $code => $total) {
+            $html .= '<span class="text-gray-500">Applied in '.e($code).': <span class="font-semibold text-gray-900 dark:text-white">'
+                .e($code).' '.number_format($total, 2).'</span></span>';
+        }
+
+        if ($incompleteRows > 0) {
+            $html .= '<span class="font-semibold text-red-600">'.(int) $incompleteRows
+                .' allocation(s) missing currency conversion data</span>';
+        }
+
+        $html .= '</div>';
+
+        return $html;
     }
 
     public static function cleanLabel(PaymentScheduleItem $item): string

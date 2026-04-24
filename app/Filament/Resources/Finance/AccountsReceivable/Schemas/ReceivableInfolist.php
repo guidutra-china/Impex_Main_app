@@ -41,12 +41,12 @@ class ReceivableInfolist
                 TextEntry::make('allocated_total')
                     ->label(__('forms.labels.total_allocated'))
                     ->getStateUsing(fn ($record) => $record->allocated_total)
-                    ->formatStateUsing(fn ($state) => Money::format($state))
+                    ->formatStateUsing(fn ($state, $record) => $record->currency_code.' '.Money::format($state))
                     ->color('success'),
                 TextEntry::make('unallocated_amount')
                     ->label(__('forms.labels.unallocated_credit'))
                     ->getStateUsing(fn ($record) => $record->unallocated_amount)
-                    ->formatStateUsing(fn ($state) => Money::format($state))
+                    ->formatStateUsing(fn ($state, $record) => $record->currency_code.' '.Money::format($state))
                     ->color(fn ($state) => $state > 0 ? 'warning' : 'gray'),
                 TextEntry::make('creator.name')
                     ->label(__('forms.labels.created_by'))
@@ -88,15 +88,45 @@ class ReceivableInfolist
                             ->color(fn ($record) => $record->isCreditApplication() ? 'success' : 'primary'),
                         TextEntry::make('allocated_amount')
                             ->label(__('forms.labels.allocated'))
-                            ->formatStateUsing(fn ($state, $record) => $record->isCreditApplication()
-                                ? 'Credit: '.Money::format($record->allocated_amount_in_document_currency)
-                                : Money::format($state)),
+                            ->formatStateUsing(function ($state, $record) {
+                                if ($record->isCreditApplication()) {
+                                    $itemCurrency = $record->scheduleItem?->currency_code ?? '';
+
+                                    return 'Credit: '.trim($itemCurrency.' '.Money::format($record->allocated_amount_in_document_currency));
+                                }
+
+                                $pmtCurrency = $record->payment?->currency_code ?? '';
+
+                                return trim($pmtCurrency.' '.Money::format($state));
+                            }),
                         TextEntry::make('exchange_rate')
                             ->label(__('forms.labels.exchange_rate'))
-                            ->placeholder('1:1'),
+                            ->formatStateUsing(function ($state, $record) {
+                                if ($record->isCreditApplication()) {
+                                    return '—';
+                                }
+
+                                $pmt = $record->payment?->currency_code ?? '';
+                                $doc = $record->scheduleItem?->currency_code ?? '';
+
+                                if ($pmt !== '' && $doc !== '' && $pmt === $doc) {
+                                    return '1.00000000 ('.$pmt.' = '.$doc.')';
+                                }
+
+                                if ($state === null) {
+                                    return '—';
+                                }
+
+                                return number_format((float) $state, 8, '.', '').' ('.$pmt.' → '.$doc.')';
+                            })
+                            ->placeholder('—'),
                         TextEntry::make('allocated_amount_in_document_currency')
                             ->label(__('forms.labels.in_document_currency'))
-                            ->formatStateUsing(fn ($state) => Money::format($state))
+                            ->formatStateUsing(function ($state, $record) {
+                                $docCurrency = $record->scheduleItem?->currency_code ?? '';
+
+                                return trim($docCurrency.' '.Money::format($state));
+                            })
                             ->placeholder('—'),
                     ])
                     ->columns(7),
