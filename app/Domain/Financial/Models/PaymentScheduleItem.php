@@ -272,6 +272,12 @@ class PaymentScheduleItem extends Model
     /**
      * Reconcile the stored status against the live paid_amount accessor.
      *
+     * This function only manages PAID ↔ DUE transitions: the PENDING and
+     * OVERDUE statuses are owned by the document lifecycle and the due-date
+     * scheduler respectively, not by allocation reconciliation. Removing an
+     * allocation does not retroactively "un-activate" a schedule item —
+     * it just means the active item is unpaid again.
+     *
      * Call this whenever an allocation is created, deleted, or when the
      * parent payment's approval state changes. Refuses to touch WAIVED
      * items (terminal) and credit items (status semantics differ and are
@@ -288,16 +294,19 @@ class PaymentScheduleItem extends Model
 
         $this->refresh();
 
-        $paid = $this->paid_amount;
+        if ($this->is_paid_in_full) {
+            if ($this->status !== PaymentScheduleStatus::PAID) {
+                $this->update(['status' => PaymentScheduleStatus::PAID->value]);
+            }
 
-        $newStatus = match (true) {
-            $paid <= 0 => PaymentScheduleStatus::PENDING,
-            $this->is_paid_in_full => PaymentScheduleStatus::PAID,
-            default => PaymentScheduleStatus::DUE,
-        };
+            return;
+        }
 
-        if ($this->status !== $newStatus) {
-            $this->update(['status' => $newStatus->value]);
+        // Not paid-in-full but stored as PAID → drift from a prior allocation
+        // that is now gone or was silently corrupted. Fall back to DUE so the
+        // item shows up in the allocation list and AP report again.
+        if ($this->status === PaymentScheduleStatus::PAID) {
+            $this->update(['status' => PaymentScheduleStatus::DUE->value]);
         }
     }
 

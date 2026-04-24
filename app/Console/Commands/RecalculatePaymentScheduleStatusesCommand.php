@@ -16,10 +16,9 @@ use Illuminate\Console\Command;
  *   2. Mass-delete of allocations via Query Builder skipping model events,
  *      leaving items stuck at PAID with paid_amount = 0.
  *
- * The command transitions status to match reality:
- *   - paid_amount == 0              → PENDING
- *   - 0 < paid_amount < amount      → DUE
- *   - paid_amount ~= amount         → PAID
+ * The command only manages PAID ↔ DUE transitions. PENDING and OVERDUE are
+ * owned by the document lifecycle and the due-date scheduler respectively,
+ * so an unpaid DUE item is never reverted to PENDING by this command.
  * WAIVED and credit items are never touched.
  */
 class RecalculatePaymentScheduleStatusesCommand extends Command
@@ -57,11 +56,17 @@ class RecalculatePaymentScheduleStatusesCommand extends Command
         foreach ($items as $item) {
             $paid = $item->paid_amount;
 
-            $newStatus = match (true) {
-                $paid <= 0 => PaymentScheduleStatus::PENDING,
-                $item->is_paid_in_full => PaymentScheduleStatus::PAID,
-                default => PaymentScheduleStatus::DUE,
-            };
+            // Only manage PAID ↔ DUE transitions. An unpaid DUE item is valid
+            // (it is active, just not yet paid) and must not be reverted to
+            // PENDING, which represents "not yet activated by the document
+            // lifecycle".
+            if ($item->is_paid_in_full) {
+                $newStatus = PaymentScheduleStatus::PAID;
+            } elseif ($item->status === PaymentScheduleStatus::PAID) {
+                $newStatus = PaymentScheduleStatus::DUE;
+            } else {
+                continue;
+            }
 
             if ($item->status === $newStatus) {
                 continue;
