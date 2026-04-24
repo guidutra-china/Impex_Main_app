@@ -80,6 +80,24 @@ class ShipmentAttributionCalculatorTest extends TestCase
         $this->assertSame(0.0, $result->pct);
     }
 
+    public function test_none_basis_when_all_dimensions_are_zero(): void
+    {
+        $pi = $this->makePi([1]);
+        $shipment = $this->makeShipment([
+            ['pi_item_id' => 1, 'total_weight' => 0, 'total_volume' => 0, 'quantity' => 0],
+        ]);
+        // The value-cascade iterates items and reads `proformaInvoiceItem`; pre-set
+        // the relation to null to avoid a DB lookup on an unsaved model.
+        foreach ($shipment->items as $item) {
+            $item->setRelation('proformaInvoiceItem', null);
+        }
+
+        $result = (new ShipmentAttributionCalculator())->calculate($shipment, $pi);
+
+        $this->assertSame(AttributionBasis::NONE, $result->basis);
+        $this->assertSame(0.0, $result->pct);
+    }
+
     private function makePi(array $itemIds): ProformaInvoice
     {
         $pi = new ProformaInvoice();

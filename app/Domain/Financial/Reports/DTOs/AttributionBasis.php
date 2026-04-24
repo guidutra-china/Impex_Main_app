@@ -8,6 +8,7 @@ enum AttributionBasis: string
     case VOLUME = 'volume';
     case QUANTITY = 'quantity';
     case VALUE = 'value';
+    case NONE = 'none';
 
     public function labelKey(): string
     {

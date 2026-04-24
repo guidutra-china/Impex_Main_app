@@ -16,6 +16,7 @@ use App\Domain\ProformaInvoices\Models\ProformaInvoice;
  *   2. volume   (sum ShipmentItem.total_volume)
  *   3. quantity (sum ShipmentItem.quantity)
  *   4. value    (sum ShipmentItem.quantity * proformaInvoiceItem.unit_price)
+ *   5. none     (degenerate: all dimensions are zero)
  *
  * Both shipment and PI MUST be eager-loaded: `items` on each. Shipment items
  * also need `proforma_invoice_item_id`, `total_weight`, `total_volume`,
@@ -47,6 +48,8 @@ final class ShipmentAttributionCalculator
             return new ShipmentAttribution($piQty / $totalQty, AttributionBasis::QUANTITY);
         }
 
+        // VALUE fallback is currently unreachable when quantities are integers >= 0
+        // (quantity=0 means line value=0 too). Kept for future fractional-quantity support.
         $totalValue = 0.0;
         $piValue = 0.0;
         foreach ($shipmentItems as $si) {
@@ -61,18 +64,6 @@ final class ShipmentAttributionCalculator
             return new ShipmentAttribution($piValue / $totalValue, AttributionBasis::VALUE);
         }
 
-        return new ShipmentAttribution(0.0, AttributionBasis::WEIGHT);
-    }
-}
-
-/**
- * Internal result record.
- */
-final readonly class ShipmentAttribution
-{
-    public function __construct(
-        public float $pct,
-        public AttributionBasis $basis,
-    ) {
+        return new ShipmentAttribution(0.0, AttributionBasis::NONE);
     }
 }
