@@ -15,6 +15,7 @@ class PortalDocumentDownloadController extends Controller
         'commercial_invoice_pdf',
         'packing_list_pdf',
         'proforma_invoice_pdf',
+        'shipment_proforma_invoice_pdf',
     ];
 
     public function __invoke(Request $request, Document $document): StreamedResponse

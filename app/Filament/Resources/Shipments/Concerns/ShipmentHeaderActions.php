@@ -11,6 +11,7 @@ use App\Domain\Infrastructure\Pdf\PdfRenderer;
 use App\Domain\Infrastructure\Pdf\Templates\CommercialInvoicePdfTemplate;
 use App\Domain\Infrastructure\Pdf\Templates\CustomPricePdfTemplate;
 use App\Domain\Infrastructure\Pdf\Templates\PackingListPdfTemplate;
+use App\Domain\Infrastructure\Pdf\Templates\ShipmentProformaInvoicePdfTemplate;
 use App\Domain\Infrastructure\Services\DocumentService;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Filament\Actions\GeneratePdfAction;
@@ -81,6 +82,27 @@ trait ShipmentHeaderActions
                 ->label(__('forms.labels.commercial_invoice'))
                 ->icon('heroicon-o-document-currency-dollar')
                 ->color('success'),
+
+            ActionGroup::make([
+                $this->shipmentProformaInvoiceGenerateAction(),
+                GeneratePdfAction::download(
+                    documentType: 'shipment_proforma_invoice_pdf',
+                    label: 'Download PDF',
+                )->name('downloadShipmentProformaInvoicePdf'),
+                GeneratePdfAction::preview(
+                    templateClass: ShipmentProformaInvoicePdfTemplate::class,
+                    label: 'Preview PDF',
+                    formSchema: $this->commercialInvoiceOptions(),
+                )->name('previewShipmentProformaInvoicePdf'),
+                SendDocumentByEmailAction::make(
+                    documentType: 'shipment_proforma_invoice_pdf',
+                    settingsKey: 'email_default_message_proforma_invoice',
+                    label: 'Send by Email',
+                )->name('sendShipmentProformaInvoiceByEmail'),
+            ])
+                ->label(__('forms.labels.proforma_invoice'))
+                ->icon('heroicon-o-document-currency-dollar')
+                ->color('warning'),
         ])
             ->label(__('forms.labels.documents'))
             ->icon('heroicon-o-document-text')
@@ -252,6 +274,48 @@ trait ShipmentHeaderActions
                     $this->handleSaveCustomPrices($record, $data);
 
                     $template = new CommercialInvoicePdfTemplate($record, 'en', $data);
+                    $service = new PdfGeneratorService(
+                        new PdfRenderer(),
+                        new DocumentService(),
+                    );
+
+                    $document = $service->generate($template);
+
+                    Notification::make()
+                        ->title('PDF Generated')
+                        ->body("Version {$document->version} created: {$document->name}")
+                        ->success()
+                        ->send();
+                } catch (\Throwable $e) {
+                    report($e);
+
+                    Notification::make()
+                        ->title('PDF Generation Failed')
+                        ->body($e->getMessage())
+                        ->danger()
+                        ->send();
+                }
+            });
+    }
+
+    protected function shipmentProformaInvoiceGenerateAction(): Action
+    {
+        return Action::make('generateShipmentProformaInvoicePdf')
+            ->label('Generate PDF')
+            ->icon('heroicon-o-document-arrow-down')
+            ->color('warning')
+            ->visible(fn () => auth()->user()?->can('generate-documents'))
+            ->requiresConfirmation()
+            ->modalHeading('Generate Proforma Invoice PDF')
+            ->modalDescription('This will generate a new PDF version. If a previous version exists, it will be archived.')
+            ->modalSubmitActionLabel('Generate')
+            ->form($this->commercialInvoiceOptions())
+            ->action(function (array $data) {
+                try {
+                    $record = $this->getRecord();
+                    $this->handleSaveCustomPrices($record, $data);
+
+                    $template = new ShipmentProformaInvoicePdfTemplate($record, 'en', $data);
                     $service = new PdfGeneratorService(
                         new PdfRenderer(),
                         new DocumentService(),

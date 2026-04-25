@@ -44,6 +44,7 @@ class RecentDocumentsWidget extends BaseWidget
                         'commercial_invoice_pdf',
                         'packing_list_pdf',
                         'proforma_invoice_pdf',
+                        'shipment_proforma_invoice_pdf',
                     ])
                     ->orderByDesc('created_at')
                     ->limit(10)
@@ -58,7 +59,7 @@ class RecentDocumentsWidget extends BaseWidget
                     ->formatStateUsing(fn (string $state) => match ($state) {
                         'commercial_invoice_pdf' => __('widgets.portal.commercial_invoice'),
                         'packing_list_pdf' => __('widgets.portal.packing_list'),
-                        'proforma_invoice_pdf' => __('navigation.models.proforma_invoice'),
+                        'proforma_invoice_pdf', 'shipment_proforma_invoice_pdf' => __('navigation.models.proforma_invoice'),
                         default => $state,
                     }),
                 TextColumn::make('created_at')
