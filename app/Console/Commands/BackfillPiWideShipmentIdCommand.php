@@ -35,6 +35,7 @@ class BackfillPiWideShipmentIdCommand extends Command
         $this->info("Inspecting {$orphans->count()} shipment-owned mirror(s) without allocations.");
 
         $applicable = [];
+        $alreadyLinked = [];
         $multiShipment = [];
         $amountMismatch = [];
         $noPiWide = [];
@@ -53,6 +54,22 @@ class BackfillPiWideShipmentIdCommand extends Command
             $docId = $docClass::where('reference', $docRef)->value('id');
             if (! $docId) {
                 $noDocRef[] = $mirror;
+
+                continue;
+            }
+
+            // If a shipment-specific canonical already exists for this mirror's
+            // shipment+stage, no backfill is needed — getMirrorPaidAmount() will
+            // sync via that canonical when payments are allocated. This is the
+            // normal case for split PIs and should not be flagged for action.
+            $shipSpecific = PaymentScheduleItem::where('payable_type', $docClass)
+                ->where('payable_id', $docId)
+                ->where('shipment_id', $mirror->payable_id)
+                ->where('payment_term_stage_id', $mirror->payment_term_stage_id)
+                ->first();
+
+            if ($shipSpecific) {
+                $alreadyLinked[] = compact('mirror', 'shipSpecific');
 
                 continue;
             }
@@ -141,6 +158,10 @@ class BackfillPiWideShipmentIdCommand extends Command
         if (! empty($noDocRef)) {
             $this->newLine();
             $this->warn('Skipped (label has no parseable doc ref): '.count($noDocRef));
+        }
+        if (! empty($alreadyLinked)) {
+            $this->newLine();
+            $this->info('No-op (shipment-specific canonical already exists; mirror will sync once paid): '.count($alreadyLinked));
         }
 
         if ($dryRun) {
