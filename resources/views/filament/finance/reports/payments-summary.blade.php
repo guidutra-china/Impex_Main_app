@@ -195,6 +195,9 @@
                                                         @elseif ($alloc['document_reference'])
                                                             {{ $alloc['document_type'] }} {{ $alloc['document_reference'] }}
                                                         @endif
+                                                        @if (! empty($alloc['client_reference']))
+                                                            <span class="text-gray-500">({{ __('payments_summary_report.client_ref') }}: {{ $alloc['client_reference'] }})</span>
+                                                        @endif
                                                         <span class="text-gray-500">— {{ $alloc['label'] }}:</span>
                                                         <span class="font-medium">{{ \App\Domain\Infrastructure\Support\Money::format($alloc['amount']) }}</span>
                                                         @if ($alloc['is_credit'])

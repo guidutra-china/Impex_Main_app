@@ -18,7 +18,7 @@ final class PaymentAllocationDetail
         public readonly int $paymentAmount,
         public readonly int $allocatedAmount,
         public readonly int $unallocatedAmount,
-        /** @var list<array{label: string, document_type: ?string, document_reference: ?string, document_url: ?string, amount: int, is_credit: bool}> */
+        /** @var list<array{label: string, document_type: ?string, document_reference: ?string, document_url: ?string, client_reference: ?string, amount: int, is_credit: bool}> */
         public readonly array $allocations,
         public readonly ?string $detailUrl,
     ) {}

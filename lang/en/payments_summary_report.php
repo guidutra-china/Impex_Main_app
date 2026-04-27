@@ -56,4 +56,6 @@ return [
         'allocation_label' => 'Installment / Stage',
         'allocation_amount' => 'Allocated Amount',
     ],
+
+    'client_ref' => 'Client Ref.',
 ];

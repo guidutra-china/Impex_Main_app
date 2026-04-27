@@ -168,6 +168,9 @@ final class PaymentsSummaryExcelExporter
 
             foreach ($detail->allocations as $alloc) {
                 $docCell = trim(($alloc['document_type'] ?? '').' '.($alloc['document_reference'] ?? ''));
+                if (! empty($alloc['client_reference'])) {
+                    $docCell = trim($docCell.' ('.__('payments_summary_report.client_ref').': '.$alloc['client_reference'].')');
+                }
                 $writer->addRow(Row::fromValues([
                     $detail->paymentDate->toDateString(),
                     $reference,

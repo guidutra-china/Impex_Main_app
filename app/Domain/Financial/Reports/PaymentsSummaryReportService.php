@@ -162,13 +162,14 @@ final class PaymentsSummaryReportService
                 $scheduleItem = $alloc->scheduleItem;
                 $payable = $scheduleItem?->payable;
 
-                [$docType, $docRef, $docUrl] = $this->describePayable($payable);
+                [$docType, $docRef, $docUrl, $clientRef] = $this->describePayable($payable);
 
                 $allocations[] = [
                     'label' => (string) ($scheduleItem?->paymentTermStage?->label ?? $scheduleItem?->label ?? ''),
                     'document_type' => $docType,
                     'document_reference' => $docRef,
                     'document_url' => $docUrl,
+                    'client_reference' => $clientRef,
                     'amount' => (int) $alloc->allocated_amount,
                     'is_credit' => (bool) ($scheduleItem?->is_credit ?? false),
                 ];
@@ -199,20 +200,34 @@ final class PaymentsSummaryReportService
     }
 
     /**
-     * @return array{0: ?string, 1: ?string, 2: ?string}
+     * @return array{0: ?string, 1: ?string, 2: ?string, 3: ?string}
      */
     private function describePayable(mixed $payable): array
     {
         if ($payable instanceof ProformaInvoice) {
-            return ['PI', (string) $payable->reference, ProformaInvoiceResource::getUrl('view', ['record' => $payable->id])];
+            return [
+                'PI',
+                (string) $payable->reference,
+                ProformaInvoiceResource::getUrl('view', ['record' => $payable->id]),
+                $payable->client_reference !== null && $payable->client_reference !== ''
+                    ? (string) $payable->client_reference
+                    : null,
+            ];
         }
         if ($payable instanceof PurchaseOrder) {
-            return ['PO', (string) $payable->reference, PurchaseOrderResource::getUrl('view', ['record' => $payable->id])];
+            return ['PO', (string) $payable->reference, PurchaseOrderResource::getUrl('view', ['record' => $payable->id]), null];
         }
         if ($payable instanceof Shipment) {
-            return ['SH', (string) $payable->reference, ShipmentResource::getUrl('view', ['record' => $payable->id])];
+            return [
+                'SH',
+                (string) $payable->reference,
+                ShipmentResource::getUrl('view', ['record' => $payable->id]),
+                $payable->client_reference !== null && $payable->client_reference !== ''
+                    ? (string) $payable->client_reference
+                    : null,
+            ];
         }
 
-        return [null, null, null];
+        return [null, null, null, null];
     }
 }

@@ -56,4 +56,6 @@ return [
         'allocation_label' => 'Parcela / Estágio',
         'allocation_amount' => 'Valor Alocado',
     ],
+
+    'client_ref' => 'Ref. Cliente',
 ];
