@@ -6,6 +6,7 @@ use App\Domain\Financial\Models\Payment;
 use App\Filament\Resources\Finance\AccountsReceivable\Pages\CreateAccountsReceivable;
 use App\Filament\Resources\Finance\AccountsReceivable\Pages\EditAccountsReceivable;
 use App\Filament\Resources\Finance\AccountsReceivable\Pages\ListAccountsReceivable;
+use App\Filament\Resources\Finance\AccountsReceivable\Pages\ReceivablesReport;
 use App\Filament\Resources\Finance\AccountsReceivable\Pages\ViewAccountsReceivable;
 use App\Filament\Resources\Finance\AccountsReceivable\Schemas\ReceivableForm;
 use App\Filament\Resources\Finance\AccountsReceivable\Schemas\ReceivableInfolist;
@@ -67,6 +68,7 @@ class AccountsReceivableResource extends Resource
     {
         return [
             'index' => ListAccountsReceivable::route('/'),
+            'report' => ReceivablesReport::route('/report'),
             'create' => CreateAccountsReceivable::route('/create'),
             'view' => ViewAccountsReceivable::route('/{record}'),
             'edit' => EditAccountsReceivable::route('/{record}/edit'),

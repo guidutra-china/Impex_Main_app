@@ -6,6 +6,7 @@ use App\Domain\Financial\Models\Payment;
 use App\Filament\Resources\Finance\AccountsPayable\Pages\CreateAccountsPayable;
 use App\Filament\Resources\Finance\AccountsPayable\Pages\EditAccountsPayable;
 use App\Filament\Resources\Finance\AccountsPayable\Pages\ListAccountsPayable;
+use App\Filament\Resources\Finance\AccountsPayable\Pages\PayablesReport;
 use App\Filament\Resources\Finance\AccountsPayable\Pages\ViewAccountsPayable;
 use App\Filament\Resources\Finance\AccountsPayable\Schemas\PayableForm;
 use App\Filament\Resources\Finance\AccountsPayable\Schemas\PayableInfolist;
@@ -67,6 +68,7 @@ class AccountsPayableResource extends Resource
     {
         return [
             'index' => ListAccountsPayable::route('/'),
+            'report' => PayablesReport::route('/report'),
             'create' => CreateAccountsPayable::route('/create'),
             'view' => ViewAccountsPayable::route('/{record}'),
             'edit' => EditAccountsPayable::route('/{record}/edit'),
