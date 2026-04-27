@@ -85,23 +85,18 @@ class ReceivableInfolist
                                 $payable = $scheduleItem?->payable;
                                 $extras = [];
 
-                                if ($payable instanceof PurchaseOrder) {
-                                    if (filled($payable->supplier_invoice_number)) {
-                                        $extras[] = __('forms.labels.invoice_number').': '.$payable->supplier_invoice_number;
-                                    }
-                                } elseif ($payable instanceof Shipment) {
-                                    if (filled($payable->bl_number)) {
-                                        $extras[] = __('forms.labels.bl_number').': '.$payable->bl_number;
-                                    }
-                                } else {
-                                    if (filled($payable?->client_reference)) {
-                                        $extras[] = __('forms.labels.client_reference').': '.$payable->client_reference;
-                                    }
+                                if ($payable instanceof PurchaseOrder && filled($payable->supplier_invoice_number)) {
+                                    $extras[] = __('forms.labels.invoice_number').': '.$payable->supplier_invoice_number;
+                                }
 
-                                    $shipmentBl = $scheduleItem?->shipment?->bl_number;
-                                    if (filled($shipmentBl)) {
-                                        $extras[] = __('forms.labels.bl_number').': '.$shipmentBl;
-                                    }
+                                if (! ($payable instanceof PurchaseOrder) && ! ($payable instanceof Shipment) && filled($payable?->client_reference)) {
+                                    $extras[] = __('forms.labels.client_reference').': '.$payable->client_reference;
+                                }
+
+                                $shipmentBl = $scheduleItem?->shipment?->bl_number
+                                    ?? ($payable instanceof Shipment ? $payable->bl_number : null);
+                                if (filled($shipmentBl)) {
+                                    $extras[] = __('forms.labels.bl_number').': '.$shipmentBl;
                                 }
 
                                 if (empty($extras)) {
