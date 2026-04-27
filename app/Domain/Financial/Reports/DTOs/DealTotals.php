@@ -8,6 +8,5 @@ final readonly class DealTotals
         public int $cashBalance,
         public int $margin,
         public float $marginPct,
-    ) {
-    }
+    ) {}
 }

@@ -22,6 +22,5 @@ final readonly class ShipmentAttributionRow
         public ?int $outstandingPresentation,
         public string $detailUrl,
         public array $additionalCosts,
-    ) {
-    }
+    ) {}
 }

@@ -12,6 +12,5 @@ final readonly class AdditionalCostRow
         public int $totalOriginal,
         public int $attributedOriginal,
         public ?int $attributedPresentation,
-    ) {
-    }
+    ) {}
 }

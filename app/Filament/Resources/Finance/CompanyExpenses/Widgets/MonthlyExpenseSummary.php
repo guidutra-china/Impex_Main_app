@@ -112,7 +112,7 @@ class MonthlyExpenseSummary extends Widget
 
         $unconvertedDisplay = [];
         foreach ($unconvertedByCurrency as $code => $amountMinor) {
-            $unconvertedDisplay[] = $code . ' ' . Money::format($amountMinor);
+            $unconvertedDisplay[] = $code.' '.Money::format($amountMinor);
         }
 
         $expenseCount = CompanyExpense::query()->excludeRecurringTemplates()->inMonth($year, $month)->count();
@@ -158,7 +158,7 @@ class MonthlyExpenseSummary extends Widget
 
         $unconvertedDisplay = [];
         foreach ($unconvertedByCurrency as $code => $amountMinor) {
-            $unconvertedDisplay[] = $code . ' ' . Money::format($amountMinor);
+            $unconvertedDisplay[] = $code.' '.Money::format($amountMinor);
         }
 
         $monthlyAvg = Carbon::now()->month > 0
@@ -190,7 +190,7 @@ class MonthlyExpenseSummary extends Widget
         return [
             'change' => abs($change),
             'direction' => $change > 0 ? 'up' : ($change < 0 ? 'down' : 'neutral'),
-            'label' => ($change >= 0 ? '+' : '') . $change . '%',
+            'label' => ($change >= 0 ? '+' : '').$change.'%',
         ];
     }
 

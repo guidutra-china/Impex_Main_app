@@ -14,6 +14,5 @@ final readonly class ShipmentAttribution
     public function __construct(
         public float $pct,
         public AttributionBasis $basis,
-    ) {
-    }
+    ) {}
 }

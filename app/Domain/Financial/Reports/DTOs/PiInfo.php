@@ -17,6 +17,5 @@ final readonly class PiInfo
         public int $totalOriginal,
         public ?int $totalPresentation,
         public string $detailUrl,
-    ) {
-    }
+    ) {}
 }

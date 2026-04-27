@@ -12,6 +12,6 @@ enum AttributionBasis: string
 
     public function labelKey(): string
     {
-        return 'client_deal_breakdown.basis.' . $this->value;
+        return 'client_deal_breakdown.basis.'.$this->value;
     }
 }

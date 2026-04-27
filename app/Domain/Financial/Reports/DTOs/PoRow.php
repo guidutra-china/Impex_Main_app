@@ -19,6 +19,5 @@ final readonly class PoRow
         public ?int $outstandingPresentation,
         public PurchaseOrderStatus $status,
         public string $detailUrl,
-    ) {
-    }
+    ) {}
 }

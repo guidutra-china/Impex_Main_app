@@ -25,8 +25,8 @@ trait HasPaymentApprovalActions
                     ->requiresConfirmation()
                     ->modalHeading('Approve Payment')
                     ->modalDescription(fn ($record) => 'Approve payment of '
-                        . Money::format($record->amount) . ' '
-                        . $record->currency_code . '?')
+                        .Money::format($record->amount).' '
+                        .$record->currency_code.'?')
                     ->visible(fn ($record) => $record->status === PaymentStatus::PENDING_APPROVAL)
                     ->action(function ($record) {
                         app(ApprovePaymentAction::class)->approve($record);

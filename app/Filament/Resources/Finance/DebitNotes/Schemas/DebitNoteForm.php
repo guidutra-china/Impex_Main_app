@@ -89,7 +89,7 @@ class DebitNoteForm
                         ])
                         ->columns(10)
                         ->defaultItems(0)
-                        ->addActionLabel('+ ' . __('forms.labels.add_line')),
+                        ->addActionLabel('+ '.__('forms.labels.add_line')),
                 ]),
         ]);
     }

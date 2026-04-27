@@ -3,8 +3,8 @@
 namespace App\Domain\Financial\Reports\Support;
 
 use App\Domain\Financial\Models\PaymentAllocation;
-use App\Domain\Settings\Models\ExchangeRate;
 use App\Domain\Settings\Enums\ExchangeRateStatus;
+use App\Domain\Settings\Models\ExchangeRate;
 use Carbon\CarbonImmutable;
 
 /**
@@ -23,8 +23,7 @@ final class FxConverter
     public function __construct(
         private readonly string $presentationCurrency,
         private readonly array $ratesCache,
-    ) {
-    }
+    ) {}
 
     public function convertDocument(int $amount, string $from, CarbonImmutable $at): ?int
     {
@@ -137,6 +136,7 @@ final class FxConverter
                 : (string) $r->date;
             $cache["{$fromCode}>{$presentationCurrency}|{$date}"] = (float) $r->rate;
         }
+
         return $cache;
     }
 }

@@ -12,6 +12,5 @@ final readonly class ReceiptsBlock
         public ?int $outstandingPresentation,
         public float $percentPaid,
         public array $items,
-    ) {
-    }
+    ) {}
 }

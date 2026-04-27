@@ -9,8 +9,8 @@ use Filament\Tables\Table;
 
 class PayablesTable
 {
-    use HasPaymentColumns;
     use HasPaymentApprovalActions;
+    use HasPaymentColumns;
 
     public static function configure(Table $table): Table
     {

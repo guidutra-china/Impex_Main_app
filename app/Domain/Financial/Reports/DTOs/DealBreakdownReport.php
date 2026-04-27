@@ -16,6 +16,5 @@ final readonly class DealBreakdownReport
         public KpiSummary $kpi,
         public array $deals,
         public array $unconvertedCurrencyPairs,
-    ) {
-    }
+    ) {}
 }

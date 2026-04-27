@@ -26,9 +26,8 @@ use Carbon\CarbonImmutable;
 final class DealBreakdownReportService
 {
     public function __construct(
-        private readonly ShipmentAttributionCalculator $attributor = new ShipmentAttributionCalculator(),
-    ) {
-    }
+        private readonly ShipmentAttributionCalculator $attributor = new ShipmentAttributionCalculator,
+    ) {}
 
     public function build(Company $client, DealBreakdownFilters $filters): DealBreakdownReport
     {
@@ -84,6 +83,7 @@ final class DealBreakdownReportService
             ->where('parent_company_id', $client->id)
             ->pluck('id')
             ->all();
+
         return array_values(array_unique(array_merge($ids, $children)));
     }
 
@@ -233,6 +233,7 @@ final class DealBreakdownReportService
                 detailUrl: PurchaseOrderResource::getUrl('view', ['record' => $po->id]),
             );
         }
+
         return $rows;
     }
 
@@ -316,6 +317,7 @@ final class DealBreakdownReportService
                 additionalCosts: $additionalCostRows,
             );
         }
+
         return $rows;
     }
 

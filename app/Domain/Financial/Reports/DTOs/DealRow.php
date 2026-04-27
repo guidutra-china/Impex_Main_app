@@ -14,6 +14,5 @@ final readonly class DealRow
         public array $purchaseOrders,
         public array $shipments,
         public DealTotals $totals,
-    ) {
-    }
+    ) {}
 }

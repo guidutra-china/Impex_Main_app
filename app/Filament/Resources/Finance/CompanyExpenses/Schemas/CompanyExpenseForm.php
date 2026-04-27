@@ -67,7 +67,7 @@ class CompanyExpenseForm
                     ->options(fn () => BankAccount::where('status', 'active')
                         ->get()
                         ->mapWithKeys(fn ($account) => [
-                            $account->id => $account->bank_name . ' - ' . $account->account_number,
+                            $account->id => $account->bank_name.' - '.$account->account_number,
                         ]))
                     ->searchable()
                     ->nullable(),

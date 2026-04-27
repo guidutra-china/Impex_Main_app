@@ -33,18 +33,21 @@ final class ShipmentAttributionCalculator
         $totalWeight = (float) $shipmentItems->sum('total_weight');
         if ($totalWeight > 0) {
             $piWeight = (float) $piItems->sum('total_weight');
+
             return new ShipmentAttribution($piWeight / $totalWeight, AttributionBasis::WEIGHT);
         }
 
         $totalVolume = (float) $shipmentItems->sum('total_volume');
         if ($totalVolume > 0) {
             $piVolume = (float) $piItems->sum('total_volume');
+
             return new ShipmentAttribution($piVolume / $totalVolume, AttributionBasis::VOLUME);
         }
 
         $totalQty = (int) $shipmentItems->sum('quantity');
         if ($totalQty > 0) {
             $piQty = (int) $piItems->sum('quantity');
+
             return new ShipmentAttribution($piQty / $totalQty, AttributionBasis::QUANTITY);
         }
 

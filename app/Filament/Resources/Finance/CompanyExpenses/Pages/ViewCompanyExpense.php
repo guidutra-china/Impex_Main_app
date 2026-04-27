@@ -44,8 +44,8 @@ class ViewCompanyExpense extends ViewRecord
             ->requiresConfirmation()
             ->modalHeading(__('forms.labels.approve'))
             ->modalDescription(fn () => 'Approve expense of '
-                . Money::format($this->record->amount) . ' '
-                . $this->record->currency_code . '?')
+                .Money::format($this->record->amount).' '
+                .$this->record->currency_code.'?')
             ->visible(fn () => $this->record->status === ExpenseApprovalStatus::PENDING_APPROVAL
                 && auth()->user()?->can('approve-company-expenses'))
             ->action(function () {

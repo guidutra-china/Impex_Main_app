@@ -15,8 +15,7 @@ final readonly class DealBreakdownFilters
         public CarbonImmutable $to,
         public string $presentationCurrency,
         public array $statuses,
-    ) {
-    }
+    ) {}
 
     /** @return list<string> */
     public function statusValues(): array

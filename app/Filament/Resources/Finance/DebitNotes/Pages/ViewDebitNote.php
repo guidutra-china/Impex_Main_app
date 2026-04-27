@@ -143,7 +143,7 @@ class ViewDebitNote extends ViewRecord
                         'additional_cost_id' => $cost->id,
                         'proforma_invoice_id' => $piId,
                         'shipment_id' => $shipmentId,
-                        'description' => $cost->cost_type->getLabel() . ' — ' . ($cost->description ?: ($costable?->reference ?? '')),
+                        'description' => $cost->cost_type->getLabel().' — '.($cost->description ?: ($costable?->reference ?? '')),
                         'amount' => $lineAmount,
                         'currency_code' => $lineCurrency,
                     ]);

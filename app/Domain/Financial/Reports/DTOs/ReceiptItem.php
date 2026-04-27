@@ -14,6 +14,5 @@ final readonly class ReceiptItem
         public ?int $amountPresentation,
         public ?float $exchangeRateToPresentation,
         public ?string $paymentUrl,
-    ) {
-    }
+    ) {}
 }
