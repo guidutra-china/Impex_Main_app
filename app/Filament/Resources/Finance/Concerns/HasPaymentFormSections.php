@@ -278,19 +278,16 @@ trait HasPaymentFormSections
         }
 
         if ($directionValue === PaymentDirection::INBOUND->value || $directionValue === 'inbound') {
+            // Client-side allocations (AR) must always target the canonical
+            // PI-owned schedule item. Shipment-owned items exist as read-only
+            // mirrors so the shipment can display payment status without being
+            // selectable here — allocating against the mirror leaves the PI
+            // installment stuck as PENDING because mirror sync is one-way
+            // (PI → Shipment, never Shipment → PI).
             $piIds = ProformaInvoice::where('company_id', $companyId)->pluck('id');
-            $shipmentIds = Shipment::where('company_id', $companyId)->pluck('id');
 
-            $query->where(function ($q) use ($piIds, $shipmentIds) {
-                $q->where(function ($q2) use ($piIds) {
-                    $q2->where('payable_type', ProformaInvoice::class)->whereIn('payable_id', $piIds);
-                });
-                if ($shipmentIds->isNotEmpty()) {
-                    $q->orWhere(function ($q2) use ($shipmentIds) {
-                        $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $shipmentIds);
-                    });
-                }
-            });
+            $query->where('payable_type', ProformaInvoice::class)
+                ->whereIn('payable_id', $piIds);
         } else {
             if ($isForwarder) {
                 $costableIds = \App\Domain\Financial\Models\AdditionalCost::where('forwarder_company_id', $companyId)
@@ -350,19 +347,12 @@ trait HasPaymentFormSections
             ]);
 
         if ($directionValue === PaymentDirection::INBOUND->value || $directionValue === 'inbound') {
+            // Same rule as getCompanyScheduleItems: client AR credits attach
+            // to the PI canonical item, never to a shipment mirror.
             $piIds = ProformaInvoice::where('company_id', $companyId)->pluck('id');
-            $shipmentIds = Shipment::where('company_id', $companyId)->pluck('id');
 
-            $query->where(function ($q) use ($piIds, $shipmentIds) {
-                $q->where(function ($q2) use ($piIds) {
-                    $q2->where('payable_type', ProformaInvoice::class)->whereIn('payable_id', $piIds);
-                });
-                if ($shipmentIds->isNotEmpty()) {
-                    $q->orWhere(function ($q2) use ($shipmentIds) {
-                        $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $shipmentIds);
-                    });
-                }
-            });
+            $query->where('payable_type', ProformaInvoice::class)
+                ->whereIn('payable_id', $piIds);
         } else {
             if ($isForwarder) {
                 $costableIds = \App\Domain\Financial\Models\AdditionalCost::where('forwarder_company_id', $companyId)
