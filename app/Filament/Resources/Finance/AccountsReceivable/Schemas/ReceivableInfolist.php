@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Finance\AccountsReceivable\Schemas;
 
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
@@ -76,11 +77,40 @@ class ReceivableInfolist
                     ->schema([
                         TextEntry::make('scheduleItem.payable.reference')
                             ->label(__('forms.labels.document')),
-                        TextEntry::make('scheduleItem.payable.client_reference')
-                            ->label(__('forms.labels.client_reference'))
-                            ->placeholder('—'),
                         TextEntry::make('scheduleItem.label')
-                            ->label(__('forms.labels.schedule_item')),
+                            ->label(__('forms.labels.schedule_item'))
+                            ->formatStateUsing(function ($state, $record) {
+                                $scheduleItem = $record->scheduleItem;
+                                $payable = $scheduleItem?->payable;
+                                $extras = [];
+
+                                if ($payable instanceof PurchaseOrder) {
+                                    if (filled($payable->supplier_invoice_number)) {
+                                        $extras[] = __('forms.labels.invoice_number').': '.$payable->supplier_invoice_number;
+                                    }
+                                } else {
+                                    $refs = [];
+
+                                    if (filled($payable?->client_reference)) {
+                                        $refs[] = (string) $payable->client_reference;
+                                    }
+
+                                    $shipmentRef = $scheduleItem?->shipment?->client_reference;
+                                    if (filled($shipmentRef) && ! in_array((string) $shipmentRef, $refs, true)) {
+                                        $refs[] = (string) $shipmentRef;
+                                    }
+
+                                    if (! empty($refs)) {
+                                        $extras[] = __('forms.labels.client_reference').': '.implode(' / ', $refs);
+                                    }
+                                }
+
+                                if (empty($extras)) {
+                                    return $state;
+                                }
+
+                                return trim((string) $state).' ('.implode(' | ', $extras).')';
+                            }),
                         TextEntry::make('type')
                             ->label(__('forms.labels.type'))
                             ->getStateUsing(fn ($record) => $record->isCreditApplication() ? 'Credit' : 'Payment')
@@ -129,7 +159,7 @@ class ReceivableInfolist
                             })
                             ->placeholder('—'),
                     ])
-                    ->columns(7),
+                    ->columns(6),
             ]),
         ]);
     }
