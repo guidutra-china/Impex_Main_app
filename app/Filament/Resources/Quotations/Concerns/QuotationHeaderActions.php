@@ -20,6 +20,7 @@ use App\Filament\Actions\SendDocumentByEmailAction;
 use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
@@ -37,6 +38,12 @@ trait QuotationHeaderActions
             GeneratePdfAction::make(
                 templateClass: QuotationPdfTemplate::class,
                 label: 'Generate PDF',
+                formSchema: [
+                    Checkbox::make('with_images')
+                        ->label('Include product photos')
+                        ->default(true)
+                        ->helperText('If checked, each line item will display the product photo and the filename will include "PIC".'),
+                ],
             ),
             GeneratePdfAction::download(
                 documentType: 'quotation_pdf',
@@ -45,6 +52,13 @@ trait QuotationHeaderActions
             GeneratePdfAction::preview(
                 templateClass: QuotationPdfTemplate::class,
                 label: 'Preview PDF',
+                formSchema: [
+                    Checkbox::make('with_images')
+                        ->label('Include product photos')
+                        ->default(true)
+                        ->live()
+                        ->helperText('Preview the PDF with product photos in each line item.'),
+                ],
             ),
             SendDocumentByEmailAction::make(
                 documentType: 'quotation_pdf',
@@ -92,6 +106,7 @@ trait QuotationHeaderActions
                 $allowed = $this->record->getAllowedNextStatuses();
                 $options = collect($allowed)->mapWithKeys(function ($status) {
                     $enum = QuotationStatus::from($status);
+
                     return [$status => $enum->getLabel()];
                 })->toArray();
 
@@ -115,7 +130,7 @@ trait QuotationHeaderActions
                     );
 
                     Notification::make()
-                        ->title(__('messages.status_changed_to') . ' ' . QuotationStatus::from($data['new_status'])->getLabel())
+                        ->title(__('messages.status_changed_to').' '.QuotationStatus::from($data['new_status'])->getLabel())
                         ->success()
                         ->send();
 
@@ -272,7 +287,7 @@ trait QuotationHeaderActions
                     });
 
                     Notification::make()
-                        ->title(__('messages.pi_created') . ': ' . $pi->reference)
+                        ->title(__('messages.pi_created').': '.$pi->reference)
                         ->success()
                         ->send();
 
@@ -314,7 +329,7 @@ trait QuotationHeaderActions
             'costable_type' => $pi->getMorphClass(),
             'costable_id' => $pi->id,
             'cost_type' => AdditionalCostType::COMMISSION,
-            'description' => 'Service Fee (' . $quotation->commission_rate . '%) — ' . $quotation->reference,
+            'description' => 'Service Fee ('.$quotation->commission_rate.'%) — '.$quotation->reference,
             'amount' => $commissionAmount,
             'currency_code' => $pi->currency_code,
             'exchange_rate' => 1,
@@ -322,7 +337,7 @@ trait QuotationHeaderActions
             'billable_to' => BillableTo::CLIENT,
             'cost_date' => now()->toDateString(),
             'status' => AdditionalCostStatus::PENDING,
-            'notes' => 'Auto-generated from ' . $quotation->reference . ' (Separate commission ' . $quotation->commission_rate . '%)',
+            'notes' => 'Auto-generated from '.$quotation->reference.' (Separate commission '.$quotation->commission_rate.'%)',
         ]);
     }
 }

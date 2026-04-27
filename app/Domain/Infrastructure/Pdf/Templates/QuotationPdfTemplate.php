@@ -7,6 +7,25 @@ use App\Domain\Quotations\Models\Quotation;
 
 class QuotationPdfTemplate extends AbstractPdfTemplate
 {
+    protected bool $withImages;
+
+    public function __construct(
+        \Illuminate\Database\Eloquent\Model $model,
+        string $locale = 'en',
+        bool $withImages = true,
+    ) {
+        parent::__construct($model, $locale);
+        $this->withImages = $withImages;
+    }
+
+    public function getFilename(): string
+    {
+        $reference = $this->model->reference ?? $this->model->getKey();
+        $picSuffix = $this->withImages ? '-PIC' : '';
+
+        return $reference.$picSuffix.'-v'.$this->getNextVersion().'.pdf';
+    }
+
     public function getView(): string
     {
         return 'pdf.quotation';
@@ -51,6 +70,7 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
                 'line_total' => $this->formatMoney($item->line_total, $currencyCode, 2),
                 'incoterm' => $item->incoterm instanceof \BackedEnum ? $item->incoterm->value : $item->incoterm,
                 'supplier_name' => $showSuppliers ? ($item->selectedSupplier?->name ?? null) : null,
+                'image' => $this->withImages ? $this->resolveImagePath($item->product?->avatar) : null,
             ];
 
             return $data;
@@ -71,6 +91,7 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
                 'created_by' => $quotation->creator?->name,
             ],
             'show_suppliers' => $showSuppliers,
+            'with_images' => $this->withImages,
             'client' => [
                 'name' => $quotation->company?->name ?? '—',
                 'legal_name' => $quotation->company?->legal_name,
@@ -85,7 +106,7 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
             'totals' => [
                 'subtotal' => $this->formatMoney($quotation->subtotal, $currencyCode, 2),
                 'show_commission' => $showCommission,
-                'commission_rate' => $showCommission ? $quotation->commission_rate . '%' : null,
+                'commission_rate' => $showCommission ? $quotation->commission_rate.'%' : null,
                 'commission_amount' => $showCommission
                     ? $this->formatMoney($quotation->commission_amount, $currencyCode, 2)
                     : null,
