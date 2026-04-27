@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Finance\AccountsPayable\Schemas;
 
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\Logistics\Models\Shipment;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\RepeatableEntry;
@@ -89,20 +90,18 @@ class PayableInfolist
                                     if (filled($payable->supplier_invoice_number)) {
                                         $extras[] = __('forms.labels.invoice_number').': '.$payable->supplier_invoice_number;
                                     }
+                                } elseif ($payable instanceof Shipment) {
+                                    if (filled($payable->bl_number)) {
+                                        $extras[] = __('forms.labels.bl_number').': '.$payable->bl_number;
+                                    }
                                 } else {
-                                    $refs = [];
-
                                     if (filled($payable?->client_reference)) {
-                                        $refs[] = (string) $payable->client_reference;
+                                        $extras[] = __('forms.labels.client_reference').': '.$payable->client_reference;
                                     }
 
-                                    $shipmentRef = $scheduleItem?->shipment?->client_reference;
-                                    if (filled($shipmentRef) && ! in_array((string) $shipmentRef, $refs, true)) {
-                                        $refs[] = (string) $shipmentRef;
-                                    }
-
-                                    if (! empty($refs)) {
-                                        $extras[] = __('forms.labels.client_reference').': '.implode(' / ', $refs);
+                                    $shipmentBl = $scheduleItem?->shipment?->bl_number;
+                                    if (filled($shipmentBl)) {
+                                        $extras[] = __('forms.labels.bl_number').': '.$shipmentBl;
                                     }
                                 }
 
