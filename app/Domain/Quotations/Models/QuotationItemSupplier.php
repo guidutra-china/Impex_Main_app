@@ -17,6 +17,7 @@ class QuotationItemSupplier extends Model
         'company_id',
         'unit_cost',
         'currency_code',
+        'cost_exchange_rate',
         'lead_time_days',
         'moq',
         'incoterm',
@@ -27,6 +28,7 @@ class QuotationItemSupplier extends Model
     {
         return [
             'unit_cost' => 'integer',
+            'cost_exchange_rate' => 'decimal:8',
             'lead_time_days' => 'integer',
             'moq' => 'integer',
             'incoterm' => Incoterm::class,
@@ -50,5 +52,19 @@ class QuotationItemSupplier extends Model
     public function getFormattedCostAttribute(): string
     {
         return \App\Domain\Infrastructure\Support\Money::format($this->unit_cost);
+    }
+
+    public function getConvertedUnitCostAttribute(): int
+    {
+        $quoteCurrency = $this->quotationItem?->quotation?->currency_code;
+        if ($this->currency_code === null
+            || $quoteCurrency === null
+            || $this->currency_code === $quoteCurrency) {
+            return $this->unit_cost;
+        }
+
+        $rate = $this->cost_exchange_rate !== null ? (float) $this->cost_exchange_rate : 1.0;
+
+        return (int) round($this->unit_cost * $rate);
     }
 }
