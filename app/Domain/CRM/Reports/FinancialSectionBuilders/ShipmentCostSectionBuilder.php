@@ -103,44 +103,13 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
                 return $isClientReport ? ! $isForwarderPayable : $isForwarderPayable;
             });
 
-            // Use the paid_amount accessor which includes mirror allocations
-            // from PI/PO schedule items (users pay on PI/PO, not directly on shipment)
-            $paidCosts = 0;
-            foreach ($relevantScheduleItems as $item) {
-                if ($item->is_credit) {
-                    continue;
-                }
-                $paidCosts += (int) $item->paid_amount;
-            }
+            // Supplier-summary mode: precompute the PO-by-PO shipment slice
+            // (canonical PSIs filtered by shipment_id) so the header can
+            // aggregate the same numbers the detail rows display.
+            $supplierPoSummaries = [];
+            $supplierPoTotal = 0;
+            $supplierPoPaid = 0;
 
-            // Shipment header row
-            $rows[] = [
-                '_row_type' => 'header',
-                '_entity_id' => (int) $s->id,
-                'number' => $s->reference ?? (string) $s->id,
-                'bl_number' => (string) ($s->bl_number ?? ''),
-                'client_reference' => (string) ($s->client_reference ?? ''),
-                'etd' => optional($s->etd)->format('Y-m-d'),
-                'eta' => optional($s->eta)->format('Y-m-d'),
-                'status' => $s->status instanceof \BackedEnum ? $s->status->value : (string) $s->status,
-                'freight' => round($freight / Money::SCALE, 2),
-                'other_costs' => round($otherCosts / Money::SCALE, 2),
-                'total_costs' => round($totalCosts / Money::SCALE, 2),
-                'paid' => round($paidCosts / Money::SCALE, 2),
-                'balance' => round(($totalCosts - $paidCosts) / Money::SCALE, 2),
-                'currency' => (string) ($s->currency_code ?? ''),
-            ];
-
-            if (! $filters->showDetails) {
-                continue;
-            }
-
-            // Supplier (non-forwarder) report: emit a payment summary row per
-            // related PO, scoped to THIS shipment's slice via the PO's
-            // canonical PaymentScheduleItems (shipment_id is denormalized on
-            // PO PSIs by the schedule generator/recalculator). Both total and
-            // paid come straight from the schedule, so the numbers reflect
-            // what was actually billed and paid for this shipment.
             if ($supplierSummaryMode) {
                 $relatedPOs = collect();
                 foreach ($s->items as $shipmentItem) {
@@ -165,6 +134,69 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
                     $shipmentShare = (int) $shipmentItems->sum('amount');
                     $shipmentPaid = (int) $shipmentItems->sum(fn ($psi) => (int) $psi->paid_amount);
                     $shipmentPaid = min($shipmentPaid, $shipmentShare);
+
+                    $supplierPoSummaries[] = [
+                        'po' => $po,
+                        'share' => $shipmentShare,
+                        'paid' => $shipmentPaid,
+                    ];
+
+                    $supplierPoTotal += $shipmentShare;
+                    $supplierPoPaid += $shipmentPaid;
+                }
+            }
+
+            // Use the paid_amount accessor which includes mirror allocations
+            // from PI/PO schedule items (users pay on PI/PO, not directly on shipment)
+            $paidCosts = 0;
+            foreach ($relevantScheduleItems as $item) {
+                if ($item->is_credit) {
+                    continue;
+                }
+                $paidCosts += (int) $item->paid_amount;
+            }
+
+            // Header totals: client/forwarder reports stay on additional-cost
+            // numbers; supplier-summary mode adds the PO shipment slice so
+            // total/paid/balance reflect what the supplier was actually billed
+            // and paid for this shipment.
+            if ($supplierSummaryMode) {
+                $headerTotal = $totalCosts + $supplierPoTotal;
+                $headerPaid = $paidCosts + $supplierPoPaid;
+            } else {
+                $headerTotal = $totalCosts;
+                $headerPaid = $paidCosts;
+            }
+
+            // Shipment header row
+            $rows[] = [
+                '_row_type' => 'header',
+                '_entity_id' => (int) $s->id,
+                'number' => $s->reference ?? (string) $s->id,
+                'bl_number' => (string) ($s->bl_number ?? ''),
+                'client_reference' => (string) ($s->client_reference ?? ''),
+                'etd' => optional($s->etd)->format('Y-m-d'),
+                'eta' => optional($s->eta)->format('Y-m-d'),
+                'status' => $s->status instanceof \BackedEnum ? $s->status->value : (string) $s->status,
+                'freight' => round($freight / Money::SCALE, 2),
+                'other_costs' => round($otherCosts / Money::SCALE, 2),
+                'total_costs' => round($headerTotal / Money::SCALE, 2),
+                'paid' => round($headerPaid / Money::SCALE, 2),
+                'balance' => round(max(0, $headerTotal - $headerPaid) / Money::SCALE, 2),
+                'currency' => (string) ($s->currency_code ?? ''),
+            ];
+
+            if (! $filters->showDetails) {
+                continue;
+            }
+
+            // Supplier (non-forwarder) report: emit one detail row per related
+            // PO using the precomputed shipment-scoped totals.
+            if ($supplierSummaryMode) {
+                foreach ($supplierPoSummaries as $entry) {
+                    $po = $entry['po'];
+                    $shipmentShare = (int) $entry['share'];
+                    $shipmentPaid = (int) $entry['paid'];
                     $shipmentBalance = max(0, $shipmentShare - $shipmentPaid);
 
                     $rows[] = [
