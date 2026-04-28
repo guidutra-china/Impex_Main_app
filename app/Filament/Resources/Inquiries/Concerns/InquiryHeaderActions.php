@@ -425,6 +425,14 @@ trait InquiryHeaderActions
                     $commissionRate = (float) ($data['commission_rate'] ?? 0);
                     $supplierQuotationIds = $data['supplier_quotation_ids'] ?? [];
 
+                    $itemOverrides = [];
+                    foreach (($data['items_preview'] ?? []) as $idx => $row) {
+                        $inquiryItemId = $this->record->items[$idx]->id ?? null;
+                        if ($inquiryItemId) {
+                            $itemOverrides[$inquiryItemId] = $row;
+                        }
+                    }
+
                     $quotation = app(CreateOrUpdateQuotationFromInquiryAction::class)
                         ->execute(
                             inquiry: Inquiry::with('items')->findOrFail($this->record->id),
@@ -432,6 +440,7 @@ trait InquiryHeaderActions
                             commissionType: $commissionType,
                             commissionRate: $commissionRate,
                             showSuppliers: false,
+                            itemOverrides: $itemOverrides,
                         );
 
                     if ($this->record->status === InquiryStatus::RECEIVED) {

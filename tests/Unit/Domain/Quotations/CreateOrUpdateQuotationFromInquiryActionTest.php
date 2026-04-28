@@ -291,6 +291,37 @@ class CreateOrUpdateQuotationFromInquiryActionTest extends TestCase
         ]);
     }
 
+    public function test_item_overrides_win_over_resolver_defaults(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems();
+        $supplier = Company::factory()->create();
+        $sq = $this->buildSqWith($inquiry, $supplier, 'CNY', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 70000],
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+            itemOverrides: [
+                $items[0]->id => [
+                    'unit_cost' => 7.5,                   // 75000 minor units (×10000)
+                    'cost_currency_code' => 'CNY',
+                    'cost_exchange_rate' => 0.20,         // user-overridden FX
+                    'commission_rate' => 30,
+                    'unit_price' => 1.95,                 // 19500 minor units (= 75000 × 0.20 × 1.30)
+                ],
+            ],
+        );
+
+        $item = $quotation->items->first();
+        $this->assertSame(75000, $item->unit_cost);
+        $this->assertEqualsWithDelta(0.20, (float) $item->cost_exchange_rate, 0.001);
+        $this->assertSame(19500, $item->unit_price);
+    }
+
     public function test_rerun_drops_quotation_items_whose_product_is_no_longer_in_inquiry(): void
     {
         [$client, $inquiry, $items] = $this->buildInquiryWithItems(itemCount: 2);

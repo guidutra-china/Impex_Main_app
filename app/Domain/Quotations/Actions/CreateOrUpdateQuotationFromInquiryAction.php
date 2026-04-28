@@ -34,9 +34,10 @@ class CreateOrUpdateQuotationFromInquiryAction
         float $commissionRate,
         bool $showSuppliers,
         bool $forceNewVersion = false,
+        array $itemOverrides = [],
     ): Quotation {
         return DB::transaction(function () use (
-            $inquiry, $supplierQuotationIds, $commissionType, $commissionRate, $showSuppliers, $forceNewVersion
+            $inquiry, $supplierQuotationIds, $commissionType, $commissionRate, $showSuppliers, $forceNewVersion, $itemOverrides
         ) {
             $existing = $inquiry->quotations()->latest('version')->first();
 
@@ -88,6 +89,7 @@ class CreateOrUpdateQuotationFromInquiryAction
                 supplierQuotationIds: $supplierQuotationIds,
                 commissionType: $commissionType,
                 commissionRate: $commissionRate,
+                itemOverrides: $itemOverrides,
             );
 
             return $quotation->fresh(['items.suppliers']);
@@ -100,6 +102,7 @@ class CreateOrUpdateQuotationFromInquiryAction
         array $supplierQuotationIds,
         CommissionType $commissionType,
         float $commissionRate,
+        array $itemOverrides = [],
     ): void {
         $sqItemsByProduct = empty($supplierQuotationIds)
             ? collect()
@@ -148,6 +151,19 @@ class CreateOrUpdateQuotationFromInquiryAction
             $unitPrice = $commissionType === CommissionType::EMBEDDED && $itemCommissionRate > 0
                 ? (int) round($convertedCost * (1 + $itemCommissionRate / 100))
                 : $convertedCost;
+
+            $override = $itemOverrides[$inquiryItem->id] ?? null;
+            if ($override) {
+                $unitCost = (int) round(($override['unit_cost'] ?? 0) * 10000);
+                $sourceCurrency = $override['cost_currency_code'] ?? $sourceCurrency;
+                $rate = (float) ($override['cost_exchange_rate'] ?? $rate);
+                $itemCommissionRate = (float) ($override['commission_rate'] ?? $itemCommissionRate);
+                $unitPrice = isset($override['unit_price'])
+                    ? (int) round($override['unit_price'] * 10000)
+                    : $unitPrice;
+                $resolved = ['currency' => $sourceCurrency, 'rate' => $rate];
+                $convertedCost = (int) round($unitCost * $rate);
+            }
 
             $payload = [
                 'quotation_id' => $quotation->id,
