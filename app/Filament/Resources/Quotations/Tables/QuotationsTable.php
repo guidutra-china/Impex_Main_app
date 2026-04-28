@@ -50,6 +50,29 @@ class QuotationsTable
                     ->label(__('forms.labels.commission'))
                     ->badge()
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('total_converted_cost')
+                    ->label(__('forms.labels.total_cost'))
+                    ->getStateUsing(fn ($record) => $record->total_converted_cost)
+                    ->money(fn ($record) => $record->currency_code, divideBy: 10000)
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('avg_margin')
+                    ->label(__('forms.labels.margin'))
+                    ->getStateUsing(function ($record) {
+                        $cost = $record->total_converted_cost;
+                        if ($cost <= 0) {
+                            return null;
+                        }
+
+                        return round((($record->subtotal - $cost) / $cost) * 100, 2);
+                    })
+                    ->formatStateUsing(fn ($state) => $state === null ? '—' : number_format($state, 1).'%')
+                    ->color(fn ($state) => match (true) {
+                        $state === null => 'gray',
+                        $state < 10 => 'danger',
+                        $state < 25 => 'warning',
+                        default => 'success',
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('items_count')
                     ->label(__('forms.labels.items'))
                     ->counts('items')
@@ -93,6 +116,12 @@ class QuotationsTable
                     ->label(__('forms.labels.my_projects'))
                     ->toggle()
                     ->query(fn ($query) => $query->where('responsible_user_id', auth()->id())),
+                Filter::make('has_multi_currency_items')
+                    ->label(__('forms.filters.has_multi_currency_items'))
+                    ->query(fn ($query) => $query->whereHas('items', function ($q) {
+                        $q->whereNotNull('cost_currency_code')
+                            ->whereColumn('cost_currency_code', '!=', 'quotations.currency_code');
+                    })),
                 TrashedFilter::make(),
             ])
             ->recordActions([
