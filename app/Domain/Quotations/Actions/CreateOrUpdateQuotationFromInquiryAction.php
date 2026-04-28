@@ -38,18 +38,24 @@ class CreateOrUpdateQuotationFromInquiryAction
         return DB::transaction(function () use (
             $inquiry, $supplierQuotationIds, $commissionType, $commissionRate, $showSuppliers, $forceNewVersion
         ) {
-            $existing = $inquiry->quotations()
-                ->latest('version')
-                ->first();
+            $existing = $inquiry->quotations()->latest('version')->first();
 
-            if ($existing && in_array($existing->status, self::LOCKED_STATUSES, true) && ! $forceNewVersion) {
-                throw new QuotationLockedException($existing);
+            if ($existing && in_array($existing->status, self::LOCKED_STATUSES, true)) {
+                if (! $forceNewVersion) {
+                    throw new QuotationLockedException($existing);
+                }
+
+                \App\Domain\Quotations\Models\QuotationVersion::create([
+                    'quotation_id' => $existing->id,
+                    'version' => $existing->version,
+                    'snapshot' => $this->snapshotQuotation($existing),
+                ]);
+
+                $existing = null;
+                $newVersion = ($inquiry->quotations()->max('version') ?? 0) + 1;
+            } else {
+                $newVersion = 1;
             }
-
-            // For locked statuses with forceNewVersion=true, ignore $existing — Tasks 2.9+ will snapshot.
-            $existing = $existing && ! in_array($existing->status, self::LOCKED_STATUSES, true)
-                ? $existing
-                : null;
 
             if ($existing) {
                 $existing->update([
@@ -68,6 +74,7 @@ class CreateOrUpdateQuotationFromInquiryAction
                     'company_id' => $inquiry->company_id,
                     'contact_id' => $inquiry->contact_id,
                     'status' => QuotationStatus::DRAFT,
+                    'version' => $newVersion,
                     'currency_code' => $inquiry->currency_code,
                     'commission_type' => $commissionType,
                     'commission_rate' => $commissionType === CommissionType::SEPARATE ? $commissionRate : 0,
@@ -161,6 +168,38 @@ class CreateOrUpdateQuotationFromInquiryAction
             } else {
                 QuotationItem::create($payload);
             }
+
+            $persistedItem = $existingItem ?: \App\Domain\Quotations\Models\QuotationItem::where('quotation_id', $quotation->id)
+                ->where('product_id', $productId)
+                ->latest('id')
+                ->first();
+
+            // Sync alternatives — replace any prior set with the current pool.
+            $persistedItem->suppliers()->delete();
+            foreach ($alternatives as $alt) {
+                $altResolved = $this->fx->resolve(
+                    $alt->supplierQuotation->currency_code,
+                    $quoteCurrency,
+                    $referenceDate,
+                );
+                \App\Domain\Quotations\Models\QuotationItemSupplier::create([
+                    'quotation_item_id' => $persistedItem->id,
+                    'company_id' => $alt->supplierQuotation->company_id,
+                    'unit_cost' => $alt->unit_cost,
+                    'currency_code' => $altResolved['currency'],
+                    'cost_exchange_rate' => $altResolved['rate'],
+                    'lead_time_days' => $alt->lead_time_days,
+                    'moq' => $alt->moq,
+                ]);
+            }
         }
+    }
+
+    private function snapshotQuotation(Quotation $quotation): array
+    {
+        return [
+            'quotation' => $quotation->toArray(),
+            'items' => $quotation->items()->with('suppliers')->get()->toArray(),
+        ];
     }
 }

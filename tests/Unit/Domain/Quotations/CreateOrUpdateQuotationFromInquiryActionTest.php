@@ -230,4 +230,64 @@ class CreateOrUpdateQuotationFromInquiryActionTest extends TestCase
         $this->assertSame(80000, $refreshed->unit_cost, 'unit_cost refreshed from SQ');
         $this->assertEqualsWithDelta(25.0, (float) $refreshed->commission_rate, 0.01, 'commission_rate override preserved');
     }
+
+    public function test_all_alternatives_are_persisted_as_quotation_item_suppliers(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems();
+        $supplierA = Company::factory()->create();
+        $supplierB = Company::factory()->create();
+        $sqA = $this->buildSqWith($inquiry, $supplierA, 'CNY', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 80000],
+        ]);
+        $sqB = $this->buildSqWith($inquiry, $supplierB, 'CNY', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 70000],
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$sqA->id, $sqB->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+        );
+
+        $item = $quotation->items->first();
+        $this->assertSame($supplierB->id, $item->selected_supplier_id, 'lowest-cost supplier elected');
+        $this->assertCount(2, $item->suppliers, 'both alternatives stored');
+    }
+
+    public function test_sent_with_force_new_version_creates_v2_and_snapshots_v1(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems();
+        $supplier = Company::factory()->create();
+        $sq = $this->buildSqWith($inquiry, $supplier, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 1000],
+        ]);
+
+        $v1 = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+        );
+        $v1->update(['status' => QuotationStatus::SENT]);
+
+        $v2 = $this->makeAction()->execute(
+            inquiry: $inquiry->fresh(),
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+            forceNewVersion: true,
+        );
+
+        $this->assertNotSame($v1->id, $v2->id, 'new Quotation row');
+        $this->assertSame(2, $v2->version);
+        $this->assertSame(QuotationStatus::DRAFT, $v2->status);
+        $this->assertDatabaseHas('quotation_versions', [
+            'quotation_id' => $v1->id,
+            'version' => 1,
+        ]);
+    }
 }
