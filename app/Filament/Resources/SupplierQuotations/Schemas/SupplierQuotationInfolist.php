@@ -78,6 +78,23 @@ class SupplierQuotationInfolist
                         ->placeholder('—'),
                 ])
                 ->columns(2),
+
+            Section::make(__('forms.sections.used_in_quotations'))
+                ->visible(fn ($record) => \App\Domain\Quotations\Models\QuotationItem::query()
+                    ->whereIn('supplier_quotation_item_id', $record->items->pluck('id'))
+                    ->exists())
+                ->schema([
+                    TextEntry::make('used_in')
+                        ->label('')
+                        ->state(fn ($record) => \App\Domain\Quotations\Models\Quotation::query()
+                            ->whereIn('id', \App\Domain\Quotations\Models\QuotationItem::query()
+                                ->whereIn('supplier_quotation_item_id', $record->items->pluck('id'))
+                                ->pluck('quotation_id'))
+                            ->orderByDesc('version')
+                            ->get()
+                            ->map(fn ($q) => $q->reference.' (v'.$q->version.')')
+                            ->implode(', ')),
+                ]),
         ];
     }
 

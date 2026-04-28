@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Inquiries\Schemas;
 
-use App\Domain\Inquiries\Enums\InquiryStatus;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
@@ -100,6 +99,22 @@ class InquiryInfolist
                         ->placeholder('0'),
                 ])
                 ->columns(1),
+
+            Section::make(__('forms.sections.latest_quotation'))
+                ->visible(fn ($record) => $record->quotations()->exists())
+                ->schema([
+                    TextEntry::make('latest_quotation_ref')
+                        ->label(__('forms.labels.reference'))
+                        ->state(fn ($record) => optional($record->quotations()->latest('version')->first())->reference),
+                    TextEntry::make('latest_quotation_version')
+                        ->label(__('forms.labels.version'))
+                        ->state(fn ($record) => 'v'.optional($record->quotations()->latest('version')->first())->version),
+                    TextEntry::make('latest_quotation_status')
+                        ->label(__('forms.labels.status'))
+                        ->badge()
+                        ->state(fn ($record) => optional($record->quotations()->latest('version')->first())->status?->getLabel()),
+                ])
+                ->columns(3),
         ];
     }
 
