@@ -20,6 +20,7 @@ class PayablesTable
             ->persistSearchInSession()
             ->defaultSort('payment_date', 'desc')
             ->filters(static::tableFilters(PaymentDirection::OUTBOUND))
+            ->deferFilters(false)
             ->recordActions([
                 ...static::approvalRecordActions(),
                 ...static::viewAndEditActions(),
