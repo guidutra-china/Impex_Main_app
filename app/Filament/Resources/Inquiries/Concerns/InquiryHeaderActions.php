@@ -359,6 +359,10 @@ trait InquiryHeaderActions
                         ->options($sqOptions)
                         ->multiple()
                         ->required()
+                        ->live()
+                        ->afterStateUpdated(function ($state, callable $set) use ($inquiry) {
+                            $set('items_preview', $this->buildItemsPreview($inquiry, $state ?? []));
+                        })
                         ->helperText(__('forms.helpers.select_one_or_more_supplier_quotations_for_each_product_the'));
                 } else {
                     $fields[] = Placeholder::make('info')
@@ -381,6 +385,35 @@ trait InquiryHeaderActions
                     ->suffix('%')
                     ->default(10)
                     ->helperText(__('forms.helpers.applied_to_items_where_the_client_has_no_catalog_price'));
+
+                $fields[] = \Filament\Forms\Components\Repeater::make('items_preview')
+                    ->label(__('forms.labels.items_preview'))
+                    ->schema([
+                        \Filament\Forms\Components\TextInput::make('product_label')
+                            ->label(__('forms.labels.product'))->disabled()->dehydrated(false),
+                        \Filament\Forms\Components\TextInput::make('quantity')
+                            ->label(__('forms.labels.quantity'))->numeric()->required(),
+                        \Filament\Forms\Components\TextInput::make('source_sq_label')
+                            ->label(__('forms.labels.source_sq'))->disabled()->dehydrated(false),
+                        \Filament\Forms\Components\TextInput::make('unit_cost')
+                            ->label(__('forms.labels.source_unit_cost'))->numeric()->step(0.0001),
+                        \Filament\Forms\Components\Select::make('cost_currency_code')
+                            ->label(__('forms.labels.cost_currency'))
+                            ->options(\App\Domain\Settings\Models\Currency::query()->where('is_active', true)->pluck('code', 'code'))
+                            ->required(),
+                        \Filament\Forms\Components\TextInput::make('cost_exchange_rate')
+                            ->label(__('forms.labels.cost_fx_rate'))->numeric()->step(0.00000001)
+                            ->required()->minValue(0.00000001),
+                        \Filament\Forms\Components\TextInput::make('commission_rate')
+                            ->label(__('forms.labels.commission_pct'))->numeric()->step(0.01)->suffix('%'),
+                        \Filament\Forms\Components\TextInput::make('unit_price')
+                            ->label(__('forms.labels.unit_price'))->numeric()->step(0.0001)->required(),
+                    ])
+                    ->columns(4)
+                    ->defaultItems(0)
+                    ->addable(false)
+                    ->deletable(false)
+                    ->reorderable(false);
 
                 return $fields;
             })
@@ -430,6 +463,45 @@ trait InquiryHeaderActions
                         ->send();
                 }
             });
+    }
+
+    private function buildItemsPreview(Inquiry $inquiry, array $supplierQuotationIds): array
+    {
+        $resolver = app(\App\Domain\Settings\Services\CurrencyExchangeResolver::class);
+        $sqItemsByProduct = empty($supplierQuotationIds)
+            ? collect()
+            : SupplierQuotationItem::query()
+                ->whereIn('supplier_quotation_id', $supplierQuotationIds)
+                ->with('supplierQuotation.company')
+                ->get()
+                ->groupBy('product_id');
+
+        $rows = [];
+        foreach ($inquiry->items as $inquiryItem) {
+            $alts = $sqItemsByProduct->get($inquiryItem->product_id, collect());
+            $primary = $alts->sortBy(function ($alt) use ($resolver, $inquiry) {
+                $r = $resolver->resolve($alt->supplierQuotation->currency_code, $inquiry->currency_code);
+
+                return $alt->unit_cost * $r['rate'];
+            })->first();
+
+            $sourceCurrency = $primary?->supplierQuotation?->currency_code ?? $inquiry->currency_code;
+            $resolved = $resolver->resolve($sourceCurrency, $inquiry->currency_code);
+
+            $rows[] = [
+                'product_label' => $inquiryItem->product?->name ?? '—',
+                'quantity' => $inquiryItem->quantity,
+                'source_sq_label' => $primary?->supplierQuotation?->reference
+                    .($primary ? ' · '.$primary->supplierQuotation->company->name : ''),
+                'unit_cost' => ($primary?->unit_cost ?? 0) / 10000,
+                'cost_currency_code' => $resolved['currency'],
+                'cost_exchange_rate' => $resolved['rate'],
+                'commission_rate' => 0,
+                'unit_price' => 0, // filled on submit (Task 3.2 will make this useful)
+            ];
+        }
+
+        return $rows;
     }
 
     protected function createProformaInvoiceAction(): Action
