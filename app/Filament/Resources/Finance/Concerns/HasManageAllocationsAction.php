@@ -51,6 +51,11 @@ trait HasManageAllocationsAction
                 Hidden::make('currency_code')
                     ->default($this->record->currency_code),
 
+                // Required by allocationRepeaterSchema(): the schedule item
+                // select reads ../../company_id to scope its options.
+                Hidden::make('company_id')
+                    ->default($this->record->company_id),
+
                 Repeater::make('new_allocations')
                     ->label('')
                     ->schema(static::allocationRepeaterSchema($this->record->direction))
