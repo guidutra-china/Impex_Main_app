@@ -158,11 +158,17 @@ class CreateOrUpdateQuotationFromInquiryAction
                 $sourceCurrency = $override['cost_currency_code'] ?? $sourceCurrency;
                 $rate = (float) ($override['cost_exchange_rate'] ?? $rate);
                 $itemCommissionRate = (float) ($override['commission_rate'] ?? $itemCommissionRate);
-                $unitPrice = isset($override['unit_price'])
-                    ? (int) round($override['unit_price'] * 10000)
-                    : $unitPrice;
                 $resolved = ['currency' => $sourceCurrency, 'rate' => $rate];
                 $convertedCost = (int) round($unitCost * $rate);
+
+                $overrideUnitPrice = isset($override['unit_price']) ? (float) $override['unit_price'] : null;
+                if ($overrideUnitPrice !== null && $overrideUnitPrice > 0) {
+                    $unitPrice = (int) round($overrideUnitPrice * 10000);
+                } else {
+                    $unitPrice = $commissionType === CommissionType::EMBEDDED && $itemCommissionRate > 0
+                        ? (int) round($convertedCost * (1 + $itemCommissionRate / 100))
+                        : $convertedCost;
+                }
             }
 
             $payload = [

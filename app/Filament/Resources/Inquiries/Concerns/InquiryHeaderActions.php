@@ -367,8 +367,14 @@ trait InquiryHeaderActions
                         ->multiple()
                         ->required()
                         ->live()
-                        ->afterStateUpdated(function ($state, callable $set) use ($inquiry) {
-                            $set('items_preview', $this->buildItemsPreview($inquiry, $state ?? []));
+                        ->afterStateUpdated(function ($state, callable $set, callable $get) use ($inquiry) {
+                            $type = $get('commission_type');
+                            $set('items_preview', $this->buildItemsPreview(
+                                $inquiry,
+                                $state ?? [],
+                                $type ? (is_string($type) ? CommissionType::from($type) : $type) : null,
+                                (float) ($get('commission_rate') ?? 0),
+                            ));
                         })
                         ->helperText(__('forms.helpers.select_one_or_more_supplier_quotations_for_each_product_the'));
                 } else {
@@ -381,7 +387,16 @@ trait InquiryHeaderActions
                     ->label(__('forms.labels.commission_type'))
                     ->options(CommissionType::class)
                     ->default(CommissionType::EMBEDDED->value)
-                    ->required();
+                    ->required()
+                    ->live()
+                    ->afterStateUpdated(function ($state, callable $set, callable $get) use ($inquiry) {
+                        $set('items_preview', $this->buildItemsPreview(
+                            $inquiry,
+                            $get('supplier_quotation_ids') ?? [],
+                            $state ? (is_string($state) ? CommissionType::from($state) : $state) : null,
+                            (float) ($get('commission_rate') ?? 0),
+                        ));
+                    });
 
                 $fields[] = TextInput::make('commission_rate')
                     ->label(__('forms.labels.default_commission_rate'))
@@ -391,10 +406,26 @@ trait InquiryHeaderActions
                     ->step(0.01)
                     ->suffix('%')
                     ->default(10)
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(function ($state, callable $set, callable $get) use ($inquiry) {
+                        $type = $get('commission_type');
+                        $set('items_preview', $this->buildItemsPreview(
+                            $inquiry,
+                            $get('supplier_quotation_ids') ?? [],
+                            $type ? (is_string($type) ? CommissionType::from($type) : $type) : null,
+                            (float) ($state ?? 0),
+                        ));
+                    })
                     ->helperText(__('forms.helpers.applied_to_items_where_the_client_has_no_catalog_price'));
 
                 $fields[] = \Filament\Forms\Components\Repeater::make('items_preview')
                     ->label(__('forms.labels.items_preview'))
+                    ->default(fn () => $this->buildItemsPreview(
+                        $inquiry,
+                        [],
+                        CommissionType::EMBEDDED,
+                        10.0,
+                    ))
                     ->schema([
                         \Filament\Forms\Components\TextInput::make('product_label')
                             ->label(__('forms.labels.product'))->disabled()->dehydrated(false),
@@ -530,8 +561,12 @@ trait InquiryHeaderActions
             });
     }
 
-    private function buildItemsPreview(Inquiry $inquiry, array $supplierQuotationIds): array
-    {
+    private function buildItemsPreview(
+        Inquiry $inquiry,
+        array $supplierQuotationIds,
+        ?CommissionType $commissionType = null,
+        float $commissionRate = 0,
+    ): array {
         $resolver = app(\App\Domain\Settings\Services\CurrencyExchangeResolver::class);
         $sqItemsByProduct = empty($supplierQuotationIds)
             ? collect()
@@ -553,16 +588,24 @@ trait InquiryHeaderActions
             $sourceCurrency = $primary?->supplierQuotation?->currency_code ?? $inquiry->currency_code;
             $resolved = $resolver->resolve($sourceCurrency, $inquiry->currency_code);
 
+            $unitCostMinor = $primary?->unit_cost ?? 0;
+            $rate = (float) $resolved['rate'];
+            $convertedCostMinor = (int) round($unitCostMinor * $rate);
+            $itemCommissionRate = $commissionType === CommissionType::EMBEDDED ? $commissionRate : 0;
+            $unitPriceMinor = $itemCommissionRate > 0
+                ? (int) round($convertedCostMinor * (1 + $itemCommissionRate / 100))
+                : $convertedCostMinor;
+
             $rows[] = [
                 'product_label' => $inquiryItem->product?->name ?? '—',
                 'quantity' => $inquiryItem->quantity,
                 'source_sq_label' => $primary?->supplierQuotation?->reference
                     .($primary ? ' · '.$primary->supplierQuotation->company->name : ''),
-                'unit_cost' => ($primary?->unit_cost ?? 0) / 10000,
+                'unit_cost' => $unitCostMinor / 10000,
                 'cost_currency_code' => $resolved['currency'],
-                'cost_exchange_rate' => $resolved['rate'],
-                'commission_rate' => 0,
-                'unit_price' => 0, // filled on submit (Task 3.2 will make this useful)
+                'cost_exchange_rate' => $rate,
+                'commission_rate' => $itemCommissionRate,
+                'unit_price' => $unitPriceMinor / 10000,
             ];
         }
 
