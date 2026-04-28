@@ -262,7 +262,9 @@ trait QuotationHeaderActions
                                 $supplierId = $preferred?->id;
                             }
 
-                            $unitPrice = $isSeparateCommission ? $item->unit_cost : $item->unit_price;
+                            // SEPARATE commission: PI unit_price equals cost in PI/quote currency,
+                            // so use the converted cost (raw unit_cost is now in source currency).
+                            $unitPrice = $isSeparateCommission ? $item->converted_unit_cost : $item->unit_price;
 
                             ProformaInvoiceItem::create([
                                 'proforma_invoice_id' => $proformaInvoice->id,
@@ -275,6 +277,8 @@ trait QuotationHeaderActions
                                 'unit' => 'pcs',
                                 'unit_price' => $unitPrice,
                                 'unit_cost' => $item->unit_cost,
+                                'cost_currency_code' => $item->cost_currency_code,
+                                'cost_exchange_rate' => $item->cost_exchange_rate,
                                 'incoterm' => $item->incoterm,
                                 'notes' => $item->notes,
                                 'sort_order' => ++$sortOrder,
