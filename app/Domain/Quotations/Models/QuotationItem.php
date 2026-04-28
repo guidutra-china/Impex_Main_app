@@ -22,6 +22,8 @@ class QuotationItem extends Model
         'quantity',
         'selected_supplier_id',
         'unit_cost',
+        'cost_currency_code',
+        'cost_exchange_rate',
         'commission_rate',
         'unit_price',
         'incoterm',
@@ -34,6 +36,7 @@ class QuotationItem extends Model
         return [
             'quantity' => 'integer',
             'unit_cost' => 'integer',
+            'cost_exchange_rate' => 'decimal:8',
             'commission_rate' => 'decimal:2',
             'unit_price' => 'integer',
             'incoterm' => Incoterm::class,
@@ -80,13 +83,33 @@ class QuotationItem extends Model
         return $this->unit_cost * $this->quantity;
     }
 
+    public function getConvertedUnitCostAttribute(): int
+    {
+        $quoteCurrency = $this->quotation?->currency_code;
+        if ($this->cost_currency_code === null
+            || $quoteCurrency === null
+            || $this->cost_currency_code === $quoteCurrency) {
+            return $this->unit_cost;
+        }
+
+        $rate = $this->cost_exchange_rate !== null ? (float) $this->cost_exchange_rate : 1.0;
+
+        return (int) round($this->unit_cost * $rate);
+    }
+
+    public function getConvertedCostTotalAttribute(): int
+    {
+        return $this->converted_unit_cost * $this->quantity;
+    }
+
     public function getMarginAttribute(): float
     {
-        if ($this->unit_cost <= 0) {
+        $cost = $this->converted_unit_cost;
+        if ($cost <= 0) {
             return 0;
         }
 
-        return round((($this->unit_price - $this->unit_cost) / $this->unit_cost) * 100, 2);
+        return round((($this->unit_price - $cost) / $cost) * 100, 2);
     }
 
     public function getSourceLabelAttribute(): ?string
