@@ -55,14 +55,33 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
 
         $rows = [];
         $isClientReport = $this->role === CompanyRole::CLIENT;
+        $isSupplierReport = $this->role === CompanyRole::SUPPLIER;
+        $isForwarder = $isSupplierReport && ($company->isForwarder() ?? false);
+        $supplierSummaryMode = $isSupplierReport && ! $isForwarder;
 
-        foreach ($query->with(['items.proformaInvoiceItem', 'additionalCosts', 'paymentScheduleItems.allocations.payment'])->get() as $s) {
+        $eager = ['items.proformaInvoiceItem', 'additionalCosts', 'paymentScheduleItems.allocations.payment'];
+        if ($supplierSummaryMode) {
+            $eager[] = 'items.purchaseOrderItem.purchaseOrder.items';
+            $eager[] = 'items.purchaseOrderItem.purchaseOrder.paymentScheduleItems.allocations.payment';
+        }
+
+        foreach ($query->with($eager)->get() as $s) {
             if ($filters->isExcluded('shipments', (int) $s->id)) {
                 continue;
             }
 
-            $eligibleCosts = $s->additionalCosts
-                ->where('billable_to', BillableTo::CLIENT)
+            // Filter additional costs by who is being billed in this report:
+            //   client report → costs recharged to the client
+            //   regular supplier report → costs debited from this supplier
+            //   forwarder report → costs recharged to the client (legacy behavior)
+            $eligibleCosts = $supplierSummaryMode
+                ? $s->additionalCosts
+                    ->where('billable_to', BillableTo::SUPPLIER)
+                    ->where('supplier_company_id', $company->id)
+                : $s->additionalCosts
+                    ->where('billable_to', BillableTo::CLIENT);
+
+            $eligibleCosts = $eligibleCosts
                 ->reject(fn ($cost) => $filters->isExcluded('additional_costs', (int) $cost->id));
 
             $freight = $eligibleCosts
@@ -113,6 +132,43 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
             ];
 
             if (! $filters->showDetails) {
+                continue;
+            }
+
+            // Supplier (non-forwarder) report: emit a payment summary row per
+            // related PO. Suppliers care about how much has been paid against
+            // their POs — not the freight/forwarder schedule items that the
+            // legacy detail rows would surface.
+            if ($supplierSummaryMode) {
+                $relatedPOs = $s->items
+                    ->map(fn ($it) => $it->purchaseOrderItem?->purchaseOrder)
+                    ->filter()
+                    ->filter(fn ($po) => (int) $po->supplier_company_id === (int) $company->id)
+                    ->unique('id')
+                    ->sortBy('issue_date');
+
+                foreach ($relatedPOs as $po) {
+                    $poTotal = (int) $po->total;
+                    $poPaid = (int) $po->schedule_paid_total;
+                    $poBalance = max(0, $poTotal - $poPaid);
+
+                    $rows[] = [
+                        '_row_type' => 'detail',
+                        'number' => '  ↳ '.($po->reference ?? (string) $po->id),
+                        'bl_number' => optional($po->issue_date)->format('d/m/Y') ?? '',
+                        'client_reference' => __('financial_report.sections.purchase_orders'),
+                        'etd' => '',
+                        'eta' => '',
+                        'status' => $po->status instanceof \BackedEnum ? $po->status->value : (string) $po->status,
+                        'freight' => '',
+                        'other_costs' => '',
+                        'total_costs' => round($poTotal / Money::SCALE, 2),
+                        'paid' => round($poPaid / Money::SCALE, 2),
+                        'balance' => round($poBalance / Money::SCALE, 2),
+                        'currency' => (string) ($po->currency_code ?? ''),
+                    ];
+                }
+
                 continue;
             }
 
