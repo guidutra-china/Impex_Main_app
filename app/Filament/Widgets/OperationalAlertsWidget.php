@@ -84,7 +84,9 @@ class OperationalAlertsWidget extends Widget
                 'icon' => 'heroicon-o-clock',
                 'title' => $pendingApprovalPayables.' payable'.($pendingApprovalPayables > 1 ? 's' : '').' awaiting approval',
                 'description' => __('widgets.alerts.pending_approval_payables_desc'),
-                'url' => route('filament.admin.resources.accounts-payable.index'),
+                'url' => route('filament.admin.resources.accounts-payable.index', [
+                    'tableFilters' => ['status' => ['value' => PaymentStatus::PENDING_APPROVAL->value]],
+                ]),
                 'action' => __('widgets.alerts.review_payables'),
             ];
         }
@@ -101,7 +103,9 @@ class OperationalAlertsWidget extends Widget
                 'icon' => 'heroicon-o-clock',
                 'title' => $pendingApprovalReceivables.' receivable'.($pendingApprovalReceivables > 1 ? 's' : '').' awaiting approval',
                 'description' => __('widgets.alerts.pending_approval_receivables_desc'),
-                'url' => route('filament.admin.resources.accounts-receivable.index'),
+                'url' => route('filament.admin.resources.accounts-receivable.index', [
+                    'tableFilters' => ['status' => ['value' => PaymentStatus::PENDING_APPROVAL->value]],
+                ]),
                 'action' => __('widgets.alerts.review_receivables'),
             ];
         }
