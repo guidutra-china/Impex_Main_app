@@ -9,20 +9,24 @@ use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
 use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\TextEntry as InfolistTextEntry;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Section as InfolistSection;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Filament\Actions\CreateAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\BulkActionGroup;
 
 class ItemsRelationManager extends RelationManager
 {
@@ -30,7 +34,7 @@ class ItemsRelationManager extends RelationManager
 
     protected static ?string $title = 'Quotation Items';
 
-    protected static string | \BackedEnum | null $icon = 'heroicon-o-shopping-cart';
+    protected static string|\BackedEnum|null $icon = 'heroicon-o-shopping-cart';
 
     public function form(Schema $schema): Schema
     {
@@ -56,6 +60,7 @@ class ItemsRelationManager extends RelationManager
                     })
                     ->getOptionLabelUsing(function ($value) {
                         $product = Product::find($value);
+
                         return $product ? "{$product->sku} — {$product->name}" : null;
                     })
                     ->required()
@@ -99,7 +104,7 @@ class ItemsRelationManager extends RelationManager
 
                         return $query->get()
                             ->mapWithKeys(fn ($sqItem) => [
-                                $sqItem->id => "{$sqItem->supplierQuotation->reference} — {$sqItem->supplierQuotation->company->name} — $" . Money::format($sqItem->unit_cost, 4),
+                                $sqItem->id => "{$sqItem->supplierQuotation->reference} — {$sqItem->supplierQuotation->company->name} — $".Money::format($sqItem->unit_cost, 4),
                             ])
                             ->toArray();
                     })
@@ -108,7 +113,8 @@ class ItemsRelationManager extends RelationManager
                         if (! $sqItem) {
                             return null;
                         }
-                        return "{$sqItem->supplierQuotation->reference} — {$sqItem->supplierQuotation->company->name} — $" . Money::format($sqItem->unit_cost, 4);
+
+                        return "{$sqItem->supplierQuotation->reference} — {$sqItem->supplierQuotation->company->name} — $".Money::format($sqItem->unit_cost, 4);
                     })
                     ->searchable()
                     ->placeholder(__('forms.placeholders.select_supplier_quotation_source'))
@@ -297,7 +303,7 @@ class ItemsRelationManager extends RelationManager
                     ->color('success'),
                 TextColumn::make('margin')
                     ->label(__('forms.labels.margin'))
-                    ->getStateUsing(fn ($record) => $record->margin > 0 ? number_format($record->margin, 1) . '%' : '—')
+                    ->getStateUsing(fn ($record) => $record->margin > 0 ? number_format($record->margin, 1).'%' : '—')
                     ->alignCenter()
                     ->color(fn ($record) => match (true) {
                         $record->margin >= 15 => 'success',
@@ -321,10 +327,42 @@ class ItemsRelationManager extends RelationManager
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['unit_cost'] = Money::toMinor($data['unit_cost'] ?? 0);
                         $data['unit_price'] = Money::toMinor($data['unit_price'] ?? 0);
+
                         return $data;
                     }),
             ])
             ->recordActions([
+                ViewAction::make('alternatives')
+                    ->label(__('forms.labels.view_alternatives'))
+                    ->icon('heroicon-o-rectangle-stack')
+                    ->modalHeading(__('forms.labels.alternatives'))
+                    ->visible(fn ($record) => $record->suppliers()->exists())
+                    ->infolist(fn (Schema $schema) => $schema
+                        ->components([
+                            InfolistSection::make(__('forms.labels.alternatives'))
+                                ->schema([
+                                    RepeatableEntry::make('suppliers')
+                                        ->label('')
+                                        ->schema([
+                                            InfolistTextEntry::make('company.name')
+                                                ->label(__('forms.labels.supplier')),
+                                            InfolistTextEntry::make('unit_cost')
+                                                ->label(__('forms.labels.cost'))
+                                                ->formatStateUsing(fn ($state, $record) => Money::format($state, 4).' '.$record->currency_code),
+                                            InfolistTextEntry::make('cost_exchange_rate')
+                                                ->label(__('forms.labels.fx_rate'))
+                                                ->formatStateUsing(fn ($state) => $state ? number_format((float) $state, 4) : '—'),
+                                            InfolistTextEntry::make('converted_unit_cost')
+                                                ->label(__('forms.labels.converted_cost'))
+                                                ->formatStateUsing(fn ($state, $record) => Money::format($state).' '.$record->quotationItem->quotation->currency_code),
+                                            InfolistTextEntry::make('lead_time_days')
+                                                ->label(__('forms.labels.lead_time'))
+                                                ->suffix('d')
+                                                ->placeholder('—'),
+                                        ])
+                                        ->columns(5),
+                                ]),
+                        ])),
                 EditAction::make()
                     ->visible(fn () => auth()->user()?->can('edit-quotations'))
                     ->mountUsing(function ($form, $record) {
@@ -336,6 +374,7 @@ class ItemsRelationManager extends RelationManager
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['unit_cost'] = Money::toMinor($data['unit_cost'] ?? 0);
                         $data['unit_price'] = Money::toMinor($data['unit_price'] ?? 0);
+
                         return $data;
                     }),
                 DeleteAction::make()
