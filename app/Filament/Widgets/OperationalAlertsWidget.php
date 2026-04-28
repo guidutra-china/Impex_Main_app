@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\Payment;
@@ -12,7 +13,6 @@ use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
-use Illuminate\Support\Facades\Route;
 use Filament\Widgets\Widget;
 
 class OperationalAlertsWidget extends Widget
@@ -20,6 +20,8 @@ class OperationalAlertsWidget extends Widget
     protected string $view = 'filament.widgets.operational-alerts';
 
     protected static bool $isLazy = false;
+
+    protected static ?string $pollingInterval = '120s';
 
     protected static ?int $sort = 1;
 
@@ -34,34 +36,73 @@ class OperationalAlertsWidget extends Widget
     {
         $alerts = [];
 
-        $overduePayments = PaymentScheduleItem::query()
+        // Overdue — A/P (PurchaseOrder-owned schedule items)
+        $overduePayables = PaymentScheduleItem::query()
             ->where('status', PaymentScheduleStatus::OVERDUE)
             ->where('is_credit', false)
+            ->where('payable_type', PurchaseOrder::class)
             ->count();
 
-        if ($overduePayments > 0) {
+        if ($overduePayables > 0) {
             $alerts[] = [
                 'type' => 'danger',
                 'icon' => 'heroicon-o-exclamation-circle',
-                'title' => $overduePayments . ' overdue payment' . ($overduePayments > 1 ? 's' : ''),
-                'description' => __('widgets.alerts.overdue_payments_desc'),
-                'url' => Route::has('filament.admin.resources.payments.index') ? route('filament.admin.resources.payments.index') : '#',
-                'action' => __('widgets.alerts.view_payments'),
+                'title' => $overduePayables.' overdue payable'.($overduePayables > 1 ? 's' : ''),
+                'description' => __('widgets.alerts.overdue_payables_desc'),
+                'url' => route('filament.admin.resources.accounts-payable.index'),
+                'action' => __('widgets.alerts.view_payables'),
             ];
         }
 
-        $pendingApproval = Payment::query()
-            ->where('status', PaymentStatus::PENDING_APPROVAL)
+        // Overdue — A/R (ProformaInvoice-owned schedule items)
+        $overdueReceivables = PaymentScheduleItem::query()
+            ->where('status', PaymentScheduleStatus::OVERDUE)
+            ->where('is_credit', false)
+            ->where('payable_type', ProformaInvoice::class)
             ->count();
 
-        if ($pendingApproval > 0) {
+        if ($overdueReceivables > 0) {
+            $alerts[] = [
+                'type' => 'danger',
+                'icon' => 'heroicon-o-exclamation-circle',
+                'title' => $overdueReceivables.' overdue receivable'.($overdueReceivables > 1 ? 's' : ''),
+                'description' => __('widgets.alerts.overdue_receivables_desc'),
+                'url' => route('filament.admin.resources.accounts-receivable.index'),
+                'action' => __('widgets.alerts.view_receivables'),
+            ];
+        }
+
+        // Pending approval — A/P
+        $pendingApprovalPayables = Payment::query()
+            ->where('status', PaymentStatus::PENDING_APPROVAL)
+            ->where('direction', PaymentDirection::OUTBOUND)
+            ->count();
+
+        if ($pendingApprovalPayables > 0) {
             $alerts[] = [
                 'type' => 'warning',
                 'icon' => 'heroicon-o-clock',
-                'title' => $pendingApproval . ' payment' . ($pendingApproval > 1 ? 's' : '') . ' awaiting approval',
-                'description' => __('widgets.alerts.pending_approval_desc'),
-                'url' => Route::has('filament.admin.resources.payments.index') ? route('filament.admin.resources.payments.index') : '#',
-                'action' => __('widgets.alerts.review_payments'),
+                'title' => $pendingApprovalPayables.' payable'.($pendingApprovalPayables > 1 ? 's' : '').' awaiting approval',
+                'description' => __('widgets.alerts.pending_approval_payables_desc'),
+                'url' => route('filament.admin.resources.accounts-payable.index'),
+                'action' => __('widgets.alerts.review_payables'),
+            ];
+        }
+
+        // Pending approval — A/R
+        $pendingApprovalReceivables = Payment::query()
+            ->where('status', PaymentStatus::PENDING_APPROVAL)
+            ->where('direction', PaymentDirection::INBOUND)
+            ->count();
+
+        if ($pendingApprovalReceivables > 0) {
+            $alerts[] = [
+                'type' => 'warning',
+                'icon' => 'heroicon-o-clock',
+                'title' => $pendingApprovalReceivables.' receivable'.($pendingApprovalReceivables > 1 ? 's' : '').' awaiting approval',
+                'description' => __('widgets.alerts.pending_approval_receivables_desc'),
+                'url' => route('filament.admin.resources.accounts-receivable.index'),
+                'action' => __('widgets.alerts.review_receivables'),
             ];
         }
 
@@ -74,7 +115,7 @@ class OperationalAlertsWidget extends Widget
             $alerts[] = [
                 'type' => 'info',
                 'icon' => 'heroicon-o-document-text',
-                'title' => $finalizedPIsWithoutPO . ' finalized PI' . ($finalizedPIsWithoutPO > 1 ? 's' : '') . ' without PO',
+                'title' => $finalizedPIsWithoutPO.' finalized PI'.($finalizedPIsWithoutPO > 1 ? 's' : '').' without PO',
                 'description' => __('widgets.alerts.finalized_pi_desc'),
                 'url' => route('filament.admin.resources.proforma-invoices.index'),
                 'action' => __('widgets.alerts.view_pis'),
@@ -94,7 +135,7 @@ class OperationalAlertsWidget extends Widget
             $alerts[] = [
                 'type' => 'warning',
                 'icon' => 'heroicon-o-pause-circle',
-                'title' => $stalledPOs . ' PO' . ($stalledPOs > 1 ? 's' : '') . ' with no updates (15+ days)',
+                'title' => $stalledPOs.' PO'.($stalledPOs > 1 ? 's' : '').' with no updates (15+ days)',
                 'description' => __('widgets.alerts.stalled_po_desc'),
                 'url' => route('filament.admin.resources.purchase-orders.index'),
                 'action' => __('widgets.alerts.view_pos'),
@@ -110,27 +151,48 @@ class OperationalAlertsWidget extends Widget
             $alerts[] = [
                 'type' => 'info',
                 'icon' => 'heroicon-o-magnifying-glass',
-                'title' => $openInquiries . ' inquir' . ($openInquiries > 1 ? 'ies' : 'y') . ' open for 7+ days',
+                'title' => $openInquiries.' inquir'.($openInquiries > 1 ? 'ies' : 'y').' open for 7+ days',
                 'description' => __('widgets.alerts.open_inquiries_desc'),
                 'url' => route('filament.admin.resources.inquiries.index'),
                 'action' => __('widgets.alerts.view_inquiries'),
             ];
         }
 
-        $dueThisWeek = PaymentScheduleItem::query()
+        // Due this week — A/P
+        $duePayablesThisWeek = PaymentScheduleItem::query()
             ->where('status', PaymentScheduleStatus::DUE)
             ->where('is_credit', false)
+            ->where('payable_type', PurchaseOrder::class)
             ->whereBetween('due_date', [now()->startOfDay(), now()->addDays(7)->endOfDay()])
             ->count();
 
-        if ($dueThisWeek > 0) {
+        if ($duePayablesThisWeek > 0) {
             $alerts[] = [
                 'type' => 'primary',
                 'icon' => 'heroicon-o-calendar',
-                'title' => $dueThisWeek . ' payment' . ($dueThisWeek > 1 ? 's' : '') . ' due this week',
-                'description' => __('widgets.alerts.due_this_week_desc'),
-                'url' => Route::has('filament.admin.resources.payments.index') ? route('filament.admin.resources.payments.index') : '#',
-                'action' => __('widgets.alerts.view_schedule'),
+                'title' => $duePayablesThisWeek.' payable'.($duePayablesThisWeek > 1 ? 's' : '').' due this week',
+                'description' => __('widgets.alerts.due_this_week_payables_desc'),
+                'url' => route('filament.admin.resources.accounts-payable.index'),
+                'action' => __('widgets.alerts.view_payables'),
+            ];
+        }
+
+        // Due this week — A/R
+        $dueReceivablesThisWeek = PaymentScheduleItem::query()
+            ->where('status', PaymentScheduleStatus::DUE)
+            ->where('is_credit', false)
+            ->where('payable_type', ProformaInvoice::class)
+            ->whereBetween('due_date', [now()->startOfDay(), now()->addDays(7)->endOfDay()])
+            ->count();
+
+        if ($dueReceivablesThisWeek > 0) {
+            $alerts[] = [
+                'type' => 'primary',
+                'icon' => 'heroicon-o-calendar',
+                'title' => $dueReceivablesThisWeek.' receivable'.($dueReceivablesThisWeek > 1 ? 's' : '').' due this week',
+                'description' => __('widgets.alerts.due_this_week_receivables_desc'),
+                'url' => route('filament.admin.resources.accounts-receivable.index'),
+                'action' => __('widgets.alerts.view_receivables'),
             ];
         }
 
