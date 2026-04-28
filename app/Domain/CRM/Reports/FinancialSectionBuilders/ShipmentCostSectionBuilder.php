@@ -136,21 +136,36 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
             }
 
             // Supplier (non-forwarder) report: emit a payment summary row per
-            // related PO. Suppliers care about how much has been paid against
-            // their POs — not the freight/forwarder schedule items that the
-            // legacy detail rows would surface.
+            // related PO, scoped to THIS shipment's slice via the PO's
+            // canonical PaymentScheduleItems (shipment_id is denormalized on
+            // PO PSIs by the schedule generator/recalculator). Both total and
+            // paid come straight from the schedule, so the numbers reflect
+            // what was actually billed and paid for this shipment.
             if ($supplierSummaryMode) {
-                $relatedPOs = $s->items
-                    ->map(fn ($it) => $it->purchaseOrderItem?->purchaseOrder)
-                    ->filter()
-                    ->filter(fn ($po) => (int) $po->supplier_company_id === (int) $company->id)
-                    ->unique('id')
-                    ->sortBy('issue_date');
+                $relatedPOs = collect();
+                foreach ($s->items as $shipmentItem) {
+                    $po = $shipmentItem->purchaseOrderItem?->purchaseOrder;
+                    if (! $po || (int) $po->supplier_company_id !== (int) $company->id) {
+                        continue;
+                    }
+                    $relatedPOs->put($po->id, $po);
+                }
+
+                $relatedPOs = $relatedPOs->sortBy(fn ($po) => optional($po->issue_date)->getTimestamp() ?? 0);
 
                 foreach ($relatedPOs as $po) {
-                    $poTotal = (int) $po->total;
-                    $poPaid = (int) $po->schedule_paid_total;
-                    $poBalance = max(0, $poTotal - $poPaid);
+                    $shipmentItems = $po->paymentScheduleItems
+                        ->where('shipment_id', $s->id)
+                        ->reject(fn ($psi) => (bool) $psi->is_credit);
+
+                    if ($shipmentItems->isEmpty()) {
+                        continue;
+                    }
+
+                    $shipmentShare = (int) $shipmentItems->sum('amount');
+                    $shipmentPaid = (int) $shipmentItems->sum(fn ($psi) => (int) $psi->paid_amount);
+                    $shipmentPaid = min($shipmentPaid, $shipmentShare);
+                    $shipmentBalance = max(0, $shipmentShare - $shipmentPaid);
 
                     $rows[] = [
                         '_row_type' => 'detail',
@@ -162,9 +177,9 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
                         'status' => $po->status instanceof \BackedEnum ? $po->status->value : (string) $po->status,
                         'freight' => '',
                         'other_costs' => '',
-                        'total_costs' => round($poTotal / Money::SCALE, 2),
-                        'paid' => round($poPaid / Money::SCALE, 2),
-                        'balance' => round($poBalance / Money::SCALE, 2),
+                        'total_costs' => round($shipmentShare / Money::SCALE, 2),
+                        'paid' => round($shipmentPaid / Money::SCALE, 2),
+                        'balance' => round($shipmentBalance / Money::SCALE, 2),
                         'currency' => (string) ($po->currency_code ?? ''),
                     ];
                 }
