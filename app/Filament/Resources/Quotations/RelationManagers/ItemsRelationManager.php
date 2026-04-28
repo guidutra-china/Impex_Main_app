@@ -5,10 +5,14 @@ namespace App\Filament\Resources\Quotations\RelationManagers;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\Quotations\Actions\PromoteQuotationItemSupplierAction;
 use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\Incoterm;
+use App\Domain\Quotations\Enums\QuotationStatus;
+use App\Domain\Quotations\Models\QuotationItemSupplier;
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
 use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -332,6 +336,35 @@ class ItemsRelationManager extends RelationManager
                     }),
             ])
             ->recordActions([
+                Action::make('promoteSupplier')
+                    ->label(__('forms.labels.make_this_selected'))
+                    ->icon('heroicon-o-check-badge')
+                    ->color('success')
+                    ->visible(fn ($record) => $this->getOwnerRecord()->status === QuotationStatus::DRAFT
+                        && $record->suppliers()->exists())
+                    ->schema([
+                        Select::make('alternative_id')
+                            ->label(__('forms.labels.alternative'))
+                            ->options(function ($record) {
+                                $quoteCurrency = $record->quotation->currency_code;
+
+                                return $record->suppliers()
+                                    ->with('company')
+                                    ->get()
+                                    ->mapWithKeys(function (QuotationItemSupplier $alt) use ($quoteCurrency) {
+                                        $cost = Money::format($alt->unit_cost, 4).' '.$alt->currency_code;
+                                        $converted = Money::format($alt->converted_unit_cost).' '.$quoteCurrency;
+
+                                        return [$alt->id => "{$alt->company->name} — {$cost} → {$converted}"];
+                                    });
+                            })
+                            ->required(),
+                    ])
+                    ->requiresConfirmation()
+                    ->action(function (array $data): void {
+                        $alt = QuotationItemSupplier::findOrFail($data['alternative_id']);
+                        app(PromoteQuotationItemSupplierAction::class)->execute($alt);
+                    }),
                 ViewAction::make('alternatives')
                     ->label(__('forms.labels.view_alternatives'))
                     ->icon('heroicon-o-rectangle-stack')
