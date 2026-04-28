@@ -197,4 +197,37 @@ class CreateOrUpdateQuotationFromInquiryActionTest extends TestCase
         $this->assertSame('CNY', $byProduct[$items[0]->product_id]->cost_currency_code);
         $this->assertSame('EUR', $byProduct[$items[1]->product_id]->cost_currency_code);
     }
+
+    public function test_rerun_in_draft_refreshes_unit_cost_and_rate_but_preserves_commission_override(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems();
+        $supplier = Company::factory()->create();
+        $sq = $this->buildSqWith($inquiry, $supplier, 'CNY', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 70000],
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 10,
+            showSuppliers: false,
+        );
+        $item = $quotation->items->first();
+        $item->update(['commission_rate' => 25.0]); // user manual override
+        $sq->items->first()->update(['unit_cost' => 80000]); // supplier re-quote
+
+        $quotation2 = $this->makeAction()->execute(
+            inquiry: $inquiry->fresh(),
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 10,
+            showSuppliers: false,
+        );
+
+        $refreshed = $quotation2->items->first();
+        $this->assertSame($quotation->id, $quotation2->id, 'should update in place, not create new');
+        $this->assertSame(80000, $refreshed->unit_cost, 'unit_cost refreshed from SQ');
+        $this->assertEqualsWithDelta(25.0, (float) $refreshed->commission_rate, 0.01, 'commission_rate override preserved');
+    }
 }
