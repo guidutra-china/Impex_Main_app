@@ -46,12 +46,18 @@ trait InquiryHeaderActions
             $this->requestSupplierQuotationAction(),
             $this->compareSupplierQuotationsAction(),
             $this->createQuotationAction(),
+            $this->createQuotationNewVersionAction(),
             $this->createProformaInvoiceAction(),
         ])
             ->label(__('forms.labels.workflow'))
             ->icon('heroicon-o-arrows-right-left')
             ->color('primary')
             ->button();
+    }
+
+    private function latestQuotation(): ?Quotation
+    {
+        return $this->record->quotations()->latest('version')->first();
     }
 
     protected function statusActionGroup(): ?ActionGroup
@@ -329,10 +335,11 @@ trait InquiryHeaderActions
             ->icon('heroicon-o-document-plus')
             ->color($isUpdate ? 'warning' : 'success')
             ->visible(fn () => in_array($this->record->status, [
-                InquiryStatus::RECEIVED,
-                InquiryStatus::QUOTING,
-                InquiryStatus::QUOTED,
-            ]))
+                InquiryStatus::RECEIVED, InquiryStatus::QUOTING, InquiryStatus::QUOTED,
+            ]) && (
+                ! $this->latestQuotation() ||
+                ! in_array($this->latestQuotation()->status, [QuotationStatus::SENT, QuotationStatus::NEGOTIATING], true)
+            ))
             ->form(function () use ($inquiry, $hasSupplierQuotations) {
                 $fields = [];
 
@@ -464,6 +471,55 @@ trait InquiryHeaderActions
                         ->body($e->getMessage())
                         ->danger()
                         ->send();
+                } catch (\Throwable $e) {
+                    Notification::make()
+                        ->title(__('messages.error_creating_quotation'))
+                        ->body($e->getMessage())
+                        ->danger()
+                        ->send();
+                }
+            });
+    }
+
+    protected function createQuotationNewVersionAction(): Action
+    {
+        return Action::make('createQuotationNewVersion')
+            ->label(__('forms.labels.create_quotation_new_version'))
+            ->icon('heroicon-o-arrow-path')
+            ->color('warning')
+            ->visible(fn () => $this->latestQuotation()
+                && in_array($this->latestQuotation()->status, [
+                    QuotationStatus::SENT, QuotationStatus::NEGOTIATING,
+                ], true))
+            ->requiresConfirmation()
+            ->action(function () {
+                try {
+                    $latest = $this->latestQuotation();
+                    $supplierQuotationIds = $latest->items
+                        ->pluck('supplier_quotation_item_id')
+                        ->filter()
+                        ->map(fn ($id) => SupplierQuotationItem::find($id)?->supplier_quotation_id)
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->toArray();
+
+                    $quotation = app(CreateOrUpdateQuotationFromInquiryAction::class)
+                        ->execute(
+                            inquiry: Inquiry::with('items')->findOrFail($this->record->id),
+                            supplierQuotationIds: $supplierQuotationIds,
+                            commissionType: $latest->commission_type,
+                            commissionRate: (float) $latest->commission_rate,
+                            showSuppliers: (bool) $latest->show_suppliers,
+                            forceNewVersion: true,
+                        );
+
+                    Notification::make()
+                        ->title(__('messages.quotation_new_version_created').': v'.$quotation->version)
+                        ->success()
+                        ->send();
+
+                    return redirect(QuotationResource::getUrl('edit', ['record' => $quotation]));
                 } catch (\Throwable $e) {
                     Notification::make()
                         ->title(__('messages.error_creating_quotation'))

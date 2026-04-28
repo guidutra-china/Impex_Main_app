@@ -50,6 +50,7 @@ return [
     'quotation_created' => 'Quotation created',
     'quotation_updated' => 'Quotation updated',
     'quotation_locked' => 'Quotation locked from recalculation',
+    'quotation_new_version_created' => 'New quotation version created',
     'product_linked' => 'Product linked successfully',
     'product_link_updated' => 'Product link updated',
     'pi_created' => 'Proforma Invoice created',
