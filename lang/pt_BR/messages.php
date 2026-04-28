@@ -49,6 +49,7 @@ return [
     'sq_created' => 'cotação(ões) de fornecedor criada(s)',
     'quotation_created' => 'Cotação criada',
     'quotation_updated' => 'Cotação atualizada',
+    'quotation_locked' => 'Cotação bloqueada para recálculo',
     'product_linked' => 'Produto vinculado com sucesso',
     'product_link_updated' => 'Vínculo do produto atualizado',
     'pi_created' => 'Proforma Invoice criada',

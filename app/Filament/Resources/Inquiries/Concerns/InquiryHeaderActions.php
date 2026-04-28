@@ -12,14 +12,15 @@ use App\Domain\Inquiries\Models\Inquiry;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
+use App\Domain\ProformaInvoices\Services\ProformaInvoiceItemCurrencyResolver;
+use App\Domain\Quotations\Actions\CreateOrUpdateQuotationFromInquiryAction;
 use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\QuotationStatus;
+use App\Domain\Quotations\Exceptions\QuotationLockedException;
 use App\Domain\Quotations\Models\Quotation;
-use App\Domain\Quotations\Models\QuotationItem;
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
 use App\Domain\SupplierQuotations\Models\SupplierQuotation;
 use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
-use App\Domain\ProformaInvoices\Services\ProformaInvoiceItemCurrencyResolver;
 use App\Filament\Actions\RevertInquiryStatusAction;
 use App\Filament\Resources\Inquiries\InquiryResource;
 use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
@@ -76,6 +77,7 @@ trait InquiryHeaderActions
                 $allowed = $this->record->getAllowedNextStatuses();
                 $options = collect($allowed)->mapWithKeys(function ($status) {
                     $enum = InquiryStatus::from($status);
+
                     return [$status => $enum->getLabel()];
                 })->toArray();
 
@@ -99,7 +101,7 @@ trait InquiryHeaderActions
                     );
 
                     Notification::make()
-                        ->title(__('messages.status_changed_to') . ' ' . InquiryStatus::from($data['new_status'])->getLabel())
+                        ->title(__('messages.status_changed_to').' '.InquiryStatus::from($data['new_status'])->getLabel())
                         ->success()
                         ->send();
 
@@ -173,7 +175,7 @@ trait InquiryHeaderActions
 
                             if ($existing) {
                                 $this->syncRfqItems($existing, $inquiry);
-                                $updated[] = $existing->reference . ' (' . Company::find($companyId)->name . ')';
+                                $updated[] = $existing->reference.' ('.Company::find($companyId)->name.')';
                             } else {
                                 $sq = SupplierQuotation::create([
                                     'inquiry_id' => $inquiry->id,
@@ -202,7 +204,7 @@ trait InquiryHeaderActions
                                     ]);
                                 }
 
-                                $created[] = $sq->reference . ' (' . Company::find($companyId)->name . ')';
+                                $created[] = $sq->reference.' ('.Company::find($companyId)->name.')';
                             }
                         }
 
@@ -211,21 +213,21 @@ trait InquiryHeaderActions
                             app(TransitionStatusAction::class)->execute(
                                 $inquiry,
                                 InquiryStatus::QUOTING,
-                                'Supplier quotations requested: ' . implode(', ', $all),
+                                'Supplier quotations requested: '.implode(', ', $all),
                             );
                         }
                     });
 
                     $parts = [];
                     if (! empty($created)) {
-                        $parts[] = count($created) . ' created: ' . implode(', ', $created);
+                        $parts[] = count($created).' created: '.implode(', ', $created);
                     }
                     if (! empty($updated)) {
-                        $parts[] = count($updated) . ' updated: ' . implode(', ', $updated);
+                        $parts[] = count($updated).' updated: '.implode(', ', $updated);
                     }
 
                     Notification::make()
-                        ->title((count($created) + count($updated)) . ' ' . __('messages.sq_created'))
+                        ->title((count($created) + count($updated)).' '.__('messages.sq_created'))
                         ->body(implode("\n", $parts))
                         ->success()
                         ->send();
@@ -382,169 +384,44 @@ trait InquiryHeaderActions
 
                 return $fields;
             })
-            ->action(function (array $data) use ($hasSupplierQuotations, $existingQuotation) {
+            ->action(function (array $data) use ($existingQuotation) {
                 try {
-                    $quotation = DB::transaction(function () use ($data, $hasSupplierQuotations, $existingQuotation) {
-                        $inquiry = Inquiry::with(['items.product.clients', 'items.product.suppliers'])
-                            ->lockForUpdate()
-                            ->findOrFail($this->record->id);
+                    $commissionType = $data['commission_type'] instanceof CommissionType
+                        ? $data['commission_type']
+                        : CommissionType::from($data['commission_type']);
+                    $commissionRate = (float) ($data['commission_rate'] ?? 0);
+                    $supplierQuotationIds = $data['supplier_quotation_ids'] ?? [];
 
-                        $commissionType = $data['commission_type'] instanceof CommissionType
-                            ? $data['commission_type']
-                            : CommissionType::from($data['commission_type']);
-                        $commissionRate = (float) ($data['commission_rate'] ?? 0);
+                    $quotation = app(CreateOrUpdateQuotationFromInquiryAction::class)
+                        ->execute(
+                            inquiry: Inquiry::with('items')->findOrFail($this->record->id),
+                            supplierQuotationIds: $supplierQuotationIds,
+                            commissionType: $commissionType,
+                            commissionRate: $commissionRate,
+                            showSuppliers: false,
+                        );
 
-                        if ($existingQuotation) {
-                            $existingQuotation->update([
-                                'company_id' => $inquiry->company_id,
-                                'contact_id' => $inquiry->contact_id,
-                                'currency_code' => $inquiry->currency_code,
-                                'commission_type' => $commissionType,
-                                'commission_rate' => $commissionType === CommissionType::SEPARATE ? $commissionRate : 0,
-                                'responsible_user_id' => $inquiry->getTeamMemberByRole(ProjectTeamRole::SALES)?->id
-                                    ?? $inquiry->responsible_user_id,
-                            ]);
-                            $quotation = $existingQuotation;
-                        } else {
-                            $quotation = Quotation::create([
-                                'inquiry_id' => $inquiry->id,
-                                'company_id' => $inquiry->company_id,
-                                'contact_id' => $inquiry->contact_id,
-                                'status' => QuotationStatus::DRAFT,
-                                'currency_code' => $inquiry->currency_code,
-                                'commission_type' => $commissionType,
-                                'commission_rate' => $commissionType === CommissionType::SEPARATE ? $commissionRate : 0,
-                                'notes' => $inquiry->notes,
-                                'responsible_user_id' => $inquiry->getTeamMemberByRole(ProjectTeamRole::SALES)?->id
-                                    ?? $inquiry->responsible_user_id,
-                            ]);
-                        }
-
-                        $sqItemsByProduct = collect();
-                        if ($hasSupplierQuotations && ! empty($data['supplier_quotation_ids'])) {
-                            $sqItemsByProduct = SupplierQuotationItem::query()
-                                ->whereIn('supplier_quotation_id', $data['supplier_quotation_ids'])
-                                ->where('unit_cost', '>', 0)
-                                ->with('supplierQuotation.company')
-                                ->get()
-                                ->groupBy('product_id');
-                        }
-
-                        $existingQItems = $existingQuotation
-                            ? $quotation->items()->get()->keyBy('product_id')
-                            : collect();
-                        $clientId = $inquiry->company_id;
-                        $sortOrder = 0;
-
-                        foreach ($inquiry->items as $inquiryItem) {
-                            $productId = $inquiryItem->product_id;
-                            $unitCost = 0;
-                            $unitPrice = 0;
-                            $selectedSupplierId = null;
-                            $sqItemId = null;
-                            $itemCommissionRate = 0;
-
-                            $sqItems = $sqItemsByProduct->get($productId);
-                            if ($sqItems && $sqItems->isNotEmpty()) {
-                                $bestSqItem = $sqItems->first();
-                                $unitCost = $bestSqItem->unit_cost;
-                                $selectedSupplierId = $bestSqItem->supplierQuotation->company_id;
-                                $sqItemId = $bestSqItem->id;
-                            }
-
-                            $clientPivot = null;
-                            if ($productId) {
-                                $clientPivot = CompanyProduct::where('product_id', $productId)
-                                    ->where('company_id', $clientId)
-                                    ->where('role', 'client')
-                                    ->first();
-                            }
-
-                            if ($clientPivot && $clientPivot->unit_price > 0) {
-                                $unitPrice = $clientPivot->unit_price;
-                            } elseif ($unitCost > 0 && $commissionType === CommissionType::EMBEDDED && $commissionRate > 0) {
-                                $itemCommissionRate = $commissionRate;
-                                $unitPrice = (int) round($unitCost * (1 + ($commissionRate / 100)));
-                            } elseif ($unitCost > 0) {
-                                $unitPrice = $unitCost;
-                            }
-
-                            if ($inquiryItem->target_price && $inquiryItem->target_price > 0 && $unitPrice === 0) {
-                                $unitPrice = $inquiryItem->target_price;
-                            }
-
-                            if ($unitCost === 0 && $productId) {
-                                $supplierPivot = CompanyProduct::where('product_id', $productId)
-                                    ->where('role', 'supplier')
-                                    ->orderByDesc('is_preferred')
-                                    ->first();
-
-                                if ($supplierPivot && $supplierPivot->unit_price > 0) {
-                                    $unitCost = $supplierPivot->unit_price;
-                                    $selectedSupplierId = $supplierPivot->company_id;
-                                }
-                            }
-
-                            $existingQItem = $productId ? $existingQItems->get($productId) : null;
-
-                            if ($existingQItem) {
-                                $updateData = [
-                                    'quantity' => $inquiryItem->quantity,
-                                    'notes' => $inquiryItem->specifications,
-                                    'sort_order' => $sortOrder++,
-                                ];
-                                if ($unitCost > 0 && ! ($existingQItem->unit_cost > 0)) {
-                                    $updateData['unit_cost'] = $unitCost;
-                                    $updateData['supplier_quotation_item_id'] = $sqItemId;
-                                    $updateData['selected_supplier_id'] = $selectedSupplierId;
-                                }
-                                if ($unitPrice > 0 && ! ($existingQItem->unit_price > 0)) {
-                                    $updateData['unit_price'] = $unitPrice;
-                                    $updateData['commission_rate'] = $itemCommissionRate;
-                                }
-                                $existingQItem->update($updateData);
-                            } else {
-                                QuotationItem::create([
-                                    'quotation_id' => $quotation->id,
-                                    'product_id' => $productId,
-                                    'supplier_quotation_item_id' => $sqItemId,
-                                    'quantity' => $inquiryItem->quantity,
-                                    'selected_supplier_id' => $selectedSupplierId,
-                                    'unit_cost' => $unitCost,
-                                    'commission_rate' => $itemCommissionRate,
-                                    'unit_price' => $unitPrice,
-                                    'notes' => $inquiryItem->specifications,
-                                    'sort_order' => $sortOrder++,
-                                ]);
-                            }
-                        }
-
-                        if ($existingQuotation) {
-                            $inquiryProductIds = $inquiry->items->pluck('product_id')->filter()->toArray();
-                            $quotation->items()
-                                ->whereNotNull('product_id')
-                                ->whereNotIn('product_id', $inquiryProductIds)
-                                ->delete();
-                        }
-
-                        if ($inquiry->status === InquiryStatus::RECEIVED) {
-                            app(TransitionStatusAction::class)->execute(
-                                $inquiry,
-                                InquiryStatus::QUOTING,
-                                'Quotation ' . $quotation->reference . ' created from inquiry.',
-                            );
-                        }
-
-                        return $quotation;
-                    });
+                    if ($this->record->status === InquiryStatus::RECEIVED) {
+                        app(TransitionStatusAction::class)->execute(
+                            $this->record,
+                            InquiryStatus::QUOTING,
+                            'Quotation '.$quotation->reference.' created from inquiry.',
+                        );
+                    }
 
                     Notification::make()
-                        ->title(($existingQuotation ? __('messages.quotation_updated') : __('messages.quotation_created')) . ': ' . $quotation->reference)
+                        ->title(($existingQuotation ? __('messages.quotation_updated') : __('messages.quotation_created')).': '.$quotation->reference)
                         ->body(__('messages.items_populated_redirecting'))
                         ->success()
                         ->send();
 
                     return redirect(QuotationResource::getUrl('edit', ['record' => $quotation]));
+                } catch (QuotationLockedException $e) {
+                    Notification::make()
+                        ->title(__('messages.quotation_locked'))
+                        ->body($e->getMessage())
+                        ->danger()
+                        ->send();
                 } catch (\Throwable $e) {
                     Notification::make()
                         ->title(__('messages.error_creating_quotation'))
@@ -572,7 +449,7 @@ trait InquiryHeaderActions
             ->color($isUpdate ? 'warning' : 'success')
             ->requiresConfirmation()
             ->modalHeading($isUpdate
-                ? __('forms.labels.update_proforma_invoice') . ' — ' . $existingPi?->reference
+                ? __('forms.labels.update_proforma_invoice').' — '.$existingPi?->reference
                 : 'Create Proforma Invoice')
             ->modalDescription($isUpdate
                 ? __('messages.pi_update_description', ['reference' => $existingPi?->reference])
@@ -584,6 +461,7 @@ trait InquiryHeaderActions
                     ->default($isUpdate ? $existingPi?->quotations()->pluck('quotations.id')->toArray() : [])
                     ->options(function () {
                         $inquiry = $this->record;
+
                         return Quotation::query()
                             ->where(function ($query) use ($inquiry) {
                                 $query->where('inquiry_id', $inquiry->id)
@@ -597,9 +475,9 @@ trait InquiryHeaderActions
                             ->get()
                             ->mapWithKeys(fn ($q) => [
                                 $q->id => $q->reference
-                                    . ' — ' . ($q->company?->name ?? 'N/A')
-                                    . ' (' . $q->status->getLabel() . ')'
-                                    . ($q->inquiry_id === $inquiry->id ? '' : ' ⚠ different inquiry'),
+                                    .' — '.($q->company?->name ?? 'N/A')
+                                    .' ('.$q->status->getLabel().')'
+                                    .($q->inquiry_id === $inquiry->id ? '' : ' ⚠ different inquiry'),
                             ]);
                     })
                     ->helperText(__('forms.helpers.optionally_link_existing_quotations_items_can_be_imported')),
@@ -609,6 +487,7 @@ trait InquiryHeaderActions
                     ->default($isUpdate ? $existingPi?->supplierQuotations()->pluck('supplier_quotations.id')->toArray() : [])
                     ->options(function () {
                         $inquiry = $this->record;
+
                         return SupplierQuotation::query()
                             ->where(function ($query) use ($inquiry) {
                                 $query->where('inquiry_id', $inquiry->id)
@@ -626,9 +505,9 @@ trait InquiryHeaderActions
                             ->get()
                             ->mapWithKeys(fn ($sq) => [
                                 $sq->id => $sq->reference
-                                    . ' — ' . ($sq->company?->name ?? 'N/A')
-                                    . ' (' . $sq->status->getLabel() . ')'
-                                    . ($sq->inquiry_id === $inquiry->id ? '' : ' ⚠ different inquiry'),
+                                    .' — '.($sq->company?->name ?? 'N/A')
+                                    .' ('.$sq->status->getLabel().')'
+                                    .($sq->inquiry_id === $inquiry->id ? '' : ' ⚠ different inquiry'),
                             ]);
                     })
                     ->helperText('Supplier quotations to use as cost source when importing items.'),
@@ -682,8 +561,8 @@ trait InquiryHeaderActions
 
                     Notification::make()
                         ->title($existingPi
-                            ? __('messages.pi_updated') . ': ' . $pi->reference
-                            : __('messages.pi_created') . ': ' . $pi->reference)
+                            ? __('messages.pi_updated').': '.$pi->reference
+                            : __('messages.pi_created').': '.$pi->reference)
                         ->body(__('messages.redirect_import_quotations'))
                         ->success()
                         ->send();
@@ -739,13 +618,13 @@ trait InquiryHeaderActions
 
             if ($existing) {
                 $existing->update([
-                    'product_id'     => $item->product_id,
-                    'description'    => $item->product?->name ?? $item->description,
+                    'product_id' => $item->product_id,
+                    'description' => $item->product?->name ?? $item->description,
                     'specifications' => $item->product?->specification?->description ?? $item->specifications,
-                    'quantity'       => $item->quantity,
-                    'unit'           => $item->unit ?? 'pcs',
-                    'notes'          => $item->notes,
-                    'sort_order'     => $maxSort,
+                    'quantity' => $item->quantity,
+                    'unit' => $item->unit ?? 'pcs',
+                    'notes' => $item->notes,
+                    'sort_order' => $maxSort,
                 ]);
             } else {
                 $clientPrice = 0;
@@ -769,20 +648,20 @@ trait InquiryHeaderActions
 
                 ProformaInvoiceItem::create([
                     'proforma_invoice_id' => $pi->id,
-                    'product_id'          => $item->product_id,
-                    'quotation_item_id'   => null,
+                    'product_id' => $item->product_id,
+                    'quotation_item_id' => null,
                     'supplier_company_id' => $supplierData['supplier_company_id'] ?? null,
-                    'description'         => $item->product?->name ?? $item->description,
-                    'specifications'      => $item->product?->specification?->description ?? $item->specifications,
-                    'quantity'            => $item->quantity,
-                    'unit'                => $item->unit ?? 'pcs',
-                    'unit_price'          => $clientPrice,
-                    'unit_cost'           => $supplierData['unit_cost'] ?? 0,
-                    'cost_currency_code'  => $resolved['currency'],
-                    'cost_exchange_rate'  => $resolved['rate'],
-                    'incoterm'            => null,
-                    'notes'               => $item->notes,
-                    'sort_order'          => $maxSort,
+                    'description' => $item->product?->name ?? $item->description,
+                    'specifications' => $item->product?->specification?->description ?? $item->specifications,
+                    'quantity' => $item->quantity,
+                    'unit' => $item->unit ?? 'pcs',
+                    'unit_price' => $clientPrice,
+                    'unit_cost' => $supplierData['unit_cost'] ?? 0,
+                    'cost_currency_code' => $resolved['currency'],
+                    'cost_exchange_rate' => $resolved['rate'],
+                    'incoterm' => null,
+                    'notes' => $item->notes,
+                    'sort_order' => $maxSort,
                 ]);
             }
         }
