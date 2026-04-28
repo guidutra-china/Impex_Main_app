@@ -150,6 +150,25 @@ class QuotationInfolist
                         ->state(fn ($record) => $record->items->count()),
                 ])
                 ->columns(2),
+
+            Section::make(__('forms.sections.fx_summary'))
+                ->schema([
+                    TextEntry::make('total_converted_cost')
+                        ->label(__('forms.labels.total_cost'))
+                        ->money(fn ($record) => $record->currency_code, divideBy: 10000),
+                    TextEntry::make('subtotal_revenue')
+                        ->label(__('forms.labels.total_revenue'))
+                        ->state(fn ($record) => $record->subtotal)
+                        ->money(fn ($record) => $record->currency_code, divideBy: 10000),
+                    TextEntry::make('aggregate_margin')
+                        ->label(__('forms.labels.margin'))
+                        ->state(function ($record) {
+                            $cost = $record->total_converted_cost;
+
+                            return $cost > 0 ? round((($record->subtotal - $cost) / $cost) * 100, 2).'%' : '—';
+                        }),
+                ])
+                ->columns(3),
         ];
     }
 

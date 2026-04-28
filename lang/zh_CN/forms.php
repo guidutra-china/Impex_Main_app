@@ -492,6 +492,7 @@ return [
         'total_pcs' => '总件数',
         'total_pieces' => '总件数',
         'total_quotations' => '总报价单数',
+        'total_revenue' => '总收入',
         'total_score' => '总评分',
         'total_value' => '总价值',
         'total_volume_cbm' => '总体积 (立方米)',
@@ -629,6 +630,7 @@ return [
         'event_details' => '事件详情',
         'fee_configuration' => '费用配置',
         'financial_summary' => '财务摘要',
+        'fx_summary' => '汇率摘要',
         'general' => '常规',
         'inner_box' => '内盒',
         'inquiry_identity' => '询价身份',
@@ -1005,5 +1007,8 @@ return [
     'modals' => [
         'regenerate_sku_heading' => '重新生成SKU？',
         'regenerate_sku_description' => '这将根据当前类别生成新的SKU。旧的SKU将被替换。请记得在重新生成后保存产品。',
+    ],
+    'filters' => [
+        'has_multi_currency_items' => '包含多币种项目',
     ],
 ];

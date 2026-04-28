@@ -507,6 +507,7 @@ return [
         'total_pcs' => 'Total de Peças',
         'total_pieces' => 'Total de Peças',
         'total_quotations' => 'Total de Cotações',
+        'total_revenue' => 'Receita Total',
         'total_score' => 'Pontuação Total',
         'total_value' => 'Valor Total',
         'total_volume_cbm' => 'Volume Total (CBM)',
@@ -645,6 +646,7 @@ return [
         'event_details' => 'Detalhes do Evento',
         'fee_configuration' => 'Configuração de Taxas',
         'financial_summary' => 'Resumo Financeiro',
+        'fx_summary' => 'Resumo Cambial',
         'general' => 'Geral',
         'inner_box' => 'Caixa Interna',
         'inquiry_identity' => 'Identidade da Consulta',
@@ -1157,5 +1159,8 @@ return [
     'modals' => [
         'regenerate_sku_heading' => 'Regenerar SKU?',
         'regenerate_sku_description' => 'Isso irá gerar um novo SKU com base na categoria atual. O SKU antigo será substituído. Lembre-se de salvar o produto após regenerar.',
+    ],
+    'filters' => [
+        'has_multi_currency_items' => 'Tem itens em múltiplas moedas',
     ],
 ];

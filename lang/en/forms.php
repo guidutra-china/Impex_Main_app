@@ -511,6 +511,7 @@ return [
         'total_pcs' => 'Total Pcs',
         'total_pieces' => 'Total Pieces',
         'total_quotations' => 'Total Quotations',
+        'total_revenue' => 'Total Revenue',
         'total_score' => 'Total Score',
         'total_value' => 'Total Value',
         'total_volume_cbm' => 'Total Volume (CBM)',
@@ -649,6 +650,7 @@ return [
         'event_details' => 'Event Details',
         'fee_configuration' => 'Fee Configuration',
         'financial_summary' => 'Financial Summary',
+        'fx_summary' => 'FX Summary',
         'general' => 'General',
         'inner_box' => 'Inner Box',
         'inquiry_identity' => 'Inquiry Identity',
@@ -1030,5 +1032,8 @@ return [
     'modals' => [
         'regenerate_sku_heading' => 'Regenerate SKU?',
         'regenerate_sku_description' => 'This will generate a new SKU based on the current category. The old SKU will be replaced. Make sure to save the product after regenerating.',
+    ],
+    'filters' => [
+        'has_multi_currency_items' => 'Has multi-currency items',
     ],
 ];
