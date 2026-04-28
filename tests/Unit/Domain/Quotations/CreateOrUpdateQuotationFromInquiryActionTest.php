@@ -20,9 +20,29 @@ class CreateOrUpdateQuotationFromInquiryActionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        \App\Domain\Settings\Models\Currency::create([
+        $usd = \App\Domain\Settings\Models\Currency::create([
             'code' => 'USD', 'name' => 'US Dollar', 'name_plural' => 'US Dollars',
             'symbol' => '$', 'decimal_places' => 2, 'is_base' => true, 'is_active' => true,
+        ]);
+        $cny = \App\Domain\Settings\Models\Currency::create([
+            'code' => 'CNY', 'name' => 'Chinese Yuan', 'name_plural' => 'Chinese Yuan',
+            'symbol' => '¥', 'decimal_places' => 2, 'is_base' => false, 'is_active' => true,
+        ]);
+        $eur = \App\Domain\Settings\Models\Currency::create([
+            'code' => 'EUR', 'name' => 'Euro', 'name_plural' => 'Euros',
+            'symbol' => '€', 'decimal_places' => 2, 'is_base' => false, 'is_active' => true,
+        ]);
+        \App\Domain\Settings\Models\ExchangeRate::create([
+            'base_currency_id' => $usd->id, 'target_currency_id' => $cny->id,
+            'rate' => 7.0, 'inverse_rate' => 1 / 7.0,
+            'date' => today()->subDay()->toDateString(),
+            'status' => \App\Domain\Settings\Enums\ExchangeRateStatus::APPROVED,
+        ]);
+        \App\Domain\Settings\Models\ExchangeRate::create([
+            'base_currency_id' => $usd->id, 'target_currency_id' => $eur->id,
+            'rate' => 0.92, 'inverse_rate' => 1 / 0.92,
+            'date' => today()->subDay()->toDateString(),
+            'status' => \App\Domain\Settings\Enums\ExchangeRateStatus::APPROVED,
         ]);
     }
 
@@ -127,5 +147,54 @@ class CreateOrUpdateQuotationFromInquiryActionTest extends TestCase
         $this->assertSame(1000, $item->unit_cost);
         // EMBEDDED: 1000 × 1.20 = 1200
         $this->assertSame(1200, $item->unit_price);
+    }
+
+    public function test_cross_currency_cny_to_usd_snapshots_rate(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems();
+        $supplier = Company::factory()->create();
+        $sq = $this->buildSqWith($inquiry, $supplier, 'CNY', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 70000],
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+        );
+
+        $item = $quotation->items->first();
+        $this->assertSame('CNY', $item->cost_currency_code);
+        $this->assertEqualsWithDelta(1 / 7.0, (float) $item->cost_exchange_rate, 0.0001);
+        $this->assertSame(70000, $item->unit_cost);
+        // converted: 70000 × 1/7 ≈ 10000 USD minor units
+        $this->assertEqualsWithDelta(10000, $item->unit_price, 1);
+    }
+
+    public function test_multi_currency_aggregation_each_item_has_own_rate(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems(itemCount: 2);
+        $supplierA = Company::factory()->create();
+        $supplierB = Company::factory()->create();
+        $sqCny = $this->buildSqWith($inquiry, $supplierA, 'CNY', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 70000],
+        ]);
+        $sqEur = $this->buildSqWith($inquiry, $supplierB, 'EUR', [
+            ['product_id' => $items[1]->product_id, 'unit_cost' => 9200],
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$sqCny->id, $sqEur->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+        );
+
+        $byProduct = $quotation->items->keyBy('product_id');
+        $this->assertSame('CNY', $byProduct[$items[0]->product_id]->cost_currency_code);
+        $this->assertSame('EUR', $byProduct[$items[1]->product_id]->cost_currency_code);
     }
 }
