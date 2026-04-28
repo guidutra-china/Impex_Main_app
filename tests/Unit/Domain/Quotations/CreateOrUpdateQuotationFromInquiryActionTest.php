@@ -290,4 +290,38 @@ class CreateOrUpdateQuotationFromInquiryActionTest extends TestCase
             'version' => 1,
         ]);
     }
+
+    public function test_rerun_drops_quotation_items_whose_product_is_no_longer_in_inquiry(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems(itemCount: 2);
+        $supplier = Company::factory()->create();
+        $sq = $this->buildSqWith($inquiry, $supplier, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 1000],
+            ['product_id' => $items[1]->product_id, 'unit_cost' => 2000],
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+        );
+        $this->assertCount(2, $quotation->items);
+
+        // User removes the second item from the inquiry, then re-runs.
+        $items[1]->delete();
+
+        $quotation2 = $this->makeAction()->execute(
+            inquiry: $inquiry->fresh(),
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+        );
+
+        $this->assertSame($quotation->id, $quotation2->id);
+        $this->assertCount(1, $quotation2->items, 'orphan QuotationItem should be deleted on re-run');
+        $this->assertSame($items[0]->product_id, $quotation2->items->first()->product_id);
+    }
 }

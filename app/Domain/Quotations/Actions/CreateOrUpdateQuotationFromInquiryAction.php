@@ -193,6 +193,13 @@ class CreateOrUpdateQuotationFromInquiryAction
                 ]);
             }
         }
+
+        // Drop QuotationItems whose product is no longer present in the inquiry.
+        $inquiryProductIds = $inquiry->items->pluck('product_id')->filter()->toArray();
+        $quotation->items()
+            ->whereNotNull('product_id')
+            ->whereNotIn('product_id', $inquiryProductIds)
+            ->delete();
     }
 
     private function snapshotQuotation(Quotation $quotation): array
