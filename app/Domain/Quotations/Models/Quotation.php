@@ -21,7 +21,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Quotation extends Model
 {
-    use HasFactory, SoftDeletes, HasReference, HasStateMachine, HasDocuments;
+    use HasDocuments, HasFactory, HasReference, HasStateMachine, SoftDeletes;
 
     protected $fillable = [
         'reference',
@@ -175,6 +175,11 @@ class Quotation extends Model
     public function getTotalAttribute(): int
     {
         return $this->subtotal + $this->commission_amount;
+    }
+
+    public function getTotalConvertedCostAttribute(): int
+    {
+        return $this->items->sum(fn (QuotationItem $item) => $item->converted_cost_total);
     }
 
     // --- Scopes ---
