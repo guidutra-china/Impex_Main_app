@@ -643,6 +643,10 @@ return [
         'fee_configuration' => '费用配置',
         'financial_summary' => '财务摘要',
         'fx_summary' => '汇率摘要',
+        'version_quotation_header' => '快照时的报价',
+        'version_items' => '此版本的项目',
+        'version_alternatives' => '供应商备选',
+        'version_meta' => '快照元数据',
         'general' => '常规',
         'inner_box' => '内盒',
         'inquiry_identity' => '询价身份',
@@ -884,6 +888,7 @@ return [
         'multi_currency_explanation' => '部分商品以与本形式发票不同的币种报价。汇率在商品创建时已锁定。点击下方按钮可根据最新汇率表刷新所有汇率。',
         'revert_reason_required' => '出于审计跟踪目的，需要提供原因。',
         'fx_rate_captured_on' => '汇率日期：:date',
+        'save_version_explainer' => '在进行更改之前，为当前报价创建一个不可变的快照。当前版本将变为 N+1；版本 N 将保留在历史记录中。',
     ],
     'placeholders' => [
         'no_location' => '无地点',
@@ -1022,6 +1027,12 @@ return [
     'modals' => [
         'regenerate_sku_heading' => '重新生成SKU？',
         'regenerate_sku_description' => '这将根据当前类别生成新的SKU。旧的SKU将被替换。请记得在重新生成后保存产品。',
+        'save_version_heading' => '保存版本快照',
+        'save_version_description' => '为当前报价状态创建一个不可变的快照。项目、定价和供应商备选将被冻结。当前版本将变为 N+1；版本 N 保留在历史记录中。',
+    ],
+    'empty' => [
+        'version_history_heading' => '尚未保存任何版本',
+        'version_history_description' => '在进行重要更改之前使用"保存版本"，以保留当前报价状态。',
     ],
     'filters' => [
         'has_multi_currency_items' => '包含多币种项目',

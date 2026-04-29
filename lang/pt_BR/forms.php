@@ -659,6 +659,10 @@ return [
         'financial_summary' => 'Resumo Financeiro',
         'fx_summary' => 'Resumo Cambial',
         'general' => 'Geral',
+        'version_quotation_header' => 'Quotation no momento do snapshot',
+        'version_items' => 'Itens nesta versão',
+        'version_alternatives' => 'Alternativas de Fornecedor',
+        'version_meta' => 'Metadados do Snapshot',
         'inner_box' => 'Caixa Interna',
         'inquiry_identity' => 'Identidade da Consulta',
         'international_trade' => 'Comércio Internacional',
@@ -901,6 +905,7 @@ return [
         'multi_currency_explanation' => 'Alguns itens foram cotados em moeda diferente da PI. A taxa foi congelada no momento da criação. Use o botão abaixo para recalcular todas as taxas com base na tabela de câmbio atual.',
         'revert_reason_required' => 'Um motivo é obrigatório para fins de auditoria.',
         'fx_rate_captured_on' => 'Taxa de :date',
+        'save_version_explainer' => 'Cria um snapshot imutável da Quotation atual antes de você fazer alterações. A versão atual passa a ser N+1; a versão N fica salva no histórico.',
     ],
     'placeholders' => [
         'no_location' => 'Sem localização',
@@ -1173,6 +1178,12 @@ return [
     'modals' => [
         'regenerate_sku_heading' => 'Regenerar SKU?',
         'regenerate_sku_description' => 'Isso irá gerar um novo SKU com base na categoria atual. O SKU antigo será substituído. Lembre-se de salvar o produto após regenerar.',
+        'save_version_heading' => 'Salvar Snapshot da Versão',
+        'save_version_description' => 'Isto cria um snapshot imutável do estado atual da Quotation. Itens, preços e alternativas de fornecedor ficam congelados. A versão atual passa a ser a próxima (N+1); a versão N fica preservada no histórico.',
+    ],
+    'empty' => [
+        'version_history_heading' => 'Nenhuma versão salva ainda',
+        'version_history_description' => 'Use "Salvar Versão" antes de fazer alterações relevantes para preservar o estado atual da Quotation.',
     ],
     'filters' => [
         'has_multi_currency_items' => 'Tem itens em múltiplas moedas',

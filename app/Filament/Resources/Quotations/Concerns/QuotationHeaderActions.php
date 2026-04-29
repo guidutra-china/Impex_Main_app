@@ -14,7 +14,6 @@ use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
 use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\QuotationStatus;
 use App\Domain\Quotations\Models\Quotation;
-use App\Domain\Quotations\Models\QuotationVersion;
 use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Actions\SendDocumentByEmailAction;
 use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
@@ -83,16 +82,16 @@ trait QuotationHeaderActions
             ->button();
     }
 
-    protected function statusActionGroup(): ?ActionGroup
+    protected function statusActionGroup(): ?Action
     {
-        return ActionGroup::make([
-            $this->transitionStatusAction(),
-            $this->createVersionAction(),
-        ])
-            ->label(__('forms.labels.status'))
-            ->icon('heroicon-o-arrow-path')
-            ->color('warning')
-            ->button();
+        $action = $this->transitionStatusAction();
+
+        return empty($this->record->getAllowedNextStatuses()) ? null : $action;
+    }
+
+    protected function versionActionGroup(): ?Action
+    {
+        return $this->createVersionAction();
     }
 
     protected function transitionStatusAction(): Action
@@ -151,11 +150,13 @@ trait QuotationHeaderActions
     {
         return Action::make('createVersion')
             ->label(__('forms.labels.save_version'))
+            ->tooltip(__('forms.helpers.save_version_explainer'))
             ->icon('heroicon-o-clock')
             ->color('info')
+            ->button()
             ->requiresConfirmation()
-            ->modalHeading('Save Version Snapshot')
-            ->modalDescription('This will create a snapshot of the current quotation state. All items and pricing will be preserved.')
+            ->modalHeading(__('forms.modals.save_version_heading'))
+            ->modalDescription(__('forms.modals.save_version_description'))
             ->form([
                 Textarea::make('change_notes')
                     ->label(__('forms.labels.change_notes'))
@@ -165,36 +166,12 @@ trait QuotationHeaderActions
             ])
             ->action(function (array $data) {
                 try {
-                    $savedVersion = DB::transaction(function () use ($data) {
-                        $quotation = Quotation::query()
-                            ->lockForUpdate()
-                            ->findOrFail($this->record->id);
-
-                        $currentVersion = $quotation->version;
-
-                        $snapshot = [
-                            'quotation' => $quotation->toArray(),
-                            'items' => $quotation->items()
-                                ->with('suppliers')
-                                ->get()
-                                ->map(fn ($item) => array_merge($item->toArray(), [
-                                    'suppliers' => $item->suppliers->toArray(),
-                                ]))
-                                ->toArray(),
-                        ];
-
-                        QuotationVersion::create([
-                            'quotation_id' => $quotation->id,
-                            'version' => $currentVersion,
-                            'snapshot' => $snapshot,
-                            'change_notes' => $data['change_notes'] ?? null,
-                            'created_by' => auth()->id(),
-                        ]);
-
-                        $quotation->increment('version');
-
-                        return $currentVersion;
-                    });
+                    /** @var Quotation $quotation */
+                    $quotation = $this->record;
+                    $savedVersion = $quotation->saveVersion(
+                        $data['change_notes'] ?? null,
+                        auth()->id(),
+                    );
 
                     Notification::make()
                         ->title(__('messages.version_saved', ['version' => $savedVersion]))
@@ -203,7 +180,7 @@ trait QuotationHeaderActions
                         ->send();
                 } catch (\Throwable $e) {
                     Notification::make()
-                        ->title('Error creating version')
+                        ->title(__('messages.version_save_failed'))
                         ->body($e->getMessage())
                         ->danger()
                         ->send();

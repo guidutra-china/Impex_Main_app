@@ -662,6 +662,10 @@ return [
         'fee_configuration' => 'Fee Configuration',
         'financial_summary' => 'Financial Summary',
         'fx_summary' => 'FX Summary',
+        'version_quotation_header' => 'Quotation at snapshot time',
+        'version_items' => 'Items in this version',
+        'version_alternatives' => 'Supplier Alternatives',
+        'version_meta' => 'Snapshot Metadata',
         'general' => 'General',
         'inner_box' => 'Inner Box',
         'inquiry_identity' => 'Inquiry Identity',
@@ -906,6 +910,7 @@ return [
         'multi_currency_explanation' => 'Some item costs were quoted in a different currency than this PI. The rate snapshot was taken when each item was created. Use the button below to refresh all rates against today\'s FX table.',
         'revert_reason_required' => 'A reason is required for audit trail purposes.',
         'fx_rate_captured_on' => 'Rate from :date',
+        'save_version_explainer' => 'Creates an immutable snapshot of the current quotation before you make changes. Current version becomes N+1; N is preserved in history.',
     ],
     'placeholders' => [
         'no_location' => 'No location',
@@ -1046,6 +1051,12 @@ return [
     'modals' => [
         'regenerate_sku_heading' => 'Regenerate SKU?',
         'regenerate_sku_description' => 'This will generate a new SKU based on the current category. The old SKU will be replaced. Make sure to save the product after regenerating.',
+        'save_version_heading' => 'Save Version Snapshot',
+        'save_version_description' => 'Creates an immutable snapshot of the current quotation state. Items, pricing and supplier alternatives are frozen. The current version becomes the next (N+1); version N stays preserved in history.',
+    ],
+    'empty' => [
+        'version_history_heading' => 'No versions saved yet',
+        'version_history_description' => 'Use "Save Version" before making relevant changes to preserve the current state of the quotation.',
     ],
     'filters' => [
         'has_multi_currency_items' => 'Has multi-currency items',

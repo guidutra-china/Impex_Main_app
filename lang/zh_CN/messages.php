@@ -48,6 +48,7 @@ return [
     'pi_update_description' => '这将使用当前询价数据（公司、联系人、货币）更新现有形式发票 :reference。',
     'status_changed_to' => '状态已更改为',
     'version_saved' => '版本 v:version 已保存',
+    'version_save_failed' => '保存版本失败',
     'pos_generated' => '采购订单已生成',
     'draft_product_created' => '草稿产品已创建',
     'items_imported' => '项目已导入',

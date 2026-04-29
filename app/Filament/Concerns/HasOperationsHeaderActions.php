@@ -22,9 +22,10 @@ use Filament\Resources\Pages\ViewRecord;
  *   [2] Discuss            (always, via DiscussAction)
  *   [3] Documents          (PDF/Excel generation, send by email, ...)
  *   [4] Workflow           (Conversions to other resources)
- *   [5] Status             (Status transitions + revert)
- *   [6] Edit/View toggle   (auto: EditAction on View page, ViewAction on Edit page)
- *   [7] Danger group       (Delete + Restore + ForceDelete)
+ *   [5] Versions           (Save Version snapshot, restore, ...)
+ *   [6] Status             (Status transitions + revert)
+ *   [7] Edit/View toggle   (auto: EditAction on View page, ViewAction on Edit page)
+ *   [8] Danger group       (Delete + Restore + ForceDelete)
  *
  * Slots that return null/[] are dropped, so a resource that doesn't generate
  * documents simply omits slot 3 — it will not render an empty placeholder.
@@ -59,7 +60,8 @@ trait HasOperationsHeaderActions
      *   - primaryLifecycleActions(): array<int, Action>
      *   - documentsActionGroup(): ?ActionGroup
      *   - workflowActionGroup(): ?ActionGroup
-     *   - statusActionGroup(): ?ActionGroup
+     *   - versionActionGroup(): Action|ActionGroup|null
+     *   - statusActionGroup(): Action|ActionGroup|null
      *
      * @return array<int, Action|ActionGroup>
      */
@@ -81,7 +83,7 @@ trait HasOperationsHeaderActions
             $header[] = \App\Filament\Actions\DiscussAction::make();
         }
 
-        foreach (['documentsActionGroup', 'workflowActionGroup', 'statusActionGroup'] as $slot) {
+        foreach (['documentsActionGroup', 'workflowActionGroup', 'versionActionGroup', 'statusActionGroup'] as $slot) {
             if (method_exists($this, $slot)) {
                 $group = $this->{$slot}();
                 if ($group !== null) {

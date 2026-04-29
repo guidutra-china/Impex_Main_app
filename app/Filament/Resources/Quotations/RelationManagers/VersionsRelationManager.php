@@ -2,13 +2,16 @@
 
 namespace App\Filament\Resources\Quotations\RelationManagers;
 
+use App\Domain\Quotations\Models\Quotation;
+use App\Filament\Resources\Quotations\Schemas\QuotationVersionInfolist;
 use Filament\Actions\Action;
-use Filament\Infolists\Components\TextEntry;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Textarea;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Filament\Actions\ViewAction;
 
 class VersionsRelationManager extends RelationManager
 {
@@ -16,7 +19,7 @@ class VersionsRelationManager extends RelationManager
 
     protected static ?string $title = 'Version History';
 
-    protected static string | \BackedEnum | null $icon = 'heroicon-o-clock';
+    protected static string|\BackedEnum|null $icon = 'heroicon-o-clock';
 
     public function table(Table $table): Table
     {
@@ -41,32 +44,61 @@ class VersionsRelationManager extends RelationManager
                     ->sortable(),
             ])
             ->defaultSort('version', 'desc')
+            ->headerActions([
+                $this->saveVersionAction(),
+            ])
             ->recordActions([
                 ViewAction::make()
-                    ->modalHeading(fn ($record) => "Version v{$record->version} Snapshot")
-                    ->infolist(fn (Schema $schema) => $schema->components([
-                        TextEntry::make('version')
-                            ->label(__('forms.labels.version'))
-                            ->prefix('v'),
-                        TextEntry::make('creator.name')
-                            ->label(__('forms.labels.created_by'))
-                            ->placeholder(__('forms.placeholders.system')),
-                        TextEntry::make('created_at')
-                            ->label(__('forms.labels.snapshot_date'))
-                            ->dateTime('d/m/Y H:i:s'),
-                        TextEntry::make('change_notes')
-                            ->label(__('forms.labels.change_notes'))
-                            ->placeholder(__('forms.placeholders.no_notes_2'))
-                            ->columnSpanFull(),
-                        TextEntry::make('snapshot')
-                            ->label(__('forms.labels.snapshot_data'))
-                            ->formatStateUsing(fn ($state) => json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))
-                            ->columnSpanFull()
-                            ->prose(),
-                    ])),
+                    ->modalHeading(fn ($record) => __('forms.labels.version').' v'.$record->version)
+                    ->modalWidth('5xl')
+                    ->infolist(fn (Schema $schema) => QuotationVersionInfolist::configure($schema)),
             ])
-            ->emptyStateHeading('No versions yet')
-            ->emptyStateDescription('Use the "Save Version" button to create a snapshot before making changes.')
-            ->emptyStateIcon('heroicon-o-clock');
+            ->emptyStateHeading(__('forms.empty.version_history_heading'))
+            ->emptyStateDescription(__('forms.empty.version_history_description'))
+            ->emptyStateIcon('heroicon-o-clock')
+            ->emptyStateActions([
+                $this->saveVersionAction(),
+            ]);
+    }
+
+    protected function saveVersionAction(): Action
+    {
+        return Action::make('createVersion')
+            ->label(__('forms.labels.save_version'))
+            ->tooltip(__('forms.helpers.save_version_explainer'))
+            ->icon('heroicon-o-clock')
+            ->color('info')
+            ->requiresConfirmation()
+            ->modalHeading(__('forms.modals.save_version_heading'))
+            ->modalDescription(__('forms.modals.save_version_description'))
+            ->form([
+                Textarea::make('change_notes')
+                    ->label(__('forms.labels.change_notes'))
+                    ->placeholder(__('forms.placeholders.describe_what_changed_in_this_version'))
+                    ->rows(3)
+                    ->maxLength(2000),
+            ])
+            ->action(function (array $data) {
+                try {
+                    /** @var Quotation $quotation */
+                    $quotation = $this->getOwnerRecord();
+                    $savedVersion = $quotation->saveVersion(
+                        $data['change_notes'] ?? null,
+                        auth()->id(),
+                    );
+
+                    Notification::make()
+                        ->title(__('messages.version_saved', ['version' => $savedVersion]))
+                        ->body(__('messages.snapshot_created', ['version' => $savedVersion + 1]))
+                        ->success()
+                        ->send();
+                } catch (\Throwable $e) {
+                    Notification::make()
+                        ->title(__('messages.version_save_failed'))
+                        ->body($e->getMessage())
+                        ->danger()
+                        ->send();
+                }
+            });
     }
 }

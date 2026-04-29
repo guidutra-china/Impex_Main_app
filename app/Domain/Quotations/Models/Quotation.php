@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class Quotation extends Model
 {
@@ -195,5 +196,57 @@ class Quotation extends Model
             QuotationStatus::EXPIRED,
             QuotationStatus::CANCELLED,
         ]);
+    }
+
+    /**
+     * Freeze the current state into a QuotationVersion snapshot, then bump
+     * the live `version` counter. Returns the version number that was just
+     * snapshotted (the value frozen, not the new working version).
+     */
+    public function saveVersion(?string $changeNotes = null, ?int $userId = null): int
+    {
+        return DB::transaction(function () use ($changeNotes, $userId) {
+            $quotation = static::query()->lockForUpdate()->findOrFail($this->id);
+            $currentVersion = (int) $quotation->version;
+
+            $quotation->load(['company:id,name', 'contact:id,name,email', 'paymentTerm:id,name']);
+
+            $items = $quotation->items()
+                ->with(['suppliers.company:id,name', 'product:id,name,sku', 'selectedSupplier:id,name'])
+                ->get()
+                ->map(fn (QuotationItem $item) => array_merge($item->toArray(), [
+                    'product' => $item->product?->only(['id', 'name', 'sku']),
+                    'selected_supplier' => $item->selectedSupplier?->only(['id', 'name']),
+                    'suppliers' => $item->suppliers->map(fn ($s) => array_merge($s->toArray(), [
+                        'company' => $s->company?->only(['id', 'name']),
+                    ]))->toArray(),
+                ]))
+                ->toArray();
+
+            $snapshot = [
+                'quotation' => array_merge($quotation->toArray(), [
+                    'company' => $quotation->company?->only(['id', 'name']),
+                    'contact' => $quotation->contact?->only(['id', 'name', 'email']),
+                    'payment_term' => $quotation->paymentTerm?->only(['id', 'name']),
+                    'subtotal' => $quotation->subtotal,
+                    'commission_amount' => $quotation->commission_amount,
+                    'total' => $quotation->total,
+                    'total_converted_cost' => $quotation->total_converted_cost,
+                ]),
+                'items' => $items,
+            ];
+
+            QuotationVersion::create([
+                'quotation_id' => $quotation->id,
+                'version' => $currentVersion,
+                'snapshot' => $snapshot,
+                'change_notes' => $changeNotes,
+                'created_by' => $userId,
+            ]);
+
+            $quotation->increment('version');
+
+            return $currentVersion;
+        });
     }
 }

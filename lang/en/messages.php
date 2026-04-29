@@ -58,6 +58,7 @@ return [
     'pi_update_description' => 'This will update the existing Proforma Invoice :reference with the current inquiry data (company, contact, currency).',
     'status_changed_to' => 'Status changed to',
     'version_saved' => 'Version v:version saved',
+    'version_save_failed' => 'Failed to save version',
     'pos_generated' => 'Purchase Order(s) Generated',
     'draft_product_created' => 'Draft product created',
     'items_imported' => 'items imported',
