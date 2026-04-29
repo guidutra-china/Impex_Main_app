@@ -77,12 +77,31 @@ class PurchaseOrdersTable
                 TextColumn::make('total')
                     ->label(__('forms.labels.total'))
                     ->getStateUsing(fn ($record) => $record->total)
-                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state))
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '').' '.Money::format($state))
                     ->sortable(query: fn ($query, $direction) => $query->orderByRaw(
-                        '(SELECT COALESCE(SUM(quantity * unit_price), 0) FROM purchase_order_items WHERE purchase_order_id = purchase_orders.id) ' . $direction
+                        '(SELECT COALESCE(SUM(quantity * unit_price), 0) FROM purchase_order_items WHERE purchase_order_id = purchase_orders.id) '.$direction
                     ))
                     ->alignEnd()
                     ->weight('bold'),
+                TextColumn::make('schedule_paid_total')
+                    ->label(__('forms.labels.paid'))
+                    ->getStateUsing(fn ($record) => $record->schedule_paid_total)
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '').' '.Money::format($state))
+                    ->sortable(query: fn ($query, $direction) => $query->orderByRaw(
+                        '(SELECT COALESCE(SUM(pa.allocated_amount_in_document_currency), 0) '
+                        .'FROM payment_allocations pa '
+                        .'INNER JOIN payment_schedule_items psi ON psi.id = pa.payment_schedule_item_id '
+                        .'INNER JOIN payments p ON p.id = pa.payment_id '
+                        ."WHERE psi.payable_type = 'App\\\\Domain\\\\PurchaseOrders\\\\Models\\\\PurchaseOrder' "
+                        .'AND psi.payable_id = purchase_orders.id '
+                        ."AND p.status = 'approved') ".$direction
+                    ))
+                    ->color(fn ($record) => match (true) {
+                        $record->total > 0 && $record->schedule_paid_total >= $record->total => 'success',
+                        $record->schedule_paid_total > 0 => 'warning',
+                        default => 'gray',
+                    })
+                    ->alignEnd(),
                 TextColumn::make('items_count')
                     ->label(__('forms.labels.items'))
                     ->counts('items')
@@ -151,17 +170,17 @@ class PurchaseOrdersTable
             ])
             ->recordActions([
                 ActionGroup::make([
-                StatusTransitionActions::make(PurchaseOrderStatus::class, [
-                    'confirmed' => [
-                        'icon' => 'heroicon-o-check-circle',
-                        'color' => 'success',
-                        'requiresConfirmation' => true,
-                        'sideEffects' => fn ($record) => app(SyncSupplierProductPricesAction::class)->execute($record),
-                    ],
-                ]),
-                ViewAction::make(),
-                EditAction::make(),
-                DeleteAction::make(),
+                    StatusTransitionActions::make(PurchaseOrderStatus::class, [
+                        'confirmed' => [
+                            'icon' => 'heroicon-o-check-circle',
+                            'color' => 'success',
+                            'requiresConfirmation' => true,
+                            'sideEffects' => fn ($record) => app(SyncSupplierProductPricesAction::class)->execute($record),
+                        ],
+                    ]),
+                    ViewAction::make(),
+                    EditAction::make(),
+                    DeleteAction::make(),
                 ])
                     ->icon('heroicon-m-ellipsis-vertical')
                     ->color('gray'),
