@@ -198,26 +198,6 @@ class Shipment extends Model
         return $this->hasMany(ShipmentPallet::class)->orderBy('sort_order')->orderBy('label');
     }
 
-    /**
-     * Schedule items relevant to this shipment for the Shipment Payment Schedule UI.
-     * Combines:
-     *   - Shipment-direct PSI (payable_type=Shipment) created by GeneratePaymentScheduleAction::executeForShipment()
-     *     from the parent PI's payment terms.
-     *   - PO PSI (payable_type=PurchaseOrder, shipment_id=this) created by RecalculatePaymentScheduleForShipmentAction
-     *     for shipment-dependent PO stages (supplier-side parcels).
-     */
-    public function shipmentRelatedPaymentScheduleItems(): HasMany
-    {
-        return $this->hasMany(\App\Domain\Financial\Models\PaymentScheduleItem::class, 'shipment_id')
-            ->where(function ($q) {
-                $q->where(function ($q1) {
-                    $q1->where('payable_type', self::class)
-                        ->where('payable_id', $this->getKey());
-                })->orWhere('payable_type', \App\Domain\PurchaseOrders\Models\PurchaseOrder::class);
-            })
-            ->orderBy('sort_order');
-    }
-
     // --- Accessors ---
 
     public function getTotalValueAttribute(): int
