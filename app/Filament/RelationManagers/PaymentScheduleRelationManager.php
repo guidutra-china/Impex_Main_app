@@ -66,20 +66,21 @@ class PaymentScheduleRelationManager extends RelationManager
                         // its client_reference so users can tell which document the schedule
                         // item belongs to (a shipment may carry items from several PIs/POs).
                         if ($this->getOwnerRecord() instanceof Shipment) {
-                            [$docRef, $clientRef] = $this->resolveDocContext($record);
+                            [$docRef, $clientRef, $supplierInvoiceNumber] = $this->resolveDocContext($record);
                             $docType = $this->resolveDocType($record, $docRef);
 
+                            $orangeClass = 'bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-600/20 dark:bg-orange-400/10 dark:text-orange-400 dark:ring-orange-400/30';
+                            $purpleClass = 'bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-400/10 dark:text-purple-400 dark:ring-purple-400/30';
+                            $typeColor = $docType === 'PO' ? $orangeClass : $purpleClass;
+
                             if ($docType !== null) {
-                                $typeBadgeClass = $docType === 'PO'
-                                    ? 'bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-600/20 dark:bg-orange-400/10 dark:text-orange-400 dark:ring-orange-400/30'
-                                    : 'bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-400/10 dark:text-purple-400 dark:ring-purple-400/30';
-                                $html .= ' <span class="inline-flex items-center rounded-md px-1.5 py-0.5 text-[0.6rem] font-bold uppercase '.$typeBadgeClass.'">'.e($docType).'</span>';
+                                $html .= ' <span class="inline-flex items-center rounded-md px-1.5 py-0.5 text-[0.6rem] font-bold uppercase '.$typeColor.'">'.e($docType).'</span>';
                             }
                             if ($docRef) {
-                                $refBadgeClass = $docType === 'PO'
-                                    ? 'bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-600/20 dark:bg-orange-400/10 dark:text-orange-400 dark:ring-orange-400/30'
-                                    : 'bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-400/10 dark:text-purple-400 dark:ring-purple-400/30';
-                                $html .= ' <span class="inline-flex items-center rounded-md px-2 py-0.5 text-[0.65rem] font-semibold '.$refBadgeClass.'">'.e($docRef).'</span>';
+                                $html .= ' <span class="inline-flex items-center rounded-md px-2 py-0.5 text-[0.65rem] font-semibold '.$typeColor.'">'.e($docRef).'</span>';
+                            }
+                            if ($supplierInvoiceNumber) {
+                                $html .= ' <span class="inline-flex items-center rounded-md px-2 py-0.5 text-[0.65rem] font-medium '.$typeColor.'" title="Supplier Invoice Number">Inv: '.e($supplierInvoiceNumber).'</span>';
                             }
                             if ($clientRef) {
                                 $html .= ' <span class="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 text-[0.65rem] font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-400/10 dark:text-amber-300 dark:ring-amber-400/30" title="Client Reference">Ref: '.e($clientRef).'</span>';
@@ -181,12 +182,13 @@ class PaymentScheduleRelationManager extends RelationManager
     }
 
     /**
-     * Resolve [docReference, clientReference] for a schedule item belonging
-     * to a Shipment. Tries the polymorphic payable first (PO PSI items have
-     * payable_type=PurchaseOrder), then falls back to extracting from the
-     * label suffix (Shipment-direct PI items embed PI ref in the label).
+     * Resolve [docReference, clientReference, supplierInvoiceNumber] for a
+     * schedule item belonging to a Shipment. Tries the polymorphic payable
+     * first (PO PSI items have payable_type=PurchaseOrder), then falls back
+     * to extracting from the label suffix (Shipment-direct PI items embed
+     * PI ref in the label).
      *
-     * @return array{0: ?string, 1: ?string}
+     * @return array{0: ?string, 1: ?string, 2: ?string}
      */
     protected function resolveDocContext($record): array
     {
@@ -196,17 +198,18 @@ class PaymentScheduleRelationManager extends RelationManager
         if ($payableType === \App\Domain\PurchaseOrders\Models\PurchaseOrder::class) {
             $record->loadMissing('payable');
             $docRef = $record->payable?->reference;
+            $invoiceNumber = $record->payable?->supplier_invoice_number;
 
-            return [$docRef, null];
+            return [$docRef, null, $invoiceNumber];
         }
 
         if (! $record->label || ! preg_match('#/\s*((?:PI|PO)-[\w-]+)\]#', $record->label, $m)) {
-            return [null, null];
+            return [null, null, null];
         }
 
         $docRef = $m[1];
         if (array_key_exists($docRef, $cache)) {
-            return [$docRef, $cache[$docRef]];
+            return [$docRef, $cache[$docRef], null];
         }
 
         // client_reference only exists on proforma_invoices — not on purchase_orders.
@@ -217,7 +220,7 @@ class PaymentScheduleRelationManager extends RelationManager
 
         $cache[$docRef] = $clientRef;
 
-        return [$docRef, $clientRef];
+        return [$docRef, $clientRef, null];
     }
 
     /**
