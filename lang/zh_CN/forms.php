@@ -883,6 +883,7 @@ return [
         'cost_currency_to_pi_currency' => '从成本币种到形式发票币种的汇率,创建时已锁定。',
         'multi_currency_explanation' => '部分商品以与本形式发票不同的币种报价。汇率在商品创建时已锁定。点击下方按钮可根据最新汇率表刷新所有汇率。',
         'revert_reason_required' => '出于审计跟踪目的，需要提供原因。',
+        'fx_rate_captured_on' => '汇率日期：:date',
     ],
     'placeholders' => [
         'no_location' => '无地点',

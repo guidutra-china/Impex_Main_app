@@ -905,6 +905,7 @@ return [
         'cost_currency_to_pi_currency' => 'Rate from cost currency to the PI currency, frozen on the item.',
         'multi_currency_explanation' => 'Some item costs were quoted in a different currency than this PI. The rate snapshot was taken when each item was created. Use the button below to refresh all rates against today\'s FX table.',
         'revert_reason_required' => 'A reason is required for audit trail purposes.',
+        'fx_rate_captured_on' => 'Rate from :date',
     ],
     'placeholders' => [
         'no_location' => 'No location',

@@ -167,8 +167,26 @@ class QuotationInfolist
 
                             return $cost > 0 ? round((($record->subtotal - $cost) / $cost) * 100, 2).'%' : '—';
                         }),
+                    TextEntry::make('fx_rate_dates')
+                        ->label(__('forms.labels.fx_rate'))
+                        ->state(function ($record) {
+                            $dates = $record->items
+                                ->pluck('cost_exchange_rate_captured_at')
+                                ->filter()
+                                ->map(fn ($d) => $d->toDateString())
+                                ->unique()
+                                ->sort()
+                                ->values();
+                            if ($dates->isEmpty()) {
+                                return '—';
+                            }
+                            $first = \Carbon\Carbon::parse($dates->first())->format('d/m/Y');
+                            $last = \Carbon\Carbon::parse($dates->last())->format('d/m/Y');
+
+                            return $first === $last ? $first : "{$first} – {$last}";
+                        }),
                 ])
-                ->columns(3),
+                ->columns(4),
         ];
     }
 

@@ -10,14 +10,15 @@ use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\Inquiries\Models\InquiryItem;
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
+use App\Domain\ProformaInvoices\Services\ProformaInvoiceItemCurrencyResolver;
 use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\Incoterm;
-use App\Domain\Inquiries\Models\InquiryItem;
 use App\Domain\Quotations\Models\Quotation;
 use App\Domain\Quotations\Models\QuotationItem;
+use App\Domain\Settings\Models\Currency;
 use App\Domain\SupplierQuotations\Models\SupplierQuotation;
-use App\Domain\ProformaInvoices\Services\ProformaInvoiceItemCurrencyResolver;
 use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -27,8 +28,7 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Illuminate\Database\Eloquent\Collection;
-use App\Domain\Settings\Models\Currency;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -41,7 +41,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Table;
-use UnitEnum;
+use Illuminate\Database\Eloquent\Collection;
 
 class ItemsRelationManager extends RelationManager
 {
@@ -60,7 +60,7 @@ class ItemsRelationManager extends RelationManager
                     fn () => Product::active()
                         ->orderBy('name')
                         ->get()
-                        ->mapWithKeys(fn ($p) => [$p->id => $p->sku . ' — ' . $p->name])
+                        ->mapWithKeys(fn ($p) => [$p->id => $p->sku.' — '.$p->name])
                 )
                 ->searchable()
                 ->live()
@@ -135,6 +135,7 @@ class ItemsRelationManager extends RelationManager
                         $pi->issue_date?->toDateString(),
                     );
                     $set('cost_exchange_rate', $resolved['rate']);
+                    $set('cost_exchange_rate_captured_at', $resolved['rate_date'] ?? now()->toDateString());
                 }),
 
             TextInput::make('cost_exchange_rate')
@@ -144,7 +145,21 @@ class ItemsRelationManager extends RelationManager
                 ->default(1)
                 ->required()
                 ->live(onBlur: true)
-                ->helperText(__('forms.helpers.cost_currency_to_pi_currency')),
+                ->afterStateUpdated(function (Set $set) {
+                    $set('cost_exchange_rate_captured_at', now()->toDateString());
+                })
+                ->helperText(function (Get $get) {
+                    $base = __('forms.helpers.cost_currency_to_pi_currency');
+                    $capturedAt = $get('cost_exchange_rate_captured_at');
+                    if (! $capturedAt) {
+                        return $base;
+                    }
+                    $formatted = \Carbon\Carbon::parse($capturedAt)->format('d/m/Y');
+
+                    return $base.' '.__('forms.helpers.fx_rate_captured_on', ['date' => $formatted]);
+                }),
+
+            Hidden::make('cost_exchange_rate_captured_at'),
 
             Placeholder::make('unit_cost_doc_preview')
                 ->label(__('forms.labels.cost_in_pi_currency'))
@@ -152,7 +167,8 @@ class ItemsRelationManager extends RelationManager
                     $cost = (float) ($get('unit_cost') ?? 0);
                     $rate = (float) ($get('cost_exchange_rate') ?? 1);
                     $pi = $this->getOwnerRecord();
-                    return $pi->currency_code . ' ' . number_format($cost * $rate, 2);
+
+                    return $pi->currency_code.' '.number_format($cost * $rate, 2);
                 }),
 
             Select::make('incoterm')
@@ -219,6 +235,7 @@ class ItemsRelationManager extends RelationManager
                         $floatValue = (float) str_replace(',', '', (string) $state);
                         $record->unit_price = Money::toMinor($floatValue);
                         $record->save();
+
                         return number_format($floatValue, 4, '.', '');
                     })
                     ->alignEnd(),
@@ -240,7 +257,7 @@ class ItemsRelationManager extends RelationManager
                     ->step('0.0001')
                     ->prefix(fn ($record) => ($record->cost_currency_code
                         ?? $record->proformaInvoice?->currency_code
-                        ?? '—') . ' ')
+                        ?? '—').' ')
                     ->rules(['required', 'numeric', 'min:0'])
                     ->tooltip(function ($record) {
                         $piCurrency = $record->proformaInvoice?->currency_code;
@@ -248,14 +265,20 @@ class ItemsRelationManager extends RelationManager
                             return null;
                         }
                         $converted = Money::format($record->unit_cost_in_document_currency ?? 0);
-                        return '≈ ' . $piCurrency . ' ' . $converted
-                            . ' @ ' . number_format((float) $record->cost_exchange_rate, 6);
+                        $tooltip = '≈ '.$piCurrency.' '.$converted
+                            .' @ '.number_format((float) $record->cost_exchange_rate, 6);
+                        if ($record->cost_exchange_rate_captured_at) {
+                            $tooltip .= ' · '.$record->cost_exchange_rate_captured_at->format('d/m/Y');
+                        }
+
+                        return $tooltip;
                     })
                     ->getStateUsing(fn ($record) => number_format(Money::toMajor($record->unit_cost ?? 0), 4, '.', ''))
                     ->updateStateUsing(function ($record, $state) {
                         $floatValue = (float) str_replace(',', '', (string) $state);
                         $record->unit_cost = Money::toMinor($floatValue);
                         $record->save(); // saving hook recomputes unit_cost_in_document_currency
+
                         return number_format($floatValue, 4, '.', '');
                     })
                     ->alignEnd(),
@@ -342,10 +365,10 @@ class ItemsRelationManager extends RelationManager
                 }
 
                 $options = $quotationItems->mapWithKeys(fn ($item) => [
-                    $item->id => '[' . $item->quotation->reference . '] '
-                        . ($item->product?->name ?? 'Item #' . $item->id)
-                        . ' — Qty: ' . $item->quantity
-                        . ' — $' . Money::format($item->unit_price, 4),
+                    $item->id => '['.$item->quotation->reference.'] '
+                        .($item->product?->name ?? 'Item #'.$item->id)
+                        .' — Qty: '.$item->quantity
+                        .' — $'.Money::format($item->unit_price, 4),
                 ])->toArray();
 
                 return [
@@ -420,7 +443,7 @@ class ItemsRelationManager extends RelationManager
                 $this->createCommissionCosts($pi, array_unique($linkedQuotationIds));
 
                 Notification::make()
-                    ->title($imported . ' ' . __('messages.items_imported'))
+                    ->title($imported.' '.__('messages.items_imported'))
                     ->body(__('messages.items_imported_from_quotations', ['count' => count(array_unique($linkedQuotationIds))]))
                     ->success()
                     ->send();
@@ -461,10 +484,10 @@ class ItemsRelationManager extends RelationManager
                 $options = [];
                 foreach ($allSqs as $sq) {
                     foreach ($sq->items as $item) {
-                        $label = '[' . $sq->reference . ' — ' . ($sq->company?->name ?? 'N/A') . '] '
-                            . ($item->product?->name ?? $item->description ?? 'Item #' . $item->id)
-                            . ' — Qty: ' . $item->quantity
-                            . ' — Cost: $' . Money::format($item->unit_cost, 4);
+                        $label = '['.$sq->reference.' — '.($sq->company?->name ?? 'N/A').'] '
+                            .($item->product?->name ?? $item->description ?? 'Item #'.$item->id)
+                            .' — Qty: '.$item->quantity
+                            .' — Cost: $'.Money::format($item->unit_cost, 4);
                         $options[$item->id] = $label;
                     }
                 }
@@ -526,6 +549,7 @@ class ItemsRelationManager extends RelationManager
                         ]);
                         $imported++;
                         $newSqIds[] = $sqItem->supplier_quotation_id;
+
                         continue;
                     }
 
@@ -547,20 +571,20 @@ class ItemsRelationManager extends RelationManager
 
                     ProformaInvoiceItem::create([
                         'proforma_invoice_id' => $pi->id,
-                        'product_id'          => $sqItem->product_id,
-                        'quotation_item_id'   => null,
+                        'product_id' => $sqItem->product_id,
+                        'quotation_item_id' => null,
                         'supplier_company_id' => $sqItem->supplierQuotation->company_id ?? null,
-                        'description'         => $sqItem->product?->name ?? $sqItem->description,
-                        'specifications'      => $sqItem->product?->specification?->description ?? $sqItem->specifications,
-                        'quantity'            => $sqItem->quantity,
-                        'unit'                => $sqItem->unit ?? 'pcs',
-                        'unit_price'          => $unitPrice,
-                        'unit_cost'           => $sqItem->unit_cost,
-                        'cost_currency_code'  => $resolved['currency'],
-                        'cost_exchange_rate'  => $resolved['rate'],
-                        'incoterm'            => null,
-                        'notes'               => $sqItem->notes,
-                        'sort_order'          => ++$maxSort,
+                        'description' => $sqItem->product?->name ?? $sqItem->description,
+                        'specifications' => $sqItem->product?->specification?->description ?? $sqItem->specifications,
+                        'quantity' => $sqItem->quantity,
+                        'unit' => $sqItem->unit ?? 'pcs',
+                        'unit_price' => $unitPrice,
+                        'unit_cost' => $sqItem->unit_cost,
+                        'cost_currency_code' => $resolved['currency'],
+                        'cost_exchange_rate' => $resolved['rate'],
+                        'incoterm' => null,
+                        'notes' => $sqItem->notes,
+                        'sort_order' => ++$maxSort,
                     ]);
 
                     $newSqIds[] = $sqItem->supplier_quotation_id;
@@ -573,7 +597,7 @@ class ItemsRelationManager extends RelationManager
                 }
 
                 Notification::make()
-                    ->title($imported . ' ' . __('messages.items_imported'))
+                    ->title($imported.' '.__('messages.items_imported'))
                     ->body(__('messages.items_imported_from_supplier_quotations', ['count' => $imported]))
                     ->success()
                     ->send();
@@ -605,9 +629,9 @@ class ItemsRelationManager extends RelationManager
                 }
 
                 $options = $inquiryItems->mapWithKeys(fn ($item) => [
-                    $item->id => ($item->product?->name ?? $item->description ?? 'Item #' . $item->id)
-                        . ' — Qty: ' . $item->quantity
-                        . ($item->target_price ? ' — Target: $' . Money::format($item->target_price) : ''),
+                    $item->id => ($item->product?->name ?? $item->description ?? 'Item #'.$item->id)
+                        .' — Qty: '.$item->quantity
+                        .($item->target_price ? ' — Target: $'.Money::format($item->target_price) : ''),
                 ])->toArray();
 
                 return [
@@ -696,7 +720,7 @@ class ItemsRelationManager extends RelationManager
                 }
 
                 Notification::make()
-                    ->title($imported . ' ' . __('messages.items_imported_from_inquiry'))
+                    ->title($imported.' '.__('messages.items_imported_from_inquiry'))
                     ->body(__('messages.prices_prefilled'))
                     ->success()
                     ->send();
@@ -728,7 +752,7 @@ class ItemsRelationManager extends RelationManager
 
             $existing = $pi->additionalCosts()
                 ->where('cost_type', AdditionalCostType::COMMISSION)
-                ->where('notes', 'like', '%' . $quotation->reference . '%')
+                ->where('notes', 'like', '%'.$quotation->reference.'%')
                 ->exists();
 
             if ($existing) {
@@ -739,7 +763,7 @@ class ItemsRelationManager extends RelationManager
                 'costable_type' => $pi->getMorphClass(),
                 'costable_id' => $pi->id,
                 'cost_type' => AdditionalCostType::COMMISSION,
-                'description' => 'Service Fee (' . $quotation->commission_rate . '%) — ' . $quotation->reference,
+                'description' => 'Service Fee ('.$quotation->commission_rate.'%) — '.$quotation->reference,
                 'amount' => $commissionAmount,
                 'currency_code' => $pi->currency_code,
                 'exchange_rate' => 1,
@@ -747,7 +771,7 @@ class ItemsRelationManager extends RelationManager
                 'billable_to' => BillableTo::CLIENT,
                 'cost_date' => now()->toDateString(),
                 'status' => AdditionalCostStatus::PENDING,
-                'notes' => 'Auto-generated from ' . $quotation->reference . ' (Separate commission ' . $quotation->commission_rate . '%)',
+                'notes' => 'Auto-generated from '.$quotation->reference.' (Separate commission '.$quotation->commission_rate.'%)',
             ]);
         }
     }

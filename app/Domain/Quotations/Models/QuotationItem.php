@@ -24,6 +24,7 @@ class QuotationItem extends Model
         'unit_cost',
         'cost_currency_code',
         'cost_exchange_rate',
+        'cost_exchange_rate_captured_at',
         'commission_rate',
         'unit_price',
         'incoterm',
@@ -37,11 +38,23 @@ class QuotationItem extends Model
             'quantity' => 'integer',
             'unit_cost' => 'integer',
             'cost_exchange_rate' => 'decimal:8',
+            'cost_exchange_rate_captured_at' => 'date',
             'commission_rate' => 'decimal:2',
             'unit_price' => 'integer',
             'incoterm' => Incoterm::class,
             'sort_order' => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (QuotationItem $item) {
+            if ($item->isDirty('cost_exchange_rate') && $item->cost_exchange_rate !== null) {
+                if (! $item->isDirty('cost_exchange_rate_captured_at')) {
+                    $item->cost_exchange_rate_captured_at = now()->toDateString();
+                }
+            }
+        });
     }
 
     // --- Relationships ---

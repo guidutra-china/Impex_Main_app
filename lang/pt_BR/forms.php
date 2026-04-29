@@ -900,6 +900,7 @@ return [
         'cost_currency_to_pi_currency' => 'Taxa da moeda de custo para a moeda da PI, congelada no item.',
         'multi_currency_explanation' => 'Alguns itens foram cotados em moeda diferente da PI. A taxa foi congelada no momento da criação. Use o botão abaixo para recalcular todas as taxas com base na tabela de câmbio atual.',
         'revert_reason_required' => 'Um motivo é obrigatório para fins de auditoria.',
+        'fx_rate_captured_on' => 'Taxa de :date',
     ],
     'placeholders' => [
         'no_location' => 'Sem localização',

@@ -13,7 +13,7 @@ class ProformaInvoiceItemCurrencyResolver
     /**
      * Resolve the cost currency + FX rate for a PI item.
      *
-     * @return array{currency: string, rate: float}
+     * @return array{currency: string, rate: float, rate_date: ?string}
      */
     public function resolve(
         ?string $sourceCurrency,

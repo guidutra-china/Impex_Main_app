@@ -37,14 +37,14 @@ class CurrencyExchangeResolverTest extends TestCase
     {
         $resolver = new CurrencyExchangeResolver;
         $result = $resolver->resolve('USD', 'USD');
-        $this->assertSame(['currency' => 'USD', 'rate' => 1.0], $result);
+        $this->assertSame(['currency' => 'USD', 'rate' => 1.0, 'rate_date' => null], $result);
     }
 
     public function test_null_source_falls_back_to_target(): void
     {
         $resolver = new CurrencyExchangeResolver;
         $result = $resolver->resolve(null, 'USD');
-        $this->assertSame(['currency' => 'USD', 'rate' => 1.0], $result);
+        $this->assertSame(['currency' => 'USD', 'rate' => 1.0, 'rate_date' => null], $result);
     }
 
     public function test_cny_to_usd_resolves_inverse_rate(): void
@@ -53,13 +53,14 @@ class CurrencyExchangeResolverTest extends TestCase
         $result = $resolver->resolve('CNY', 'USD');
         $this->assertSame('CNY', $result['currency']);
         $this->assertEqualsWithDelta(1 / 7.0, $result['rate'], 0.0001);
+        $this->assertSame(today()->subDay()->toDateString(), $result['rate_date']);
     }
 
     public function test_unknown_currency_lenient_returns_rate_1(): void
     {
         $resolver = new CurrencyExchangeResolver;
         $result = $resolver->resolve('XYZ', 'USD');
-        $this->assertSame(['currency' => 'XYZ', 'rate' => 1.0], $result);
+        $this->assertSame(['currency' => 'XYZ', 'rate' => 1.0, 'rate_date' => null], $result);
     }
 
     public function test_missing_rate_strict_throws(): void

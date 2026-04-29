@@ -15,6 +15,7 @@ class PaymentAllocation extends Model
         'credit_schedule_item_id',
         'allocated_amount',
         'exchange_rate',
+        'exchange_rate_captured_at',
         'allocated_amount_in_document_currency',
         'created_at',
     ];
@@ -24,9 +25,21 @@ class PaymentAllocation extends Model
         return [
             'allocated_amount' => 'integer',
             'exchange_rate' => 'decimal:8',
+            'exchange_rate_captured_at' => 'date',
             'allocated_amount_in_document_currency' => 'integer',
             'created_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (PaymentAllocation $allocation) {
+            if ($allocation->isDirty('exchange_rate') && $allocation->exchange_rate !== null) {
+                if (! $allocation->isDirty('exchange_rate_captured_at')) {
+                    $allocation->exchange_rate_captured_at = now()->toDateString();
+                }
+            }
+        });
     }
 
     public function payment(): BelongsTo

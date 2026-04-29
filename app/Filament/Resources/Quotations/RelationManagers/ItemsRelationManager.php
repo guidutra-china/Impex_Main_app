@@ -384,7 +384,17 @@ class ItemsRelationManager extends RelationManager
                                                 ->formatStateUsing(fn ($state, $record) => Money::format($state, 4).' '.$record->currency_code),
                                             InfolistTextEntry::make('cost_exchange_rate')
                                                 ->label(__('forms.labels.fx_rate'))
-                                                ->formatStateUsing(fn ($state) => $state ? number_format((float) $state, 4) : '—'),
+                                                ->formatStateUsing(function ($state, $record) {
+                                                    if (! $state) {
+                                                        return '—';
+                                                    }
+                                                    $rate = number_format((float) $state, 4);
+                                                    if ($record->cost_exchange_rate_captured_at) {
+                                                        $rate .= ' · '.$record->cost_exchange_rate_captured_at->format('d/m/Y');
+                                                    }
+
+                                                    return $rate;
+                                                }),
                                             InfolistTextEntry::make('converted_unit_cost')
                                                 ->label(__('forms.labels.converted_cost'))
                                                 ->formatStateUsing(fn ($state, $record) => Money::format($state).' '.$record->quotationItem->quotation->currency_code),

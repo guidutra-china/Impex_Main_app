@@ -152,14 +152,20 @@ class CreateOrUpdateQuotationFromInquiryAction
                 ? (int) round($convertedCost * (1 + $itemCommissionRate / 100))
                 : $convertedCost;
 
+            $rateCapturedAt = $resolved['rate_date'] ?? null;
+
             $override = $itemOverrides[$inquiryItem->id] ?? null;
             if ($override) {
                 $unitCost = (int) round(($override['unit_cost'] ?? 0) * 10000);
                 $sourceCurrency = $override['cost_currency_code'] ?? $sourceCurrency;
+                $previousRate = $rate;
                 $rate = (float) ($override['cost_exchange_rate'] ?? $rate);
                 $itemCommissionRate = (float) ($override['commission_rate'] ?? $itemCommissionRate);
                 $resolved = ['currency' => $sourceCurrency, 'rate' => $rate];
                 $convertedCost = (int) round($unitCost * $rate);
+                if (abs($rate - $previousRate) > 0.000001) {
+                    $rateCapturedAt = now()->toDateString();
+                }
 
                 $overrideUnitPrice = isset($override['unit_price']) ? (float) $override['unit_price'] : null;
                 if ($overrideUnitPrice !== null && $overrideUnitPrice > 0) {
@@ -180,6 +186,7 @@ class CreateOrUpdateQuotationFromInquiryAction
                 'unit_cost' => $unitCost,
                 'cost_currency_code' => $resolved['currency'],
                 'cost_exchange_rate' => $rate,
+                'cost_exchange_rate_captured_at' => $rateCapturedAt,
                 'commission_rate' => $itemCommissionRate,
                 'unit_price' => $unitPrice,
                 'sort_order' => $sortOrder++,
@@ -210,6 +217,7 @@ class CreateOrUpdateQuotationFromInquiryAction
                     'unit_cost' => $alt->unit_cost,
                     'currency_code' => $altResolved['currency'],
                     'cost_exchange_rate' => $altResolved['rate'],
+                    'cost_exchange_rate_captured_at' => $altResolved['rate_date'] ?? null,
                     'lead_time_days' => $alt->lead_time_days,
                     'moq' => $alt->moq,
                 ]);

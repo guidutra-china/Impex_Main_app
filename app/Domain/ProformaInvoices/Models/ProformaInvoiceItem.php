@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class ProformaInvoiceItem extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'proforma_invoice_id',
         'product_id',
@@ -32,6 +33,7 @@ class ProformaInvoiceItem extends Model
         'unit_cost',
         'cost_currency_code',
         'cost_exchange_rate',
+        'cost_exchange_rate_captured_at',
         'unit_cost_in_document_currency',
         'incoterm',
         'notes',
@@ -45,6 +47,7 @@ class ProformaInvoiceItem extends Model
             'unit_price' => 'integer',
             'unit_cost' => 'integer',
             'cost_exchange_rate' => 'decimal:8',
+            'cost_exchange_rate_captured_at' => 'date',
             'unit_cost_in_document_currency' => 'integer',
             'incoterm' => Incoterm::class,
             'sort_order' => 'integer',
@@ -54,6 +57,12 @@ class ProformaInvoiceItem extends Model
     protected static function booted(): void
     {
         static::saving(function (ProformaInvoiceItem $item) {
+            $rateChanged = $item->isDirty('cost_exchange_rate');
+
+            if ($rateChanged && $item->cost_exchange_rate !== null && ! $item->isDirty('cost_exchange_rate_captured_at')) {
+                $item->cost_exchange_rate_captured_at = now()->toDateString();
+            }
+
             // Skip when an unrelated field is being updated on an existing row.
             if ($item->exists && ! $item->isDirty(['unit_cost', 'cost_exchange_rate'])) {
                 return;

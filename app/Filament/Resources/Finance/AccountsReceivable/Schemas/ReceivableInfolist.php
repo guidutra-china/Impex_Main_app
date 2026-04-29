@@ -141,7 +141,12 @@ class ReceivableInfolist
                                     return '—';
                                 }
 
-                                return number_format((float) $state, 8, '.', '').' ('.$pmt.' → '.$doc.')';
+                                $formatted = number_format((float) $state, 8, '.', '').' ('.$pmt.' → '.$doc.')';
+                                if ($record->exchange_rate_captured_at) {
+                                    $formatted .= ' · '.$record->exchange_rate_captured_at->format('d/m/Y');
+                                }
+
+                                return $formatted;
                             })
                             ->placeholder('—'),
                         TextEntry::make('allocated_amount_in_document_currency')

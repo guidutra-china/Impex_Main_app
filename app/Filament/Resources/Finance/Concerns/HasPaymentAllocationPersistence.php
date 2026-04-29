@@ -40,6 +40,7 @@ trait HasPaymentAllocationPersistence
             $rate = isset($allocationData['exchange_rate']) && $allocationData['exchange_rate'] !== ''
                 ? (float) $allocationData['exchange_rate']
                 : null;
+            $rateCapturedAt = $allocationData['exchange_rate_captured_at'] ?? null;
 
             if (($pmtMajor === null || $pmtMajor <= 0)
                 && ($docMajor === null || $docMajor <= 0)) {
@@ -76,6 +77,7 @@ trait HasPaymentAllocationPersistence
                 'payment_schedule_item_id' => $scheduleItemId,
                 'allocated_amount' => $resolved['allocated_amount'],
                 'exchange_rate' => $resolved['exchange_rate'],
+                'exchange_rate_captured_at' => $resolved['exchange_rate'] !== null ? ($rateCapturedAt ?: now()->toDateString()) : null,
                 'allocated_amount_in_document_currency' => $resolved['allocated_amount_in_document_currency'],
             ]);
         }

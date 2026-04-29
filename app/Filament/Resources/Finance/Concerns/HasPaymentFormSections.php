@@ -603,8 +603,21 @@ trait HasPaymentFormSections
                 ->visible(fn (Get $get) => static::rowHasDifferingCurrencies($get))
                 ->afterStateUpdated(function (Get $get, Set $set) {
                     static::syncAllocationRow($get, $set, 'exchange_rate');
+                    $set('exchange_rate_captured_at', now()->toDateString());
+                })
+                ->helperText(function (Get $get) {
+                    $captured = $get('exchange_rate_captured_at');
+                    if (! $captured) {
+                        return null;
+                    }
+
+                    return __('forms.helpers.fx_rate_captured_on', [
+                        'date' => \Carbon\Carbon::parse($captured)->format('d/m/Y'),
+                    ]);
                 })
                 ->columnSpan(4),
+
+            \Filament\Forms\Components\Hidden::make('exchange_rate_captured_at'),
         ];
     }
 
@@ -638,14 +651,17 @@ trait HasPaymentFormSections
 
         $set('allocated_amount_in_document_currency', number_format($remainingDocMajor, 2, '.', ''));
 
-        $rate = AllocationCalculator::lookupRate($pmtCurrency, $docCurrency);
+        $resolved = AllocationCalculator::lookupRateWithDate($pmtCurrency, $docCurrency);
+        $rate = $resolved['rate'];
 
         if ($rate !== null && $rate > 0) {
             $set('exchange_rate', number_format($rate, 8, '.', ''));
             $set('allocated_amount', number_format($remainingDocMajor / $rate, 2, '.', ''));
+            $set('exchange_rate_captured_at', $resolved['date'] ?? now()->toDateString());
         } else {
             $set('exchange_rate', null);
             $set('allocated_amount', null);
+            $set('exchange_rate_captured_at', null);
         }
     }
 

@@ -101,17 +101,52 @@ class AllocationCalculator
      */
     public static function lookupRate(string $paymentCurrencyCode, string $documentCurrencyCode): ?float
     {
+        return self::lookupRateWithDate($paymentCurrencyCode, $documentCurrencyCode)['rate'];
+    }
+
+    /**
+     * Same as lookupRate() but also returns the effective date of the
+     * underlying ExchangeRate record (oldest date when triangulating).
+     *
+     * @return array{rate: ?float, date: ?string}
+     */
+    public static function lookupRateWithDate(string $paymentCurrencyCode, string $documentCurrencyCode): array
+    {
         if ($paymentCurrencyCode === $documentCurrencyCode) {
-            return 1.0;
+            return ['rate' => 1.0, 'date' => null];
         }
 
         $pmt = Currency::where('code', $paymentCurrencyCode)->first();
         $doc = Currency::where('code', $documentCurrencyCode)->first();
 
         if (! $pmt || ! $doc) {
-            return null;
+            return ['rate' => null, 'date' => null];
         }
 
-        return ExchangeRate::convert($pmt->id, $doc->id, 1.0);
+        $rate = ExchangeRate::convert($pmt->id, $doc->id, 1.0);
+        if ($rate === null) {
+            return ['rate' => null, 'date' => null];
+        }
+
+        $base = Currency::base();
+        $dates = [];
+        if ($base) {
+            if ($pmt->id !== $base->id) {
+                $rec = ExchangeRate::getLatestRate($base->id, $pmt->id);
+                if ($rec) {
+                    $dates[] = $rec->date->toDateString();
+                }
+            }
+            if ($doc->id !== $base->id) {
+                $rec = ExchangeRate::getLatestRate($base->id, $doc->id);
+                if ($rec) {
+                    $dates[] = $rec->date->toDateString();
+                }
+            }
+        }
+
+        sort($dates);
+
+        return ['rate' => $rate, 'date' => $dates[0] ?? null];
     }
 }

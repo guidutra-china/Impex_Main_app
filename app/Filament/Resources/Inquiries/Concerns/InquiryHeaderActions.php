@@ -441,7 +441,10 @@ trait InquiryHeaderActions
                             ->required(),
                         \Filament\Forms\Components\TextInput::make('cost_exchange_rate')
                             ->label(__('forms.labels.cost_fx_rate'))->numeric()->step(0.00000001)
-                            ->required()->minValue(0.00000001),
+                            ->required()->minValue(0.00000001)
+                            ->helperText(fn () => __('forms.helpers.fx_rate_captured_on', [
+                                'date' => now()->format('d/m/Y'),
+                            ])),
                         \Filament\Forms\Components\TextInput::make('commission_rate')
                             ->label(__('forms.labels.commission_pct'))->numeric()->step(0.01)->suffix('%'),
                         \Filament\Forms\Components\TextInput::make('unit_price')
