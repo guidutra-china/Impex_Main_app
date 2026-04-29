@@ -75,17 +75,36 @@ class ProformaInvoicesTable
                 TextColumn::make('total')
                     ->label(__('forms.labels.products_total'))
                     ->getStateUsing(fn ($record) => $record->total)
-                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 2))
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '').' '.Money::format($state, 2))
                     ->alignEnd(),
                 TextColumn::make('grand_total')
                     ->label(__('forms.labels.total'))
                     ->getStateUsing(fn ($record) => $record->grand_total)
-                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 2))
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '').' '.Money::format($state, 2))
                     ->sortable(query: fn ($query, $direction) => $query->orderByRaw(
-                        '(SELECT COALESCE(SUM(quantity * unit_price), 0) FROM proforma_invoice_items WHERE proforma_invoice_id = proforma_invoices.id) ' . $direction
+                        '(SELECT COALESCE(SUM(quantity * unit_price), 0) FROM proforma_invoice_items WHERE proforma_invoice_id = proforma_invoices.id) '.$direction
                     ))
                     ->alignEnd()
                     ->weight('bold'),
+                TextColumn::make('schedule_paid_total')
+                    ->label(__('forms.labels.paid'))
+                    ->getStateUsing(fn ($record) => $record->schedule_paid_total)
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '').' '.Money::format($state, 2))
+                    ->sortable(query: fn ($query, $direction) => $query->orderByRaw(
+                        '(SELECT COALESCE(SUM(pa.allocated_amount_in_document_currency), 0) '
+                        .'FROM payment_allocations pa '
+                        .'INNER JOIN payment_schedule_items psi ON psi.id = pa.payment_schedule_item_id '
+                        .'INNER JOIN payments p ON p.id = pa.payment_id '
+                        ."WHERE psi.payable_type = 'App\\\\Domain\\\\ProformaInvoices\\\\Models\\\\ProformaInvoice' "
+                        .'AND psi.payable_id = proforma_invoices.id '
+                        ."AND p.status = 'approved') ".$direction
+                    ))
+                    ->color(fn ($record) => match (true) {
+                        $record->grand_total > 0 && $record->schedule_paid_total >= $record->grand_total => 'success',
+                        $record->schedule_paid_total > 0 => 'warning',
+                        default => 'gray',
+                    })
+                    ->alignEnd(),
                 TextColumn::make('items_count')
                     ->label(__('forms.labels.items'))
                     ->counts('items')
@@ -94,7 +113,7 @@ class ProformaInvoicesTable
                 TextColumn::make('shipment_progress')
                     ->label(__('forms.labels.shipped'))
                     ->getStateUsing(fn ($record) => $record->shipment_progress)
-                    ->formatStateUsing(fn ($state) => $state . '%')
+                    ->formatStateUsing(fn ($state) => $state.'%')
                     ->alignCenter()
                     ->color(fn ($state) => match (true) {
                         $state >= 100 => 'success',
@@ -150,31 +169,31 @@ class ProformaInvoicesTable
             ])
             ->recordActions([
                 ActionGroup::make([
-                StatusTransitionActions::make(ProformaInvoiceStatus::class, [
-                    'confirmed' => [
-                        'icon' => 'heroicon-o-check-circle',
-                        'color' => 'success',
-                        'requiresConfirmation' => true,
-                        'sideEffects' => fn ($record) => app(SyncClientProductPricesAction::class)->execute($record),
-                    ],
-                    'finalized' => [
-                        'icon' => 'heroicon-o-lock-closed',
-                        'color' => 'primary',
-                        'requiresConfirmation' => true,
-                    ],
-                    'reopened' => [
-                        'icon' => 'heroicon-o-lock-open',
-                        'color' => 'warning',
-                        'requiresConfirmation' => true,
-                        'requiresNotes' => true,
-                    ],
-                    'cancelled' => [
-                        'sideEffects' => fn ($record) => app(CancelProformaInvoiceAction::class)->cancelRelatedRecords($record),
-                    ],
-                ]),
-                ViewAction::make(),
-                EditAction::make(),
-                DeleteAction::make(),
+                    StatusTransitionActions::make(ProformaInvoiceStatus::class, [
+                        'confirmed' => [
+                            'icon' => 'heroicon-o-check-circle',
+                            'color' => 'success',
+                            'requiresConfirmation' => true,
+                            'sideEffects' => fn ($record) => app(SyncClientProductPricesAction::class)->execute($record),
+                        ],
+                        'finalized' => [
+                            'icon' => 'heroicon-o-lock-closed',
+                            'color' => 'primary',
+                            'requiresConfirmation' => true,
+                        ],
+                        'reopened' => [
+                            'icon' => 'heroicon-o-lock-open',
+                            'color' => 'warning',
+                            'requiresConfirmation' => true,
+                            'requiresNotes' => true,
+                        ],
+                        'cancelled' => [
+                            'sideEffects' => fn ($record) => app(CancelProformaInvoiceAction::class)->cancelRelatedRecords($record),
+                        ],
+                    ]),
+                    ViewAction::make(),
+                    EditAction::make(),
+                    DeleteAction::make(),
                 ])
                     ->icon('heroicon-m-ellipsis-vertical')
                     ->color('gray'),
