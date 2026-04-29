@@ -28,7 +28,6 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use UnitEnum;
 
 class ItemsRelationManager extends RelationManager
 {
@@ -47,7 +46,7 @@ class ItemsRelationManager extends RelationManager
                     fn () => Product::active()
                         ->orderBy('name')
                         ->get()
-                        ->mapWithKeys(fn ($p) => [$p->id => $p->sku . ' — ' . $p->name])
+                        ->mapWithKeys(fn ($p) => [$p->id => $p->sku.' — '.$p->name])
                 )
                 ->searchable()
                 ->live()
@@ -111,6 +110,12 @@ class ItemsRelationManager extends RelationManager
                     ->label(__('forms.labels.hash'))
                     ->sortable()
                     ->alignCenter(),
+                \Filament\Tables\Columns\ImageColumn::make('product.avatar')
+                    ->label('')
+                    ->disk('public')
+                    ->circular()
+                    ->size(40)
+                    ->defaultImageUrl(fn () => 'https://ui-avatars.com/api/?background=e2e8f0&color=94a3b8&name=P&size=40'),
                 TextColumn::make('product.name')
                     ->label(__('forms.labels.product'))
                     ->searchable()
@@ -146,8 +151,10 @@ class ItemsRelationManager extends RelationManager
                         }
                         if ($record->supplier_quotation_item_id) {
                             $sq = $record->supplierQuotationItem?->supplierQuotation;
+
                             return $sq ? $sq->reference : 'SQ';
                         }
+
                         return '—';
                     })
                     ->badge()
@@ -241,9 +248,9 @@ class ItemsRelationManager extends RelationManager
                 }
 
                 $options = $available->mapWithKeys(fn ($item) => [
-                    $item->id => ($item->product?->name ?? $item->description ?? 'Item #' . $item->id)
-                        . ' — Qty: ' . $item->quantity
-                        . ' — $' . Money::format($item->unit_cost, 4),
+                    $item->id => ($item->product?->name ?? $item->description ?? 'Item #'.$item->id)
+                        .' — Qty: '.$item->quantity
+                        .' — $'.Money::format($item->unit_cost, 4),
                 ])->toArray();
 
                 return [
@@ -290,7 +297,7 @@ class ItemsRelationManager extends RelationManager
                 }
 
                 Notification::make()
-                    ->title($imported . ' ' . __('messages.items_imported'))
+                    ->title($imported.' '.__('messages.items_imported'))
                     ->body('Items imported from Proforma Invoice.')
                     ->success()
                     ->send();
@@ -327,8 +334,8 @@ class ItemsRelationManager extends RelationManager
                         ->options(
                             $supplierQuotations->mapWithKeys(fn ($sq) => [
                                 $sq->id => $sq->reference
-                                    . ' (' . $sq->status->getLabel() . ')'
-                                    . ($sq->inquiry ? ' — ' . $sq->inquiry->reference : ''),
+                                    .' ('.$sq->status->getLabel().')'
+                                    .($sq->inquiry ? ' — '.$sq->inquiry->reference : ''),
                             ])
                         )
                         ->required()
@@ -350,9 +357,9 @@ class ItemsRelationManager extends RelationManager
                                 ->orderBy('sort_order')
                                 ->get()
                                 ->mapWithKeys(fn ($item) => [
-                                    $item->id => ($item->product?->name ?? $item->description ?? 'Item #' . $item->id)
-                                        . ' — Qty: ' . $item->quantity
-                                        . ' — $' . Money::format($item->unit_cost, 4),
+                                    $item->id => ($item->product?->name ?? $item->description ?? 'Item #'.$item->id)
+                                        .' — Qty: '.$item->quantity
+                                        .' — $'.Money::format($item->unit_cost, 4),
                                 ])
                                 ->toArray();
                         })
@@ -396,8 +403,8 @@ class ItemsRelationManager extends RelationManager
                 }
 
                 Notification::make()
-                    ->title($imported . ' ' . __('messages.items_imported'))
-                    ->body('Items imported from ' . ($items->first()?->supplierQuotation?->reference ?? 'Supplier Quotation') . '.')
+                    ->title($imported.' '.__('messages.items_imported'))
+                    ->body('Items imported from '.($items->first()?->supplierQuotation?->reference ?? 'Supplier Quotation').'.')
                     ->success()
                     ->send();
             });

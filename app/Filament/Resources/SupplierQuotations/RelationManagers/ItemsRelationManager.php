@@ -3,30 +3,28 @@
 namespace App\Filament\Resources\SupplierQuotations\RelationManagers;
 
 use App\Domain\Catalog\Enums\ProductStatus;
-use App\Filament\Actions\PasteItemsFromSpreadsheetAction;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
+use App\Filament\Actions\PasteItemsFromSpreadsheetAction;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\DB;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\DB;
 
 class ItemsRelationManager extends RelationManager
 {
@@ -58,7 +56,7 @@ class ItemsRelationManager extends RelationManager
                                 $prefix = $p->status === ProductStatus::DRAFT ? '[DRAFT] ' : '';
                                 $commercial = $p->commercial_name ? " ({$p->commercial_name})" : '';
 
-                                return [$p->id => $prefix . $p->sku . ' — ' . $p->name . $commercial];
+                                return [$p->id => $prefix.$p->sku.' — '.$p->name.$commercial];
                             });
                     })
                     ->getOptionLabelUsing(function ($value) {
@@ -69,7 +67,7 @@ class ItemsRelationManager extends RelationManager
                         $prefix = $product->status === ProductStatus::DRAFT ? '[DRAFT] ' : '';
                         $commercial = $product->commercial_name ? " ({$product->commercial_name})" : '';
 
-                        return $prefix . $product->sku . ' — ' . $product->name . $commercial;
+                        return $prefix.$product->sku.' — '.$product->name.$commercial;
                     })
                     ->live()
                     ->afterStateUpdated(function (Set $set, ?string $state) {
@@ -164,6 +162,12 @@ class ItemsRelationManager extends RelationManager
     {
         return $table
             ->columns([
+                \Filament\Tables\Columns\ImageColumn::make('product.avatar')
+                    ->label('')
+                    ->disk('public')
+                    ->circular()
+                    ->size(40)
+                    ->defaultImageUrl(fn () => 'https://ui-avatars.com/api/?background=e2e8f0&color=94a3b8&name=P&size=40'),
                 TextColumn::make('product.sku')
                     ->label(__('forms.labels.sku'))
                     ->placeholder('—')
@@ -186,6 +190,7 @@ class ItemsRelationManager extends RelationManager
                     ->updateStateUsing(function ($record, $state) {
                         $record->quantity = (int) $state;
                         $record->save(); // model's saving() hook recalculates total_cost
+
                         return $state;
                     })
                     ->alignCenter(),
@@ -209,12 +214,13 @@ class ItemsRelationManager extends RelationManager
                         $floatValue = (float) str_replace(',', '', (string) $state);
                         $record->unit_cost = Money::toMinor($floatValue);
                         $record->save(); // model's saving() hook recalculates total_cost
+
                         return number_format($floatValue, 4, '.', ''); // return display value
                     })
                     ->alignEnd(),
                 TextColumn::make('total_cost')
                     ->label(__('forms.labels.total'))
-                    ->formatStateUsing(fn ($state) => $state ? '$ ' . Money::format($state) : '—')
+                    ->formatStateUsing(fn ($state) => $state ? '$ '.Money::format($state) : '—')
                     ->alignEnd()
                     ->weight('bold'),
                 TextInputColumn::make('moq')
