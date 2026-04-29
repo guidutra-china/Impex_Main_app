@@ -7,21 +7,16 @@ use App\Domain\Financial\Actions\WaivePaymentScheduleItemAction;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Models\Shipment;
-use App\Domain\Settings\Enums\CalculationBase;
 use App\Domain\Settings\Models\Currency;
 use BackedEnum;
-use Illuminate\Support\HtmlString;
 use Filament\Actions\Action;
-use Filament\Actions\BulkActionGroup;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use UnitEnum;
+use Illuminate\Support\HtmlString;
 
 class PaymentScheduleRelationManager extends RelationManager
 {
@@ -53,30 +48,41 @@ class PaymentScheduleRelationManager extends RelationManager
                             $badgeClass = 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-400/10 dark:text-emerald-400 dark:ring-emerald-400/30';
                         }
 
-                        $html = '<span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ' . $badgeClass . '">' . $label . '</span>';
+                        $html = '<span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold '.$badgeClass.'">'.$label.'</span>';
 
                         $directionLabel = $isForwarderPayable ? 'OUT' : 'IN';
                         $directionClass = $isForwarderPayable
                             ? 'bg-red-50 text-red-700 dark:bg-red-400/10 dark:text-red-400'
                             : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400';
-                        $html .= ' <span class="inline-flex items-center rounded-md px-1.5 py-0.5 text-[0.6rem] font-semibold uppercase ' . $directionClass . '">' . $directionLabel . '</span>';
+                        $html .= ' <span class="inline-flex items-center rounded-md px-1.5 py-0.5 text-[0.6rem] font-semibold uppercase '.$directionClass.'">'.$directionLabel.'</span>';
 
                         $record->loadMissing('shipment');
                         if ($record->shipment) {
                             $ref = e($record->shipment->bl_number ?: $record->shipment->reference);
-                            $html .= ' <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-[0.65rem] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-400/10 dark:text-blue-400 dark:ring-blue-400/30">' . $ref . '</span>';
+                            $html .= ' <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-[0.65rem] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-400/10 dark:text-blue-400 dark:ring-blue-400/30">'.$ref.'</span>';
                         }
 
                         // When owner is a Shipment, surface the related PI/PO reference and
                         // its client_reference so users can tell which document the schedule
-                        // item belongs to (a shipment may carry items from several PIs).
+                        // item belongs to (a shipment may carry items from several PIs/POs).
                         if ($this->getOwnerRecord() instanceof Shipment) {
                             [$docRef, $clientRef] = $this->resolveDocContext($record);
+                            $docType = $this->resolveDocType($record, $docRef);
+
+                            if ($docType !== null) {
+                                $typeBadgeClass = $docType === 'PO'
+                                    ? 'bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-600/20 dark:bg-orange-400/10 dark:text-orange-400 dark:ring-orange-400/30'
+                                    : 'bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-400/10 dark:text-purple-400 dark:ring-purple-400/30';
+                                $html .= ' <span class="inline-flex items-center rounded-md px-1.5 py-0.5 text-[0.6rem] font-bold uppercase '.$typeBadgeClass.'">'.e($docType).'</span>';
+                            }
                             if ($docRef) {
-                                $html .= ' <span class="inline-flex items-center rounded-md bg-purple-50 px-2 py-0.5 text-[0.65rem] font-semibold text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-400/10 dark:text-purple-400 dark:ring-purple-400/30">' . e($docRef) . '</span>';
+                                $refBadgeClass = $docType === 'PO'
+                                    ? 'bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-600/20 dark:bg-orange-400/10 dark:text-orange-400 dark:ring-orange-400/30'
+                                    : 'bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-400/10 dark:text-purple-400 dark:ring-purple-400/30';
+                                $html .= ' <span class="inline-flex items-center rounded-md px-2 py-0.5 text-[0.65rem] font-semibold '.$refBadgeClass.'">'.e($docRef).'</span>';
                             }
                             if ($clientRef) {
-                                $html .= ' <span class="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 text-[0.65rem] font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-400/10 dark:text-amber-300 dark:ring-amber-400/30" title="Client Reference">Ref: ' . e($clientRef) . '</span>';
+                                $html .= ' <span class="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 text-[0.65rem] font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-400/10 dark:text-amber-300 dark:ring-amber-400/30" title="Client Reference">Ref: '.e($clientRef).'</span>';
                             }
                         }
 
@@ -93,9 +99,9 @@ class PaymentScheduleRelationManager extends RelationManager
                 TextColumn::make('amount')
                     ->label(__('forms.labels.amount'))
                     ->formatStateUsing(fn ($state, $record) => $record->is_credit
-                        ? '-' . Money::format($state)
+                        ? '-'.Money::format($state)
                         : Money::format($state))
-                    ->prefix(fn ($record) => $this->getCurrencySymbol($record->currency_code) . ' ')
+                    ->prefix(fn ($record) => $this->getCurrencySymbol($record->currency_code).' ')
                     ->alignEnd()
                     ->color(fn ($record) => $record->is_credit ? 'success' : null),
                 TextColumn::make('paid_amount')
@@ -105,21 +111,23 @@ class PaymentScheduleRelationManager extends RelationManager
                         $formatted = Money::format($state);
                         if ($record->is_overpaid) {
                             $overpaid = Money::format($record->overpaid_amount);
-                            return $formatted . ' ⚠ +' . $overpaid;
+
+                            return $formatted.' ⚠ +'.$overpaid;
                         }
+
                         return $formatted;
                     })
-                    ->prefix(fn ($record) => $this->getCurrencySymbol($record->currency_code) . ' ')
+                    ->prefix(fn ($record) => $this->getCurrencySymbol($record->currency_code).' ')
                     ->alignEnd()
                     ->tooltip(fn ($record) => $record->is_overpaid
-                        ? 'Overpaid by ' . $this->getCurrencySymbol($record->currency_code) . ' ' . Money::format($record->overpaid_amount)
+                        ? 'Overpaid by '.$this->getCurrencySymbol($record->currency_code).' '.Money::format($record->overpaid_amount)
                         : null)
                     ->color(fn ($record) => $record->is_overpaid ? 'warning' : 'success'),
                 TextColumn::make('remaining_amount')
                     ->label(__('forms.labels.remaining'))
                     ->getStateUsing(fn ($record) => $record->remaining_amount)
                     ->formatStateUsing(fn ($state) => Money::format($state))
-                    ->prefix(fn ($record) => $this->getCurrencySymbol($record->currency_code) . ' ')
+                    ->prefix(fn ($record) => $this->getCurrencySymbol($record->currency_code).' ')
                     ->alignEnd()
                     ->color(fn ($state) => $state > 0 ? 'danger' : 'success'),
                 TextColumn::make('due_condition')
@@ -142,7 +150,8 @@ class PaymentScheduleRelationManager extends RelationManager
                     ->badge()
                     ->formatStateUsing(function ($state, $record) {
                         $label = $state instanceof \BackedEnum ? ($state->getLabel() ?? $state->value) : (string) $state;
-                        return $record->is_overpaid ? $label . ' · Overpaid' : $label;
+
+                        return $record->is_overpaid ? $label.' · Overpaid' : $label;
                     })
                     ->color(fn ($state, $record) => $record->is_overpaid
                         ? 'warning'
@@ -150,8 +159,9 @@ class PaymentScheduleRelationManager extends RelationManager
                     ->icon(fn ($record) => $record->is_overpaid ? 'heroicon-o-exclamation-triangle' : null)
                     ->description(function ($record) {
                         if ($record->is_overpaid) {
-                            return 'Overpaid by ' . $this->getCurrencySymbol($record->currency_code) . ' ' . Money::format($record->overpaid_amount);
+                            return 'Overpaid by '.$this->getCurrencySymbol($record->currency_code).' '.Money::format($record->overpaid_amount);
                         }
+
                         return $record->is_credit && $record->is_credit_applied ? 'Credit Applied' : null;
                     }),
             ])
@@ -172,14 +182,23 @@ class PaymentScheduleRelationManager extends RelationManager
 
     /**
      * Resolve [docReference, clientReference] for a schedule item belonging
-     * to a Shipment. Extracts PI/PO reference from the label suffix and
-     * looks up the matching document to retrieve its client_reference.
+     * to a Shipment. Tries the polymorphic payable first (PO PSI items have
+     * payable_type=PurchaseOrder), then falls back to extracting from the
+     * label suffix (Shipment-direct PI items embed PI ref in the label).
      *
      * @return array{0: ?string, 1: ?string}
      */
     protected function resolveDocContext($record): array
     {
         static $cache = [];
+
+        $payableType = $record->payable_type;
+        if ($payableType === \App\Domain\PurchaseOrders\Models\PurchaseOrder::class) {
+            $record->loadMissing('payable');
+            $docRef = $record->payable?->reference;
+
+            return [$docRef, null];
+        }
 
         if (! $record->label || ! preg_match('#/\s*((?:PI|PO)-[\w-]+)\]#', $record->label, $m)) {
             return [null, null];
@@ -199,6 +218,27 @@ class PaymentScheduleRelationManager extends RelationManager
         $cache[$docRef] = $clientRef;
 
         return [$docRef, $clientRef];
+    }
+
+    /**
+     * Resolve the document type label (PI or PO) for badge rendering.
+     * Prefers payable_type (authoritative), falls back to docRef prefix.
+     */
+    protected function resolveDocType($record, ?string $docRef): ?string
+    {
+        if ($record->payable_type === \App\Domain\PurchaseOrders\Models\PurchaseOrder::class) {
+            return 'PO';
+        }
+
+        if ($record->payable_type === \App\Domain\ProformaInvoices\Models\ProformaInvoice::class) {
+            return 'PI';
+        }
+
+        if ($docRef === null) {
+            return null;
+        }
+
+        return str_starts_with($docRef, 'PO') ? 'PO' : 'PI';
     }
 
     protected function getCurrencySymbol(?string $currencyCode): string
@@ -244,11 +284,11 @@ class PaymentScheduleRelationManager extends RelationManager
                 }
 
                 $stages = $paymentTerm->stages;
-                $lines = $stages->map(fn ($s) => $s->percentage . '% — ' . ($s->calculation_base?->getLabel() ?? 'N/A') . ($s->days > 0 ? ' (+' . $s->days . ' days)' : ''));
+                $lines = $stages->map(fn ($s) => $s->percentage.'% — '.($s->calculation_base?->getLabel() ?? 'N/A').($s->days > 0 ? ' (+'.$s->days.' days)' : ''));
 
-                return 'This will generate a schedule based on "' . $paymentTerm->name . '":'
-                    . "\n" . $lines->implode("\n")
-                    . "\n\nTotal: " . Money::format($record->total) . ' ' . $record->currency_code;
+                return 'This will generate a schedule based on "'.$paymentTerm->name.'":'
+                    ."\n".$lines->implode("\n")
+                    ."\n\nTotal: ".Money::format($record->total).' '.$record->currency_code;
             })
             ->action(function () {
                 $record = $this->getOwnerRecord();
@@ -256,6 +296,7 @@ class PaymentScheduleRelationManager extends RelationManager
                 if ($record instanceof Shipment) {
                     if ($record->hasPaymentSchedule()) {
                         Notification::make()->title('Schedule already exists')->warning()->send();
+
                         return;
                     }
 
@@ -263,11 +304,13 @@ class PaymentScheduleRelationManager extends RelationManager
                 } else {
                     if (! $record->payment_term_id) {
                         Notification::make()->title('No payment term assigned')->danger()->send();
+
                         return;
                     }
 
                     if ($record->hasPaymentSchedule()) {
                         Notification::make()->title('Schedule already exists')->warning()->send();
+
                         return;
                     }
 
@@ -282,7 +325,7 @@ class PaymentScheduleRelationManager extends RelationManager
                         ->send();
                 } else {
                     Notification::make()
-                        ->title($count . ' schedule items generated')
+                        ->title($count.' schedule items generated')
                         ->success()
                         ->send();
                 }
@@ -307,7 +350,7 @@ class PaymentScheduleRelationManager extends RelationManager
                     : app(GeneratePaymentScheduleAction::class)->regenerate($record);
 
                 Notification::make()
-                    ->title($count . ' schedule items regenerated')
+                    ->title($count.' schedule items regenerated')
                     ->success()
                     ->send();
             });
@@ -341,7 +384,7 @@ class PaymentScheduleRelationManager extends RelationManager
             ->color('warning')
             ->requiresConfirmation()
             ->modalHeading('Waive Payment')
-            ->modalDescription(fn ($record) => 'This will waive the payment "' . $record->label . '" (' . Money::format($record->amount) . ' ' . $record->currency_code . '). The blocking condition will be removed.')
+            ->modalDescription(fn ($record) => 'This will waive the payment "'.$record->label.'" ('.Money::format($record->amount).' '.$record->currency_code.'). The blocking condition will be removed.')
             ->form([
                 Textarea::make('reason')
                     ->label(__('forms.labels.reason_for_waiving'))
@@ -364,7 +407,7 @@ class PaymentScheduleRelationManager extends RelationManager
             ->color('info')
             ->requiresConfirmation()
             ->modalHeading(__('forms.labels.restore_payment'))
-            ->modalDescription(fn ($record) => 'This will restore the waived payment "' . $record->label . '" back to pending status.')
+            ->modalDescription(fn ($record) => 'This will restore the waived payment "'.$record->label.'" back to pending status.')
             ->visible(fn ($record) => $record->status === PaymentScheduleStatus::WAIVED && auth()->user()?->can('waive-payments'))
             ->action(function ($record) {
                 $record->update([
@@ -421,28 +464,30 @@ class PaymentScheduleRelationManager extends RelationManager
             $piValue = $shipmentItems->sum(fn ($item) => $item->proformaInvoiceItem->unit_price * $item->quantity);
             $grandTotal += $piValue;
 
-            $piRef = $pi->reference . ($pi->client_reference ? ' — ' . $pi->client_reference : '');
+            $piRef = $pi->reference.($pi->client_reference ? ' — '.$pi->client_reference : '');
 
             if (! $paymentTerm) {
-                $lines[] = "**{$piRef}**: " . Money::format($piValue) . ' — ⚠ No payment term assigned to this PI';
+                $lines[] = "**{$piRef}**: ".Money::format($piValue).' — ⚠ No payment term assigned to this PI';
+
                 continue;
             }
 
             $shipmentStages = $paymentTerm->stages
                 ->filter(fn ($s) => $s->calculation_base?->isShipmentDependent())
-                ->map(fn ($s) => $s->percentage . '% ' . $s->calculation_base->getLabel())
+                ->map(fn ($s) => $s->percentage.'% '.$s->calculation_base->getLabel())
                 ->implode(', ');
 
             if (empty($shipmentStages)) {
-                $lines[] = "**{$piRef}**: " . Money::format($piValue) . ' — ⚠ No shipment-dependent stages in payment term';
+                $lines[] = "**{$piRef}**: ".Money::format($piValue).' — ⚠ No shipment-dependent stages in payment term';
+
                 continue;
             }
 
-            $lines[] = "**{$piRef}**: " . Money::format($piValue) . " — {$shipmentStages}";
+            $lines[] = "**{$piRef}**: ".Money::format($piValue)." — {$shipmentStages}";
         }
 
         return "Only shipment-dependent payment stages will be generated (non-shipment stages like upfront remain on the PI schedule).\n\n"
-            . implode("\n", $lines)
-            . "\n\nShipment Value: " . Money::format($grandTotal) . ' ' . ($shipment->currency_code ?? '');
+            .implode("\n", $lines)
+            ."\n\nShipment Value: ".Money::format($grandTotal).' '.($shipment->currency_code ?? '');
     }
 }
