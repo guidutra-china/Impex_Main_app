@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources\Quotations\Schemas;
 
+use App\Domain\Catalog\Models\Product;
+use App\Domain\CRM\Models\Company;
+use App\Domain\CRM\Models\Contact;
 use App\Domain\Infrastructure\Support\Money;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
@@ -12,15 +15,10 @@ use Filament\Support\Enums\FontWeight;
 /**
  * Renders a QuotationVersion snapshot as a structured infolist.
  *
- * Reads exclusively from $record->snapshot (cast to array) — never follows
- * live FKs. Quotation::saveVersion() denormalizes the names we care about
- * (company, contact, product, supplier) so the historical view stays
- * accurate even after the source rows change.
- *
- * Implementation note: TextEntry::make() keys are intentionally flat,
- * unique sentinel names (no dot notation), to prevent Filament from
- * attempting to resolve them as relationships against the QuotationVersion
- * model. All values are produced via ->state() closures.
+ * Reads from $record->snapshot (cast to array). Quotation::saveVersion()
+ * denormalizes names into the snapshot for new versions, but legacy
+ * snapshots (saved before the refactor) only carry IDs — for those we
+ * fall back to a live FK lookup so the historical view stays readable.
  */
 class QuotationVersionInfolist
 {
@@ -63,16 +61,29 @@ class QuotationVersionInfolist
                 ->label(__('forms.labels.client'))
                 ->state(function ($record) {
                     $q = $record->snapshot['quotation'] ?? [];
+                    if (! empty($q['company']['name'])) {
+                        return $q['company']['name'];
+                    }
+                    if (! empty($q['company_id'])) {
+                        return optional(Company::find($q['company_id']))->name
+                            ?? '#'.$q['company_id'];
+                    }
 
-                    return $q['company']['name'] ?? ('#'.($q['company_id'] ?? '?'));
+                    return '—';
                 })
                 ->icon('heroicon-o-building-office-2'),
             TextEntry::make('v_contact')
                 ->label(__('forms.labels.contact'))
                 ->state(function ($record) {
                     $q = $record->snapshot['quotation'] ?? [];
+                    if (! empty($q['contact']['name'])) {
+                        return $q['contact']['name'];
+                    }
+                    if (! empty($q['contact_id'])) {
+                        return optional(Contact::find($q['contact_id']))->name ?? '—';
+                    }
 
-                    return $q['contact']['name'] ?? '—';
+                    return '—';
                 })
                 ->icon('heroicon-o-user'),
             TextEntry::make('v_valid_until')
@@ -99,13 +110,13 @@ class QuotationVersionInfolist
                 }),
             TextEntry::make('v_subtotal')
                 ->label(__('forms.labels.subtotal'))
-                ->state(fn ($record) => static::money(static::q($record, 'subtotal', 0))),
+                ->state(fn ($record) => static::money(static::computedSubtotal($record))),
             TextEntry::make('v_commission_amount')
                 ->label(__('forms.labels.commission_separate'))
-                ->state(fn ($record) => static::money(static::q($record, 'commission_amount', 0))),
+                ->state(fn ($record) => static::money(static::computedCommission($record))),
             TextEntry::make('v_total')
                 ->label(__('forms.labels.total'))
-                ->state(fn ($record) => static::money(static::q($record, 'total', 0)))
+                ->state(fn ($record) => static::money(static::computedTotal($record)))
                 ->weight(FontWeight::Bold)
                 ->color('success'),
             TextEntry::make('v_notes')
@@ -119,104 +130,99 @@ class QuotationVersionInfolist
         ];
     }
 
+    /**
+     * Items repeater. Children use Filament's auto-resolution against the
+     * array row — each TextEntry::make('key') reads $row['key'] via data_get,
+     * including dotted paths like 'product.name'. We pre-hydrate each row
+     * with denormalized fields (product_name, product_sku, supplier_name,
+     * suppliers_summary, line_total) so legacy snapshots without nested
+     * objects still render.
+     */
     protected static function itemsRepeater(): RepeatableEntry
     {
         return RepeatableEntry::make('items_list')
             ->label('')
-            ->state(fn ($record) => $record->snapshot['items'] ?? [])
+            ->state(function ($record) {
+                $items = $record->snapshot['items'] ?? [];
+
+                return collect($items)->map(function (array $row) {
+                    $productName = $row['product']['name']
+                        ?? optional(! empty($row['product_id']) ? Product::find($row['product_id']) : null)->name
+                        ?? $row['description']
+                        ?? '#'.($row['product_id'] ?? '?');
+                    $productSku = $row['product']['sku']
+                        ?? optional(! empty($row['product_id']) ? Product::find($row['product_id']) : null)->sku
+                        ?? '—';
+
+                    $supplierName = $row['selected_supplier']['name']
+                        ?? (! empty($row['selected_supplier_id'])
+                            ? optional(Company::find($row['selected_supplier_id']))->name ?? '—'
+                            : '—');
+
+                    $alts = $row['suppliers'] ?? [];
+                    $altsSummary = empty($alts) ? '—' : collect($alts)
+                        ->map(function ($s) {
+                            $name = $s['company']['name']
+                                ?? (! empty($s['company_id'])
+                                    ? optional(Company::find($s['company_id']))->name ?? ('#'.$s['company_id'])
+                                    : '—');
+                            $cur = $s['currency_code'] ?? '';
+                            $cost = static::money($s['unit_cost'] ?? 0, 4);
+
+                            return trim($name.': '.$cur.' '.$cost);
+                        })
+                        ->implode(' · ');
+
+                    $unitCostExtras = [];
+                    if (! empty($row['cost_currency_code'])) {
+                        $unitCostExtras[] = $row['cost_currency_code'];
+                    }
+                    if (! empty($row['cost_exchange_rate']) && (float) $row['cost_exchange_rate'] > 0 && (float) $row['cost_exchange_rate'] !== 1.0) {
+                        $unitCostExtras[] = '@ '.number_format((float) $row['cost_exchange_rate'], 6);
+                    }
+                    if (! empty($row['cost_exchange_rate_captured_at'])) {
+                        $unitCostExtras[] = static::formatDate($row['cost_exchange_rate_captured_at']);
+                    }
+                    $unitCost = static::money($row['unit_cost'] ?? 0, 4)
+                        .(empty($unitCostExtras) ? '' : ' ('.implode(' · ', $unitCostExtras).')');
+
+                    $lineTotal = (int) ($row['unit_price'] ?? 0) * (int) ($row['quantity'] ?? 0);
+
+                    return [
+                        'product_name' => $productName,
+                        'product_sku' => $productSku,
+                        'qty' => (int) ($row['quantity'] ?? 0),
+                        'unit_cost_display' => $unitCost,
+                        'unit_price_display' => static::money($row['unit_price'] ?? 0, 4),
+                        'line_total_display' => static::money($lineTotal),
+                        'supplier_name' => $supplierName,
+                        'suppliers_summary' => $altsSummary,
+                    ];
+                })->toArray();
+            })
             ->schema([
                 TextEntry::make('product_name')
                     ->label(__('forms.labels.product'))
-                    ->state(function ($record) {
-                        $row = is_array($record) ? $record : (array) $record;
-
-                        return $row['product']['name']
-                            ?? $row['description']
-                            ?? '#'.($row['product_id'] ?? '?');
-                    })
                     ->weight(FontWeight::Bold),
                 TextEntry::make('product_sku')
                     ->label(__('forms.labels.sku'))
-                    ->state(function ($record) {
-                        $row = is_array($record) ? $record : (array) $record;
-
-                        return $row['product']['sku'] ?? '—';
-                    })
                     ->badge()
                     ->color('gray'),
                 TextEntry::make('qty')
                     ->label(__('forms.labels.qty'))
-                    ->state(function ($record) {
-                        $row = is_array($record) ? $record : (array) $record;
-
-                        return (int) ($row['quantity'] ?? 0);
-                    })
                     ->alignCenter(),
-                TextEntry::make('item_unit_cost')
-                    ->label(__('forms.labels.unit_cost'))
-                    ->state(function ($record) {
-                        $row = is_array($record) ? $record : (array) $record;
-                        $cost = static::money($row['unit_cost'] ?? 0, 4);
-                        $extras = [];
-                        $cur = $row['cost_currency_code'] ?? null;
-                        $rate = $row['cost_exchange_rate'] ?? null;
-                        $captured = $row['cost_exchange_rate_captured_at'] ?? null;
-                        if ($cur) {
-                            $extras[] = $cur;
-                        }
-                        if ($rate !== null && (float) $rate !== 1.0 && (float) $rate > 0) {
-                            $extras[] = '@ '.number_format((float) $rate, 6);
-                        }
-                        if ($captured) {
-                            $extras[] = static::formatDate($captured);
-                        }
-
-                        return $cost.(empty($extras) ? '' : ' ('.implode(' · ', $extras).')');
-                    }),
-                TextEntry::make('item_unit_price')
-                    ->label(__('forms.labels.unit_price'))
-                    ->state(function ($record) {
-                        $row = is_array($record) ? $record : (array) $record;
-
-                        return static::money($row['unit_price'] ?? 0, 4);
-                    }),
-                TextEntry::make('item_line_total')
+                TextEntry::make('unit_cost_display')
+                    ->label(__('forms.labels.unit_cost')),
+                TextEntry::make('unit_price_display')
+                    ->label(__('forms.labels.unit_price')),
+                TextEntry::make('line_total_display')
                     ->label(__('forms.labels.line_total'))
-                    ->state(function ($record) {
-                        $row = is_array($record) ? $record : (array) $record;
-                        $price = (int) ($row['unit_price'] ?? 0);
-                        $qty = (int) ($row['quantity'] ?? 0);
-
-                        return static::money($price * $qty);
-                    })
                     ->weight(FontWeight::Bold),
-                TextEntry::make('item_supplier')
+                TextEntry::make('supplier_name')
                     ->label(__('forms.labels.supplier'))
-                    ->state(function ($record) {
-                        $row = is_array($record) ? $record : (array) $record;
-
-                        return $row['selected_supplier']['name'] ?? '—';
-                    })
                     ->placeholder('—'),
-                TextEntry::make('item_alternatives')
+                TextEntry::make('suppliers_summary')
                     ->label(__('forms.sections.version_alternatives'))
-                    ->state(function ($record) {
-                        $row = is_array($record) ? $record : (array) $record;
-                        $alts = $row['suppliers'] ?? [];
-                        if (empty($alts)) {
-                            return '—';
-                        }
-
-                        return collect($alts)
-                            ->map(function ($s) {
-                                $name = $s['company']['name'] ?? '#'.($s['company_id'] ?? '?');
-                                $cur = $s['currency_code'] ?? '';
-                                $cost = static::money($s['unit_cost'] ?? 0, 4);
-
-                                return trim($name.': '.$cur.' '.$cost);
-                            })
-                            ->implode("\n");
-                    })
                     ->columnSpanFull(),
             ])
             ->columns(7);
@@ -241,14 +247,49 @@ class QuotationVersionInfolist
         ];
     }
 
-    /**
-     * Read a key from $record->snapshot['quotation'] safely.
-     */
+    /** Read a key from $record->snapshot['quotation'] safely. */
     protected static function q($record, string $key, mixed $default = null): mixed
     {
         $q = $record->snapshot['quotation'] ?? [];
 
         return $q[$key] ?? $default;
+    }
+
+    /** Subtotal — prefer snapshot's pre-computed value, else sum from items. */
+    protected static function computedSubtotal($record): int
+    {
+        $explicit = static::q($record, 'subtotal');
+        if ($explicit !== null && $explicit !== '') {
+            return (int) $explicit;
+        }
+
+        return collect($record->snapshot['items'] ?? [])
+            ->sum(fn ($i) => (int) ($i['unit_price'] ?? 0) * (int) ($i['quantity'] ?? 0));
+    }
+
+    protected static function computedCommission($record): int
+    {
+        $explicit = static::q($record, 'commission_amount');
+        if ($explicit !== null && $explicit !== '') {
+            return (int) $explicit;
+        }
+        $type = static::q($record, 'commission_type');
+        $rate = (float) (static::q($record, 'commission_rate') ?? 0);
+        if ($type !== 'separate' || $rate <= 0) {
+            return 0;
+        }
+
+        return (int) round(static::computedSubtotal($record) * ($rate / 100));
+    }
+
+    protected static function computedTotal($record): int
+    {
+        $explicit = static::q($record, 'total');
+        if ($explicit !== null && $explicit !== '') {
+            return (int) $explicit;
+        }
+
+        return static::computedSubtotal($record) + static::computedCommission($record);
     }
 
     protected static function money(mixed $minor, int $decimals = 2): string
