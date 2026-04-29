@@ -81,7 +81,10 @@ class PurchaseOrderItem extends Model
     public function getQuantityShippedAttribute(): int
     {
         return $this->shipmentItems()
-            ->whereHas('shipment', fn ($q) => $q->where('status', '!=', ShipmentStatus::CANCELLED))
+            ->whereHas('shipment', fn ($q) => $q->whereIn('status', [
+                ShipmentStatus::IN_TRANSIT->value,
+                ShipmentStatus::ARRIVED->value,
+            ]))
             ->sum('quantity');
     }
 

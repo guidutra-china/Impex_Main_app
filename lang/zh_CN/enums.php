@@ -179,11 +179,12 @@ return array (
     'signed_document' => '签署文件',
     'other' => '其他',
     ),
-    'proforma_invoice_status' => 
+    'proforma_invoice_status' =>
     array (
     'draft' => '草稿',
     'sent' => '已发送',
     'confirmed' => '已确认',
+    'shipped' => '已发货',
     'finalized' => '已定稿',
     'reopened' => '重新开启',
     'cancelled' => '已取消',

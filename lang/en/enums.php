@@ -179,11 +179,12 @@ return array (
     'signed_document' => 'Signed Document',
     'other' => 'Other',
     ),
-    'proforma_invoice_status' => 
+    'proforma_invoice_status' =>
     array (
     'draft' => 'Draft',
     'sent' => 'Sent',
     'confirmed' => 'Confirmed',
+    'shipped' => 'Shipped',
     'finalized' => 'Finalized',
     'reopened' => 'Reopened',
     'cancelled' => 'Cancelled',

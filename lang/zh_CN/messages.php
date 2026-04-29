@@ -47,6 +47,7 @@ return [
     'pi_updated' => '形式发票已更新',
     'pi_update_description' => '这将使用当前询价数据（公司、联系人、货币）更新现有形式发票 :reference。',
     'status_changed_to' => '状态已更改为',
+    'auto_transitioned_on_shipment_complete' => '自动转换：所有商品均已发货。',
     'version_saved' => '版本 v:version 已保存',
     'version_save_failed' => '保存版本失败',
     'pos_generated' => '采购订单已生成',

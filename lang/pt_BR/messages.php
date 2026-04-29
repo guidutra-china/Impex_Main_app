@@ -57,6 +57,7 @@ return [
     'pi_updated' => 'Proforma Invoice atualizada',
     'pi_update_description' => 'Isto irá atualizar a Proforma Invoice existente :reference com os dados atuais da consulta (empresa, contato, moeda).',
     'status_changed_to' => 'Status alterado para',
+    'auto_transitioned_on_shipment_complete' => 'Transição automática: todos os itens foram embarcados.',
     'version_saved' => 'Versão v:version salva',
     'version_save_failed' => 'Erro ao salvar versão',
     'pos_generated' => 'Pedido(s) de Compra Gerado(s)',

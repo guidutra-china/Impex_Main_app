@@ -2,12 +2,16 @@
 
 namespace App\Providers;
 
-use App\Domain\Inquiries\Models\ProjectTeamMember;
 use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Observers\PaymentAllocationObserver;
+use App\Domain\Inquiries\Models\ProjectTeamMember;
 use App\Domain\Inquiries\Observers\ProjectTeamMemberObserver;
 use App\Domain\Logistics\Models\PackingListItem;
+use App\Domain\Logistics\Models\Shipment;
+use App\Domain\Logistics\Models\ShipmentItem;
 use App\Domain\Logistics\Observers\PackingListItemObserver;
+use App\Domain\Logistics\Observers\ShipmentItemObserver;
+use App\Domain\Logistics\Observers\ShipmentObserver;
 use App\Domain\Messaging\Models\Conversation;
 use App\Domain\Messaging\Models\Message;
 use App\Policies\ConversationPolicy;
@@ -33,6 +37,8 @@ class AppServiceProvider extends ServiceProvider
         ProjectTeamMember::observe(ProjectTeamMemberObserver::class);
         PackingListItem::observe(PackingListItemObserver::class);
         PaymentAllocation::observe(PaymentAllocationObserver::class);
+        Shipment::observe(ShipmentObserver::class);
+        ShipmentItem::observe(ShipmentItemObserver::class);
 
         // Messaging policies live outside Filament Shield's auto-discovery.
         Gate::policy(Conversation::class, ConversationPolicy::class);

@@ -6,21 +6,21 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Models\Contact;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
-use App\Domain\Infrastructure\Enums\DocumentType;
 use App\Domain\Financial\Traits\HasAdditionalCosts;
 use App\Domain\Financial\Traits\HasPaymentSchedule;
+use App\Domain\Infrastructure\Enums\DocumentType;
 use App\Domain\Infrastructure\Traits\HasDocuments;
 use App\Domain\Infrastructure\Traits\HasReference;
 use App\Domain\Infrastructure\Traits\HasStateMachine;
 use App\Domain\Inquiries\Models\Inquiry;
-use App\Domain\ProformaInvoices\Enums\ConfirmationMethod;
-use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Domain\Planning\Models\ProductionSchedule;
 use App\Domain\Planning\Models\ShipmentPlanItem;
+use App\Domain\ProformaInvoices\Enums\ConfirmationMethod;
+use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\Quotations\Models\Quotation;
-use App\Domain\SupplierQuotations\Models\SupplierQuotation;
 use App\Domain\Settings\Models\PaymentTerm;
+use App\Domain\SupplierQuotations\Models\SupplierQuotation;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -33,7 +33,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class ProformaInvoice extends Model
 {
-    use HasFactory, SoftDeletes, HasReference, HasStateMachine, HasDocuments, HasPaymentSchedule, HasAdditionalCosts, LogsActivity;
+    use HasAdditionalCosts, HasDocuments, HasFactory, HasPaymentSchedule, HasReference, HasStateMachine, LogsActivity, SoftDeletes;
 
     protected static function newFactory(): \Database\Factories\ProformaInvoiceFactory
     {
@@ -110,6 +110,11 @@ class ProformaInvoice extends Model
             ],
             ProformaInvoiceStatus::CONFIRMED->value => [
                 ProformaInvoiceStatus::SENT->value,
+                ProformaInvoiceStatus::SHIPPED->value,
+                ProformaInvoiceStatus::FINALIZED->value,
+                ProformaInvoiceStatus::CANCELLED->value,
+            ],
+            ProformaInvoiceStatus::SHIPPED->value => [
                 ProformaInvoiceStatus::FINALIZED->value,
                 ProformaInvoiceStatus::CANCELLED->value,
             ],

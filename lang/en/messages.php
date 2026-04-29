@@ -57,6 +57,7 @@ return [
     'pi_updated' => 'Proforma Invoice updated',
     'pi_update_description' => 'This will update the existing Proforma Invoice :reference with the current inquiry data (company, contact, currency).',
     'status_changed_to' => 'Status changed to',
+    'auto_transitioned_on_shipment_complete' => 'Auto-transition: all items have been shipped.',
     'version_saved' => 'Version v:version saved',
     'version_save_failed' => 'Failed to save version',
     'pos_generated' => 'Purchase Order(s) Generated',

@@ -6,20 +6,20 @@ use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasLabel;
 
-enum ProformaInvoiceStatus: string implements HasLabel, HasColor, HasIcon
+enum ProformaInvoiceStatus: string implements HasColor, HasIcon, HasLabel
 {
     case DRAFT = 'draft';
     case SENT = 'sent';
     case CONFIRMED = 'confirmed';
+    case SHIPPED = 'shipped';
     case FINALIZED = 'finalized';
     case REOPENED = 'reopened';
     case CANCELLED = 'cancelled';
 
     public function getLabel(): ?string
     {
-        return __('enums.proforma_invoice_status.' . $this->value);
+        return __('enums.proforma_invoice_status.'.$this->value);
     }
-
 
     public function getColor(): string|array|null
     {
@@ -27,6 +27,7 @@ enum ProformaInvoiceStatus: string implements HasLabel, HasColor, HasIcon
             self::DRAFT => 'gray',
             self::SENT => 'info',
             self::CONFIRMED => 'success',
+            self::SHIPPED => 'primary',
             self::FINALIZED => 'primary',
             self::REOPENED => 'warning',
             self::CANCELLED => 'danger',
@@ -39,6 +40,7 @@ enum ProformaInvoiceStatus: string implements HasLabel, HasColor, HasIcon
             self::DRAFT => 'heroicon-o-pencil-square',
             self::SENT => 'heroicon-o-paper-airplane',
             self::CONFIRMED => 'heroicon-o-check-circle',
+            self::SHIPPED => 'heroicon-o-truck',
             self::FINALIZED => 'heroicon-o-lock-closed',
             self::REOPENED => 'heroicon-o-lock-open',
             self::CANCELLED => 'heroicon-o-x-circle',
@@ -51,6 +53,7 @@ enum ProformaInvoiceStatus: string implements HasLabel, HasColor, HasIcon
             self::DRAFT => 'Draft',
             self::SENT => 'Sent',
             self::CONFIRMED => 'Confirmed',
+            self::SHIPPED => 'Shipped',
             self::FINALIZED => 'Finalized',
             self::REOPENED => 'Reopened',
             self::CANCELLED => 'Cancelled',
