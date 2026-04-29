@@ -37,21 +37,34 @@ class BackfillQuotationFxSnapshotsCommand extends Command
 
         $itemsQuery->chunkById(200, function ($items) use (&$stats, &$reportRows, $isDryRun) {
             foreach ($items as $item) {
+                $quotation = $item->quotation;
+                if (! $quotation) {
+                    $stats['missing']++;
+                    $reportRows[] = [
+                        'quotation_item_id' => $item->id,
+                        'bucket' => 'orphan',
+                        'cost_currency_code' => null,
+                        'cost_exchange_rate' => null,
+                    ];
+
+                    continue;
+                }
+
                 $sourceCurrency = $item->supplierQuotationItem?->supplierQuotation?->currency_code;
                 $bucket = 'resolved';
                 if ($sourceCurrency === null) {
-                    $sourceCurrency = $item->quotation->currency_code;
+                    $sourceCurrency = $quotation->currency_code;
                     $bucket = 'legacy';
                 }
 
                 $rate = 1.0;
-                if ($sourceCurrency !== $item->quotation->currency_code) {
+                if ($sourceCurrency !== $quotation->currency_code) {
                     $source = Currency::findByCode($sourceCurrency);
-                    $target = Currency::findByCode($item->quotation->currency_code);
+                    $target = Currency::findByCode($quotation->currency_code);
                     if ($source && $target) {
                         $converted = ExchangeRate::convert(
                             $source->id, $target->id, 1.0,
-                            optional($item->quotation->created_at)->toDateString(),
+                            optional($quotation->created_at)->toDateString(),
                         ) ?? ExchangeRate::convert(
                             $source->id, $target->id, 1.0,
                             optional($item->supplierQuotationItem?->supplierQuotation?->created_at)->toDateString(),
@@ -70,7 +83,7 @@ class BackfillQuotationFxSnapshotsCommand extends Command
                     $item->update([
                         'cost_currency_code' => $sourceCurrency,
                         'cost_exchange_rate' => $rate,
-                        'cost_exchange_rate_captured_at' => optional($item->quotation->created_at)->toDateString(),
+                        'cost_exchange_rate_captured_at' => optional($quotation->created_at)->toDateString(),
                     ]);
                 }
 
@@ -88,17 +101,24 @@ class BackfillQuotationFxSnapshotsCommand extends Command
         QuotationItemSupplier::query()
             ->whereNull('cost_exchange_rate')
             ->with('quotationItem.quotation')
-            ->chunkById(200, function ($rows) use (&$suppliersStats, &$reportRows, $isDryRun) {
+            ->chunkById(200, function ($rows) use (&$suppliersStats, $isDryRun) {
                 foreach ($rows as $row) {
+                    $quotation = $row->quotationItem?->quotation;
+                    if (! $quotation) {
+                        $suppliersStats['missing']++;
+
+                        continue;
+                    }
+
                     $rate = 1.0;
                     $bucket = 'resolved';
-                    if ($row->currency_code !== $row->quotationItem->quotation->currency_code) {
+                    if ($row->currency_code !== $quotation->currency_code) {
                         $source = Currency::findByCode($row->currency_code);
-                        $target = Currency::findByCode($row->quotationItem->quotation->currency_code);
+                        $target = Currency::findByCode($quotation->currency_code);
                         if ($source && $target) {
                             $converted = ExchangeRate::convert(
                                 $source->id, $target->id, 1.0,
-                                optional($row->quotationItem->quotation->created_at)->toDateString(),
+                                optional($quotation->created_at)->toDateString(),
                             );
                             if ($converted !== null) {
                                 $rate = (float) $converted;
@@ -112,7 +132,7 @@ class BackfillQuotationFxSnapshotsCommand extends Command
                     if (! $isDryRun) {
                         $row->update([
                             'cost_exchange_rate' => $rate,
-                            'cost_exchange_rate_captured_at' => optional($row->quotationItem->quotation->created_at)->toDateString(),
+                            'cost_exchange_rate_captured_at' => optional($quotation->created_at)->toDateString(),
                         ]);
                     }
                     $suppliersStats[$bucket]++;
