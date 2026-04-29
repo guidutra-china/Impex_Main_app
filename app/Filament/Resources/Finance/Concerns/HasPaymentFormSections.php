@@ -3,8 +3,10 @@
 namespace App\Filament\Resources\Finance\Concerns;
 
 use App\Domain\CRM\Models\Company;
+use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
+use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Financial\Support\AllocationCalculator;
 use App\Domain\Infrastructure\Support\Money;
@@ -278,16 +280,52 @@ trait HasPaymentFormSections
         }
 
         if ($directionValue === PaymentDirection::INBOUND->value || $directionValue === 'inbound') {
-            // Client-side allocations (AR) must always target the canonical
-            // PI-owned schedule item. Shipment-owned items exist as read-only
-            // mirrors so the shipment can display payment status without being
-            // selectable here — allocating against the mirror leaves the PI
-            // installment stuck as PENDING because mirror sync is one-way
-            // (PI → Shipment, never Shipment → PI).
+            // Client-side allocations (AR) target two distinct kinds of items:
+            //
+            //   (a) PI installments — payable_type=PI, payable_id ∈ piIds.
+            //       Always selected here (canonical PI installment row).
+            //
+            //   (b) Client-billable additional costs (e.g. freight that the
+            //       client repasses) — these are PaymentScheduleItem rows with
+            //       source_type=AdditionalCost and source_id pointing to a cost
+            //       whose billable_to=CLIENT and whose costable is a Shipment
+            //       or PI belonging to this client. Their payable_type is
+            //       Shipment (not PI), so the previous PI-only filter hid them.
+            //
+            // PI→Shipment mirrors stay excluded because they have payable_type=
+            // Shipment but source_type ≠ AdditionalCost (mirror sync is one-way
+            // PI → Shipment, never Shipment → PI; allocating against the mirror
+            // would leave the PI installment stuck PENDING). Forwarder-payable
+            // costs are also excluded by the [forwarder-payable] notes filter
+            // applied earlier in the query.
             $piIds = ProformaInvoice::where('company_id', $companyId)->pluck('id');
+            $shipmentIds = Shipment::where('company_id', $companyId)->pluck('id');
 
-            $query->where('payable_type', ProformaInvoice::class)
-                ->whereIn('payable_id', $piIds);
+            $clientCostIds = AdditionalCost::query()
+                ->where('billable_to', BillableTo::CLIENT)
+                ->where(function ($q) use ($piIds, $shipmentIds) {
+                    $q->where(function ($q2) use ($shipmentIds) {
+                        $q2->where('costable_type', Shipment::class)
+                            ->whereIn('costable_id', $shipmentIds);
+                    })->orWhere(function ($q2) use ($piIds) {
+                        $q2->where('costable_type', ProformaInvoice::class)
+                            ->whereIn('costable_id', $piIds);
+                    });
+                })
+                ->pluck('id');
+
+            $query->where(function ($q) use ($piIds, $clientCostIds) {
+                $q->where(function ($q2) use ($piIds) {
+                    $q2->where('payable_type', ProformaInvoice::class)
+                        ->whereIn('payable_id', $piIds);
+                });
+                if ($clientCostIds->isNotEmpty()) {
+                    $q->orWhere(function ($q2) use ($clientCostIds) {
+                        $q2->where('source_type', AdditionalCost::class)
+                            ->whereIn('source_id', $clientCostIds);
+                    });
+                }
+            });
         } else {
             if ($isForwarder) {
                 $costableIds = \App\Domain\Financial\Models\AdditionalCost::where('forwarder_company_id', $companyId)
