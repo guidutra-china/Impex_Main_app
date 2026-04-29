@@ -13,11 +13,14 @@ use Filament\Support\Enums\FontWeight;
  * Renders a QuotationVersion snapshot as a structured infolist.
  *
  * Reads exclusively from $record->snapshot (cast to array) — never follows
- * live FKs, since the underlying entities (clients, products, suppliers)
- * may have been renamed or deleted since the snapshot was taken. The
- * Quotation::saveVersion() helper denormalizes the names we care about
- * (company.name, product.name, supplier.name) into the snapshot, so the
- * historical view stays accurate even after the source row changes.
+ * live FKs. Quotation::saveVersion() denormalizes the names we care about
+ * (company, contact, product, supplier) so the historical view stays
+ * accurate even after the source rows change.
+ *
+ * Implementation note: TextEntry::make() keys are intentionally flat,
+ * unique sentinel names (no dot notation), to prevent Filament from
+ * attempting to resolve them as relationships against the QuotationVersion
+ * model. All values are produced via ->state() closures.
  */
 class QuotationVersionInfolist
 {
@@ -48,97 +51,120 @@ class QuotationVersionInfolist
                 ->label(__('forms.labels.version'))
                 ->prefix('v')
                 ->weight(FontWeight::Bold),
-            TextEntry::make('snapshot.quotation.reference')
+            TextEntry::make('v_reference')
                 ->label(__('forms.labels.reference'))
-                ->state(fn ($record) => $record->snapshot['quotation']['reference'] ?? '—')
+                ->state(fn ($record) => static::q($record, 'reference', '—'))
                 ->copyable(),
-            TextEntry::make('snapshot.quotation.status')
+            TextEntry::make('v_status')
                 ->label(__('forms.labels.status'))
-                ->state(fn ($record) => $record->snapshot['quotation']['status'] ?? '—')
+                ->state(fn ($record) => static::q($record, 'status', '—'))
                 ->badge(),
-            TextEntry::make('snapshot.quotation.company.name')
+            TextEntry::make('v_company')
                 ->label(__('forms.labels.client'))
-                ->state(fn ($record) => $record->snapshot['quotation']['company']['name']
-                    ?? '#'.($record->snapshot['quotation']['company_id'] ?? '?'))
+                ->state(function ($record) {
+                    $q = $record->snapshot['quotation'] ?? [];
+
+                    return $q['company']['name'] ?? ('#'.($q['company_id'] ?? '?'));
+                })
                 ->icon('heroicon-o-building-office-2'),
-            TextEntry::make('snapshot.quotation.contact.name')
+            TextEntry::make('v_contact')
                 ->label(__('forms.labels.contact'))
-                ->state(fn ($record) => $record->snapshot['quotation']['contact']['name'] ?? '—')
+                ->state(function ($record) {
+                    $q = $record->snapshot['quotation'] ?? [];
+
+                    return $q['contact']['name'] ?? '—';
+                })
                 ->icon('heroicon-o-user'),
-            TextEntry::make('snapshot.quotation.valid_until')
+            TextEntry::make('v_valid_until')
                 ->label(__('forms.labels.valid_until'))
-                ->state(fn ($record) => static::formatDate($record->snapshot['quotation']['valid_until'] ?? null)),
-            TextEntry::make('snapshot.quotation.currency_code')
+                ->state(fn ($record) => static::formatDate(static::q($record, 'valid_until'))),
+            TextEntry::make('v_currency')
                 ->label(__('forms.labels.currency'))
-                ->state(fn ($record) => $record->snapshot['quotation']['currency_code'] ?? '—')
+                ->state(fn ($record) => static::q($record, 'currency_code', '—'))
                 ->badge()
                 ->color('gray'),
-            TextEntry::make('snapshot.quotation.commission_type')
+            TextEntry::make('v_commission_type')
                 ->label(__('forms.labels.commission_model'))
-                ->state(fn ($record) => $record->snapshot['quotation']['commission_type'] ?? '—')
+                ->state(fn ($record) => static::q($record, 'commission_type', '—'))
                 ->badge(),
-            TextEntry::make('snapshot.quotation.commission_rate')
+            TextEntry::make('v_commission_rate')
                 ->label(__('forms.labels.commission_rate'))
-                ->state(fn ($record) => ($record->snapshot['quotation']['commission_rate'] ?? null) !== null
-                    ? number_format((float) $record->snapshot['quotation']['commission_rate'], 2).'%'
-                    : '—'),
-            TextEntry::make('snapshot.quotation.subtotal')
+                ->state(function ($record) {
+                    $rate = static::q($record, 'commission_rate');
+                    if ($rate === null || $rate === '') {
+                        return '—';
+                    }
+
+                    return number_format((float) $rate, 2).'%';
+                }),
+            TextEntry::make('v_subtotal')
                 ->label(__('forms.labels.subtotal'))
-                ->state(fn ($record) => static::money($record->snapshot['quotation']['subtotal'] ?? 0)),
-            TextEntry::make('snapshot.quotation.commission_amount')
+                ->state(fn ($record) => static::money(static::q($record, 'subtotal', 0))),
+            TextEntry::make('v_commission_amount')
                 ->label(__('forms.labels.commission_separate'))
-                ->state(fn ($record) => static::money($record->snapshot['quotation']['commission_amount'] ?? 0)),
-            TextEntry::make('snapshot.quotation.total')
+                ->state(fn ($record) => static::money(static::q($record, 'commission_amount', 0))),
+            TextEntry::make('v_total')
                 ->label(__('forms.labels.total'))
-                ->state(fn ($record) => static::money($record->snapshot['quotation']['total'] ?? 0))
+                ->state(fn ($record) => static::money(static::q($record, 'total', 0)))
                 ->weight(FontWeight::Bold)
                 ->color('success'),
-            TextEntry::make('snapshot.quotation.notes')
+            TextEntry::make('v_notes')
                 ->label(__('forms.labels.client_notes'))
-                ->state(fn ($record) => $record->snapshot['quotation']['notes'] ?? '—')
-                ->columnSpanFull()
-                ->markdown(),
-            TextEntry::make('snapshot.quotation.internal_notes')
+                ->state(fn ($record) => (string) (static::q($record, 'notes') ?? '—'))
+                ->columnSpanFull(),
+            TextEntry::make('v_internal_notes')
                 ->label(__('forms.labels.internal_notes'))
-                ->state(fn ($record) => $record->snapshot['quotation']['internal_notes'] ?? '—')
+                ->state(fn ($record) => (string) (static::q($record, 'internal_notes') ?? '—'))
                 ->columnSpanFull(),
         ];
     }
 
     protected static function itemsRepeater(): RepeatableEntry
     {
-        return RepeatableEntry::make('snapshot.items')
+        return RepeatableEntry::make('items_list')
             ->label('')
             ->state(fn ($record) => $record->snapshot['items'] ?? [])
             ->schema([
-                TextEntry::make('product.name')
+                TextEntry::make('product_name')
                     ->label(__('forms.labels.product'))
-                    ->state(fn ($state, $record) => $record['product']['name']
-                        ?? $record['product_name']
-                        ?? $record['description']
-                        ?? '#'.($record['product_id'] ?? '?'))
+                    ->state(function ($record) {
+                        $row = is_array($record) ? $record : (array) $record;
+
+                        return $row['product']['name']
+                            ?? $row['description']
+                            ?? '#'.($row['product_id'] ?? '?');
+                    })
                     ->weight(FontWeight::Bold),
-                TextEntry::make('product.sku')
+                TextEntry::make('product_sku')
                     ->label(__('forms.labels.sku'))
-                    ->state(fn ($state, $record) => $record['product']['sku'] ?? '—')
+                    ->state(function ($record) {
+                        $row = is_array($record) ? $record : (array) $record;
+
+                        return $row['product']['sku'] ?? '—';
+                    })
                     ->badge()
                     ->color('gray'),
-                TextEntry::make('quantity')
+                TextEntry::make('qty')
                     ->label(__('forms.labels.qty'))
-                    ->state(fn ($state, $record) => $record['quantity'] ?? 0)
+                    ->state(function ($record) {
+                        $row = is_array($record) ? $record : (array) $record;
+
+                        return (int) ($row['quantity'] ?? 0);
+                    })
                     ->alignCenter(),
-                TextEntry::make('unit_cost')
+                TextEntry::make('item_unit_cost')
                     ->label(__('forms.labels.unit_cost'))
-                    ->state(function ($state, $record) {
-                        $cost = static::money($record['unit_cost'] ?? 0, 4);
-                        $cur = $record['cost_currency_code'] ?? null;
-                        $rate = $record['cost_exchange_rate'] ?? null;
-                        $captured = $record['cost_exchange_rate_captured_at'] ?? null;
+                    ->state(function ($record) {
+                        $row = is_array($record) ? $record : (array) $record;
+                        $cost = static::money($row['unit_cost'] ?? 0, 4);
                         $extras = [];
+                        $cur = $row['cost_currency_code'] ?? null;
+                        $rate = $row['cost_exchange_rate'] ?? null;
+                        $captured = $row['cost_exchange_rate_captured_at'] ?? null;
                         if ($cur) {
                             $extras[] = $cur;
                         }
-                        if ($rate && (float) $rate !== 1.0) {
+                        if ($rate !== null && (float) $rate !== 1.0 && (float) $rate > 0) {
                             $extras[] = '@ '.number_format((float) $rate, 6);
                         }
                         if ($captured) {
@@ -147,30 +173,48 @@ class QuotationVersionInfolist
 
                         return $cost.(empty($extras) ? '' : ' ('.implode(' · ', $extras).')');
                     }),
-                TextEntry::make('unit_price')
+                TextEntry::make('item_unit_price')
                     ->label(__('forms.labels.unit_price'))
-                    ->state(fn ($state, $record) => static::money($record['unit_price'] ?? 0, 4)),
-                TextEntry::make('line_total')
+                    ->state(function ($record) {
+                        $row = is_array($record) ? $record : (array) $record;
+
+                        return static::money($row['unit_price'] ?? 0, 4);
+                    }),
+                TextEntry::make('item_line_total')
                     ->label(__('forms.labels.line_total'))
-                    ->state(fn ($state, $record) => static::money(
-                        (int) ($record['unit_price'] ?? 0) * (int) ($record['quantity'] ?? 0)
-                    ))
+                    ->state(function ($record) {
+                        $row = is_array($record) ? $record : (array) $record;
+                        $price = (int) ($row['unit_price'] ?? 0);
+                        $qty = (int) ($row['quantity'] ?? 0);
+
+                        return static::money($price * $qty);
+                    })
                     ->weight(FontWeight::Bold),
-                TextEntry::make('selected_supplier.name')
+                TextEntry::make('item_supplier')
                     ->label(__('forms.labels.supplier'))
-                    ->state(fn ($state, $record) => $record['selected_supplier']['name'] ?? '—')
+                    ->state(function ($record) {
+                        $row = is_array($record) ? $record : (array) $record;
+
+                        return $row['selected_supplier']['name'] ?? '—';
+                    })
                     ->placeholder('—'),
-                TextEntry::make('suppliers_summary')
+                TextEntry::make('item_alternatives')
                     ->label(__('forms.sections.version_alternatives'))
-                    ->state(function ($state, $record) {
-                        $alts = $record['suppliers'] ?? [];
+                    ->state(function ($record) {
+                        $row = is_array($record) ? $record : (array) $record;
+                        $alts = $row['suppliers'] ?? [];
                         if (empty($alts)) {
                             return '—';
                         }
 
                         return collect($alts)
-                            ->map(fn ($s) => ($s['company']['name'] ?? '#'.($s['company_id'] ?? '?'))
-                                .': '.($s['currency_code'] ?? '').' '.static::money($s['unit_cost'] ?? 0, 4))
+                            ->map(function ($s) {
+                                $name = $s['company']['name'] ?? '#'.($s['company_id'] ?? '?');
+                                $cur = $s['currency_code'] ?? '';
+                                $cost = static::money($s['unit_cost'] ?? 0, 4);
+
+                                return trim($name.': '.$cur.' '.$cost);
+                            })
                             ->implode("\n");
                     })
                     ->columnSpanFull(),
@@ -197,9 +241,19 @@ class QuotationVersionInfolist
         ];
     }
 
+    /**
+     * Read a key from $record->snapshot['quotation'] safely.
+     */
+    protected static function q($record, string $key, mixed $default = null): mixed
+    {
+        $q = $record->snapshot['quotation'] ?? [];
+
+        return $q[$key] ?? $default;
+    }
+
     protected static function money(mixed $minor, int $decimals = 2): string
     {
-        if ($minor === null) {
+        if ($minor === null || $minor === '') {
             return '—';
         }
 
