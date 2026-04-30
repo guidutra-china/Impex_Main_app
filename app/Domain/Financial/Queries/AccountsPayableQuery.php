@@ -69,9 +69,14 @@ final class AccountsPayableQuery
                     });
                 }
                 if ($shipmentIds->isNotEmpty()) {
+                    // Shipment-level items: only include AdditionalCost-sourced
+                    // rows (freight, commission, etc.). Other Shipment-owned
+                    // items are mirrors of PI/PO installments and would
+                    // duplicate what already appears under the PI.
                     $q->orWhere(function ($sub) use ($shipmentIds) {
                         $sub->where('payable_type', Shipment::class)
-                            ->whereIn('payable_id', $shipmentIds);
+                            ->whereIn('payable_id', $shipmentIds)
+                            ->where('source_type', AdditionalCost::class);
                     });
                 }
             })
