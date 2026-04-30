@@ -5,6 +5,9 @@ namespace App\Filament\ForwarderPortal\Resources;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\Shipment;
+use App\Events\ShipmentEtaChangedByForwarder;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use App\Filament\ForwarderPortal\Resources\ShipmentResource\Pages;
 use App\Filament\ForwarderPortal\Resources\ShipmentResource\RelationManagers\ForwarderAdditionalCostsRelationManager;
 use BackedEnum;
@@ -114,6 +117,74 @@ class ShipmentResource extends Resource
     }
 
     /**
+     * Quick ETD / ETA editor — opens a modal with two date pickers.
+     * Replaces the full Edit page on the list because forwarders only
+     * need to revise the shipping window from here. Status changes
+     * still happen on the View page's full edit. Fires the
+     * ShipmentEtaChangedByForwarder event when the ETA actually
+     * differs so the responsible admin and client portal users get
+     * notified through the existing pipeline.
+     */
+    protected static function updateScheduleAction(): Action
+    {
+        return Action::make('updateSchedule')
+            ->label(__('forwarder_portal.shipment.update_schedule'))
+            ->icon('heroicon-o-calendar-days')
+            ->color('primary')
+            ->modalHeading(fn (Shipment $record) => __('forwarder_portal.shipment.update_schedule_heading', [
+                'ref' => $record->reference,
+            ]))
+            ->modalSubmitActionLabel(__('forwarder_portal.shipment.update_schedule_submit'))
+            ->modalWidth('md')
+            ->visible(fn () => auth()->user()?->can('forwarder-portal:update-shipment-logistics') ?? false)
+            ->fillForm(fn (Shipment $record) => [
+                'etd' => $record->etd?->toDateString(),
+                'eta' => $record->eta?->toDateString(),
+            ])
+            ->form([
+                \Filament\Forms\Components\DatePicker::make('etd')
+                    ->label(__('forwarder_portal.shipment.etd'))
+                    ->native(false),
+                \Filament\Forms\Components\DatePicker::make('eta')
+                    ->label(__('forwarder_portal.shipment.eta'))
+                    ->native(false)
+                    ->helperText(__('forwarder_portal.shipment.eta_helper'))
+                    ->required(),
+            ])
+            ->action(function (Shipment $record, array $data) {
+                $previousEta = $record->getOriginal('eta')?->format('Y-m-d');
+
+                $record->update([
+                    'etd' => $data['etd'],
+                    'eta' => $data['eta'],
+                ]);
+
+                $newEta = $record->refresh()->eta?->format('Y-m-d');
+                if ($previousEta !== $newEta) {
+                    event(new ShipmentEtaChangedByForwarder(
+                        shipment: $record,
+                        previousEta: $previousEta,
+                        newEta: $newEta,
+                        userId: auth()->id(),
+                    ));
+
+                    Notification::make()
+                        ->success()
+                        ->title(__('forwarder_portal.shipment.eta_change_acknowledged'))
+                        ->body(__('forwarder_portal.shipment.eta_change_acknowledged_body'))
+                        ->send();
+
+                    return;
+                }
+
+                Notification::make()
+                    ->success()
+                    ->title(__('forwarder_portal.shipment.update_schedule_done'))
+                    ->send();
+            });
+    }
+
+    /**
      * Forwarder may only set IN_TRANSIT or ARRIVED, and only when the
      * existing state machine permits it. Current status is always included
      * so the select doesn't appear empty when the value is unchanged.
@@ -170,6 +241,10 @@ class ShipmentResource extends Resource
                     ->label('B/L')
                     ->searchable()
                     ->placeholder('—'),
+                TextColumn::make('company.name')
+                    ->label(__('forwarder_portal.shipment.client'))
+                    ->searchable()
+                    ->placeholder('—'),
                 TextColumn::make('status')
                     ->badge(),
                 TextColumn::make('origin_port')->label(__('forwarder_portal.shipment.origin'))->placeholder('—'),
@@ -205,9 +280,7 @@ class ShipmentResource extends Resource
             ->recordActions([
                 \Filament\Actions\ViewAction::make()
                     ->url(fn (Shipment $record) => Pages\ViewShipment::getUrl(['record' => $record])),
-                \Filament\Actions\EditAction::make()
-                    ->visible(fn () => auth()->user()?->can('forwarder-portal:update-shipment-logistics') ?? false)
-                    ->url(fn (Shipment $record) => Pages\EditShipment::getUrl(['record' => $record])),
+                static::updateScheduleAction(),
             ])
             ->defaultSort('eta', 'asc')
             ->emptyStateHeading(__('forwarder_portal.shipment.empty_heading'))
