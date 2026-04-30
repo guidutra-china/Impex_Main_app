@@ -23,6 +23,11 @@ class StatementsPage extends StatementPreview
         return __('statements.title');
     }
 
+    public static function getNavigationGroup(): ?string
+    {
+        return __('navigation.groups.finance');
+    }
+
     public function getTitle(): string|\Illuminate\Contracts\Support\Htmlable
     {
         return __('statements.title');
