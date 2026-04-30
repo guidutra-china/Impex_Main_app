@@ -20,6 +20,8 @@ return [
         'responsible' => 'Responsável',
         'origin' => 'Origem',
         'destination' => 'Destino',
+        'total_due' => 'Total a Receber',
+        'total_received' => 'Recebido',
         'invalid_transition' => 'Transição de status não permitida.',
         'cannot_arrive_before_eta_title' => 'Não é possível marcar como Chegada antes da ETA',
         'cannot_arrive_before_eta_body' => 'A ETA atual é :eta. Ajuste a ETA para uma data igual ou anterior a hoje antes de marcar como Chegada.',

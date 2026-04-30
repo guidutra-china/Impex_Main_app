@@ -20,6 +20,8 @@ return [
         'responsible' => 'Responsible',
         'origin' => 'Origin',
         'destination' => 'Destination',
+        'total_due' => 'Total Due',
+        'total_received' => 'Received',
         'invalid_transition' => 'Status transition not allowed.',
         'cannot_arrive_before_eta_title' => 'Cannot mark as Arrived before the ETA',
         'cannot_arrive_before_eta_body' => 'The current ETA is :eta. Adjust the ETA to today or earlier before marking the shipment as Arrived.',

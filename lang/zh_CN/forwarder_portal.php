@@ -20,6 +20,8 @@ return [
         'responsible' => '负责人',
         'origin' => '起运港',
         'destination' => '目的港',
+        'total_due' => '应收总额',
+        'total_received' => '已收',
         'invalid_transition' => '状态变更不被允许。',
         'cannot_arrive_before_eta_title' => '不能在 ETA 之前标记为已到达',
         'cannot_arrive_before_eta_body' => '当前 ETA 为 :eta。请先将 ETA 调整为今天或更早，再将货运标记为已到达。',

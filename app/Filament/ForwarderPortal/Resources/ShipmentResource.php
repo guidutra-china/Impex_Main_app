@@ -2,6 +2,7 @@
 
 namespace App\Filament\ForwarderPortal\Resources;
 
+use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\Shipment;
 use App\Filament\ForwarderPortal\Resources\ShipmentResource\Pages;
@@ -152,6 +153,11 @@ class ShipmentResource extends Resource
                 $tenant = Filament::getTenant();
                 if ($tenant) {
                     $query->forForwarderCompany($tenant->getKey());
+                    // Preload only this forwarder's AdditionalCost rows so the
+                    // "total due / received" columns aggregate cheaply per row.
+                    $query->with(['additionalCosts' => function ($q) use ($tenant) {
+                        $q->where('forwarder_company_id', $tenant->getKey());
+                    }]);
                 }
             })
             ->columns([
@@ -170,6 +176,25 @@ class ShipmentResource extends Resource
                 TextColumn::make('destination_port')->label(__('forwarder_portal.shipment.destination'))->placeholder('—'),
                 TextColumn::make('etd')->label('ETD')->date('d/m/Y')->sortable()->placeholder('—'),
                 TextColumn::make('eta')->label('ETA')->date('d/m/Y')->sortable()->placeholder('—'),
+                TextColumn::make('forwarder_total_due')
+                    ->label(__('forwarder_portal.shipment.total_due'))
+                    ->visible(fn () => auth()->user()?->can('forwarder-portal:view-financial-summary') ?? false)
+                    ->state(fn (Shipment $record) => $record->additionalCosts
+                        ->reject(fn ($cost) => $cost->status === AdditionalCostStatus::WAIVED)
+                        ->sum('forwarder_amount_in_document_currency'))
+                    ->money(fn (Shipment $r) => $r->currency_code ?? 'USD', divideBy: 10000)
+                    ->alignEnd(),
+                TextColumn::make('forwarder_total_received')
+                    ->label(__('forwarder_portal.shipment.total_received'))
+                    ->visible(fn () => auth()->user()?->can('forwarder-portal:view-financial-summary') ?? false)
+                    ->state(fn (Shipment $record) => $record->additionalCosts
+                        ->where('status', AdditionalCostStatus::PAID)
+                        ->sum('forwarder_amount_in_document_currency'))
+                    ->money(fn (Shipment $r) => $r->currency_code ?? 'USD', divideBy: 10000)
+                    ->color(fn (Shipment $r) => $r->additionalCosts
+                        ->where('status', AdditionalCostStatus::PAID)
+                        ->sum('forwarder_amount_in_document_currency') > 0 ? 'success' : 'gray')
+                    ->alignEnd(),
                 TextColumn::make('vessel_name')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('container_number')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
             ])
