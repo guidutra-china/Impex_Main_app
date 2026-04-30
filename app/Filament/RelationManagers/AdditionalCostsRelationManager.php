@@ -253,7 +253,7 @@ class AdditionalCostsRelationManager extends RelationManager
             ->icon('heroicon-o-pencil-square')
             ->color('gray')
             ->visible(fn ($record) => ! $this->isForwarderRow($record)
-                && $record->status === AdditionalCostStatus::PENDING
+                && $record->status !== AdditionalCostStatus::WAIVED
                 && auth()->user()?->can('create-payments'))
             ->fillForm(fn ($record) => [
                 'cost_type' => $record->cost_type->value,
