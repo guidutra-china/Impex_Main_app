@@ -38,15 +38,30 @@
                                 <p class="text-xs text-gray-500 dark:text-gray-400">{{ $alert['description'] }}</p>
                             </div>
                         </div>
-                        <a href="{{ $alert['url'] }}" @class([
-                            'shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
-                            'bg-danger-100 text-danger-700 hover:bg-danger-200 dark:bg-danger-500/10 dark:text-danger-400 dark:hover:bg-danger-500/20' => $alert['type'] === 'danger',
-                            'bg-warning-100 text-warning-700 hover:bg-warning-200 dark:bg-warning-500/10 dark:text-warning-400 dark:hover:bg-warning-500/20' => $alert['type'] === 'warning',
-                            'bg-info-100 text-info-700 hover:bg-info-200 dark:bg-info-500/10 dark:text-info-400 dark:hover:bg-info-500/20' => $alert['type'] === 'info',
-                            'bg-primary-100 text-primary-700 hover:bg-primary-200 dark:bg-primary-500/10 dark:text-primary-400 dark:hover:bg-primary-500/20' => $alert['type'] === 'primary',
-                        ])>
-                            {{ $alert['action'] }}
-                        </a>
+                        <div class="flex shrink-0 items-center gap-2">
+                            <a href="{{ $alert['url'] }}" @class([
+                                'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                                'bg-danger-100 text-danger-700 hover:bg-danger-200 dark:bg-danger-500/10 dark:text-danger-400 dark:hover:bg-danger-500/20' => $alert['type'] === 'danger',
+                                'bg-warning-100 text-warning-700 hover:bg-warning-200 dark:bg-warning-500/10 dark:text-warning-400 dark:hover:bg-warning-500/20' => $alert['type'] === 'warning',
+                                'bg-info-100 text-info-700 hover:bg-info-200 dark:bg-info-500/10 dark:text-info-400 dark:hover:bg-info-500/20' => $alert['type'] === 'info',
+                                'bg-primary-100 text-primary-700 hover:bg-primary-200 dark:bg-primary-500/10 dark:text-primary-400 dark:hover:bg-primary-500/20' => $alert['type'] === 'primary',
+                            ])>
+                                {{ $alert['action'] }}
+                            </a>
+
+                            @if (! empty($alert['recalc_shipment_id']))
+                                <button
+                                    type="button"
+                                    wire:click="recalcShipment({{ $alert['recalc_shipment_id'] }})"
+                                    wire:loading.attr="disabled"
+                                    wire:target="recalcShipment({{ $alert['recalc_shipment_id'] }})"
+                                    class="inline-flex items-center gap-1 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-500 disabled:opacity-50"
+                                >
+                                    <x-filament::icon icon="heroicon-o-arrow-path" class="h-4 w-4" wire:loading.class="animate-spin" wire:target="recalcShipment({{ $alert['recalc_shipment_id'] }})" />
+                                    {{ $alert['recalc_action_label'] }}
+                                </button>
+                            @endif
+                        </div>
                     </div>
                 @endforeach
             </div>

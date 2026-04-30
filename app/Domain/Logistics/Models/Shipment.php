@@ -59,6 +59,9 @@ class Shipment extends Model
         'internal_notes',
         'created_by',
         'responsible_user_id',
+        'eta_change_pending_recalc',
+        'eta_changed_at',
+        'eta_changed_by',
     ];
 
     protected function casts(): array
@@ -77,6 +80,8 @@ class Shipment extends Model
             'total_net_weight' => 'decimal:3',
             'total_volume' => 'decimal:4',
             'total_packages' => 'integer',
+            'eta_change_pending_recalc' => 'boolean',
+            'eta_changed_at' => 'datetime',
         ];
     }
 
@@ -127,7 +132,7 @@ class Shipment extends Model
             ShipmentStatus::BOOKED->value => [ShipmentStatus::CUSTOMS->value, ShipmentStatus::CANCELLED->value],
             ShipmentStatus::CUSTOMS->value => [ShipmentStatus::IN_TRANSIT->value, ShipmentStatus::CANCELLED->value],
             ShipmentStatus::IN_TRANSIT->value => [ShipmentStatus::ARRIVED->value],
-            ShipmentStatus::ARRIVED->value => [],
+            ShipmentStatus::ARRIVED->value => [ShipmentStatus::IN_TRANSIT->value],
             ShipmentStatus::CANCELLED->value => [],
         ];
     }
@@ -232,6 +237,11 @@ class Shipment extends Model
             ->implode(', ');
     }
 
+    public function etaChangedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'eta_changed_by');
+    }
+
     // --- Scopes ---
 
     public function scopeForSupplierCompany($query, int $companyId)
@@ -239,5 +249,10 @@ class Shipment extends Model
         return $query->whereHas('items.purchaseOrderItem.purchaseOrder', function ($q) use ($companyId) {
             $q->where('supplier_company_id', $companyId);
         });
+    }
+
+    public function scopeForForwarderCompany($query, int $companyId)
+    {
+        return $query->where('forwarder_company_id', $companyId);
     }
 }

@@ -1,0 +1,50 @@
+<?php
+
+return [
+    'shipment' => [
+        'section' => [
+            'read_only' => 'Dados do embarque',
+            'editable' => 'Atualizações logísticas',
+            'editable_desc' => 'Use estes campos para informar mudanças de janela de embarque, status e datas reais.',
+            'summary' => 'Resumo',
+            'route' => 'Rota e janela',
+        ],
+        'etd' => 'ETD',
+        'eta' => 'ETA',
+        'eta_helper' => 'Ao alterar a ETA, o responsável pelo embarque será notificado para recalcular o cronograma de pagamentos.',
+        'status' => 'Status',
+        'status_helper' => 'Forwarders só podem marcar Em Trânsito ou Chegada.',
+        'actual_departure' => 'Saída real',
+        'actual_arrival' => 'Chegada real',
+        'forwarder' => 'Forwarder',
+        'responsible' => 'Responsável',
+        'origin' => 'Origem',
+        'destination' => 'Destino',
+        'invalid_transition' => 'Transição de status não permitida.',
+        'cannot_arrive_before_eta_title' => 'Não é possível marcar como Chegada antes da ETA',
+        'cannot_arrive_before_eta_body' => 'A ETA atual é :eta. Ajuste a ETA para uma data igual ou anterior a hoje antes de marcar como Chegada.',
+        'set_actual_arrival_today' => 'Atualizar Actual Arrival para hoje?',
+        'set_actual_arrival_today_helper' => 'Como o status está mudando para Chegada, podemos preencher a data real de chegada com a data de hoje. Desmarque para informar uma data diferente.',
+        'eta_change_acknowledged' => 'ETA atualizada',
+        'eta_change_acknowledged_body' => 'O responsável pelo embarque foi notificado para recalcular o cronograma de pagamentos.',
+        'empty_heading' => 'Nenhum embarque',
+        'empty_desc' => 'Não há embarques associados à sua empresa.',
+    ],
+    'charges' => [
+        'description' => 'Descrição',
+        'amount' => 'Valor',
+        'currency' => 'Moeda',
+        'empty_heading' => 'Nenhuma cobrança',
+    ],
+    'notify' => [
+        'eta_changed_title' => 'ETA alterada — :ref',
+        'eta_changed_body' => 'A ETA passou de :old para :new. Recalcule o cronograma de pagamentos.',
+        'view_shipment' => 'Abrir embarque',
+        'client_eta_changed_title' => 'ETA da remessa :ref foi alterada',
+        'client_eta_changed_body' => 'O forwarder informou nova ETA: :new (anterior: :old).',
+    ],
+    'messaging' => [
+        'subject' => 'Embarque :ref',
+        'eta_change_body' => 'ETA alterada de :old para :new. Por favor recalcular o cronograma de pagamentos.',
+    ],
+];

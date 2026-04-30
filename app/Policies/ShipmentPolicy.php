@@ -9,12 +9,18 @@ class ShipmentPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->can('view-shipments') || $user->can('portal:view-shipments') || $user->can('supplier-portal:view-shipments');
+        return $user->can('view-shipments')
+            || $user->can('portal:view-shipments')
+            || $user->can('supplier-portal:view-shipments')
+            || $user->can('forwarder-portal:view-shipments');
     }
 
     public function view(User $user, Shipment $shipment): bool
     {
-        return $user->can('view-shipments') || $user->can('portal:view-shipments') || $user->can('supplier-portal:view-shipments');
+        return $user->can('view-shipments')
+            || $user->can('portal:view-shipments')
+            || $user->can('supplier-portal:view-shipments')
+            || $user->can('forwarder-portal:view-shipments');
     }
 
     public function create(User $user): bool
@@ -24,7 +30,8 @@ class ShipmentPolicy
 
     public function update(User $user, Shipment $shipment): bool
     {
-        return $user->can('edit-shipments');
+        return $user->can('edit-shipments')
+            || $user->can('forwarder-portal:update-shipment-logistics');
     }
 
     public function delete(User $user, Shipment $shipment): bool

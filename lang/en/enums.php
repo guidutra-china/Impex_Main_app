@@ -338,11 +338,12 @@ return array (
     'rejected' => 'Rejected',
     'expired' => 'Expired',
     ),
-    'user_type' => 
+    'user_type' =>
     array (
     'internal' => 'Internal',
     'client' => 'Client',
     'supplier' => 'Supplier',
+    'forwarder' => 'Forwarder',
     ),
     'debit_note_status' =>
     array (

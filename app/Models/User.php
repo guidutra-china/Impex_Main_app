@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Messaging\Models\Conversation;
 use App\Domain\Messaging\Models\ConversationParticipant;
@@ -68,6 +69,13 @@ class User extends Authenticatable implements FilamentUser, HasTenants
                 && $this->company_id !== null;
         }
 
+        if ($panel->getId() === 'forwarder-portal') {
+            return $this->type === UserType::FORWARDER
+                && $this->status === 'active'
+                && $this->company_id !== null
+                && $this->company?->hasRole(CompanyRole::FORWARDER);
+        }
+
         // Fair panel: internal (staff) users only
         if ($panel->getId() === 'fair') {
             return $this->type === UserType::INTERNAL
@@ -81,7 +89,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants
 
     public function getTenants(Panel $panel): array|Collection
     {
-        if (in_array($panel->getId(), ['portal', 'supplier-portal'])) {
+        if (in_array($panel->getId(), ['portal', 'supplier-portal', 'forwarder-portal'])) {
             return Company::where('id', $this->company_id)->get();
         }
 

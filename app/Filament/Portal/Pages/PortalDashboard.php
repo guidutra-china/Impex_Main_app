@@ -5,17 +5,20 @@ namespace App\Filament\Portal\Pages;
 use App\Filament\Portal\Widgets\ActiveShipmentsWidget;
 use App\Filament\Portal\Widgets\FinancialSummaryWidget;
 use App\Filament\Portal\Widgets\RecentDocumentsWidget;
+use App\Filament\Portal\Widgets\RecentEtaChangesWidget;
 use BackedEnum;
 use Filament\Pages\Dashboard;
 
 class PortalDashboard extends Dashboard
 {
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-home';
+
     protected static ?int $navigationSort = -2;
 
     public function getWidgets(): array
     {
         $widgets = [
+            RecentEtaChangesWidget::class,
             ActiveShipmentsWidget::class,
         ];
 

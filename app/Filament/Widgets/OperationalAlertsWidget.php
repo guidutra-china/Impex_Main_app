@@ -7,13 +7,17 @@ use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\Payment;
 use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\Financial\Actions\GeneratePaymentScheduleAction;
 use App\Domain\Inquiries\Enums\InquiryStatus;
 use App\Domain\Inquiries\Models\Inquiry;
+use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
+use Filament\Notifications\Notification;
 use Filament\Widgets\Widget;
+use Illuminate\Support\Facades\DB;
 
 class OperationalAlertsWidget extends Widget
 {
@@ -200,6 +204,70 @@ class OperationalAlertsWidget extends Widget
             ];
         }
 
+        // ETA changed by forwarder — needs payment schedule recalc.
+        // Scoped to the responsible user so each admin only sees their own shipments.
+        $pendingEtaShipments = Shipment::query()
+            ->where('eta_change_pending_recalc', true)
+            ->where('responsible_user_id', auth()->id())
+            ->orderBy('eta_changed_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        foreach ($pendingEtaShipments as $shipment) {
+            $alerts[] = [
+                'type' => 'warning',
+                'icon' => 'heroicon-o-arrow-path',
+                'title' => __('widgets.alerts.eta_changed_title', [
+                    'ref' => $shipment->reference,
+                    'eta' => optional($shipment->eta)->format('d/m/Y') ?? '—',
+                ]),
+                'description' => __('widgets.alerts.eta_changed_desc', [
+                    'forwarder' => $shipment->forwarderCompany?->name ?? '—',
+                ]),
+                'url' => route('filament.admin.resources.shipments.view', ['record' => $shipment->getKey()]),
+                'action' => __('widgets.alerts.view_shipment'),
+                'recalc_shipment_id' => $shipment->getKey(),
+                'recalc_action_label' => __('widgets.alerts.recalc_payment_schedule'),
+            ];
+        }
+
         return ['alerts' => $alerts];
+    }
+
+    public function recalcShipment(int $shipmentId): void
+    {
+        $shipment = Shipment::find($shipmentId);
+        if (! $shipment) {
+            return;
+        }
+
+        // Authorisation: only the responsible admin can clear and recalc.
+        if ($shipment->responsible_user_id !== auth()->id()) {
+            Notification::make()
+                ->danger()
+                ->title(__('widgets.alerts.recalc_unauthorized'))
+                ->send();
+
+            return;
+        }
+
+        $count = DB::transaction(function () use ($shipment) {
+            $count = app(GeneratePaymentScheduleAction::class)->regenerateForShipment($shipment);
+
+            // Clear the admin-side pending flag only. Keep eta_changed_at/by
+            // as history so the client portal widget can still surface the
+            // change for the next 14 days.
+            $shipment->forceFill([
+                'eta_change_pending_recalc' => false,
+            ])->save();
+
+            return $count;
+        });
+
+        Notification::make()
+            ->success()
+            ->title(__('widgets.alerts.recalc_done_title'))
+            ->body(__('widgets.alerts.recalc_done_body', ['ref' => $shipment->reference, 'count' => $count]))
+            ->send();
     }
 }

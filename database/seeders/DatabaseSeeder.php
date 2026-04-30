@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             RolesAndPermissionsSeeder::class,
             PortalRolesSeeder::class,
             SupplierPortalRolesSeeder::class,
+            ForwarderPortalRolesSeeder::class,
             AdminUserSeeder::class,
 
             // Settings

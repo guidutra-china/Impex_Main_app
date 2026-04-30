@@ -4,10 +4,9 @@ namespace App\Filament\Resources\Users\Schemas;
 
 use App\Domain\CRM\Models\Company;
 use App\Domain\Users\Enums\UserType;
-use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Validation\Rules\Password;
@@ -16,8 +15,12 @@ use Spatie\Permission\Models\Role;
 class UserForm
 {
     private const INTERNAL_ROLES = ['admin', 'manager', 'operator', 'viewer'];
+
     private const CLIENT_ROLES = ['client_full', 'client_operations'];
+
     private const SUPPLIER_ROLES = ['supplier_full', 'supplier_operations'];
+
+    private const FORWARDER_ROLES = ['forwarder_full', 'forwarder_operations'];
 
     public static function configure(Schema $schema): Schema
     {
@@ -78,6 +81,8 @@ class UserForm
                                 $query->withRole(\App\Domain\CRM\Enums\CompanyRole::CLIENT);
                             } elseif ($type === UserType::SUPPLIER->value || $type === UserType::SUPPLIER) {
                                 $query->withRole(\App\Domain\CRM\Enums\CompanyRole::SUPPLIER);
+                            } elseif ($type === UserType::FORWARDER->value || $type === UserType::FORWARDER) {
+                                $query->withRole(\App\Domain\CRM\Enums\CompanyRole::FORWARDER);
                             }
 
                             return $query->orderBy('name')->pluck('name', 'id');
@@ -94,7 +99,9 @@ class UserForm
                             $type = $get('type');
                             if ($type === UserType::SUPPLIER->value || $type === UserType::SUPPLIER) {
                                 $allowedRoles = self::SUPPLIER_ROLES;
-                            } elseif (self::isExternalType($type)) {
+                            } elseif ($type === UserType::FORWARDER->value || $type === UserType::FORWARDER) {
+                                $allowedRoles = self::FORWARDER_ROLES;
+                            } elseif ($type === UserType::CLIENT->value || $type === UserType::CLIENT) {
                                 $allowedRoles = self::CLIENT_ROLES;
                             } else {
                                 $allowedRoles = self::INTERNAL_ROLES;
@@ -137,6 +144,7 @@ class UserForm
         return in_array($value, [
             UserType::CLIENT->value,
             UserType::SUPPLIER->value,
+            UserType::FORWARDER->value,
         ]);
     }
 }

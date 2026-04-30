@@ -338,11 +338,12 @@ return array (
     'rejected' => '已拒绝',
     'expired' => '已过期',
     ),
-    'user_type' => 
+    'user_type' =>
     array (
     'internal' => '内部',
     'client' => '客户',
     'supplier' => '供应商',
+    'forwarder' => '货代',
     ),
     'debit_note_status' =>
     array (

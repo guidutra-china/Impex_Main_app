@@ -1,0 +1,50 @@
+<?php
+
+return [
+    'shipment' => [
+        'section' => [
+            'read_only' => 'Shipment information',
+            'editable' => 'Logistics updates',
+            'editable_desc' => 'Use these fields to report changes to the shipping window, status, and actual dates.',
+            'summary' => 'Summary',
+            'route' => 'Route & schedule',
+        ],
+        'etd' => 'ETD',
+        'eta' => 'ETA',
+        'eta_helper' => 'Changing the ETA will notify the responsible admin to recalculate the payment schedule.',
+        'status' => 'Status',
+        'status_helper' => 'Forwarders may only set In Transit or Arrived.',
+        'actual_departure' => 'Actual departure',
+        'actual_arrival' => 'Actual arrival',
+        'forwarder' => 'Forwarder',
+        'responsible' => 'Responsible',
+        'origin' => 'Origin',
+        'destination' => 'Destination',
+        'invalid_transition' => 'Status transition not allowed.',
+        'cannot_arrive_before_eta_title' => 'Cannot mark as Arrived before the ETA',
+        'cannot_arrive_before_eta_body' => 'The current ETA is :eta. Adjust the ETA to today or earlier before marking the shipment as Arrived.',
+        'set_actual_arrival_today' => 'Set Actual Arrival to today?',
+        'set_actual_arrival_today_helper' => 'Since status is changing to Arrived, we can set the actual arrival date to today. Uncheck to enter a different date.',
+        'eta_change_acknowledged' => 'ETA updated',
+        'eta_change_acknowledged_body' => 'The shipment owner has been notified to recalculate the payment schedule.',
+        'empty_heading' => 'No shipments',
+        'empty_desc' => 'There are no shipments associated with your company.',
+    ],
+    'charges' => [
+        'description' => 'Description',
+        'amount' => 'Amount',
+        'currency' => 'Currency',
+        'empty_heading' => 'No charges',
+    ],
+    'notify' => [
+        'eta_changed_title' => 'ETA changed — :ref',
+        'eta_changed_body' => 'ETA changed from :old to :new. Please recalculate the payment schedule.',
+        'view_shipment' => 'Open shipment',
+        'client_eta_changed_title' => 'ETA changed for shipment :ref',
+        'client_eta_changed_body' => 'The forwarder reported a new ETA: :new (previous: :old).',
+    ],
+    'messaging' => [
+        'subject' => 'Shipment :ref',
+        'eta_change_body' => 'ETA changed from :old to :new. Please recalculate the payment schedule.',
+    ],
+];

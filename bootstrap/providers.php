@@ -5,5 +5,6 @@ return [
     App\Providers\Filament\AdminPanelProvider::class,
     App\Providers\Filament\PortalPanelProvider::class,
     App\Providers\Filament\SupplierPortalPanelProvider::class,
+    App\Providers\Filament\ForwarderPortalPanelProvider::class,
     App\Providers\Filament\FairPanelProvider::class,
 ];

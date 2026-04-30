@@ -1,0 +1,50 @@
+<?php
+
+return [
+    'shipment' => [
+        'section' => [
+            'read_only' => '货运信息',
+            'editable' => '物流更新',
+            'editable_desc' => '使用这些字段更新装运时间、状态和实际日期。',
+            'summary' => '概要',
+            'route' => '路线与时间',
+        ],
+        'etd' => '预计离港 (ETD)',
+        'eta' => '预计到港 (ETA)',
+        'eta_helper' => '修改 ETA 会通知负责人重新计算付款计划。',
+        'status' => '状态',
+        'status_helper' => '货代仅可标记为运输中或已到达。',
+        'actual_departure' => '实际离港',
+        'actual_arrival' => '实际到港',
+        'forwarder' => '货代',
+        'responsible' => '负责人',
+        'origin' => '起运港',
+        'destination' => '目的港',
+        'invalid_transition' => '状态变更不被允许。',
+        'cannot_arrive_before_eta_title' => '不能在 ETA 之前标记为已到达',
+        'cannot_arrive_before_eta_body' => '当前 ETA 为 :eta。请先将 ETA 调整为今天或更早，再将货运标记为已到达。',
+        'set_actual_arrival_today' => '将实际到港日期设为今天？',
+        'set_actual_arrival_today_helper' => '由于状态正在变更为已到达，可以将实际到港日期设为今天。取消勾选以输入其他日期。',
+        'eta_change_acknowledged' => 'ETA 已更新',
+        'eta_change_acknowledged_body' => '已通知负责人重新计算付款计划。',
+        'empty_heading' => '无货运',
+        'empty_desc' => '您的公司没有相关货运。',
+    ],
+    'charges' => [
+        'description' => '描述',
+        'amount' => '金额',
+        'currency' => '货币',
+        'empty_heading' => '无费用',
+    ],
+    'notify' => [
+        'eta_changed_title' => 'ETA 已变更 — :ref',
+        'eta_changed_body' => 'ETA 从 :old 变更为 :new，请重新计算付款计划。',
+        'view_shipment' => '打开货运',
+        'client_eta_changed_title' => '货运 :ref 的 ETA 已变更',
+        'client_eta_changed_body' => '货代提供了新的 ETA：:new（原 ETA：:old）。',
+    ],
+    'messaging' => [
+        'subject' => '货运 :ref',
+        'eta_change_body' => 'ETA 从 :old 变更为 :new，请重新计算付款计划。',
+    ],
+];

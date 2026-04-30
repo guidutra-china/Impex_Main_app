@@ -6,17 +6,17 @@ use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasLabel;
 
-enum UserType: string implements HasLabel, HasColor, HasIcon
+enum UserType: string implements HasColor, HasIcon, HasLabel
 {
     case INTERNAL = 'internal';
     case CLIENT = 'client';
     case SUPPLIER = 'supplier';
+    case FORWARDER = 'forwarder';
 
     public function getLabel(): ?string
     {
-        return __('enums.user_type.' . $this->value);
+        return __('enums.user_type.'.$this->value);
     }
-
 
     public function getColor(): string|array|null
     {
@@ -24,6 +24,7 @@ enum UserType: string implements HasLabel, HasColor, HasIcon
             self::INTERNAL => 'primary',
             self::CLIENT => 'success',
             self::SUPPLIER => 'warning',
+            self::FORWARDER => 'info',
         };
     }
 
@@ -33,6 +34,7 @@ enum UserType: string implements HasLabel, HasColor, HasIcon
             self::INTERNAL => 'heroicon-o-building-office',
             self::CLIENT => 'heroicon-o-user-group',
             self::SUPPLIER => 'heroicon-o-truck',
+            self::FORWARDER => 'heroicon-o-globe-alt',
         };
     }
 
@@ -52,6 +54,7 @@ enum UserType: string implements HasLabel, HasColor, HasIcon
             self::INTERNAL => 'Internal',
             self::CLIENT => 'Client',
             self::SUPPLIER => 'Supplier',
+            self::FORWARDER => 'Forwarder',
         };
     }
 }
