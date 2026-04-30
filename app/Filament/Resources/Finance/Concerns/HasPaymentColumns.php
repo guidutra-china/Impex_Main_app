@@ -55,7 +55,8 @@ trait HasPaymentColumns
                 ->placeholder('—')
                 ->wrap()
                 ->searchable(query: fn (Builder $query, string $search) => static::applyAllocatedToSearch($query, $search))
-                ->tooltip(fn ($record) => static::resolveAllocatedToLabels($record) ?: null),
+                ->tooltip(fn ($record) => static::resolveAllocatedToLabels($record) ?: null)
+                ->toggleable(),
             TextColumn::make('paymentMethod.name')
                 ->label(__('forms.labels.method'))
                 ->placeholder('—'),
