@@ -35,6 +35,11 @@ class AccountsPayablePage extends Page
 
     protected ?Company $resolvedCompany = null;
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('portal:view-financial-summary') ?? false;
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('accounts_payable.title');
@@ -60,7 +65,7 @@ class AccountsPayablePage extends Page
         $company = $this->resolveCompany();
         [$from, $to] = $this->resolveDateRange();
 
-        return (new AccountsPayableQuery())->run(
+        return (new AccountsPayableQuery)->run(
             companyId: $company->id,
             dateFrom: $from,
             dateTo: $to,

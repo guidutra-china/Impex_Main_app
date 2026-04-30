@@ -18,6 +18,11 @@ class StatementsPage extends StatementPreview
         $this->initializeStatement();
     }
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('portal:view-financial-summary') ?? false;
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('statements.title');

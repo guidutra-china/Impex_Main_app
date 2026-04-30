@@ -19,6 +19,11 @@ class FinancialReportPage extends FinancialReportPreview
         $this->initializeReport();
     }
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('portal:view-financial-summary') ?? false;
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('financial_report.title');
