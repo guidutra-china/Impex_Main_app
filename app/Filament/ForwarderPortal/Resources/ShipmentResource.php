@@ -180,7 +180,7 @@ class ShipmentResource extends Resource
                     ->label(__('forwarder_portal.shipment.total_due'))
                     ->visible(fn () => auth()->user()?->can('forwarder-portal:view-financial-summary') ?? false)
                     ->state(fn (Shipment $record) => $record->additionalCosts
-                        ->reject(fn ($cost) => $cost->status === AdditionalCostStatus::WAIVED)
+                        ->reject(fn ($cost) => $cost->forwarder_status === AdditionalCostStatus::WAIVED)
                         ->sum('forwarder_amount_in_document_currency'))
                     ->money(fn (Shipment $r) => $r->currency_code ?? 'USD', divideBy: 10000)
                     ->alignEnd(),
@@ -188,11 +188,11 @@ class ShipmentResource extends Resource
                     ->label(__('forwarder_portal.shipment.total_received'))
                     ->visible(fn () => auth()->user()?->can('forwarder-portal:view-financial-summary') ?? false)
                     ->state(fn (Shipment $record) => $record->additionalCosts
-                        ->where('status', AdditionalCostStatus::PAID)
+                        ->where('forwarder_status', AdditionalCostStatus::PAID)
                         ->sum('forwarder_amount_in_document_currency'))
                     ->money(fn (Shipment $r) => $r->currency_code ?? 'USD', divideBy: 10000)
                     ->color(fn (Shipment $r) => $r->additionalCosts
-                        ->where('status', AdditionalCostStatus::PAID)
+                        ->where('forwarder_status', AdditionalCostStatus::PAID)
                         ->sum('forwarder_amount_in_document_currency') > 0 ? 'success' : 'gray')
                     ->alignEnd(),
                 TextColumn::make('vessel_name')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),

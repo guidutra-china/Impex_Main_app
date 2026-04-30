@@ -36,6 +36,7 @@ return [
         'description' => 'Description',
         'amount' => 'Amount',
         'currency' => 'Currency',
+        'status' => 'Status',
         'empty_heading' => 'No charges',
     ],
     'notify' => [

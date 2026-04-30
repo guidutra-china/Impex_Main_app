@@ -36,6 +36,7 @@ return [
         'description' => 'Descrição',
         'amount' => 'Valor',
         'currency' => 'Moeda',
+        'status' => 'Status',
         'empty_heading' => 'Nenhuma cobrança',
     ],
     'notify' => [

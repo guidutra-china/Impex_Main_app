@@ -50,8 +50,10 @@ class ForwarderAdditionalCostsRelationManager extends RelationManager
                 TextColumn::make('cost_date')
                     ->date('d/m/Y')
                     ->placeholder('—'),
-                TextColumn::make('status')
-                    ->badge(),
+                TextColumn::make('forwarder_status')
+                    ->label(__('forwarder_portal.charges.status'))
+                    ->badge()
+                    ->placeholder('—'),
             ])
             ->headerActions([])
             ->recordActions([])

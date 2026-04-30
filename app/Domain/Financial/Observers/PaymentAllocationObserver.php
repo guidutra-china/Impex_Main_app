@@ -2,8 +2,10 @@
 
 namespace App\Domain\Financial\Observers;
 
+use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\DebitNoteStatus;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
+use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\DebitNoteLineItem;
 use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
@@ -14,12 +16,14 @@ class PaymentAllocationObserver
     {
         $this->recalculateScheduleItemStatus($allocation);
         $this->checkDebitNoteReconciliation($allocation);
+        $this->syncAdditionalCostStatus($allocation);
     }
 
     public function deleted(PaymentAllocation $allocation): void
     {
         $this->recalculateScheduleItemStatus($allocation);
         $this->checkDebitNoteReconciliation($allocation);
+        $this->syncAdditionalCostStatus($allocation);
     }
 
     /**
@@ -97,5 +101,61 @@ class PaymentAllocationObserver
         } elseif ($debitNote->status !== DebitNoteStatus::ISSUED) {
             $debitNote->update(['status' => DebitNoteStatus::ISSUED]);
         }
+    }
+
+    /**
+     * Reflect the live PSI status onto the parent AdditionalCost. A freight
+     * cost can have two PSIs (client-billable and forwarder-payable); each
+     * is mapped to its own column on the AdditionalCost row so the user can
+     * see which side has been settled.
+     *
+     * The forwarder-side PSI is identified by the [forwarder-payable] tag
+     * stitched into PSI.notes by GeneratePaymentScheduleAction.
+     */
+    protected function syncAdditionalCostStatus(PaymentAllocation $allocation): void
+    {
+        foreach ($this->collectScheduleItems($allocation) as $scheduleItem) {
+            if (! $scheduleItem || $scheduleItem->source_type !== AdditionalCost::class) {
+                continue;
+            }
+
+            /** @var AdditionalCost|null $cost */
+            $cost = AdditionalCost::find($scheduleItem->source_id);
+            if (! $cost) {
+                continue;
+            }
+
+            $isForwarderSide = str_contains($scheduleItem->notes ?? '', '[forwarder-payable]');
+            $newStatus = $this->mapScheduleItemStatusToCostStatus($scheduleItem->status);
+
+            $column = $isForwarderSide ? 'forwarder_status' : 'status';
+            if ($cost->{$column} !== $newStatus) {
+                $cost->{$column} = $newStatus;
+                $cost->save();
+            }
+        }
+    }
+
+    /**
+     * @return iterable<PaymentScheduleItem|null>
+     */
+    protected function collectScheduleItems(PaymentAllocation $allocation): iterable
+    {
+        yield $allocation->scheduleItem;
+
+        if ($allocation->credit_schedule_item_id) {
+            yield PaymentScheduleItem::find($allocation->credit_schedule_item_id);
+        }
+    }
+
+    protected function mapScheduleItemStatusToCostStatus(?PaymentScheduleStatus $status): AdditionalCostStatus
+    {
+        return match ($status) {
+            PaymentScheduleStatus::PAID => AdditionalCostStatus::PAID,
+            PaymentScheduleStatus::WAIVED => AdditionalCostStatus::WAIVED,
+            PaymentScheduleStatus::DUE,
+            PaymentScheduleStatus::OVERDUE => AdditionalCostStatus::INVOICED,
+            default => AdditionalCostStatus::PENDING,
+        };
     }
 }

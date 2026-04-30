@@ -36,6 +36,7 @@ return [
         'description' => '描述',
         'amount' => '金额',
         'currency' => '货币',
+        'status' => '状态',
         'empty_heading' => '无费用',
     ],
     'notify' => [

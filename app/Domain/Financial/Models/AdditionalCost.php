@@ -37,6 +37,7 @@ class AdditionalCost extends Model
         'forwarder_amount_in_document_currency',
         'cost_date',
         'status',
+        'forwarder_status',
         'notes',
         'attachment_path',
         'created_by',
@@ -57,6 +58,7 @@ class AdditionalCost extends Model
             'forwarder_amount_in_document_currency' => 'integer',
             'cost_date' => 'date',
             'status' => AdditionalCostStatus::class,
+            'forwarder_status' => AdditionalCostStatus::class,
         ];
     }
 

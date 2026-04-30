@@ -32,12 +32,13 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Schema;
-use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use UnitEnum;
+use Illuminate\Contracts\Pagination\CursorPaginator;
+use Illuminate\Contracts\Pagination\Paginator;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Database\Eloquent\Model;
 
 class AdditionalCostsRelationManager extends RelationManager
 {
@@ -46,6 +47,81 @@ class AdditionalCostsRelationManager extends RelationManager
     protected static ?string $title = 'Additional Costs';
 
     protected static BackedEnum|string|null $icon = 'heroicon-o-receipt-percent';
+
+    /**
+     * Detect if the given (possibly virtual-cloned) record represents the
+     * forwarder side of a freight cost. The clone created in
+     * expandForwarderRows() carries an `_is_forwarder_row` flag.
+     */
+    public function isForwarderRow(Model $record): bool
+    {
+        return (bool) ($record->_is_forwarder_row ?? false);
+    }
+
+    /**
+     * Override Filament's record fetch so a single freight AdditionalCost
+     * with a forwarder portion renders as TWO virtual rows — one for the
+     * client-billable side, one for the forwarder-payable side. The
+     * underlying DB row is unchanged; both clones reuse the same id but
+     * carry an `_is_forwarder_row` flag and a side-specific record key
+     * so Filament can tell them apart for actions and selection.
+     */
+    public function getTableRecords(): Paginator|CursorPaginator|EloquentCollection
+    {
+        $records = parent::getTableRecords();
+
+        if ($records instanceof EloquentCollection) {
+            return new EloquentCollection($this->expandForwarderRows($records));
+        }
+
+        $records->setCollection(
+            collect($this->expandForwarderRows($records->getCollection()))
+        );
+
+        return $records;
+    }
+
+    public function getTableRecordKey(Model|array $record): string
+    {
+        if (! $record instanceof Model) {
+            return parent::getTableRecordKey($record);
+        }
+
+        return $record->getKey().($this->isForwarderRow($record) ? '-forwarder' : '-client');
+    }
+
+    /**
+     * @param  iterable<int, Model>  $records
+     * @return array<int, Model>
+     */
+    protected function expandForwarderRows(iterable $records): array
+    {
+        $expanded = [];
+
+        foreach ($records as $record) {
+            $expanded[] = $record;
+
+            // Only freight costs on Shipments carry a forwarder portion.
+            if (! ($this->getOwnerRecord() instanceof Shipment)) {
+                continue;
+            }
+
+            $hasForwarderSide = $record->forwarder_amount_in_document_currency
+                || $record->forwarder_amount;
+
+            if (! $hasForwarderSide) {
+                continue;
+            }
+
+            $clone = clone $record;
+            $clone->setAttribute('_is_forwarder_row', true);
+            // Inherit relations so the forwarderCompany.name accessor works.
+            $clone->setRelations($record->getRelations());
+            $expanded[] = $clone;
+        }
+
+        return $expanded;
+    }
 
     public function table(Table $table): Table
     {
@@ -61,7 +137,7 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->tooltip(fn ($record) => $record->description),
                 TextColumn::make('commission_rate')
                     ->label(__('forms.labels.commission_rate'))
-                    ->formatStateUsing(fn ($state) => $state ? $state . '%' : null)
+                    ->formatStateUsing(fn ($state) => $state ? $state.'%' : null)
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('commission_mode')
@@ -69,31 +145,42 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->badge()
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('amount')
+                TextColumn::make('display_side')
+                    ->label(__('forms.labels.side'))
+                    ->badge()
+                    ->state(fn ($record) => $this->isForwarderRow($record) ? 'forwarder' : 'client')
+                    ->formatStateUsing(fn ($state) => $state === 'forwarder'
+                        ? __('forms.labels.side_forwarder')
+                        : __('forms.labels.side_client'))
+                    ->color(fn ($state) => $state === 'forwarder' ? 'info' : 'success')
+                    ->visible(fn () => $this->getOwnerRecord() instanceof Shipment),
+                TextColumn::make('display_amount')
                     ->label(__('forms.labels.amount'))
-                    ->formatStateUsing(fn ($state) => Money::format($state))
+                    ->state(fn ($record) => $this->isForwarderRow($record) ? $record->forwarder_amount : $record->amount)
+                    ->formatStateUsing(fn ($state) => Money::format((int) $state))
                     ->alignEnd(),
-                TextColumn::make('currency_code')
-                    ->label(__('forms.labels.currency')),
-                TextColumn::make('amount_in_document_currency')
+                TextColumn::make('display_currency')
+                    ->label(__('forms.labels.currency'))
+                    ->state(fn ($record) => $this->isForwarderRow($record)
+                        ? $record->forwarder_currency_code
+                        : $record->currency_code),
+                TextColumn::make('display_doc_amount')
                     ->label(__('forms.labels.doc_amount'))
-                    ->formatStateUsing(fn ($state) => Money::format($state))
-                    ->alignEnd()
-                    ->summarize(Sum::make()
-                        ->label(__('forms.labels.total'))
-                        ->formatStateUsing(fn ($state) => Money::format((int) $state))),
-                TextColumn::make('billable_to')
+                    ->state(fn ($record) => $this->isForwarderRow($record)
+                        ? $record->forwarder_amount_in_document_currency
+                        : $record->amount_in_document_currency)
+                    ->formatStateUsing(fn ($state) => Money::format((int) $state))
+                    ->alignEnd(),
+                TextColumn::make('display_party')
                     ->label(__('forms.labels.billable_to'))
+                    ->state(function ($record) {
+                        if ($this->isForwarderRow($record)) {
+                            return $record->forwarderCompany?->name ?? '—';
+                        }
+
+                        return $record->billable_to?->getLabel() ?? '—';
+                    })
                     ->badge(),
-                TextColumn::make('forwarderCompany.name')
-                    ->label(__('forms.labels.freight_forwarder'))
-                    ->placeholder('—')
-                    ->visible(fn () => $this->getOwnerRecord() instanceof Shipment),
-                TextColumn::make('forwarder_amount_in_document_currency')
-                    ->label(__('forms.labels.forwarder_amount'))
-                    ->formatStateUsing(fn ($state) => $state ? Money::format($state) : '—')
-                    ->alignEnd()
-                    ->visible(fn () => $this->getOwnerRecord() instanceof Shipment),
                 TextColumn::make('supplierCompany.name')
                     ->label(__('forms.labels.supplier'))
                     ->placeholder('—')
@@ -102,8 +189,11 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->label(__('forms.labels.date'))
                     ->date('d/m/Y')
                     ->sortable(),
-                TextColumn::make('status')
+                TextColumn::make('display_status')
                     ->label(__('forms.labels.status'))
+                    ->state(fn ($record) => $this->isForwarderRow($record)
+                        ? $record->forwarder_status
+                        : $record->status)
                     ->badge(),
                 TextColumn::make('creator.name')
                     ->label(__('forms.labels.created_by'))
@@ -162,7 +252,9 @@ class AdditionalCostsRelationManager extends RelationManager
             ->label(__('forms.labels.edit'))
             ->icon('heroicon-o-pencil-square')
             ->color('gray')
-            ->visible(fn ($record) => $record->status === AdditionalCostStatus::PENDING && auth()->user()?->can('create-payments'))
+            ->visible(fn ($record) => ! $this->isForwarderRow($record)
+                && $record->status === AdditionalCostStatus::PENDING
+                && auth()->user()?->can('create-payments'))
             ->fillForm(fn ($record) => [
                 'cost_type' => $record->cost_type->value,
                 'commission_rate' => $record->commission_rate,
@@ -218,7 +310,9 @@ class AdditionalCostsRelationManager extends RelationManager
             ->color('warning')
             ->requiresConfirmation()
             ->modalDescription('This will waive the cost and its linked schedule items. The amounts will no longer be collectible/deductible.')
-            ->visible(fn ($record) => in_array($record->status, [AdditionalCostStatus::PENDING, AdditionalCostStatus::INVOICED]) && auth()->user()?->can('approve-payments'))
+            ->visible(fn ($record) => ! $this->isForwarderRow($record)
+                && in_array($record->status, [AdditionalCostStatus::PENDING, AdditionalCostStatus::INVOICED])
+                && auth()->user()?->can('approve-payments'))
             ->action(function ($record) {
                 // Revert embedded commission before waiving
                 if ($this->isEmbeddedCommission($record)) {
@@ -250,7 +344,9 @@ class AdditionalCostsRelationManager extends RelationManager
             ->color('danger')
             ->requiresConfirmation()
             ->modalDescription('This will delete the cost and its linked schedule items.')
-            ->visible(fn ($record) => $record->status === AdditionalCostStatus::PENDING && auth()->user()?->can('create-payments'))
+            ->visible(fn ($record) => ! $this->isForwarderRow($record)
+                && $record->status === AdditionalCostStatus::PENDING
+                && auth()->user()?->can('create-payments'))
             ->action(function ($record) {
                 // Revert embedded commission before deleting
                 if ($this->isEmbeddedCommission($record)) {
@@ -511,10 +607,12 @@ class AdditionalCostsRelationManager extends RelationManager
 
         if ($record) {
             $record->update($payload);
+
             return $record->fresh();
         }
 
         $payload['status'] = AdditionalCostStatus::PENDING->value;
+
         return $owner->additionalCosts()->create($payload);
     }
 
@@ -556,6 +654,7 @@ class AdditionalCostsRelationManager extends RelationManager
 
             // Still create forwarder payable if forwarder data exists
             $this->syncForwarderScheduleItem($cost, $owner);
+
             return;
         }
 
@@ -653,6 +752,7 @@ class AdditionalCostsRelationManager extends RelationManager
             if ($existing && ! $existing->allocations()->exists()) {
                 $existing->delete();
             }
+
             return;
         }
 
@@ -725,6 +825,7 @@ class AdditionalCostsRelationManager extends RelationManager
                 if ($po) {
                     return $po;
                 }
+
                 return $owner;
             }
         }
@@ -806,8 +907,8 @@ class AdditionalCostsRelationManager extends RelationManager
                 try {
                     $template = new CostStatementPdfTemplate($this->getOwnerRecord());
                     $service = new PdfGeneratorService(
-                        new PdfRenderer(),
-                        new DocumentService(),
+                        new PdfRenderer,
+                        new DocumentService,
                     );
 
                     $content = $service->preview($template);
@@ -819,7 +920,7 @@ class AdditionalCostsRelationManager extends RelationManager
                         $template->getFilename(),
                         [
                             'Content-Type' => 'application/pdf',
-                            'Content-Disposition' => 'inline; filename="' . $template->getFilename() . '"',
+                            'Content-Disposition' => 'inline; filename="'.$template->getFilename().'"',
                         ],
                     );
                 } catch (\Throwable $e) {
