@@ -2,13 +2,16 @@
 
 namespace App\Domain\Infrastructure\Pdf\Templates;
 
+use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\Quotations\Enums\CommissionType;
 
 class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
 {
     protected bool $hideCommission;
+
     protected bool $withImages;
 
     public function __construct(
@@ -27,7 +30,7 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
         $reference = $this->model->reference ?? $this->model->getKey();
         $picSuffix = $this->withImages ? '-PIC' : '';
 
-        return $reference . $picSuffix . '-v' . $this->getNextVersion() . '.pdf';
+        return $reference.$picSuffix.'-v'.$this->getNextVersion().'.pdf';
     }
 
     public function getView(): string
@@ -80,19 +83,34 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
 
         $subtotal = $pi->items->sum(fn ($item) => $item->line_total);
 
-        $serviceFees = [];
-        if (! $this->hideCommission) {
-            $serviceFees = $pi->additionalCosts
-                ->where('cost_type', AdditionalCostType::COMMISSION)
-                ->where('billable_to', BillableTo::CLIENT)
-                ->map(fn ($cost) => [
-                    'description' => $cost->description,
-                    'amount' => $this->formatMoney($cost->amount_in_document_currency, $currencyCode, 2),
-                    'raw_amount' => $cost->amount_in_document_currency,
-                ])
-                ->values()
-                ->toArray();
-        }
+        $serviceFees = $pi->additionalCosts
+            ->filter(function ($cost) {
+                if ($cost->billable_to !== BillableTo::CLIENT) {
+                    return false;
+                }
+                if ($cost->status === AdditionalCostStatus::WAIVED) {
+                    return false;
+                }
+                if ($cost->cost_type === AdditionalCostType::COMMISSION) {
+                    if ($this->hideCommission) {
+                        return false;
+                    }
+                    // Embedded commissions are already baked into item unit prices;
+                    // listing them again would double-count.
+                    if ($cost->commission_mode === CommissionType::EMBEDDED) {
+                        return false;
+                    }
+                }
+
+                return true;
+            })
+            ->map(fn ($cost) => [
+                'description' => $cost->description,
+                'amount' => $this->formatMoney($cost->amount_in_document_currency, $currencyCode, 2),
+                'raw_amount' => $cost->amount_in_document_currency,
+            ])
+            ->values()
+            ->toArray();
 
         $serviceFeeTotal = array_sum(array_column($serviceFees, 'raw_amount'));
         $grandTotal = $subtotal + $serviceFeeTotal;
