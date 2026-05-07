@@ -146,7 +146,7 @@ class CompanyFinancialStatement extends Widget
 
             $rows[] = [
                 'reference' => $po->reference,
-                'extra_ref' => $po->reference,
+                'extra_ref' => $po->supplier_invoice_number,
                 'status' => $po->status,
                 'date' => $po->created_at->format('M d, Y'),
                 'currency' => $currency,

@@ -94,7 +94,7 @@
                                     @if (($section['type'] ?? '') === 'client')
                                         <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Ref. Cliente</th>
                                     @elseif (($section['type'] ?? '') === 'supplier')
-                                        <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">PO Number</th>
+                                        <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Supplier Invoice</th>
                                     @endif
                                     <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Date</th>
                                     @if (($section['type'] ?? '') === 'forwarder')
