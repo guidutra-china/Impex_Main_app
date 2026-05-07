@@ -87,6 +87,7 @@ class CompanyFinancialStatement extends Widget
 
             $rows[] = [
                 'reference' => $pi->reference,
+                'extra_ref' => $pi->client_reference,
                 'status' => $pi->status,
                 'date' => $pi->created_at->format('M d, Y'),
                 'currency' => $currency,
@@ -145,6 +146,7 @@ class CompanyFinancialStatement extends Widget
 
             $rows[] = [
                 'reference' => $po->reference,
+                'extra_ref' => $po->reference,
                 'status' => $po->status,
                 'date' => $po->created_at->format('M d, Y'),
                 'currency' => $currency,
