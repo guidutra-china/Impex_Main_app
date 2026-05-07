@@ -424,7 +424,7 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->suffix('%')
                     ->required()
                     ->visible(fn ($get) => $isCommission($get))
-                    ->live(onBlur: true)
+                    ->live(debounce: 400)
                     ->afterStateUpdated(function ($state, $get, $set) {
                         $owner = $this->getOwnerRecord();
                         if ($owner instanceof ProformaInvoice && $state > 0) {
@@ -439,8 +439,7 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->step('0.01')
                     ->minValue(0.01)
                     ->required()
-                    ->helperText(fn ($get) => $isFreight($get) ? __('forms.helpers.amount_charged_to_client') : ($isCommission($get) ? __('forms.helpers.auto_calculated_from_commission_rate') : null))
-                    ->readOnly(fn ($get) => $isCommission($get) && $get('commission_rate') > 0),
+                    ->helperText(fn ($get) => $isFreight($get) ? __('forms.helpers.amount_charged_to_client') : ($isCommission($get) ? __('forms.helpers.auto_calculated_from_commission_rate_editable') : null)),
                 Select::make('currency_code')
                     ->label(__('forms.labels.currency'))
                     ->options(fn () => Currency::pluck('code', 'code'))
@@ -519,18 +518,11 @@ class AdditionalCostsRelationManager extends RelationManager
     {
         $owner = $this->getOwnerRecord();
 
-        // For commission with rate: recalculate amount from percentage
         $isCommission = ($data['cost_type'] ?? null) === AdditionalCostType::COMMISSION->value
             || ($data['cost_type'] ?? null) === AdditionalCostType::COMMISSION
             || ($data['cost_type'] ?? null) === 'commission';
 
-        if ($isCommission && ! empty($data['commission_rate']) && $owner instanceof ProformaInvoice) {
-            $subtotal = $owner->subtotal;
-            $calculatedAmount = (int) round($subtotal * ((float) $data['commission_rate'] / 100));
-            $amountMinor = $calculatedAmount;
-        } else {
-            $amountMinor = Money::toMinor((float) $data['amount']);
-        }
+        $amountMinor = Money::toMinor((float) $data['amount']);
 
         $documentCurrencyCode = $owner->currency_code;
         $costCurrencyCode = $data['currency_code'];

@@ -777,6 +777,7 @@ return [
         'commission_embedded_in_the_unit_price' => '佣金包含在单价中。',
         'commission_separate_creates_payment_schedule' => '佣金将作为单独的付款计划项目添加。',
         'auto_calculated_from_commission_rate' => '根据佣金率自动计算。',
+        'auto_calculated_from_commission_rate_editable' => '根据佣金率自动计算。如需调整可手动修改。',
         'currency_for_all_cost_values_below' => '以下所有成本值的货币。',
         'custom_instructions_for_this_rfq_leave_empty_to_use_the' => '此询价单的自定义说明。留空则使用公司设置默认值。',
         'date_and_time_the_client_confirmed' => '客户确认的日期和时间。',
