@@ -20,12 +20,13 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use UnitEnum;
 
 class ItemsRelationManager extends RelationManager
 {
     protected static string $relationship = 'items';
+
     protected static ?string $title = 'Planned Items';
+
     protected static BackedEnum|string|null $icon = 'heroicon-o-cube';
 
     public function form(Schema $schema): Schema
@@ -35,8 +36,12 @@ class ItemsRelationManager extends RelationManager
                 ->label(__('forms.labels.proforma_invoice'))
                 ->options(function () {
                     $companyId = $this->getOwnerRecord()->supplier_company_id;
+
                     return ProformaInvoice::where('company_id', $companyId)
-                        ->pluck('reference', 'id');
+                        ->get()
+                        ->mapWithKeys(fn ($pi) => [
+                            $pi->id => $pi->reference.($pi->client_reference ? ' — '.$pi->client_reference : ''),
+                        ]);
                 })
                 ->searchable()
                 ->preload()
@@ -65,10 +70,11 @@ class ItemsRelationManager extends RelationManager
                             $planned = ShipmentPlanItem::where('proforma_invoice_item_id', $item->id)->sum('quantity');
                             $remaining = $item->quantity - $shipped - $planned;
                             $label = $item->product_name
-                                . ' — Qty: ' . $item->quantity
-                                . ' | Shipped: ' . $shipped
-                                . ' | Planned: ' . $planned
-                                . ' | Available: ' . max(0, $remaining);
+                                .' — Qty: '.$item->quantity
+                                .' | Shipped: '.$shipped
+                                .' | Planned: '.$planned
+                                .' | Available: '.max(0, $remaining);
+
                             return [$item->id => $label];
                         });
                 })
@@ -103,7 +109,7 @@ class ItemsRelationManager extends RelationManager
                 ->integer()
                 ->minValue(1)
                 ->maxValue(fn (Get $get) => $get('max_quantity') ?: 999999)
-                ->helperText(fn (Get $get) => $get('max_quantity') ? 'Max available: ' . $get('max_quantity') : null)
+                ->helperText(fn (Get $get) => $get('max_quantity') ? 'Max available: '.$get('max_quantity') : null)
                 ->live(onBlur: true)
                 ->afterStateUpdated(function (Get $get, Set $set) {
                     $qty = (int) $get('quantity');
@@ -172,8 +178,12 @@ class ItemsRelationManager extends RelationManager
                             ->label(__('forms.labels.proforma_invoice'))
                             ->options(function () {
                                 $companyId = $this->getOwnerRecord()->supplier_company_id;
+
                                 return ProformaInvoice::where('company_id', $companyId)
-                                    ->pluck('reference', 'id');
+                                    ->get()
+                                    ->mapWithKeys(fn ($pi) => [
+                                        $pi->id => $pi->reference.($pi->client_reference ? ' — '.$pi->client_reference : ''),
+                                    ]);
                             })
                             ->searchable()
                             ->preload()
@@ -208,6 +218,7 @@ class ItemsRelationManager extends RelationManager
 
                             if ($qty <= 0) {
                                 $skipped++;
+
                                 continue;
                             }
 
