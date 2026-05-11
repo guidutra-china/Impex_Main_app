@@ -12,8 +12,8 @@ use App\Domain\Logistics\Actions\DeleteCartonContentAction;
 use App\Domain\Logistics\Actions\DeleteContainerAction;
 use App\Domain\Logistics\Actions\DeletePalletAction;
 use App\Domain\Logistics\Actions\GeneratePackingListV2Action;
-use App\Domain\Logistics\Actions\SplitProductAcrossCartonsAction;
 use App\Domain\Logistics\Actions\RecalculateShipmentTotalsAction;
+use App\Domain\Logistics\Actions\SplitProductAcrossCartonsAction;
 use App\Domain\Logistics\Actions\UpdateCartonAction;
 use App\Domain\Logistics\Actions\UpdateContainerAction;
 use App\Domain\Logistics\Actions\UpdatePalletAction;
@@ -32,12 +32,16 @@ class PackingListBuilder extends Component
 
     // Transient "Add content" form (per-carton)
     public ?int $addContentCartonId = null;
+
     public ?int $addContentItemId = null;
+
     public mixed $addContentPieces = 0;
 
     // Transient "Split product" form
     public ?int $splitItemId = null;
+
     public mixed $splitPartsCount = 2;
+
     public array $splitPartLabels = ['Part 1', 'Part 2'];
 
     // Transient per-part placement form (keyed by "itemId::partLabel")
@@ -45,6 +49,7 @@ class PackingListBuilder extends Component
 
     // Transient "Edit container" form
     public ?int $editContainerId = null;
+
     public array $editContainerForm = [
         'container_number' => null,
         'type' => null,
@@ -54,6 +59,7 @@ class PackingListBuilder extends Component
 
     // Transient "Edit pallet" form
     public ?int $editPalletId = null;
+
     public array $editPalletForm = [
         'shipment_container_id' => null,
         'length' => null,
@@ -62,9 +68,11 @@ class PackingListBuilder extends Component
         'notes' => null,
     ];
 
-    // Transient "Edit carton" form (box-level: dims + weight only)
+    // Transient "Edit carton" form (box-level: dims + weight + packaging type)
     public ?int $editCartonId = null;
+
     public array $editCartonForm = [
+        'packaging_type' => null,
         'gross_weight' => null,
         'net_weight' => null,
         'length' => null,
@@ -83,9 +91,13 @@ class PackingListBuilder extends Component
     // "Bulk fill" / "Pack product" form state
     // fillTargetType: 'container' | 'pallet' | null
     public ?string $fillTargetType = null;
+
     public ?int $fillTargetId = null;
+
     public ?int $fillItemId = null;
+
     public mixed $fillPieces = 0; // mixed: browser sends "" when input cleared
+
     public bool $fillFromProduct = false; // true when initiated from product card (pick target)
 
     public function mount(Shipment $shipment): void
@@ -434,6 +446,7 @@ class PackingListBuilder extends Component
 
         $this->editCartonId = $cartonId;
         $this->editCartonForm = [
+            'packaging_type' => $carton->packaging_type?->value ?? $carton->getRawOriginal('packaging_type'),
             'gross_weight' => $carton->gross_weight,
             'net_weight' => $carton->net_weight,
             'length' => $carton->length,
@@ -448,6 +461,7 @@ class PackingListBuilder extends Component
     {
         $this->editCartonId = null;
         $this->editCartonForm = [
+            'packaging_type' => null,
             'gross_weight' => null,
             'net_weight' => null,
             'length' => null,

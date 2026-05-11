@@ -234,7 +234,7 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
             (string) ($carton->length ?? ''),
             (string) ($carton->width ?? ''),
             (string) ($carton->height ?? ''),
-            (string) ($carton->packaging_type ?? ''),
+            (string) ($carton->packaging_type?->value ?? ''),
             $this->resolvePalletLabel($carton) ?? '',
         ]);
     }

@@ -3,6 +3,11 @@
         <div class="flex-1">
             <div class="flex flex-wrap items-center gap-2 text-base">
                 <span class="font-semibold text-gray-900 dark:text-white">{{ $carton->label }}</span>
+                @if ($carton->packaging_type)
+                    <x-filament::badge :color="$carton->packaging_type->getColor()" :icon="$carton->packaging_type->getIcon()" size="xs">
+                        {{ $carton->packaging_type->getLabel() }}
+                    </x-filament::badge>
+                @endif
                 @if ($carton->gross_weight)
                     <span class="text-sm text-gray-500">{{ number_format((float) $carton->gross_weight, 1) }} kg</span>
                 @endif
@@ -112,6 +117,15 @@
     @if ($editCartonId === $carton->id)
         <div class="mt-2 space-y-2 rounded-md border border-primary-300 bg-primary-50 p-3 dark:border-primary-700 dark:bg-primary-950">
             <h4 class="text-xs font-semibold uppercase text-primary-900 dark:text-primary-100">Edit {{ $carton->label }}</h4>
+            <label class="block">
+                <span class="text-xs text-gray-700 dark:text-gray-300">Tipo de embalagem</span>
+                <select wire:model="editCartonForm.packaging_type"
+                    class="mt-0.5 block w-full rounded border-gray-300 text-xs dark:border-gray-700 dark:bg-gray-900">
+                    @foreach (\App\Domain\Logistics\Enums\PackagingType::cases() as $type)
+                        <option value="{{ $type->value }}">{{ $type->getLabel() }}</option>
+                    @endforeach
+                </select>
+            </label>
             <div class="grid grid-cols-2 gap-2">
                 <label class="block">
                     <span class="text-xs text-gray-700 dark:text-gray-300">Gross weight (kg)</span>

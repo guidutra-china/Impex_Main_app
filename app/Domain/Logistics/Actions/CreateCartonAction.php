@@ -2,6 +2,7 @@
 
 namespace App\Domain\Logistics\Actions;
 
+use App\Domain\Logistics\Enums\PackagingType;
 use App\Domain\Logistics\Models\Carton;
 use App\Domain\Logistics\Models\Shipment;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +22,7 @@ class CreateCartonAction
             $label = $this->generateNextLabel($shipment);
 
             $attributes = array_merge([
-                'packaging_type' => 'CARTON',
+                'packaging_type' => PackagingType::CARTON->value,
                 'sort_order' => $this->nextSortOrder($shipment),
             ], $defaults, [
                 'shipment_id' => $shipment->id,

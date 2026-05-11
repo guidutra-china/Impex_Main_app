@@ -4,6 +4,7 @@ namespace Tests\Feature\Logistics;
 
 use App\Domain\CRM\Models\Company;
 use App\Domain\Logistics\Actions\CreateCartonAction;
+use App\Domain\Logistics\Enums\PackagingType;
 use App\Domain\Logistics\Models\Shipment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -112,6 +113,6 @@ class CreateCartonActionTest extends TestCase
     {
         $carton = $this->action->execute($this->shipment);
 
-        $this->assertEquals('CARTON', $carton->packaging_type);
+        $this->assertSame(PackagingType::CARTON, $carton->packaging_type);
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Domain\Logistics\Models;
 
+use App\Domain\Logistics\Enums\PackagingType;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -41,6 +43,23 @@ class Carton extends Model
             'volume' => 'decimal:4',
             'sort_order' => 'integer',
         ];
+    }
+
+    // Legacy data mixes 'CARTON' (uppercase, old CreateCartonAction default) and
+    // 'carton' (lowercase, enum->value from auto-generation). Normalize on read
+    // case-insensitively and always persist lowercase. Returns null for unknown values.
+    protected function packagingType(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value): ?PackagingType => $value === null
+                ? null
+                : PackagingType::tryFrom(strtolower($value)),
+            set: fn (PackagingType|string|null $value): ?string => match (true) {
+                $value === null => null,
+                $value instanceof PackagingType => $value->value,
+                default => strtolower($value),
+            },
+        );
     }
 
     public function shipment(): BelongsTo
