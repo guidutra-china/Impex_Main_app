@@ -55,19 +55,20 @@
     <table class="items-table">
         <thead>
             <tr>
-                <th style="width: 30px;">{{ $labels['item'] }}</th>
+                <th style="width: 28px;">{{ $labels['item'] }}</th>
                 @if(! empty($with_images))
-                    <th class="text-center" style="width: 55px;">{{ $labels['photo'] ?? 'Photo' }}</th>
+                    <th class="text-center" style="width: 50px;">{{ $labels['photo'] ?? 'Photo' }}</th>
                 @endif
-                <th style="width: 80px;">{{ $labels['product_code'] }}</th>
-                <th>{{ $labels['description'] }}</th>
+                <th style="width: 75px;">{{ $labels['product_code'] }}</th>
+                <th style="width: 130px;">{{ $labels['description'] }}</th>
                 @if($has_suppliers ?? false)
-                    <th style="width: 150px;">{{ $labels['supplier'] }}</th>
+                    <th style="width: 120px;">{{ $labels['supplier'] }}</th>
+                    <th class="text-center" style="width: 50px;">{{ $labels['lead_time'] ?? 'Lead Time' }}</th>
                 @endif
-                <th class="text-center" style="width: 55px;">{{ $labels['quantity'] }}</th>
-                <th class="text-center" style="width: 45px;">{{ $labels['unit'] }}</th>
-                <th class="text-right" style="width: 85px;">{{ $labels['unit_price'] }}</th>
-                <th class="text-right" style="width: 90px;">{{ $labels['line_total'] }}</th>
+                <th class="text-center" style="width: 45px;">{{ $labels['quantity'] }}</th>
+                <th class="text-center" style="width: 35px;">{{ $labels['unit'] }}</th>
+                <th class="text-right" style="width: 75px;">{{ $labels['unit_price'] }}</th>
+                <th class="text-right" style="width: 80px;">{{ $labels['line_total'] }}</th>
             </tr>
         </thead>
         <tbody>
@@ -94,6 +95,7 @@
                         </td>
                         @if($has_suppliers ?? false)
                             <td>{{ $supplier['name'] }}</td>
+                            <td class="text-center">@if(! empty($supplier['lead_time_days'])){{ $supplier['lead_time_days'] }}d@endif</td>
                         @endif
                         <td class="text-center">@if($supplier['is_primary']){{ number_format($item['quantity']) }}@endif</td>
                         <td class="text-center">@if($supplier['is_primary']){{ $item['unit'] }}@endif</td>

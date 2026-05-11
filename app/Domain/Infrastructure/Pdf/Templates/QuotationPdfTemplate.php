@@ -87,6 +87,7 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
                         ? ($alt->company?->name ?? '—')
                         : 'Supplier '.($idx + 1),
                     'unit_price' => $this->formatMoney($alt->client_unit_price, $currencyCode, 2),
+                    'lead_time_days' => $alt->lead_time_days,
                     'is_primary' => $alt->company_id == $primaryCompanyId,
                 ];
             })->all();
@@ -98,6 +99,7 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
                         ? ($showSuppliers ? $item->selectedSupplier->name : 'Supplier 1')
                         : '—',
                     'unit_price' => $this->formatMoney($item->unit_price, $currencyCode, 2),
+                    'lead_time_days' => null,
                     'is_primary' => true,
                 ]];
             }
