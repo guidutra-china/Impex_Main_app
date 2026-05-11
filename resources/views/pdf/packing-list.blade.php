@@ -108,6 +108,14 @@
         font-weight: bold;
     }
 
+    .packaging-type-label {
+        display: inline-block;
+        color: #6b7280;
+        font-size: 6pt;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
     .sub-item td {
         border-bottom: 1px dashed #d1d5db;
         color: #374151;
@@ -241,6 +249,9 @@
                         <td>
                             @if($line['package_no'])
                                 <strong>{{ $line['package_no'] }}</strong>
+                            @endif
+                            @if(! empty($line['packaging_type']))
+                                <br><span class="packaging-type-label">{{ $line['packaging_type'] }}</span>
                             @endif
                             @if($line['pallet'])
                                 <br><span class="pallet-badge">{{ $line['pallet'] }}</span>

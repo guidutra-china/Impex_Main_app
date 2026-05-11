@@ -273,6 +273,7 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
             [
                 'package_no' => $packageRange,
                 'pallet' => $this->resolvePalletLabel($firstCarton),
+                'packaging_type' => $firstCarton->packaging_type?->getEnglishLabel(),
                 'model_no' => $pivot?->external_code ?: ($product?->model_number ?: ($product?->sku ?? '')),
                 'product_name' => $productName,
                 'description' => $shipmentItem?->notes,
@@ -293,6 +294,7 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
         return [
             'package_no' => $carton->label,
             'pallet' => $this->resolvePalletLabel($carton),
+            'packaging_type' => $carton->packaging_type?->getEnglishLabel(),
             'model_no' => '',
             'product_name' => '—',
             'description' => null,
@@ -322,6 +324,7 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
             return [
                 'package_no' => $carton->label,
                 'pallet' => $this->resolvePalletLabel($carton),
+                'packaging_type' => $carton->packaging_type?->getEnglishLabel(),
                 'model_no' => $pivot?->external_code ?: ($product?->model_number ?: ($product?->sku ?? '')),
                 'product_name' => $productName,
                 'description' => $shipmentItem?->notes,
@@ -339,6 +342,7 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
         return [
             'package_no' => '',
             'pallet' => null,
+            'packaging_type' => null,
             'model_no' => $pivot?->external_code ?: ($product?->model_number ?: ($product?->sku ?? '')),
             'product_name' => $productName,
             'description' => $shipmentItem?->notes,
