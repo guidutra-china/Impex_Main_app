@@ -1,5 +1,7 @@
 @extends('pdf.layouts.document')
 
+{{-- v2: multi-supplier sub-rows. Force recompile if you see "Undefined array key 0" — run `php artisan view:clear`. --}}
+
 @section('document-meta')
     <table class="document-meta-table">
         <tr>
