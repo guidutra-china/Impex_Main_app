@@ -60,22 +60,41 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
         $currencyCode = $quotation->currency_code ?? 'USD';
         $showSuppliers = (bool) $quotation->show_suppliers;
 
-        $items = $quotation->items->map(function ($item, $index) use ($currencyCode, $showSuppliers) {
+        $commissionType = $quotation->commission_type instanceof CommissionType
+            ? $quotation->commission_type
+            : ($quotation->commission_type ? CommissionType::tryFrom((string) $quotation->commission_type) : null);
+
+        $items = $quotation->items->map(function ($item, $index) use ($currencyCode, $showSuppliers, $commissionType) {
+            $itemCommissionRate = $commissionType === CommissionType::EMBEDDED
+                ? (float) $item->commission_rate
+                : 0.0;
+            $multiplier = 1 + ($itemCommissionRate / 100);
+
             $alternatives = $item->suppliers
-                ->sortBy(fn ($alt) => (float) $alt->unit_cost * (float) ($alt->cost_exchange_rate ?? 1))
+                ->map(function ($alt) use ($multiplier) {
+                    $convertedCost = (float) $alt->unit_cost * (float) ($alt->cost_exchange_rate ?? 1);
+                    $alt->setAttribute('client_unit_price', (int) round($convertedCost * $multiplier));
+
+                    return $alt;
+                })
+                ->sortBy('client_unit_price')
                 ->values();
 
-            $supplierNames = $alternatives->map(function ($alt, $idx) use ($showSuppliers) {
-                return $showSuppliers
-                    ? ($alt->company?->name ?? '—')
-                    : 'Supplier '.($idx + 1);
+            $suppliers = $alternatives->map(function ($alt, $idx) use ($showSuppliers, $currencyCode) {
+                return [
+                    'name' => $showSuppliers
+                        ? ($alt->company?->name ?? '—')
+                        : 'Supplier '.($idx + 1),
+                    'unit_price' => $this->formatMoney($alt->client_unit_price, $currencyCode, 2),
+                ];
             })->all();
 
             // Fallback for manual quotations created without supplier quotation sources.
-            if (empty($supplierNames) && $item->selectedSupplier) {
-                $supplierNames = [
-                    $showSuppliers ? $item->selectedSupplier->name : 'Supplier 1',
-                ];
+            if (empty($suppliers) && $item->selectedSupplier) {
+                $suppliers = [[
+                    'name' => $showSuppliers ? $item->selectedSupplier->name : 'Supplier 1',
+                    'unit_price' => $this->formatMoney($item->unit_price, $currencyCode, 2),
+                ]];
             }
 
             return [
@@ -87,7 +106,7 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
                 'unit_price' => $this->formatMoney($item->unit_price, $currencyCode, 2),
                 'line_total' => $this->formatMoney($item->line_total, $currencyCode, 2),
                 'incoterm' => $item->incoterm instanceof \BackedEnum ? $item->incoterm->value : $item->incoterm,
-                'suppliers' => $supplierNames,
+                'suppliers' => $suppliers,
                 'image' => $this->withImages ? $this->resolveImagePath($item->product?->avatar) : null,
             ];
         });

@@ -62,7 +62,7 @@
                 <th style="width: 80px;">{{ $labels['product_code'] }}</th>
                 <th>{{ $labels['description'] }}</th>
                 @if($has_suppliers ?? false)
-                    <th style="width: 110px;">{{ $labels['supplier'] }}</th>
+                    <th style="width: 150px;">{{ $labels['supplier'] }}</th>
                 @endif
                 <th class="text-center" style="width: 55px;">{{ $labels['quantity'] }}</th>
                 <th class="text-center" style="width: 45px;">{{ $labels['unit'] }}</th>
@@ -89,10 +89,10 @@
                         @endif
                     </td>
                     @if($has_suppliers ?? false)
-                        <td>
+                        <td style="font-size: 7.5pt;">
                             @if(! empty($item['suppliers']))
                                 @foreach($item['suppliers'] as $s)
-                                    {{ $s }}@if(! $loop->last)<br>@endif
+                                    {{ $s['name'] }} — {{ $quotation['currency_code'] }} {{ $s['unit_price'] }}@if(! $loop->last)<br>@endif
                                 @endforeach
                             @else
                                 —
