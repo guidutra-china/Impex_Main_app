@@ -93,7 +93,7 @@
                     @endif
                     <td class="text-center">{{ number_format($item['quantity']) }}</td>
                     <td class="text-center">{{ $item['unit'] }}</td>
-                    <td class="text-right">{{ $item['unit_price'] }}</td>
+                    <td class="text-right" style="font-size: 7.5pt;">{!! $item['unit_price'] !!}</td>
                     <td class="text-right">{{ $item['line_total'] }}</td>
                 </tr>
             @endforeach

@@ -60,27 +60,55 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
         $currencyCode = $quotation->currency_code ?? 'USD';
         $showSuppliers = (bool) $quotation->show_suppliers;
 
-        $items = $quotation->items->map(function ($item, $index) use ($currencyCode, $showSuppliers) {
-            $supplierName = $showSuppliers ? ($item->selectedSupplier?->name ?? null) : null;
+        $commissionType = $quotation->commission_type instanceof CommissionType
+            ? $quotation->commission_type
+            : ($quotation->commission_type ? CommissionType::tryFrom((string) $quotation->commission_type) : null);
 
-            // Best-effort enrichment: show all alternative suppliers joined with <br>.
-            // Wrapped in try/catch so any unexpected data shape silently falls back
-            // to the single-name behavior — the PDF never crashes for this.
+        $items = $quotation->items->map(function ($item, $index) use ($currencyCode, $showSuppliers, $commissionType) {
+            $supplierName = $showSuppliers ? ($item->selectedSupplier?->name ?? null) : null;
+            $unitPriceDisplay = $this->formatMoney($item->unit_price, $currencyCode, 2);
+
+            // Best-effort enrichment: show all alternative suppliers (names + prices),
+            // each on its own line. Wrapped in try/catch so unexpected data silently
+            // falls back to single-supplier rendering — the PDF never crashes.
             if ($showSuppliers) {
                 try {
                     $alternatives = $item->relationLoaded('suppliers') ? $item->suppliers : collect();
                     if ($alternatives && $alternatives->count() > 0) {
-                        $names = $alternatives
+                        $multiplier = ($commissionType === CommissionType::EMBEDDED && (float) $item->commission_rate > 0)
+                            ? 1 + ((float) $item->commission_rate / 100)
+                            : 1.0;
+
+                        $sorted = $alternatives
                             ->sortBy(fn ($alt) => (int) ($alt->unit_cost ?? 0))
-                            ->values()
+                            ->values();
+
+                        $names = $sorted
                             ->map(fn ($alt) => e($alt->company?->name ?? '—'))
-                            ->filter()
                             ->all();
+
+                        $prices = $sorted
+                            ->map(function ($alt) use ($multiplier, $currencyCode) {
+                                $converted = (int) round(
+                                    (float) ($alt->unit_cost ?? 0)
+                                    * (float) ($alt->cost_exchange_rate ?? 1)
+                                    * $multiplier
+                                );
+
+                                return e($this->formatMoney($converted, $currencyCode, 2));
+                            })
+                            ->all();
+
+                        $wrapLines = fn (array $parts) => implode('', array_map(
+                            fn ($p) => '<div style="padding: 1px 0;">'.$p.'</div>',
+                            $parts,
+                        ));
+
                         if (! empty($names)) {
-                            $supplierName = implode('', array_map(
-                                fn ($n) => '<div style="padding: 1px 0;">'.$n.'</div>',
-                                $names,
-                            ));
+                            $supplierName = $wrapLines($names);
+                        }
+                        if (! empty($prices)) {
+                            $unitPriceDisplay = $wrapLines($prices);
                         }
                     }
                 } catch (\Throwable $e) {
@@ -94,7 +122,7 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
                 'description' => $item->product?->name ?? $item->notes ?? '—',
                 'quantity' => $item->quantity,
                 'unit' => $item->product?->unit ?? 'pcs',
-                'unit_price' => $this->formatMoney($item->unit_price, $currencyCode, 2),
+                'unit_price' => $unitPriceDisplay,
                 'line_total' => $this->formatMoney($item->line_total, $currencyCode, 2),
                 'incoterm' => $item->incoterm instanceof \BackedEnum ? $item->incoterm->value : $item->incoterm,
                 'supplier_name' => $supplierName,
