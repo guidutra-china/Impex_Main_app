@@ -161,17 +161,6 @@
             background: #f9fafb;
         }
 
-        .items-table tbody tr.alternative-supplier-row td {
-            color: #6b7280;
-            font-size: 7.5pt;
-            border-bottom: 1px dotted #e5e7eb;
-            background: transparent;
-        }
-
-        .items-table tbody tr.primary-supplier-row td {
-            font-weight: 600;
-        }
-
         .text-right { text-align: right; }
         .text-center { text-align: center; }
 

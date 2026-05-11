@@ -1,7 +1,5 @@
 @extends('pdf.layouts.document')
 
-{{-- v2: multi-supplier sub-rows. Force recompile if you see "Undefined array key 0" — run `php artisan view:clear`. --}}
-
 @section('document-meta')
     <table class="document-meta-table">
         <tr>
@@ -57,54 +55,47 @@
     <table class="items-table">
         <thead>
             <tr>
-                <th style="width: 28px;">{{ $labels['item'] }}</th>
+                <th style="width: 30px;">{{ $labels['item'] }}</th>
                 @if(! empty($with_images))
-                    <th class="text-center" style="width: 50px;">{{ $labels['photo'] ?? 'Photo' }}</th>
+                    <th class="text-center" style="width: 55px;">{{ $labels['photo'] ?? 'Photo' }}</th>
                 @endif
-                <th style="width: 75px;">{{ $labels['product_code'] }}</th>
-                <th style="width: 130px;">{{ $labels['description'] }}</th>
-                @if($has_suppliers ?? false)
-                    <th style="width: 120px;">{{ $labels['supplier'] }}</th>
-                    <th class="text-center" style="width: 50px;">{{ $labels['lead_time'] ?? 'Lead Time' }}</th>
+                <th style="width: 80px;">{{ $labels['product_code'] }}</th>
+                <th>{{ $labels['description'] }}</th>
+                @if($show_suppliers)
+                    <th style="width: 100px;">{{ $labels['supplier'] }}</th>
                 @endif
-                <th class="text-center" style="width: 45px;">{{ $labels['quantity'] }}</th>
-                <th class="text-center" style="width: 35px;">{{ $labels['unit'] }}</th>
-                <th class="text-right" style="width: 75px;">{{ $labels['unit_price'] }}</th>
-                <th class="text-right" style="width: 80px;">{{ $labels['line_total'] }}</th>
+                <th class="text-center" style="width: 55px;">{{ $labels['quantity'] }}</th>
+                <th class="text-center" style="width: 45px;">{{ $labels['unit'] }}</th>
+                <th class="text-right" style="width: 85px;">{{ $labels['unit_price'] }}</th>
+                <th class="text-right" style="width: 90px;">{{ $labels['line_total'] }}</th>
             </tr>
         </thead>
         <tbody>
             @foreach($items as $item)
-                @foreach($item['suppliers'] as $supplierIndex => $supplier)
-                    @php $isFirstRow = $supplierIndex === 0; @endphp
-                    <tr class="{{ $supplier['is_primary'] ? 'primary-supplier-row' : 'alternative-supplier-row' }}">
-                        <td class="text-center">@if($isFirstRow){{ $item['index'] }}@endif</td>
-                        @if(! empty($with_images))
-                            <td class="text-center">
-                                @if($isFirstRow && ! empty($item['image']))
-                                    <img src="{{ $item['image'] }}" alt="" style="max-width: 50px; max-height: 50px;">
-                                @endif
-                            </td>
-                        @endif
-                        <td>@if($isFirstRow){{ $item['product_code'] }}@endif</td>
-                        <td>
-                            @if($isFirstRow)
-                                {{ $item['description'] }}
-                                @if($item['incoterm'])
-                                    <br><span style="font-size: 7.5pt; color: #6b7280;">{{ $labels['incoterm'] }}: {{ $item['incoterm'] }}</span>
-                                @endif
+                <tr>
+                    <td class="text-center">{{ $item['index'] }}</td>
+                    @if(! empty($with_images))
+                        <td class="text-center">
+                            @if(! empty($item['image']))
+                                <img src="{{ $item['image'] }}" alt="" style="max-width: 50px; max-height: 50px;">
                             @endif
                         </td>
-                        @if($has_suppliers ?? false)
-                            <td>{{ $supplier['name'] }}</td>
-                            <td class="text-center">@if(! empty($supplier['lead_time_days'])){{ $supplier['lead_time_days'] }}d@endif</td>
+                    @endif
+                    <td>{{ $item['product_code'] }}</td>
+                    <td>
+                        {{ $item['description'] }}
+                        @if($item['incoterm'])
+                            <br><span style="font-size: 7.5pt; color: #6b7280;">{{ $labels['incoterm'] }}: {{ $item['incoterm'] }}</span>
                         @endif
-                        <td class="text-center">@if($supplier['is_primary']){{ number_format($item['quantity']) }}@endif</td>
-                        <td class="text-center">@if($supplier['is_primary']){{ $item['unit'] }}@endif</td>
-                        <td class="text-right">{{ $supplier['unit_price'] }}</td>
-                        <td class="text-right">@if($supplier['is_primary']){{ $item['line_total'] }}@endif</td>
-                    </tr>
-                @endforeach
+                    </td>
+                    @if($show_suppliers)
+                        <td>{{ $item['supplier_name'] ?? '—' }}</td>
+                    @endif
+                    <td class="text-center">{{ number_format($item['quantity']) }}</td>
+                    <td class="text-center">{{ $item['unit'] }}</td>
+                    <td class="text-right">{{ $item['unit_price'] }}</td>
+                    <td class="text-right">{{ $item['line_total'] }}</td>
+                </tr>
             @endforeach
         </tbody>
     </table>
