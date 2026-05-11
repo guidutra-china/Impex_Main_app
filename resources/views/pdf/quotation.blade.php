@@ -89,7 +89,7 @@
                         @endif
                     </td>
                     @if($show_suppliers)
-                        <td>{{ $item['supplier_name'] ?? '—' }}</td>
+                        <td style="font-size: 7.5pt;">{!! $item['supplier_name'] ?? '—' !!}</td>
                     @endif
                     <td class="text-center">{{ number_format($item['quantity']) }}</td>
                     <td class="text-center">{{ $item['unit'] }}</td>

@@ -53,6 +53,7 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
             'paymentTerm',
             'items.product',
             'items.selectedSupplier',
+            'items.suppliers.company',
             'creator',
         ]);
 
@@ -60,7 +61,31 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
         $showSuppliers = (bool) $quotation->show_suppliers;
 
         $items = $quotation->items->map(function ($item, $index) use ($currencyCode, $showSuppliers) {
-            $data = [
+            $supplierName = $showSuppliers ? ($item->selectedSupplier?->name ?? null) : null;
+
+            // Best-effort enrichment: show all alternative suppliers joined with <br>.
+            // Wrapped in try/catch so any unexpected data shape silently falls back
+            // to the single-name behavior — the PDF never crashes for this.
+            if ($showSuppliers) {
+                try {
+                    $alternatives = $item->relationLoaded('suppliers') ? $item->suppliers : collect();
+                    if ($alternatives && $alternatives->count() > 0) {
+                        $names = $alternatives
+                            ->sortBy(fn ($alt) => (int) ($alt->unit_cost ?? 0))
+                            ->values()
+                            ->map(fn ($alt) => e($alt->company?->name ?? '—'))
+                            ->filter()
+                            ->all();
+                        if (! empty($names)) {
+                            $supplierName = implode('<br>', $names);
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            }
+
+            return [
                 'index' => $index + 1,
                 'product_code' => $item->product?->sku ?? '—',
                 'description' => $item->product?->name ?? $item->notes ?? '—',
@@ -69,11 +94,9 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
                 'unit_price' => $this->formatMoney($item->unit_price, $currencyCode, 2),
                 'line_total' => $this->formatMoney($item->line_total, $currencyCode, 2),
                 'incoterm' => $item->incoterm instanceof \BackedEnum ? $item->incoterm->value : $item->incoterm,
-                'supplier_name' => $showSuppliers ? ($item->selectedSupplier?->name ?? null) : null,
+                'supplier_name' => $supplierName,
                 'image' => $this->withImages ? $this->resolveImagePath($item->product?->avatar) : null,
             ];
-
-            return $data;
         });
 
         $showCommission = $quotation->commission_type === CommissionType::SEPARATE
