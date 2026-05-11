@@ -72,38 +72,35 @@
         </thead>
         <tbody>
             @foreach($items as $item)
-                <tr>
-                    <td class="text-center">{{ $item['index'] }}</td>
-                    @if(! empty($with_images))
-                        <td class="text-center">
-                            @if(! empty($item['image']))
-                                <img src="{{ $item['image'] }}" alt="" style="max-width: 50px; max-height: 50px;">
-                            @endif
-                        </td>
-                    @endif
-                    <td>{{ $item['product_code'] }}</td>
-                    <td>
-                        {{ $item['description'] }}
-                        @if($item['incoterm'])
-                            <br><span style="font-size: 7.5pt; color: #6b7280;">{{ $labels['incoterm'] }}: {{ $item['incoterm'] }}</span>
+                @foreach($item['suppliers'] as $supplierIndex => $supplier)
+                    @php $isFirstRow = $supplierIndex === 0; @endphp
+                    <tr class="{{ $supplier['is_primary'] ? 'primary-supplier-row' : 'alternative-supplier-row' }}">
+                        <td class="text-center">@if($isFirstRow){{ $item['index'] }}@endif</td>
+                        @if(! empty($with_images))
+                            <td class="text-center">
+                                @if($isFirstRow && ! empty($item['image']))
+                                    <img src="{{ $item['image'] }}" alt="" style="max-width: 50px; max-height: 50px;">
+                                @endif
+                            </td>
                         @endif
-                    </td>
-                    @if($has_suppliers ?? false)
-                        <td style="font-size: 7.5pt;">
-                            @if(! empty($item['suppliers']))
-                                @foreach($item['suppliers'] as $s)
-                                    {{ $s['name'] }} — {{ $quotation['currency_code'] }} {{ $s['unit_price'] }}@if(! $loop->last)<br>@endif
-                                @endforeach
-                            @else
-                                —
+                        <td>@if($isFirstRow){{ $item['product_code'] }}@endif</td>
+                        <td>
+                            @if($isFirstRow)
+                                {{ $item['description'] }}
+                                @if($item['incoterm'])
+                                    <br><span style="font-size: 7.5pt; color: #6b7280;">{{ $labels['incoterm'] }}: {{ $item['incoterm'] }}</span>
+                                @endif
                             @endif
                         </td>
-                    @endif
-                    <td class="text-center">{{ number_format($item['quantity']) }}</td>
-                    <td class="text-center">{{ $item['unit'] }}</td>
-                    <td class="text-right">{{ $item['unit_price'] }}</td>
-                    <td class="text-right">{{ $item['line_total'] }}</td>
-                </tr>
+                        @if($has_suppliers ?? false)
+                            <td>{{ $supplier['name'] }}</td>
+                        @endif
+                        <td class="text-center">@if($supplier['is_primary']){{ number_format($item['quantity']) }}@endif</td>
+                        <td class="text-center">@if($supplier['is_primary']){{ $item['unit'] }}@endif</td>
+                        <td class="text-right">{{ $supplier['unit_price'] }}</td>
+                        <td class="text-right">@if($supplier['is_primary']){{ $item['line_total'] }}@endif</td>
+                    </tr>
+                @endforeach
             @endforeach
         </tbody>
     </table>

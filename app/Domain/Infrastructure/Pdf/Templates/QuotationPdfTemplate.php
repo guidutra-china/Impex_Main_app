@@ -69,8 +69,9 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
                 ? (float) $item->commission_rate
                 : 0.0;
             $multiplier = 1 + ($itemCommissionRate / 100);
+            $primaryCompanyId = $item->selected_supplier_id;
 
-            $alternatives = $item->suppliers
+            $sorted = $item->suppliers
                 ->map(function ($alt) use ($multiplier) {
                     $convertedCost = (float) $alt->unit_cost * (float) ($alt->cost_exchange_rate ?? 1);
                     $alt->setAttribute('client_unit_price', (int) round($convertedCost * $multiplier));
@@ -80,21 +81,31 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
                 ->sortBy('client_unit_price')
                 ->values();
 
-            $suppliers = $alternatives->map(function ($alt, $idx) use ($showSuppliers, $currencyCode) {
+            $suppliers = $sorted->map(function ($alt, $idx) use ($showSuppliers, $currencyCode, $primaryCompanyId) {
                 return [
                     'name' => $showSuppliers
                         ? ($alt->company?->name ?? '—')
                         : 'Supplier '.($idx + 1),
                     'unit_price' => $this->formatMoney($alt->client_unit_price, $currencyCode, 2),
+                    'is_primary' => $alt->company_id == $primaryCompanyId,
                 ];
             })->all();
 
             // Fallback for manual quotations created without supplier quotation sources.
-            if (empty($suppliers) && $item->selectedSupplier) {
+            if (empty($suppliers)) {
                 $suppliers = [[
-                    'name' => $showSuppliers ? $item->selectedSupplier->name : 'Supplier 1',
+                    'name' => $item->selectedSupplier
+                        ? ($showSuppliers ? $item->selectedSupplier->name : 'Supplier 1')
+                        : '—',
                     'unit_price' => $this->formatMoney($item->unit_price, $currencyCode, 2),
+                    'is_primary' => true,
                 ]];
+            }
+
+            // Guarantee at least one row is flagged primary (legacy quotations
+            // may have no selected_supplier_id matching the alternatives pool).
+            if (! collect($suppliers)->contains('is_primary', true)) {
+                $suppliers[0]['is_primary'] = true;
             }
 
             return [
