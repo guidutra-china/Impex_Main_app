@@ -61,8 +61,8 @@
                 @endif
                 <th style="width: 80px;">{{ $labels['product_code'] }}</th>
                 <th>{{ $labels['description'] }}</th>
-                @if($show_suppliers)
-                    <th style="width: 100px;">{{ $labels['supplier'] }}</th>
+                @if($has_suppliers ?? false)
+                    <th style="width: 110px;">{{ $labels['supplier'] }}</th>
                 @endif
                 <th class="text-center" style="width: 55px;">{{ $labels['quantity'] }}</th>
                 <th class="text-center" style="width: 45px;">{{ $labels['unit'] }}</th>
@@ -88,8 +88,16 @@
                             <br><span style="font-size: 7.5pt; color: #6b7280;">{{ $labels['incoterm'] }}: {{ $item['incoterm'] }}</span>
                         @endif
                     </td>
-                    @if($show_suppliers)
-                        <td>{{ $item['supplier_name'] ?? '—' }}</td>
+                    @if($has_suppliers ?? false)
+                        <td>
+                            @if(! empty($item['suppliers']))
+                                @foreach($item['suppliers'] as $s)
+                                    {{ $s }}@if(! $loop->last)<br>@endif
+                                @endforeach
+                            @else
+                                —
+                            @endif
+                        </td>
                     @endif
                     <td class="text-center">{{ number_format($item['quantity']) }}</td>
                     <td class="text-center">{{ $item['unit'] }}</td>

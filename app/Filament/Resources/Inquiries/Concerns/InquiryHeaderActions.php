@@ -31,6 +31,7 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 
@@ -418,6 +419,11 @@ trait InquiryHeaderActions
                     })
                     ->helperText(__('forms.helpers.applied_to_items_where_the_client_has_no_catalog_price'));
 
+                $fields[] = Toggle::make('show_suppliers')
+                    ->label(__('forms.labels.show_suppliers_to_client'))
+                    ->default(false)
+                    ->helperText('Se ativado, mostra os nomes reais dos fornecedores no PDF. Se desativado, anonimiza como "Supplier 1, 2, 3, ..." (ordenado do mais barato ao mais caro).');
+
                 $fields[] = \Filament\Forms\Components\Repeater::make('items_preview')
                     ->label(__('forms.labels.items_preview'))
                     ->default(fn () => $this->buildItemsPreview(
@@ -480,7 +486,7 @@ trait InquiryHeaderActions
                             supplierQuotationIds: $supplierQuotationIds,
                             commissionType: $commissionType,
                             commissionRate: $commissionRate,
-                            showSuppliers: false,
+                            showSuppliers: (bool) ($data['show_suppliers'] ?? false),
                             itemOverrides: $itemOverrides,
                         );
 

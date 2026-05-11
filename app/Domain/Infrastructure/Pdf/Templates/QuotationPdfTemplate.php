@@ -53,6 +53,7 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
             'paymentTerm',
             'items.product',
             'items.selectedSupplier',
+            'items.suppliers.company',
             'creator',
         ]);
 
@@ -60,7 +61,24 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
         $showSuppliers = (bool) $quotation->show_suppliers;
 
         $items = $quotation->items->map(function ($item, $index) use ($currencyCode, $showSuppliers) {
-            $data = [
+            $alternatives = $item->suppliers
+                ->sortBy(fn ($alt) => (float) $alt->unit_cost * (float) ($alt->cost_exchange_rate ?? 1))
+                ->values();
+
+            $supplierNames = $alternatives->map(function ($alt, $idx) use ($showSuppliers) {
+                return $showSuppliers
+                    ? ($alt->company?->name ?? '—')
+                    : 'Supplier '.($idx + 1);
+            })->all();
+
+            // Fallback for manual quotations created without supplier quotation sources.
+            if (empty($supplierNames) && $item->selectedSupplier) {
+                $supplierNames = [
+                    $showSuppliers ? $item->selectedSupplier->name : 'Supplier 1',
+                ];
+            }
+
+            return [
                 'index' => $index + 1,
                 'product_code' => $item->product?->sku ?? '—',
                 'description' => $item->product?->name ?? $item->notes ?? '—',
@@ -69,11 +87,9 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
                 'unit_price' => $this->formatMoney($item->unit_price, $currencyCode, 2),
                 'line_total' => $this->formatMoney($item->line_total, $currencyCode, 2),
                 'incoterm' => $item->incoterm instanceof \BackedEnum ? $item->incoterm->value : $item->incoterm,
-                'supplier_name' => $showSuppliers ? ($item->selectedSupplier?->name ?? null) : null,
+                'suppliers' => $supplierNames,
                 'image' => $this->withImages ? $this->resolveImagePath($item->product?->avatar) : null,
             ];
-
-            return $data;
         });
 
         $showCommission = $quotation->commission_type === CommissionType::SEPARATE
@@ -91,6 +107,7 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
                 'created_by' => $quotation->creator?->name,
             ],
             'show_suppliers' => $showSuppliers,
+            'has_suppliers' => $items->contains(fn ($i) => ! empty($i['suppliers'])),
             'with_images' => $this->withImages,
             'client' => [
                 'name' => $quotation->company?->name ?? '—',
