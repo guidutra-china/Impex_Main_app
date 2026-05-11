@@ -77,7 +77,10 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
                             ->filter()
                             ->all();
                         if (! empty($names)) {
-                            $supplierName = implode('<br>', $names);
+                            $supplierName = implode('', array_map(
+                                fn ($n) => '<div style="padding: 1px 0;">'.$n.'</div>',
+                                $names,
+                            ));
                         }
                     }
                 } catch (\Throwable $e) {

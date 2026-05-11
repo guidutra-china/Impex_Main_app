@@ -59,10 +59,10 @@
                 @if(! empty($with_images))
                     <th class="text-center" style="width: 55px;">{{ $labels['photo'] ?? 'Photo' }}</th>
                 @endif
-                <th style="width: 80px;">{{ $labels['product_code'] }}</th>
-                <th>{{ $labels['description'] }}</th>
+                <th style="width: 75px;">{{ $labels['product_code'] }}</th>
+                <th style="width: 140px;">{{ $labels['description'] }}</th>
                 @if($show_suppliers)
-                    <th style="width: 100px;">{{ $labels['supplier'] }}</th>
+                    <th style="width: 150px;">{{ $labels['supplier'] }}</th>
                 @endif
                 <th class="text-center" style="width: 55px;">{{ $labels['quantity'] }}</th>
                 <th class="text-center" style="width: 45px;">{{ $labels['unit'] }}</th>
