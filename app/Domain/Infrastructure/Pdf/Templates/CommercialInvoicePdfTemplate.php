@@ -5,14 +5,13 @@ namespace App\Domain\Infrastructure\Pdf\Templates;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\AdditionalCostType;
-use App\Domain\Infrastructure\Pdf\Templates\CustomPricePdfTemplate;
 use App\Domain\Logistics\Enums\ImportModality;
 use App\Domain\Logistics\Models\Shipment;
-
 
 class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
 {
     private ?int $clientCompanyId = null;
+
     private array $clientPivotCache = [];
 
     public function getView(): string
@@ -34,7 +33,7 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
     {
         $reference = $this->model->reference ?? $this->model->getKey();
 
-        return 'CI-' . $reference . '-v' . $this->getNextVersion() . '.pdf';
+        return 'CI-'.$reference.'-v'.$this->getNextVersion().'.pdf';
     }
 
     protected function getDocumentData(): array
@@ -65,10 +64,11 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
             ->filter()
             ->first();
 
-        $incoterm = $shipment->items
-            ->map(fn ($item) => $item->proformaInvoiceItem?->proformaInvoice?->incoterm)
-            ->filter()
-            ->first();
+        $incoterm = $shipment->incoterm
+            ?: $shipment->items
+                ->map(fn ($item) => $item->proformaInvoiceItem?->proformaInvoice?->incoterm)
+                ->filter()
+                ->first();
 
         $priceFormula = ($this->options['use_formula'] ?? false)
             ? ($this->options['price_formula'] ?? null)

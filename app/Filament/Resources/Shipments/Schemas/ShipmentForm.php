@@ -4,18 +4,19 @@ namespace App\Filament\Resources\Shipments\Schemas;
 
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
-use App\Domain\Settings\Models\ContainerType;
-use App\Domain\Settings\Models\Currency;
 use App\Domain\Logistics\Enums\ImportModality;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Enums\TransportMode;
+use App\Domain\Quotations\Enums\Incoterm;
+use App\Domain\Settings\Models\ContainerType;
+use App\Domain\Settings\Models\Currency;
 use App\Domain\Users\Enums\UserType;
 use App\Models\User;
 use Filament\Forms\Components\DatePicker;
-use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
@@ -98,6 +99,11 @@ class ShipmentForm
                                 ->pluck('name', 'code')
                                 ->toArray()
                         )
+                        ->searchable(),
+                    Select::make('incoterm')
+                        ->label(__('forms.labels.incoterm'))
+                        ->options(Incoterm::class)
+                        ->placeholder(__('forms.placeholders.select_incoterm'))
                         ->searchable(),
                     Select::make('import_modality')
                         ->label(__('forms.labels.import_modality'))

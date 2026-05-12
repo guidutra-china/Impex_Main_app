@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\Shipments\Schemas;
 
 use App\Domain\Infrastructure\Support\Money;
-use Filament\Schemas\Components\Section;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
 class ShipmentInfolist
@@ -29,6 +29,10 @@ class ShipmentInfolist
                         ->badge()
                         ->placeholder('—'),
                     TextEntry::make('container_type')
+                        ->badge()
+                        ->placeholder('—'),
+                    TextEntry::make('incoterm')
+                        ->label(__('forms.labels.incoterm'))
                         ->badge()
                         ->placeholder('—'),
                     TextEntry::make('currency_code')
@@ -139,7 +143,7 @@ class ShipmentInfolist
                         ->placeholder(__('forms.placeholders.no_items_added_yet')),
                     TextEntry::make('total_value')
                         ->label(__('forms.labels.total_value'))
-                        ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state))
+                        ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '').' '.Money::format($state))
                         ->weight('bold'),
                 ])
                 ->columns(3)

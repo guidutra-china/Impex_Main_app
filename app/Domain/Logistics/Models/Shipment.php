@@ -13,6 +13,7 @@ use App\Domain\Logistics\Enums\ImportModality;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Enums\TransportMode;
 use App\Domain\Planning\Models\ShipmentPlan;
+use App\Domain\Quotations\Enums\Incoterm;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -35,6 +36,7 @@ class Shipment extends Model
         'status',
         'transport_mode',
         'container_type',
+        'incoterm',
         'currency_code',
         'import_modality',
         'carrier',
@@ -69,6 +71,7 @@ class Shipment extends Model
         return [
             'status' => ShipmentStatus::class,
             'transport_mode' => TransportMode::class,
+            'incoterm' => Incoterm::class,
             'import_modality' => ImportModality::class,
 
             'issue_date' => 'date',
