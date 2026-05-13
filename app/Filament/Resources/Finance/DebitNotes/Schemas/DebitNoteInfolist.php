@@ -74,7 +74,7 @@ class DebitNoteInfolist
                                 }),
                             TextEntry::make('amount')
                                 ->label(__('forms.labels.amount'))
-                                ->state(fn ($record) => Money::format($record->amount)),
+                                ->formatStateUsing(fn ($state) => Money::format($state)),
                             TextEntry::make('currency_code')
                                 ->label(__('forms.labels.currency')),
                         ])
