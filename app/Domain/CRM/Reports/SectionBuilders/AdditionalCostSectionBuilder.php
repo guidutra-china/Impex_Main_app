@@ -11,14 +11,13 @@ use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use Illuminate\Support\Facades\DB;
 
 final class AdditionalCostSectionBuilder implements SectionBuilder
 {
-    public function __construct(private readonly CompanyRole $role)
-    {
-    }
+    public function __construct(private readonly CompanyRole $role) {}
 
     public function key(): string
     {
@@ -60,14 +59,10 @@ final class AdditionalCostSectionBuilder implements SectionBuilder
 
         $rows = $query->get()->map(function (AdditionalCost $cost) {
             $parent = $cost->costable;
-            $parentRef = $parent?->reference ?? class_basename($cost->costable_type) . '-' . $cost->costable_id;
-            $clientRef = $parent?->client_reference ?? null;
-            if ($clientRef) {
-                $parentRef .= ' / ' . $clientRef;
-            }
+            $document = $this->buildDocumentLabel($cost, $parent);
 
             return [
-                'document' => $parentRef,
+                'document' => $document,
                 'cost_type' => $cost->cost_type instanceof \BackedEnum ? $cost->cost_type->getEnglishLabel() : (string) $cost->cost_type,
                 'description' => (string) ($cost->description ?? ''),
                 'amount' => round($cost->amount / Money::SCALE, 2),
@@ -83,5 +78,48 @@ final class AdditionalCostSectionBuilder implements SectionBuilder
             columns: ['document', 'cost_type', 'description', 'amount', 'currency', 'date', 'status'],
             rows: $rows,
         );
+    }
+
+    /**
+     * Render the parent document column. Pattern:
+     *   Shipment → "SH-XXXX (BL_NUMBER) / PI-XXXX(CLIENT_REF), PI-YYYY(CLIENT_REF)"
+     *   PI       → "PI-XXXX(CLIENT_REF)"
+     * Falls back to the bare reference when the side data is missing.
+     */
+    private function buildDocumentLabel(AdditionalCost $cost, ?object $parent): string
+    {
+        if ($parent instanceof Shipment) {
+            $shRef = $parent->reference ?? 'SH-'.$parent->id;
+            $bl = trim((string) ($parent->bl_number ?? ''));
+            $shPart = $bl !== '' ? "{$shRef} ({$bl})" : $shRef;
+
+            $parent->loadMissing('items.proformaInvoiceItem.proformaInvoice');
+            $piParts = $parent->items
+                ->map(fn ($item) => $item->proformaInvoiceItem?->proformaInvoice)
+                ->filter()
+                ->unique('id')
+                ->map(function (ProformaInvoice $pi) {
+                    $ref = $pi->reference ?? 'PI-'.$pi->id;
+                    $clientRef = trim((string) ($pi->client_reference ?? ''));
+
+                    return $clientRef !== '' ? "{$ref}({$clientRef})" : $ref;
+                })
+                ->values()
+                ->all();
+
+            return $piParts === [] ? $shPart : $shPart.' / '.implode(', ', $piParts);
+        }
+
+        if ($parent instanceof ProformaInvoice) {
+            $ref = $parent->reference ?? 'PI-'.$parent->id;
+            $clientRef = trim((string) ($parent->client_reference ?? ''));
+
+            return $clientRef !== '' ? "{$ref}({$clientRef})" : $ref;
+        }
+
+        $ref = $parent?->reference ?? class_basename($cost->costable_type).'-'.$cost->costable_id;
+        $clientRef = trim((string) ($parent?->client_reference ?? ''));
+
+        return $clientRef !== '' ? "{$ref}({$clientRef})" : $ref;
     }
 }
