@@ -4,8 +4,8 @@ namespace App\Filament\Resources\Finance\DebitNotes\Tables;
 
 use App\Domain\Financial\Enums\DebitNoteStatus;
 use App\Domain\Infrastructure\Support\Money;
-use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\ViewAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
