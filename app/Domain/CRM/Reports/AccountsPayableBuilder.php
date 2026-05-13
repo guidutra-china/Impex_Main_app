@@ -5,6 +5,7 @@ namespace App\Domain\CRM\Reports;
 use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Reports\DTOs\AccountsPayableReport;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
+use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Models\Shipment;
@@ -38,7 +39,12 @@ final class AccountsPayableBuilder
                             fn ($sub) => $sub->where('company_id', $company->id),
                         );
                 })->orWhere(function ($q) use ($company) {
+                    // Shipment-level items: only include AdditionalCost-sourced
+                    // rows (freight, commission, etc.). Other Shipment-owned
+                    // items are mirrors of PI installments and would duplicate
+                    // what already appears under the PI.
                     $q->where('payable_type', Shipment::class)
+                        ->where('source_type', AdditionalCost::class)
                         ->whereHasMorph(
                             'payable',
                             [Shipment::class],

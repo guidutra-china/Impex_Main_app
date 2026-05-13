@@ -4,7 +4,11 @@ namespace Tests\Feature\Financial;
 
 use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Reports\AccountsPayableBuilder;
+use App\Domain\Financial\Enums\AdditionalCostStatus;
+use App\Domain\Financial\Enums\AdditionalCostType;
+use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
+use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Excel\Templates\ClientAccountsPayableExcelTemplate;
 use App\Domain\Infrastructure\Models\Document;
@@ -176,9 +180,14 @@ class ClientAccountsPayableTest extends TestCase
             'status' => 'draft',
         ]);
 
+        $costForClient = $this->createFreightCost($shipmentForClient->id, 50000);
+        $costForOther = $this->createFreightCost($shipmentForOther->id, 80000);
+
         PaymentScheduleItem::create([
             'payable_type' => \App\Domain\Logistics\Models\Shipment::class,
             'payable_id' => $shipmentForClient->id,
+            'source_type' => AdditionalCost::class,
+            'source_id' => $costForClient->id,
             'label' => 'Freight for client',
             'percentage' => 0,
             'amount' => 50000,
@@ -192,6 +201,8 @@ class ClientAccountsPayableTest extends TestCase
         PaymentScheduleItem::create([
             'payable_type' => \App\Domain\Logistics\Models\Shipment::class,
             'payable_id' => $shipmentForOther->id,
+            'source_type' => AdditionalCost::class,
+            'source_id' => $costForOther->id,
             'label' => 'Freight for other client',
             'percentage' => 0,
             'amount' => 80000,
@@ -218,9 +229,14 @@ class ClientAccountsPayableTest extends TestCase
             'status' => 'draft',
         ]);
 
+        $clientCost = $this->createFreightCost($shipment->id, 50000);
+        $forwarderCost = $this->createFreightCost($shipment->id, 30000);
+
         PaymentScheduleItem::create([
             'payable_type' => \App\Domain\Logistics\Models\Shipment::class,
             'payable_id' => $shipment->id,
+            'source_type' => AdditionalCost::class,
+            'source_id' => $clientCost->id,
             'label' => 'Client freight',
             'percentage' => 0,
             'amount' => 50000,
@@ -234,6 +250,8 @@ class ClientAccountsPayableTest extends TestCase
         PaymentScheduleItem::create([
             'payable_type' => \App\Domain\Logistics\Models\Shipment::class,
             'payable_id' => $shipment->id,
+            'source_type' => AdditionalCost::class,
+            'source_id' => $forwarderCost->id,
             'label' => 'Payable to forwarder',
             'percentage' => 0,
             'amount' => 30000,
@@ -250,6 +268,22 @@ class ClientAccountsPayableTest extends TestCase
 
         $this->assertCount(1, $report->rows);
         $this->assertSame('Client freight', $report->rows[0]['installment']);
+    }
+
+    private function createFreightCost(int $shipmentId, int $amount): AdditionalCost
+    {
+        return AdditionalCost::create([
+            'costable_type' => \App\Domain\Logistics\Models\Shipment::class,
+            'costable_id' => $shipmentId,
+            'cost_type' => AdditionalCostType::FREIGHT,
+            'description' => 'Test freight',
+            'amount' => $amount,
+            'currency_code' => 'USD',
+            'amount_in_document_currency' => $amount,
+            'billable_to' => BillableTo::CLIENT,
+            'cost_date' => '2026-04-15',
+            'status' => AdditionalCostStatus::PENDING,
+        ]);
     }
 
     public function test_pdf_template_generates_and_versions_document(): void
