@@ -4,9 +4,11 @@ namespace App\Filament\Resources\Finance\Concerns;
 
 use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\BillableTo;
+use App\Domain\Financial\Enums\DebitNoteStatus;
 use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\AdditionalCost;
+use App\Domain\Financial\Models\DebitNote;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Financial\Support\AllocationCalculator;
 use App\Domain\Infrastructure\Support\Money;
@@ -314,7 +316,14 @@ trait HasPaymentFormSections
                 })
                 ->pluck('id');
 
-            $query->where(function ($q) use ($piIds, $clientCostIds) {
+            // (c) Issued Debit Notes — payable_type=DebitNote, payable_id ∈ dnIds.
+            //     Schedule items are created by IssueDebitNoteAction with the DN
+            //     itself as the payable so DNs without a PI are still allocatable.
+            $dnIds = DebitNote::where('company_id', $companyId)
+                ->where('status', DebitNoteStatus::ISSUED->value)
+                ->pluck('id');
+
+            $query->where(function ($q) use ($piIds, $clientCostIds, $dnIds) {
                 $q->where(function ($q2) use ($piIds) {
                     $q2->where('payable_type', ProformaInvoice::class)
                         ->whereIn('payable_id', $piIds);
@@ -323,6 +332,12 @@ trait HasPaymentFormSections
                     $q->orWhere(function ($q2) use ($clientCostIds) {
                         $q2->where('source_type', AdditionalCost::class)
                             ->whereIn('source_id', $clientCostIds);
+                    });
+                }
+                if ($dnIds->isNotEmpty()) {
+                    $q->orWhere(function ($q2) use ($dnIds) {
+                        $q2->where('payable_type', DebitNote::class)
+                            ->whereIn('payable_id', $dnIds);
                     });
                 }
             });
