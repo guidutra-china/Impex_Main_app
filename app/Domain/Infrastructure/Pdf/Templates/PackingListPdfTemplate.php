@@ -6,7 +6,6 @@ use App\Domain\Catalog\Models\Product;
 use App\Domain\Logistics\Enums\ImportModality;
 use App\Domain\Logistics\Models\Carton;
 use App\Domain\Logistics\Models\Shipment;
-use App\Domain\Logistics\Services\PackingProgressService;
 use Illuminate\Support\Collection;
 
 class PackingListPdfTemplate extends AbstractPdfTemplate
@@ -413,7 +412,9 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
     }
 
     /**
-     * Grand totals — uses PackingProgressService to dedupe multi-box sets for equipment_qty.
+     * Grand totals — sums pieces directly from cartons, matching the subtotal
+     * calculation. Guarantees GRAND TOTAL equals the visual sum of EQUIP QTY
+     * column rows and the sum of all container subtotals.
      */
     private function computeShipmentTotals(Shipment $shipment): array
     {
@@ -424,8 +425,9 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
         $totalNet = (float) $cartons->sum(fn ($c) => (float) $c->net_weight);
         $totalVolume = (float) $cartons->sum(fn ($c) => (float) $c->volume);
 
-        $progress = app(PackingProgressService::class)->forShipment($shipment);
-        $totalEquipmentQty = (int) $progress->sum(fn ($p) => $p->packedComplete);
+        $totalEquipmentQty = (int) $cartons
+            ->flatMap(fn (Carton $c) => $c->contents)
+            ->sum(fn ($content) => (int) $content->pieces);
 
         return [
             'total_packages' => $totalPackages,

@@ -187,7 +187,9 @@ class PackingListPdfV2Test extends TestCase
         $data = $this->getData($shipment);
 
         $this->assertEquals(2, $data['totals']['total_packages']);
-        $this->assertEquals(1, $data['totals']['total_equipment_qty'], 'Multi-box set must dedupe to 1 unit');
+        // Grand total sums pieces across all cartons (matches visual EQUIP QTY column sum).
+        // Frame (1) + Accessories (1) = 2, even though it represents one logical machine.
+        $this->assertEquals(2, $data['totals']['total_equipment_qty']);
         $this->assertEqualsWithDelta(65.0, $data['totals']['total_gross_weight'], 0.01);
 
         $this->assertCount(2, $data['container_groups'][0]['lines']);
@@ -222,8 +224,8 @@ class PackingListPdfV2Test extends TestCase
         $data = $this->getData($shipment);
 
         $this->assertEquals(2, $data['totals']['total_packages']);
-        // 1 machine (deduped) + 5 sandals + 3 socks
-        $this->assertEquals(9, $data['totals']['total_equipment_qty']);
+        // Frame (1) + Accessories (1) + 5 sandals + 3 socks = 10
+        $this->assertEquals(10, $data['totals']['total_equipment_qty']);
 
         // BOX-001: 1 line, BOX-002: 3 lines (1 main + 2 sub-items) = 4 total
         $this->assertCount(4, $data['container_groups'][0]['lines']);
