@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Finance\DebitNotes\Schemas;
 
-use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\Settings\Models\Currency;
@@ -78,8 +77,6 @@ class DebitNoteForm
                                 ->numeric()
                                 ->step('0.01')
                                 ->required()
-                                ->dehydrateStateUsing(fn ($state) => Money::toMinor((float) $state))
-                                ->formatStateUsing(fn ($state) => $state ? Money::toMajor($state) : null)
                                 ->columnSpan(3),
                             Select::make('currency_code')
                                 ->label(__('forms.labels.currency'))
