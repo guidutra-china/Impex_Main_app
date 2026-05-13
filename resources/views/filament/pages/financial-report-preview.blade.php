@@ -54,6 +54,11 @@
                     <x-filament::button color="gray" size="sm" wire:click="downloadPdf" type="button">
                         {{ __('financial_report.actions.download_pdf') }}
                     </x-filament::button>
+                    @if($this->shouldShowExcelExport())
+                        <x-filament::button color="gray" size="sm" wire:click="downloadExcel" type="button">
+                            {{ __('financial_report.actions.download_excel') }}
+                        </x-filament::button>
+                    @endif
                 </div>
             </form>
         </div>

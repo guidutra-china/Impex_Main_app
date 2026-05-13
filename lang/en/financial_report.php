@@ -87,5 +87,10 @@ return [
     'actions' => [
         'back' => 'Back',
         'download_pdf' => 'Download PDF',
+        'download_excel' => 'Download Excel',
+    ],
+
+    'sheets' => [
+        'summary' => 'Summary',
     ],
 ];

@@ -32,7 +32,7 @@ class AdminFinancialReport extends FinancialReportPreview
 
     public function getTitle(): string|\Illuminate\Contracts\Support\Htmlable
     {
-        return __('financial_report.title') . ' — ' . $this->resolveCompany()->name;
+        return __('financial_report.title').' — '.$this->resolveCompany()->name;
     }
 
     protected function getHeaderActions(): array
@@ -54,5 +54,10 @@ class AdminFinancialReport extends FinancialReportPreview
     protected function reportContext(): string
     {
         return 'admin';
+    }
+
+    public function shouldShowExcelExport(): bool
+    {
+        return true;
     }
 }

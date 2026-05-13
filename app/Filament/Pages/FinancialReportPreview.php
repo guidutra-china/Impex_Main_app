@@ -6,6 +6,7 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Reports\CompanyFinancialReportService;
 use App\Domain\CRM\Reports\DTOs\FinancialReportData;
 use App\Domain\CRM\Reports\DTOs\FinancialReportFilters;
+use App\Domain\Infrastructure\Excel\Templates\FinancialReportExcelTemplate;
 use App\Domain\Infrastructure\Pdf\DocumentLabels;
 use App\Domain\Infrastructure\Pdf\PdfRenderer;
 use App\Domain\Settings\DataTransferObjects\CompanySettings;
@@ -19,10 +20,15 @@ abstract class FinancialReportPreview extends Page
     protected string $view = 'filament.pages.financial-report-preview';
 
     public ?string $fromDate = null;
+
     public ?string $toDate = null;
+
     public string $statusScope = 'all';
+
     public array $sectionToggles = [];
+
     public ?string $currency = null;
+
     public string $locale = 'en';
 
     abstract protected function resolveCompany(): Company;
@@ -58,6 +64,42 @@ abstract class FinancialReportPreview extends Page
     public function generate(): void
     {
         // Triggers re-render which calls getReportProperty().
+    }
+
+    /**
+     * Subclasses override to opt-in to the Excel export button in the view.
+     * Default is false so Portal/Supplier variants stay PDF-only unless explicitly enabled.
+     */
+    public function shouldShowExcelExport(): bool
+    {
+        return false;
+    }
+
+    public function downloadExcel(): StreamedResponse
+    {
+        $report = $this->buildReport();
+
+        $previous = App::getLocale();
+        try {
+            App::setLocale($report->locale);
+
+            $template = new FinancialReportExcelTemplate(
+                $report->company,
+                ['report' => $report, 'locale' => $report->locale],
+            );
+            $path = $template->generate();
+            $filename = $template->getFilename();
+            $content = file_get_contents($path);
+            @unlink($path);
+        } finally {
+            App::setLocale($previous);
+        }
+
+        return response()->streamDownload(
+            fn () => print ($content),
+            $filename,
+            ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+        );
     }
 
     public function downloadPdf(): StreamedResponse
@@ -101,11 +143,11 @@ abstract class FinancialReportPreview extends Page
             App::setLocale($previous);
         }
 
-        $filename = 'financial-report-' . \Illuminate\Support\Str::slug($report->company->name)
-            . '-' . $report->generatedAt->format('Y-m-d') . '.pdf';
+        $filename = 'financial-report-'.\Illuminate\Support\Str::slug($report->company->name)
+            .'-'.$report->generatedAt->format('Y-m-d').'.pdf';
 
         return response()->streamDownload(
-            fn () => print($pdfBinary),
+            fn () => print ($pdfBinary),
             $filename,
             ['Content-Type' => 'application/pdf'],
         );
@@ -118,9 +160,9 @@ abstract class FinancialReportPreview extends Page
         }
 
         $candidates = [
-            storage_path('app/public/' . $logoPath),
-            storage_path('app/' . $logoPath),
-            public_path('storage/' . $logoPath),
+            storage_path('app/public/'.$logoPath),
+            storage_path('app/'.$logoPath),
+            public_path('storage/'.$logoPath),
             public_path($logoPath),
         ];
 
@@ -128,6 +170,7 @@ abstract class FinancialReportPreview extends Page
             if (file_exists($path)) {
                 $mime = mime_content_type($path);
                 $data = base64_encode(file_get_contents($path));
+
                 return "data:{$mime};base64,{$data}";
             }
         }
