@@ -32,7 +32,7 @@ class DebitNoteInfolist
                         ->placeholder('—'),
                     TextEntry::make('total_amount')
                         ->label(__('forms.labels.total_amount'))
-                        ->state(fn ($record) => Money::format($record->total_amount)),
+                        ->formatStateUsing(fn ($state) => Money::format($state)),
                     TextEntry::make('currency_code')
                         ->label(__('forms.labels.currency')),
                     TextEntry::make('issued_at')
