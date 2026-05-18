@@ -36,9 +36,11 @@ class PortalShipmentFulfillmentWidget extends Widget
         $totalShipped = 0;
         $pendingCount = 0;
 
-        $mappedItems = $items->map(function ($item) use (&$totalQty, &$totalShipped, &$pendingCount) {
+        $countsAsShipped = [ShipmentStatus::IN_TRANSIT, ShipmentStatus::ARRIVED];
+
+        $mappedItems = $items->map(function ($item) use (&$totalQty, &$totalShipped, &$pendingCount, $countsAsShipped) {
             $activeShipmentItems = $item->shipmentItems
-                ->filter(fn ($si) => $si->shipment && $si->shipment->status !== ShipmentStatus::CANCELLED);
+                ->filter(fn ($si) => $si->shipment && in_array($si->shipment->status, $countsAsShipped, true));
 
             $shipped = $activeShipmentItems->sum('quantity');
             $remaining = max(0, $item->quantity - $shipped);
@@ -84,21 +86,21 @@ class PortalShipmentFulfillmentWidget extends Widget
             [
                 'label' => __('widgets.fulfillment.total_items'),
                 'value' => count($mappedItems),
-                'description' => $totalQty . ' ' . __('widgets.fulfillment.units_total'),
+                'description' => $totalQty.' '.__('widgets.fulfillment.units_total'),
                 'icon' => 'heroicon-o-cube',
                 'color' => 'primary',
             ],
             [
                 'label' => __('widgets.fulfillment.fully_shipped'),
-                'value' => $fullyShippedCount . ' / ' . count($mappedItems),
-                'description' => number_format($totalShipped) . ' ' . __('widgets.fulfillment.units_shipped'),
+                'value' => $fullyShippedCount.' / '.count($mappedItems),
+                'description' => number_format($totalShipped).' '.__('widgets.fulfillment.units_shipped'),
                 'icon' => 'heroicon-o-check-circle',
                 'color' => $isFullyShipped ? 'success' : ($fullyShippedCount > 0 ? 'info' : 'gray'),
             ],
             [
                 'label' => __('widgets.fulfillment.remaining'),
-                'value' => number_format($totalRemaining) . ' ' . __('widgets.fulfillment.units'),
-                'description' => $pendingCount . ' ' . __('widgets.fulfillment.items_pending'),
+                'value' => number_format($totalRemaining).' '.__('widgets.fulfillment.units'),
+                'description' => $pendingCount.' '.__('widgets.fulfillment.items_pending'),
                 'icon' => 'heroicon-o-clock',
                 'color' => $totalRemaining > 0 ? 'warning' : 'success',
             ],

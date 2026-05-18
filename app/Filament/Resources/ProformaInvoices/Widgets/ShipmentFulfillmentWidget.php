@@ -36,9 +36,11 @@ class ShipmentFulfillmentWidget extends Widget
         $totalShipped = 0;
         $pendingCount = 0;
 
-        $mappedItems = $items->map(function ($item) use (&$totalQty, &$totalShipped, &$pendingCount) {
+        $countsAsShipped = [ShipmentStatus::IN_TRANSIT, ShipmentStatus::ARRIVED];
+
+        $mappedItems = $items->map(function ($item) use (&$totalQty, &$totalShipped, &$pendingCount, $countsAsShipped) {
             $activeShipmentItems = $item->shipmentItems
-                ->filter(fn ($si) => $si->shipment && $si->shipment->status !== ShipmentStatus::CANCELLED);
+                ->filter(fn ($si) => $si->shipment && in_array($si->shipment->status, $countsAsShipped, true));
 
             $shipped = $activeShipmentItems->sum('quantity');
             $remaining = max(0, $item->quantity - $shipped);
@@ -84,21 +86,21 @@ class ShipmentFulfillmentWidget extends Widget
             [
                 'label' => 'Total Items',
                 'value' => count($mappedItems),
-                'description' => $totalQty . ' units total',
+                'description' => $totalQty.' units total',
                 'icon' => 'heroicon-o-cube',
                 'color' => 'primary',
             ],
             [
                 'label' => 'Fully Shipped',
-                'value' => $fullyShippedCount . ' / ' . count($mappedItems),
-                'description' => number_format($totalShipped) . ' units shipped',
+                'value' => $fullyShippedCount.' / '.count($mappedItems),
+                'description' => number_format($totalShipped).' units shipped',
                 'icon' => 'heroicon-o-check-circle',
                 'color' => $isFullyShipped ? 'success' : ($fullyShippedCount > 0 ? 'info' : 'gray'),
             ],
             [
                 'label' => 'Remaining',
-                'value' => number_format($totalRemaining) . ' units',
-                'description' => $pendingCount . ' item(s) pending',
+                'value' => number_format($totalRemaining).' units',
+                'description' => $pendingCount.' item(s) pending',
                 'icon' => 'heroicon-o-clock',
                 'color' => $totalRemaining > 0 ? 'warning' : 'success',
             ],

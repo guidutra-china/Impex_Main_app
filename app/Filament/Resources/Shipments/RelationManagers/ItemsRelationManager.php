@@ -14,20 +14,20 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Table;
-use UnitEnum;
 
 class ItemsRelationManager extends RelationManager
 {
     protected static string $relationship = 'items';
+
     protected static ?string $title = 'Shipment Items';
 
     protected static BackedEnum|string|null $icon = 'heroicon-o-cube';
@@ -39,12 +39,13 @@ class ItemsRelationManager extends RelationManager
                 ->label(__('forms.labels.proforma_invoice'))
                 ->options(function () {
                     $companyId = $this->getOwnerRecord()->company_id;
+
                     return ProformaInvoice::where('company_id', $companyId)
                         ->whereIn('status', ['confirmed', 'finalized', 'reopened'])
                         ->orderByDesc('id')
                         ->get()
                         ->mapWithKeys(fn ($pi) => [
-                            $pi->id => $pi->reference . ($pi->client_reference ? ' — ' . $pi->client_reference : ''),
+                            $pi->id => $pi->reference.($pi->client_reference ? ' — '.$pi->client_reference : ''),
                         ]);
                 })
                 ->searchable()
@@ -73,11 +74,14 @@ class ItemsRelationManager extends RelationManager
                         ->with('product')
                         ->get()
                         ->mapWithKeys(function ($item) {
-                            $shipped = ShipmentItem::where('proforma_invoice_item_id', $item->id)->sum('quantity');
+                            $shipped = ShipmentItem::where('proforma_invoice_item_id', $item->id)
+                                ->whereHas('shipment', fn ($q) => $q->countsAsShipped())
+                                ->sum('quantity');
                             $remaining = $item->quantity - $shipped;
-                            $label = ($item->product?->model_number ?? '') . ' — ' . $item->product_name
-                                . ' | Qty: ' . $item->quantity
-                                . ' | Remaining: ' . $remaining;
+                            $label = ($item->product?->model_number ?? '').' — '.$item->product_name
+                                .' | Qty: '.$item->quantity
+                                .' | Remaining: '.$remaining;
+
                             return [$item->id => $label];
                         });
                 })
@@ -94,7 +98,9 @@ class ItemsRelationManager extends RelationManager
                         return;
                     }
 
-                    $shipped = ShipmentItem::where('proforma_invoice_item_id', $piItem->id)->sum('quantity');
+                    $shipped = ShipmentItem::where('proforma_invoice_item_id', $piItem->id)
+                        ->whereHas('shipment', fn ($q) => $q->countsAsShipped())
+                        ->sum('quantity');
                     $remaining = $piItem->quantity - $shipped;
                     $set('max_quantity', $remaining);
 
@@ -122,7 +128,7 @@ class ItemsRelationManager extends RelationManager
                 ->integer()
                 ->minValue(1)
                 ->maxValue(fn (Get $get) => $get('max_quantity') ?: 999999)
-                ->helperText(fn (Get $get) => $get('max_quantity') ? 'Max available: ' . $get('max_quantity') : null)
+                ->helperText(fn (Get $get) => $get('max_quantity') ? 'Max available: '.$get('max_quantity') : null)
                 ->live(onBlur: true)
                 ->afterStateUpdated(function (Get $get, Set $set) {
                     static::recalculateTotals($get, $set);
@@ -239,7 +245,7 @@ class ItemsRelationManager extends RelationManager
                             ->orderByDesc('id')
                             ->get()
                             ->mapWithKeys(fn ($pi) => [
-                                $pi->id => $pi->reference . ($pi->client_reference ? ' — ' . $pi->client_reference : ''),
+                                $pi->id => $pi->reference.($pi->client_reference ? ' — '.$pi->client_reference : ''),
                             ]);
 
                         return [
@@ -262,11 +268,14 @@ class ItemsRelationManager extends RelationManager
                                         ->with('product')
                                         ->get()
                                         ->mapWithKeys(function ($item) {
-                                            $shipped = ShipmentItem::where('proforma_invoice_item_id', $item->id)->sum('quantity');
+                                            $shipped = ShipmentItem::where('proforma_invoice_item_id', $item->id)
+                                                ->whereHas('shipment', fn ($q) => $q->countsAsShipped())
+                                                ->sum('quantity');
                                             $remaining = $item->quantity - $shipped;
-                                            $label = ($item->product?->model_number ?? '') . ' — ' . $item->product_name
-                                                . ' | Qty: ' . $item->quantity
-                                                . ' | Remaining: ' . $remaining;
+                                            $label = ($item->product?->model_number ?? '').' — '.$item->product_name
+                                                .' | Qty: '.$item->quantity
+                                                .' | Remaining: '.$remaining;
+
                                             return [$item->id => $label];
                                         });
                                 })
@@ -298,11 +307,14 @@ class ItemsRelationManager extends RelationManager
                         $maxSort = $shipment->items()->max('sort_order') ?? 0;
 
                         foreach ($piItems as $piItem) {
-                            $alreadyShipped = ShipmentItem::where('proforma_invoice_item_id', $piItem->id)->sum('quantity');
+                            $alreadyShipped = ShipmentItem::where('proforma_invoice_item_id', $piItem->id)
+                                ->whereHas('shipment', fn ($q) => $q->countsAsShipped())
+                                ->sum('quantity');
                             $qty = $onlyRemaining ? ($piItem->quantity - $alreadyShipped) : $piItem->quantity;
 
                             if ($qty <= 0) {
                                 $skipped++;
+
                                 continue;
                             }
 
@@ -360,6 +372,7 @@ class ItemsRelationManager extends RelationManager
                     ->createAnother()
                     ->mutateFormDataUsing(function (array $data): array {
                         unset($data['proforma_invoice_id'], $data['max_quantity']);
+
                         return $data;
                     })
                     ->after(function () {

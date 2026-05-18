@@ -258,4 +258,18 @@ class Shipment extends Model
     {
         return $query->where('forwarder_company_id', $companyId);
     }
+
+    /**
+     * Apenas embarques que efetivamente dão baixa nas quantidades pendentes
+     * de PI/PO. Draft, Booked e Customs ainda são planejamento; somente quando
+     * o embarque entra em IN_TRANSIT (ou ARRIVED) é que consideramos os itens
+     * efetivamente despachados.
+     */
+    public function scopeCountsAsShipped($query)
+    {
+        return $query->whereIn('status', [
+            ShipmentStatus::IN_TRANSIT->value,
+            ShipmentStatus::ARRIVED->value,
+        ]);
+    }
 }

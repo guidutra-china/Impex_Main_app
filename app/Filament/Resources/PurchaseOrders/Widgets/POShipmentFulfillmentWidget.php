@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\PurchaseOrders\Widgets;
 
-use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\ShipmentItem;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use Filament\Widgets\Widget;
@@ -78,21 +77,21 @@ class POShipmentFulfillmentWidget extends Widget
             [
                 'label' => 'Total Items',
                 'value' => count($mappedItems),
-                'description' => $totalQty . ' units total',
+                'description' => $totalQty.' units total',
                 'icon' => 'heroicon-o-cube',
                 'color' => 'primary',
             ],
             [
                 'label' => 'Fully Shipped',
-                'value' => $fullyShippedCount . ' / ' . count($mappedItems),
-                'description' => number_format($totalShipped) . ' units shipped',
+                'value' => $fullyShippedCount.' / '.count($mappedItems),
+                'description' => number_format($totalShipped).' units shipped',
                 'icon' => 'heroicon-o-check-circle',
                 'color' => $isFullyShipped ? 'success' : ($fullyShippedCount > 0 ? 'info' : 'gray'),
             ],
             [
                 'label' => 'Remaining',
-                'value' => number_format($totalRemaining) . ' units',
-                'description' => $pendingCount . ' item(s) pending',
+                'value' => number_format($totalRemaining).' units',
+                'description' => $pendingCount.' item(s) pending',
                 'icon' => 'heroicon-o-clock',
                 'color' => $totalRemaining > 0 ? 'warning' : 'success',
             ],
@@ -126,7 +125,7 @@ class POShipmentFulfillmentWidget extends Widget
     private function getShippedQuantity($poItem): int
     {
         $shipped = ShipmentItem::where('purchase_order_item_id', $poItem->id)
-            ->whereHas('shipment', fn ($q) => $q->where('status', '!=', ShipmentStatus::CANCELLED))
+            ->whereHas('shipment', fn ($q) => $q->countsAsShipped())
             ->sum('quantity');
 
         if ($shipped > 0) {
@@ -135,7 +134,7 @@ class POShipmentFulfillmentWidget extends Widget
 
         if ($poItem->proforma_invoice_item_id) {
             $shipped = ShipmentItem::where('proforma_invoice_item_id', $poItem->proforma_invoice_item_id)
-                ->whereHas('shipment', fn ($q) => $q->where('status', '!=', ShipmentStatus::CANCELLED))
+                ->whereHas('shipment', fn ($q) => $q->countsAsShipped())
                 ->sum('quantity');
         }
 
@@ -145,7 +144,7 @@ class POShipmentFulfillmentWidget extends Widget
     private function getShipmentReferences($poItem): array
     {
         $refs = ShipmentItem::where('purchase_order_item_id', $poItem->id)
-            ->whereHas('shipment', fn ($q) => $q->where('status', '!=', ShipmentStatus::CANCELLED))
+            ->whereHas('shipment', fn ($q) => $q->countsAsShipped())
             ->with('shipment')
             ->get()
             ->pluck('shipment.reference')
@@ -159,7 +158,7 @@ class POShipmentFulfillmentWidget extends Widget
 
         if ($poItem->proforma_invoice_item_id) {
             $refs = ShipmentItem::where('proforma_invoice_item_id', $poItem->proforma_invoice_item_id)
-                ->whereHas('shipment', fn ($q) => $q->where('status', '!=', ShipmentStatus::CANCELLED))
+                ->whereHas('shipment', fn ($q) => $q->countsAsShipped())
                 ->with('shipment')
                 ->get()
                 ->pluck('shipment.reference')

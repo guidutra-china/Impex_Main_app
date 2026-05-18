@@ -2,7 +2,6 @@
 
 namespace App\Filament\SupplierPortal\Resources\PurchaseOrderResource\Widgets;
 
-use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\ShipmentItem;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use Filament\Widgets\Widget;
@@ -78,21 +77,21 @@ class SupplierPOShipmentFulfillmentWidget extends Widget
             [
                 'label' => 'Total Items',
                 'value' => count($mappedItems),
-                'description' => $totalQty . ' units total',
+                'description' => $totalQty.' units total',
                 'icon' => 'heroicon-o-cube',
                 'color' => 'primary',
             ],
             [
                 'label' => 'Fully Shipped',
-                'value' => $fullyShippedCount . ' / ' . count($mappedItems),
-                'description' => number_format($totalShipped) . ' units shipped',
+                'value' => $fullyShippedCount.' / '.count($mappedItems),
+                'description' => number_format($totalShipped).' units shipped',
                 'icon' => 'heroicon-o-check-circle',
                 'color' => $isFullyShipped ? 'success' : ($fullyShippedCount > 0 ? 'info' : 'gray'),
             ],
             [
                 'label' => 'Remaining',
-                'value' => number_format($totalRemaining) . ' units',
-                'description' => $pendingCount . ' item(s) pending',
+                'value' => number_format($totalRemaining).' units',
+                'description' => $pendingCount.' item(s) pending',
                 'icon' => 'heroicon-o-clock',
                 'color' => $totalRemaining > 0 ? 'warning' : 'success',
             ],
@@ -156,8 +155,7 @@ class SupplierPOShipmentFulfillmentWidget extends Widget
         }
 
         $query->whereHas('shipment', function ($q) {
-            $q->withoutGlobalScopes()
-                ->where('status', '!=', ShipmentStatus::CANCELLED);
+            $q->withoutGlobalScopes()->countsAsShipped();
         });
 
         return $query;
