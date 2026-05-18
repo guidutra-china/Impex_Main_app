@@ -41,7 +41,7 @@ class ItemsRelationManager extends RelationManager
                     $companyId = $this->getOwnerRecord()->company_id;
 
                     return ProformaInvoice::where('company_id', $companyId)
-                        ->whereIn('status', ['confirmed', 'finalized', 'reopened'])
+                        ->whereNotIn('status', ['draft', 'cancelled'])
                         ->orderByDesc('id')
                         ->get()
                         ->mapWithKeys(fn ($pi) => [
@@ -241,7 +241,7 @@ class ItemsRelationManager extends RelationManager
                     ->form(function () {
                         $companyId = $this->getOwnerRecord()->company_id;
                         $piOptions = ProformaInvoice::where('company_id', $companyId)
-                            ->whereIn('status', ['confirmed', 'finalized', 'reopened'])
+                            ->whereNotIn('status', ['draft', 'cancelled'])
                             ->orderByDesc('id')
                             ->get()
                             ->mapWithKeys(fn ($pi) => [
