@@ -15,6 +15,7 @@
     $lastLabel = $cartons->last()->label;
     $totalGross = (float) $cartons->sum('gross_weight');
     $totalNet = (float) $cartons->sum('net_weight');
+    $totalVolume = (float) $cartons->sum('volume');
 
     $isMixed = $signature === CartonGroupingService::SIGNATURE_MIXED;
 
@@ -56,6 +57,9 @@
                     @endif
                     @if ($totalNet > 0)
                         <span>NW {{ number_format($totalNet, 1) }} kg</span>
+                    @endif
+                    @if ($totalVolume > 0)
+                        <span>CBM {{ number_format($totalVolume, 3) }}</span>
                     @endif
                 </div>
 
