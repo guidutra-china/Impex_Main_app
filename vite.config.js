@@ -13,6 +13,8 @@ export default defineConfig({
                 'resources/css/filament/supplier-portal/theme.css',
                 'resources/css/filament/forwarder-portal/theme.css',
                 'resources/css/filament/fair/theme.css',
+                'resources/css/fair-mobile/app.css',
+                'resources/js/fair-mobile/app.js',
             ],
             refresh: true,
         }),

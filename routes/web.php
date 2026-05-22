@@ -28,3 +28,9 @@ Route::get('/portal/documents/{document}/download', PortalDocumentDownloadContro
 Route::get('/messaging/documents/{document}/preview', [DocumentPreviewController::class, 'stream'])
     ->name('messaging.documents.preview')
     ->middleware(['auth', 'signed']);
+
+// Fair mobile PWA shell. The Alpine SPA handles all client-side routing,
+// so any /fair-mobile/* path returns the same Blade view that boots the app.
+Route::view('/fair-mobile/{any?}', 'fair-mobile.app')
+    ->where('any', '.*')
+    ->name('fair-mobile');

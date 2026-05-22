@@ -2,16 +2,12 @@
 
 namespace App\Filament\Fair\Pages;
 
-use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\Category;
-use App\Domain\Catalog\Models\CompanyProduct;
-use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Enums\CompanyRole;
-use App\Domain\CRM\Enums\CompanyStatus;
 use App\Domain\CRM\Models\Company;
-use App\Domain\CRM\Models\CompanyRoleAssignment;
-use App\Domain\CRM\Models\Contact;
-use App\Domain\Infrastructure\Support\Money;
+use App\Domain\TradeFairs\Actions\RegisterFairSupplierAction;
+use App\Domain\TradeFairs\DataTransferObjects\FairProductData;
+use App\Domain\TradeFairs\DataTransferObjects\FairSupplierData;
 use App\Domain\TradeFairs\Models\TradeFair;
 use App\Domain\Users\Enums\UserType;
 use App\Mail\FairInquiryMail;
@@ -23,7 +19,6 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
@@ -33,14 +28,12 @@ use Filament\Schemas\Components\Wizard;
 use Filament\Schemas\Components\Wizard\Step;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
-use UnitEnum;
 
 class RegisterAtFair extends Page implements HasForms
 {
@@ -88,21 +81,22 @@ class RegisterAtFair extends Page implements HasForms
         // Redirect non-internal users immediately
         if (! static::canAccess()) {
             $this->redirect('/');
+
             return;
         }
 
         $activeFairId = session('active_trade_fair_id');
 
         $this->form->fill([
-            'trade_fair_id'   => $activeFairId,
+            'trade_fair_id' => $activeFairId,
             'existing_company_id' => null,
             'use_existing_company' => false,
             'address_country' => 'CN',
-            'products'        => [
+            'products' => [
                 ['currency_code' => 'USD'],
             ],
-            'email_subject'   => '',
-            'email_message'   => '',
+            'email_subject' => '',
+            'email_message' => '',
         ]);
     }
 
@@ -118,7 +112,7 @@ class RegisterAtFair extends Page implements HasForms
      */
     public function scanBusinessCard(): void
     {
-        $this->scanning   = true;
+        $this->scanning = true;
         $this->scanStatus = 'Scanning business card...';
 
         try {
@@ -136,7 +130,8 @@ class RegisterAtFair extends Page implements HasForms
 
             if (empty($rawState) || ! is_array($rawState)) {
                 $this->scanStatus = '';
-                $this->scanning   = false;
+                $this->scanning = false;
+
                 return;
             }
 
@@ -153,17 +148,19 @@ class RegisterAtFair extends Page implements HasForms
                 $mimeType = mime_content_type($realPath) ?: 'image/jpeg';
             } else {
                 Log::warning('[FairPanel] Unexpected business_card_photo state type', [
-                    'type'  => gettype($tempFile),
+                    'type' => gettype($tempFile),
                     'value' => is_object($tempFile) ? get_class($tempFile) : $tempFile,
                 ]);
                 $this->scanStatus = 'Could not read the uploaded image. Please try again.';
-                $this->scanning   = false;
+                $this->scanning = false;
+
                 return;
             }
 
             if (! $realPath || ! file_exists($realPath)) {
                 $this->scanStatus = 'Could not read the uploaded image. Please try again.';
-                $this->scanning   = false;
+                $this->scanning = false;
+
                 return;
             }
 
@@ -174,7 +171,8 @@ class RegisterAtFair extends Page implements HasForms
             $apiKey = config('services.openai.key');
             if (! $apiKey) {
                 $this->scanStatus = 'OpenAI API key is not configured.';
-                $this->scanning   = false;
+                $this->scanning = false;
+
                 return;
             }
 
@@ -202,20 +200,20 @@ PROMPT;
             $response = Http::withToken($apiKey)
                 ->timeout(30)
                 ->post('https://api.openai.com/v1/chat/completions', [
-                    'model'      => 'gpt-4.1-mini',
+                    'model' => 'gpt-4.1-mini',
                     'max_tokens' => 512,
-                    'messages'   => [
+                    'messages' => [
                         [
-                            'role'    => 'user',
+                            'role' => 'user',
                             'content' => [
                                 [
                                     'type' => 'text',
                                     'text' => $prompt,
                                 ],
                                 [
-                                    'type'      => 'image_url',
+                                    'type' => 'image_url',
                                     'image_url' => [
-                                        'url'    => 'data:' . $mimeType . ';base64,' . $imageData,
+                                        'url' => 'data:'.$mimeType.';base64,'.$imageData,
                                         'detail' => 'high',
                                     ],
                                 ],
@@ -227,10 +225,11 @@ PROMPT;
             if (! $response->successful()) {
                 Log::warning('[FairPanel] OpenAI scan failed', [
                     'status' => $response->status(),
-                    'body'   => $response->body(),
+                    'body' => $response->body(),
                 ]);
-                $this->scanStatus = 'OpenAI API error (HTTP ' . $response->status() . '). Please fill in the form manually.';
-                $this->scanning   = false;
+                $this->scanStatus = 'OpenAI API error (HTTP '.$response->status().'). Please fill in the form manually.';
+                $this->scanning = false;
+
                 return;
             }
 
@@ -246,7 +245,8 @@ PROMPT;
             if (! is_array($extracted)) {
                 Log::warning('[FairPanel] OpenAI returned non-JSON', ['content' => $content]);
                 $this->scanStatus = 'Could not parse the card data. Please fill in the form manually.';
-                $this->scanning   = false;
+                $this->scanning = false;
+
                 return;
             }
 
@@ -288,9 +288,9 @@ PROMPT;
             if (! empty($extracted['website'])) {
                 // Store website in notes if no dedicated field exists
                 $existing = $this->data['company_notes'] ?? '';
-                $websiteNote = 'Website: ' . $extracted['website'];
+                $websiteNote = 'Website: '.$extracted['website'];
                 $this->data['company_notes'] = $existing
-                    ? $existing . "\n" . $websiteNote
+                    ? $existing."\n".$websiteNote
                     : $websiteNote;
                 $filled[] = 'website (in notes)';
             }
@@ -298,12 +298,12 @@ PROMPT;
             if (empty($filled)) {
                 $this->scanStatus = 'Scan complete but no data could be extracted. Please fill in the form manually.';
             } else {
-                $this->scanStatus = 'Scan complete. Auto-filled: ' . implode(', ', $filled) . '. Please review and adjust.';
+                $this->scanStatus = 'Scan complete. Auto-filled: '.implode(', ', $filled).'. Please review and adjust.';
             }
 
             Log::info('[FairPanel] Business card scanned successfully', [
                 'extracted' => $extracted,
-                'filled'    => $filled,
+                'filled' => $filled,
             ]);
 
         } catch (\Throwable $e) {
@@ -311,7 +311,7 @@ PROMPT;
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            $this->scanStatus = 'Scan failed: ' . $e->getMessage() . '. Please fill in the form manually.';
+            $this->scanStatus = 'Scan failed: '.$e->getMessage().'. Please fill in the form manually.';
         } finally {
             $this->scanning = false;
         }
@@ -386,10 +386,10 @@ PROMPT;
                             ])
                             ->createOptionUsing(function (array $data): int {
                                 $fair = TradeFair::create([
-                                    'name'       => $data['name'],
-                                    'location'   => $data['location'] ?? null,
+                                    'name' => $data['name'],
+                                    'location' => $data['location'] ?? null,
                                     'start_date' => $data['start_date'] ?? null,
-                                    'end_date'   => $data['end_date'] ?? null,
+                                    'end_date' => $data['end_date'] ?? null,
                                     'created_by' => auth()->id(),
                                 ]);
 
@@ -440,7 +440,7 @@ PROMPT;
                             ->imageResizeMode('contain')
                             ->storeFiles(false)
                             ->extraInputAttributes([
-                                'accept'  => 'image/*',
+                                'accept' => 'image/*',
                                 'capture' => 'environment',
                             ])
                             ->helperText('Take a photo with your phone camera or upload an image. The form will be auto-filled.')
@@ -458,9 +458,9 @@ PROMPT;
                                 if ($this->scanning) {
                                     return new HtmlString(
                                         '<div class="flex items-center gap-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 p-3 text-sm text-blue-800 dark:text-blue-200">'
-                                        . '<svg class="animate-spin h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>'
-                                        . '<span>Scanning business card with AI... Please wait.</span>'
-                                        . '</div>'
+                                        .'<svg class="animate-spin h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>'
+                                        .'<span>Scanning business card with AI... Please wait.</span>'
+                                        .'</div>'
                                     );
                                 }
 
@@ -483,9 +483,9 @@ PROMPT;
                                     }
 
                                     return new HtmlString(
-                                        '<div class="rounded-lg border p-3 text-sm ' . $colorClass . '">'
-                                        . $icon . ' ' . e($this->scanStatus)
-                                        . '</div>'
+                                        '<div class="rounded-lg border p-3 text-sm '.$colorClass.'">'
+                                        .$icon.' '.e($this->scanStatus)
+                                        .'</div>'
                                     );
                                 }
 
@@ -507,19 +507,19 @@ PROMPT;
                             ->live()
                             ->getSearchResultsUsing(function (string $search): array {
                                 return Company::query()
-                                    ->where('name', 'like', '%' . $search . '%')
+                                    ->where('name', 'like', '%'.$search.'%')
                                     ->where(function ($q) {
                                         // Include companies with supplier role OR companies
                                         // registered via the fair panel (trade_fair_id set)
                                         // to catch records before role assignment completes
                                         $q->whereHas('companyRoles', fn ($r) => $r->where('role', CompanyRole::SUPPLIER->value))
-                                          ->orWhereNotNull('trade_fair_id');
+                                            ->orWhereNotNull('trade_fair_id');
                                     })
                                     ->orderBy('name')
                                     ->limit(15)
                                     ->get()
                                     ->mapWithKeys(fn (Company $c) => [
-                                        $c->id => $c->name . ($c->address_city ? ' — ' . $c->address_city : ''),
+                                        $c->id => $c->name.($c->address_city ? ' — '.$c->address_city : ''),
                                     ])
                                     ->toArray();
                             })
@@ -565,9 +565,9 @@ PROMPT;
 
                                 return new HtmlString(
                                     '<div class="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 p-3 text-sm text-amber-800 dark:text-amber-200">'
-                                    . '<strong>⚠ Existing supplier found:</strong> ' . e($company->name)
-                                    . '. The form has been pre-filled. Submitting will <strong>add new products</strong> to this existing supplier — it will NOT create a duplicate.'
-                                    . '</div>'
+                                    .'<strong>⚠ Existing supplier found:</strong> '.e($company->name)
+                                    .'. The form has been pre-filled. Submitting will <strong>add new products</strong> to this existing supplier — it will NOT create a duplicate.'
+                                    .'</div>'
                                 );
                             })
                             ->visible(fn () => ! empty($this->data['existing_company_id'])),
@@ -617,11 +617,11 @@ PROMPT;
                             ])
                             ->createOptionUsing(function (array $data): int {
                                 $category = Category::create([
-                                    'name'       => $data['name'],
-                                    'slug'       => Str::slug($data['name']),
+                                    'name' => $data['name'],
+                                    'slug' => Str::slug($data['name']),
                                     'sku_prefix' => $data['sku_prefix'] ?? null,
-                                    'parent_id'  => $data['parent_id'] ?? null,
-                                    'is_active'  => true,
+                                    'parent_id' => $data['parent_id'] ?? null,
+                                    'is_active' => true,
                                 ]);
 
                                 return $category->id;
@@ -734,11 +734,11 @@ PROMPT;
                                     ])
                                     ->createOptionUsing(function (array $data): int {
                                         $category = Category::create([
-                                            'name'       => $data['name'],
-                                            'slug'       => Str::slug($data['name']),
+                                            'name' => $data['name'],
+                                            'slug' => Str::slug($data['name']),
                                             'sku_prefix' => $data['sku_prefix'] ?? null,
-                                            'parent_id'  => $data['parent_id'] ?? null,
-                                            'is_active'  => true,
+                                            'parent_id' => $data['parent_id'] ?? null,
+                                            'is_active' => true,
                                         ]);
 
                                         return $category->id;
@@ -916,10 +916,10 @@ PROMPT;
                                     ->implode(', ');
 
                                 $context = [
-                                    'recipient_name'  => $this->data['contact_name'] ?? '',
-                                    'company_name'    => $this->data['company_name'] ?? '',
+                                    'recipient_name' => $this->data['contact_name'] ?? '',
+                                    'company_name' => $this->data['company_name'] ?? '',
                                     'trade_fair_name' => $tradeFair?->name ?? '',
-                                    'product_names'   => $productNames,
+                                    'product_names' => $productNames,
                                 ];
 
                                 return app(\App\Domain\Infrastructure\Services\EmailMessagePlaceholderResolver::class)
@@ -934,6 +934,76 @@ PROMPT;
 
     // ─── Submit ──────────────────────────────────────────────────────
 
+    /**
+     * Build the FairSupplierData DTO from the wizard form state, normalising
+     * Filament FileUpload's array-keyed-by-UUID shape into single UploadedFile
+     * (or pre-stored path) entries the domain Action understands.
+     */
+    private function buildFairSupplierData(): FairSupplierData
+    {
+        $products = [];
+        foreach ($this->data['products'] ?? [] as $idx => $productData) {
+            if (empty($productData['name'])) {
+                continue;
+            }
+
+            // Photos live on top-level product_photo_0..4 because FileUpload
+            // inside a Repeater is unsupported in Filament v4 (issue #13636).
+            $products[] = new FairProductData(
+                name: $productData['name'],
+                categoryId: (int) $productData['category_id'],
+                description: $productData['description'] ?? null,
+                unitPrice: filled($productData['unit_price'] ?? null)
+                    ? (float) $productData['unit_price']
+                    : null,
+                currencyCode: $productData['currency_code'] ?? 'USD',
+                moq: filled($productData['moq'] ?? null) ? (int) $productData['moq'] : null,
+                photo: $this->extractUploadedFile($this->data['product_photo_'.$idx] ?? null),
+            );
+        }
+
+        return new FairSupplierData(
+            tradeFairId: (int) $this->data['trade_fair_id'],
+            existingCompanyId: $this->data['existing_company_id'] ?? null,
+            companyName: $this->data['company_name'] ?? '',
+            addressCity: $this->data['address_city'] ?? null,
+            addressCountry: $this->data['address_country'] ?? null,
+            companyNotes: $this->data['company_notes'] ?? null,
+            categoryIds: $this->data['company_categories'] ?? [],
+            contactName: $this->data['contact_name'] ?? '',
+            contactEmail: $this->data['contact_email'] ?? null,
+            contactPhone: $this->data['contact_phone'] ?? null,
+            contactWechat: $this->data['contact_wechat'] ?? null,
+            businessCardPhoto: $this->extractUploadedFile($this->data['business_card_photo'] ?? null),
+            products: $products,
+        );
+    }
+
+    /**
+     * Filament FileUpload state shapes: null | string | ['<uuid>' => TemporaryUploadedFile|string].
+     * Returns the contained UploadedFile, the stored path string, or null.
+     */
+    private function extractUploadedFile(mixed $raw): \Symfony\Component\HttpFoundation\File\UploadedFile|string|null
+    {
+        if (empty($raw)) {
+            return null;
+        }
+        if (is_string($raw)) {
+            return $raw;
+        }
+        if (is_array($raw)) {
+            $first = reset($raw);
+            if ($first instanceof \Symfony\Component\HttpFoundation\File\UploadedFile) {
+                return $first;
+            }
+            if (is_string($first) && $first !== '') {
+                return $first;
+            }
+        }
+
+        return null;
+    }
+
     public function submit(): void
     {
         // ── DIAGNOSTIC: log the full form state at the very start ────────────
@@ -945,161 +1015,23 @@ PROMPT;
 
         $this->validate();
 
-        $company     = null;
+        $company = null;
         $productNames = [];
 
-        // ── 1. Save supplier + products inside a transaction ─────────
+        // ── 1. Save supplier + products via domain Action ────────────
         try {
-            DB::transaction(function () use (&$company, &$productNames) {
-                $existingId = $this->data['existing_company_id'] ?? null;
+            $supplierData = $this->buildFairSupplierData();
 
-                if ($existingId) {
-                    // Re-use existing company — update fair link if not already set
-                    $company = Company::findOrFail($existingId);
-                    if (! $company->trade_fair_id) {
-                        $company->update(['trade_fair_id' => $this->data['trade_fair_id']]);
-                    }
-                    // Update notes if provided
-                    if (! empty($this->data['company_notes'])) {
-                        $company->update(['notes' => $this->data['company_notes']]);
-                    }
-                } else {
-                    // ── Store business card photo permanently ────────────────
-                    // The FileUpload stores state as ['<uuid>' => TemporaryUploadedFile].
-                    // We use reset() to get the object and manually move it to
-                    // public/business-cards/ before creating the company record.
-                    $businessCardPath = null;
-                    $rawCard = $this->data['business_card_photo'] ?? null;
+            $result = app(RegisterFairSupplierAction::class)->execute($supplierData);
 
-                    if (! empty($rawCard) && is_array($rawCard)) {
-                        $tempCardFile = reset($rawCard);
-
-                        if ($tempCardFile instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
-                            $cardExt      = $tempCardFile->getClientOriginalExtension() ?: 'jpg';
-                            $cardFilename = 'business-cards/' . Str::uuid() . '.' . $cardExt;
-                            Storage::disk('public')->put(
-                                $cardFilename,
-                                file_get_contents($tempCardFile->getRealPath())
-                            );
-                            $businessCardPath = $cardFilename;
-                        } elseif (is_string($tempCardFile) && $tempCardFile !== '') {
-                            // Already stored (re-hydrated form)
-                            $businessCardPath = $tempCardFile;
-                        }
-                    }
-
-                    // Create new company
-                    $company = Company::create([
-                        'name'               => $this->data['company_name'],
-                        'address_city'       => $this->data['address_city'],
-                        'address_country'    => $this->data['address_country'],
-                        'status'             => CompanyStatus::PROSPECT,
-                        'notes'              => $this->data['company_notes'] ?? null,
-                        'trade_fair_id'      => $this->data['trade_fair_id'],
-                        'business_card_path' => $businessCardPath,
-                        'business_card_disk' => $businessCardPath ? 'public' : null,
-                    ]);
-
-                    // Assign supplier role
-                    CompanyRoleAssignment::create([
-                        'company_id' => $company->id,
-                        'role'       => CompanyRole::SUPPLIER,
-                    ]);
-
-                    // Attach categories
-                    $categoryIds = $this->data['company_categories'] ?? [];
-                    if (! empty($categoryIds)) {
-                        $company->categories()->attach($categoryIds);
-                    }
-
-                    // Create primary contact
-                    Contact::create([
-                        'company_id' => $company->id,
-                        'name'       => $this->data['contact_name'],
-                        'email'      => $this->data['contact_email'],
-                        'phone'      => $this->data['contact_phone'] ?? null,
-                        'wechat'     => $this->data['contact_wechat'] ?? null,
-                        'is_primary' => true,
-                    ]);
-                }
-
-                // Create products and link to supplier
-                // Photos are stored as top-level fields product_photo_0..4
-                // because FileUpload inside a Repeater is not supported in Filament v4
-                // (maintainer confirmed, issue #13636, Dec 2024).
-                $productIndex = 0;
-                foreach ($this->data['products'] ?? [] as $productData) {
-                    if (empty($productData['name'])) {
-                        $productIndex++;
-                        continue;
-                    }
-
-                    $product = Product::create([
-                        'name'        => $productData['name'],
-                        'category_id' => $productData['category_id'],
-                        'description' => $productData['description'] ?? null,
-                        'status'      => ProductStatus::DRAFT,
-                    ]);
-
-                    // Convert price to minor units using Money::SCALE (10000)
-                    $unitPrice = filled($productData['unit_price'] ?? null)
-                        ? Money::toMinor((float) $productData['unit_price'])
-                        : 0;
-
-                    // Read photo from the top-level product_photo_N field.
-                    // FileUpload stores state as an associative array keyed by UUID:
-                    // ['<uuid>' => TemporaryUploadedFile, ...]
-                    // We use reset() to get the TemporaryUploadedFile, then store it
-                    // permanently to the 'public' disk under 'fair-products/'.
-                    $rawPhoto = $this->data['product_photo_' . $productIndex] ?? null;
-                    $photo = null;
-
-                    if (! empty($rawPhoto) && is_array($rawPhoto)) {
-                        $tempPhotoFile = reset($rawPhoto);
-
-                        if ($tempPhotoFile instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
-                            // Store the temporary file permanently
-                            $extension = $tempPhotoFile->getClientOriginalExtension() ?: 'jpg';
-                            $filename  = 'fair-products/' . Str::uuid() . '.' . $extension;
-                            Storage::disk('public')->put(
-                                $filename,
-                                file_get_contents($tempPhotoFile->getRealPath())
-                            );
-                            $photo = $filename;
-                        } elseif (is_string($tempPhotoFile) && $tempPhotoFile !== '') {
-                            // Already a stored path (re-hydrated form)
-                            $photo = $tempPhotoFile;
-                        }
-                    } elseif (is_string($rawPhoto) && $rawPhoto !== '') {
-                        $photo = $rawPhoto;
-                    }
-
-                    // moq must be an integer or null
-                    $moq = filled($productData['moq'] ?? null)
-                        ? (int) $productData['moq']
-                        : null;
-
-                    CompanyProduct::create([
-                        'company_id'    => $company->id,
-                        'product_id'    => $product->id,
-                        'role'          => 'supplier',
-                        'unit_price'    => $unitPrice,
-                        'currency_code' => $productData['currency_code'] ?? 'USD',
-                        'moq'           => $moq,
-                        'avatar_path'   => $photo,
-                        'avatar_disk'   => 'public',
-                    ]);
-
-                    $productNames[] = $productData['name'];
-                    $productIndex++;
-                }
-            });
+            $company = $result->company;
+            $productNames = $result->productNames;
         } catch (\Throwable $e) {
             report($e);
 
             Notification::make()
                 ->title('Registration Failed')
-                ->body('Could not save supplier data: ' . $e->getMessage())
+                ->body('Could not save supplier data: '.$e->getMessage())
                 ->danger()
                 ->send();
 
@@ -1113,10 +1045,10 @@ PROMPT;
 
         try {
             $recipientEmail = $this->data['contact_email'];
-            $recipientName  = $this->data['contact_name'];
-            $companyName    = $this->data['company_name'];
+            $recipientName = $this->data['contact_name'];
+            $companyName = $this->data['company_name'];
 
-            $tradeFair     = TradeFair::find($this->data['trade_fair_id']);
+            $tradeFair = TradeFair::find($this->data['trade_fair_id']);
             $tradeFairName = $tradeFair?->name ?? 'Trade Fair';
 
             $subject = $this->data['email_subject'] ?? '';
@@ -1141,10 +1073,10 @@ PROMPT;
         } catch (\Throwable $e) {
             $emailError = $e->getMessage();
             Log::warning('Fair inquiry email failed', [
-                'company_id'    => $company?->id,
-                'company_name'  => $this->data['company_name'] ?? null,
-                'recipient'     => $this->data['contact_email'] ?? null,
-                'error'         => $emailError,
+                'company_id' => $company?->id,
+                'company_name' => $this->data['company_name'] ?? null,
+                'recipient' => $this->data['contact_email'] ?? null,
+                'error' => $emailError,
             ]);
         }
 
@@ -1160,9 +1092,9 @@ PROMPT;
                 ->title('Registration Saved — Email Failed')
                 ->body(
                     'Supplier and products were saved successfully. '
-                    . 'However, the inquiry email could not be sent. '
-                    . 'Error: ' . ($emailError ?? 'Unknown error')
-                    . '. You can resend the email from the admin panel.'
+                    .'However, the inquiry email could not be sent. '
+                    .'Error: '.($emailError ?? 'Unknown error')
+                    .'. You can resend the email from the admin panel.'
                 )
                 ->warning()
                 ->persistent()
