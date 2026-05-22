@@ -109,12 +109,16 @@ Alpine.data('fairApp', () => ({
                 api.activeFairs(),
                 api.referenceData(),
             ]);
+            // Persist to IDB FIRST, while the data is still a plain object.
+            // Once it goes through Alpine's reactive() wrapper, structuredClone
+            // (which IndexedDB uses internally) throws DataCloneError on some
+            // browsers: "the object can not be cloned".
+            await Promise.all([
+                saveFairs(fairsResponse.data),
+                saveReferenceData(refResponse),
+            ]);
             this.fairs = fairsResponse.data;
             this.reference = refResponse;
-            await Promise.all([
-                saveFairs(this.fairs),
-                saveReferenceData(this.reference),
-            ]);
         } catch (err) {
             console.error('[fair-mobile] boot failed', err);
             if (err instanceof ApiError && err.status === 401) {
@@ -242,8 +246,18 @@ Alpine.data('fairApp', () => ({
     /**
      * Serialise the draft into the JSON-safe payload that lives in IndexedDB.
      * Blobs travel inside the photo wrappers — IndexedDB stores them natively.
+     *
+     * IMPORTANT: this method must return plain objects, not the Alpine-reactive
+     * proxies that live inside `this.draft`. IndexedDB's structuredClone refuses
+     * to clone Proxy-wrapped objects on some browsers (DataCloneError: "the
+     * object can not be cloned"). Blobs themselves are passed through as-is
+     * because they are host objects that Alpine does not wrap.
      */
     buildPayload() {
+        const flattenFile = (f) => (f && f.blob)
+            ? { blob: f.blob, filename: f.filename, type: f.type }
+            : null;
+
         return {
             trade_fair_id: this.selectedFairId,
             company_name: this.draft.company_name.trim(),
@@ -254,7 +268,7 @@ Alpine.data('fairApp', () => ({
             contact_email: this.draft.contact_email || null,
             contact_phone: this.draft.contact_phone || null,
             contact_wechat: this.draft.contact_wechat || null,
-            business_card: this.draft.business_card,
+            business_card: flattenFile(this.draft.business_card),
             products: this.draft.products
                 .filter(p => p.name.trim())
                 .map(p => ({
@@ -263,7 +277,7 @@ Alpine.data('fairApp', () => ({
                     unit_price: p.unit_price === '' ? null : Number(p.unit_price),
                     currency_code: p.currency_code || 'USD',
                     moq: p.moq === '' ? null : Number(p.moq),
-                    photo: p.photo,
+                    photo: flattenFile(p.photo),
                 })),
         };
     },
@@ -344,13 +358,14 @@ Alpine.data('fairApp', () => ({
                 api.activeFairs(),
                 api.referenceData(),
             ]);
+            // Save before assigning to reactive props — see bootIntoCapture note.
+            await Promise.all([
+                saveFairs(fairsResponse.data),
+                saveReferenceData(refResponse),
+            ]);
             this.fairs = fairsResponse.data;
             this.reference = refResponse;
             this.cacheStale = false;
-            await Promise.all([
-                saveFairs(this.fairs),
-                saveReferenceData(this.reference),
-            ]);
         } catch { /* keep cached values */ }
     },
 
