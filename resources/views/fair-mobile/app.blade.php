@@ -96,11 +96,22 @@
                 <section class="bg-white rounded-lg border border-gray-200 p-4">
                     <label class="block text-sm font-medium text-gray-700">Feira</label>
                     <template x-if="fairs.length === 0">
-                        <p class="mt-2 text-sm text-amber-700">Nenhuma feira ativa no momento.</p>
+                        <div class="mt-2 space-y-2">
+                            <p class="text-sm text-amber-700">Nenhuma feira ativa no momento (sem nenhuma com data de término hoje ou depois).</p>
+                            <p class="text-xs text-gray-600">Crie uma no painel admin:</p>
+                            <a href="/fair" target="_blank"
+                               class="inline-block text-xs font-semibold border border-orange-600 text-orange-700 hover:bg-orange-50 px-3 py-2 rounded">
+                                Abrir /fair para criar →
+                            </a>
+                            <button type="button" @click="tryRefreshReference"
+                                    class="block text-xs text-gray-500 hover:text-gray-700 underline mt-2">
+                                Atualizar lista de feiras
+                            </button>
+                        </div>
                     </template>
                     <template x-if="fairs.length > 0">
                         <select x-model.number="selectedFairId"
-                                class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-3">
+                                class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-3 bg-white">
                             <template x-for="fair in fairs" :key="fair.id">
                                 <option :value="fair.id" x-text="fair.name + (fair.location ? ' — ' + fair.location : '')"></option>
                             </template>
