@@ -104,7 +104,6 @@ class BulkFillAction
             $palletId,
             $pcsPerCarton,
             $totalCartons,
-            $packedPieces,
             $defaults,
         ) {
             if ($totalCartons <= 0) {
@@ -185,6 +184,12 @@ class BulkFillAction
         return $created;
     }
 
+    /**
+     * Bulk fill always appends contiguous labels at max+1, even in non-DRAFT
+     * shipments where CreateCartonAction would fill gaps. Splitting a single
+     * bulk op across gaps (BOX-003, BOX-006, BOX-008…) would produce a
+     * confusing, non-contiguous range — operators expect a clean tail.
+     */
     private function getNextLabelNumber(Shipment $shipment): int
     {
         $labels = $shipment->cartons()->pluck('label');

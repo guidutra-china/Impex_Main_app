@@ -3,8 +3,10 @@
 namespace App\Domain\Logistics\Actions;
 
 use App\Domain\Logistics\Enums\PackagingType;
+use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\Carton;
 use App\Domain\Logistics\Models\Shipment;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class CreateCartonAction
@@ -33,18 +35,39 @@ class CreateCartonAction
         });
     }
 
+    /**
+     * Next BOX-NNN label. In DRAFT shipments labels are always contiguous
+     * (DeleteCartonAction renumbers on delete), so max+1 is correct. In other
+     * statuses we preserve historical labels (etiquetas físicas, PDFs já
+     * enviados ao cliente) and fill the first gap instead.
+     */
     private function generateNextLabel(Shipment $shipment): string
     {
-        $labels = $shipment->cartons()->pluck('label');
+        $numbers = $shipment->cartons()
+            ->pluck('label')
+            ->map(fn ($label) => preg_match('/^BOX-(\d+)$/', (string) $label, $m) ? (int) $m[1] : null)
+            ->filter()
+            ->sort()
+            ->values();
 
-        $max = 0;
-        foreach ($labels as $label) {
-            if (preg_match('/^BOX-(\d+)$/', (string) $label, $m)) {
-                $max = max($max, (int) $m[1]);
+        $next = $shipment->status === ShipmentStatus::DRAFT
+            ? (int) ($numbers->max() ?? 0) + 1
+            : $this->firstGapOrNext($numbers);
+
+        return 'BOX-'.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+    }
+
+    private function firstGapOrNext(Collection $sortedNumbers): int
+    {
+        $expected = 1;
+        foreach ($sortedNumbers as $n) {
+            if ($n !== $expected) {
+                return $expected;
             }
+            $expected++;
         }
 
-        return 'BOX-'.str_pad((string) ($max + 1), 3, '0', STR_PAD_LEFT);
+        return $expected;
     }
 
     private function nextSortOrder(Shipment $shipment): int

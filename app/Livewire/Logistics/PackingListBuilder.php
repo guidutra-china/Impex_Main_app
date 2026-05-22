@@ -13,10 +13,12 @@ use App\Domain\Logistics\Actions\DeleteContainerAction;
 use App\Domain\Logistics\Actions\DeletePalletAction;
 use App\Domain\Logistics\Actions\GeneratePackingListV2Action;
 use App\Domain\Logistics\Actions\RecalculateShipmentTotalsAction;
+use App\Domain\Logistics\Actions\RenumberCartonsAction;
 use App\Domain\Logistics\Actions\SplitProductAcrossCartonsAction;
 use App\Domain\Logistics\Actions\UpdateCartonAction;
 use App\Domain\Logistics\Actions\UpdateContainerAction;
 use App\Domain\Logistics\Actions\UpdatePalletAction;
+use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\CartonContent;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Logistics\Services\PackingProgressService;
@@ -426,6 +428,10 @@ class PackingListBuilder extends Component
                 $carton->delete();
             }
         });
+
+        if ($this->shipment->status === ShipmentStatus::DRAFT) {
+            app(RenumberCartonsAction::class)->execute($this->shipment);
+        }
 
         app(RecalculateShipmentTotalsAction::class)->execute($this->shipment);
 
