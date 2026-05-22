@@ -55,6 +55,11 @@
                     <span x-show="submitting">Entrando…</span>
                 </button>
             </form>
+
+            <button type="button" @click="resetLocalState"
+                    class="mt-6 mx-auto block text-xs text-gray-400 hover:text-gray-600 underline">
+                Limpar dados locais e recomeçar
+            </button>
         </div>
     </template>
 

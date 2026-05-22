@@ -116,11 +116,14 @@ Alpine.data('fairApp', () => ({
                 saveReferenceData(this.reference),
             ]);
         } catch (err) {
+            console.error('[fair-mobile] boot failed', err);
             if (err instanceof ApiError && err.status === 401) {
                 this.screen = 'login';
                 return;
             }
-            // Network down — hydrate from IndexedDB.
+            // Try cache fallback for transient network errors. If the underlying
+            // problem is a server error (5xx) or unauthorised (403), surface it
+            // instead of pretending the user is offline.
             const [cachedFairs, cachedRef] = await Promise.all([
                 loadFairs(),
                 loadReferenceData(),
@@ -130,7 +133,7 @@ Alpine.data('fairApp', () => ({
                 this.reference = cachedRef;
                 this.cacheStale = true;
             } else {
-                this.error = 'Sem dados em cache. Conecte-se à internet ao menos uma vez para iniciar.';
+                this.error = this.describeBootError(err);
                 this.screen = 'login';
                 return;
             }
@@ -154,6 +157,39 @@ Alpine.data('fairApp', () => ({
         this.screen = 'login';
         this.loginForm = { email: '', password: '' };
         this.user = null;
+    },
+
+    /**
+     * Wipe local token + IndexedDB caches and reload. Used when the user is
+     * stuck on the "no cached data" screen with a bad/stale token.
+     */
+    async resetLocalState() {
+        auth.clear();
+        try {
+            await Promise.all([
+                saveFairs([]),
+                saveReferenceData(null),
+            ]);
+        } catch { /* IDB might not be initialised yet */ }
+        window.location.reload();
+    },
+
+    describeBootError(err) {
+        if (err instanceof ApiError) {
+            if (err.status === 403) {
+                return 'API recusou o acesso (403). Sua conta talvez não esteja como tipo "internal" no servidor.';
+            }
+            if (err.status >= 500) {
+                return `Erro ${err.status} no servidor ao carregar dados. Veja o console / logs do servidor.`;
+            }
+            return `Falha na API: ${err.status} ${err.message || ''}`.trim();
+        }
+        // SyntaxError (JSON parse) usually means the API returned HTML — common
+        // when the request is redirected to a non-existent /login route.
+        if (err?.name === 'SyntaxError') {
+            return 'Servidor devolveu HTML em vez de JSON — sessão pode ter expirado. Limpe os dados locais e faça login de novo.';
+        }
+        return err?.message || 'Não foi possível conectar.';
     },
 
     // ─── Capture form handlers ──────────────────────────────────
