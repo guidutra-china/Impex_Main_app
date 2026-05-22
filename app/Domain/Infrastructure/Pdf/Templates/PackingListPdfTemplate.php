@@ -404,9 +404,9 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
             return '';
         }
 
-        $l = $carton->length ? number_format((float) $carton->length, 0) : '—';
-        $w = $carton->width ? number_format((float) $carton->width, 0) : '—';
-        $h = $carton->height ? number_format((float) $carton->height, 0) : '—';
+        $l = $carton->length ? number_format((float) $carton->length, 1) : '—';
+        $w = $carton->width ? number_format((float) $carton->width, 1) : '—';
+        $h = $carton->height ? number_format((float) $carton->height, 1) : '—';
 
         return "{$l} × {$w} × {$h}";
     }
