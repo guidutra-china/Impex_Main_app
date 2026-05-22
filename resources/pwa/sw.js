@@ -6,15 +6,15 @@
 // because the queued items reference an auth token that lives in the SPA's
 // localStorage. When a sync event fires, we nudge any open client to drain.
 
-const VERSION = 'fair-mobile-v2';
+const VERSION = 'fair-mobile-v3';
 const SHELL_CACHE = `${VERSION}-shell`;
 const SYNC_TAG = 'fair-mobile-sync';
 
 const SHELL_URLS = [
     '/fair-mobile',
     '/fair-mobile/manifest.json',
-    '/fair-mobile/icons/icon-192.png',
-    '/fair-mobile/icons/icon-512.png',
+    '/pwa/icons/icon-192.png',
+    '/pwa/icons/icon-512.png',
 ];
 
 self.addEventListener('install', (event) => {
@@ -42,6 +42,7 @@ self.addEventListener('fetch', (event) => {
 
     if (
         url.pathname.startsWith('/fair-mobile') ||
+        url.pathname.startsWith('/pwa/') ||
         url.pathname.startsWith('/build/')
     ) {
         event.respondWith(staleWhileRevalidate(request));

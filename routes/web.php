@@ -29,8 +29,27 @@ Route::get('/messaging/documents/{document}/preview', [DocumentPreviewController
     ->name('messaging.documents.preview')
     ->middleware(['auth', 'signed']);
 
-// Fair mobile PWA shell. The Alpine SPA handles all client-side routing,
-// so any /fair-mobile/* path returns the same Blade view that boots the app.
+// Fair mobile PWA. The service worker and manifest are served via Laravel
+// (not as static files under public/fair-mobile/) so that nginx does not
+// shadow the SPA route with a directory-listing 403. The SW lives at
+// /fair-mobile/sw.js to get its default scope of /fair-mobile/, which is
+// what lets it intercept the SPA's navigations and asset fetches.
+Route::get('/fair-mobile/sw.js', function () {
+    return response()->file(resource_path('pwa/sw.js'), [
+        'Content-Type' => 'application/javascript; charset=utf-8',
+        'Cache-Control' => 'no-cache, no-store, must-revalidate',
+        'Service-Worker-Allowed' => '/fair-mobile/',
+    ]);
+})->name('fair-mobile.sw');
+
+Route::get('/fair-mobile/manifest.json', function () {
+    return response()->file(resource_path('pwa/manifest.json'), [
+        'Content-Type' => 'application/manifest+json; charset=utf-8',
+        'Cache-Control' => 'public, max-age=3600',
+    ]);
+})->name('fair-mobile.manifest');
+
+// SPA shell — catch-all so client-side routing works.
 Route::view('/fair-mobile/{any?}', 'fair-mobile.app')
     ->where('any', '.*')
     ->name('fair-mobile');

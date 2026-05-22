@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Impex Fair">
     <link rel="manifest" href="/fair-mobile/manifest.json">
-    <link rel="apple-touch-icon" href="/fair-mobile/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/pwa/icons/icon-192.png">
     <title>Impex Fair</title>
     @vite(['resources/css/fair-mobile/app.css', 'resources/js/fair-mobile/app.js'])
 </head>
