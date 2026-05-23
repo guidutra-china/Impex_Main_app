@@ -146,6 +146,12 @@ class RolesAndPermissionsSeeder extends Seeder
             'delete-projects',
             'manage-project-templates',
 
+            // Trade Fairs
+            'view-trade-fairs',
+            'create-trade-fairs',
+            'edit-trade-fairs',
+            'delete-trade-fairs',
+
             // Dashboard & Pipeline
             'view-financial-dashboard',
             'view-operational-dashboard',
@@ -194,6 +200,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'delete-shipment-plans',
             'delete-shipments',
             'delete-payments',
+            'delete-trade-fairs',
             'manage-settings',
             'manage-audit-categories',
             'view-users',
@@ -219,6 +226,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'confirm-shipment-plans',
             'execute-shipment-plans',
             'delete-shipments',
+            'delete-trade-fairs',
             'edit-payments',
             'delete-payments',
             'approve-payments',

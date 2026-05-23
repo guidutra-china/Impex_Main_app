@@ -31,7 +31,7 @@ class TradeFairResource extends Resource
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->can('view-companies') ?? false;
+        return auth()->user()?->can('view-trade-fairs') ?? false;
     }
 
     public static function getGloballySearchableAttributes(): array

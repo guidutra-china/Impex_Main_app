@@ -134,6 +134,12 @@ class PermissionSeeder extends Seeder
             'delete-projects',
             'manage-project-templates',
 
+            // Trade Fairs
+            'view-trade-fairs',
+            'create-trade-fairs',
+            'edit-trade-fairs',
+            'delete-trade-fairs',
+
             // Dashboard & Pipeline
             'view-client-360',
             'view-statements',
