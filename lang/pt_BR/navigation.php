@@ -40,6 +40,7 @@ return [
         'company_expenses' => 'Despesas da Empresa',
         'production_schedules' => 'Cronogramas de Produção',
         'shipment_plans' => 'Planos de Embarque',
+        'trade_fairs' => 'Feiras',
     ],
     'models' => [
         'company' => 'Empresa',
@@ -100,6 +101,8 @@ return [
         'audit_categories' => 'Categorias de Auditoria',
         'company_expense' => 'Despesa',
         'company_expenses' => 'Despesas',
+        'trade_fair' => 'Feira',
+        'trade_fairs' => 'Feiras',
     ],
     'pages' => [
         'financial_overview' => 'Visão Financeira',

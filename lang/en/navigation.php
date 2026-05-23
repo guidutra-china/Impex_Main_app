@@ -43,6 +43,7 @@ return [
         'audit_categories' => 'Audit Categories',
         'production_schedules' => 'Production Schedules',
         'shipment_plans' => 'Shipment Plans',
+        'trade_fairs' => 'Trade Fairs',
     ],
 
     // Model Labels (singular / plural)
@@ -105,6 +106,8 @@ return [
         'production_schedules' => 'Production Schedules',
         'shipment_plan' => 'Shipment Plan',
         'shipment_plans' => 'Shipment Plans',
+        'trade_fair' => 'Trade Fair',
+        'trade_fairs' => 'Trade Fairs',
     ],
 
     // Page Titles

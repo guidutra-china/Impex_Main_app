@@ -3,15 +3,13 @@
 namespace App\Filament\Resources\Catalog\Products\Tables;
 
 use App\Domain\Catalog\Actions\ProductDeletionGuard;
-use App\Domain\CRM\Enums\CompanyRole;
-use App\Domain\CRM\Models\Company;
-use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
-use App\Domain\Catalog\Models\ProductCosting;
-use App\Domain\Catalog\Models\ProductPackaging;
-use App\Domain\Catalog\Models\ProductSpecification;
+use App\Domain\CRM\Enums\CompanyRole;
+use App\Domain\CRM\Models\Company;
+use App\Domain\Infrastructure\Support\Money;
+use App\Domain\TradeFairs\Models\TradeFair;
 use App\Filament\Resources\Catalog\Products\ProductResource;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
@@ -27,16 +25,14 @@ use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
 use Filament\Tables\Columns\ImageColumn;
-use Filament\Tables\Columns\Layout\Split;
-use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 
 class ProductsTable
 {
@@ -94,7 +90,8 @@ class ProductsTable
                             return '—';
                         }
                         $currency = $record->costing?->currency?->code ?? 'USD';
-                        return $currency . ' ' . Money::format($state);
+
+                        return $currency.' '.Money::format($state);
                     })
                     ->sortable()
                     ->alignEnd()
@@ -174,6 +171,22 @@ class ProductsTable
                             $query->whereDoesntHave('suppliers');
                         }
                     }),
+                SelectFilter::make('trade_fair_id')
+                    ->label('De Feira')
+                    ->multiple()
+                    ->options(fn () => TradeFair::query()
+                        ->orderByDesc('start_date')
+                        ->pluck('name', 'id')
+                        ->all())
+                    ->searchable()
+                    ->query(function ($query, array $data) {
+                        if (! empty($data['values'])) {
+                            $query->whereHas(
+                                'companies',
+                                fn ($cq) => $cq->whereIn('companies.trade_fair_id', $data['values'])
+                            );
+                        }
+                    }),
                 TrashedFilter::make(),
             ])
             ->groups([
@@ -206,7 +219,7 @@ class ProductsTable
                     ])
                     ->beforeReplicaSaved(function (Model $replica): void {
                         $replica->sku = null;
-                        $replica->name = $replica->name . ' (Copy)';
+                        $replica->name = $replica->name.' (Copy)';
                         $replica->status = ProductStatus::DRAFT;
                     })
                     ->after(function (Model $replica): void {
@@ -275,7 +288,7 @@ class ProductsTable
                             Notification::make()
                                 ->danger()
                                 ->title('Cannot delete product')
-                                ->body('Referenced in active documents: ' . $blocking->unique()->implode(', '))
+                                ->body('Referenced in active documents: '.$blocking->unique()->implode(', '))
                                 ->persistent()
                                 ->send();
 
@@ -386,7 +399,7 @@ class ProductsTable
         $icon = $isClient ? 'heroicon-o-user-group' : 'heroicon-o-truck';
         $companyRole = $isClient ? CompanyRole::CLIENT : CompanyRole::SUPPLIER;
 
-        return BulkAction::make('attach_' . $role)
+        return BulkAction::make('attach_'.$role)
             ->label($label)
             ->icon($icon)
             ->form([
@@ -425,6 +438,7 @@ class ProductsTable
 
                     if ($exists) {
                         $skipped++;
+
                         continue;
                     }
 
@@ -439,7 +453,7 @@ class ProductsTable
                 Notification::make()
                     ->success()
                     ->title("{$attached} products linked")
-                    ->body("{$label}: {$company?->name}" . ($skipped > 0 ? " ({$skipped} already linked)" : ''))
+                    ->body("{$label}: {$company?->name}".($skipped > 0 ? " ({$skipped} already linked)" : ''))
                     ->send();
             })
             ->deselectRecordsAfterCompletion();
@@ -447,7 +461,7 @@ class ProductsTable
 
     private static function getBulkSetFieldAction(string $column, string $label, string $icon, TextInput $field): BulkAction
     {
-        return BulkAction::make('set_' . $column)
+        return BulkAction::make('set_'.$column)
             ->label($label)
             ->icon($icon)
             ->form([$field])

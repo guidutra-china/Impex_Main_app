@@ -12,6 +12,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -55,6 +56,18 @@ class CompaniesTable
                     ->badge()
                     ->color('gray')
                     ->toggleable(),
+                TextColumn::make('tradeFair.name')
+                    ->label('Feira')
+                    ->badge()
+                    ->color('warning')
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                ImageColumn::make('business_card_path')
+                    ->label('Cartão')
+                    ->disk(fn (Company $record) => $record->business_card_disk ?? 'public')
+                    ->circular()
+                    ->size(40)
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('status')
                     ->badge()
                     ->sortable(),
@@ -99,6 +112,25 @@ class CompaniesTable
                             $query->whereNull('parent_company_id');
                         } elseif ($data['value'] === 'branch') {
                             $query->whereNotNull('parent_company_id');
+                        }
+                    }),
+                SelectFilter::make('trade_fair_id')
+                    ->label('Capturado em Feira')
+                    ->relationship('tradeFair', 'name')
+                    ->multiple()
+                    ->preload()
+                    ->searchable(),
+                SelectFilter::make('source')
+                    ->label('Origem')
+                    ->options([
+                        'fair' => 'De feira',
+                        'manual' => 'Cadastro manual',
+                    ])
+                    ->query(function ($query, array $data) {
+                        if ($data['value'] === 'fair') {
+                            $query->whereNotNull('trade_fair_id');
+                        } elseif ($data['value'] === 'manual') {
+                            $query->whereNull('trade_fair_id');
                         }
                     }),
             ])

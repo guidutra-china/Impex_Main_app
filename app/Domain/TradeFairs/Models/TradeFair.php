@@ -2,10 +2,12 @@
 
 namespace App\Domain\TradeFairs\Models;
 
+use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\CRM\Models\Company;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class TradeFair extends Model
 {
@@ -33,6 +35,18 @@ class TradeFair extends Model
         return $this->hasMany(Company::class);
     }
 
+    public function companyProducts(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            CompanyProduct::class,
+            Company::class,
+            'trade_fair_id',
+            'company_id',
+            'id',
+            'id'
+        );
+    }
+
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(\App\Models\User::class, 'created_by');
@@ -45,11 +59,11 @@ class TradeFair extends Model
         $name = $this->name;
 
         if ($this->location) {
-            $name .= ' — ' . $this->location;
+            $name .= ' — '.$this->location;
         }
 
         if ($this->start_date) {
-            $name .= ' (' . $this->start_date->format('M Y') . ')';
+            $name .= ' ('.$this->start_date->format('M Y').')';
         }
 
         return $name;
