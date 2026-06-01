@@ -167,7 +167,6 @@
                                         <x-client-deal-breakdown.receipts :block="$deal->receipts" :presentationCurrency="$report->presentationCurrency" />
                                         <x-client-deal-breakdown.purchase-orders :rows="$deal->purchaseOrders" :presentationCurrency="$report->presentationCurrency" />
                                         <x-client-deal-breakdown.shipments :rows="$deal->shipments" :expandedShipments="$expandedShipments" :presentationCurrency="$report->presentationCurrency" />
-                                        <x-client-deal-breakdown.debit-notes :rows="$deal->debitNotes" :presentationCurrency="$report->presentationCurrency" />
                                     </td>
                                 </tr>
                             @endif
@@ -175,6 +174,9 @@
                     </tbody>
                 </table>
             </div>
+
+            {{-- Client-level Debit Notes (mostly unlinked to a specific PI) --}}
+            <x-client-deal-breakdown.debit-notes :rows="$report->debitNotes" :presentationCurrency="$report->presentationCurrency" />
 
             @if (! empty($report->unconvertedCurrencyPairs))
                 <div class="text-xs text-amber-600">

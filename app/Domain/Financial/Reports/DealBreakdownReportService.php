@@ -58,7 +58,7 @@ final class DealBreakdownReportService
             ->orderByDesc('issue_date')
             ->get();
 
-        $fxCache = $this->prefetchFxCache($pis, $filters->presentationCurrency);
+        $fxCache = $this->prefetchFxCache($pis, $scopeIds, $filters, $filters->presentationCurrency);
         $fx = new FxConverter($filters->presentationCurrency, $fxCache);
         $unconverted = [];
 
@@ -67,6 +67,8 @@ final class DealBreakdownReportService
             $deals[] = $this->buildDealRow($pi, $fx, $unconverted);
         }
 
+        $debitNotes = $this->buildDebitNoteRows($scopeIds, $filters, $fx, $unconverted);
+
         return new DealBreakdownReport(
             clientId: $client->id,
             clientName: (string) $client->name,
@@ -74,6 +76,7 @@ final class DealBreakdownReportService
             filters: $filters,
             kpi: $this->buildKpi($deals),
             deals: $deals,
+            debitNotes: $debitNotes,
             unconvertedCurrencyPairs: array_values(array_unique($unconverted)),
         );
     }
@@ -112,7 +115,6 @@ final class DealBreakdownReportService
         $receipts = $this->buildReceipts($pi, $fx, $piTotalOriginal, $piTotalPres);
         $poRows = $this->buildPoRows($pi, $fx, $unconverted);
         $shipmentRows = $this->buildShipmentRows($pi, $fx, $unconverted);
-        $debitNoteRows = $this->buildDebitNoteRows($pi, $fx, $unconverted);
 
         $paidSuppliers = array_sum(array_map(fn ($p) => (int) ($p->paidPresentation ?? 0), $poRows));
         $paidShipments = array_sum(array_map(fn ($s) => (int) ($s->paidPresentation ?? 0), $shipmentRows));
@@ -136,7 +138,6 @@ final class DealBreakdownReportService
                 margin: $margin,
                 marginPct: $marginPct,
             ),
-            debitNotes: $debitNoteRows,
         );
     }
 
@@ -328,32 +329,37 @@ final class DealBreakdownReportService
     }
 
     /**
-     * Carrega Debit Notes ligadas a esta PI (diretamente via proforma_invoice_id)
-     * ou a qualquer Shipment desta PI (via shipment_id). DN cancelada é ignorada.
+     * Carrega Debit Notes do cliente (e empresas filhas) no intervalo do filtro.
+     * DNs raramente são amarradas a uma PI específica — quando são, o usuário
+     * em geral lança como Additional Cost no documento. Por isso a listagem
+     * aqui é no nível do cliente, não por deal.
      *
+     * Janela: `issued_at` se preenchido, senão `created_at`. DNs CANCELADAS
+     * são ignoradas.
+     *
+     * @param  list<int>  $scopeIds
      * @return list<DebitNoteRow>
      */
-    private function buildDebitNoteRows(ProformaInvoice $pi, FxConverter $fx, array &$unconverted): array
+    private function buildDebitNoteRows(array $scopeIds, DealBreakdownFilters $filters, FxConverter $fx, array &$unconverted): array
     {
-        $shipmentIds = [];
-        foreach ($pi->items as $piItem) {
-            foreach ($piItem->shipmentItems ?? [] as $si) {
-                if ($si->shipment) {
-                    $shipmentIds[$si->shipment->id] = true;
-                }
-            }
+        if (empty($scopeIds)) {
+            return [];
         }
-        $shipmentIds = array_keys($shipmentIds);
+
+        $from = $filters->from->toDateString();
+        $to = $filters->to->toDateString();
 
         $debitNotes = DebitNote::query()
-            ->where(function ($q) use ($pi, $shipmentIds) {
-                $q->where('proforma_invoice_id', $pi->id);
-                if (! empty($shipmentIds)) {
-                    $q->orWhereIn('shipment_id', $shipmentIds);
-                }
-            })
+            ->whereIn('company_id', $scopeIds)
             ->where('status', '!=', \App\Domain\Financial\Enums\DebitNoteStatus::CANCELLED)
-            ->with(['lineItems', 'proformaInvoice:id,reference', 'shipment:id,reference'])
+            ->where(function ($q) use ($from, $to) {
+                $q->whereBetween('issued_at', [$from.' 00:00:00', $to.' 23:59:59'])
+                    ->orWhere(function ($q2) use ($from, $to) {
+                        $q2->whereNull('issued_at')
+                            ->whereBetween('created_at', [$from.' 00:00:00', $to.' 23:59:59']);
+                    });
+            })
+            ->with(['lineItems'])
             ->orderByDesc('issued_at')
             ->orderByDesc('created_at')
             ->get();
@@ -376,12 +382,10 @@ final class DealBreakdownReportService
 
             $this->recordMissing($totalPres, (string) $dn->currency_code, $unconverted);
 
-            $linkedReference = $dn->proformaInvoice?->reference
-                ?? $dn->shipment?->reference;
-
             $rows[] = new DebitNoteRow(
                 id: $dn->id,
                 reference: (string) $dn->reference,
+                issuedAt: $issueDate,
                 currencyOriginal: (string) $dn->currency_code,
                 totalOriginal: $totalOriginal,
                 totalPresentation: $totalPres,
@@ -391,7 +395,6 @@ final class DealBreakdownReportService
                 outstandingPresentation: $outstandingPres,
                 status: $dn->status,
                 detailUrl: DebitNoteResource::getUrl('view', ['record' => $dn->id]),
-                linkedReference: $linkedReference,
             );
         }
 
@@ -430,7 +433,10 @@ final class DealBreakdownReportService
      * @param  \Illuminate\Support\Collection<int, ProformaInvoice>  $pis
      * @return array<string, float>
      */
-    private function prefetchFxCache($pis, string $presentationCurrency): array
+    /**
+     * @param  list<int>  $scopeIds
+     */
+    private function prefetchFxCache($pis, array $scopeIds, DealBreakdownFilters $filters, string $presentationCurrency): array
     {
         $needed = [];
         $add = function (?string $currency, ?string $date) use (&$needed) {
@@ -454,11 +460,9 @@ final class DealBreakdownReportService
                     }
                 }
             }
-            $shipmentIds = [];
             foreach ($pi->items as $piItem) {
                 foreach ($piItem->shipmentItems ?? [] as $si) {
                     if ($si->shipment) {
-                        $shipmentIds[$si->shipment->id] = true;
                         $add($si->shipment->currency_code, (string) $si->shipment->issue_date);
                         foreach ($si->shipment->paymentScheduleItems as $schedule) {
                             foreach ($schedule->allocations as $a) {
@@ -468,15 +472,20 @@ final class DealBreakdownReportService
                     }
                 }
             }
+        }
 
-            // Debit Notes — load currency/date pairs so $fx can convert them.
-            $shipmentIds = array_keys($shipmentIds);
+        // Client-level Debit Notes — single batch load.
+        if (! empty($scopeIds)) {
+            $from = $filters->from->toDateString();
+            $to = $filters->to->toDateString();
             $dns = DebitNote::query()
-                ->where(function ($q) use ($pi, $shipmentIds) {
-                    $q->where('proforma_invoice_id', $pi->id);
-                    if (! empty($shipmentIds)) {
-                        $q->orWhereIn('shipment_id', $shipmentIds);
-                    }
+                ->whereIn('company_id', $scopeIds)
+                ->where(function ($q) use ($from, $to) {
+                    $q->whereBetween('issued_at', [$from.' 00:00:00', $to.' 23:59:59'])
+                        ->orWhere(function ($q2) use ($from, $to) {
+                            $q2->whereNull('issued_at')
+                                ->whereBetween('created_at', [$from.' 00:00:00', $to.' 23:59:59']);
+                        });
                 })
                 ->select(['id', 'currency_code', 'issued_at', 'created_at'])
                 ->get();

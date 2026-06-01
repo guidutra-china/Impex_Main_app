@@ -6,6 +6,7 @@ final readonly class DealBreakdownReport
 {
     /**
      * @param  list<DealRow>  $deals
+     * @param  list<DebitNoteRow>  $debitNotes
      * @param  list<string>  $unconvertedCurrencyPairs
      */
     public function __construct(
@@ -15,6 +16,7 @@ final readonly class DealBreakdownReport
         public DealBreakdownFilters $filters,
         public KpiSummary $kpi,
         public array $deals,
+        public array $debitNotes,
         public array $unconvertedCurrencyPairs,
     ) {}
 }
