@@ -35,6 +35,18 @@ class DebitNoteInfolist
                         ->formatStateUsing(fn ($state) => Money::format($state)),
                     TextEntry::make('currency_code')
                         ->label(__('forms.labels.currency')),
+                    TextEntry::make('paid_amount')
+                        ->label(__('forms.labels.paid_amount'))
+                        ->state(fn ($record) => $record->paid_amount)
+                        ->formatStateUsing(fn ($state) => Money::format((int) $state))
+                        ->badge()
+                        ->color(fn ($record) => $record->paid_amount >= (int) $record->total_amount && (int) $record->total_amount > 0 ? 'success' : 'gray'),
+                    TextEntry::make('remaining_amount')
+                        ->label(__('forms.labels.remaining_amount'))
+                        ->state(fn ($record) => $record->remaining_amount)
+                        ->formatStateUsing(fn ($state) => Money::format((int) $state))
+                        ->badge()
+                        ->color(fn ($state) => ((int) $state) > 0 ? 'warning' : 'success'),
                     TextEntry::make('issued_at')
                         ->label(__('forms.labels.issued_at'))
                         ->dateTime('d/m/Y H:i')
@@ -79,6 +91,33 @@ class DebitNoteInfolist
                                 ->label(__('forms.labels.currency')),
                         ])
                         ->columns(4),
+                ]),
+
+            Section::make(__('forms.sections.payments_received'))
+                ->columnSpanFull()
+                ->visible(fn ($record) => $record && $record->payments->isNotEmpty())
+                ->schema([
+                    RepeatableEntry::make('payments')
+                        ->label('')
+                        ->schema([
+                            TextEntry::make('reference')
+                                ->label(__('forms.labels.reference')),
+                            TextEntry::make('payment_date')
+                                ->label(__('forms.labels.payment_date'))
+                                ->date('d/m/Y'),
+                            TextEntry::make('paymentMethod.name')
+                                ->label(__('forms.labels.payment_method'))
+                                ->placeholder('—'),
+                            TextEntry::make('amount')
+                                ->label(__('forms.labels.amount'))
+                                ->formatStateUsing(fn ($state) => Money::format((int) $state)),
+                            TextEntry::make('currency_code')
+                                ->label(__('forms.labels.currency')),
+                            TextEntry::make('status')
+                                ->label(__('forms.labels.status'))
+                                ->badge(),
+                        ])
+                        ->columns(6),
                 ]),
         ]);
     }

@@ -34,10 +34,23 @@ class DebitNotesTable
                     ->sortable(),
                 TextColumn::make('currency_code')
                     ->label(__('forms.labels.currency')),
+                TextColumn::make('paid_amount')
+                    ->label(__('forms.labels.paid_amount'))
+                    ->state(fn ($record) => $record->paid_amount)
+                    ->formatStateUsing(fn ($state) => Money::format((int) $state))
+                    ->color(fn ($record) => $record->paid_amount >= (int) $record->total_amount && (int) $record->total_amount > 0 ? 'success' : 'gray')
+                    ->alignEnd(),
+                TextColumn::make('remaining_amount')
+                    ->label(__('forms.labels.remaining_amount'))
+                    ->state(fn ($record) => $record->remaining_amount)
+                    ->formatStateUsing(fn ($state) => Money::format((int) $state))
+                    ->color(fn ($state) => ((int) $state) > 0 ? 'warning' : 'success')
+                    ->alignEnd(),
                 TextColumn::make('line_items_count')
                     ->label(__('forms.labels.lines'))
                     ->counts('lineItems')
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('status')
                     ->label(__('forms.labels.status'))
                     ->badge()

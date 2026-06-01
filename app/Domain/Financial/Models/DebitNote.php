@@ -4,9 +4,11 @@ namespace App\Domain\Financial\Models;
 
 use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\DebitNoteStatus;
+use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -87,6 +89,69 @@ class DebitNote extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    // --- Accessors ---
+
+    /**
+     * Total já liquidado em alocações de pagamento APROVADAS contra os
+     * PaymentScheduleItems originados das line items desta Debit Note.
+     * Valor em minor units (escala Money::SCALE).
+     */
+    public function getPaidAmountAttribute(): int
+    {
+        $lineItemIds = $this->lineItems()->pluck('id');
+
+        if ($lineItemIds->isEmpty()) {
+            return 0;
+        }
+
+        $psiIds = PaymentScheduleItem::query()
+            ->where('source_type', DebitNoteLineItem::class)
+            ->whereIn('source_id', $lineItemIds)
+            ->pluck('id');
+
+        if ($psiIds->isEmpty()) {
+            return 0;
+        }
+
+        return (int) PaymentAllocation::query()
+            ->whereIn('payment_schedule_item_id', $psiIds)
+            ->whereHas('payment', fn ($q) => $q->where('status', PaymentStatus::APPROVED))
+            ->sum('allocated_amount_in_document_currency');
+    }
+
+    public function getRemainingAmountAttribute(): int
+    {
+        return max(0, ((int) $this->total_amount) - $this->paid_amount);
+    }
+
+    /**
+     * Pagamentos (com data e referência) que tocaram esta Debit Note via
+     * alocações nos PaymentScheduleItems derivados das line items.
+     */
+    public function getPaymentsAttribute(): Collection
+    {
+        $lineItemIds = $this->lineItems()->pluck('id');
+
+        if ($lineItemIds->isEmpty()) {
+            return Payment::query()->whereRaw('0 = 1')->get();
+        }
+
+        $psiIds = PaymentScheduleItem::query()
+            ->where('source_type', DebitNoteLineItem::class)
+            ->whereIn('source_id', $lineItemIds)
+            ->pluck('id');
+
+        if ($psiIds->isEmpty()) {
+            return Payment::query()->whereRaw('0 = 1')->get();
+        }
+
+        return Payment::query()
+            ->whereHas('allocations', fn ($q) => $q->whereIn('payment_schedule_item_id', $psiIds))
+            ->where('status', PaymentStatus::APPROVED)
+            ->orderByDesc('payment_date')
+            ->get();
     }
 
     // --- Helpers ---
