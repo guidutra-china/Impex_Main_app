@@ -35,6 +35,7 @@ return [
         'purchase_orders' => 'Purchase Orders',
         'shipments' => 'Shipments',
         'additional_costs' => 'Additional Costs',
+        'debit_notes' => 'Debit Notes',
     ],
     'basis' => [
         'weight' => 'allocation: weight',
@@ -47,4 +48,5 @@ return [
     'no_pos' => 'No linked purchase orders',
     'no_shipments' => 'No linked shipments',
     'no_receipts' => 'No payments received yet',
+    'no_debit_notes' => 'No linked debit notes',
 ];

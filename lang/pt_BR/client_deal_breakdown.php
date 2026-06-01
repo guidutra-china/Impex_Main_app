@@ -35,6 +35,7 @@ return [
         'purchase_orders' => 'Purchase Orders',
         'shipments' => 'Shipments',
         'additional_costs' => 'Custos Adicionais',
+        'debit_notes' => 'Debit Notes',
     ],
     'basis' => [
         'weight' => 'rateio: peso',
@@ -47,4 +48,5 @@ return [
     'no_pos' => 'Nenhum PO vinculado',
     'no_shipments' => 'Nenhum shipment vinculado',
     'no_receipts' => 'Nenhum pagamento recebido ainda',
+    'no_debit_notes' => 'Nenhuma debit note vinculada',
 ];

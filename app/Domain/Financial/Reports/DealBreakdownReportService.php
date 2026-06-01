@@ -4,11 +4,13 @@ namespace App\Domain\Financial\Reports;
 
 use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\PaymentStatus;
+use App\Domain\Financial\Models\DebitNote;
 use App\Domain\Financial\Reports\DTOs\AdditionalCostRow;
 use App\Domain\Financial\Reports\DTOs\DealBreakdownFilters;
 use App\Domain\Financial\Reports\DTOs\DealBreakdownReport;
 use App\Domain\Financial\Reports\DTOs\DealRow;
 use App\Domain\Financial\Reports\DTOs\DealTotals;
+use App\Domain\Financial\Reports\DTOs\DebitNoteRow;
 use App\Domain\Financial\Reports\DTOs\KpiSummary;
 use App\Domain\Financial\Reports\DTOs\PiInfo;
 use App\Domain\Financial\Reports\DTOs\PoRow;
@@ -18,6 +20,7 @@ use App\Domain\Financial\Reports\DTOs\ShipmentAttributionRow;
 use App\Domain\Financial\Reports\Support\FxConverter;
 use App\Domain\Financial\Reports\Support\ShipmentAttributionCalculator;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Filament\Resources\Finance\DebitNotes\DebitNoteResource;
 use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
 use App\Filament\Resources\PurchaseOrders\PurchaseOrderResource;
 use App\Filament\Resources\Shipments\ShipmentResource;
@@ -109,6 +112,7 @@ final class DealBreakdownReportService
         $receipts = $this->buildReceipts($pi, $fx, $piTotalOriginal, $piTotalPres);
         $poRows = $this->buildPoRows($pi, $fx, $unconverted);
         $shipmentRows = $this->buildShipmentRows($pi, $fx, $unconverted);
+        $debitNoteRows = $this->buildDebitNoteRows($pi, $fx, $unconverted);
 
         $paidSuppliers = array_sum(array_map(fn ($p) => (int) ($p->paidPresentation ?? 0), $poRows));
         $paidShipments = array_sum(array_map(fn ($s) => (int) ($s->paidPresentation ?? 0), $shipmentRows));
@@ -132,6 +136,7 @@ final class DealBreakdownReportService
                 margin: $margin,
                 marginPct: $marginPct,
             ),
+            debitNotes: $debitNoteRows,
         );
     }
 
@@ -189,7 +194,8 @@ final class DealBreakdownReportService
     {
         $rows = [];
         foreach ($pi->purchaseOrders as $po) {
-            $totalOriginal = (int) $po->items->sum(fn ($i) => $i->quantity * $i->unit_price);
+            // PurchaseOrderItem stores cost as `unit_cost` (not `unit_price`).
+            $totalOriginal = (int) $po->items->sum(fn ($i) => $i->quantity * $i->unit_cost);
             $paidOriginal = 0;
             $paidPres = 0;
             $hasMissing = false;
@@ -321,6 +327,77 @@ final class DealBreakdownReportService
         return $rows;
     }
 
+    /**
+     * Carrega Debit Notes ligadas a esta PI (diretamente via proforma_invoice_id)
+     * ou a qualquer Shipment desta PI (via shipment_id). DN cancelada é ignorada.
+     *
+     * @return list<DebitNoteRow>
+     */
+    private function buildDebitNoteRows(ProformaInvoice $pi, FxConverter $fx, array &$unconverted): array
+    {
+        $shipmentIds = [];
+        foreach ($pi->items as $piItem) {
+            foreach ($piItem->shipmentItems ?? [] as $si) {
+                if ($si->shipment) {
+                    $shipmentIds[$si->shipment->id] = true;
+                }
+            }
+        }
+        $shipmentIds = array_keys($shipmentIds);
+
+        $debitNotes = DebitNote::query()
+            ->where(function ($q) use ($pi, $shipmentIds) {
+                $q->where('proforma_invoice_id', $pi->id);
+                if (! empty($shipmentIds)) {
+                    $q->orWhereIn('shipment_id', $shipmentIds);
+                }
+            })
+            ->where('status', '!=', \App\Domain\Financial\Enums\DebitNoteStatus::CANCELLED)
+            ->with(['lineItems', 'proformaInvoice:id,reference', 'shipment:id,reference'])
+            ->orderByDesc('issued_at')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $rows = [];
+        foreach ($debitNotes as $dn) {
+            $totalOriginal = (int) $dn->total_amount;
+            $paidOriginal = (int) $dn->paid_amount;
+            $outstandingOriginal = max(0, $totalOriginal - $paidOriginal);
+
+            $issueDate = $dn->issued_at
+                ? CarbonImmutable::parse((string) $dn->issued_at)
+                : CarbonImmutable::parse((string) $dn->created_at);
+
+            $totalPres = $fx->convertDocument($totalOriginal, (string) $dn->currency_code, $issueDate);
+            $paidPres = $fx->convertDocument($paidOriginal, (string) $dn->currency_code, $issueDate);
+            $outstandingPres = ($totalPres !== null && $paidPres !== null)
+                ? max(0, $totalPres - $paidPres)
+                : null;
+
+            $this->recordMissing($totalPres, (string) $dn->currency_code, $unconverted);
+
+            $linkedReference = $dn->proformaInvoice?->reference
+                ?? $dn->shipment?->reference;
+
+            $rows[] = new DebitNoteRow(
+                id: $dn->id,
+                reference: (string) $dn->reference,
+                currencyOriginal: (string) $dn->currency_code,
+                totalOriginal: $totalOriginal,
+                totalPresentation: $totalPres,
+                paidOriginal: $paidOriginal,
+                paidPresentation: $paidPres,
+                outstandingOriginal: $outstandingOriginal,
+                outstandingPresentation: $outstandingPres,
+                status: $dn->status,
+                detailUrl: DebitNoteResource::getUrl('view', ['record' => $dn->id]),
+                linkedReference: $linkedReference,
+            );
+        }
+
+        return $rows;
+    }
+
     /** @param  list<DealRow>  $deals */
     private function buildKpi(array $deals): KpiSummary
     {
@@ -377,9 +454,11 @@ final class DealBreakdownReportService
                     }
                 }
             }
+            $shipmentIds = [];
             foreach ($pi->items as $piItem) {
                 foreach ($piItem->shipmentItems ?? [] as $si) {
                     if ($si->shipment) {
+                        $shipmentIds[$si->shipment->id] = true;
                         $add($si->shipment->currency_code, (string) $si->shipment->issue_date);
                         foreach ($si->shipment->paymentScheduleItems as $schedule) {
                             foreach ($schedule->allocations as $a) {
@@ -388,6 +467,24 @@ final class DealBreakdownReportService
                         }
                     }
                 }
+            }
+
+            // Debit Notes — load currency/date pairs so $fx can convert them.
+            $shipmentIds = array_keys($shipmentIds);
+            $dns = DebitNote::query()
+                ->where(function ($q) use ($pi, $shipmentIds) {
+                    $q->where('proforma_invoice_id', $pi->id);
+                    if (! empty($shipmentIds)) {
+                        $q->orWhereIn('shipment_id', $shipmentIds);
+                    }
+                })
+                ->select(['id', 'currency_code', 'issued_at', 'created_at'])
+                ->get();
+            foreach ($dns as $dn) {
+                $add(
+                    $dn->currency_code,
+                    $dn->issued_at ? (string) $dn->issued_at : (string) $dn->created_at,
+                );
             }
         }
 
