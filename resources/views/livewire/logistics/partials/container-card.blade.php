@@ -1,6 +1,7 @@
 @php
     $cartonsInContainer = $container->cartons;
     $totalWeight = (float) $cartonsInContainer->sum('gross_weight');
+    $totalVolume = (float) $cartonsInContainer->sum('volume');
     $totalCartons = $cartonsInContainer->count();
 @endphp
 
@@ -25,6 +26,7 @@
             <div class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 {{ $totalCartons }} box(es)
                 @if ($totalWeight > 0) · {{ number_format($totalWeight, 1) }} kg @endif
+                @if ($totalVolume > 0) · {{ number_format($totalVolume, 3) }} CBM @endif
                 @if ($container->seal_number) · seal {{ $container->seal_number }} @endif
             </div>
         </div>

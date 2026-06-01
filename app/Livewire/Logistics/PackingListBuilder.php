@@ -84,6 +84,21 @@ class PackingListBuilder extends Component
         'notes' => null,
     ];
 
+    // Transient "Bulk edit cartons" form (applies dims/weight to a whole subgroup).
+    // $bulkEditKey identifies which subgroup card is in edit mode; a blank field
+    // means "leave unchanged" on save.
+    public ?string $bulkEditKey = null;
+
+    public array $bulkEditCartonIds = [];
+
+    public array $bulkEditForm = [
+        'gross_weight' => null,
+        'net_weight' => null,
+        'length' => null,
+        'width' => null,
+        'height' => null,
+    ];
+
     // "Move carton" target (shown when user clicks "Move" on a carton)
     public ?int $moveCartonId = null;
 
@@ -516,6 +531,115 @@ class PackingListBuilder extends Component
         }
 
         $this->cancelEditCarton();
+        $this->refreshData();
+    }
+
+    // ---------- Bulk edit cartons (whole subgroup at once) ----------
+
+    /**
+     * Open the bulk-edit form for a subgroup. Pre-fills each field with the
+     * value shared by every carton in the group; leaves it blank when they
+     * differ (blank = "leave unchanged" on save).
+     *
+     * @param  array<int>  $cartonIds
+     */
+    public function startBulkEditCartons(array $cartonIds, string $key): void
+    {
+        $cartons = $this->shipment->cartons()->whereIn('id', $cartonIds)->get();
+        if ($cartons->isEmpty()) {
+            return;
+        }
+
+        $common = fn (string $field) => $cartons->pluck($field)->unique()->count() === 1
+            ? $cartons->first()->{$field}
+            : null;
+
+        $this->bulkEditKey = $key;
+        $this->bulkEditCartonIds = $cartons->pluck('id')->values()->all();
+        $this->bulkEditForm = [
+            'gross_weight' => $common('gross_weight'),
+            'net_weight' => $common('net_weight'),
+            'length' => $common('length'),
+            'width' => $common('width'),
+            'height' => $common('height'),
+        ];
+    }
+
+    public function cancelBulkEditCartons(): void
+    {
+        $this->bulkEditKey = null;
+        $this->bulkEditCartonIds = [];
+        $this->bulkEditForm = [
+            'gross_weight' => null,
+            'net_weight' => null,
+            'length' => null,
+            'width' => null,
+            'height' => null,
+        ];
+    }
+
+    public function saveBulkEditCartons(): void
+    {
+        if (empty($this->bulkEditCartonIds)) {
+            return;
+        }
+
+        // Blank field = leave unchanged: keep only the fields the user filled in.
+        $attrs = array_filter(
+            array_map(fn ($v) => $v === '' ? null : $v, $this->bulkEditForm),
+            fn ($v) => $v !== null,
+        );
+
+        // Recompute volume only when all three dimensions are provided together.
+        if (isset($attrs['length'], $attrs['width'], $attrs['height'])) {
+            $attrs['volume'] = round(
+                ((float) $attrs['length'] * (float) $attrs['width'] * (float) $attrs['height']) / 1_000_000,
+                4,
+            );
+        }
+
+        // Auto net weight from gross when gross is set but net was left blank.
+        if (isset($attrs['gross_weight']) && ! isset($attrs['net_weight'])) {
+            $attrs['net_weight'] = round((float) $attrs['gross_weight'] * 0.9, 3);
+        }
+
+        if (empty($attrs)) {
+            $this->cancelBulkEditCartons();
+
+            return;
+        }
+
+        $cartons = $this->shipment->cartons()->whereIn('id', $this->bulkEditCartonIds)->get();
+        $updateCarton = app(UpdateCartonAction::class);
+
+        $updated = 0;
+        $skipped = 0;
+        $lastError = null;
+
+        foreach ($cartons as $carton) {
+            try {
+                $updateCarton->execute($carton, $attrs);
+                $updated++;
+            } catch (InvalidArgumentException $e) {
+                $skipped++;
+                $lastError = $e->getMessage();
+            }
+        }
+
+        Notification::make()
+            ->success()
+            ->title("{$updated} caixa(s) atualizada(s)")
+            ->send();
+
+        if ($skipped > 0) {
+            Notification::make()
+                ->warning()
+                ->title("{$skipped} caixa(s) ignorada(s)")
+                ->body($lastError)
+                ->send();
+        }
+
+        $this->cancelBulkEditCartons();
         $this->refreshData();
     }
 

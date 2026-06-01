@@ -35,6 +35,9 @@
 
     $rangeLabel = $count > 1 ? "{$firstLabel} → {$lastLabel}" : $firstLabel;
     $boxCountLabel = $count === 1 ? '1 box' : number_format($count) . ' boxes';
+
+    $sgKey = md5($signature) . '-' . $cartons->first()->id;
+    $cartonIds = $cartons->pluck('id')->values();
 @endphp
 
 <div wire:key="carton-subgroup-{{ md5($signature) }}-{{ $cartons->first()->id }}" x-data="{ expanded: false }">
@@ -101,7 +104,14 @@
                     <span x-show="expanded" style="display: none;">Collapse</span>
                 </button>
                 <button type="button"
-                    wire:click="deleteAllCartons({{ json_encode($cartons->pluck('id')->values()) }})"
+                    wire:click="startBulkEditCartons({{ json_encode($cartonIds) }}, '{{ $sgKey }}')"
+                    class="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30"
+                    title="Editar medidas e peso de todas as {{ $count }} caixas do grupo">
+                    <x-heroicon-o-pencil-square class="h-5 w-5" />
+                    Editar medidas
+                </button>
+                <button type="button"
+                    wire:click="deleteAllCartons({{ json_encode($cartonIds) }})"
                     class="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm text-red-500 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950"
                     title="Delete all {{ $count }} cartons in this subgroup">
                     <x-heroicon-o-trash class="h-5 w-5" />
@@ -110,6 +120,50 @@
             </div>
         </div>
     </div>
+
+    {{-- Bulk edit form (dims + weight applied to every box in the subgroup) --}}
+    @if ($bulkEditKey === $sgKey)
+        <div class="mt-2 space-y-2 rounded-md border border-primary-300 bg-primary-50 p-3 dark:border-primary-700 dark:bg-primary-950">
+            <h4 class="text-xs font-semibold uppercase text-primary-900 dark:text-primary-100">
+                Editar {{ $boxCountLabel }} ({{ $rangeLabel }})
+            </h4>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Campo em branco mantém o valor atual de cada caixa.</p>
+            <div class="grid grid-cols-2 gap-2">
+                <label class="block">
+                    <span class="text-xs text-gray-700 dark:text-gray-300">Gross weight (kg)</span>
+                    <input type="number" step="0.001" min="0" wire:model="bulkEditForm.gross_weight" placeholder="manter"
+                        class="mt-0.5 block w-full rounded border-gray-300 text-xs dark:border-gray-700 dark:bg-gray-900" />
+                </label>
+                <label class="block">
+                    <span class="text-xs text-gray-700 dark:text-gray-300">Net weight (kg)</span>
+                    <input type="number" step="0.001" min="0" wire:model="bulkEditForm.net_weight" placeholder="auto: 90% gross"
+                        class="mt-0.5 block w-full rounded border-gray-300 text-xs dark:border-gray-700 dark:bg-gray-900" />
+                </label>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+                <label class="block">
+                    <span class="text-xs text-gray-700 dark:text-gray-300">L (cm)</span>
+                    <input type="number" step="0.01" min="0" wire:model="bulkEditForm.length" placeholder="manter"
+                        class="mt-0.5 block w-full rounded border-gray-300 text-xs dark:border-gray-700 dark:bg-gray-900" />
+                </label>
+                <label class="block">
+                    <span class="text-xs text-gray-700 dark:text-gray-300">W (cm)</span>
+                    <input type="number" step="0.01" min="0" wire:model="bulkEditForm.width" placeholder="manter"
+                        class="mt-0.5 block w-full rounded border-gray-300 text-xs dark:border-gray-700 dark:bg-gray-900" />
+                </label>
+                <label class="block">
+                    <span class="text-xs text-gray-700 dark:text-gray-300">H (cm)</span>
+                    <input type="number" step="0.01" min="0" wire:model="bulkEditForm.height" placeholder="manter"
+                        class="mt-0.5 block w-full rounded border-gray-300 text-xs dark:border-gray-700 dark:bg-gray-900" />
+                </label>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Preencher L, W e H recalcula o CBM de cada caixa.</p>
+            <div class="flex gap-2 pt-1">
+                <x-filament::button wire:click="saveBulkEditCartons" size="xs">Salvar grupo</x-filament::button>
+                <x-filament::button wire:click="cancelBulkEditCartons" size="xs" color="gray">Cancelar</x-filament::button>
+            </div>
+        </div>
+    @endif
 
     {{-- Expanded individual cartons --}}
     <div x-show="expanded" style="display: none;" class="mt-2 space-y-2">
