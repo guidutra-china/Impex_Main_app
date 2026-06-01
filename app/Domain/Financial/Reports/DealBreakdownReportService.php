@@ -74,7 +74,7 @@ final class DealBreakdownReportService
             clientName: (string) $client->name,
             presentationCurrency: $filters->presentationCurrency,
             filters: $filters,
-            kpi: $this->buildKpi($deals),
+            kpi: $this->buildKpi($deals, $debitNotes),
             deals: $deals,
             debitNotes: $debitNotes,
             unconvertedCurrencyPairs: array_values(array_unique($unconverted)),
@@ -260,9 +260,13 @@ final class DealBreakdownReportService
         foreach ($shipments as $shipment) {
             $attribution = $this->attributor->calculate($shipment, $pi);
 
-            $scheduleTotal = (int) $shipment->paymentScheduleItems->sum('amount');
+            // Cost basis for Margin attribution: only AdditionalCosts. Shipment
+            // paymentScheduleItems mix stage-PSIs (which mirror the client-billable
+            // portion of the PI value attached to the shipment milestone — i.e.
+            // revenue, not cost) with forwarder-payable AdditionalCost PSIs.
+            // Including them inflated the deal cost and skewed Margin.
             $additionalTotal = (int) $shipment->additionalCosts->sum('amount_in_document_currency');
-            $totalCostOriginal = $scheduleTotal + $additionalTotal;
+            $totalCostOriginal = $additionalTotal;
             $attributedOriginal = (int) round($totalCostOriginal * $attribution->pct);
 
             $paidOriginalFull = 0;
@@ -401,8 +405,11 @@ final class DealBreakdownReportService
         return $rows;
     }
 
-    /** @param  list<DealRow>  $deals */
-    private function buildKpi(array $deals): KpiSummary
+    /**
+     * @param  list<DealRow>  $deals
+     * @param  list<DebitNoteRow>  $debitNotes
+     */
+    private function buildKpi(array $deals, array $debitNotes): KpiSummary
     {
         $received = 0;
         $paidSuppliers = 0;
@@ -419,6 +426,14 @@ final class DealBreakdownReportService
             }
             $margin += $deal->totals->margin;
         }
+
+        // DNs not allocable to a specific deal — subtract their total from
+        // the overall KPI margin (per user convention).
+        $dnTotal = 0;
+        foreach ($debitNotes as $dn) {
+            $dnTotal += (int) ($dn->totalPresentation ?? 0);
+        }
+        $margin -= $dnTotal;
 
         return new KpiSummary(
             totalReceived: $received,
