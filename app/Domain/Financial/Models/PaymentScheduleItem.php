@@ -9,6 +9,7 @@ use App\Domain\Planning\Models\ShipmentPlan;
 use App\Domain\Settings\Enums\CalculationBase;
 use App\Domain\Settings\Models\PaymentTermStage;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -16,6 +17,13 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class PaymentScheduleItem extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory(): \Database\Factories\PaymentScheduleItemFactory
+    {
+        return \Database\Factories\PaymentScheduleItemFactory::new();
+    }
+
     protected $fillable = [
         'payable_type',
         'payable_id',
