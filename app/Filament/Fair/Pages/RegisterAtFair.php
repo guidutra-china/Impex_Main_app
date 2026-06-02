@@ -789,11 +789,14 @@ PROMPT;
                 // The key 'product_photo_0' ... 'product_photo_4' maps to the
                 // products array index in submit().
                 Section::make('Product Photos')
-                    ->description('Optional. Take a photo for each product using your phone camera. Match each photo to the product number above.')
+                    ->description('Optional. Take one or more photos for each product using your phone camera (up to 8 each). Match the photos to the product number above. The first photo is the primary/cover image.')
                     ->schema([
                         FileUpload::make('product_photo_0')
-                            ->label('Photo — Product 1')
+                            ->label('Photos — Product 1')
                             ->image()
+                            ->multiple()
+                            ->reorderable()
+                            ->maxFiles(8)
                             ->directory('fair-products')
                             ->disk('public')
                             ->maxSize(5120)
@@ -805,8 +808,11 @@ PROMPT;
                             ->visible(fn () => count($this->data['products'] ?? []) >= 1),
 
                         FileUpload::make('product_photo_1')
-                            ->label('Photo — Product 2')
+                            ->label('Photos — Product 2')
                             ->image()
+                            ->multiple()
+                            ->reorderable()
+                            ->maxFiles(8)
                             ->directory('fair-products')
                             ->disk('public')
                             ->maxSize(5120)
@@ -818,8 +824,11 @@ PROMPT;
                             ->visible(fn () => count($this->data['products'] ?? []) >= 2),
 
                         FileUpload::make('product_photo_2')
-                            ->label('Photo — Product 3')
+                            ->label('Photos — Product 3')
                             ->image()
+                            ->multiple()
+                            ->reorderable()
+                            ->maxFiles(8)
                             ->directory('fair-products')
                             ->disk('public')
                             ->maxSize(5120)
@@ -831,8 +840,11 @@ PROMPT;
                             ->visible(fn () => count($this->data['products'] ?? []) >= 3),
 
                         FileUpload::make('product_photo_3')
-                            ->label('Photo — Product 4')
+                            ->label('Photos — Product 4')
                             ->image()
+                            ->multiple()
+                            ->reorderable()
+                            ->maxFiles(8)
                             ->directory('fair-products')
                             ->disk('public')
                             ->maxSize(5120)
@@ -844,8 +856,11 @@ PROMPT;
                             ->visible(fn () => count($this->data['products'] ?? []) >= 4),
 
                         FileUpload::make('product_photo_4')
-                            ->label('Photo — Product 5')
+                            ->label('Photos — Product 5')
                             ->image()
+                            ->multiple()
+                            ->reorderable()
+                            ->maxFiles(8)
                             ->directory('fair-products')
                             ->disk('public')
                             ->maxSize(5120)
@@ -958,7 +973,7 @@ PROMPT;
                     : null,
                 currencyCode: $productData['currency_code'] ?? 'USD',
                 moq: filled($productData['moq'] ?? null) ? (int) $productData['moq'] : null,
-                photo: $this->extractUploadedFile($this->data['product_photo_'.$idx] ?? null),
+                photos: $this->extractUploadedFiles($this->data['product_photo_'.$idx] ?? null),
             );
         }
 
@@ -1002,6 +1017,39 @@ PROMPT;
         }
 
         return null;
+    }
+
+    /**
+     * Multi-file variant of extractUploadedFile. A multiple FileUpload stores
+     * its state as ['<uuid>' => TemporaryUploadedFile|string, ...]. Returns an
+     * ordered array of UploadedFile|string entries the domain Action understands.
+     *
+     * @return array<int, \Symfony\Component\HttpFoundation\File\UploadedFile|string>
+     */
+    private function extractUploadedFiles(mixed $raw): array
+    {
+        if (empty($raw)) {
+            return [];
+        }
+
+        if (is_string($raw)) {
+            return [$raw];
+        }
+
+        if (! is_array($raw)) {
+            return [];
+        }
+
+        $files = [];
+        foreach ($raw as $entry) {
+            if ($entry instanceof \Symfony\Component\HttpFoundation\File\UploadedFile) {
+                $files[] = $entry;
+            } elseif (is_string($entry) && $entry !== '') {
+                $files[] = $entry;
+            }
+        }
+
+        return $files;
     }
 
     public function submit(): void

@@ -16,6 +16,13 @@ class FairSupplierController
 
         $products = [];
         foreach ($validated['products'] ?? [] as $idx => $product) {
+            $photos = $request->file("products.$idx.photos") ?? [];
+
+            // Fall back to the legacy single-photo field for older payloads.
+            if (empty($photos) && $request->file("products.$idx.photo")) {
+                $photos = [$request->file("products.$idx.photo")];
+            }
+
             $products[] = new FairProductData(
                 name: $product['name'],
                 categoryId: (int) $product['category_id'],
@@ -23,7 +30,7 @@ class FairSupplierController
                 unitPrice: isset($product['unit_price']) ? (float) $product['unit_price'] : null,
                 currencyCode: $product['currency_code'] ?? 'USD',
                 moq: isset($product['moq']) ? (int) $product['moq'] : null,
-                photo: $request->file("products.$idx.photo"),
+                photos: array_values($photos),
             );
         }
 

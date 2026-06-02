@@ -4,17 +4,22 @@ namespace App\Filament\Resources\Catalog\Products\Pages;
 
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Services\ProductNameGenerator;
+use App\Filament\Resources\Catalog\Products\Concerns\ManagesProductGallery;
 use App\Filament\Resources\Catalog\Products\ProductResource;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateProduct extends CreateRecord
 {
+    use ManagesProductGallery;
+
     protected static string $resource = ProductResource::class;
 
     protected function afterCreate(): void
     {
         $product = $this->record;
+
+        $this->syncProductGallery($product);
 
         if (! $product->category_id) {
             return;

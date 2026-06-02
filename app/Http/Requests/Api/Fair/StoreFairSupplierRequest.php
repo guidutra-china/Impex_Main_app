@@ -44,6 +44,9 @@ class StoreFairSupplierRequest extends FormRequest
             'products.*.unit_price' => ['nullable', 'numeric', 'min:0'],
             'products.*.currency_code' => ['nullable', 'string', 'size:3'],
             'products.*.moq' => ['nullable', 'integer', 'min:0'],
+            'products.*.photos' => ['nullable', 'array', 'max:8'],
+            'products.*.photos.*' => ['nullable', 'file', 'image', 'max:10240'],
+            // Legacy single-photo field — kept so already-queued offline payloads still sync.
             'products.*.photo' => ['nullable', 'file', 'image', 'max:10240'],
         ];
     }

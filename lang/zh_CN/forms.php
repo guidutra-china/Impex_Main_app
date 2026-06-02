@@ -371,6 +371,7 @@ return [
         'product_category' => '产品类别',
         'product_family' => '产品系列',
         'product_image' => '产品图片',
+        'product_images' => '产品图片',
         'product_name' => '产品名称',
         'product_photo' => '产品照片',
         'products' => '产品',
@@ -679,6 +680,7 @@ return [
         'product' => '产品',
         'product_dimensions_weight_unpackaged' => '产品尺寸与重量（未包装）',
         'product_identity' => '产品身份',
+        'product_images' => '产品图片',
         'quantity_cartons' => '数量与箱数',
         'quotation_identity' => '报价单身份',
         'rate' => '汇率',
@@ -734,6 +736,7 @@ return [
     ],
     'helpers' => [
         'a_descriptive_name_to_identify_this_account' => '用于识别此账户的描述性名称。',
+        'first_image_is_primary' => '第一张图片为主图（封面）。拖动可重新排序。最多 8 张。',
         'add_branches_for_different_addresses' => '添加分公司以在文档中使用不同地址。',
         'actual_amount_transferred_credits_are_applied_separately' => '实际转账金额。信用单另行应用。',
         'applied_to_items_where_the_client_has_no_catalog_price' => '应用于客户无目录价的项目。',

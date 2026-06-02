@@ -87,7 +87,10 @@ class Product extends Model
             $query->where('id', '!=', $excludeProductId);
         }
 
-        if (! $query->exists()) {
+        // A gallery image row may also own this file — never delete it then.
+        $referencedByGallery = ProductImage::where('path', $avatarPath)->exists();
+
+        if (! $query->exists() && ! $referencedByGallery) {
             Storage::disk('public')->delete($avatarPath);
         }
     }
@@ -167,6 +170,16 @@ class Product extends Model
     public function components(): HasMany
     {
         return $this->hasMany(ProductComponent::class)->orderBy('sort_order');
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function primaryImage(): HasOne
+    {
+        return $this->hasOne(ProductImage::class)->where('is_primary', true);
     }
 
     public function companies(): BelongsToMany

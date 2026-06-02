@@ -2,6 +2,7 @@
 
 namespace App\Domain\TradeFairs\Actions;
 
+use App\Domain\Catalog\Actions\SyncProductPrimaryImageAction;
 use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\Catalog\Models\Product;
@@ -110,7 +111,24 @@ class RegisterFairSupplierAction
             'status' => ProductStatus::DRAFT,
         ]);
 
-        $photoPath = $this->storeFile($data->photo, 'fair-products');
+        $firstPhotoPath = null;
+        $sortOrder = 0;
+        foreach ($data->photos as $photo) {
+            $path = $this->storeFile($photo, 'fair-products');
+            if ($path === null) {
+                continue;
+            }
+
+            $product->images()->create([
+                'disk' => 'public',
+                'path' => $path,
+                'sort_order' => $sortOrder,
+                'is_primary' => $sortOrder === 0,
+            ]);
+
+            $firstPhotoPath ??= $path;
+            $sortOrder++;
+        }
 
         CompanyProduct::create([
             'company_id' => $company->id,
@@ -119,9 +137,14 @@ class RegisterFairSupplierAction
             'unit_price' => $data->unitPrice !== null ? Money::toMinor($data->unitPrice) : 0,
             'currency_code' => $data->currencyCode,
             'moq' => $data->moq,
-            'avatar_path' => $photoPath,
-            'avatar_disk' => 'public',
+            // First photo doubles as the supplier-specific avatar (backward compat).
+            'avatar_path' => $firstPhotoPath,
+            'avatar_disk' => $firstPhotoPath ? 'public' : null,
         ]);
+
+        if ($firstPhotoPath !== null) {
+            app(SyncProductPrimaryImageAction::class)->execute($product);
+        }
     }
 
     /**

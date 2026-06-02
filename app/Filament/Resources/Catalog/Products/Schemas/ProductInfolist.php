@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Catalog\Products\Schemas;
 
 use App\Domain\Infrastructure\Support\Money;
+use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
@@ -39,6 +40,17 @@ class ProductInfolist
     protected static function generalTab(): array
     {
         return [
+            Section::make(__('forms.sections.product_images'))
+                ->schema([
+                    ImageEntry::make('images.path')
+                        ->hiddenLabel()
+                        ->disk('public')
+                        ->height(120)
+                        ->square()
+                        ->limit(8),
+                ])
+                ->visible(fn ($record) => $record->images()->exists()),
+
             Section::make(__('forms.sections.product_identity'))
                 ->schema([
                     TextEntry::make('category.full_path')

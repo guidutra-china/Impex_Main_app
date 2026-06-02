@@ -3,11 +3,10 @@
 namespace App\Filament\Resources\Catalog\Products\Pages;
 
 use App\Domain\Catalog\Actions\ProductDeletionGuard;
+use App\Domain\Catalog\Actions\SyncProductPrimaryImageAction;
 use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\Product;
-use App\Domain\Catalog\Models\ProductCosting;
-use App\Domain\Catalog\Models\ProductPackaging;
-use App\Domain\Catalog\Models\ProductSpecification;
+use App\Filament\Resources\Catalog\Products\Concerns\ManagesProductGallery;
 use App\Filament\Resources\Catalog\Products\ProductResource;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -21,7 +20,19 @@ use Livewire\Attributes\On;
 
 class EditProduct extends EditRecord
 {
+    use ManagesProductGallery;
+
     protected static string $resource = ProductResource::class;
+
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        return $this->fillGalleryImages($data);
+    }
+
+    protected function afterSave(): void
+    {
+        $this->syncProductGallery($this->getRecord());
+    }
 
     protected function getHeaderActions(): array
     {
@@ -41,7 +52,7 @@ class EditProduct extends EditRecord
                     'variants_count',
                 ])
                 ->mutateRecordDataUsing(function (array $data): array {
-                    $data['name'] = $data['name'] . ' (Copy)';
+                    $data['name'] = $data['name'].' (Copy)';
                     $data['status'] = ProductStatus::DRAFT->value;
                     $data['sku'] = null;
 
@@ -71,6 +82,20 @@ class EditProduct extends EditRecord
                         $costData = $original->costing->replicate(['id', 'product_id'])->toArray();
                         $replica->costing()->create($costData);
                     }
+
+                    // Replicate gallery images (file paths are shared safely —
+                    // the orphan guard keeps the file while any row references it).
+                    foreach ($original->images as $image) {
+                        $replica->images()->create([
+                            'disk' => $image->disk,
+                            'path' => $image->path,
+                            'sort_order' => $image->sort_order,
+                            'is_primary' => $image->is_primary,
+                            'original_name' => $image->original_name,
+                            'size' => $image->size,
+                        ]);
+                    }
+                    app(SyncProductPrimaryImageAction::class)->execute($replica);
 
                     // Replicate tags
                     if ($original->tags->isNotEmpty()) {
@@ -112,7 +137,7 @@ class EditProduct extends EditRecord
                         Notification::make()
                             ->danger()
                             ->title('Cannot delete product')
-                            ->body('Referenced in active documents: ' . $blocking->unique()->implode(', '))
+                            ->body('Referenced in active documents: '.$blocking->unique()->implode(', '))
                             ->persistent()
                             ->send();
 

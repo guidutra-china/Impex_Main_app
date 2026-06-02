@@ -25,8 +25,8 @@ function emptyProduct() {
         unit_price: '',
         currency_code: 'USD',
         moq: '',
-        photo: null,           // { blob, filename, type } after compression
-        photoPreview: null,    // object URL for preview
+        // Array of { blob, filename, type, preview } — first entry is the cover.
+        photos: [],
     };
 }
 
@@ -211,15 +211,31 @@ Alpine.data('fairApp', () => ({
     },
 
     async onProductPhotoChange(event, idx) {
-        const file = event.target.files?.[0] || null;
-        if (!file) {
-            this.draft.products[idx].photo = null;
-            this.draft.products[idx].photoPreview = null;
-            return;
+        const files = Array.from(event.target.files || []);
+        if (!files.length) return;
+
+        const product = this.draft.products[idx];
+        const MAX_PHOTOS = 8;
+
+        for (const file of files) {
+            if (product.photos.length >= MAX_PHOTOS) break;
+            const compressed = await compressImage(file);
+            product.photos.push({
+                ...compressed,
+                preview: URL.createObjectURL(compressed.blob),
+            });
         }
-        const compressed = await compressImage(file);
-        this.draft.products[idx].photo = compressed;
-        this.draft.products[idx].photoPreview = URL.createObjectURL(compressed.blob);
+
+        // Allow re-selecting the same file(s) again.
+        event.target.value = '';
+    },
+
+    removeProductPhoto(idx, photoIdx) {
+        const product = this.draft.products[idx];
+        const removed = product.photos.splice(photoIdx, 1)[0];
+        if (removed?.preview) {
+            URL.revokeObjectURL(removed.preview);
+        }
     },
 
     addProduct() { this.draft.products.push(emptyProduct()); },
@@ -277,7 +293,7 @@ Alpine.data('fairApp', () => ({
                     unit_price: p.unit_price === '' ? null : Number(p.unit_price),
                     currency_code: p.currency_code || 'USD',
                     moq: p.moq === '' ? null : Number(p.moq),
-                    photo: flattenFile(p.photo),
+                    photos: (p.photos || []).map(flattenFile).filter(Boolean),
                 })),
         };
     },

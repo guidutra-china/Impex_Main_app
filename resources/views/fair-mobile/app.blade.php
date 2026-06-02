@@ -241,13 +241,25 @@
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-700">Foto</label>
-                                <input type="file" accept="image/*" capture="environment"
+                                <label class="block text-xs font-medium text-gray-700">
+                                    Fotos <span class="text-gray-400" x-text="`(${product.photos.length}/8)`"></span>
+                                </label>
+                                <input type="file" accept="image/*" capture="environment" multiple
                                        @change="onProductPhotoChange($event, idx)"
-                                       class="mt-1 block w-full text-sm text-gray-600 file:mr-2 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-orange-50 file:text-orange-700 file:text-xs file:font-semibold">
-                                <template x-if="product.photoPreview">
-                                    <img :src="product.photoPreview" alt="Produto" class="mt-2 rounded-md max-h-32 w-auto border">
-                                </template>
+                                       :disabled="product.photos.length >= 8"
+                                       class="mt-1 block w-full text-sm text-gray-600 file:mr-2 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-orange-50 file:text-orange-700 file:text-xs file:font-semibold disabled:opacity-50">
+                                <p class="mt-1 text-[11px] text-gray-400">A primeira foto é a capa. Toque novamente para adicionar mais.</p>
+                                <div class="mt-2 flex flex-wrap gap-2">
+                                    <template x-for="(photo, pi) in product.photos" :key="pi">
+                                        <div class="relative">
+                                            <img :src="photo.preview" alt="Produto" class="rounded-md h-20 w-20 object-cover border">
+                                            <span x-show="pi === 0"
+                                                  class="absolute bottom-0 inset-x-0 bg-orange-600/90 text-white text-[9px] text-center rounded-b-md">Capa</span>
+                                            <button type="button" @click="removeProductPhoto(idx, pi)"
+                                                    class="absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs leading-none shadow">&times;</button>
+                                        </div>
+                                    </template>
+                                </div>
                             </div>
                         </div>
                     </template>

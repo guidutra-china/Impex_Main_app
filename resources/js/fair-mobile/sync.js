@@ -44,9 +44,20 @@ export function buildFormData(payload) {
         if (product.moq != null && product.moq !== '') {
             fd.append(`products[${idx}][moq]`, product.moq);
         }
-        if (product.photo?.blob) {
-            fd.append(`products[${idx}][photo]`, product.photo.blob, product.photo.filename || 'product.jpg');
-        }
+        // Current shape: an array of photos. Fall back to the legacy single
+        // `photo` for items queued before multi-photo support.
+        const photos = Array.isArray(product.photos)
+            ? product.photos
+            : (product.photo ? [product.photo] : []);
+        photos.forEach((photo, photoIdx) => {
+            if (photo?.blob) {
+                fd.append(
+                    `products[${idx}][photos][${photoIdx}]`,
+                    photo.blob,
+                    photo.filename || `product-${photoIdx}.jpg`,
+                );
+            }
+        });
         idx++;
     }
     return fd;

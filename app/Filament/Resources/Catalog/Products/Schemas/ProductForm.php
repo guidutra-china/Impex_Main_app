@@ -171,16 +171,25 @@ class ProductForm
                         ->preload()
                         ->placeholder(__('forms.placeholders.none_base_product'))
                         ->helperText(__('forms.helpers.select_a_parent_product_if_this_is_a_variant')),
-                    FileUpload::make('avatar')
-                        ->label(__('forms.labels.product_image'))
+                    FileUpload::make('gallery_images')
+                        ->label(__('forms.labels.product_images'))
+                        ->helperText(__('forms.helpers.first_image_is_primary'))
                         ->image()
+                        ->multiple()
+                        ->reorderable()
+                        ->appendFiles()
+                        ->panelLayout('grid')
                         ->disk('public')
                         ->directory('products')
+                        ->maxFiles(8)
                         ->maxSize(2048)
                         ->imageResizeTargetWidth(1200)
                         ->imageResizeTargetHeight(1200)
                         ->imageResizeMode('contain')
                         ->columnSpanFull()
+                        // Persisted manually into the product_images relation by the
+                        // page (see ManagesProductGallery). Not a real product column.
+                        ->dehydrated(false)
                         ->extraAttributes([
                             'x-on:paste.window' => <<<'JS'
                                 $event.clipboardData.items && Array.from($event.clipboardData.items).forEach(item => {

@@ -245,6 +245,58 @@ class FairApiTest extends TestCase
         Storage::disk('public')->assertExists($businessCardPath);
     }
 
+    public function test_store_fair_supplier_creates_multiple_product_images(): void
+    {
+        $this->skipIfSqlite();
+        Storage::fake('public');
+
+        $fair = $this->activeFair();
+        $category = $this->category();
+
+        Sanctum::actingAs($this->internalUser(), ['fair:register']);
+
+        $payload = [
+            'trade_fair_id' => $fair->id,
+            'company_name' => 'Multi Photo Vendor Co.',
+            'address_country' => 'CN',
+            'contact_name' => 'Ms Li',
+            'products' => [
+                [
+                    'name' => 'Desk Lamp Pro',
+                    'category_id' => $category->id,
+                    'currency_code' => 'USD',
+                    'photos' => [
+                        UploadedFile::fake()->image('lamp-1.jpg', 400, 400),
+                        UploadedFile::fake()->image('lamp-2.jpg', 400, 400),
+                        UploadedFile::fake()->image('lamp-3.jpg', 400, 400),
+                    ],
+                ],
+            ],
+        ];
+
+        $this->postJson('/api/fair/v1/fair-suppliers', $payload)->assertStatus(201);
+
+        $product = \App\Domain\Catalog\Models\Product::where('name', 'Desk Lamp Pro')->firstOrFail();
+
+        // Three gallery rows, exactly one primary, avatar mirrors the first.
+        $this->assertSame(3, $product->images()->count());
+        $this->assertSame(1, $product->images()->where('is_primary', true)->count());
+
+        $first = $product->images()->orderBy('sort_order')->first();
+        $this->assertTrue($first->is_primary);
+        $this->assertSame($first->path, $product->avatar);
+
+        foreach ($product->images as $image) {
+            Storage::disk('public')->assertExists($image->path);
+        }
+
+        // First photo is also mirrored onto the supplier-specific pivot avatar.
+        $this->assertDatabaseHas('company_product', [
+            'product_id' => $product->id,
+            'avatar_path' => $first->path,
+        ]);
+    }
+
     public function test_store_fair_supplier_validation_fails_without_required_fields(): void
     {
         Sanctum::actingAs($this->internalUser());

@@ -391,6 +391,7 @@ return [
         'product_category' => 'Product Category',
         'product_family' => 'Product Family',
         'product_image' => 'Product Image',
+        'product_images' => 'Product Images',
         'product_name' => 'Product Name',
         'product_photo' => 'Product Photo',
         'products' => 'Products',
@@ -707,6 +708,7 @@ return [
         'product' => 'Product',
         'product_dimensions_weight_unpackaged' => 'Product Dimensions & Weight (unpackaged)',
         'product_identity' => 'Product Identity',
+        'product_images' => 'Product Images',
         'quantity_cartons' => 'Quantity & Cartons',
         'quotation_identity' => 'Quotation Identity',
         'rate' => 'Rate',
@@ -763,6 +765,7 @@ return [
     ],
     'helpers' => [
         'a_descriptive_name_to_identify_this_account' => 'A descriptive name to identify this account.',
+        'first_image_is_primary' => 'The first image is the primary (cover) photo. Drag to reorder. Up to 8 images.',
         'add_branches_for_different_addresses' => 'Add branches to use different addresses on documents.',
         'actual_amount_transferred_credits_are_applied_separately' => 'Actual amount transferred. Credits are applied separately.',
         'applied_to_items_where_the_client_has_no_catalog_price' => 'Applied to items where the client has no catalog price.',

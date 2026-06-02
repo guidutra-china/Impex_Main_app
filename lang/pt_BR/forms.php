@@ -389,6 +389,7 @@ return [
         'product_category' => 'Categoria do Produto',
         'product_family' => 'Família do Produto',
         'product_image' => 'Imagem do Produto',
+        'product_images' => 'Imagens do Produto',
         'product_name' => 'Nome do Produto',
         'product_photo' => 'Foto do Produto',
         'products' => 'Produtos',
@@ -703,6 +704,7 @@ return [
         'product' => 'Produto',
         'product_dimensions_weight_unpackaged' => 'Dimensões & Peso do Produto (sem embalagem)',
         'product_identity' => 'Identidade do Produto',
+        'product_images' => 'Imagens do Produto',
         'quantity_cartons' => 'Quantidade & Caixas',
         'quotation_identity' => 'Identidade da Cotação',
         'rate' => 'Taxa',
@@ -758,6 +760,7 @@ return [
     ],
     'helpers' => [
         'a_descriptive_name_to_identify_this_account' => 'Um nome descritivo para identificar esta conta.',
+        'first_image_is_primary' => 'A primeira imagem é a foto principal (capa). Arraste para reordenar. Até 8 imagens.',
         'add_branches_for_different_addresses' => 'Adicione filiais para usar endereços diferentes nos documentos.',
         'actual_amount_transferred_credits_are_applied_separately' => 'Valor real transferido. Créditos são aplicados separadamente.',
         'applied_to_items_where_the_client_has_no_catalog_price' => 'Aplicado a itens onde o cliente não tem preço de catálogo.',
