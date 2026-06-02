@@ -26,7 +26,6 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\Wizard\Step;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
@@ -48,7 +47,6 @@ class FlexibleProductImportAction
 
         $fieldPatterns = [
             'product_name' => ['product', 'item', 'description', 'modelo', 'model', 'produto', 'name', 'nome'],
-            'commercial_name' => ['commercial', 'comercial', 'client name', 'nome comercial', 'nome cliente'],
             'product_family' => ['family', 'família', 'familia', 'line', 'linha', 'series', 'série', 'serie'],
             'model_number' => ['model number', 'modelo', 'model no', 'model#', 'número modelo', 'numero modelo'],
             'reference_code' => ['ref', 'code', 'código', 'codigo', 'sku', 'reference'],
@@ -84,7 +82,6 @@ class FlexibleProductImportAction
 
         $fieldDefaults = [
             'product_name' => '',
-            'commercial_name' => '',
             'product_family' => '',
             'model_number' => '',
             'reference_code' => '',
@@ -105,7 +102,6 @@ class FlexibleProductImportAction
 
         $fieldLabels = [
             'product_name' => 'Product Name',
-            'commercial_name' => 'Commercial Name',
             'product_family' => 'Product Family',
             'model_number' => 'Model Number',
             'reference_code' => 'Reference Code / SKU',
@@ -167,7 +163,7 @@ class FlexibleProductImportAction
                         Toggle::make('enable_ai_analysis')
                             ->label('AI Analysis')
                             ->helperText('Use Claude AI to detect fuzzy product code matches and validate data quality before importing.')
-                            ->default(fn () => (new PreImportAnalysis())->isAvailable()),
+                            ->default(fn () => (new PreImportAnalysis)->isAvailable()),
                     ])
                     ->afterValidation(function (Get $get, Set $set) use ($fieldPatterns) {
                         ini_set('memory_limit', '512M');
@@ -176,7 +172,7 @@ class FlexibleProductImportAction
                         // Cache AI toggle value so Step 2 can read it reliably
                         $enableAi = (bool) $get('enable_ai_analysis');
                         self::putCache('enable_ai', $enableAi);
-                        \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: enable_ai_analysis = ' . ($enableAi ? 'true' : 'false'));
+                        \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: enable_ai_analysis = '.($enableAi ? 'true' : 'false'));
 
                         try {
                             $raw = $get('spreadsheet');
@@ -185,7 +181,7 @@ class FlexibleProductImportAction
                                 'values' => is_array($raw) ? array_map(fn ($v) => get_debug_type($v), $raw) : 'not array',
                             ]);
                             $path = self::resolveUploadPath($raw);
-                            \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: resolved path = ' . ($path ?? 'NULL'));
+                            \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: resolved path = '.($path ?? 'NULL'));
 
                             if (! $path) {
                                 Notification::make()->title('Could not resolve file path')->danger()->send();
@@ -203,14 +199,14 @@ class FlexibleProductImportAction
                                 $parsed = \App\Domain\Catalog\Actions\Import\SpreadsheetReader::read($path);
                                 $rows = $parsed['rows'];
                                 $rowOrigins = $parsed['row_origins'];
-                                \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: CSV loaded — ' . count($rows) . ' rows');
+                                \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: CSV loaded — '.count($rows).' rows');
                             } else {
                                 // Excel: use PhpSpreadsheet for data + image extraction
                                 $spreadsheet = IOFactory::load($path);
                                 $worksheet = $spreadsheet->getActiveSheet();
 
                                 $rawData = $worksheet->toArray(null, true, false, false);
-                                \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: toArray returned ' . count($rawData) . ' rows');
+                                \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: toArray returned '.count($rawData).' rows');
 
                                 $rows = [];
                                 $rowOrigins = [];
@@ -227,9 +223,9 @@ class FlexibleProductImportAction
                                 // Extract images (non-critical)
                                 try {
                                     $images = self::extractImagesByRow($worksheet);
-                                    \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: extracted ' . count($images) . ' images');
+                                    \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: extracted '.count($images).' images');
                                 } catch (\Throwable $e) {
-                                    \Illuminate\Support\Facades\Log::warning('Image extraction failed: ' . $e->getMessage());
+                                    \Illuminate\Support\Facades\Log::warning('Image extraction failed: '.$e->getMessage());
                                 }
 
                                 $spreadsheet->disconnectWorksheets();
@@ -237,7 +233,7 @@ class FlexibleProductImportAction
                             }
 
                             self::putCache('row_origins', $rowOrigins);
-                            \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: filtered to ' . count($rows) . ' non-empty rows');
+                            \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: filtered to '.count($rows).' non-empty rows');
 
                             if (empty($rows)) {
                                 Notification::make()->title('No data found in file')->warning()->send();
@@ -247,7 +243,7 @@ class FlexibleProductImportAction
 
                             self::putCache('images', $images);
                             self::putCache('rows', $rows);
-                            \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: stored ' . count($rows) . ' rows and ' . count($images) . ' images in cache');
+                            \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: stored '.count($rows).' rows and '.count($images).' images in cache');
 
                             // Auto-detect header row (use original Excel row number)
                             $bestRow = $rowOrigins[0] ?? 1;
@@ -279,7 +275,7 @@ class FlexibleProductImportAction
                             }
                             \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT: afterValidation COMPLETE');
                         } catch (\Throwable $e) {
-                            \Illuminate\Support\Facades\Log::error('Flexible import error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+                            \Illuminate\Support\Facades\Log::error('Flexible import error: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
                             Notification::make()->title('Error reading file')->body($e->getMessage())->danger()->send();
                         }
                     }),
@@ -294,7 +290,7 @@ class FlexibleProductImportAction
                         if ($enableAi === null) {
                             $enableAi = (bool) $get('enable_ai_analysis');
                         }
-                        \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT Map step: enableAi = ' . ($enableAi ? 'true' : 'false'));
+                        \Illuminate\Support\Facades\Log::info('FLEXIBLE IMPORT Map step: enableAi = '.($enableAi ? 'true' : 'false'));
 
                         $colMapping = [];
                         for ($c = 0; $c < 15; $c++) {
@@ -339,11 +335,11 @@ class FlexibleProductImportAction
                                 }
 
                                 if (! empty($allItems)) {
-                                    $analyzer = new PreImportAnalysis();
+                                    $analyzer = new PreImportAnalysis;
                                     $aiResult = $analyzer->analyzeFlexibleImport($allItems, $categoryIds, $firstCategoryName);
                                 }
                             } catch (\Throwable $e) {
-                                \Illuminate\Support\Facades\Log::warning('AI analysis failed: ' . $e->getMessage());
+                                \Illuminate\Support\Facades\Log::warning('AI analysis failed: '.$e->getMessage());
                             }
                         }
                         self::putCache('ai_analysis', $aiResult);
@@ -361,7 +357,6 @@ class FlexibleProductImportAction
                         $fieldOptions = [
                             'skip' => '— Skip —',
                             'Product' => [
-                                'commercial_name' => 'Commercial Name',
                                 'model_number' => 'Model Number',
                                 'product_family' => 'Product Family',
                                 'reference_code' => 'Reference Code / SKU',
@@ -371,14 +366,14 @@ class FlexibleProductImportAction
                                 'specs' => 'Specifications',
                                 'notes' => 'Notes',
                             ],
-                            ($isClient ? 'Client' : 'Supplier') . ' Link' => [
+                            ($isClient ? 'Client' : 'Supplier').' Link' => [
                                 'unit_price' => $isClient ? 'Selling Price (Client)' : 'Purchase Price (Supplier)',
                                 'custom_price' => 'Custom Price (CI Override)',
                                 'external_code' => $isClient ? 'Client Code' : 'Supplier Code',
                                 'external_name' => $isClient ? 'Client Product Name' : 'Supplier Product Name',
                                 'external_description' => 'Invoice Description',
                             ],
-                            ($isClient ? 'Supplier' : 'Client') . ' Link' => [
+                            ($isClient ? 'Supplier' : 'Client').' Link' => [
                                 'cross_unit_price' => $isClient ? 'Purchase Price (Supplier)' : 'Selling Price (Client)',
                                 'cross_external_code' => $isClient ? 'Supplier Code' : 'Client Code',
                                 'cross_external_name' => $isClient ? 'Supplier Product Name' : 'Client Product Name',
@@ -390,7 +385,7 @@ class FlexibleProductImportAction
                         for ($c = 0; $c < 15; $c++) {
                             $letter = self::columnLetter($c);
                             $headerLabel = $headerData[$c] ?? '';
-                            $label = "Col {$letter}" . ($headerLabel ? ": {$headerLabel}" : '');
+                            $label = "Col {$letter}".($headerLabel ? ": {$headerLabel}" : '');
 
                             $select = Select::make("col_map_{$c}")
                                 ->options($fieldOptions)
@@ -419,15 +414,15 @@ class FlexibleProductImportAction
 
                                         $images = self::getCache('images', []);
                                         $imageNote = count($images) > 0
-                                            ? "<p class=\"text-sm text-green-600 mt-1\">📷 " . count($images) . " image(s) detected</p>"
+                                            ? '<p class="text-sm text-green-600 mt-1">📷 '.count($images).' image(s) detected</p>'
                                             : '';
 
                                         return new HtmlString(
                                             self::buildFullPreviewTable($rows, (int) ($get('header_row') ?? 1))
-                                            . $imageNote
+                                            .$imageNote
                                         );
                                     } catch (\Throwable $e) {
-                                        return new HtmlString('<p class="text-red-500">Error: ' . e($e->getMessage()) . '</p>');
+                                        return new HtmlString('<p class="text-red-500">Error: '.e($e->getMessage()).'</p>');
                                     }
                                 })
                                 ->columnSpanFull(),
@@ -442,8 +437,8 @@ class FlexibleProductImportAction
                             Placeholder::make('mapping_help')
                                 ->content(new HtmlString(
                                     '<p class="text-xs text-gray-500 dark:text-gray-400">'
-                                    . 'Assign a field to each spreadsheet column:'
-                                    . '</p>'
+                                    .'Assign a field to each spreadsheet column:'
+                                    .'</p>'
                                 ))
                                 ->columnSpanFull(),
                             ...$colSelects,
@@ -460,9 +455,9 @@ class FlexibleProductImportAction
                             Placeholder::make('blocks_help')
                                 ->content(new HtmlString(
                                     '<hr class="my-2 border-gray-200 dark:border-gray-700">'
-                                    . '<p class="text-sm font-medium text-gray-700 dark:text-gray-300">'
-                                    . 'Define category blocks with row ranges:'
-                                    . '</p>'
+                                    .'<p class="text-sm font-medium text-gray-700 dark:text-gray-300">'
+                                    .'Define category blocks with row ranges:'
+                                    .'</p>'
                                 ))
                                 ->columnSpanFull(),
                             Repeater::make('import_blocks')
@@ -535,9 +530,9 @@ class FlexibleProductImportAction
 
                                 $html = '<div class="space-y-4">';
                                 $html .= '<div class="text-sm text-gray-600 dark:text-gray-400">';
-                                $html .= 'Currency: <strong>' . e($currencyCode) . '</strong>';
+                                $html .= 'Currency: <strong>'.e($currencyCode).'</strong>';
                                 if ($formula) {
-                                    $html .= ' | Custom Price: <strong>Unit Price ' . e($formula) . '</strong>';
+                                    $html .= ' | Custom Price: <strong>Unit Price '.e($formula).'</strong>';
                                 }
                                 $html .= '</div>';
 
@@ -561,15 +556,15 @@ class FlexibleProductImportAction
 
                                     $html .= '<div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">';
                                     $html .= '<p class="text-sm font-medium mb-2">';
-                                    $html .= '<span class="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-900/30 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 ring-1 ring-inset ring-blue-700/10 mr-2">Block ' . ($idx + 1) . '</span>';
-                                    $html .= '<strong>' . e($categoryName) . '</strong>';
+                                    $html .= '<span class="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-900/30 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 ring-1 ring-inset ring-blue-700/10 mr-2">Block '.($idx + 1).'</span>';
+                                    $html .= '<strong>'.e($categoryName).'</strong>';
                                     if ($blockFamily) {
-                                        $html .= ' <span class="text-xs text-gray-500">(' . e($blockFamily) . ')</span>';
+                                        $html .= ' <span class="text-xs text-gray-500">('.e($blockFamily).')</span>';
                                     }
-                                    $html .= ' — rows ' . $startRow . '–' . $endRow;
-                                    $html .= ' (' . count($items) . ' products';
+                                    $html .= ' — rows '.$startRow.'–'.$endRow;
+                                    $html .= ' ('.count($items).' products';
                                     if ($blockImages > 0) {
-                                        $html .= ', ' . $blockImages . ' images';
+                                        $html .= ', '.$blockImages.' images';
                                     }
                                     $html .= ')</p>';
 
@@ -578,26 +573,26 @@ class FlexibleProductImportAction
                                         $html .= '<div class="overflow-x-auto"><table class="min-w-full text-xs">';
                                         $html .= '<thead><tr class="bg-gray-50 dark:bg-gray-800">';
                                         foreach ($showFields as $field) {
-                                            $html .= '<th class="px-2 py-1 text-left">' . e(self::fieldLabel($field)) . '</th>';
+                                            $html .= '<th class="px-2 py-1 text-left">'.e(self::fieldLabel($field)).'</th>';
                                         }
                                         $html .= '</tr></thead><tbody>';
                                         for ($i = 0; $i < $previewCount; $i++) {
                                             $html .= '<tr class="border-t border-gray-100 dark:border-gray-700">';
                                             foreach ($showFields as $field) {
                                                 $val = htmlspecialchars(mb_substr($items[$i][$field] ?? '', 0, 40));
-                                                $html .= '<td class="px-2 py-1">' . $val . '</td>';
+                                                $html .= '<td class="px-2 py-1">'.$val.'</td>';
                                             }
                                             $html .= '</tr>';
                                         }
                                         if (count($items) > $previewCount) {
-                                            $html .= '<tr><td colspan="' . count($showFields) . '" class="px-2 py-1 text-gray-400 text-center">... and ' . (count($items) - $previewCount) . ' more</td></tr>';
+                                            $html .= '<tr><td colspan="'.count($showFields).'" class="px-2 py-1 text-gray-400 text-center">... and '.(count($items) - $previewCount).' more</td></tr>';
                                         }
                                         $html .= '</tbody></table></div>';
                                     }
                                     $html .= '</div>';
                                 }
 
-                                $html .= '<p class="text-sm font-medium mt-2">Total: <strong>' . $totalProducts . '</strong> products across ' . count($blocks) . ' block(s).';
+                                $html .= '<p class="text-sm font-medium mt-2">Total: <strong>'.$totalProducts.'</strong> products across '.count($blocks).' block(s).';
                                 if ($totalImages > 0) {
                                     $html .= " {$totalImages} image(s) will be saved.";
                                 }
@@ -681,12 +676,13 @@ class FlexibleProductImportAction
                                 if (empty($productName)) {
                                     $modelNumber = $item['model_number'] ?? '';
                                     $productName = $modelNumber
-                                        ? $category->name . ' ' . $modelNumber
+                                        ? $category->name.' '.$modelNumber
                                         : $category->name;
                                 }
 
                                 if (empty(trim($productName))) {
                                     $stats['skipped']++;
+
                                     continue;
                                 }
 
@@ -713,7 +709,6 @@ class FlexibleProductImportAction
                                 } else {
                                     $existing = Product::create([
                                         'name' => $productName,
-                                        'commercial_name' => $item['commercial_name'] ?? null,
                                         'product_family' => $blockFamily ?: ($item['product_family'] ?? null),
                                         'model_number' => $item['model_number'] ?? null,
                                         'sku' => $sku,
@@ -802,7 +797,7 @@ class FlexibleProductImportAction
                         $parts[] = "{$stats['skipped']} skipped (no name)";
                     }
 
-                    $blockSummary = count($blocks) > 1 ? ' across ' . count($blocks) . ' categories' : '';
+                    $blockSummary = count($blocks) > 1 ? ' across '.count($blocks).' categories' : '';
 
                     Notification::make()
                         ->title("Import Complete — {$totalItems} products{$blockSummary}")
@@ -866,7 +861,7 @@ class FlexibleProductImportAction
         foreach ($headerRow as $index => $value) {
             $letter = self::columnLetter($index);
             $label = $value !== '' ? $value : '(empty)';
-            $options[(string) $index] = "Column {$letter}: " . mb_substr($label, 0, 50);
+            $options[(string) $index] = "Column {$letter}: ".mb_substr($label, 0, 50);
         }
 
         return $options;
@@ -875,7 +870,7 @@ class FlexibleProductImportAction
     protected static function fieldLabel(string $field): string
     {
         return [
-            'product_name' => 'Product Name', 'commercial_name' => 'Commercial Name',
+            'product_name' => 'Product Name',
             'model_number' => 'Model Number', 'product_family' => 'Product Family',
             'reference_code' => 'Reference Code', 'moq' => 'MOQ',
             'lead_time' => 'Lead Time', 'material' => 'Material',
@@ -917,7 +912,7 @@ class FlexibleProductImportAction
         $index++;
         while ($index > 0) {
             $index--;
-            $letter = chr(65 + ($index % 26)) . $letter;
+            $letter = chr(65 + ($index % 26)).$letter;
             $index = intdiv($index, 26);
         }
 
@@ -995,13 +990,13 @@ class FlexibleProductImportAction
         $existingCount = $debug['existing_products'] ?? '?';
         $aiConfigured = ($debug['ai_configured'] ?? false) ? 'Yes' : 'No';
         $html .= '<p class="text-xs text-gray-400 dark:text-gray-500 mb-2">'
-            . "Analyzed {$importCount} import rows vs {$existingCount} existing products. Claude API: {$aiConfigured}"
-            . '</p>';
+            ."Analyzed {$importCount} import rows vs {$existingCount} existing products. Claude API: {$aiConfigured}"
+            .'</p>';
 
         if (! $aiAvailable) {
             $html .= '<div class="rounded-lg border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20 p-3 text-sm text-yellow-700 dark:text-yellow-400">'
-                . 'AI not configured. Set <code class="rounded bg-gray-100 dark:bg-gray-700 px-1 text-xs">ANTHROPIC_API_KEY</code> in <code class="rounded bg-gray-100 dark:bg-gray-700 px-1 text-xs">.env</code> to enable.'
-                . '</div>';
+                .'AI not configured. Set <code class="rounded bg-gray-100 dark:bg-gray-700 px-1 text-xs">ANTHROPIC_API_KEY</code> in <code class="rounded bg-gray-100 dark:bg-gray-700 px-1 text-xs">.env</code> to enable.'
+                .'</div>';
 
             return $html;
         }
@@ -1013,7 +1008,7 @@ class FlexibleProductImportAction
         // Intra-batch duplicates (most important!)
         if ($intraBatch->isNotEmpty()) {
             $html .= '<div class="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3 mb-3">';
-            $html .= '<p class="text-sm font-medium text-red-700 dark:text-red-300 mb-1">Possible Duplicates in Spreadsheet (' . $intraBatch->count() . ')</p>';
+            $html .= '<p class="text-sm font-medium text-red-700 dark:text-red-300 mb-1">Possible Duplicates in Spreadsheet ('.$intraBatch->count().')</p>';
             $html .= '<ul class="list-disc pl-5 text-xs text-gray-700 dark:text-gray-300 space-y-1">';
             foreach ($intraBatch as $m) {
                 $conf = $m['confidence'] ?? 'medium';
@@ -1022,11 +1017,11 @@ class FlexibleProductImportAction
                     : '<span class="inline-flex items-center rounded-full bg-yellow-50 dark:bg-yellow-900/30 px-1.5 py-0.5 text-xs font-medium text-yellow-700 dark:text-yellow-300">MED</span>';
 
                 $dupRow = $m['duplicate_row'] ?? '?';
-                $html .= '<li>Row ' . ($m['row'] ?? '?') . ' &harr; Row ' . $dupRow . ': '
-                    . '<code class="rounded bg-gray-100 dark:bg-gray-700 px-1">' . e($m['imported_code'] ?? '') . '</code>'
-                    . ' vs <code class="rounded bg-gray-100 dark:bg-gray-700 px-1">' . e($m['matched_code'] ?? '') . '</code>'
-                    . ' ' . $badge
-                    . '<br><span class="text-gray-500 dark:text-gray-400">' . e($m['reason'] ?? '') . '</span></li>';
+                $html .= '<li>Row '.($m['row'] ?? '?').' &harr; Row '.$dupRow.': '
+                    .'<code class="rounded bg-gray-100 dark:bg-gray-700 px-1">'.e($m['imported_code'] ?? '').'</code>'
+                    .' vs <code class="rounded bg-gray-100 dark:bg-gray-700 px-1">'.e($m['matched_code'] ?? '').'</code>'
+                    .' '.$badge
+                    .'<br><span class="text-gray-500 dark:text-gray-400">'.e($m['reason'] ?? '').'</span></li>';
             }
             $html .= '</ul></div>';
         }
@@ -1034,7 +1029,7 @@ class FlexibleProductImportAction
         // Database matches
         if ($vsDatabase->isNotEmpty()) {
             $html .= '<div class="rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/20 p-3 mb-3">';
-            $html .= '<p class="text-sm font-medium text-purple-700 dark:text-purple-300 mb-1">Matches with Existing Products (' . $vsDatabase->count() . ')</p>';
+            $html .= '<p class="text-sm font-medium text-purple-700 dark:text-purple-300 mb-1">Matches with Existing Products ('.$vsDatabase->count().')</p>';
             $html .= '<ul class="list-disc pl-5 text-xs text-gray-700 dark:text-gray-300 space-y-1">';
             foreach ($vsDatabase as $m) {
                 $conf = $m['confidence'] ?? 'medium';
@@ -1042,35 +1037,35 @@ class FlexibleProductImportAction
                     ? '<span class="inline-flex items-center rounded-full bg-green-50 dark:bg-green-900/30 px-1.5 py-0.5 text-xs font-medium text-green-700 dark:text-green-300">HIGH</span>'
                     : '<span class="inline-flex items-center rounded-full bg-yellow-50 dark:bg-yellow-900/30 px-1.5 py-0.5 text-xs font-medium text-yellow-700 dark:text-yellow-300">MED</span>';
 
-                $html .= '<li>Row ' . ($m['row'] ?? '?') . ': '
-                    . '<code class="rounded bg-gray-100 dark:bg-gray-700 px-1">' . e($m['imported_code'] ?? '') . '</code>'
-                    . ' &rarr; <code class="rounded bg-gray-100 dark:bg-gray-700 px-1">' . e($m['matched_code'] ?? '') . '</code>'
-                    . ' (' . e($m['matched_name'] ?? '') . ') ' . $badge
-                    . '<br><span class="text-gray-500 dark:text-gray-400">' . e($m['reason'] ?? '') . '</span></li>';
+                $html .= '<li>Row '.($m['row'] ?? '?').': '
+                    .'<code class="rounded bg-gray-100 dark:bg-gray-700 px-1">'.e($m['imported_code'] ?? '').'</code>'
+                    .' &rarr; <code class="rounded bg-gray-100 dark:bg-gray-700 px-1">'.e($m['matched_code'] ?? '').'</code>'
+                    .' ('.e($m['matched_name'] ?? '').') '.$badge
+                    .'<br><span class="text-gray-500 dark:text-gray-400">'.e($m['reason'] ?? '').'</span></li>';
             }
             $html .= '</ul></div>';
         }
 
         if ($intraBatch->isEmpty() && $vsDatabase->isEmpty()) {
             $html .= '<div class="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-2 mb-3 text-xs text-green-700 dark:text-green-400">'
-                . 'No duplicates or fuzzy matches found — all codes appear unique.</div>';
+                .'No duplicates or fuzzy matches found — all codes appear unique.</div>';
         }
 
         // Warnings
         if (! empty($aiWarnings)) {
             $html .= '<div class="rounded-lg border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20 p-3 mb-3">';
-            $html .= '<p class="text-sm font-medium text-yellow-700 dark:text-yellow-300 mb-1">Data Quality Warnings (' . count($aiWarnings) . ')</p>';
+            $html .= '<p class="text-sm font-medium text-yellow-700 dark:text-yellow-300 mb-1">Data Quality Warnings ('.count($aiWarnings).')</p>';
             $html .= '<ul class="list-disc pl-5 text-xs text-gray-700 dark:text-gray-300 space-y-1">';
             foreach ($aiWarnings as $w) {
                 $isError = ($w['severity'] ?? 'warning') === 'error';
                 $dot = $isError ? '<span class="text-red-500">&#9679;</span>' : '<span class="text-yellow-500">&#9679;</span>';
                 $suggestion = ! empty($w['suggestion'])
-                    ? '<br><span class="text-green-600 dark:text-green-400">Sugestao: ' . e($w['suggestion']) . '</span>'
+                    ? '<br><span class="text-green-600 dark:text-green-400">Sugestao: '.e($w['suggestion']).'</span>'
                     : '';
 
-                $html .= '<li>' . $dot . ' Row ' . ($w['row'] ?? '?')
-                    . ' — <strong>' . e($w['field'] ?? '') . '</strong>: '
-                    . e($w['message'] ?? '') . $suggestion . '</li>';
+                $html .= '<li>'.$dot.' Row '.($w['row'] ?? '?')
+                    .' — <strong>'.e($w['field'] ?? '').'</strong>: '
+                    .e($w['message'] ?? '').$suggestion.'</li>';
             }
             $html .= '</ul></div>';
         }
@@ -1089,13 +1084,13 @@ class FlexibleProductImportAction
         $perPage = 25;
         $totalRows = count($rows);
         $totalPages = max(1, (int) ceil($totalRows / $perPage));
-        $uid = 'sp_' . substr(md5(uniqid()), 0, 8);
+        $uid = 'sp_'.substr(md5(uniqid()), 0, 8);
 
         // Build table header
         $thead = '<thead class="sticky top-0 z-10"><tr class="bg-gray-50 dark:bg-gray-800">';
         $thead .= '<th class="px-2 py-1 text-gray-400 font-normal text-left">Row</th>';
         for ($c = 0; $c < $displayCols; $c++) {
-            $thead .= '<th class="px-2 py-1 text-gray-400 font-normal text-left">' . self::columnLetter($c) . '</th>';
+            $thead .= '<th class="px-2 py-1 text-gray-400 font-normal text-left">'.self::columnLetter($c).'</th>';
         }
         if ($maxCols > $displayCols) {
             $thead .= '<th class="px-2 py-1 text-gray-400 font-normal">…</th>';
@@ -1140,15 +1135,15 @@ class FlexibleProductImportAction
         $firstOriginal = $rowOrigins[0] ?? 1;
         $lastOriginal = $rowOrigins[$totalRows - 1] ?? $totalRows;
 
-        $html = '<div x-data="{ page: 1, total: ' . $totalPages . ' }" class="space-y-2">';
+        $html = '<div x-data="{ page: 1, total: '.$totalPages.' }" class="space-y-2">';
         $html .= '<div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">';
-        $html .= '<table class="min-w-full text-xs">' . $thead . $tbody . '</table>';
+        $html .= '<table class="min-w-full text-xs">'.$thead.$tbody.'</table>';
         $html .= '</div>';
         $html .= '<div class="flex items-center justify-between text-xs text-gray-500">';
-        $html .= '<span>' . $totalRows . ' rows (Excel rows ' . $firstOriginal . '–' . $lastOriginal . '), ' . $maxCols . ' columns</span>';
+        $html .= '<span>'.$totalRows.' rows (Excel rows '.$firstOriginal.'–'.$lastOriginal.'), '.$maxCols.' columns</span>';
         $html .= '<div class="flex items-center gap-2">';
         $html .= '<button type="button" x-on:click="page = Math.max(1, page - 1); $el.closest(\'[x-data]\').querySelectorAll(\'tbody tr\').forEach(r => r.style.display = r.dataset.page == page ? \'\' : \'none\')" x-bind:disabled="page === 1" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed">← Prev</button>';
-        $html .= '<span x-text="`Page ${page} of ${total}`">Page 1 of ' . $totalPages . '</span>';
+        $html .= '<span x-text="`Page ${page} of ${total}`">Page 1 of '.$totalPages.'</span>';
         $html .= '<button type="button" x-on:click="page = Math.min(total, page + 1); $el.closest(\'[x-data]\').querySelectorAll(\'tbody tr\').forEach(r => r.style.display = r.dataset.page == page ? \'\' : \'none\')" x-bind:disabled="page === total" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed">Next →</button>';
         $html .= '</div></div></div>';
 
@@ -1170,7 +1165,7 @@ class FlexibleProductImportAction
         $html .= '<thead><tr class="bg-gray-50 dark:bg-gray-800">';
         $html .= '<th class="px-2 py-1 text-gray-400 font-normal">Row</th>';
         for ($c = 0; $c < $maxCols; $c++) {
-            $html .= '<th class="px-2 py-1 text-gray-400 font-normal">' . self::columnLetter($c) . '</th>';
+            $html .= '<th class="px-2 py-1 text-gray-400 font-normal">'.self::columnLetter($c).'</th>';
         }
         $html .= '</tr></thead>';
 
@@ -1211,7 +1206,7 @@ class FlexibleProductImportAction
         if (count($rows) > $maxPreviewRows) {
             $remaining = count($rows) - $maxPreviewRows;
             $lastOriginalRow = $rowOrigins[count($rows) - 1] ?? count($rows);
-            $html .= "<tr><td colspan=\"" . ($maxCols + 1) . "\" class=\"px-2 py-1 text-gray-400 text-center\">... and {$remaining} more rows (last row: {$lastOriginalRow})</td></tr>";
+            $html .= '<tr><td colspan="'.($maxCols + 1)."\" class=\"px-2 py-1 text-gray-400 text-center\">... and {$remaining} more rows (last row: {$lastOriginalRow})</td></tr>";
         }
 
         $html .= '</tbody></table></div>';
@@ -1247,7 +1242,7 @@ class FlexibleProductImportAction
             ->action(function (array $data) use ($role) {
                 $category = Category::findOrFail($data['category_id']);
                 $includeCross = $data['include_cross_company'] ?? false;
-                $generator = new GenerateProductImportTemplate();
+                $generator = new GenerateProductImportTemplate;
                 $path = $generator->execute($category, $role, $includeCross);
 
                 return response()->download($path)->deleteFileAfterSend();
@@ -1282,7 +1277,7 @@ class FlexibleProductImportAction
             ->action(function (array $data) use ($role) {
                 $category = Category::findOrFail($data['category_id']);
                 $includeCross = $data['include_cross_company'] ?? false;
-                $generator = new GenerateProductImportTemplate();
+                $generator = new GenerateProductImportTemplate;
                 $path = $generator->executeSimple($category, $role, $includeCross);
 
                 return response()->download($path)->deleteFileAfterSend();

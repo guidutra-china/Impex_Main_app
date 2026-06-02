@@ -7,21 +7,20 @@ use App\Filament\Resources\Catalog\Products\Pages\CreateProduct;
 use App\Filament\Resources\Catalog\Products\Pages\EditProduct;
 use App\Filament\Resources\Catalog\Products\Pages\ListProducts;
 use App\Filament\Resources\Catalog\Products\Pages\ViewProduct;
+use App\Filament\Resources\Catalog\Products\RelationManagers\AttributeValuesRelationManager;
+use App\Filament\Resources\Catalog\Products\RelationManagers\ClientsRelationManager;
+use App\Filament\Resources\Catalog\Products\RelationManagers\ComponentsRelationManager;
+use App\Filament\Resources\Catalog\Products\RelationManagers\SuppliersRelationManager;
+use App\Filament\Resources\Catalog\Products\RelationManagers\VariantsRelationManager;
 use App\Filament\Resources\Catalog\Products\Schemas\ProductForm;
 use App\Filament\Resources\Catalog\Products\Schemas\ProductInfolist;
 use App\Filament\Resources\Catalog\Products\Tables\ProductsTable;
-use App\Filament\Resources\Catalog\Products\RelationManagers\ClientsRelationManager;
-use App\Filament\Resources\Catalog\Products\RelationManagers\SuppliersRelationManager;
-use App\Filament\Resources\Catalog\Products\RelationManagers\AttributeValuesRelationManager;
-use App\Filament\Resources\Catalog\Products\RelationManagers\ComponentsRelationManager;
-use App\Filament\Resources\Catalog\Products\RelationManagers\VariantsRelationManager;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use UnitEnum;
 
 class ProductResource extends Resource
 {
@@ -42,7 +41,7 @@ class ProductResource extends Resource
 
     public static function getGloballySearchableAttributes(): array
     {
-        return ['name', 'commercial_name', 'product_family', 'sku', 'brand', 'model_number', 'hs_code'];
+        return ['name', 'product_family', 'sku', 'brand', 'model_number', 'hs_code'];
     }
 
     public static function form(Schema $schema): Schema

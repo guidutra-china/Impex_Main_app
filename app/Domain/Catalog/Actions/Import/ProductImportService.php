@@ -13,9 +13,9 @@ use App\Domain\Catalog\Models\ProductCosting;
 use App\Domain\Catalog\Models\ProductPackaging;
 use App\Domain\Catalog\Models\ProductSpecification;
 use App\Domain\CRM\Models\Company;
+use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Enums\PackagingType;
 use App\Domain\Quotations\Enums\Incoterm;
-use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Settings\Models\Currency;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -29,7 +29,7 @@ class ProductImportService
 
     public function __construct()
     {
-        $this->templateGenerator = new GenerateProductImportTemplate();
+        $this->templateGenerator = new GenerateProductImportTemplate;
     }
 
     public function parseFile(string $filePath, Category $category, string $role = 'client'): array
@@ -88,9 +88,20 @@ class ProductImportService
         $hasCross = ! empty($rows[0]['_has_cross']);
 
         $refCodes = [];
+        $refCodeRows = [];
         foreach ($rows as $row) {
             if (! empty($row['reference_code'])) {
-                $refCodes[] = $row['reference_code'];
+                $code = trim($row['reference_code']);
+                $refCodes[] = $code;
+                $refCodeRows[$code][] = $row['_row'];
+            }
+        }
+
+        // reference_code is a UNIQUE idempotency key: flag duplicates within the
+        // batch up front instead of letting them hit the DB constraint mid-import.
+        foreach ($refCodeRows as $code => $rowNums) {
+            if (count($rowNums) > 1) {
+                $errors[] = "Reference Code '{$code}' repetido nas linhas ".implode(', ', $rowNums).'. Cada produto deve ter um código único.';
             }
         }
 
@@ -115,7 +126,7 @@ class ProductImportService
             if (! empty($row['pkg_packaging_type'])) {
                 $valid = array_column(PackagingType::cases(), 'value');
                 if (! in_array(strtolower($row['pkg_packaging_type']), $valid)) {
-                    $errors[] = "Row {$rowNum}: Invalid packaging type '{$row['pkg_packaging_type']}'. Valid: " . implode(', ', $valid);
+                    $errors[] = "Row {$rowNum}: Invalid packaging type '{$row['pkg_packaging_type']}'. Valid: ".implode(', ', $valid);
                 }
             }
 
@@ -158,7 +169,7 @@ class ProductImportService
             $valid = array_column(Incoterm::cases(), 'value');
             if (! in_array(strtoupper($row[$incotermKey]), $valid)) {
                 $label = $prefix === 'cross' ? 'Cross-company incoterm' : 'Incoterm';
-                $errors[] = "Row {$rowNum}: Invalid {$label} '{$row[$incotermKey]}'. Valid: " . implode(', ', $valid);
+                $errors[] = "Row {$rowNum}: Invalid {$label} '{$row[$incotermKey]}'. Valid: ".implode(', ', $valid);
             }
         }
 
@@ -259,7 +270,7 @@ class ProductImportService
             } else {
                 $preview['would_create'][] = [
                     'row' => $rowNum,
-                    'name' => $productName ?: ($category->name . ' ' . ($row['model_number'] ?? '')),
+                    'name' => $productName ?: ($category->name.' '.($row['model_number'] ?? '')),
                     'reference_code' => $refCode,
                 ];
             }
@@ -344,6 +355,7 @@ class ProductImportService
 
                     if (! $parent) {
                         $stats['errors'][] = "Row {$row['_row']}: Parent Reference '{$parentRef}' not found. Ensure the base product has Reference Code '{$parentRef}' in this file.";
+
                         continue;
                     }
 
@@ -397,6 +409,7 @@ class ProductImportService
 
         if ($existing && $resolution === 'skip') {
             $this->ensurePrimaryCompanyLink($existing, $company, $role, $row);
+
             return ['action' => 'skipped', 'product' => $existing];
         }
 
@@ -407,6 +420,7 @@ class ProductImportService
             $this->upsertCosting($existing, $row);
             $this->upsertAttributes($existing, $row, $category);
             $this->ensurePrimaryCompanyLink($existing, $company, $role, $row);
+
             return ['action' => 'updated', 'product' => $existing];
         }
 
@@ -415,13 +429,12 @@ class ProductImportService
         if (empty($productName)) {
             $modelNumber = $row['model_number'] ?? '';
             $productName = $modelNumber
-                ? $category->name . ' ' . $modelNumber
+                ? $category->name.' '.$modelNumber
                 : $category->name;
         }
 
         $product = Product::create([
             'name' => $productName,
-            'commercial_name' => $row['commercial_name'] ?? null,
             'product_family' => $row['product_family'] ?? null,
             'sku' => $skuGenerator->execute($category->id),
             'reference_code' => ! empty($row['reference_code']) ? trim($row['reference_code']) : null,
@@ -451,7 +464,6 @@ class ProductImportService
     {
         $data = array_filter([
             'name' => $row['name'] ?? null,
-            'commercial_name' => $row['commercial_name'] ?? $product->commercial_name,
             'product_family' => $row['product_family'] ?? $product->product_family,
             'reference_code' => ! empty($row['reference_code']) ? trim($row['reference_code']) : $product->reference_code,
             'category_id' => $category->id,
@@ -677,8 +689,8 @@ class ProductImportService
                 $magicBytes = substr($imageData, 0, 8);
                 $isValidImage = str_starts_with($magicBytes, "\xFF\xD8\xFF") // JPEG
                     || str_starts_with($magicBytes, "\x89PNG") // PNG
-                    || str_starts_with($magicBytes, "GIF87a") || str_starts_with($magicBytes, "GIF89a") // GIF
-                    || str_starts_with($magicBytes, "RIFF"); // WebP (RIFF container)
+                    || str_starts_with($magicBytes, 'GIF87a') || str_starts_with($magicBytes, 'GIF89a') // GIF
+                    || str_starts_with($magicBytes, 'RIFF'); // WebP (RIFF container)
 
                 if (! $isValidImage) {
                     continue;
@@ -709,7 +721,7 @@ class ProductImportService
                 if (isset($hashMap[$hash])) {
                     $imagesByRow[$row] = $hashMap[$hash];
                 } else {
-                    $filename = 'products/' . uniqid('import_') . '.' . $extension;
+                    $filename = 'products/'.uniqid('import_').'.'.$extension;
                     Storage::disk('public')->put($filename, $cleanImageData);
                     $hashMap[$hash] = $filename;
                     $imagesByRow[$row] = $filename;

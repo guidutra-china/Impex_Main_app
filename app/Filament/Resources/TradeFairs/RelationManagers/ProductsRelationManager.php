@@ -49,7 +49,7 @@ class ProductsRelationManager extends RelationManager
                     ->searchable()
                     ->limit(40)
                     ->weight('bold')
-                    ->description(fn (CompanyProduct $record) => $record->external_name ?: $record->product?->commercial_name),
+                    ->description(fn (CompanyProduct $record) => $record->external_name ?: null),
                 TextColumn::make('product.category.name')
                     ->label('Categoria')
                     ->badge()

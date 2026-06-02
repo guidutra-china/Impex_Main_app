@@ -2,10 +2,7 @@
 
 namespace App\Filament\Resources\Catalog\Products\Schemas;
 
-use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Infrastructure\Support\Money;
-use Filament\Infolists\Components\IconEntry;
-use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
@@ -56,9 +53,6 @@ class ProductInfolist
                         ->label(__('forms.labels.product_name'))
                         ->weight(FontWeight::Bold)
                         ->size(TextSize::Large),
-                    TextEntry::make('commercial_name')
-                        ->label(__('forms.labels.commercial_name'))
-                        ->placeholder('—'),
                     TextEntry::make('product_family')
                         ->label(__('forms.labels.product_family'))
                         ->badge()

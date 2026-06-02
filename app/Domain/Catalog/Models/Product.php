@@ -41,11 +41,6 @@ class Product extends Model
             if (empty($product->sku) && ! $product->category_id) {
                 $product->sku = app(GenerateProductSkuAction::class)->generateDraftSku();
             }
-
-            if (empty($product->name) && $product->category_id) {
-                $category = Category::find($product->category_id);
-                $product->name = $category?->name ?? 'New Product';
-            }
         });
 
         // Delete old avatar file when avatar is changed
@@ -99,7 +94,6 @@ class Product extends Model
 
     protected $fillable = [
         'name',
-        'commercial_name',
         'product_family',
         'sku',
         'reference_code',

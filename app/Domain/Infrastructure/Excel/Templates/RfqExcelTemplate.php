@@ -12,9 +12,9 @@ class RfqExcelTemplate extends AbstractExcelTemplate
         /** @var SupplierQuotation $sq */
         $sq = $this->model;
 
-        $title = 'Request for Quotation — ' . ($sq->reference ?? '');
+        $title = 'Request for Quotation — '.($sq->reference ?? '');
         if ($sq->company?->name) {
-            $title .= ' — ' . $sq->company->name;
+            $title .= ' — '.$sq->company->name;
         }
 
         return $title;
@@ -68,9 +68,6 @@ class RfqExcelTemplate extends AbstractExcelTemplate
         foreach ($sq->items as $index => $item) {
             $product = $item->product;
             $description = $product?->name ?? $item->description ?? '—';
-            if ($product?->commercial_name) {
-                $description .= ' / ' . $product->commercial_name;
-            }
 
             $row = [
                 $index + 1,

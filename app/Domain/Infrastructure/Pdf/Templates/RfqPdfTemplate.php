@@ -29,12 +29,7 @@ class RfqPdfTemplate extends AbstractPdfTemplate
             return $item->description ?? '—';
         }
 
-        $name = $product->name;
-        if ($product->commercial_name) {
-            $name .= "\n" . $product->commercial_name;
-        }
-
-        return $name;
+        return $product->name;
     }
 
     protected function getDocumentData(): array
@@ -76,6 +71,7 @@ class RfqPdfTemplate extends AbstractPdfTemplate
         $totalTargetValue = $showTargetPrice
             ? $sq->items->sum(function ($item) {
                 $targetPrice = $item->inquiryItem?->target_price ?? 0;
+
                 return $targetPrice * ($item->quantity ?? 0);
             })
             : 0;

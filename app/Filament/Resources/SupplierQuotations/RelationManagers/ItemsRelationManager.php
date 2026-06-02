@@ -47,16 +47,14 @@ class ItemsRelationManager extends RelationManager
                             ->where(function ($query) use ($search) {
                                 $query->where('name', 'like', "%{$search}%")
                                     ->orWhere('sku', 'like', "%{$search}%")
-                                    ->orWhere('commercial_name', 'like', "%{$search}%")
                                     ->orWhere('model_number', 'like', "%{$search}%");
                             })
                             ->limit(50)
                             ->get()
                             ->mapWithKeys(function ($p) {
                                 $prefix = $p->status === ProductStatus::DRAFT ? '[DRAFT] ' : '';
-                                $commercial = $p->commercial_name ? " ({$p->commercial_name})" : '';
 
-                                return [$p->id => $prefix.$p->sku.' — '.$p->name.$commercial];
+                                return [$p->id => $prefix.$p->sku.' — '.$p->name];
                             });
                     })
                     ->getOptionLabelUsing(function ($value) {
@@ -65,9 +63,8 @@ class ItemsRelationManager extends RelationManager
                             return null;
                         }
                         $prefix = $product->status === ProductStatus::DRAFT ? '[DRAFT] ' : '';
-                        $commercial = $product->commercial_name ? " ({$product->commercial_name})" : '';
 
-                        return $prefix.$product->sku.' — '.$product->name.$commercial;
+                        return $prefix.$product->sku.' — '.$product->name;
                     })
                     ->live()
                     ->afterStateUpdated(function (Set $set, ?string $state) {
@@ -177,8 +174,7 @@ class ItemsRelationManager extends RelationManager
                 TextColumn::make('displayName')
                     ->label(__('forms.labels.item'))
                     ->searchable(['description'])
-                    ->limit(40)
-                    ->description(fn ($record) => $record->product?->commercial_name),
+                    ->limit(40),
 
                 // --- Inline editable columns ---
                 TextInputColumn::make('quantity')

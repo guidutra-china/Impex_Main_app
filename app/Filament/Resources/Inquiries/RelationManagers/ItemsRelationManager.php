@@ -3,11 +3,12 @@
 namespace App\Filament\Resources\Inquiries\RelationManagers;
 
 use App\Domain\Catalog\Enums\ProductStatus;
-use App\Filament\Actions\PasteItemsFromSpreadsheetAction;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
+use App\Domain\Infrastructure\Support\Money;
+use App\Filament\Actions\PasteItemsFromSpreadsheetAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -19,11 +20,9 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
-use App\Domain\Infrastructure\Support\Money;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Table;
@@ -123,9 +122,8 @@ class ItemsRelationManager extends RelationManager
                             return null;
                         }
                         $prefix = $product->status === ProductStatus::DRAFT ? '[DRAFT] ' : '';
-                        $commercial = $product->commercial_name ? " ({$product->commercial_name})" : '';
 
-                        return $prefix . $product->sku . ' — ' . $product->name . $commercial;
+                        return $prefix.$product->sku.' — '.$product->name;
                     })
                     ->live()
                     ->afterStateUpdated(function (Set $set, ?string $state) {
@@ -245,9 +243,8 @@ class ItemsRelationManager extends RelationManager
             }
 
             $clientBadge = $isClientProduct ? ' ★' : '';
-            $commercial = $p->commercial_name ? " ({$p->commercial_name})" : '';
 
-            return [$p->id => $prefix . $p->sku . ' — ' . $p->name . $commercial . $clientBadge];
+            return [$p->id => $prefix.$p->sku.' — '.$p->name.$clientBadge];
         })->toArray();
     }
 
@@ -276,8 +273,7 @@ class ItemsRelationManager extends RelationManager
                 TextColumn::make('displayName')
                     ->label(__('forms.labels.item'))
                     ->searchable(['description'])
-                    ->limit(40)
-                    ->description(fn ($record) => $record->product?->commercial_name),
+                    ->limit(40),
 
                 // --- Inline editable columns ---
                 TextInputColumn::make('quantity')
@@ -305,11 +301,13 @@ class ItemsRelationManager extends RelationManager
                         if (blank($state)) {
                             $record->target_price = null;
                             $record->save();
+
                             return null;
                         }
                         $floatValue = (float) str_replace(',', '', (string) $state);
                         $record->target_price = Money::toMinor($floatValue);
                         $record->save();
+
                         return number_format($floatValue, 4, '.', '');
                     })
                     ->alignEnd(),
@@ -389,8 +387,8 @@ class ItemsRelationManager extends RelationManager
             }
 
             Notification::make()
-                ->title(__('messages.draft_product_created') . ': ' . $product->sku)
-                ->body($product->name . ' — ' . __('messages.linked_to') . ' ' . ($inquiry->company?->name ?? __('messages.client')))
+                ->title(__('messages.draft_product_created').': '.$product->sku)
+                ->body($product->name.' — '.__('messages.linked_to').' '.($inquiry->company?->name ?? __('messages.client')))
                 ->info()
                 ->send();
         }

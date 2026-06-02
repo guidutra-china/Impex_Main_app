@@ -2,25 +2,24 @@
 
 namespace App\Filament\Resources\Catalog\Products\Schemas;
 
-use App\Domain\Catalog\Enums\ProductStatus;
-use App\Domain\Logistics\Enums\PackagingType;
-use App\Domain\Infrastructure\Support\Money;
-use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Actions\GenerateProductSkuAction;
+use App\Domain\Catalog\Enums\ProductStatus;
+use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
-use App\Domain\Catalog\Models\Tag;
+use App\Domain\Infrastructure\Support\Money;
+use App\Domain\Logistics\Enums\PackagingType;
 use App\Domain\Settings\Models\Currency;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
-use Illuminate\Support\Str;
 use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Str;
 
 class ProductForm
 {
@@ -121,16 +120,11 @@ class ProductForm
 
                                     if ($category) {
                                         $set('name', $modelNumber
-                                            ? $category->name . ' ' . $modelNumber
+                                            ? $category->name.' '.$modelNumber
                                             : $category->name);
                                     }
                                 })
                         ),
-                    TextInput::make('commercial_name')
-                        ->label(__('forms.labels.commercial_name'))
-                        ->maxLength(255)
-                        ->helperText(__('forms.helpers.commercial_name_used_by_client'))
-                        ->placeholder(__('forms.placeholders.commercial_name')),
                     TextInput::make('product_family')
                         ->label(__('forms.labels.product_family'))
                         ->maxLength(255)

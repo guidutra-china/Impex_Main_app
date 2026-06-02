@@ -13,7 +13,6 @@ class GenerateProductImportTemplate
 {
     private const PRODUCT_COLUMNS = [
         'name' => ['label' => 'Product Name', 'required' => true, 'hint' => 'e.g. Ceramic Mug 300ml'],
-        'commercial_name' => ['label' => 'Commercial Name', 'required' => false, 'hint' => 'Client-facing name (e.g. Premium Slim Light)'],
         'product_family' => ['label' => 'Product Family', 'required' => false, 'hint' => 'Group name (e.g. MX Series, Slim Line)'],
         'reference_code' => ['label' => 'Reference Code', 'required' => false, 'hint' => 'Your code for this product (e.g. LED-001). Used to link variants to base products.'],
         'parent_ref' => ['label' => 'Parent Reference', 'required' => false, 'hint' => 'Leave EMPTY for base products. For variants, enter the Reference Code of the base product.'],
@@ -70,31 +69,31 @@ class GenerateProductImportTemplate
     {
         $crossRole = $role === 'client' ? 'supplier' : 'client';
         $suffix = $includeCrossRole ? "_{$role}_and_{$crossRole}" : "_{$role}";
-        $filename = 'product_import_template_' . str($category->name)->slug() . $suffix . '.xlsx';
-        $path = storage_path('app/temp/' . $filename);
+        $filename = 'product_import_template_'.str($category->name)->slug().$suffix.'.xlsx';
+        $path = storage_path('app/temp/'.$filename);
 
         if (! is_dir(dirname($path))) {
             mkdir(dirname($path), 0755, true);
         }
 
-        $writer = new Writer();
+        $writer = new Writer;
         $writer->openToFile($path);
 
         $allColumns = $this->buildColumnMap($category, $role, $includeCrossRole);
 
-        $headerStyle = (new Style())
+        $headerStyle = (new Style)
             ->setFontBold()
             ->setFontSize(11)
             ->setBackgroundColor('4472C4')
             ->setFontColor(Color::WHITE);
 
-        $sectionStyle = (new Style())
+        $sectionStyle = (new Style)
             ->setFontBold()
             ->setFontSize(10)
             ->setBackgroundColor('D9E2F3')
             ->setFontColor('1F3864');
 
-        $hintStyle = (new Style())
+        $hintStyle = (new Style)
             ->setFontItalic()
             ->setFontSize(9)
             ->setFontColor('808080');
@@ -174,7 +173,7 @@ class GenerateProductImportTemplate
         }
 
         // Primary company link
-        $sectionName = strtoupper($roleLabel) . ' LINK';
+        $sectionName = strtoupper($roleLabel).' LINK';
         foreach (self::COMPANY_LINK_COLUMNS as $key => $col) {
             $columns["company_{$key}"] = array_merge($col, [
                 'section' => $sectionName,
@@ -186,7 +185,7 @@ class GenerateProductImportTemplate
 
         // Cross-company link (optional)
         if ($includeCrossRole) {
-            $crossSectionName = strtoupper($crossRoleLabel) . ' LINK';
+            $crossSectionName = strtoupper($crossRoleLabel).' LINK';
             foreach (self::COMPANY_LINK_COLUMNS as $key => $col) {
                 $columns["cross_{$key}"] = array_merge($col, [
                     'section' => $crossSectionName,
@@ -202,18 +201,18 @@ class GenerateProductImportTemplate
         foreach ($categoryAttributes as $attr) {
             $hint = '';
             if ($attr->type === \App\Domain\Catalog\Enums\AttributeType::SELECT && ! empty($attr->options)) {
-                $hint = 'Options: ' . implode(', ', $attr->options);
+                $hint = 'Options: '.implode(', ', $attr->options);
             } elseif ($attr->type === \App\Domain\Catalog\Enums\AttributeType::BOOLEAN) {
                 $hint = 'yes or no';
             } elseif ($attr->type === \App\Domain\Catalog\Enums\AttributeType::NUMBER) {
                 $hint = 'Numeric value';
             }
             if ($attr->unit) {
-                $hint .= ($hint ? '. ' : '') . "Unit: {$attr->unit}";
+                $hint .= ($hint ? '. ' : '')."Unit: {$attr->unit}";
             }
 
             $columns["attr_{$attr->id}"] = [
-                'label' => $attr->name . ($attr->unit ? " ({$attr->unit})" : ''),
+                'label' => $attr->name.($attr->unit ? " ({$attr->unit})" : ''),
                 'required' => $attr->is_required,
                 'hint' => $hint ?: ($attr->default_value ? "Default: {$attr->default_value}" : ''),
                 'section' => 'ATTRIBUTES',
@@ -236,7 +235,6 @@ class GenerateProductImportTemplate
         foreach ($columns as $colKey => $col) {
             $row[] = match ($colKey) {
                 'name' => $isVariant ? 'Example Product - Blue' : 'Example Product',
-                'commercial_name' => $isVariant ? 'Premium Light Blue' : 'Premium Light',
                 'product_family' => 'MX Series',
                 'reference_code' => $isVariant ? 'MX-100-BL' : 'MX-100',
                 'parent_ref' => $isVariant ? 'MX-100' : '',
@@ -277,8 +275,8 @@ class GenerateProductImportTemplate
     {
         $crossRole = $role === 'client' ? 'supplier' : 'client';
         $suffix = $includeCrossRole ? "_{$role}_and_{$crossRole}" : "_{$role}";
-        $filename = 'product_import_simple_' . str($category->name)->slug() . $suffix . '.xlsx';
-        $path = storage_path('app/temp/' . $filename);
+        $filename = 'product_import_simple_'.str($category->name)->slug().$suffix.'.xlsx';
+        $path = storage_path('app/temp/'.$filename);
 
         if (! is_dir(dirname($path))) {
             mkdir(dirname($path), 0755, true);
@@ -286,22 +284,22 @@ class GenerateProductImportTemplate
 
         $allColumns = $this->buildSimpleColumnMap($category, $role, $includeCrossRole);
 
-        $writer = new Writer();
+        $writer = new Writer;
         $writer->openToFile($path);
 
-        $headerStyle = (new Style())
+        $headerStyle = (new Style)
             ->setFontBold()
             ->setFontSize(11)
             ->setBackgroundColor('4472C4')
             ->setFontColor(Color::WHITE);
 
-        $sectionStyle = (new Style())
+        $sectionStyle = (new Style)
             ->setFontBold()
             ->setFontSize(10)
             ->setBackgroundColor('D9E2F3')
             ->setFontColor('1F3864');
 
-        $hintStyle = (new Style())
+        $hintStyle = (new Style)
             ->setFontItalic()
             ->setFontSize(9)
             ->setFontColor('808080');
@@ -380,14 +378,14 @@ class GenerateProductImportTemplate
         $columns = [];
 
         // Core product fields
-        $simpleProductColumns = ['name', 'commercial_name', 'product_family', 'reference_code', 'moq', 'lead_time_days'];
+        $simpleProductColumns = ['name', 'product_family', 'reference_code', 'moq', 'lead_time_days'];
         foreach ($simpleProductColumns as $key) {
             $col = self::PRODUCT_COLUMNS[$key];
             $columns[$key] = array_merge($col, ['section' => 'PRODUCT', 'key' => $key, 'group' => 'product']);
         }
 
         // Primary company link columns
-        $sectionName = strtoupper($roleLabel) . ' LINK';
+        $sectionName = strtoupper($roleLabel).' LINK';
         foreach (self::SIMPLE_COMPANY_COLUMNS as $key => $col) {
             $columns["company_{$key}"] = array_merge($col, [
                 'section' => $sectionName,
@@ -399,7 +397,7 @@ class GenerateProductImportTemplate
 
         // Cross-company link (optional)
         if ($includeCrossRole) {
-            $crossSectionName = strtoupper($crossRoleLabel) . ' LINK';
+            $crossSectionName = strtoupper($crossRoleLabel).' LINK';
             foreach (self::SIMPLE_COMPANY_COLUMNS as $key => $col) {
                 $columns["cross_{$key}"] = array_merge($col, [
                     'section' => $crossSectionName,
@@ -428,18 +426,18 @@ class GenerateProductImportTemplate
 
             $hint = '';
             if ($attr->type === \App\Domain\Catalog\Enums\AttributeType::SELECT && ! empty($attr->options)) {
-                $hint = 'Options: ' . implode(', ', $attr->options);
+                $hint = 'Options: '.implode(', ', $attr->options);
             } elseif ($attr->type === \App\Domain\Catalog\Enums\AttributeType::BOOLEAN) {
                 $hint = 'yes or no';
             } elseif ($attr->type === \App\Domain\Catalog\Enums\AttributeType::NUMBER) {
                 $hint = 'Numeric value';
             }
             if ($attr->unit) {
-                $hint .= ($hint ? '. ' : '') . "Unit: {$attr->unit}";
+                $hint .= ($hint ? '. ' : '')."Unit: {$attr->unit}";
             }
 
             $columns["attr_{$attr->id}"] = [
-                'label' => $attr->name . ($attr->unit ? " ({$attr->unit})" : ''),
+                'label' => $attr->name.($attr->unit ? " ({$attr->unit})" : ''),
                 'required' => true,
                 'hint' => $hint ?: ($attr->default_value ? "Default: {$attr->default_value}" : 'Required'),
                 'section' => 'ATTRIBUTES',

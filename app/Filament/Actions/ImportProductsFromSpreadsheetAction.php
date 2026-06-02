@@ -17,7 +17,6 @@ use App\Domain\Infrastructure\Support\Money;
 use App\Filament\Actions\Concerns\HasImportCache;
 use App\Filament\Actions\Concerns\HasSpreadsheetImages;
 use Filament\Actions\Action;
-use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
@@ -28,7 +27,6 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\Wizard\Step;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
@@ -257,7 +255,7 @@ class ImportProductsFromSpreadsheetAction
                                     self::buildPaginatedPreview($rows, (int) ($get('header_row') ?? 1))
                                 );
                             } catch (\Throwable $e) {
-                                return new HtmlString('<p class="text-red-500">Error: ' . e($e->getMessage()) . '</p>');
+                                return new HtmlString('<p class="text-red-500">Error: '.e($e->getMessage()).'</p>');
                             }
                         })
                         ->columnSpanFull(),
@@ -274,9 +272,9 @@ class ImportProductsFromSpreadsheetAction
                     Placeholder::make('blocks_divider')
                         ->content(new HtmlString(
                             '<hr class="my-2 border-gray-200 dark:border-gray-700">'
-                            . '<p class="text-sm font-medium text-gray-700 dark:text-gray-300">'
-                            . 'Define category blocks with row ranges:'
-                            . '</p>'
+                            .'<p class="text-sm font-medium text-gray-700 dark:text-gray-300">'
+                            .'Define category blocks with row ranges:'
+                            .'</p>'
                         ))
                         ->columnSpanFull(),
                     Repeater::make('import_blocks')
@@ -326,9 +324,9 @@ class ImportProductsFromSpreadsheetAction
                     Placeholder::make('column_mapping_label')
                         ->content(new HtmlString(
                             '<hr class="my-2 border-gray-200 dark:border-gray-700">'
-                            . '<p class="text-sm font-medium text-gray-700 dark:text-gray-300">'
-                            . 'Assign fields to each spreadsheet column:'
-                            . '</p>'
+                            .'<p class="text-sm font-medium text-gray-700 dark:text-gray-300">'
+                            .'Assign fields to each spreadsheet column:'
+                            .'</p>'
                         ))
                         ->columnSpanFull(),
                     // Always create 15 selects to keep form state stable across wizard steps
@@ -346,7 +344,6 @@ class ImportProductsFromSpreadsheetAction
         return [
             'Product' => [
                 'name' => 'Product Name',
-                'commercial_name' => 'Commercial Name',
                 'model_number' => 'Model Number',
                 'product_family' => 'Product Family',
                 'reference_code' => 'Reference Code',
@@ -405,7 +402,7 @@ class ImportProductsFromSpreadsheetAction
                 foreach ($cat->getAllAttributes() as $attr) {
                     $key = "attr_{$attr->id}";
                     if (! isset($attrOptions[$key])) {
-                        $label = $attr->name . ($attr->unit ? " ({$attr->unit})" : '');
+                        $label = $attr->name.($attr->unit ? " ({$attr->unit})" : '');
                         $attrOptions[$key] = $label;
                     }
                 }
@@ -433,7 +430,7 @@ class ImportProductsFromSpreadsheetAction
         for ($c = 0; $c < 15; $c++) {
             $letter = self::columnLetter($c);
             $headerLabel = $headerData[$c] ?? '';
-            $label = "Col {$letter}" . ($headerLabel ? ": {$headerLabel}" : '');
+            $label = "Col {$letter}".($headerLabel ? ": {$headerLabel}" : '');
 
             $select = Select::make("col_map_{$c}")
                 ->options(function (Get $get) {
@@ -510,15 +507,15 @@ class ImportProductsFromSpreadsheetAction
                         if ($clientId || $supplierId) {
                             $html .= '<div class="text-sm text-gray-600 dark:text-gray-400">';
                             if ($clientId) {
-                                $html .= 'Client: <strong>' . e(Company::find($clientId)?->name ?? '—') . '</strong> ';
+                                $html .= 'Client: <strong>'.e(Company::find($clientId)?->name ?? '—').'</strong> ';
                             }
                             if ($supplierId) {
-                                $html .= 'Supplier: <strong>' . e(Company::find($supplierId)?->name ?? '—') . '</strong>';
+                                $html .= 'Supplier: <strong>'.e(Company::find($supplierId)?->name ?? '—').'</strong>';
                             }
-                            $html .= ' | Currency: <strong>' . e($get('currency_code') ?? 'USD') . '</strong>';
+                            $html .= ' | Currency: <strong>'.e($get('currency_code') ?? 'USD').'</strong>';
                             $formula = $get('custom_price_formula');
                             if ($formula) {
-                                $html .= ' | Custom Price: <strong>Unit Price ' . e($formula) . '</strong>';
+                                $html .= ' | Custom Price: <strong>Unit Price '.e($formula).'</strong>';
                             }
                             $html .= '</div>';
                         }
@@ -543,15 +540,15 @@ class ImportProductsFromSpreadsheetAction
 
                             $html .= '<div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">';
                             $html .= '<p class="text-sm font-medium mb-2">';
-                            $html .= '<span class="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-900/30 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 ring-1 ring-inset ring-blue-700/10 mr-2">Block ' . ($idx + 1) . '</span>';
-                            $html .= '<strong>' . e($categoryName) . '</strong>';
+                            $html .= '<span class="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-900/30 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 ring-1 ring-inset ring-blue-700/10 mr-2">Block '.($idx + 1).'</span>';
+                            $html .= '<strong>'.e($categoryName).'</strong>';
                             if ($blockFamily) {
-                                $html .= ' <span class="text-xs text-gray-500">(' . e($blockFamily) . ')</span>';
+                                $html .= ' <span class="text-xs text-gray-500">('.e($blockFamily).')</span>';
                             }
-                            $html .= ' — rows ' . $startRow . '–' . $endRow;
-                            $html .= ' (' . count($items) . ' products';
+                            $html .= ' — rows '.$startRow.'–'.$endRow;
+                            $html .= ' ('.count($items).' products';
                             if ($blockImages > 0) {
-                                $html .= ', ' . $blockImages . ' images';
+                                $html .= ', '.$blockImages.' images';
                             }
                             $html .= ')</p>';
 
@@ -563,19 +560,19 @@ class ImportProductsFromSpreadsheetAction
                                 $html .= '<div class="overflow-x-auto"><table class="min-w-full text-xs">';
                                 $html .= '<thead><tr class="bg-gray-50 dark:bg-gray-800">';
                                 foreach ($showFields as $field) {
-                                    $html .= '<th class="px-2 py-1 text-left">' . e(self::fieldLabel($field)) . '</th>';
+                                    $html .= '<th class="px-2 py-1 text-left">'.e(self::fieldLabel($field)).'</th>';
                                 }
                                 $html .= '</tr></thead><tbody>';
                                 for ($i = 0; $i < $previewCount; $i++) {
                                     $html .= '<tr class="border-t border-gray-100 dark:border-gray-700">';
                                     foreach ($showFields as $field) {
                                         $val = htmlspecialchars(mb_substr($items[$i][$field] ?? '', 0, 40));
-                                        $html .= '<td class="px-2 py-1">' . $val . '</td>';
+                                        $html .= '<td class="px-2 py-1">'.$val.'</td>';
                                     }
                                     $html .= '</tr>';
                                 }
                                 if (count($items) > $previewCount) {
-                                    $html .= '<tr><td colspan="' . count($showFields) . '" class="px-2 py-1 text-gray-400 text-center">... and ' . (count($items) - $previewCount) . ' more</td></tr>';
+                                    $html .= '<tr><td colspan="'.count($showFields).'" class="px-2 py-1 text-gray-400 text-center">... and '.(count($items) - $previewCount).' more</td></tr>';
                                 }
                                 $html .= '</tbody></table></div>';
                             }
@@ -583,7 +580,7 @@ class ImportProductsFromSpreadsheetAction
                             $html .= '</div>';
                         }
 
-                        $html .= '<p class="text-sm font-medium mt-2">Total: <strong>' . $totalProducts . '</strong> products across ' . count($blocks) . ' block(s).';
+                        $html .= '<p class="text-sm font-medium mt-2">Total: <strong>'.$totalProducts.'</strong> products across '.count($blocks).' block(s).';
                         if ($totalImages > 0) {
                             $html .= " {$totalImages} image(s) will be saved.";
                         }
@@ -684,7 +681,7 @@ class ImportProductsFromSpreadsheetAction
                         if (empty($productName)) {
                             $modelNumber = $item['model_number'] ?? '';
                             $productName = $modelNumber
-                                ? $category->name . ' ' . $modelNumber
+                                ? $category->name.' '.$modelNumber
                                 : $category->name;
                         }
 
@@ -716,7 +713,6 @@ class ImportProductsFromSpreadsheetAction
                         } else {
                             $existing = Product::create([
                                 'name' => $productName,
-                                'commercial_name' => $item['commercial_name'] ?? null,
                                 'product_family' => $blockFamily ?: ($item['product_family'] ?? null),
                                 'model_number' => $item['model_number'] ?? null,
                                 'sku' => $sku,
@@ -771,7 +767,7 @@ class ImportProductsFromSpreadsheetAction
                 $parts[] = "{$stats['images']} images";
             }
 
-            $blockSummary = count($blocks) > 1 ? ' across ' . count($blocks) . ' categories' : '';
+            $blockSummary = count($blocks) > 1 ? ' across '.count($blocks).' categories' : '';
 
             Notification::make()
                 ->title("Import Complete — {$totalItems} products{$blockSummary}")
@@ -943,7 +939,7 @@ class ImportProductsFromSpreadsheetAction
         $thead = '<thead class="sticky top-0 z-10"><tr class="bg-gray-50 dark:bg-gray-800">';
         $thead .= '<th class="px-2 py-1 text-gray-400 font-normal text-left">Row</th>';
         for ($c = 0; $c < $displayCols; $c++) {
-            $thead .= '<th class="px-2 py-1 text-gray-400 font-normal text-left">' . self::columnLetter($c) . '</th>';
+            $thead .= '<th class="px-2 py-1 text-gray-400 font-normal text-left">'.self::columnLetter($c).'</th>';
         }
         if ($maxCols > $displayCols) {
             $thead .= '<th class="px-2 py-1 text-gray-400 font-normal">…</th>';
@@ -986,15 +982,15 @@ class ImportProductsFromSpreadsheetAction
         $firstOriginal = $rowOrigins[0] ?? 1;
         $lastOriginal = $rowOrigins[$totalRows - 1] ?? $totalRows;
 
-        $html = '<div x-data="{ page: 1, total: ' . $totalPages . ' }" class="space-y-2">';
+        $html = '<div x-data="{ page: 1, total: '.$totalPages.' }" class="space-y-2">';
         $html .= '<div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">';
-        $html .= '<table class="min-w-full text-xs">' . $thead . $tbody . '</table>';
+        $html .= '<table class="min-w-full text-xs">'.$thead.$tbody.'</table>';
         $html .= '</div>';
         $html .= '<div class="flex items-center justify-between text-xs text-gray-500">';
-        $html .= '<span>' . $totalRows . ' rows (Excel rows ' . $firstOriginal . '–' . $lastOriginal . ')</span>';
+        $html .= '<span>'.$totalRows.' rows (Excel rows '.$firstOriginal.'–'.$lastOriginal.')</span>';
         $html .= '<div class="flex items-center gap-2">';
         $html .= '<button type="button" x-on:click="page = Math.max(1, page - 1); $el.closest(\'[x-data]\').querySelectorAll(\'tbody tr\').forEach(r => r.style.display = r.dataset.page == page ? \'\' : \'none\')" x-bind:disabled="page === 1" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed">← Prev</button>';
-        $html .= '<span x-text="`Page ${page} of ${total}`">Page 1 of ' . $totalPages . '</span>';
+        $html .= '<span x-text="`Page ${page} of ${total}`">Page 1 of '.$totalPages.'</span>';
         $html .= '<button type="button" x-on:click="page = Math.min(total, page + 1); $el.closest(\'[x-data]\').querySelectorAll(\'tbody tr\').forEach(r => r.style.display = r.dataset.page == page ? \'\' : \'none\')" x-bind:disabled="page === total" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed">Next →</button>';
         $html .= '</div></div></div>';
 
@@ -1006,7 +1002,7 @@ class ImportProductsFromSpreadsheetAction
     protected static function fieldLabel(string $field): string
     {
         $labels = [
-            'name' => 'Product Name', 'commercial_name' => 'Commercial Name',
+            'name' => 'Product Name',
             'model_number' => 'Model Number', 'product_family' => 'Product Family',
             'reference_code' => 'Reference Code', 'hs_code' => 'HS Code',
             'origin_country' => 'Origin', 'brand' => 'Brand',
@@ -1069,7 +1065,7 @@ class ImportProductsFromSpreadsheetAction
         $index++;
         while ($index > 0) {
             $index--;
-            $letter = chr(65 + ($index % 26)) . $letter;
+            $letter = chr(65 + ($index % 26)).$letter;
             $index = intdiv($index, 26);
         }
 

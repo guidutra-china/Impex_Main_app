@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         \App\Domain\Infrastructure\Console\ReconcileBalancesCommand::class,
         \App\Domain\Settings\Console\FetchExchangeRatesCommand::class,
         \App\Domain\Catalog\Console\DeleteDuplicateProductsCommand::class,
+        \App\Domain\Catalog\Console\ProductConsolidationPreflightCommand::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         //
