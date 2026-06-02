@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PurchaseOrders\Concerns;
 
+use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Infrastructure\Pdf\Templates\PurchaseOrderPdfTemplate;
 use App\Domain\PurchaseOrders\Actions\SyncSupplierProductPricesAction;
@@ -81,6 +82,7 @@ trait PurchaseOrderHeaderActions
                 $allowed = $this->record->getAllowedNextStatuses();
                 $options = collect($allowed)->mapWithKeys(function ($status) {
                     $enum = PurchaseOrderStatus::from($status);
+
                     return [$status => $enum->getLabel()];
                 })->toArray();
 
@@ -99,6 +101,24 @@ trait PurchaseOrderHeaderActions
                 try {
                     $newStatus = PurchaseOrderStatus::from($data['new_status']);
 
+                    // Payment gate: parity with the table action and EditPurchaseOrder::beforeSave().
+                    // BEFORE_PRODUCTION / BEFORE_SHIPMENT / ORDER_DATE / PO_DATE blocking payments
+                    // must be resolved before the matching status transition.
+                    $blockers = PaymentScheduleItem::blockingConditionsForTransition($this->record, $newStatus->value);
+
+                    if (count($blockers) > 0) {
+                        $labels = collect($blockers)->pluck('label')->implode(', ');
+
+                        Notification::make()
+                            ->title(__('messages.status_change_blocked'))
+                            ->body("The following payments must be resolved before transitioning to this status: {$labels}")
+                            ->danger()
+                            ->persistent()
+                            ->send();
+
+                        return;
+                    }
+
                     $sideEffects = null;
                     if ($newStatus === PurchaseOrderStatus::CONFIRMED) {
                         $sideEffects = function ($po) {
@@ -114,7 +134,7 @@ trait PurchaseOrderHeaderActions
                     );
 
                     Notification::make()
-                        ->title(__('messages.status_changed_to') . ' ' . $newStatus->getLabel())
+                        ->title(__('messages.status_changed_to').' '.$newStatus->getLabel())
                         ->success()
                         ->send();
 
