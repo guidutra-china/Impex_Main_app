@@ -83,13 +83,14 @@ class AuditPaymentScheduleDuplicatesCommandTest extends TestCase
         return $pi;
     }
 
-    private function paidRemaining(ProformaInvoice $pi, int $amount = 100_000): PaymentScheduleItem
+    private function paidItem(ProformaInvoice $pi, int $amount, ?int $shipmentId, string $label): PaymentScheduleItem
     {
-        $remaining = PaymentScheduleItem::create([
+        $item = PaymentScheduleItem::create([
             'payable_type' => ProformaInvoice::class,
             'payable_id' => $pi->id,
             'payment_term_stage_id' => $this->shipmentStage->id,
-            'label' => '100% — Shipment Date — ['.$pi->reference.'] [remaining]',
+            'shipment_id' => $shipmentId,
+            'label' => $label,
             'percentage' => 100,
             'amount' => $amount,
             'currency_code' => 'USD',
@@ -104,19 +105,24 @@ class AuditPaymentScheduleDuplicatesCommandTest extends TestCase
             'amount' => $amount,
             'currency_code' => 'USD',
             'payment_date' => '2026-03-05',
-            'reference' => 'PAY-'.$pi->reference,
+            'reference' => 'PAY-'.$pi->reference.'-'.$item->id,
             'status' => PaymentStatus::APPROVED,
         ]);
         PaymentAllocation::create([
             'payment_id' => $payment->id,
-            'payment_schedule_item_id' => $remaining->id,
+            'payment_schedule_item_id' => $item->id,
             'allocated_amount' => $amount,
             'exchange_rate' => 1.0,
             'allocated_amount_in_document_currency' => $amount,
             'created_at' => '2026-03-05',
         ]);
 
-        return $remaining;
+        return $item;
+    }
+
+    private function paidRemaining(ProformaInvoice $pi, int $amount = 100_000): PaymentScheduleItem
+    {
+        return $this->paidItem($pi, $amount, null, '100% — Shipment Date — ['.$pi->reference.'] [remaining]');
     }
 
     private function makeShipment(string $ref): Shipment
@@ -159,6 +165,23 @@ class AuditPaymentScheduleDuplicatesCommandTest extends TestCase
         // Read-only: nothing was deleted or mutated.
         $this->assertSame(2, PaymentScheduleItem::where('payable_id', $pi->id)->count());
         $this->assertSame(PaymentScheduleStatus::PAID, $remaining->refresh()->status);
+    }
+
+    public function test_audit_passes_for_legitimate_partial_shipment(): void
+    {
+        // Mirrors prod PI-2026-00029: PI fully pre-paid, one shipment carved out
+        // part of the value (ship-specific) and the rest stays as [remaining].
+        // Amounts reconcile to the stage total → NOT a double-count.
+        $pi = $this->makePi('PI-AUDIT-PARTIAL'); // total = 100 × 1000 = 100,000
+        $shipment = $this->makeShipment('SHP-AUDIT-PARTIAL');
+
+        $this->paidItem($pi, 70_000, null, '100% — Shipment Date — ['.$pi->reference.'] [remaining]');
+        $this->paidItem($pi, 30_000, $shipment->id, '100% — Shipment Date — [SHP-AUDIT-PARTIAL / '.$pi->reference.']');
+
+        // 70,000 + 30,000 = 100,000 = stage share of PI total → no over-scheduling.
+        $this->artisan('financial:audit-psi-duplicates')
+            ->assertExitCode(0)
+            ->expectsOutputToContain('nenhuma contagem dupla');
     }
 
     public function test_audit_passes_for_unshipped_paid_remaining(): void
