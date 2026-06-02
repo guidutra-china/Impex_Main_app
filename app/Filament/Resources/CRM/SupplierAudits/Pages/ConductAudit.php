@@ -14,16 +14,16 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\DB;
 
 class ConductAudit extends Page implements HasForms
@@ -38,10 +38,13 @@ class ConductAudit extends Page implements HasForms
     protected static ?string $title = 'Conduct Audit';
 
     public array $responses = [];
+
     public array $documents = [];
 
     public function mount(int|string $record): void
     {
+        abort_unless(auth()->user()?->can('conduct-supplier-audits'), 403);
+
         $this->record = $this->resolveRecord($record);
 
         if (! in_array($this->record->status, [AuditStatus::SCHEDULED, AuditStatus::IN_PROGRESS, AuditStatus::COMPLETED])) {
@@ -154,7 +157,7 @@ class ConductAudit extends Page implements HasForms
                     ->columnSpanFull();
 
                 $sectionLabel = $criterion->is_critical
-                    ? $criterion->name . ' ⚠️ CRITICAL'
+                    ? $criterion->name.' ⚠️ CRITICAL'
                     : $criterion->name;
 
                 $criteriaFields[] = Section::make($sectionLabel)
@@ -180,7 +183,7 @@ class ConductAudit extends Page implements HasForms
                     ->label(__('forms.labels.upload_documents_photos'))
                     ->multiple()
                     ->disk('public')
-                    ->directory('audit-documents/' . $this->getRecord()->id)
+                    ->directory('audit-documents/'.$this->getRecord()->id)
                     ->maxSize(10240)
                     ->acceptedFileTypes([
                         'image/jpeg', 'image/png', 'image/webp',
@@ -269,6 +272,8 @@ class ConductAudit extends Page implements HasForms
 
     public function saveAndComplete(): void
     {
+        abort_unless(auth()->user()?->can('conduct-supplier-audits'), 403);
+
         $this->save();
 
         $record = $this->getRecord()->fresh();
@@ -282,7 +287,7 @@ class ConductAudit extends Page implements HasForms
         ]);
 
         $scoreText = $scoring['total_score'] !== null
-            ? number_format($scoring['total_score'], 2) . '/5.00'
+            ? number_format($scoring['total_score'], 2).'/5.00'
             : 'N/A';
         $resultText = $scoring['result']?->getLabel() ?? 'Pending';
 
