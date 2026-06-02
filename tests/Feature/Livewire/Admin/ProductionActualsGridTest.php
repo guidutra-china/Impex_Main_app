@@ -98,9 +98,10 @@ class ProductionActualsGridTest extends TestCase
             'actual_quantity' => null,
         ]);
 
+        // updateActual auto-completes the schedule via checkAutoComplete();
+        // the old batch saveActuals() method was removed.
         Livewire::test(ProductionActualsGrid::class, ['schedule' => $this->schedule])
-            ->call('updateActual', $this->piItem->id, '2025-04-10', '100')
-            ->call('saveActuals');
+            ->call('updateActual', $this->piItem->id, '2025-04-10', '100');
 
         $this->assertEquals(ProductionScheduleStatus::Completed, $this->schedule->fresh()->status);
     }

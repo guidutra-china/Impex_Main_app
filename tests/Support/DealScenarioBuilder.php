@@ -3,6 +3,9 @@
 namespace Tests\Support;
 
 use App\Domain\CRM\Models\Company;
+use App\Domain\Financial\Enums\AdditionalCostStatus;
+use App\Domain\Financial\Enums\AdditionalCostType;
+use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
@@ -27,20 +30,24 @@ use App\Domain\PurchaseOrders\Models\PurchaseOrderItem;
 class DealScenarioBuilder
 {
     public Company $client;
+
     public ProformaInvoice $pi;
+
     /** @var list<PurchaseOrder> */
     public array $purchaseOrders = [];
+
     /** @var list<Shipment> */
     public array $shipments = [];
 
     public static function make(): self
     {
-        return new self();
+        return new self;
     }
 
     public function forClient(Company $client): self
     {
         $this->client = $client;
+
         return $this;
     }
 
@@ -78,6 +85,7 @@ class DealScenarioBuilder
         }
 
         $this->pi->load('items');
+
         return $this;
     }
 
@@ -161,7 +169,7 @@ class DealScenarioBuilder
                 'amount' => $paidMinor,
                 'currency_code' => $currency,
                 'payment_date' => $issueDate,
-                'reference' => $reference . '-PAY',
+                'reference' => $reference.'-PAY',
                 'status' => PaymentStatus::APPROVED,
             ]);
             PaymentAllocation::create([
@@ -175,6 +183,7 @@ class DealScenarioBuilder
         }
 
         $this->purchaseOrders[] = $po;
+
         return $this;
     }
 
@@ -196,6 +205,23 @@ class DealScenarioBuilder
             'created_by' => null,
         ]);
 
+        // The Deal Breakdown report sources shipment COST from additionalCosts
+        // (not the freight PSI — that mixes revenue stage-PSIs). Persist the
+        // freight as an AdditionalCost so attribution has a cost basis.
+        if ($totalCostMinor > 0) {
+            $shipment->additionalCosts()->create([
+                'cost_type' => AdditionalCostType::FREIGHT,
+                'description' => 'Freight',
+                'amount' => $totalCostMinor,
+                'currency_code' => $currency,
+                'exchange_rate' => 1,
+                'amount_in_document_currency' => $totalCostMinor,
+                'billable_to' => BillableTo::COMPANY,
+                'status' => AdditionalCostStatus::PENDING,
+                'cost_date' => $issueDate,
+            ]);
+        }
+
         foreach ($this->pi->items as $index => $piItem) {
             ShipmentItem::create([
                 'shipment_id' => $shipment->id,
@@ -213,7 +239,7 @@ class DealScenarioBuilder
                 'currency_code' => $currency,
             ]);
             $other = ProformaInvoice::create([
-                'reference' => $reference . '-OTHER-PI',
+                'reference' => $reference.'-OTHER-PI',
                 'inquiry_id' => $otherInquiry->id,
                 'company_id' => $this->client->id,
                 'currency_code' => $currency,
@@ -255,7 +281,7 @@ class DealScenarioBuilder
                 'amount' => $paidMinor,
                 'currency_code' => $currency,
                 'payment_date' => $issueDate,
-                'reference' => $reference . '-PAY',
+                'reference' => $reference.'-PAY',
                 'status' => PaymentStatus::APPROVED,
             ]);
             PaymentAllocation::create([
@@ -269,12 +295,14 @@ class DealScenarioBuilder
         }
 
         $this->shipments[] = $shipment;
+
         return $this;
     }
 
     public function build(): self
     {
         $this->pi->refresh();
+
         return $this;
     }
 }

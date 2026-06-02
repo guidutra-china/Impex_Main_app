@@ -8,19 +8,45 @@ use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Filament\Portal\Pages\AccountsPayablePage;
 use App\Models\User;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class AccountsPayablePageTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // The page is a Filament Page; rendering it via Livewire::test needs the
+        // owning panel set as current, otherwise the snapshot has no panel context.
+        Filament::setCurrentPanel('portal');
+
+        // canAccess() gates on this permission (added Apr 30 financial Pages gate).
+        Permission::firstOrCreate(['name' => 'portal:view-financial-summary', 'guard_name' => 'web']);
+    }
+
+    private function actingAsPortalUser(Company $company): User
+    {
+        $user = User::factory()->create(['company_id' => $company->id]);
+        $user->givePermissionTo('portal:view-financial-summary');
+        $this->actingAs($user);
+
+        // Portal panel is multi-tenant (portal/{tenant}/...); resource URLs in the
+        // table partial need the current tenant set, or url generation throws.
+        Filament::setTenant($company);
+
+        return $user;
+    }
+
     public function test_page_loads_for_authenticated_user_with_company(): void
     {
         $company = Company::factory()->create();
-        $user = User::factory()->create(['company_id' => $company->id]);
-        $this->actingAs($user);
+        $this->actingAsPortalUser($company);
 
         $pi = ProformaInvoice::factory()->create(['company_id' => $company->id]);
         PaymentScheduleItem::factory()->create([
@@ -51,8 +77,7 @@ class AccountsPayablePageTest extends TestCase
     {
         $companyA = Company::factory()->create();
         $companyB = Company::factory()->create();
-        $userA = User::factory()->create(['company_id' => $companyA->id]);
-        $this->actingAs($userA);
+        $this->actingAsPortalUser($companyA);
 
         $piB = ProformaInvoice::factory()->create(['company_id' => $companyB->id]);
         PaymentScheduleItem::factory()->create([
@@ -74,8 +99,7 @@ class AccountsPayablePageTest extends TestCase
     public function test_preset_and_toggles_change_rendered_data(): void
     {
         $company = Company::factory()->create();
-        $user = User::factory()->create(['company_id' => $company->id]);
-        $this->actingAs($user);
+        $this->actingAsPortalUser($company);
 
         $pi = ProformaInvoice::factory()->create(['company_id' => $company->id]);
         // Paid item in next 30 days — hidden when includePaid = false
@@ -84,7 +108,8 @@ class AccountsPayablePageTest extends TestCase
             'payable_id' => $pi->id,
             'status' => PaymentScheduleStatus::PAID,
             'due_date' => now()->addDays(5),
-            'amount' => 777_00,
+            // Amount is stored at scale 10000 (the table renders amount / 10000).
+            'amount' => 777_0000,
             'currency_code' => 'USD',
             'is_credit' => false,
         ]);
