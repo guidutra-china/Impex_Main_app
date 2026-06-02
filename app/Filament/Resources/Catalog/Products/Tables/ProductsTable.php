@@ -59,8 +59,7 @@ class ProductsTable
                     ->searchable()
                     ->sortable()
                     ->limit(50)
-                    ->weight('bold')
-                    ->description(fn ($record) => $record->category?->name),
+                    ->weight('bold'),
                 TextColumn::make('category.name')
                     ->label(__('forms.labels.category'))
                     ->badge()
