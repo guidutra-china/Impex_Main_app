@@ -78,46 +78,55 @@ class ProductConsolidationPreflightCommand extends Command
         $this->newLine();
 
         // ── AUDIT B: name vs commercial_name (only while column exists) ──
-        $this->line('<options=bold>Audit B — name × commercial_name</> <fg=gray>(prévia do backfill)</>');
+        $this->line('<options=bold>Audit B — name × commercial_name</> <fg=gray>(prévia do merge sem perda)</>');
 
         if (! $hasCommercial) {
             $this->line('  <fg=green>✓ Coluna commercial_name já foi removida. Nada a auditar.</>');
         } else {
-            // Backfill targets: name vazio/auto-gerado (== 'New Product' ou == nome da categoria)
-            $backfillTargets = $this->backfillTargetsQuery()->count();
+            // Mirror exato do merge que a migration aplica antes de dropar a coluna.
+            $rows = DB::table('products')
+                ->whereNotNull('commercial_name')->where('commercial_name', '<>', '')
+                ->orderBy('id')
+                ->get(['id', 'name', 'commercial_name']);
 
-            // No-op: commercial presente mas name já é igual (nada muda)
-            $noop = DB::table('products as p')
-                ->whereNotNull('p.commercial_name')->where('p.commercial_name', '<>', '')
-                ->whereColumn('p.name', '=', 'p.commercial_name')
-                ->count();
+            $keep = 0;     // name já contém / é igual → mantém name
+            $useComm = 0;  // commercial contém name → name vira commercial
+            $merge = [];   // disjuntos → "name — commercial"
 
-            // Manual review: divergência real — name significativo E diferente de commercial_name,
-            // e NÃO é alvo de backfill. Dropar a coluna PERDE o commercial_name desses produtos.
-            $manualQuery = $this->manualReviewQuery();
-            $manual = (clone $manualQuery)->count();
-
-            $this->line("  Produtos com commercial_name preenchido que o backfill vai <options=bold>sobrescrever</> em name: <fg=cyan>{$backfillTargets}</>");
-            $this->line("  Produtos onde name já == commercial_name (sem mudança): <fg=gray>{$noop}</>");
-            $this->line('  Produtos com divergência real (revisão manual): '.($manual > 0 ? "<fg=yellow>{$manual}</>" : '<fg=green>0</>'));
-
-            if ($manual > 0) {
-                $warnings[] = $manual.' produto(s) têm name E commercial_name distintos e significativos — ao dropar a coluna, o commercial_name desses será PERDIDO.';
-                $sample = (clone $manualQuery)
-                    ->orderBy('p.id')
-                    ->limit($limit)
-                    ->get(['p.id', 'p.name', 'p.commercial_name']);
-                $rows = $sample->map(fn ($p) => [
-                    (string) $p->id,
-                    $this->trunc($p->name),
-                    $this->trunc($p->commercial_name),
-                ])->toArray();
-                $this->newLine();
-                $this->table(['id', 'name (mantido)', 'commercial_name (será perdido)'], $rows);
-                if ($manual > $limit) {
-                    $this->line('  <fg=gray>… e mais '.($manual - $limit).' produto(s). Use --show=N para ver mais.</>');
+            foreach ($rows as $p) {
+                $name = trim((string) $p->name);
+                $comm = trim((string) $p->commercial_name);
+                if ($comm === '') {
+                    continue;
                 }
-                $this->line('  <fg=yellow>→ Ação: para cada um, decida qual valor vira o name canônico (UPDATE manual) ANTES de migrar.</>');
+                if ($name === '') {
+                    $useComm++;
+
+                    continue;
+                }
+                $n = $this->norm($name);
+                $c = $this->norm($comm);
+                if ($n === $c || str_contains($n, $c)) {
+                    $keep++;
+                } elseif (str_contains($c, $n)) {
+                    $useComm++;
+                } else {
+                    $merge[] = [(string) $p->id, $this->trunc($name.' — '.$comm, 70)];
+                }
+            }
+
+            $this->line('  Com commercial_name preenchido: <options=bold>'.$rows->count().'</>');
+            $this->line('  → mantêm o name atual (já contém/igual): <fg=gray>'.$keep.'</>');
+            $this->line('  → name passa a usar o commercial (mais completo): <fg=cyan>'.$useComm.'</>');
+            $this->line('  → serão MESCLADOS "name — commercial" (disjuntos): <fg=cyan>'.count($merge).'</>');
+            $this->line('  <fg=green>✓ Merge sem perda — nenhum dado é descartado.</>');
+
+            if (! empty($merge)) {
+                $this->newLine();
+                $this->table(['id', 'name resultante (preview)'], array_slice($merge, 0, $limit));
+                if (count($merge) > $limit) {
+                    $this->line('  <fg=gray>… e mais '.(count($merge) - $limit).' merge(s). Use --show=N para ver mais.</>');
+                }
             }
         }
         $this->newLine();
@@ -161,37 +170,9 @@ class ProductConsolidationPreflightCommand extends Command
         return self::FAILURE;
     }
 
-    /**
-     * Rows the backfill UPDATE will overwrite (mirror of the migration's WHERE).
-     */
-    private function backfillTargetsQuery()
+    private function norm(string $s): string
     {
-        return DB::table('products as p')
-            ->leftJoin('categories as c', 'c.id', '=', 'p.category_id')
-            ->whereNotNull('p.commercial_name')->where('p.commercial_name', '<>', '')
-            ->where(function ($q) {
-                $q->whereNull('p.name')
-                    ->orWhere('p.name', '=', '')
-                    ->orWhere('p.name', '=', 'New Product')
-                    ->orWhereColumn('p.name', '=', 'c.name');
-            });
-    }
-
-    /**
-     * Rows with a genuine name/commercial_name divergence that the backfill will
-     * NOT touch — these need a manual decision before the column is dropped.
-     */
-    private function manualReviewQuery()
-    {
-        return DB::table('products as p')
-            ->leftJoin('categories as c', 'c.id', '=', 'p.category_id')
-            ->whereNotNull('p.commercial_name')->where('p.commercial_name', '<>', '')
-            ->whereNotNull('p.name')->where('p.name', '<>', '')
-            ->where('p.name', '<>', 'New Product')
-            ->whereColumn('p.name', '<>', 'p.commercial_name')
-            ->where(function ($q) {
-                $q->whereNull('c.name')->orWhereColumn('p.name', '<>', 'c.name');
-            });
+        return preg_replace('/\s+/', '', mb_strtolower($s));
     }
 
     private function trunc(?string $v, int $len = 40): string
