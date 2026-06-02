@@ -12,7 +12,7 @@ class PreImportAnalysis
 
     public function __construct()
     {
-        $this->claude = new ClaudeAnalysisService();
+        $this->claude = new ClaudeAnalysisService;
     }
 
     /**
@@ -40,7 +40,7 @@ class PreImportAnalysis
             return $result;
         }
 
-        Log::info('PreImportAnalysis: starting analysis with ' . count($mappedItems) . ' mapped items');
+        Log::info('PreImportAnalysis: starting analysis with '.count($mappedItems).' mapped items');
 
         // Prepare rows
         $rows = collect($mappedItems)->map(fn ($item) => [
@@ -55,7 +55,7 @@ class PreImportAnalysis
         // Get existing products from DB (targeted by import codes/names)
         $existingProducts = $this->getExistingProducts($categoryIds, $rows);
 
-        Log::info('PreImportAnalysis: ' . count($rows) . ' import rows, ' . count($existingProducts) . ' existing products');
+        Log::info('PreImportAnalysis: '.count($rows).' import rows, '.count($existingProducts).' existing products');
 
         // Store debug info for display
         $result['_debug'] = [
@@ -66,7 +66,7 @@ class PreImportAnalysis
 
         // ===== LOCAL FUZZY MATCHING (instant, reliable) =====
         $localMatches = $this->localFuzzyMatch($rows, $existingProducts);
-        Log::info('PreImportAnalysis: local fuzzy matching found ' . count($localMatches) . ' matches');
+        Log::info('PreImportAnalysis: local fuzzy matching found '.count($localMatches).' matches');
 
         // ===== AI ENHANCEMENT (optional, adds semantic analysis) =====
         $aiMatches = [];
@@ -75,16 +75,16 @@ class PreImportAnalysis
                 $aiResult = $this->claude->analyzeImport($rows, $existingProducts, $categoryName);
                 $aiMatches = $aiResult['matches'] ?? [];
                 $result['ai_warnings'] = $aiResult['warnings'] ?? [];
-                Log::info('PreImportAnalysis: AI found ' . count($aiMatches) . ' matches, ' . count($result['ai_warnings']) . ' warnings');
+                Log::info('PreImportAnalysis: AI found '.count($aiMatches).' matches, '.count($result['ai_warnings']).' warnings');
             } catch (\Throwable $e) {
-                Log::warning('PreImportAnalysis: AI analysis failed: ' . $e->getMessage());
+                Log::warning('PreImportAnalysis: AI analysis failed: '.$e->getMessage());
             }
         }
 
         // Merge local + AI matches, deduplicate by row+type
         $result['ai_matches'] = $this->mergeMatches($localMatches, $aiMatches);
 
-        Log::info('PreImportAnalysis: final merged result — ' . count($result['ai_matches']) . ' matches');
+        Log::info('PreImportAnalysis: final merged result — '.count($result['ai_matches']).' matches');
 
         return $result;
     }
@@ -141,7 +141,7 @@ class PreImportAnalysis
                 for ($j = $i + 1; $j < count($indices); $j++) {
                     $a = $importNormalized[$indices[$i]];
                     $b = $importNormalized[$indices[$j]];
-                    $key = min($a['row'], $b['row']) . ':' . max($a['row'], $b['row']);
+                    $key = min($a['row'], $b['row']).':'.max($a['row'], $b['row']);
                     if (! isset($seen[$key])) {
                         $seen[$key] = true;
                         $matches[] = [
@@ -169,7 +169,7 @@ class PreImportAnalysis
                 for ($j = $i + 1; $j < count($indices); $j++) {
                     $a = $importNormalized[$indices[$i]];
                     $b = $importNormalized[$indices[$j]];
-                    $key = min($a['row'], $b['row']) . ':' . max($a['row'], $b['row']);
+                    $key = min($a['row'], $b['row']).':'.max($a['row'], $b['row']);
                     if (! isset($seen[$key])) {
                         $seen[$key] = true;
                         $matches[] = [
@@ -216,7 +216,7 @@ class PreImportAnalysis
                     if ($dist === 1) {
                         $a = $importNormalized[$entries[$i]['idx']];
                         $b = $importNormalized[$candidates[$j]['idx']];
-                        $key = min($a['row'], $b['row']) . ':' . max($a['row'], $b['row']);
+                        $key = min($a['row'], $b['row']).':'.max($a['row'], $b['row']);
                         if (! isset($seen[$key])) {
                             $seen[$key] = true;
                             $matches[] = [
@@ -403,11 +403,11 @@ class PreImportAnalysis
                 continue;
             }
             foreach ($b['codes'] as $codeB) {
-                if ($codeB === '' ) {
+                if ($codeB === '') {
                     continue;
                 }
                 if ($codeA === $codeB) {
-                    return "Códigos idênticos após normalização (removendo traços/pontos/espaços)";
+                    return 'Códigos idênticos após normalização (removendo traços/pontos/espaços)';
                 }
                 // Check Levenshtein distance for typos (only for codes >= 4 chars)
                 if (strlen($codeA) >= 4 && strlen($codeB) >= 4) {
@@ -472,14 +472,14 @@ class PreImportAnalysis
 
         // Local matches take priority (they're always correct)
         foreach ($localMatches as $m) {
-            $key = ($m['type'] ?? '') . ':' . ($m['row'] ?? 0);
+            $key = ($m['type'] ?? '').':'.($m['row'] ?? 0);
             $seen[$key] = true;
             $merged[] = $m;
         }
 
         // Add AI matches that aren't already covered
         foreach ($aiMatches as $m) {
-            $key = ($m['type'] ?? '') . ':' . ($m['row'] ?? 0);
+            $key = ($m['type'] ?? '').':'.($m['row'] ?? 0);
             if (! isset($seen[$key])) {
                 $merged[] = $m;
             }
@@ -573,7 +573,7 @@ class PreImportAnalysis
                 ->values()
                 ->toArray();
 
-            Log::info('PreImportAnalysis: getExistingProducts returned ' . count($products) . ' products (targeted lookup)', [
+            Log::info('PreImportAnalysis: getExistingProducts returned '.count($products).' products (targeted lookup)', [
                 'import_codes' => count($importCodes),
                 'import_names' => count($importNames),
                 'sample' => array_slice($products, 0, 3),
@@ -581,7 +581,7 @@ class PreImportAnalysis
 
             return $products;
         } catch (\Throwable $e) {
-            Log::error('PreImportAnalysis: getExistingProducts failed: ' . $e->getMessage());
+            Log::error('PreImportAnalysis: getExistingProducts failed: '.$e->getMessage());
 
             return [];
         }

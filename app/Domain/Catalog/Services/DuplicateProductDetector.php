@@ -11,9 +11,8 @@ class DuplicateProductDetector
     /**
      * Find existing products in the same category that share similar required attribute values.
      *
-     * @param int $categoryId
-     * @param array<int, string> $attributeValues [category_attribute_id => value]
-     * @param int|null $excludeProductId Product to exclude (for edit scenarios)
+     * @param  array<int, string>  $attributeValues  [category_attribute_id => value]
+     * @param  int|null  $excludeProductId  Product to exclude (for edit scenarios)
      * @return Collection<Product>
      */
     public static function findSimilar(

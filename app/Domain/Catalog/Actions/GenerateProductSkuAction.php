@@ -27,7 +27,7 @@ class GenerateProductSkuAction
                     $prefix = $this->resolvePrefix($category);
 
                     $lastSku = Product::withTrashed()
-                        ->where('sku', 'like', $prefix . '-%')
+                        ->where('sku', 'like', $prefix.'-%')
                         ->orderByRaw("CAST(SUBSTRING_INDEX(sku, '-', -1) AS UNSIGNED) DESC")
                         ->lockForUpdate()
                         ->value('sku');
@@ -36,7 +36,7 @@ class GenerateProductSkuAction
                         ? (int) last(explode('-', $lastSku)) + 1
                         : 1;
 
-                    return $prefix . '-' . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
+                    return $prefix.'-'.str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
                 });
             } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
                 $attempts++;
@@ -48,7 +48,7 @@ class GenerateProductSkuAction
         }
 
         // Nunca atingido, mas satisfaz o type-checker
-        throw new \RuntimeException('Failed to generate unique SKU after ' . $maxAttempts . ' attempts.');
+        throw new \RuntimeException('Failed to generate unique SKU after '.$maxAttempts.' attempts.');
     }
 
     /**
@@ -73,7 +73,7 @@ class GenerateProductSkuAction
                         ? (int) str_replace('DRF-', '', $lastSku) + 1
                         : 1;
 
-                    return 'DRF-' . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
+                    return 'DRF-'.str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
                 });
             } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
                 $attempts++;
@@ -84,7 +84,7 @@ class GenerateProductSkuAction
             }
         }
 
-        throw new \RuntimeException('Failed to generate unique draft SKU after ' . $maxAttempts . ' attempts.');
+        throw new \RuntimeException('Failed to generate unique draft SKU after '.$maxAttempts.' attempts.');
     }
 
     /**
@@ -98,7 +98,7 @@ class GenerateProductSkuAction
         $prefix = $this->resolvePrefix($category);
 
         $lastSku = Product::withTrashed()
-            ->where('sku', 'like', $prefix . '-%')
+            ->where('sku', 'like', $prefix.'-%')
             ->orderByRaw("CAST(SUBSTRING_INDEX(sku, '-', -1) AS UNSIGNED) DESC")
             ->value('sku');
 
@@ -106,7 +106,7 @@ class GenerateProductSkuAction
             ? (int) last(explode('-', $lastSku)) + 1
             : 1;
 
-        return $prefix . '-' . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
+        return $prefix.'-'.str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
     }
 
     /**

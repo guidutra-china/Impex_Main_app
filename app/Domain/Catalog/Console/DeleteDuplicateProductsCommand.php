@@ -46,6 +46,7 @@ class DeleteDuplicateProductsCommand extends Command
         if ($products->isEmpty()) {
             $this->warn('None of the target product IDs (29–47) were found in the database.');
             $this->warn('They may have already been deleted. Nothing to do.');
+
             return self::SUCCESS;
         }
 
@@ -57,15 +58,15 @@ class DeleteDuplicateProductsCommand extends Command
 
         $this->table(['ID', 'SKU', 'Name'], $rows);
 
-        $foundIds   = $products->pluck('id')->toArray();
+        $foundIds = $products->pluck('id')->toArray();
         $missingIds = array_diff($ids, $foundIds);
 
         if (! empty($missingIds)) {
-            $this->warn('The following IDs were not found (already deleted or never existed): ' . implode(', ', $missingIds));
+            $this->warn('The following IDs were not found (already deleted or never existed): '.implode(', ', $missingIds));
         }
 
         $this->newLine();
-        $this->line('<fg=red>This will permanently delete ' . count($foundIds) . ' product(s) and ALL their associated data.</>');
+        $this->line('<fg=red>This will permanently delete '.count($foundIds).' product(s) and ALL their associated data.</>');
         $this->line('Affected tables: activity_log, taggables, quotation_items (rows deleted),');
         $this->line('  supplier_quotation_items (nulled), purchase_order_items (nulled),');
         $this->line('  inquiry_items (nulled), proforma_invoice_items (nulled),');
@@ -78,6 +79,7 @@ class DeleteDuplicateProductsCommand extends Command
         if (! $this->option('force')) {
             if (! $this->confirm('Are you sure you want to proceed? This action CANNOT be undone.', false)) {
                 $this->info('Aborted. No changes were made.');
+
                 return self::SUCCESS;
             }
         }
@@ -195,7 +197,7 @@ class DeleteDuplicateProductsCommand extends Command
             });
 
             $this->newLine();
-            $this->info('✅ All ' . count($foundIds) . ' duplicate product(s) and their dependencies were successfully deleted.');
+            $this->info('✅ All '.count($foundIds).' duplicate product(s) and their dependencies were successfully deleted.');
             $this->newLine();
 
             return self::SUCCESS;
@@ -203,7 +205,7 @@ class DeleteDuplicateProductsCommand extends Command
         } catch (Throwable $e) {
             $this->newLine();
             $this->error('❌ An error occurred. The transaction was rolled back. No data was changed.');
-            $this->error('Error: ' . $e->getMessage());
+            $this->error('Error: '.$e->getMessage());
             $this->newLine();
 
             return self::FAILURE;

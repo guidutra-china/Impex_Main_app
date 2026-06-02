@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Catalog\Products\RelationManagers;
 
+use App\Domain\Infrastructure\Support\Money;
 use BackedEnum;
 use Filament\Actions\AttachAction;
 use Filament\Actions\DetachAction;
@@ -14,7 +15,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
-use App\Domain\Infrastructure\Support\Money;
 use Filament\Tables\Table;
 
 class SuppliersRelationManager extends RelationManager
@@ -38,7 +38,7 @@ class SuppliersRelationManager extends RelationManager
                 TextInput::make('external_name')
                     ->label(__('forms.labels.supplier_name_for_product'))
                     ->maxLength(255)
-                    ->helperText("How the supplier calls this product."),
+                    ->helperText('How the supplier calls this product.'),
                 Textarea::make('external_description')
                     ->label(__('forms.labels.supplier_product_description'))
                     ->rows(3)
@@ -154,6 +154,7 @@ class SuppliersRelationManager extends RelationManager
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['role'] = 'supplier';
                         $data['unit_price'] = Money::toMinor($data['unit_price'] ?? 0);
+
                         return $data;
                     }),
             ])
@@ -167,6 +168,7 @@ class SuppliersRelationManager extends RelationManager
                     })
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['unit_price'] = Money::toMinor($data['unit_price'] ?? 0);
+
                         return $data;
                     }),
                 DetachAction::make()

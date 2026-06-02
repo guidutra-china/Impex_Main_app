@@ -43,7 +43,7 @@ class ClientsRelationManager extends RelationManager
                 TextInput::make('external_name')
                     ->label(__('forms.labels.client_name_for_product'))
                     ->maxLength(255)
-                    ->helperText("How the client calls this product."),
+                    ->helperText('How the client calls this product.'),
                 Textarea::make('external_description')
                     ->label(__('forms.labels.client_product_description'))
                     ->rows(3)
@@ -163,6 +163,7 @@ class ClientsRelationManager extends RelationManager
                         $data['custom_price'] = filled($data['custom_price'] ?? null)
                             ? Money::toMinor($data['custom_price'])
                             : null;
+
                         return $data;
                     }),
             ])
@@ -182,6 +183,7 @@ class ClientsRelationManager extends RelationManager
                         $data['custom_price'] = filled($data['custom_price'] ?? null)
                             ? Money::toMinor($data['custom_price'])
                             : null;
+
                         return $data;
                     }),
                 DetachAction::make()
@@ -218,6 +220,7 @@ class ClientsRelationManager extends RelationManager
                         ->title(__('messages.invalid_formula'))
                         ->body(__('messages.formula_format_help'))
                         ->send();
+
                     return;
                 }
 

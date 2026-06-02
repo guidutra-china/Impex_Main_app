@@ -22,8 +22,8 @@ class ProductComponent extends Model
     {
         return [
             'quantity_required' => 'decimal:2',
-            'lead_time_days'   => 'integer',
-            'sort_order'       => 'integer',
+            'lead_time_days' => 'integer',
+            'sort_order' => 'integer',
         ];
     }
 

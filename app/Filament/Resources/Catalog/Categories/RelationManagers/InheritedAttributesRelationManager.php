@@ -2,14 +2,12 @@
 
 namespace App\Filament\Resources\Catalog\Categories\RelationManagers;
 
-use App\Domain\Catalog\Enums\AttributeType;
 use App\Domain\Catalog\Models\CategoryAttribute;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 
 class InheritedAttributesRelationManager extends RelationManager
 {

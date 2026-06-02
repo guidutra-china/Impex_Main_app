@@ -87,7 +87,8 @@ class VariantsRelationManager extends RelationManager
                             return '—';
                         }
                         $symbol = $record->costing?->currency?->symbol ?? '$';
-                        return $symbol . ' ' . number_format(Money::toMajor($state), 2);
+
+                        return $symbol.' '.number_format(Money::toMajor($state), 2);
                     })
                     ->size('sm'),
                 TextColumn::make('suppliers_count')
@@ -112,6 +113,7 @@ class VariantsRelationManager extends RelationManager
                     ->visible(fn () => auth()->user()?->can('edit-products'))
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['category_id'] = $data['category_id'] ?? $this->getOwnerRecord()->category_id;
+
                         return $data;
                     }),
             ])

@@ -2,9 +2,9 @@
 
 namespace App\Domain\Catalog\Models;
 
+use App\Domain\CRM\Models\Company;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Domain\CRM\Models\Company;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -98,10 +98,10 @@ class Category extends Model
         }
 
         if ($parents->isEmpty()) {
-            return '<strong>' . e($this->name) . '</strong>';
+            return '<strong>'.e($this->name).'</strong>';
         }
 
-        return '<strong>' . e($this->name) . '</strong> <span style="color:#6b7280;font-size:0.85em">‹ ' . e($parents->implode(' ‹ ')) . '</span>';
+        return '<strong>'.e($this->name).'</strong> <span style="color:#6b7280;font-size:0.85em">‹ '.e($parents->implode(' ‹ ')).'</span>';
     }
 
     /**

@@ -6,20 +6,20 @@ use App\Domain\Catalog\Enums\AttributeType;
 use App\Domain\Catalog\Models\CategoryAttribute;
 use App\Domain\Catalog\Services\DuplicateProductDetector;
 use App\Domain\Catalog\Services\ProductNameGenerator;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Filament\Actions\CreateAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\BulkActionGroup;
-use Filament\Notifications\Notification;
 
 class AttributeValuesRelationManager extends RelationManager
 {
@@ -41,7 +41,7 @@ class AttributeValuesRelationManager extends RelationManager
                     ->label(__('forms.labels.value'))
                     ->formatStateUsing(function ($state, $record) {
                         $attr = $record->categoryAttribute;
-                        if (!$attr) {
+                        if (! $attr) {
                             return $state;
                         }
 
@@ -132,8 +132,8 @@ class AttributeValuesRelationManager extends RelationManager
                             ->reject(fn ($attr) => in_array($attr->id, $existingIds))
                             ->mapWithKeys(fn ($attr) => [
                                 $attr->id => $attr->name
-                                    . ($attr->unit ? " ({$attr->unit})" : '')
-                                    . ' [' . $attr->category->name . ']',
+                                    .($attr->unit ? " ({$attr->unit})" : '')
+                                    .' ['.$attr->category->name.']',
                             ]);
                     })
                     ->required()
@@ -167,9 +167,10 @@ class AttributeValuesRelationManager extends RelationManager
                     ->label(__('forms.labels.value'))
                     ->options(function (Get $get) {
                         $attr = $this->resolveAttr($get);
-                        if (!$attr || !is_array($attr->options)) {
+                        if (! $attr || ! is_array($attr->options)) {
                             return [];
                         }
+
                         return array_combine($attr->options, $attr->options);
                     })
                     ->searchable()
@@ -240,6 +241,7 @@ class AttributeValuesRelationManager extends RelationManager
     private function resolveAttr(Get $get): ?CategoryAttribute
     {
         $attrId = $get('category_attribute_id');
+
         return $attrId ? CategoryAttribute::find($attrId) : null;
     }
 

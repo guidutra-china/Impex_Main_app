@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Catalog\Categories\RelationManagers;
 
 use App\Domain\Catalog\Enums\ProductStatus;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;

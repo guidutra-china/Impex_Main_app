@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Catalog\Categories\RelationManagers;
 
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;

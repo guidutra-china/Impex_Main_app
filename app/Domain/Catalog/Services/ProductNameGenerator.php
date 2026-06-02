@@ -44,7 +44,7 @@ class ProductNameGenerator
             $value = $attrValue->value;
 
             if ($attr->unit) {
-                $parts[] = $value . $attr->unit;
+                $parts[] = $value.$attr->unit;
             } else {
                 $parts[] = $value;
             }

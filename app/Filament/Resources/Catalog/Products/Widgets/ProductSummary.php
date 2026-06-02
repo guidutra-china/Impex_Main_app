@@ -106,7 +106,7 @@ class ProductSummary extends Widget
         if ($costing?->markup_percentage) {
             $pricing['markup'] = [
                 'label' => __('widgets.product_summary.markup'),
-                'value' => number_format($costing->markup_percentage, 1) . '%',
+                'value' => number_format($costing->markup_percentage, 1).'%',
                 'currency' => null,
             ];
         }
@@ -141,7 +141,7 @@ class ProductSummary extends Widget
         if ($product->specification) {
             $s = $product->specification;
             if ($s->net_weight) {
-                $specs[] = ['label' => __('widgets.product_summary.weight'), 'value' => $s->net_weight . ' kg'];
+                $specs[] = ['label' => __('widgets.product_summary.weight'), 'value' => $s->net_weight.' kg'];
             }
             if ($s->length && $s->width && $s->height) {
                 $specs[] = ['label' => __('widgets.product_summary.dimensions'), 'value' => "{$s->length} × {$s->width} × {$s->height} cm"];
@@ -160,19 +160,19 @@ class ProductSummary extends Widget
                 $specs[] = ['label' => __('widgets.product_summary.pcs_per_carton'), 'value' => $p->pcs_per_carton];
             }
             if ($p->carton_cbm) {
-                $specs[] = ['label' => 'CBM/Carton', 'value' => $p->carton_cbm . ' m³'];
+                $specs[] = ['label' => 'CBM/Carton', 'value' => $p->carton_cbm.' m³'];
             }
             if ($p->carton_weight) {
-                $specs[] = ['label' => 'GW/Carton', 'value' => $p->carton_weight . ' kg'];
+                $specs[] = ['label' => 'GW/Carton', 'value' => $p->carton_weight.' kg'];
             }
         }
 
         if ($product->moq) {
-            $specs[] = ['label' => 'MOQ', 'value' => number_format($product->moq) . ' ' . ($product->moq_unit ?? 'pcs')];
+            $specs[] = ['label' => 'MOQ', 'value' => number_format($product->moq).' '.($product->moq_unit ?? 'pcs')];
         }
 
         if ($product->lead_time_days) {
-            $specs[] = ['label' => __('widgets.product_summary.lead_time'), 'value' => $product->lead_time_days . ' days'];
+            $specs[] = ['label' => __('widgets.product_summary.lead_time'), 'value' => $product->lead_time_days.' days'];
         }
 
         return $specs;

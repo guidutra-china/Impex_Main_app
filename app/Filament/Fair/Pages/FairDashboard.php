@@ -6,7 +6,6 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\TradeFairs\Models\TradeFair;
 use BackedEnum;
 use Filament\Pages\Page;
-use UnitEnum;
 
 class FairDashboard extends Page
 {

@@ -5,7 +5,7 @@ namespace App\Domain\Catalog\Enums;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasLabel;
 
-enum ProductStatus: string implements HasLabel, HasColor
+enum ProductStatus: string implements HasColor, HasLabel
 {
     case DRAFT = 'draft';
     case ACTIVE = 'active';
@@ -14,9 +14,8 @@ enum ProductStatus: string implements HasLabel, HasColor
 
     public function getLabel(): ?string
     {
-        return __('enums.product_status.' . $this->value);
+        return __('enums.product_status.'.$this->value);
     }
-
 
     public function getColor(): string|array|null
     {
