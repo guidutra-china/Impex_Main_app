@@ -82,6 +82,13 @@ class RecalculatePaymentScheduleForShipmentAction
     {
         $docType = get_class($document);
 
+        // Promote any [remaining] base items that already received an allocation
+        // BEFORE this shipment existed: they must become this shipment's
+        // ship-specific canonical, otherwise step 3 would create a duplicate
+        // empty PSI and the AP/AR report would show the same installment as
+        // both paid (on [remaining]) AND pending (on the new ship-specific).
+        $this->promoteRemainingBaseItemsWithAllocations($shipment, $document, $paymentTerm, $shipmentValue);
+
         // 1. Identify stages covered by base items (no shipment_id) that are paid/waived or have allocations
         $coveredStageIds = PaymentScheduleItem::where('payable_type', $docType)
             ->where('payable_id', $document->id)
@@ -162,6 +169,83 @@ class RecalculatePaymentScheduleForShipmentAction
                 'is_blocking' => $isBlocking,
                 'sort_order' => ++$sortOffset,
             ]);
+        }
+    }
+
+    /**
+     * Quando o pagamento foi feito ANTES do shipment ser criado, a alocação
+     * vive no canonical [remaining] (shipment_id=null). Sem este passo, step 3
+     * criaria um ship-specific vazio e o item ficaria duplicado: pago no
+     * [remaining] e pendente no novo ship-specific. Promovemos o [remaining]
+     * a ship-specific (preserva ID/alocação/histórico contábil) apenas quando
+     * é seguro: nenhum outro shipment ainda usa esse stage.
+     */
+    protected function promoteRemainingBaseItemsWithAllocations(Shipment $shipment, Model $document, PaymentTerm $paymentTerm, int $shipmentValue): void
+    {
+        if ($shipmentValue <= 0) {
+            return;
+        }
+
+        $docType = get_class($document);
+
+        foreach ($paymentTerm->stages as $stage) {
+            if (! $stage->calculation_base?->isShipmentDependent()) {
+                continue;
+            }
+
+            $remainingBase = PaymentScheduleItem::where('payable_type', $docType)
+                ->where('payable_id', $document->id)
+                ->whereNull('shipment_id')
+                ->whereNull('source_type')
+                ->where('payment_term_stage_id', $stage->id)
+                ->where('label', 'LIKE', '%[remaining]%')
+                ->where(function ($q) {
+                    $q->whereHas('allocations')
+                        ->orWhere('status', PaymentScheduleStatus::PAID->value);
+                })
+                ->first();
+
+            if (! $remainingBase) {
+                continue;
+            }
+
+            // Safe to promote only if no other shipment has already claimed this stage.
+            $otherShipmentExists = PaymentScheduleItem::where('payable_type', $docType)
+                ->where('payable_id', $document->id)
+                ->where('payment_term_stage_id', $stage->id)
+                ->whereNotNull('shipment_id')
+                ->where('shipment_id', '!=', $shipment->id)
+                ->exists();
+
+            if ($otherShipmentExists) {
+                continue;
+            }
+
+            // Reuse any pre-existing empty ship-specific for this shipment+stage by
+            // deleting it; we are about to convert the [remaining] into the canonical.
+            PaymentScheduleItem::where('payable_type', $docType)
+                ->where('payable_id', $document->id)
+                ->where('shipment_id', $shipment->id)
+                ->where('payment_term_stage_id', $stage->id)
+                ->whereDoesntHave('allocations')
+                ->whereNotIn('status', [
+                    PaymentScheduleStatus::PAID->value,
+                    PaymentScheduleStatus::WAIVED->value,
+                ])
+                ->delete();
+
+            $shipmentSpecificAmount = (int) round($shipmentValue * ($stage->percentage / 100));
+            $newLabel = $this->generateLabel($stage, $document->reference, $shipment->reference);
+
+            $remainingBase->update([
+                'shipment_id' => $shipment->id,
+                'amount' => $shipmentSpecificAmount,
+                'label' => $newLabel,
+                'due_date' => $this->calculateDueDate($shipment, $stage),
+            ]);
+
+            $remainingBase->refresh();
+            $remainingBase->recalculateStatus();
         }
     }
 
