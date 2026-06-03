@@ -20,6 +20,7 @@ return [
     'blocked_by_payment' => '因付款要求被阻止',
     'no_pos_created' => '未创建采购订单',
     'status_change_blocked' => '状态变更被阻止',
+    'payments_must_be_resolved' => '在转换到此状态之前，必须先处理以下付款：:labels',
     'document_updated' => '文档已更新',
     'document_uploaded' => '文档已上传',
     'file_not_found' => '文件未找到',

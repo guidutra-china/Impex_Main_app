@@ -28,6 +28,7 @@ return [
     'generated_with_payment_override' => 'POs gerados com autorização de pagamento',
     'no_pos_created' => 'Nenhum PO criado',
     'status_change_blocked' => 'Alteração de status bloqueada',
+    'payments_must_be_resolved' => 'Os seguintes pagamentos precisam ser resolvidos antes de transicionar para este status: :labels',
     'document_updated' => 'Documento atualizado',
     'document_uploaded' => 'Documento enviado',
     'file_not_found' => 'Arquivo não encontrado',

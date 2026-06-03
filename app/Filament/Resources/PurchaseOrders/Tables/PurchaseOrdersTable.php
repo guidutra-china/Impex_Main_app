@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\PurchaseOrders\Tables;
 
-use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\PurchaseOrders\Actions\SyncSupplierProductPricesAction;
 use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
@@ -177,13 +176,13 @@ class PurchaseOrdersTable
                             'color' => 'success',
                             'requiresConfirmation' => true,
                             'sideEffects' => fn ($record) => app(SyncSupplierProductPricesAction::class)->execute($record),
-                            'blockers' => fn ($record) => collect(PaymentScheduleItem::blockingConditionsForTransition($record, PurchaseOrderStatus::CONFIRMED->value))->pluck('label')->all(),
+                            'blockers' => fn ($record) => $record->getBlockingPaymentLabels(PurchaseOrderStatus::CONFIRMED->value),
                         ],
                         'in_production' => [
-                            'blockers' => fn ($record) => collect(PaymentScheduleItem::blockingConditionsForTransition($record, PurchaseOrderStatus::IN_PRODUCTION->value))->pluck('label')->all(),
+                            'blockers' => fn ($record) => $record->getBlockingPaymentLabels(PurchaseOrderStatus::IN_PRODUCTION->value),
                         ],
                         'shipped' => [
-                            'blockers' => fn ($record) => collect(PaymentScheduleItem::blockingConditionsForTransition($record, PurchaseOrderStatus::SHIPPED->value))->pluck('label')->all(),
+                            'blockers' => fn ($record) => $record->getBlockingPaymentLabels(PurchaseOrderStatus::SHIPPED->value),
                         ],
                     ]),
                     ViewAction::make(),

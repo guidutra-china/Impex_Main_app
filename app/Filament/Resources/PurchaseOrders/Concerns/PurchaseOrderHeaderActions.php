@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\PurchaseOrders\Concerns;
 
-use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Infrastructure\Pdf\Templates\PurchaseOrderPdfTemplate;
 use App\Domain\PurchaseOrders\Actions\SyncSupplierProductPricesAction;
@@ -104,14 +103,12 @@ trait PurchaseOrderHeaderActions
                     // Payment gate: parity with the table action and EditPurchaseOrder::beforeSave().
                     // BEFORE_PRODUCTION / BEFORE_SHIPMENT / ORDER_DATE / PO_DATE blocking payments
                     // must be resolved before the matching status transition.
-                    $blockers = PaymentScheduleItem::blockingConditionsForTransition($this->record, $newStatus->value);
+                    $blockerLabels = $this->record->getBlockingPaymentLabels($newStatus->value);
 
-                    if (count($blockers) > 0) {
-                        $labels = collect($blockers)->pluck('label')->implode(', ');
-
+                    if (count($blockerLabels) > 0) {
                         Notification::make()
                             ->title(__('messages.status_change_blocked'))
-                            ->body("The following payments must be resolved before transitioning to this status: {$labels}")
+                            ->body(__('messages.payments_must_be_resolved', ['labels' => implode(', ', $blockerLabels)]))
                             ->danger()
                             ->persistent()
                             ->send();

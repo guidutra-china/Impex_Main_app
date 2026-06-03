@@ -28,6 +28,7 @@ return [
     'generated_with_payment_override' => 'POs generated with payment override',
     'no_pos_created' => 'No POs Created',
     'status_change_blocked' => 'Status Change Blocked',
+    'payments_must_be_resolved' => 'The following payments must be resolved before transitioning to this status: :labels',
     'document_updated' => 'Document updated',
     'document_uploaded' => 'Document uploaded',
     'file_not_found' => 'File not found',

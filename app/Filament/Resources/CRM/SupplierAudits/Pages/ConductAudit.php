@@ -209,6 +209,8 @@ class ConductAudit extends Page implements HasForms
 
     public function save(): void
     {
+        abort_unless(auth()->user()?->can('conduct-supplier-audits'), 403);
+
         $record = $this->getRecord();
 
         DB::transaction(function () use ($record) {
