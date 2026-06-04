@@ -73,7 +73,8 @@ Route::get('/trips-mobile/manifest.json', function () {
     ]);
 })->name('trips-mobile.manifest');
 
-// SPA shell — catch-all so client-side routing works.
-Route::view('/trips-mobile/{any?}', 'trips-mobile.app')
-    ->where('any', '.*')
-    ->name('trips-mobile');
+// SPA shell — catch-all so client-side routing works. Company branding is
+// injected so the logo shows at the top of the app.
+Route::get('/trips-mobile/{any?}', function () {
+    return view('trips-mobile.app', \App\Domain\Settings\Support\CompanyBranding::forView());
+})->where('any', '.*')->name('trips-mobile');

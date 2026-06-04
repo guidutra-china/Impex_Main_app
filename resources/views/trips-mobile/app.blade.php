@@ -63,6 +63,9 @@
     <template x-if="screen === 'list'">
         <div class="flex-1">
             <header class="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between gap-3">
+                @if(! empty($companyLogo ?? null))
+                    <img src="{{ $companyLogo }}" alt="{{ $companyName ?? '' }}" class="h-7 w-auto max-w-[96px] object-contain shrink-0">
+                @endif
                 <div class="min-w-0 flex-1">
                     <h1 class="text-base font-semibold text-gray-900 truncate" x-text="t('my_trips')"></h1>
                     <p class="text-xs text-gray-500 truncate flex items-center gap-2">

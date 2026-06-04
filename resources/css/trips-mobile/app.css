@@ -13,6 +13,16 @@ html, body {
     background: #f3f4f6;
 }
 
+/* iOS PWA: keep sticky headers below the status bar / notch so the title and
+   the Sync/Logout buttons stay reachable. */
+header {
+    padding-top: max(env(safe-area-inset-top), 0.75rem) !important;
+}
+
+.brand-bar {
+    padding-top: max(env(safe-area-inset-top), 0.5rem);
+}
+
 input[type="text"],
 input[type="email"],
 input[type="tel"],
