@@ -360,6 +360,24 @@ return array (
     'approved' => '已批准',
     'rejected' => '已拒绝',
     ),
+    'trip_status' =>
+    array (
+    'draft' => '草稿',
+    'submitted' => '已提交',
+    'approved' => '已批准',
+    'rejected' => '已拒绝',
+    ),
+    'travel_expense_category' =>
+    array (
+    'transport' => '交通',
+    'lodging' => '住宿',
+    'meals' => '餐饮',
+    'visa_fees' => '签证及费用',
+    'telecom' => '网络与通讯',
+    'samples' => '样品',
+    'entertainment' => '招待',
+    'other' => '其他',
+    ),
     'expense_category' =>
     array (
     'rent' => '房租',

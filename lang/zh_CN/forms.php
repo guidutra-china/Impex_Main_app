@@ -2,6 +2,20 @@
 
 return [
     'labels' => [
+        'trip_title' => '出差标题 / 事由',
+        'fx_rate' => '汇率 :from → 计费',
+        'billing_currency' => '计费币种',
+        'report_currency' => '报表币种',
+        'report_language' => '报表语言',
+        'expense_report' => '费用报表',
+        'internal_expense' => '内部费用',
+        'destination_city' => '目的地城市',
+        'destination_country' => '目的地国家',
+        'destination' => '目的地',
+        'period' => '时间段',
+        'traveler' => '出差人',
+        'start_date' => '开始日期',
+        'end_date' => '结束日期',
         'existing_documents' => '现有文件',
         'hash' => '#',
         'pkgs' => '# 包裹',
@@ -602,6 +616,7 @@ return [
         'revert_reason' => '恢复原因',
     ],
     'sections' => [
+        'trip_details' => '出差信息',
         'access_role' => '访问与角色',
         'account_details' => '账户详情',
         'account_information' => '账户信息',
@@ -735,6 +750,9 @@ return [
         'filter_by_supplier' => '按供应商筛选',
     ],
     'helpers' => [
+        'internal_expense' => '当出差为公司内部费用（无关联客户/供应商）时勾选。',
+        'indicative_rate' => '指示性汇率 — 可修改。',
+        'choose_billing_currency' => '批准前请选择计费币种并核对汇率。',
         'a_descriptive_name_to_identify_this_account' => '用于识别此账户的描述性名称。',
         'first_image_is_primary' => '第一张图片为主图（封面）。拖动可重新排序。最多 8 张。',
         'add_branches_for_different_addresses' => '添加分公司以在文档中使用不同地址。',

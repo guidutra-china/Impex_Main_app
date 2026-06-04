@@ -53,3 +53,27 @@ Route::get('/fair-mobile/manifest.json', function () {
 Route::view('/fair-mobile/{any?}', 'fair-mobile.app')
     ->where('any', '.*')
     ->name('fair-mobile');
+
+// Trips mobile PWA. Same serving strategy as fair-mobile: the service worker
+// and manifest are served via Laravel (not as static files under
+// public/trips-mobile/) so nginx does not shadow the SPA route. The SW lives at
+// /trips-mobile/sw.js to get its default scope of /trips-mobile/.
+Route::get('/trips-mobile/sw.js', function () {
+    return response()->file(resource_path('pwa/trips/sw.js'), [
+        'Content-Type' => 'application/javascript; charset=utf-8',
+        'Cache-Control' => 'no-cache, no-store, must-revalidate',
+        'Service-Worker-Allowed' => '/trips-mobile/',
+    ]);
+})->name('trips-mobile.sw');
+
+Route::get('/trips-mobile/manifest.json', function () {
+    return response()->file(resource_path('pwa/trips/manifest.json'), [
+        'Content-Type' => 'application/manifest+json; charset=utf-8',
+        'Cache-Control' => 'public, max-age=3600',
+    ]);
+})->name('trips-mobile.manifest');
+
+// SPA shell — catch-all so client-side routing works.
+Route::view('/trips-mobile/{any?}', 'trips-mobile.app')
+    ->where('any', '.*')
+    ->name('trips-mobile');

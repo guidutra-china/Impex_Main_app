@@ -15,6 +15,8 @@ export default defineConfig({
                 'resources/css/filament/fair/theme.css',
                 'resources/css/fair-mobile/app.css',
                 'resources/js/fair-mobile/app.js',
+                'resources/css/trips-mobile/app.css',
+                'resources/js/trips-mobile/app.js',
             ],
             refresh: true,
         }),

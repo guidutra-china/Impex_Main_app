@@ -97,6 +97,13 @@ class PermissionSeeder extends Seeder
             'edit-company-expenses',
             'delete-company-expenses',
             'approve-company-expenses',
+
+            // Trips
+            'view-trips',
+            'create-trips',
+            'edit-trips',
+            'delete-trips',
+            'approve-trips',
             'create-payments',
             'edit-payments',
             'delete-payments',

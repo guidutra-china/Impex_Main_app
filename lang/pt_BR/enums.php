@@ -360,6 +360,24 @@ return array (
     'approved' => 'Aprovado',
     'rejected' => 'Rejeitado',
     ),
+    'trip_status' =>
+    array (
+    'draft' => 'Rascunho',
+    'submitted' => 'Enviada',
+    'approved' => 'Aprovada',
+    'rejected' => 'Rejeitada',
+    ),
+    'travel_expense_category' =>
+    array (
+    'transport' => 'Transporte',
+    'lodging' => 'Hospedagem',
+    'meals' => 'Refeições',
+    'visa_fees' => 'Vistos e Taxas',
+    'telecom' => 'Internet e Telecom',
+    'samples' => 'Amostras',
+    'entertainment' => 'Representação',
+    'other' => 'Outros',
+    ),
     'expense_category' =>
     array (
     'rent' => 'Aluguel',

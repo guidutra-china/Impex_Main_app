@@ -2,6 +2,20 @@
 
 return [
     'labels' => [
+        'trip_title' => 'Título da Viagem',
+        'fx_rate' => 'Câmbio :from → cobrança',
+        'billing_currency' => 'Moeda de cobrança',
+        'report_currency' => 'Moeda do relatório',
+        'report_language' => 'Idioma do relatório',
+        'expense_report' => 'Relatório de despesas',
+        'internal_expense' => 'Despesa Interna',
+        'destination_city' => 'Cidade de Destino',
+        'destination_country' => 'País de Destino',
+        'destination' => 'Destino',
+        'period' => 'Período',
+        'traveler' => 'Viajante',
+        'start_date' => 'Data de Início',
+        'end_date' => 'Data de Término',
         'existing_documents' => 'Documentos Existentes',
         'hash' => '#',
         'pkgs' => '# Pacotes',
@@ -623,6 +637,7 @@ return [
         'revert_reason' => 'Motivo da Reversão',
     ],
     'sections' => [
+        'trip_details' => 'Dados da Viagem',
         'access_role' => 'Acesso & Função',
         'account_details' => 'Detalhes da Conta',
         'account_information' => 'Informações da Conta',
@@ -759,6 +774,9 @@ return [
         'filter_by_supplier' => 'Filtrar por Fornecedor',
     ],
     'helpers' => [
+        'internal_expense' => 'Marque quando a viagem for despesa interna da empresa (sem cliente/fornecedor vinculado).',
+        'indicative_rate' => 'Taxa indicativa — pode ser alterada.',
+        'choose_billing_currency' => 'Escolha a moeda de cobrança e confira as taxas de câmbio antes de aprovar.',
         'a_descriptive_name_to_identify_this_account' => 'Um nome descritivo para identificar esta conta.',
         'first_image_is_primary' => 'A primeira imagem é a foto principal (capa). Arraste para reordenar. Até 8 imagens.',
         'add_branches_for_different_addresses' => 'Adicione filiais para usar endereços diferentes nos documentos.',

@@ -5,7 +5,12 @@ use App\Http\Controllers\Api\Fair\CompanySearchController;
 use App\Http\Controllers\Api\Fair\FairSupplierController;
 use App\Http\Controllers\Api\Fair\ReferenceDataController;
 use App\Http\Controllers\Api\Fair\TradeFairController;
+use App\Http\Controllers\Api\Trips\AuthController as TripsAuthController;
+use App\Http\Controllers\Api\Trips\CompanySearchController as TripsCompanySearchController;
+use App\Http\Controllers\Api\Trips\TripController;
+use App\Http\Controllers\Api\Trips\TripReferenceController;
 use App\Http\Middleware\EnsureUserIsInternal;
+use App\Http\Middleware\SetLocale;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('fair/v1')->group(function () {
@@ -19,5 +24,19 @@ Route::prefix('fair/v1')->group(function () {
         Route::get('reference-data', [ReferenceDataController::class, 'index']);
         Route::post('companies/search', [CompanySearchController::class, 'search']);
         Route::post('fair-suppliers', [FairSupplierController::class, 'store']);
+    });
+});
+
+Route::prefix('trips/v1')->group(function () {
+    Route::post('auth/login', [TripsAuthController::class, 'login']);
+
+    Route::middleware(['auth:sanctum', EnsureUserIsInternal::class, SetLocale::class])->group(function () {
+        Route::post('auth/logout', [TripsAuthController::class, 'logout']);
+        Route::get('auth/me', [TripsAuthController::class, 'me']);
+
+        Route::get('reference-data', [TripReferenceController::class, 'index']);
+        Route::post('companies/search', [TripsCompanySearchController::class, 'search']);
+        Route::get('trips', [TripController::class, 'index']);
+        Route::post('trips', [TripController::class, 'store']);
     });
 });

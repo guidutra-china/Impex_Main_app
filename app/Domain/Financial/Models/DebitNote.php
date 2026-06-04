@@ -23,6 +23,7 @@ class DebitNote extends Model
         'company_id',
         'proforma_invoice_id',
         'shipment_id',
+        'trip_id',
         'total_amount',
         'currency_code',
         'status',
@@ -79,6 +80,11 @@ class DebitNote extends Model
     public function shipment(): BelongsTo
     {
         return $this->belongsTo(Shipment::class);
+    }
+
+    public function trip(): BelongsTo
+    {
+        return $this->belongsTo(\App\Domain\Travel\Models\Trip::class);
     }
 
     public function lineItems(): HasMany

@@ -2,6 +2,20 @@
 
 return [
     'labels' => [
+        'trip_title' => 'Trip Title / Purpose',
+        'fx_rate' => 'FX rate :from → billing',
+        'billing_currency' => 'Billing Currency',
+        'report_currency' => 'Report Currency',
+        'report_language' => 'Report Language',
+        'expense_report' => 'Expense Report',
+        'internal_expense' => 'Internal Expense',
+        'destination_city' => 'Destination City',
+        'destination_country' => 'Destination Country',
+        'destination' => 'Destination',
+        'period' => 'Period',
+        'traveler' => 'Traveler',
+        'start_date' => 'Start Date',
+        'end_date' => 'End Date',
         'existing_documents' => 'Existing Documents',
         'hash' => '#',
         'pkgs' => '# Pkgs',
@@ -627,6 +641,7 @@ return [
         'revert_reason' => 'Reason for Revert',
     ],
     'sections' => [
+        'trip_details' => 'Trip Details',
         'access_role' => 'Access & Role',
         'account_details' => 'Account Details',
         'account_information' => 'Account Information',
@@ -764,6 +779,9 @@ return [
         'filter_by_supplier' => 'Filter by Supplier',
     ],
     'helpers' => [
+        'internal_expense' => 'Check when the trip is an internal company expense (no linked client/supplier).',
+        'indicative_rate' => 'Indicative rate — can be changed.',
+        'choose_billing_currency' => 'Choose the billing currency and review the FX rates before approving.',
         'a_descriptive_name_to_identify_this_account' => 'A descriptive name to identify this account.',
         'first_image_is_primary' => 'The first image is the primary (cover) photo. Drag to reorder. Up to 8 images.',
         'add_branches_for_different_addresses' => 'Add branches to use different addresses on documents.',

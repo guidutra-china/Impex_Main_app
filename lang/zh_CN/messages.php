@@ -29,6 +29,8 @@ return [
     'available_amount' => '可用金额',
     'payment_approved' => '付款已批准',
     'payment_rejected' => '付款被拒绝',
+    'trip_approved' => '出差已批准',
+    'trip_rejected' => '出差已拒绝',
     'payment_schedule_recalculated' => '付款计划已重新计算',
     'payment_restored' => '付款已恢复为待处理',
     'confirm_transition' => '将状态从 :from 更改为 :to？',

@@ -38,6 +38,7 @@ return [
         'container_types' => '集装箱类型',
         'audit_categories' => '审核类别',
         'company_expenses' => '公司费用',
+        'trips' => '出差',
         'production_schedules' => '生产计划',
         'shipment_plans' => '发货计划',
     ],
@@ -100,6 +101,9 @@ return [
         'audit_categories' => '审核类别',
         'company_expense' => '费用',
         'company_expenses' => '费用',
+        'trip' => '出差',
+        'trips' => '出差',
+        'trip_expenses' => '出差费用',
     ],
     'pages' => [
         'financial_overview' => '财务概览',

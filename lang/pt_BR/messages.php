@@ -39,6 +39,8 @@ return [
     'payment_rejected' => 'Pagamento rejeitado',
     'expense_approved' => 'Despesa aprovada',
     'expense_rejected' => 'Despesa rejeitada',
+    'trip_approved' => 'Viagem aprovada',
+    'trip_rejected' => 'Viagem rejeitada',
     'payment_schedule_recalculated' => 'Cronograma de pagamento recalculado',
     'payment_restored' => 'Pagamento restaurado para pendente',
     'confirm_transition' => 'Alterar status de :from para :to?',

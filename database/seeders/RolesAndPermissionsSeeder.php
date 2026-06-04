@@ -115,6 +115,13 @@ class RolesAndPermissionsSeeder extends Seeder
             'delete-company-expenses',
             'approve-company-expenses',
 
+            // Trips
+            'view-trips',
+            'create-trips',
+            'edit-trips',
+            'delete-trips',
+            'approve-trips',
+
             // Additional Costs
             'view-additional-costs',
             'create-additional-costs',
@@ -200,6 +207,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'delete-shipment-plans',
             'delete-shipments',
             'delete-payments',
+            'delete-trips',
             'delete-trade-fairs',
             'manage-settings',
             'manage-audit-categories',
@@ -226,6 +234,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'confirm-shipment-plans',
             'execute-shipment-plans',
             'delete-shipments',
+            'delete-trips',
+            'approve-trips',
             'delete-trade-fairs',
             'edit-payments',
             'delete-payments',
