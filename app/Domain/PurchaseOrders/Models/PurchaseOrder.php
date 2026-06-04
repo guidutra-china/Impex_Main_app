@@ -25,7 +25,12 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class PurchaseOrder extends Model
 {
-    use HasFactory, SoftDeletes, HasReference, HasStateMachine, HasDocuments, HasPaymentSchedule, LogsActivity;
+    use HasDocuments, HasFactory, HasPaymentSchedule, HasReference, HasStateMachine, LogsActivity, SoftDeletes;
+
+    protected static function newFactory(): \Database\Factories\PurchaseOrderFactory
+    {
+        return \Database\Factories\PurchaseOrderFactory::new();
+    }
 
     protected $fillable = [
         'reference',
@@ -118,6 +123,11 @@ class PurchaseOrder extends Model
                 PurchaseOrderStatus::DRAFT->value,
             ],
         ];
+    }
+
+    public function getTransitionBlockers(string $toStatus): array
+    {
+        return $this->getBlockingPaymentLabels($toStatus);
     }
 
     // --- Boot ---
