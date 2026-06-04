@@ -256,6 +256,33 @@ class CreateOrUpdateQuotationFromInquiryActionTest extends TestCase
         $this->assertCount(2, $item->suppliers, 'both alternatives stored');
     }
 
+    public function test_same_supplier_quoting_a_product_twice_does_not_violate_unique_constraint(): void
+    {
+        // Same supplier company quotes the SAME product across two separate SQs.
+        // Both alternatives share (quotation_item_id, company_id) → must dedupe, keeping the cheapest.
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems();
+        $supplier = Company::factory()->create();
+        $sqHigh = $this->buildSqWith($inquiry, $supplier, 'CNY', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 80000],
+        ]);
+        $sqLow = $this->buildSqWith($inquiry, $supplier, 'CNY', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 70000],
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$sqHigh->id, $sqLow->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+        );
+
+        $item = $quotation->items->first();
+        $this->assertCount(1, $item->suppliers, 'one supplier row per company');
+        $this->assertSame($supplier->id, $item->suppliers->first()->company_id);
+        $this->assertSame(70000, $item->suppliers->first()->unit_cost, 'cheapest quote kept');
+    }
+
     public function test_sent_with_force_new_version_creates_v2_and_snapshots_v1(): void
     {
         [$client, $inquiry, $items] = $this->buildInquiryWithItems();

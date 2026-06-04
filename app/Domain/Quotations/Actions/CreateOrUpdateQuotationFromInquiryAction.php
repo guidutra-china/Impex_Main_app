@@ -204,8 +204,24 @@ class CreateOrUpdateQuotationFromInquiryAction
                 ->first();
 
             // Sync alternatives — replace any prior set with the current pool.
+            // The same supplier company may quote a product across multiple SQs;
+            // collapse to one row per company (keeping the lowest converted cost)
+            // to respect the (quotation_item_id, company_id) unique constraint.
+            $dedupedAlternatives = $alternatives
+                ->sortBy(function ($sqItem) use ($quoteCurrency, $referenceDate) {
+                    $resolved = $this->fx->resolve(
+                        $sqItem->supplierQuotation->currency_code,
+                        $quoteCurrency,
+                        $referenceDate,
+                    );
+
+                    return $sqItem->unit_cost * $resolved['rate'];
+                })
+                ->unique(fn ($sqItem) => $sqItem->supplierQuotation->company_id)
+                ->values();
+
             $persistedItem->suppliers()->delete();
-            foreach ($alternatives as $alt) {
+            foreach ($dedupedAlternatives as $alt) {
                 $altResolved = $this->fx->resolve(
                     $alt->supplierQuotation->currency_code,
                     $quoteCurrency,
