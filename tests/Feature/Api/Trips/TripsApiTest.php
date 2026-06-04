@@ -215,6 +215,35 @@ class TripsApiTest extends TestCase
         $this->getJson('/api/trips/v1/trips')->assertUnauthorized();
     }
 
+    public function test_recoverable_returns_only_users_draft_trips_with_expenses(): void
+    {
+        $user = $this->internalUser();
+        $supplier = $this->supplier();
+        Sanctum::actingAs($user, ['trips:manage']);
+
+        $draft = Trip::create([
+            'title' => 'Draft', 'user_id' => $user->id, 'company_id' => $supplier->id,
+            'client_uuid' => 'rec-uuid-1', 'start_date' => '2026-06-01', 'status' => TripStatus::DRAFT,
+        ]);
+        $draft->expenses()->create([
+            'client_uuid' => 'rec-exp-1', 'category' => 'meals', 'amount' => 200000,
+            'currency_code' => 'CNY', 'expense_date' => '2026-06-01 12:00',
+        ]);
+
+        // A submitted trip must NOT be recoverable.
+        Trip::create([
+            'title' => 'Sent', 'user_id' => $user->id, 'company_id' => $supplier->id,
+            'client_uuid' => 'rec-uuid-2', 'start_date' => '2026-06-01', 'status' => TripStatus::SUBMITTED,
+        ]);
+
+        $this->getJson('/api/trips/v1/trips/recoverable')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.client_uuid', 'rec-uuid-1')
+            ->assertJsonCount(1, 'data.0.expenses')
+            ->assertJsonPath('data.0.expenses.0.client_uuid', 'rec-exp-1');
+    }
+
     public function test_reference_data_labels_follow_the_users_locale(): void
     {
         // SetLocale middleware honours the authenticated user's locale, so the

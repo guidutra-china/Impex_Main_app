@@ -87,6 +87,8 @@ export const api = {
 
     listTrips: () => request('/trips'),
 
+    recoverableTrips: () => request('/trips/recoverable'),
+
     submitTrip: (formData) => request('/trips', {
         method: 'POST',
         body: formData,

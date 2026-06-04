@@ -179,6 +179,89 @@ Alpine.data('tripsApp', () => ({
         this.trips = await listTrips();
     },
 
+    /**
+     * Re-download the traveler's DRAFT trips from the server onto this device,
+     * including receipts (fetched as blobs) so they remain fully editable.
+     * Trips already present locally (by client_uuid) are skipped.
+     */
+    async recoverDrafts() {
+        if (this.submitting) return;
+        if (!this.online) { this.error = this.t('recover_offline'); return; }
+        this.submitting = true;
+        this.error = null;
+        try {
+            const response = await api.recoverableTrips();
+            const localUuids = new Set(this.trips.map((trip) => trip.client_uuid).filter(Boolean));
+            let recovered = 0;
+
+            for (const r of (response.data || [])) {
+                if (!r.client_uuid || localUuids.has(r.client_uuid)) continue;
+
+                const expenses = [];
+                for (const e of (r.expenses || [])) {
+                    const photos = [];
+                    for (const url of (e.photos || [])) {
+                        const blob = await this.downloadBlob(url);
+                        if (blob) {
+                            photos.push({ blob, filename: url.split('/').pop() || 'receipt.jpg', type: blob.type || 'image/jpeg' });
+                        }
+                    }
+                    expenses.push({
+                        client_uuid: e.client_uuid,
+                        category: e.category,
+                        description: e.description || null,
+                        amount: Number(e.amount),
+                        currency_code: e.currency_code || 'CNY',
+                        expense_date: e.expense_date,
+                        synced: true,
+                        photos,
+                    });
+                }
+
+                await saveTrip({
+                    client_uuid: r.client_uuid,
+                    serverId: r.server_id ?? null,
+                    serverStatus: 'draft',
+                    title: r.title,
+                    is_internal: !!r.is_internal,
+                    company_id: r.company_id ?? null,
+                    company_name: r.company_name ?? null,
+                    destination_city: r.destination_city ?? null,
+                    destination_country: r.destination_country ?? null,
+                    start_date: r.start_date,
+                    end_date: r.end_date ?? null,
+                    notes: r.notes ?? null,
+                    status: 'draft',
+                    headerSynced: true,
+                    finalizeRequested: false,
+                    lastError: null,
+                    deletedExpenseUuids: [],
+                    expenses,
+                    createdAt: Date.now(),
+                    updatedAt: Date.now(),
+                });
+                recovered++;
+            }
+
+            await this.loadTrips();
+            alert(this.t('recovered_count', { count: recovered }));
+        } catch (err) {
+            this.error = err?.message || this.t('recover_failed');
+        } finally {
+            this.submitting = false;
+        }
+    },
+
+    async downloadBlob(url) {
+        try {
+            const res = await fetch(url);
+            if (!res.ok) return null;
+            return await res.blob();
+        } catch {
+            return null;
+        }
+    },
+
     async logout() {
         try {
             await api.logout();

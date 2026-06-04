@@ -80,6 +80,14 @@
                 <div class="mx-4 mt-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800" x-text="t('cache_stale')"></div>
             </template>
 
+            <div class="px-4 pt-3">
+                <button @click="recoverDrafts" :disabled="submitting || !online"
+                        class="text-xs text-sky-700 font-semibold underline disabled:text-gray-400 disabled:no-underline">
+                    <span x-show="!submitting" x-text="t('recover_drafts')"></span>
+                    <span x-show="submitting" x-text="t('recovering')"></span>
+                </button>
+            </div>
+
             <main class="px-4 py-4 space-y-3 pb-28">
                 <template x-if="trips.length === 0">
                     <div class="text-center py-16 text-sm text-gray-500" x-text="t('no_trips')"></div>

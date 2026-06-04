@@ -37,6 +37,7 @@ Route::prefix('trips/v1')->group(function () {
         Route::get('reference-data', [TripReferenceController::class, 'index']);
         Route::post('companies/search', [TripsCompanySearchController::class, 'search']);
         Route::get('trips', [TripController::class, 'index']);
+        Route::get('trips/recoverable', [TripController::class, 'recoverable']);
         Route::post('trips', [TripController::class, 'store']);
     });
 });

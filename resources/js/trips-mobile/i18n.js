@@ -79,6 +79,11 @@ export const messages = {
         sync_err_validation: 'Erro de validação.',
         sync_err_session: 'Sessão expirada — faça login novamente.',
         sync_err_network: 'Erro de rede — tentará de novo.',
+        recover_drafts: 'Recuperar rascunhos do servidor',
+        recovering: 'Recuperando…',
+        recovered_count: ':count viagem(ns) recuperada(s).',
+        recover_offline: 'Sem conexão — conecte para recuperar.',
+        recover_failed: 'Não foi possível recuperar.',
     },
     en: {
         loading: 'Loading…',
@@ -156,6 +161,11 @@ export const messages = {
         sync_err_validation: 'Validation error.',
         sync_err_session: 'Session expired — please log in again.',
         sync_err_network: 'Network error — will retry.',
+        recover_drafts: 'Recover drafts from server',
+        recovering: 'Recovering…',
+        recovered_count: ':count trip(s) recovered.',
+        recover_offline: 'Offline — connect to recover.',
+        recover_failed: 'Could not recover.',
     },
     zh_CN: {
         loading: '加载中…',
@@ -233,6 +243,11 @@ export const messages = {
         sync_err_validation: '验证错误。',
         sync_err_session: '会话已过期 — 请重新登录。',
         sync_err_network: '网络错误 — 将重试。',
+        recover_drafts: '从服务器恢复草稿',
+        recovering: '恢复中…',
+        recovered_count: '已恢复 :count 个出差。',
+        recover_offline: '离线 — 请联网后恢复。',
+        recover_failed: '无法恢复。',
     },
 };
 

@@ -6,10 +6,12 @@ use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Travel\Actions\StoreTripAction;
 use App\Domain\Travel\DataTransferObjects\TripData;
 use App\Domain\Travel\DataTransferObjects\TripExpenseData;
+use App\Domain\Travel\Enums\TripStatus;
 use App\Domain\Travel\Models\Trip;
 use App\Http\Requests\Api\Trips\StoreTripRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class TripController
 {
@@ -29,6 +31,60 @@ class TripController
         return response()->json([
             'data' => $trips->map(fn (Trip $trip) => $this->summarize($trip))->all(),
         ]);
+    }
+
+    /**
+     * Full detail of the traveler's DRAFT trips so the mobile app can recover
+     * (re-download) them onto a new device / fresh PWA install and keep editing.
+     * Only mobile-originated trips (with a client_uuid) are recoverable.
+     */
+    public function recoverable(Request $request): JsonResponse
+    {
+        $trips = Trip::query()
+            ->with(['expenses.photos', 'company'])
+            ->where('user_id', $request->user()->id)
+            ->where('status', TripStatus::DRAFT)
+            ->whereNotNull('client_uuid')
+            ->latest('start_date')
+            ->limit(50)
+            ->get();
+
+        $data = $trips->map(function (Trip $trip) {
+            $expenses = $trip->expenses->map(function ($expense) {
+                // Backfill a client_uuid for any expense added in the admin so it
+                // re-syncs without duplicating.
+                if (empty($expense->client_uuid)) {
+                    $expense->update(['client_uuid' => (string) Str::uuid()]);
+                }
+
+                return [
+                    'client_uuid' => $expense->client_uuid,
+                    'category' => $expense->category->value,
+                    'description' => $expense->description,
+                    'amount' => Money::toMajor($expense->amount),
+                    'currency_code' => $expense->currency_code,
+                    'expense_date' => $expense->expense_date?->format('Y-m-d\TH:i'),
+                    'photos' => $expense->photos->map(fn ($photo) => $photo->url)->filter()->values(),
+                ];
+            })->values();
+
+            return [
+                'client_uuid' => $trip->client_uuid,
+                'server_id' => $trip->id,
+                'title' => $trip->title,
+                'is_internal' => $trip->is_internal,
+                'company_id' => $trip->company_id,
+                'company_name' => $trip->is_internal ? null : $trip->company?->name,
+                'destination_city' => $trip->destination_city,
+                'destination_country' => $trip->destination_country,
+                'start_date' => $trip->start_date?->toDateString(),
+                'end_date' => $trip->end_date?->toDateString(),
+                'notes' => $trip->notes,
+                'expenses' => $expenses,
+            ];
+        })->values();
+
+        return response()->json(['data' => $data]);
     }
 
     public function store(StoreTripRequest $request, StoreTripAction $action): JsonResponse
