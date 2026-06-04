@@ -180,7 +180,6 @@ class ProformaInvoicesTable
                             'icon' => 'heroicon-o-lock-closed',
                             'color' => 'primary',
                             'requiresConfirmation' => true,
-                            'blockers' => fn ($record) => $record->getFinalizationBlockers(),
                         ],
                         'reopened' => [
                             'icon' => 'heroicon-o-lock-open',

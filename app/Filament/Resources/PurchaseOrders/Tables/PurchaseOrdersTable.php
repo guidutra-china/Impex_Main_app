@@ -176,13 +176,6 @@ class PurchaseOrdersTable
                             'color' => 'success',
                             'requiresConfirmation' => true,
                             'sideEffects' => fn ($record) => app(SyncSupplierProductPricesAction::class)->execute($record),
-                            'blockers' => fn ($record) => $record->getBlockingPaymentLabels(PurchaseOrderStatus::CONFIRMED->value),
-                        ],
-                        'in_production' => [
-                            'blockers' => fn ($record) => $record->getBlockingPaymentLabels(PurchaseOrderStatus::IN_PRODUCTION->value),
-                        ],
-                        'shipped' => [
-                            'blockers' => fn ($record) => $record->getBlockingPaymentLabels(PurchaseOrderStatus::SHIPPED->value),
                         ],
                     ]),
                     ViewAction::make(),

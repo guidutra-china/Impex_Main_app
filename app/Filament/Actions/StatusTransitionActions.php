@@ -15,7 +15,7 @@ class StatusTransitionActions
      * Designed for use in table ->recordActions([...]).
      *
      * @param  class-string<\BackedEnum>  $enumClass  The status enum (e.g., InquiryStatus::class)
-     * @param  array<string, array{icon?: string, color?: string, requiresConfirmation?: bool, requiresNotes?: bool, sideEffects?: callable, blockers?: callable}>  $overrides  Per-status visual/behavior overrides keyed by enum value. `blockers` receives the record and returns an array of business-rule blocker messages; a non-empty array halts the transition (server-side guard parity with header actions).
+     * @param  array<string, array{icon?: string, color?: string, requiresConfirmation?: bool, requiresNotes?: bool, sideEffects?: callable}>  $overrides  Per-status visual/behavior overrides keyed by enum value.
      */
     public static function make(string $enumClass, array $overrides = []): ActionGroup
     {
@@ -33,7 +33,6 @@ class StatusTransitionActions
             $requiresNotes = $override['requiresNotes'] ?? self::isDestructiveTransition($statusValue);
 
             $sideEffects = $override['sideEffects'] ?? null;
-            $blockers = $override['blockers'] ?? null;
 
             $action = Action::make("transition_to_{$statusValue}")
                 ->label($label)
@@ -41,23 +40,7 @@ class StatusTransitionActions
                 ->color($color)
                 ->size('sm')
                 ->visible(fn ($record) => $record->canTransitionTo($statusValue))
-                ->action(function ($record, ?array $data = null) use ($enumClass, $statusValue, $sideEffects, $blockers) {
-                    // Business-rule guard: parity with header actions so the table path
-                    // cannot bypass blockers (e.g. PI finalization, PO payment blocks).
-                    if ($blockers !== null) {
-                        $messages = $blockers($record);
-
-                        if (! empty($messages)) {
-                            Notification::make()
-                                ->title(__('messages.status_transition_failed'))
-                                ->body(implode("\n", $messages))
-                                ->danger()
-                                ->send();
-
-                            return;
-                        }
-                    }
-
+                ->action(function ($record, ?array $data = null) use ($enumClass, $statusValue, $sideEffects) {
                     try {
                         app(TransitionStatusAction::class)->execute(
                             $record,

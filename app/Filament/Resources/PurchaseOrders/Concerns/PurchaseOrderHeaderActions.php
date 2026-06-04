@@ -100,22 +100,6 @@ trait PurchaseOrderHeaderActions
                 try {
                     $newStatus = PurchaseOrderStatus::from($data['new_status']);
 
-                    // Payment gate: parity with the table action and EditPurchaseOrder::beforeSave().
-                    // BEFORE_PRODUCTION / BEFORE_SHIPMENT / ORDER_DATE / PO_DATE blocking payments
-                    // must be resolved before the matching status transition.
-                    $blockerLabels = $this->record->getBlockingPaymentLabels($newStatus->value);
-
-                    if (count($blockerLabels) > 0) {
-                        Notification::make()
-                            ->title(__('messages.status_change_blocked'))
-                            ->body(__('messages.payments_must_be_resolved', ['labels' => implode(', ', $blockerLabels)]))
-                            ->danger()
-                            ->persistent()
-                            ->send();
-
-                        return;
-                    }
-
                     $sideEffects = null;
                     if ($newStatus === PurchaseOrderStatus::CONFIRMED) {
                         $sideEffects = function ($po) {
