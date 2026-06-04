@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Impex Viagens">
     <link rel="manifest" href="/trips-mobile/manifest.json">
-    <link rel="apple-touch-icon" href="/pwa/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/pwa/icons/trips/icon-180.png">
     <title>Impex Viagens</title>
     @vite(['resources/css/trips-mobile/app.css', 'resources/js/trips-mobile/app.js'])
 </head>
