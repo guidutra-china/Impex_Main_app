@@ -391,9 +391,16 @@ Alpine.data('tripsApp', () => ({
         if (removed?.preview) URL.revokeObjectURL(removed.preview);
     },
 
+    // Accept both ',' and '.' as the decimal separator (mobile keyboards vary).
+    parseAmount(value) {
+        if (value === '' || value == null) return NaN;
+        return Number(String(value).replace(',', '.'));
+    },
+
     canSaveExpense() {
         const e = this.expenseDraft;
-        return !!e.category && e.amount !== '' && Number(e.amount) > 0 && !!e.expense_date;
+        const amount = this.parseAmount(e.amount);
+        return !!e.category && !Number.isNaN(amount) && amount > 0 && !!e.expense_date;
     },
 
     async saveExpense() {
@@ -417,7 +424,7 @@ Alpine.data('tripsApp', () => ({
                 if (target) {
                     target.category = e.category;
                     target.description = e.description || null;
-                    target.amount = Number(e.amount);
+                    target.amount = this.parseAmount(e.amount);
                     target.currency_code = e.currency_code || 'USD';
                     target.expense_date = e.expense_date;
                     target.photos = photos;
@@ -428,7 +435,7 @@ Alpine.data('tripsApp', () => ({
                     client_uuid: uuid(),
                     category: e.category,
                     description: e.description || null,
-                    amount: Number(e.amount),
+                    amount: this.parseAmount(e.amount),
                     currency_code: e.currency_code || 'USD',
                     expense_date: e.expense_date,
                     synced: false,

@@ -306,7 +306,8 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-medium text-gray-700" x-text="t('amount')"></label>
-                            <input type="number" step="0.01" min="0" inputmode="decimal" x-model="expenseDraft.amount"
+                            <input type="text" inputmode="decimal" x-model="expenseDraft.amount"
+                                   placeholder="0,00"
                                    class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-3">
                         </div>
                         <div>
