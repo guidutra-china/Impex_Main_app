@@ -64,13 +64,14 @@ class AuditDuplicateQuotationSuppliersCommand extends Command
             $this->info('OK: nenhuma inquiry com fornecedor repetido no mesmo produto (nada bloqueado pelo bug).');
         } else {
             $this->newLine();
-            $this->warn($affectedShapes->count().' combinação(ões) inquiry/produto/fornecedor com 2+ SQs — eram cotações bloqueadas; com o fix criam mantendo a SQ mais barata:');
+            $this->warn($affectedShapes->count().' combinação(ões) inquiry/produto/fornecedor com 2+ linhas de cotação — eram cotações bloqueadas; com o fix criam mantendo a cotação mais barata:');
             $this->table(
-                ['Inquiry', 'Produto', 'Fornecedor', 'Nº de SQs'],
+                ['Inquiry', 'Produto', 'Fornecedor', 'Linhas', 'SQs'],
                 $affectedShapes->map(fn ($r) => [
                     $r->inquiry ?? ('#'.$r->inquiry_id),
                     $r->product ?? ('#'.$r->product_id),
                     $r->supplier ?? ('#'.$r->company_id),
+                    (string) $r->item_count,
                     (string) $r->sq_count,
                 ])->all(),
             );
@@ -94,9 +95,14 @@ class AuditDuplicateQuotationSuppliersCommand extends Command
     }
 
     /**
-     * Inquiry + produto onde o mesmo fornecedor (company_id) cotou em 2+ SQs.
+     * Inquiry + produto onde o mesmo fornecedor (company_id) cotou em 2+ linhas.
      * Espelha o data flow de CreateOrUpdateQuotationFromInquiryAction::syncItems
-     * (unit_cost > 0; SQs agrupadas por produto), que era onde o bug nascia.
+     * (unit_cost > 0; itens de SQ agrupados por produto), que era onde o bug nascia.
+     *
+     * Conta LINHAS de cotação (COUNT(*)), não SQs distintas: não há índice único
+     * em supplier_quotation_items(supplier_quotation_id, product_id), então o mesmo
+     * fornecedor pode duplicar o produto dentro de UMA SQ — e isso também disparava
+     * o erro. sq_count é só informativo (1 = duplicata na mesma SQ; 2+ = entre SQs).
      */
     private function findAffectedShapes(?string $inquiryFilter): \Illuminate\Support\Collection
     {
@@ -107,10 +113,10 @@ class AuditDuplicateQuotationSuppliersCommand extends Command
             ->leftJoin('companies as c', 'c.id', '=', 'sq.company_id')
             ->whereNull('sq.deleted_at')
             ->where('sqi.unit_cost', '>', 0)
-            ->selectRaw('sq.inquiry_id, sqi.product_id, sq.company_id, i.reference as inquiry, p.name as product, c.name as supplier, COUNT(DISTINCT sq.id) as sq_count')
+            ->selectRaw('sq.inquiry_id, sqi.product_id, sq.company_id, i.reference as inquiry, p.name as product, c.name as supplier, COUNT(*) as item_count, COUNT(DISTINCT sq.id) as sq_count')
             ->groupBy('sq.inquiry_id', 'sqi.product_id', 'sq.company_id', 'i.reference', 'p.name', 'c.name')
-            ->havingRaw('COUNT(DISTINCT sq.id) > 1')
-            ->orderByDesc('sq_count');
+            ->havingRaw('COUNT(*) > 1')
+            ->orderByDesc('item_count');
 
         if ($inquiryFilter !== null) {
             $query->where(function ($q) use ($inquiryFilter) {
