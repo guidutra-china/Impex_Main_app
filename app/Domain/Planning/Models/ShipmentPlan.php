@@ -12,8 +12,8 @@ use App\Domain\Infrastructure\Traits\HasReference;
 use App\Domain\Infrastructure\Traits\HasStateMachine;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Planning\Enums\ShipmentPlanStatus;
-use App\Domain\Settings\Enums\CalculationBase;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -22,7 +22,12 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class ShipmentPlan extends Model
 {
-    use HasReference, HasStateMachine, HasDocuments, HasPaymentSchedule, LogsActivity;
+    use HasDocuments, HasFactory, HasPaymentSchedule, HasReference, HasStateMachine, LogsActivity;
+
+    protected static function newFactory(): \Database\Factories\ShipmentPlanFactory
+    {
+        return \Database\Factories\ShipmentPlanFactory::new();
+    }
 
     protected $fillable = [
         'supplier_company_id',
@@ -93,6 +98,13 @@ class ShipmentPlan extends Model
             ShipmentPlanStatus::SHIPPED->value => [],
             ShipmentPlanStatus::CANCELLED->value => [],
         ];
+    }
+
+    public function getTransitionBlockers(string $toStatus): array
+    {
+        return $toStatus === ShipmentPlanStatus::SHIPPED->value
+            ? $this->blocking_payment_labels
+            : [];
     }
 
     // --- Relationships ---

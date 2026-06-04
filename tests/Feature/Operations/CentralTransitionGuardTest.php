@@ -6,6 +6,8 @@ use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Infrastructure\Exceptions\TransitionBlockedException;
+use App\Domain\Planning\Enums\ShipmentPlanStatus;
+use App\Domain\Planning\Models\ShipmentPlan;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
@@ -108,6 +110,38 @@ class CentralTransitionGuardTest extends TestCase
         $this->assertSame(
             PurchaseOrderStatus::IN_PRODUCTION->value,
             $po->fresh()->status->value,
+        );
+    }
+
+    public function test_execute_throws_when_shipment_plan_has_blocking_payment(): void
+    {
+        $plan = ShipmentPlan::factory()->create([
+            'status' => ShipmentPlanStatus::CONFIRMED->value,
+        ]);
+
+        // ShipmentPlan resolves blockers via shipment_plan_id (linkedPaymentScheduleItems),
+        // NOT the polymorphic payable — which, as in production (ConfirmShipmentPlanAction),
+        // points at the ProformaInvoice (the factory default). shipment_plan_id is what links it.
+        PaymentScheduleItem::factory()->create([
+            'shipment_plan_id' => $plan->getKey(),
+            'is_blocking' => true,
+            'is_credit' => false,
+            'status' => PaymentScheduleStatus::DUE->value,
+            'due_condition' => CalculationBase::BEFORE_SHIPMENT->value,
+        ]);
+
+        $this->assertTrue($plan->hasBlockingPayments());
+
+        try {
+            app(TransitionStatusAction::class)->execute($plan, ShipmentPlanStatus::SHIPPED);
+            $this->fail('Expected TransitionBlockedException was not thrown.');
+        } catch (TransitionBlockedException $e) {
+            $this->assertNotEmpty($e->blockers);
+        }
+
+        $this->assertSame(
+            ShipmentPlanStatus::CONFIRMED->value,
+            $plan->fresh()->status->value,
         );
     }
 }
