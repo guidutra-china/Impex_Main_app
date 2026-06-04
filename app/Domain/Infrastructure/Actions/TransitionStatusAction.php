@@ -2,6 +2,7 @@
 
 namespace App\Domain\Infrastructure\Actions;
 
+use App\Domain\Infrastructure\Exceptions\TransitionBlockedException;
 use App\Domain\Infrastructure\Models\StateTransition;
 use App\Domain\Infrastructure\Traits\HasStateMachine;
 use Illuminate\Database\Eloquent\Model;
@@ -14,13 +15,10 @@ class TransitionStatusAction
      * Validates the transition, updates the status, logs the change, and executes side-effects.
      *
      * @param  Model&HasStateMachine  $model
-     * @param  string|\BackedEnum  $toStatus
-     * @param  string|null  $notes
-     * @param  array  $metadata
      * @param  callable|null  $sideEffects  Closure executed inside the transaction after status change
-     * @return Model
      *
      * @throws \InvalidArgumentException if the transition is not allowed
+     * @throws \App\Domain\Infrastructure\Exceptions\TransitionBlockedException if a business-rule blocker is present
      */
     public function execute(
         Model $model,
@@ -40,8 +38,13 @@ class TransitionStatusAction
             $modelClass = class_basename($model);
             throw new \InvalidArgumentException(
                 "Invalid status transition for {$modelClass}: [{$fromStatusValue}] → [{$toStatusValue}]. "
-                . 'Allowed: [' . implode(', ', $model->getAllowedNextStatuses()) . ']'
+                .'Allowed: ['.implode(', ', $model->getAllowedNextStatuses()).']'
             );
+        }
+
+        $blockers = $model->getTransitionBlockers($toStatusValue);
+        if (! empty($blockers)) {
+            throw new TransitionBlockedException($blockers);
         }
 
         return DB::transaction(function () use ($model, $toStatus, $toStatusValue, $fromStatusValue, $notes, $metadata, $sideEffects) {
