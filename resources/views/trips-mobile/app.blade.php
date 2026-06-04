@@ -328,7 +328,7 @@
                         <label class="block text-xs font-medium text-gray-700">
                             <span x-text="t('receipt')"></span> <span class="text-gray-400" x-text="`(${expenseDraft.photos.length}/8)`"></span>
                         </label>
-                        <input type="file" accept="image/*" capture="environment" multiple
+                        <input type="file" accept="image/*" multiple
                                @change="onReceiptChange($event)"
                                :disabled="expenseDraft.photos.length >= 8"
                                class="mt-1 block w-full text-sm text-gray-600 file:mr-2 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-sky-50 file:text-sky-700 file:text-xs file:font-semibold disabled:opacity-50">

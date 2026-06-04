@@ -21,7 +21,13 @@ class TripReferenceController
 
         $currencies = Currency::query()->orderBy('code')->pluck('code')->all();
         if (empty($currencies)) {
-            $currencies = ['USD', 'BRL', 'CNY'];
+            $currencies = ['CNY', 'USD', 'BRL'];
+        }
+
+        // CNY is the default trip-expense currency, so it leads the list (also
+        // makes it the <select>'s first/fallback option on the mobile app).
+        if (in_array('CNY', $currencies, true)) {
+            $currencies = array_values(array_merge(['CNY'], array_diff($currencies, ['CNY'])));
         }
 
         return response()->json([

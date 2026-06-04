@@ -340,9 +340,10 @@ Alpine.data('tripsApp', () => ({
         this.editingExpenseUuid = null;
         this.expenseDraft = emptyExpense();
         const currencies = this.reference.currencies || [];
-        if (!currencies.includes('CNY') && currencies.length) {
-            this.expenseDraft.currency_code = currencies[0];
-        }
+        // Prefer CNY (the default); otherwise fall back to the first available.
+        this.expenseDraft.currency_code = currencies.includes('CNY')
+            ? 'CNY'
+            : (currencies[0] || 'CNY');
         this.error = null;
         this.screen = 'expenseForm';
     },
