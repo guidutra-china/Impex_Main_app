@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Impex Fair">
     <link rel="manifest" href="/fair-mobile/manifest.json">
-    <link rel="apple-touch-icon" href="/pwa/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/pwa/icons/fair/icon-180.png">
     <title>Impex Fair</title>
     @vite(['resources/css/fair-mobile/app.css', 'resources/js/fair-mobile/app.js'])
 </head>
@@ -68,6 +68,9 @@
         <div class="flex-1">
             {{-- Header --}}
             <header class="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between gap-3">
+                @if(! empty($companyLogo ?? null))
+                    <img src="{{ $companyLogo }}" alt="{{ $companyName ?? '' }}" class="h-7 w-auto max-w-[96px] object-contain shrink-0">
+                @endif
                 <div class="min-w-0 flex-1">
                     <h1 class="text-base font-semibold text-gray-900 truncate">Novo fornecedor</h1>
                     <p class="text-xs text-gray-500 truncate flex items-center gap-2">

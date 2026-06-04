@@ -13,6 +13,11 @@ html, body {
     background: #f3f4f6;
 }
 
+/* iOS PWA: keep sticky headers below the status bar / notch. */
+header {
+    padding-top: max(env(safe-area-inset-top), 0.75rem) !important;
+}
+
 input[type="text"],
 input[type="email"],
 input[type="tel"],

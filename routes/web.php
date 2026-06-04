@@ -50,9 +50,9 @@ Route::get('/fair-mobile/manifest.json', function () {
 })->name('fair-mobile.manifest');
 
 // SPA shell — catch-all so client-side routing works.
-Route::view('/fair-mobile/{any?}', 'fair-mobile.app')
-    ->where('any', '.*')
-    ->name('fair-mobile');
+Route::get('/fair-mobile/{any?}', function () {
+    return view('fair-mobile.app', \App\Domain\Settings\Support\CompanyBranding::forView());
+})->where('any', '.*')->name('fair-mobile');
 
 // Trips mobile PWA. Same serving strategy as fair-mobile: the service worker
 // and manifest are served via Laravel (not as static files under
