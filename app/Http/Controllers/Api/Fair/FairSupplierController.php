@@ -34,6 +34,13 @@ class FairSupplierController
             );
         }
 
+        $companyPhotos = $request->file('company_photos') ?? [];
+
+        // Fall back to the legacy single business-card field for older payloads.
+        if (empty($companyPhotos) && $request->file('business_card_photo')) {
+            $companyPhotos = [$request->file('business_card_photo')];
+        }
+
         $data = new FairSupplierData(
             tradeFairId: (int) $validated['trade_fair_id'],
             existingCompanyId: $validated['existing_company_id'] ?? null,
@@ -46,7 +53,7 @@ class FairSupplierController
             contactEmail: $validated['contact_email'] ?? null,
             contactPhone: $validated['contact_phone'] ?? null,
             contactWechat: $validated['contact_wechat'] ?? null,
-            businessCardPhoto: $request->file('business_card_photo'),
+            companyPhotos: array_values($companyPhotos),
             products: $products,
         );
 
@@ -57,7 +64,7 @@ class FairSupplierController
                 'id' => $result->company->id,
                 'name' => $result->company->name,
                 'trade_fair_id' => $result->company->trade_fair_id,
-                'business_card_path' => $result->company->business_card_path,
+                'photo_count' => $result->company->photos()->count(),
             ],
             'product_names' => $result->productNames,
             'reused_existing_company' => $result->companyReused,

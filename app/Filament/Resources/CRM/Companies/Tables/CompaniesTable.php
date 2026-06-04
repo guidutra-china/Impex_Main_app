@@ -62,9 +62,10 @@ class CompaniesTable
                     ->color('warning')
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
-                ImageColumn::make('business_card_path')
-                    ->label('Cartão')
-                    ->disk(fn (Company $record) => $record->business_card_disk ?? 'public')
+                ImageColumn::make('primary_photo')
+                    ->label('Foto')
+                    ->getStateUsing(fn (Company $record) => $record->photos->first()?->path)
+                    ->disk('public')
                     ->circular()
                     ->size(40)
                     ->toggleable(isToggledHiddenByDefault: true),

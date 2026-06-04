@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\CRM\Companies\Schemas;
 
 use App\Domain\CRM\Models\Company;
+use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -42,7 +43,7 @@ class CompanyInfolist
                             ->label(__('forms.labels.website'))
                             ->placeholder('—')
                             ->icon('heroicon-o-globe-alt')
-                            ->url(fn ($state) => $state ? 'https://' . ltrim($state, 'https://') : null, shouldOpenInNewTab: true),
+                            ->url(fn ($state) => $state ? 'https://'.ltrim($state, 'https://') : null, shouldOpenInNewTab: true),
                     ])
                     ->columns(2)
                     ->columnSpan(['lg' => 2]),
@@ -116,6 +117,18 @@ class CompanyInfolist
                     ->columns(2)
                     ->columnSpanFull()
                     ->collapsible(),
+
+                Section::make('Fotos da empresa')
+                    ->schema([
+                        ImageEntry::make('photos')
+                            ->label('')
+                            ->disk('public')
+                            ->getStateUsing(fn (Company $record) => $record->photos->pluck('path')->all())
+                            ->size(120)
+                            ->columnSpanFull(),
+                    ])
+                    ->columnSpanFull()
+                    ->visible(fn (Company $record) => $record->photos()->exists()),
 
                 Section::make(__('forms.sections.notes'))
                     ->schema([

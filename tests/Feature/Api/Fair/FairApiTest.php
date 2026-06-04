@@ -207,7 +207,7 @@ class FairApiTest extends TestCase
         $response = $this->postJson('/api/fair/v1/fair-suppliers', $payload)
             ->assertStatus(201)
             ->assertJsonStructure([
-                'company' => ['id', 'name', 'trade_fair_id', 'business_card_path'],
+                'company' => ['id', 'name', 'trade_fair_id', 'photo_count'],
                 'product_names',
                 'reused_existing_company',
             ]);
@@ -240,9 +240,14 @@ class FairApiTest extends TestCase
             'moq' => 100,
         ]);
 
-        $businessCardPath = $response->json('company.business_card_path');
-        $this->assertNotNull($businessCardPath);
-        Storage::disk('public')->assertExists($businessCardPath);
+        // Legacy business_card_photo field is mapped to the company photo gallery.
+        $this->assertSame(1, $response->json('company.photo_count'));
+
+        $photoPath = \App\Domain\CRM\Models\CompanyPhoto::where('company_id', $companyId)
+            ->where('is_primary', true)
+            ->value('path');
+        $this->assertNotNull($photoPath);
+        Storage::disk('public')->assertExists($photoPath);
     }
 
     public function test_store_fair_supplier_creates_multiple_product_images(): void

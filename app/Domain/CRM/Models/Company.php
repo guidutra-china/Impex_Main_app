@@ -11,8 +11,8 @@ use App\Domain\TradeFairs\Models\TradeFair;
 use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -45,8 +45,6 @@ class Company extends Model
         'notes',
         'contracted_importer_details',
         'trade_fair_id',
-        'business_card_path',
-        'business_card_disk',
         'preferred_language',
     ];
 
@@ -120,6 +118,11 @@ class Company extends Model
         return $this->hasMany(CompanyDocument::class);
     }
 
+    public function photos(): HasMany
+    {
+        return $this->hasMany(CompanyPhoto::class)->orderBy('sort_order')->orderBy('id');
+    }
+
     public function supplierAudits(): HasMany
     {
         return $this->hasMany(SupplierAudit::class, 'company_id');
@@ -170,6 +173,13 @@ class Company extends Model
             ->pluck('role')
             ->map(fn (CompanyRole $role) => $role->getLabel())
             ->implode(', ');
+    }
+
+    public function getPrimaryPhotoUrlAttribute(): ?string
+    {
+        $photo = $this->photos->firstWhere('is_primary', true) ?? $this->photos->first();
+
+        return $photo?->url;
     }
 
     public function getFullAddressAttribute(): string

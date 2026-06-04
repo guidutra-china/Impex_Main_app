@@ -54,19 +54,19 @@ class TradeFairInfolist
                             ->state(fn (TradeFair $record) => Company::where('trade_fair_id', $record->id)->count())
                             ->badge()
                             ->color('primary'),
-                        TextEntry::make('suppliers_with_card')
-                            ->label('Com cartão de visita')
+                        TextEntry::make('suppliers_with_photos')
+                            ->label('Com fotos')
                             ->state(function (TradeFair $record) {
                                 $total = Company::where('trade_fair_id', $record->id)->count();
                                 if ($total === 0) {
                                     return '0';
                                 }
 
-                                $withCard = Company::where('trade_fair_id', $record->id)
-                                    ->whereNotNull('business_card_path')
+                                $withPhotos = Company::where('trade_fair_id', $record->id)
+                                    ->whereHas('photos')
                                     ->count();
 
-                                return $withCard.' / '.$total;
+                                return $withPhotos.' / '.$total;
                             }),
                         TextEntry::make('products_total')
                             ->label('Produtos capturados')

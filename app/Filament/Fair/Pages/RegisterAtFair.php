@@ -103,12 +103,13 @@ class RegisterAtFair extends Page implements HasForms
     // ─── Business Card Scanner ───────────────────────────────────────
 
     /**
-     * Called by the FileUpload afterStateUpdated when a business card image is uploaded.
-     * Sends the image to OpenAI GPT-4 Vision and auto-fills the supplier form fields.
+     * Called by the company photos FileUpload afterStateUpdated. Sends the FIRST
+     * photo (treated as the cover / business card) to OpenAI GPT-4 Vision and
+     * auto-fills the supplier form fields.
      *
-     * The FileUpload stores the path in $this->data['business_card_photo'] as an
-     * array keyed by UUID (Filepond default). We read the file from the 'public' disk,
-     * base64-encode it, and send it to the OpenAI Chat Completions API.
+     * The FileUpload stores state in $this->data['company_photos'] as an array
+     * keyed by UUID (Filepond default). We take the first entry, read the file
+     * from the 'public' disk, base64-encode it, and send it to the OpenAI API.
      */
     public function scanBusinessCard(): void
     {
@@ -126,7 +127,7 @@ class RegisterAtFair extends Page implements HasForms
             //
             // Reference: https://www.clearhat.org/post/get-filename-and-path-after-
             //            a-file-is-uploaded-using-Laravel-Filament-afterStateUpdated
-            $rawState = $this->data['business_card_photo'] ?? null;
+            $rawState = $this->data['company_photos'] ?? null;
 
             if (empty($rawState) || ! is_array($rawState)) {
                 $this->scanStatus = '';
@@ -147,7 +148,7 @@ class RegisterAtFair extends Page implements HasForms
                 $realPath = Storage::disk('public')->path($tempFile);
                 $mimeType = mime_content_type($realPath) ?: 'image/jpeg';
             } else {
-                Log::warning('[FairPanel] Unexpected business_card_photo state type', [
+                Log::warning('[FairPanel] Unexpected company_photos state type', [
                     'type' => gettype($tempFile),
                     'value' => is_object($tempFile) ? get_class($tempFile) : $tempFile,
                 ]);
@@ -421,18 +422,22 @@ PROMPT;
             ->description('Company & contact details')
             ->schema([
 
-                // ── Business Card Scanner ───────────────────────────
+                // ── Company Photos + Card Scanner ───────────────────
                 // FileUpload is a top-level field (NOT inside a Repeater) so that
-                // Filepond state is preserved. afterStateUpdated fires scanBusinessCard()
-                // which calls OpenAI GPT-4 Vision and fills the form fields below.
-                Section::make('Scan Business Card')
-                    ->description('Optional. Take a photo of the supplier\'s business card to auto-fill the form.')
+                // Filepond state is preserved. The first photo is treated as the
+                // primary/cover and is sent to OpenAI GPT-4 Vision (afterStateUpdated
+                // fires scanBusinessCard()) to auto-fill the form fields below.
+                Section::make('Fotos da empresa')
+                    ->description('Opcional. A primeira foto é a capa e é escaneada por IA para preencher o formulário (ex.: cartão de visitas). Você pode adicionar várias fotos.')
                     ->icon('heroicon-o-camera')
                     ->schema([
-                        FileUpload::make('business_card_photo')
-                            ->label('Business Card Photo')
+                        FileUpload::make('company_photos')
+                            ->label('Fotos da empresa')
                             ->image()
-                            ->directory('business-cards')
+                            ->multiple()
+                            ->reorderable()
+                            ->maxFiles(8)
+                            ->directory('company-photos')
                             ->disk('public')
                             ->maxSize(8192)
                             ->imageResizeTargetWidth(1200)
@@ -443,7 +448,7 @@ PROMPT;
                                 'accept' => 'image/*',
                                 'capture' => 'environment',
                             ])
-                            ->helperText('Take a photo with your phone camera or upload an image. The form will be auto-filled.')
+                            ->helperText('Tire fotos com a câmera ou faça upload. A primeira foto é escaneada para auto-preencher o formulário.')
                             ->live()
                             ->afterStateUpdated(function ($state) {
                                 if (! empty($state)) {
@@ -989,38 +994,13 @@ PROMPT;
             contactEmail: $this->data['contact_email'] ?? null,
             contactPhone: $this->data['contact_phone'] ?? null,
             contactWechat: $this->data['contact_wechat'] ?? null,
-            businessCardPhoto: $this->extractUploadedFile($this->data['business_card_photo'] ?? null),
+            companyPhotos: $this->extractUploadedFiles($this->data['company_photos'] ?? null),
             products: $products,
         );
     }
 
     /**
-     * Filament FileUpload state shapes: null | string | ['<uuid>' => TemporaryUploadedFile|string].
-     * Returns the contained UploadedFile, the stored path string, or null.
-     */
-    private function extractUploadedFile(mixed $raw): \Symfony\Component\HttpFoundation\File\UploadedFile|string|null
-    {
-        if (empty($raw)) {
-            return null;
-        }
-        if (is_string($raw)) {
-            return $raw;
-        }
-        if (is_array($raw)) {
-            $first = reset($raw);
-            if ($first instanceof \Symfony\Component\HttpFoundation\File\UploadedFile) {
-                return $first;
-            }
-            if (is_string($first) && $first !== '') {
-                return $first;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Multi-file variant of extractUploadedFile. A multiple FileUpload stores
+     * Extract uploaded files from a Filament FileUpload state. A multiple FileUpload stores
      * its state as ['<uuid>' => TemporaryUploadedFile|string, ...]. Returns an
      * ordered array of UploadedFile|string entries the domain Action understands.
      *

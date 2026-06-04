@@ -4,6 +4,7 @@ namespace App\Filament\Resources\CRM\Companies\Pages;
 
 use App\Domain\CRM\Models\CompanyRoleAssignment;
 use App\Filament\Resources\CRM\Companies\CompanyResource;
+use App\Filament\Resources\CRM\Companies\Concerns\ManagesCompanyGallery;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\DB;
 
 class EditCompany extends EditRecord
 {
+    use ManagesCompanyGallery;
+
     protected static string $resource = CompanyResource::class;
 
     protected function getHeaderActions(): array
@@ -55,18 +58,20 @@ class EditCompany extends EditRecord
             ->map(fn ($role) => $role->value)
             ->toArray();
 
-        return $data;
+        return $this->fillCompanyGallery($data);
     }
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        unset($data['roles']);
+        unset($data['roles'], $data['company_photos']);
 
         return $data;
     }
 
     protected function afterSave(): void
     {
+        $this->syncCompanyGallery($this->record);
+
         $roles = $this->data['roles'] ?? [];
 
         DB::transaction(function () use ($roles) {

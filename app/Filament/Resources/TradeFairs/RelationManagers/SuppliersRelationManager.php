@@ -25,9 +25,10 @@ class SuppliersRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                ImageColumn::make('business_card_path')
-                    ->label('Cartão')
-                    ->disk(fn (Company $record) => $record->business_card_disk ?? 'public')
+                ImageColumn::make('primary_photo')
+                    ->label('Foto')
+                    ->getStateUsing(fn (Company $record) => $record->photos->first()?->path)
+                    ->disk('public')
                     ->circular()
                     ->size(40)
                     ->defaultImageUrl(fn () => 'https://ui-avatars.com/api/?background=e2e8f0&color=64748b&name=F&size=40'),

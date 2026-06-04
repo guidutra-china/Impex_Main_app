@@ -40,8 +40,8 @@ function emptyDraft() {
         contact_email: '',
         contact_phone: '',
         contact_wechat: '',
-        business_card: null,            // { blob, filename, type }
-        business_card_preview: null,    // object URL
+        // Array of { blob, filename, type, preview } — first entry is the cover/scanned card.
+        company_photos: [],
         products: [emptyProduct()],
     };
 }
@@ -198,16 +198,30 @@ Alpine.data('fairApp', () => ({
 
     // ─── Capture form handlers ──────────────────────────────────
 
-    async onBusinessCardChange(event) {
-        const file = event.target.files?.[0] || null;
-        if (!file) {
-            this.draft.business_card = null;
-            this.draft.business_card_preview = null;
-            return;
+    async onCompanyPhotoChange(event) {
+        const files = Array.from(event.target.files || []);
+        if (!files.length) return;
+
+        const MAX_PHOTOS = 8;
+
+        for (const file of files) {
+            if (this.draft.company_photos.length >= MAX_PHOTOS) break;
+            const compressed = await compressImage(file);
+            this.draft.company_photos.push({
+                ...compressed,
+                preview: URL.createObjectURL(compressed.blob),
+            });
         }
-        const compressed = await compressImage(file);
-        this.draft.business_card = compressed;
-        this.draft.business_card_preview = URL.createObjectURL(compressed.blob);
+
+        // Allow re-selecting the same file(s) again.
+        event.target.value = '';
+    },
+
+    removeCompanyPhoto(photoIdx) {
+        const removed = this.draft.company_photos.splice(photoIdx, 1)[0];
+        if (removed?.preview) {
+            URL.revokeObjectURL(removed.preview);
+        }
     },
 
     async onProductPhotoChange(event, idx) {
@@ -284,7 +298,7 @@ Alpine.data('fairApp', () => ({
             contact_email: this.draft.contact_email || null,
             contact_phone: this.draft.contact_phone || null,
             contact_wechat: this.draft.contact_wechat || null,
-            business_card: flattenFile(this.draft.business_card),
+            company_photos: (this.draft.company_photos || []).map(flattenFile).filter(Boolean),
             products: this.draft.products
                 .filter(p => p.name.trim())
                 .map(p => ({

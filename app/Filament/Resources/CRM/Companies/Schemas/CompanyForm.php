@@ -6,6 +6,7 @@ use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Enums\CompanyStatus;
 use App\Domain\CRM\Models\Company;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -168,6 +169,31 @@ class CompanyForm
                     ->columnSpan(['lg' => 3])
                     ->collapsible()
                     ->collapsed(),
+
+                Section::make('Fotos da empresa')
+                    ->schema([
+                        FileUpload::make('company_photos')
+                            ->label('Fotos da empresa')
+                            ->helperText(__('forms.helpers.first_image_is_primary'))
+                            ->image()
+                            ->multiple()
+                            ->reorderable()
+                            ->appendFiles()
+                            ->panelLayout('grid')
+                            ->disk('public')
+                            ->directory('company-photos')
+                            ->maxFiles(8)
+                            ->maxSize(8192)
+                            ->imageResizeTargetWidth(1200)
+                            ->imageResizeTargetHeight(1200)
+                            ->imageResizeMode('contain')
+                            ->columnSpanFull()
+                            // Persisted manually into the company_photos relation by the
+                            // page (see ManagesCompanyGallery). Not a real company column.
+                            ->dehydrated(false),
+                    ])
+                    ->columnSpan(['lg' => 3])
+                    ->collapsible(),
             ])
             ->columns(3);
     }

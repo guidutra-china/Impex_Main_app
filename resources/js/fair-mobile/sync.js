@@ -27,10 +27,16 @@ export function buildFormData(payload) {
     fd.append('contact_phone', payload.contact_phone || '');
     fd.append('contact_wechat', payload.contact_wechat || '');
 
-    if (payload.business_card?.blob) {
-        const bc = payload.business_card;
-        fd.append('business_card_photo', bc.blob, bc.filename || 'card.jpg');
-    }
+    // Current shape: an array of company photos. Fall back to the legacy single
+    // `business_card` for items queued before multi-photo support.
+    const companyPhotos = Array.isArray(payload.company_photos)
+        ? payload.company_photos
+        : (payload.business_card ? [payload.business_card] : []);
+    companyPhotos.forEach((photo, i) => {
+        if (photo?.blob) {
+            fd.append(`company_photos[${i}]`, photo.blob, photo.filename || `company-${i}.jpg`);
+        }
+    });
 
     let idx = 0;
     for (const product of payload.products || []) {

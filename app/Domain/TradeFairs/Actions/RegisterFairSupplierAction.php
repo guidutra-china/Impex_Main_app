@@ -60,16 +60,15 @@ class RegisterFairSupplierAction
             $company->update(['notes' => $data->companyNotes]);
         }
 
+        // Append newly captured photos to the existing gallery without stealing
+        // the primary flag from any photo already present.
+        $this->storeCompanyPhotos($company, $data->companyPhotos, $company->photos()->count());
+
         return $company;
     }
 
     private function createNewCompany(FairSupplierData $data): Company
     {
-        $businessCardPath = $this->storeFile(
-            $data->businessCardPhoto,
-            'business-cards',
-        );
-
         $company = Company::create([
             'name' => $data->companyName,
             'address_city' => $data->addressCity,
@@ -77,8 +76,6 @@ class RegisterFairSupplierAction
             'status' => CompanyStatus::PROSPECT,
             'notes' => $data->companyNotes,
             'trade_fair_id' => $data->tradeFairId,
-            'business_card_path' => $businessCardPath,
-            'business_card_disk' => $businessCardPath ? 'public' : null,
         ]);
 
         CompanyRoleAssignment::create([
@@ -99,7 +96,36 @@ class RegisterFairSupplierAction
             'is_primary' => true,
         ]);
 
+        $this->storeCompanyPhotos($company, $data->companyPhotos);
+
         return $company;
+    }
+
+    /**
+     * Persist the company gallery photos as company_photos rows. The photo at
+     * sort_order 0 is flagged primary (company cover / OCR source).
+     *
+     * @param  array<int, UploadedFile|string>  $photos
+     */
+    private function storeCompanyPhotos(Company $company, array $photos, int $startOrder = 0): void
+    {
+        $sortOrder = $startOrder;
+
+        foreach ($photos as $photo) {
+            $path = $this->storeFile($photo, 'company-photos');
+            if ($path === null) {
+                continue;
+            }
+
+            $company->photos()->create([
+                'disk' => 'public',
+                'path' => $path,
+                'sort_order' => $sortOrder,
+                'is_primary' => $sortOrder === 0,
+            ]);
+
+            $sortOrder++;
+        }
     }
 
     private function createProduct(Company $company, FairProductData $data): void

@@ -4,11 +4,14 @@ namespace App\Filament\Resources\CRM\Companies\Pages;
 
 use App\Domain\CRM\Models\CompanyRoleAssignment;
 use App\Filament\Resources\CRM\Companies\CompanyResource;
+use App\Filament\Resources\CRM\Companies\Concerns\ManagesCompanyGallery;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\DB;
 
 class CreateCompany extends CreateRecord
 {
+    use ManagesCompanyGallery;
+
     protected static string $resource = CompanyResource::class;
 
     protected function getRedirectUrl(): string
@@ -18,13 +21,15 @@ class CreateCompany extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        unset($data['roles']);
+        unset($data['roles'], $data['company_photos']);
 
         return $data;
     }
 
     protected function afterCreate(): void
     {
+        $this->syncCompanyGallery($this->record);
+
         $roles = $this->data['roles'] ?? [];
 
         if (empty($roles)) {

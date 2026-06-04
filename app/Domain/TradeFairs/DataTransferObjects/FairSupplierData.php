@@ -8,6 +8,7 @@ final class FairSupplierData
 {
     /**
      * @param  array<int>  $categoryIds
+     * @param  array<int, UploadedFile|string>  $companyPhotos
      * @param  array<int, FairProductData>  $products
      */
     public function __construct(
@@ -22,7 +23,7 @@ final class FairSupplierData
         public readonly ?string $contactEmail,
         public readonly ?string $contactPhone,
         public readonly ?string $contactWechat,
-        public readonly UploadedFile|string|null $businessCardPhoto,
+        public readonly array $companyPhotos,
         public readonly array $products,
     ) {}
 }

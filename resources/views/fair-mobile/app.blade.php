@@ -119,14 +119,28 @@
                     </template>
                 </section>
 
-                {{-- Business card --}}
+                {{-- Company photos --}}
                 <section class="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
-                    <label class="block text-sm font-medium text-gray-700">Cartão de visita (opcional)</label>
-                    <input type="file" accept="image/*" capture="environment" @change="onBusinessCardChange"
-                           class="block w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-orange-50 file:text-orange-700 file:font-semibold">
-                    <template x-if="draft.business_card_preview">
-                        <img :src="draft.business_card_preview" alt="Cartão" class="rounded-md max-h-48 w-auto border">
-                    </template>
+                    <label class="block text-sm font-medium text-gray-700">
+                        Fotos da empresa (opcional)
+                        <span class="text-gray-400" x-text="`(${draft.company_photos.length}/8)`"></span>
+                    </label>
+                    <input type="file" accept="image/*" capture="environment" multiple
+                           @change="onCompanyPhotoChange($event)"
+                           :disabled="draft.company_photos.length >= 8"
+                           class="block w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-orange-50 file:text-orange-700 file:font-semibold disabled:opacity-50">
+                    <p class="text-[11px] text-gray-400">A primeira foto é a capa (cartão escaneado). Toque novamente para adicionar mais.</p>
+                    <div class="flex flex-wrap gap-2">
+                        <template x-for="(photo, pi) in draft.company_photos" :key="pi">
+                            <div class="relative">
+                                <img :src="photo.preview" alt="Foto da empresa" class="rounded-md h-20 w-20 object-cover border">
+                                <span x-show="pi === 0"
+                                      class="absolute bottom-0 inset-x-0 bg-orange-600/90 text-white text-[9px] text-center rounded-b-md">Capa</span>
+                                <button type="button" @click="removeCompanyPhoto(pi)"
+                                        class="absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs leading-none shadow">&times;</button>
+                            </div>
+                        </template>
+                    </div>
                 </section>
 
                 {{-- Company --}}
