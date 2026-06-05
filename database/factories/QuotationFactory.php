@@ -18,7 +18,7 @@ class QuotationFactory extends Factory
     public function definition(): array
     {
         return [
-            'reference' => 'QT-'.$this->faker->unique()->numerify('####'),
+            'reference' => 'Q-'.$this->faker->unique()->numerify('####'),
             'inquiry_id' => Inquiry::factory(),
             'company_id' => Company::factory(),
             'contact_id' => null,

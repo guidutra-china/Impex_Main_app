@@ -96,4 +96,25 @@ class PiConfirmApprovesQuotationsTest extends TestCase
         $this->assertSame(ProformaInvoiceStatus::CONFIRMED->value, $pi->fresh()->status->value);
         $this->assertSame(QuotationStatus::APPROVED->value, $q->fresh()->status->value);
     }
+
+    public function test_only_the_latest_quotation_version_is_approved(): void
+    {
+        // "Create new version" leaves the prior version in SENT; only the latest must be approved.
+        $pi = ProformaInvoice::factory()->create(['status' => ProformaInvoiceStatus::SENT->value]);
+        $v1 = Quotation::factory()->create([
+            'inquiry_id' => $pi->inquiry_id,
+            'version' => 1,
+            'status' => QuotationStatus::SENT->value,
+        ]);
+        $v2 = Quotation::factory()->create([
+            'inquiry_id' => $pi->inquiry_id,
+            'version' => 2,
+            'status' => QuotationStatus::SENT->value,
+        ]);
+
+        $this->confirmPi($pi);
+
+        $this->assertSame(QuotationStatus::APPROVED->value, $v2->fresh()->status->value);
+        $this->assertSame(QuotationStatus::SENT->value, $v1->fresh()->status->value, 'Superseded version must NOT be approved.');
+    }
 }

@@ -89,12 +89,13 @@ final class OperationsPipeline
                 SupplierQuotationStatus::SELECTED->value,
             ),
 
-            // Confirming a Proforma Invoice approves the client quotation(s) of its inquiry
-            // (canTransitionTo filters to those still in sent/negotiating).
+            // Confirming a Proforma Invoice approves the inquiry's LATEST client quotation
+            // (canTransitionTo filters to sent/negotiating). Only the latest version — a
+            // "new version" leaves prior versions in SENT, which must not be approved.
             new AutoAdvance(
                 ProformaInvoice::class,
                 ProformaInvoiceStatus::CONFIRMED->value,
-                fn (ProformaInvoice $pi) => $pi->inquiry?->quotations,
+                fn (ProformaInvoice $pi) => $pi->inquiry?->quotations()->latest('version')->first(),
                 QuotationStatus::APPROVED->value,
             ),
         ];
