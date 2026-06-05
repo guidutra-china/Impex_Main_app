@@ -7,7 +7,12 @@ use App\Domain\Inquiries\Enums\InquiryStatus;
 use App\Domain\Inquiries\Models\Inquiry;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Filament\Resources\ProformaInvoices\Pages\ListProformaInvoices;
+use App\Models\User;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Gate;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class AutoAdvanceTest extends TestCase
@@ -48,6 +53,22 @@ class AutoAdvanceTest extends TestCase
         $pi = $this->piWithInquiry(InquiryStatus::WON, ProformaInvoiceStatus::SENT);
 
         app(TransitionStatusAction::class)->execute($pi, ProformaInvoiceStatus::CONFIRMED);
+
+        $this->assertSame(ProformaInvoiceStatus::CONFIRMED->value, $pi->fresh()->status->value);
+        $this->assertSame(InquiryStatus::WON->value, $pi->inquiry->fresh()->status->value);
+    }
+
+    public function test_confirming_pi_via_table_action_also_advances_the_inquiry(): void
+    {
+        $admin = User::factory()->create();
+        Gate::before(fn (User $u) => $u->id === $admin->id ? true : null);
+        $this->actingAs($admin);
+        Filament::setCurrentPanel('admin');
+
+        $pi = $this->piWithInquiry(InquiryStatus::QUOTED, ProformaInvoiceStatus::SENT);
+
+        Livewire::test(ListProformaInvoices::class)
+            ->callTableAction('transition_to_confirmed', $pi);
 
         $this->assertSame(ProformaInvoiceStatus::CONFIRMED->value, $pi->fresh()->status->value);
         $this->assertSame(InquiryStatus::WON->value, $pi->inquiry->fresh()->status->value);
