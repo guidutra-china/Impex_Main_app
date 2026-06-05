@@ -100,6 +100,13 @@ class Quotation extends Model
         ];
     }
 
+    // --- Factory ---
+
+    protected static function newFactory(): \Database\Factories\QuotationFactory
+    {
+        return \Database\Factories\QuotationFactory::new();
+    }
+
     // --- Boot ---
 
     protected static function booted(): void

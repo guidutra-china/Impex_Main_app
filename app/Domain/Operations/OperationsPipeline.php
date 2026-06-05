@@ -10,6 +10,7 @@ use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
+use App\Domain\Quotations\Enums\QuotationStatus;
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
 use Illuminate\Database\Eloquent\Model;
 
@@ -86,6 +87,15 @@ final class OperationsPipeline
                 ProformaInvoiceStatus::CONFIRMED->value,
                 fn (ProformaInvoice $pi) => $pi->inquiry?->supplierQuotations,
                 SupplierQuotationStatus::SELECTED->value,
+            ),
+
+            // Confirming a Proforma Invoice approves the client quotation(s) of its inquiry
+            // (canTransitionTo filters to those still in sent/negotiating).
+            new AutoAdvance(
+                ProformaInvoice::class,
+                ProformaInvoiceStatus::CONFIRMED->value,
+                fn (ProformaInvoice $pi) => $pi->inquiry?->quotations,
+                QuotationStatus::APPROVED->value,
             ),
         ];
     }
