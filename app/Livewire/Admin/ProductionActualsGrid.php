@@ -27,7 +27,7 @@ class ProductionActualsGrid extends Component
 
         foreach ($this->schedule->entries as $entry) {
             $dateKey = $entry->production_date->format('Y-m-d');
-            $itemKey = 'item-' . $entry->proforma_invoice_item_id;
+            $itemKey = 'item-'.$entry->proforma_invoice_item_id;
             $this->actuals[$itemKey][$dateKey] = $entry->actual_quantity;
         }
     }
@@ -51,7 +51,7 @@ class ProductionActualsGrid extends Component
         }
 
         $quantity = ($value !== null && $value !== '') ? max(0, (int) $value) : null;
-        $itemKey = 'item-' . $itemId;
+        $itemKey = 'item-'.$itemId;
 
         $this->actuals[$itemKey][$date] = $quantity;
 
@@ -70,7 +70,7 @@ class ProductionActualsGrid extends Component
         $totalActual = $this->schedule->entries->sum(fn ($e) => $e->actual_quantity ?? 0);
 
         if ($totalPlanned > 0 && $totalActual >= $totalPlanned && $this->schedule->status === ProductionScheduleStatus::Approved) {
-            $this->schedule->update(['status' => ProductionScheduleStatus::Completed]);
+            $this->schedule->transitionTo(ProductionScheduleStatus::Completed->value);
             $this->schedule->refresh();
             Notification::make()->success()->title('Production complete — schedule marked as completed')->send();
         }
@@ -84,9 +84,9 @@ class ProductionActualsGrid extends Component
 
         $items = $this->schedule->proformaInvoice->items
             ->map(fn ($piItem) => [
-                'id'          => $piItem->id,
-                'name'        => $piItem->product?->name ?? $piItem->description ?? '—',
-                'sku'         => $piItem->product?->sku ?? '',
+                'id' => $piItem->id,
+                'name' => $piItem->product?->name ?? $piItem->description ?? '—',
+                'sku' => $piItem->product?->sku ?? '',
                 'pi_quantity' => $piItem->quantity,
             ])
             ->values()
@@ -102,15 +102,15 @@ class ProductionActualsGrid extends Component
 
         $planned = [];
         foreach ($this->schedule->entries as $entry) {
-            $planned['item-' . $entry->proforma_invoice_item_id][$entry->production_date->format('Y-m-d')] = $entry->quantity;
+            $planned['item-'.$entry->proforma_invoice_item_id][$entry->production_date->format('Y-m-d')] = $entry->quantity;
         }
 
         return view('livewire.admin.production-actuals-grid', [
-            'items'          => $items,
-            'dates'          => $dates,
-            'planned'        => $planned,
-            'today'          => $today,
-            'isVisible'      => $this->isVisible(),
+            'items' => $items,
+            'dates' => $dates,
+            'planned' => $planned,
+            'today' => $today,
+            'isVisible' => $this->isVisible(),
             'canEditActuals' => $this->canEditActuals(),
         ]);
     }
