@@ -123,6 +123,7 @@
                             <th class="p-3 text-right">{{ __('client_deal_breakdown.columns.margin') }}</th>
                             <th class="p-3 text-right">{{ __('client_deal_breakdown.columns.commission_received') }}</th>
                             <th class="p-3 text-right">{{ __('client_deal_breakdown.columns.commission_paid') }}</th>
+                            <th class="p-3 text-right">{{ __('client_deal_breakdown.columns.overall_gain') }}</th>
                             <th class="p-3 text-left">{{ __('client_deal_breakdown.columns.currency') }}</th>
                         </tr>
                     </thead>
@@ -214,11 +215,14 @@
                                         <span class="text-amber-600">⚠</span>
                                     @endif
                                 </td>
+                                <td class="p-3 text-right font-semibold {{ $deal->totals->overallGainPresentation >= 0 ? 'text-emerald-600' : 'text-red-600' }}">
+                                    {{ \App\Domain\Infrastructure\Support\Money::format($deal->totals->overallGainPresentation) }}
+                                </td>
                                 <td class="p-3 text-xs text-gray-500">{{ $deal->pi->currencyOriginal }}</td>
                             </tr>
                             @if ($expanded)
                                 <tr class="bg-amber-50 dark:bg-amber-900/10">
-                                    <td colspan="13" class="p-4">
+                                    <td colspan="14" class="p-4">
                                         <x-client-deal-breakdown.receipts :block="$deal->receipts" :presentationCurrency="$report->presentationCurrency" />
                                         <x-client-deal-breakdown.purchase-orders :rows="$deal->purchaseOrders" :presentationCurrency="$report->presentationCurrency" />
                                         <x-client-deal-breakdown.shipments :rows="$deal->shipments" :expandedShipments="$expandedShipments" :presentationCurrency="$report->presentationCurrency" />

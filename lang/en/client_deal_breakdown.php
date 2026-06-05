@@ -32,6 +32,8 @@ return [
         'margin' => 'Margin',
         'commission_received' => 'Comm. Recv.',
         'commission_paid' => 'Comm. Paid',
+        'overall_gain' => 'Real Gain',
+        'freight_margin' => 'Freight Margin',
         'currency' => 'Currency',
     ],
     'sections' => [

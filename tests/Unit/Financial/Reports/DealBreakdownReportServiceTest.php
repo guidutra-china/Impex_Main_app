@@ -148,6 +148,9 @@ class DealBreakdownReportServiceTest extends TestCase
         // Received total = goods paid(1,000k) + freight reimbursement(120k) = 1,120k (< billed → 50k still due)
         $this->assertSame(1_120_000_0, $deal->totals->receivedTotalPresentation);
 
+        // Real gain = commission received(100k) + freight margin(reimbursement 120k - paid 100k = 20k) = 120k
+        $this->assertSame(120_000_0, $deal->totals->overallGainPresentation);
+
         // Commission charged (received) = separate client(50k) + embedded(1,000k × 5% = 50k) = 100k
         $this->assertSame(50_000_0, $deal->commission->receivedSeparatePresentation);
         $this->assertSame(50_000_0, $deal->commission->receivedEmbeddedPresentation);

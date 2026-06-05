@@ -18,6 +18,7 @@
                     <th class="p-2 text-right">Attributed ({{ $presentationCurrency }})</th>
                     <th class="p-2 text-right">Paid</th>
                     <th class="p-2 text-right">Outstanding</th>
+                    <th class="p-2 text-right">{{ __('client_deal_breakdown.columns.freight_margin') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -70,11 +71,17 @@
                         <td class="p-2 text-right">
                             {{ \App\Domain\Infrastructure\Support\Money::format($s->outstandingOriginal) }}
                         </td>
+                        <td class="p-2 text-right">
+                            @php($fm = $s->freightReceivedOriginal - $s->paidOriginal)
+                            <span class="font-semibold {{ $fm >= 0 ? 'text-blue-600' : 'text-red-600' }}">
+                                {{ \App\Domain\Infrastructure\Support\Money::format($fm) }}
+                            </span>
+                        </td>
                     </tr>
                     @if ($open && $hasCosts)
                         <tr class="bg-orange-50 dark:bg-orange-900/5">
                             <td></td>
-                            <td colspan="7" class="p-2">
+                            <td colspan="8" class="p-2">
                                 <div class="text-[10px] uppercase text-gray-500 mb-1">
                                     {{ __('client_deal_breakdown.sections.additional_costs') }}
                                 </div>

@@ -32,6 +32,8 @@ return [
         'margin' => 'Margem',
         'commission_received' => 'Com. Receb.',
         'commission_paid' => 'Com. Paga',
+        'overall_gain' => 'Ganho Real',
+        'freight_margin' => 'Margem Frete',
         'currency' => 'Moeda',
     ],
     'sections' => [

@@ -150,6 +150,10 @@ final class DealBreakdownReportService
         // frete cobrado do cliente (atribuído) + comissão separate cobrada.
         $billedToClient = (int) ($piTotalPres ?? 0) + $freightChargePres + (int) ($commission->receivedSeparatePresentation ?? 0);
 
+        // Ganho real da Impex = comissão recebida + margem de frete (reembolso − pago).
+        $freightMargin = $freightReceived - $paidShipments;
+        $overallGain = (int) ($commission->receivedPresentation ?? 0) + $freightMargin;
+
         return new DealRow(
             pi: $piInfo,
             receipts: $receipts,
@@ -161,6 +165,7 @@ final class DealBreakdownReportService
                 marginPct: $marginPct,
                 billedToClientPresentation: $billedToClient,
                 receivedTotalPresentation: $received,
+                overallGainPresentation: $overallGain,
             ),
             commission: $commission,
         );
