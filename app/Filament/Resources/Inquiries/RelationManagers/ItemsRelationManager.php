@@ -122,8 +122,9 @@ class ItemsRelationManager extends RelationManager
                             return null;
                         }
                         $prefix = $product->status === ProductStatus::DRAFT ? '[DRAFT] ' : '';
+                        $model = $product->model_number ? ' · '.$product->model_number : '';
 
-                        return $prefix.$product->sku.' — '.$product->name;
+                        return $prefix.$product->sku.' — '.$product->name.$model;
                     })
                     ->live()
                     ->afterStateUpdated(function (Set $set, ?string $state) {
@@ -243,8 +244,9 @@ class ItemsRelationManager extends RelationManager
             }
 
             $clientBadge = $isClientProduct ? ' ★' : '';
+            $model = $p->model_number ? ' · '.$p->model_number : '';
 
-            return [$p->id => $prefix.$p->sku.' — '.$p->name.$clientBadge];
+            return [$p->id => $prefix.$p->sku.' — '.$p->name.$model.$clientBadge];
         })->toArray();
     }
 
