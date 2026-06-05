@@ -95,6 +95,67 @@ class DealBreakdownReportServiceTest extends TestCase
         $this->assertSame(30_000_0, $shipRow->paidOriginal);
     }
 
+    public function test_freight_forwarder_split_and_commission(): void
+    {
+        $client = Company::factory()->create(['status' => 'active']);
+        $supplier = Company::factory()->create(['status' => 'active']);
+
+        DealScenarioBuilder::make()
+            ->forClient($client)
+            ->withPi(reference: 'PI-300', totalMinor: 1_000_000_0, currency: 'USD')
+            ->withReceipt(amountMinor: 1_000_000_0, date: '2026-03-20')
+            ->withPo(supplier: $supplier, reference: 'PO-300', totalMinor: 600_000_0, paidMinor: 600_000_0)
+            ->withForwarderFreightShipment(
+                reference: 'SHP-300',
+                clientChargeMinor: 120_000_0,
+                forwarderCostMinor: 100_000_0,
+                forwarderPaidMinor: 100_000_0,
+                clientReimbursedMinor: 120_000_0,
+            )
+            ->withPiCommission(amountMinor: 50_000_0, billable: \App\Domain\Financial\Enums\BillableTo::CLIENT)
+            ->withPiCommission(amountMinor: 20_000_0, billable: \App\Domain\Financial\Enums\BillableTo::SUPPLIER)
+            ->withEmbeddedCommissionQuotation(rate: 5.0, subtotalMinor: 1_000_000_0)
+            ->build();
+
+        $filters = new DealBreakdownFilters(
+            from: CarbonImmutable::parse('2026-01-01'),
+            to: CarbonImmutable::parse('2026-12-31'),
+            presentationCurrency: 'USD',
+            statuses: DealBreakdownFilters::defaultStatuses(),
+        );
+
+        $report = app(DealBreakdownReportService::class)->build($client, $filters);
+        $deal = collect($report->deals)->firstWhere(fn ($d) => $d->pi->reference === 'PI-300');
+        $this->assertNotNull($deal);
+
+        // Freight: cost basis = forwarder cost (not the client charge).
+        $this->assertCount(1, $deal->shipments);
+        $shipRow = $deal->shipments[0];
+        $this->assertEqualsWithDelta(1.0, $shipRow->attributionPct, 0.001);
+        $this->assertSame(100_000_0, $shipRow->totalCostOriginal);
+        $this->assertSame(120_000_0, $shipRow->clientChargeOriginal);
+        // Paid Shipments = OUTBOUND (forwarder) only; client reimbursement is inbound.
+        $this->assertSame(100_000_0, $shipRow->paidOriginal);
+        $this->assertSame(120_000_0, $shipRow->freightReceivedOriginal);
+
+        // Margin = PI(1,000k) + freight charge(120k) - PO(600k) - real freight cost(100k) = 420k
+        $this->assertSame(420_000_0, $deal->totals->margin);
+
+        // Cash balance = received(1,000k + 120k reimbursement) - suppliers(600k) - shipments(100k) = 420k
+        $this->assertSame(420_000_0, $deal->totals->cashBalance);
+
+        // Commission received = separate client(50k) + embedded(1,000k × 5% = 50k) = 100k; paid = supplier 20k
+        $this->assertSame(50_000_0, $deal->commission->receivedSeparatePresentation);
+        $this->assertSame(50_000_0, $deal->commission->receivedEmbeddedPresentation);
+        $this->assertSame(100_000_0, $deal->commission->receivedPresentation);
+        $this->assertSame(20_000_0, $deal->commission->paidPresentation);
+
+        // KPIs aggregate commission.
+        $this->assertSame(100_000_0, $report->kpi->totalCommissionReceived);
+        $this->assertSame(20_000_0, $report->kpi->totalCommissionPaid);
+        $this->assertSame(100_000_0, $report->kpi->totalPaidShipments);
+    }
+
     public function test_draft_and_cancelled_excluded_by_default_status_filter(): void
     {
         $client = Company::factory()->create(['status' => 'active']);

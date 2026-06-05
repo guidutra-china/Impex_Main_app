@@ -3,9 +3,13 @@
 namespace App\Domain\Financial\Reports;
 
 use App\Domain\CRM\Models\Company;
+use App\Domain\Financial\Enums\AdditionalCostType;
+use App\Domain\Financial\Enums\BillableTo;
+use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\DebitNote;
 use App\Domain\Financial\Reports\DTOs\AdditionalCostRow;
+use App\Domain\Financial\Reports\DTOs\CommissionBlock;
 use App\Domain\Financial\Reports\DTOs\DealBreakdownFilters;
 use App\Domain\Financial\Reports\DTOs\DealBreakdownReport;
 use App\Domain\Financial\Reports\DTOs\DealRow;
@@ -20,6 +24,7 @@ use App\Domain\Financial\Reports\DTOs\ShipmentAttributionRow;
 use App\Domain\Financial\Reports\Support\FxConverter;
 use App\Domain\Financial\Reports\Support\ShipmentAttributionCalculator;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\Quotations\Enums\CommissionType;
 use App\Filament\Resources\Finance\DebitNotes\DebitNoteResource;
 use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
 use App\Filament\Resources\PurchaseOrders\PurchaseOrderResource;
@@ -42,6 +47,8 @@ final class DealBreakdownReportService
             ->whereBetween('issue_date', [$filters->from->toDateString(), $filters->to->toDateString()])
             ->with([
                 'items',
+                'additionalCosts',
+                'quotations.items',
                 'paymentScheduleItems.allocations.payment',
                 'paymentScheduleItems.allocations.scheduleItem',
                 'paymentScheduleItems.paymentTermStage',
@@ -118,15 +125,25 @@ final class DealBreakdownReportService
 
         $paidSuppliers = array_sum(array_map(fn ($p) => (int) ($p->paidPresentation ?? 0), $poRows));
         $paidShipments = array_sum(array_map(fn ($s) => (int) ($s->paidPresentation ?? 0), $shipmentRows));
-        $received = (int) ($receipts->paidPresentation ?? 0);
+        // Reembolsos de frete pagos pelo cliente entram como dinheiro recebido,
+        // não como "Paid Shipments" (que agora é só saída para forwarders).
+        $freightReceived = array_sum(array_map(fn ($s) => (int) ($s->freightReceivedPresentation ?? 0), $shipmentRows));
+        $received = (int) ($receipts->paidPresentation ?? 0) + $freightReceived;
         $cashBalance = $received - $paidSuppliers - $paidShipments;
 
         $poTotalPres = array_sum(array_map(fn ($p) => (int) ($p->totalPresentation ?? 0), $poRows));
-        $shipAttribPres = array_sum(array_map(fn ($s) => (int) ($s->attributedPresentation ?? 0), $shipmentRows));
-        $margin = (int) ($piTotalPres ?? 0) - $poTotalPres - $shipAttribPres;
-        $marginPct = ($poTotalPres + $shipAttribPres) > 0
-            ? (float) round($margin / ($poTotalPres + $shipAttribPres) * 100, 1)
+        $shipCostPres = array_sum(array_map(fn ($s) => (int) ($s->attributedPresentation ?? 0), $shipmentRows));
+        $freightChargePres = array_sum(array_map(fn ($s) => (int) ($s->attributedClientChargePresentation ?? 0), $shipmentRows));
+        // Margem = receita PI (mercadoria) + frete cobrado do cliente (receita)
+        //          − custo PO (mercadoria) − custo real de frete/logística.
+        // Frete contribui com (cobrança ao cliente − custo do forwarder).
+        $margin = (int) ($piTotalPres ?? 0) + $freightChargePres - $poTotalPres - $shipCostPres;
+        $costBase = $poTotalPres + $shipCostPres;
+        $marginPct = $costBase > 0
+            ? (float) round($margin / $costBase * 100, 1)
             : 0.0;
+
+        $commission = $this->buildCommission($pi, $fx, $piIssue, $unconverted);
 
         return new DealRow(
             pi: $piInfo,
@@ -138,6 +155,7 @@ final class DealBreakdownReportService
                 margin: $margin,
                 marginPct: $marginPct,
             ),
+            commission: $commission,
         );
     }
 
@@ -259,60 +277,101 @@ final class DealBreakdownReportService
         $rows = [];
         foreach ($shipments as $shipment) {
             $attribution = $this->attributor->calculate($shipment, $pi);
+            $shipmentIssue = CarbonImmutable::parse((string) $shipment->issue_date);
+            $shipmentCurrency = (string) $shipment->currency_code;
 
-            // Cost basis for Margin attribution: only AdditionalCosts. Shipment
-            // paymentScheduleItems mix stage-PSIs (which mirror the client-billable
-            // portion of the PI value attached to the shipment milestone — i.e.
-            // revenue, not cost) with forwarder-payable AdditionalCost PSIs.
-            // Including them inflated the deal cost and skewed Margin.
-            $additionalTotal = (int) $shipment->additionalCosts->sum('amount_in_document_currency');
-            $totalCostOriginal = $additionalTotal;
+            // Custo REAL para a Impex vs. valor cobrado do cliente (receita).
+            // Para cada AdditionalCost da shipment:
+            //  - custo real = forwarder_amount_in_document_currency quando há repasse
+            //    a forwarder; senão amount_in_document_currency apenas se
+            //    billable_to=company (custo interno). Pass-through puro ao cliente
+            //    (sem forwarder) = custo 0 — é reembolsado, não é custo da Impex.
+            //  - cobrança ao cliente = amount_in_document_currency quando billable_to=client.
+            $realCostOriginal = 0;
+            $clientChargeOriginal = 0;
+            $additionalCostRows = [];
+            foreach ($shipment->additionalCosts as $cost) {
+                $forwarderAmount = (int) ($cost->forwarder_amount_in_document_currency ?? 0);
+                $docAmount = (int) $cost->amount_in_document_currency;
+
+                if ($forwarderAmount > 0) {
+                    $costReal = $forwarderAmount;
+                } elseif ($cost->billable_to === BillableTo::COMPANY) {
+                    $costReal = $docAmount;
+                } else {
+                    $costReal = 0;
+                }
+                $realCostOriginal += $costReal;
+
+                if ($cost->billable_to === BillableTo::CLIENT) {
+                    $clientChargeOriginal += $docAmount;
+                }
+
+                $attrib = (int) round($costReal * $attribution->pct);
+                $attribPres = $fx->convertDocument($attrib, $shipmentCurrency, $shipmentIssue);
+                $additionalCostRows[] = new AdditionalCostRow(
+                    label: (string) ($cost->description ?? $cost->cost_type?->getLabel() ?? ''),
+                    type: $cost->cost_type,
+                    totalOriginal: $costReal,
+                    attributedOriginal: $attrib,
+                    attributedPresentation: $attribPres,
+                );
+            }
+
+            $totalCostOriginal = $realCostOriginal;
             $attributedOriginal = (int) round($totalCostOriginal * $attribution->pct);
 
-            $paidOriginalFull = 0;
-            $paidPresFull = 0;
+            // Pagamentos da shipment separados por DIREÇÃO do pagamento. Frete com
+            // repasse a forwarder gera dois fluxos: entrada (cliente reembolsa,
+            // INBOUND) e saída (Impex paga forwarder, OUTBOUND). Misturá-los
+            // distorcia "Paid Shipments" e o Cash Balance.
+            $paidOutFull = 0;
+            $paidOutPresFull = 0;
+            $paidInFull = 0;
+            $paidInPresFull = 0;
             $hasMissing = false;
             foreach ($shipment->paymentScheduleItems as $scheduleItem) {
                 foreach ($scheduleItem->allocations as $alloc) {
                     if ($alloc->payment?->status !== PaymentStatus::APPROVED) {
                         continue;
                     }
-                    $paidOriginalFull += (int) $alloc->allocated_amount_in_document_currency;
+                    $amt = (int) $alloc->allocated_amount_in_document_currency;
                     $pres = $fx->convertPayment($alloc);
                     if ($pres === null) {
                         $hasMissing = true;
+                    }
+                    if ($alloc->payment->direction === PaymentDirection::INBOUND) {
+                        $paidInFull += $amt;
+                        if ($pres !== null) {
+                            $paidInPresFull += $pres;
+                        }
                     } else {
-                        $paidPresFull += $pres;
+                        $paidOutFull += $amt;
+                        if ($pres !== null) {
+                            $paidOutPresFull += $pres;
+                        }
                     }
                 }
             }
-            $paidOriginalAttrib = (int) round($paidOriginalFull * $attribution->pct);
-            $paidPresAttrib = $hasMissing ? null : (int) round($paidPresFull * $attribution->pct);
 
-            $shipmentIssue = CarbonImmutable::parse((string) $shipment->issue_date);
-            $attributedPres = $fx->convertDocument($attributedOriginal, (string) $shipment->currency_code, $shipmentIssue);
-            $this->recordMissing($attributedPres, (string) $shipment->currency_code, $unconverted);
+            $paidOriginalAttrib = (int) round($paidOutFull * $attribution->pct);
+            $paidPresAttrib = $hasMissing ? null : (int) round($paidOutPresFull * $attribution->pct);
+            $freightReceivedOriginal = (int) round($paidInFull * $attribution->pct);
+            $freightReceivedPres = $hasMissing ? null : (int) round($paidInPresFull * $attribution->pct);
 
-            $additionalCostRows = [];
-            foreach ($shipment->additionalCosts as $cost) {
-                $costTotal = (int) $cost->amount_in_document_currency;
-                $attrib = (int) round($costTotal * $attribution->pct);
-                $attribPres = $fx->convertDocument($attrib, (string) $shipment->currency_code, $shipmentIssue);
-                $additionalCostRows[] = new AdditionalCostRow(
-                    label: (string) ($cost->description ?? $cost->cost_type?->getLabel() ?? ''),
-                    type: $cost->cost_type,
-                    totalOriginal: $costTotal,
-                    attributedOriginal: $attrib,
-                    attributedPresentation: $attribPres,
-                );
-            }
+            $attributedPres = $fx->convertDocument($attributedOriginal, $shipmentCurrency, $shipmentIssue);
+            $this->recordMissing($attributedPres, $shipmentCurrency, $unconverted);
+
+            $attributedClientChargeOriginal = (int) round($clientChargeOriginal * $attribution->pct);
+            $clientChargePres = $fx->convertDocument($clientChargeOriginal, $shipmentCurrency, $shipmentIssue);
+            $attributedClientChargePres = $fx->convertDocument($attributedClientChargeOriginal, $shipmentCurrency, $shipmentIssue);
 
             $rows[] = new ShipmentAttributionRow(
                 id: $shipment->id,
                 reference: (string) $shipment->reference,
                 clientReference: ($shipment->client_reference !== null && $shipment->client_reference !== '') ? $shipment->client_reference : null,
                 forwarderName: $shipment->forwarderCompany?->name ?? $shipment->freight_forwarder,
-                currencyOriginal: (string) $shipment->currency_code,
+                currencyOriginal: $shipmentCurrency,
                 totalCostOriginal: $totalCostOriginal,
                 attributionPct: $attribution->pct,
                 basis: $attribution->basis,
@@ -326,10 +385,71 @@ final class DealBreakdownReportService
                     : null,
                 detailUrl: ShipmentResource::getUrl('view', ['record' => $shipment->id]),
                 additionalCosts: $additionalCostRows,
+                clientChargeOriginal: $clientChargeOriginal,
+                clientChargePresentation: $clientChargePres,
+                attributedClientChargeOriginal: $attributedClientChargeOriginal,
+                attributedClientChargePresentation: $attributedClientChargePres,
+                freightReceivedOriginal: $freightReceivedOriginal,
+                freightReceivedPresentation: $freightReceivedPres,
             );
         }
 
         return $rows;
+    }
+
+    /**
+     * Comissão por deal (PI), em moeda de apresentação.
+     *
+     * - recebida (separate) = AdditionalCost COMMISSION billable_to=client na PI.
+     * - recebida (embedded) = derivada das quotations ligadas com commission_type=EMBEDDED
+     *   (subtotal × rate/100). Já está embutida no unit_price da PI; valor informativo.
+     * - paga = AdditionalCost COMMISSION billable_to=supplier/company na PI.
+     *
+     * Custos da PI estão na moeda do documento PI; conversão usa moeda/data da PI.
+     */
+    private function buildCommission(ProformaInvoice $pi, FxConverter $fx, CarbonImmutable $piIssue, array &$unconverted): CommissionBlock
+    {
+        $currency = (string) $pi->currency_code;
+
+        $separateOriginal = 0;
+        $paidOriginal = 0;
+        foreach ($pi->additionalCosts as $cost) {
+            if ($cost->cost_type !== AdditionalCostType::COMMISSION) {
+                continue;
+            }
+            $amt = (int) $cost->amount_in_document_currency;
+            if ($cost->billable_to === BillableTo::CLIENT) {
+                $separateOriginal += $amt;
+            } elseif ($cost->billable_to === BillableTo::SUPPLIER || $cost->billable_to === BillableTo::COMPANY) {
+                $paidOriginal += $amt;
+            }
+        }
+
+        $embeddedOriginal = 0;
+        foreach ($pi->quotations as $quotation) {
+            if ($quotation->commission_type === CommissionType::EMBEDDED && (float) $quotation->commission_rate > 0) {
+                $embeddedOriginal += (int) round($quotation->subtotal * ((float) $quotation->commission_rate / 100));
+            }
+        }
+
+        $separatePres = $separateOriginal > 0 ? $fx->convertDocument($separateOriginal, $currency, $piIssue) : 0;
+        $embeddedPres = $embeddedOriginal > 0 ? $fx->convertDocument($embeddedOriginal, $currency, $piIssue) : 0;
+        $paidPres = $paidOriginal > 0 ? $fx->convertDocument($paidOriginal, $currency, $piIssue) : 0;
+
+        $this->recordMissing($separatePres, $currency, $unconverted);
+        $this->recordMissing($embeddedPres, $currency, $unconverted);
+        $this->recordMissing($paidPres, $currency, $unconverted);
+
+        $receivedPres = ($separatePres !== null && $embeddedPres !== null)
+            ? $separatePres + $embeddedPres
+            : null;
+
+        return new CommissionBlock(
+            receivedPresentation: $receivedPres,
+            paidPresentation: $paidPres,
+            receivedSeparatePresentation: $separatePres,
+            receivedEmbeddedPresentation: $embeddedPres,
+        );
     }
 
     /**
@@ -415,6 +535,8 @@ final class DealBreakdownReportService
         $paidSuppliers = 0;
         $paidShipments = 0;
         $margin = 0;
+        $commissionReceived = 0;
+        $commissionPaid = 0;
 
         foreach ($deals as $deal) {
             $received += (int) ($deal->receipts->paidPresentation ?? 0);
@@ -423,8 +545,12 @@ final class DealBreakdownReportService
             }
             foreach ($deal->shipments as $sh) {
                 $paidShipments += (int) ($sh->paidPresentation ?? 0);
+                // Reembolso de frete do cliente conta como recebido.
+                $received += (int) ($sh->freightReceivedPresentation ?? 0);
             }
             $margin += $deal->totals->margin;
+            $commissionReceived += (int) ($deal->commission->receivedPresentation ?? 0);
+            $commissionPaid += (int) ($deal->commission->paidPresentation ?? 0);
         }
 
         // DNs not allocable to a specific deal — subtract their total from
@@ -441,6 +567,8 @@ final class DealBreakdownReportService
             totalPaidShipments: $paidShipments,
             totalMargin: $margin,
             dealCount: count($deals),
+            totalCommissionReceived: $commissionReceived,
+            totalCommissionPaid: $commissionPaid,
         );
     }
 

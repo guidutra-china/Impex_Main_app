@@ -49,7 +49,7 @@
             </div>
         @elseif ($report)
             {{-- KPI cards --}}
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
                 <x-filament::section>
                     <div class="text-xs uppercase text-gray-500">
                         {{ __('client_deal_breakdown.kpi.total_received') }}
@@ -86,6 +86,24 @@
                         {{ $report->presentationCurrency }}
                     </div>
                 </x-filament::section>
+                <x-filament::section>
+                    <div class="text-xs uppercase text-gray-500">
+                        {{ __('client_deal_breakdown.kpi.commission_received') }}
+                    </div>
+                    <div class="text-2xl font-bold text-green-600">
+                        {{ \App\Domain\Infrastructure\Support\Money::format($report->kpi->totalCommissionReceived) }}
+                        {{ $report->presentationCurrency }}
+                    </div>
+                </x-filament::section>
+                <x-filament::section>
+                    <div class="text-xs uppercase text-gray-500">
+                        {{ __('client_deal_breakdown.kpi.commission_paid') }}
+                    </div>
+                    <div class="text-2xl font-bold text-red-600">
+                        {{ \App\Domain\Infrastructure\Support\Money::format($report->kpi->totalCommissionPaid) }}
+                        {{ $report->presentationCurrency }}
+                    </div>
+                </x-filament::section>
             </div>
 
             {{-- Main table --}}
@@ -103,6 +121,8 @@
                             <th class="p-3 text-right">{{ __('client_deal_breakdown.columns.paid_shipments') }}</th>
                             <th class="p-3 text-right">{{ __('client_deal_breakdown.columns.cash_balance') }}</th>
                             <th class="p-3 text-right">{{ __('client_deal_breakdown.columns.margin') }}</th>
+                            <th class="p-3 text-right">{{ __('client_deal_breakdown.columns.commission_received') }}</th>
+                            <th class="p-3 text-right">{{ __('client_deal_breakdown.columns.commission_paid') }}</th>
                             <th class="p-3 text-left">{{ __('client_deal_breakdown.columns.currency') }}</th>
                         </tr>
                     </thead>
@@ -142,7 +162,7 @@
                                     @endif
                                 </td>
                                 <td class="p-3 text-right text-green-600">
-                                    {{ \App\Domain\Infrastructure\Support\Money::format($deal->receipts->paidPresentation ?? 0) }}
+                                    {{ \App\Domain\Infrastructure\Support\Money::format(($deal->receipts->paidPresentation ?? 0) + collect($deal->shipments)->sum(fn($s) => $s->freightReceivedPresentation ?? 0)) }}
                                 </td>
                                 <td class="p-3 text-right text-red-600">
                                     {{ \App\Domain\Infrastructure\Support\Money::format(collect($deal->purchaseOrders)->sum(fn($p) => $p->paidPresentation ?? 0)) }}
@@ -159,11 +179,30 @@
                                     </div>
                                     <div class="text-xs text-gray-500">{{ $deal->totals->marginPct }}%</div>
                                 </td>
+                                <td class="p-3 text-right text-green-600">
+                                    @if ($deal->commission->receivedPresentation !== null)
+                                        {{ \App\Domain\Infrastructure\Support\Money::format($deal->commission->receivedPresentation) }}
+                                        @if (($deal->commission->receivedEmbeddedPresentation ?? 0) > 0)
+                                            <div class="text-[10px] text-gray-500">
+                                                emb. {{ \App\Domain\Infrastructure\Support\Money::format($deal->commission->receivedEmbeddedPresentation) }}
+                                            </div>
+                                        @endif
+                                    @else
+                                        <span class="text-amber-600">⚠</span>
+                                    @endif
+                                </td>
+                                <td class="p-3 text-right text-red-600">
+                                    @if ($deal->commission->paidPresentation !== null)
+                                        {{ \App\Domain\Infrastructure\Support\Money::format($deal->commission->paidPresentation) }}
+                                    @else
+                                        <span class="text-amber-600">⚠</span>
+                                    @endif
+                                </td>
                                 <td class="p-3 text-xs text-gray-500">{{ $deal->pi->currencyOriginal }}</td>
                             </tr>
                             @if ($expanded)
                                 <tr class="bg-amber-50 dark:bg-amber-900/10">
-                                    <td colspan="11" class="p-4">
+                                    <td colspan="13" class="p-4">
                                         <x-client-deal-breakdown.receipts :block="$deal->receipts" :presentationCurrency="$report->presentationCurrency" />
                                         <x-client-deal-breakdown.purchase-orders :rows="$deal->purchaseOrders" :presentationCurrency="$report->presentationCurrency" />
                                         <x-client-deal-breakdown.shipments :rows="$deal->shipments" :expandedShipments="$expandedShipments" :presentationCurrency="$report->presentationCurrency" />

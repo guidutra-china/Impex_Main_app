@@ -40,6 +40,12 @@
                         <td class="p-2 text-right">
                             {{ \App\Domain\Infrastructure\Support\Money::format($s->totalCostOriginal) }}
                             <span class="text-gray-500">{{ $s->currencyOriginal }}</span>
+                            @if ($s->clientChargeOriginal > 0)
+                                <div class="text-[10px] text-green-600">
+                                    {{ __('client_deal_breakdown.freight.client_charge') }}:
+                                    {{ \App\Domain\Infrastructure\Support\Money::format($s->clientChargeOriginal) }}
+                                </div>
+                            @endif
                         </td>
                         <td class="p-2 text-right">
                             <span class="font-semibold">{{ number_format($s->attributionPct * 100, 1) }}%</span>
@@ -54,6 +60,12 @@
                         </td>
                         <td class="p-2 text-right text-red-600">
                             {{ \App\Domain\Infrastructure\Support\Money::format($s->paidOriginal) }}
+                            @if ($s->freightReceivedOriginal > 0)
+                                <div class="text-[10px] text-green-600">
+                                    ↓ {{ __('client_deal_breakdown.freight.received_client') }}:
+                                    {{ \App\Domain\Infrastructure\Support\Money::format($s->freightReceivedOriginal) }}
+                                </div>
+                            @endif
                         </td>
                         <td class="p-2 text-right">
                             {{ \App\Domain\Infrastructure\Support\Money::format($s->outstandingOriginal) }}

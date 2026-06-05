@@ -10,5 +10,7 @@ final readonly class KpiSummary
         public int $totalPaidShipments,
         public int $totalMargin,
         public int $dealCount,
+        public int $totalCommissionReceived,
+        public int $totalCommissionPaid,
     ) {}
 }

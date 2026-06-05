@@ -21,6 +21,10 @@ use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
 use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\PurchaseOrders\Models\PurchaseOrderItem;
+use App\Domain\Quotations\Enums\CommissionType;
+use App\Domain\Quotations\Enums\QuotationStatus;
+use App\Domain\Quotations\Models\Quotation;
+use App\Domain\Quotations\Models\QuotationItem;
 
 /**
  * Tests-only fluent helper. Creates PI/PO/Shipment/Payment scenarios
@@ -147,7 +151,8 @@ class DealScenarioBuilder
         PurchaseOrderItem::create([
             'purchase_order_id' => $po->id,
             'quantity' => 10,
-            'unit_price' => (int) ($totalMinor / 10),
+            // PurchaseOrderItem armazena custo em unit_cost (PoRow soma unit_cost).
+            'unit_cost' => (int) ($totalMinor / 10),
             'sort_order' => 1,
         ]);
 
@@ -295,6 +300,177 @@ class DealScenarioBuilder
         }
 
         $this->shipments[] = $shipment;
+
+        return $this;
+    }
+
+    /**
+     * Frete com repasse a forwarder: cobra-se do cliente (clientChargeMinor,
+     * billable_to=client) e paga-se ao forwarder (forwarderCostMinor). Gera dois
+     * fluxos de pagamento: INBOUND (reembolso do cliente) e OUTBOUND (pagamento ao
+     * forwarder). Shipment com itens só da PI atual → atribuição 100%.
+     */
+    public function withForwarderFreightShipment(
+        string $reference = 'SHP-FWD-001',
+        int $clientChargeMinor = 120_000_0,
+        int $forwarderCostMinor = 100_000_0,
+        int $forwarderPaidMinor = 0,
+        int $clientReimbursedMinor = 0,
+        string $currency = 'USD',
+        string $issueDate = '2026-03-18',
+    ): self {
+        $shipment = Shipment::create([
+            'reference' => $reference,
+            'company_id' => $this->client->id,
+            'issue_date' => $issueDate,
+            'status' => ShipmentStatus::BOOKED,
+            'currency_code' => $currency,
+            'created_by' => null,
+        ]);
+
+        $shipment->additionalCosts()->create([
+            'cost_type' => AdditionalCostType::FREIGHT,
+            'description' => 'Freight (forwarder)',
+            'amount' => $clientChargeMinor,
+            'currency_code' => $currency,
+            'exchange_rate' => 1,
+            'amount_in_document_currency' => $clientChargeMinor,
+            'billable_to' => BillableTo::CLIENT,
+            'forwarder_amount' => $forwarderCostMinor,
+            'forwarder_currency_code' => $currency,
+            'forwarder_exchange_rate' => 1,
+            'forwarder_amount_in_document_currency' => $forwarderCostMinor,
+            'status' => AdditionalCostStatus::PENDING,
+            'cost_date' => $issueDate,
+        ]);
+
+        foreach ($this->pi->items as $index => $piItem) {
+            ShipmentItem::create([
+                'shipment_id' => $shipment->id,
+                'proforma_invoice_item_id' => $piItem->id,
+                'quantity' => 10,
+                'total_weight' => 100.0 / max(1, $this->pi->items->count()),
+                'total_volume' => 0,
+                'sort_order' => $index + 1,
+            ]);
+        }
+
+        $clientPsi = $shipment->paymentScheduleItems()->create([
+            'label' => 'Freight (client)',
+            'percentage' => 100,
+            'amount' => $clientChargeMinor,
+            'currency_code' => $currency,
+            'status' => PaymentScheduleStatus::DUE,
+            'is_blocking' => false,
+            'is_credit' => false,
+            'sort_order' => 1,
+        ]);
+
+        $forwarderPsi = $shipment->paymentScheduleItems()->create([
+            'label' => 'Freight (forwarder)',
+            'percentage' => 100,
+            'amount' => $forwarderCostMinor,
+            'currency_code' => $currency,
+            'status' => PaymentScheduleStatus::DUE,
+            'is_blocking' => false,
+            'is_credit' => false,
+            'sort_order' => 2,
+            'notes' => '[forwarder-payable]',
+        ]);
+
+        if ($clientReimbursedMinor > 0) {
+            $payment = Payment::create([
+                'direction' => PaymentDirection::INBOUND,
+                'company_id' => $this->client->id,
+                'amount' => $clientReimbursedMinor,
+                'currency_code' => $currency,
+                'payment_date' => $issueDate,
+                'reference' => $reference.'-CLIENT-PAY',
+                'status' => PaymentStatus::APPROVED,
+            ]);
+            PaymentAllocation::create([
+                'payment_id' => $payment->id,
+                'payment_schedule_item_id' => $clientPsi->id,
+                'allocated_amount' => $clientReimbursedMinor,
+                'exchange_rate' => 1.0,
+                'allocated_amount_in_document_currency' => $clientReimbursedMinor,
+                'created_at' => $issueDate,
+            ]);
+        }
+
+        if ($forwarderPaidMinor > 0) {
+            $payment = Payment::create([
+                'direction' => PaymentDirection::OUTBOUND,
+                'company_id' => $this->client->id,
+                'amount' => $forwarderPaidMinor,
+                'currency_code' => $currency,
+                'payment_date' => $issueDate,
+                'reference' => $reference.'-FWD-PAY',
+                'status' => PaymentStatus::APPROVED,
+            ]);
+            PaymentAllocation::create([
+                'payment_id' => $payment->id,
+                'payment_schedule_item_id' => $forwarderPsi->id,
+                'allocated_amount' => $forwarderPaidMinor,
+                'exchange_rate' => 1.0,
+                'allocated_amount_in_document_currency' => $forwarderPaidMinor,
+                'created_at' => $issueDate,
+            ]);
+        }
+
+        $this->shipments[] = $shipment;
+
+        return $this;
+    }
+
+    /** Comissão lançada como AdditionalCost de tipo COMMISSION na PI. */
+    public function withPiCommission(
+        int $amountMinor,
+        BillableTo $billable = BillableTo::CLIENT,
+        string $currency = 'USD',
+        string $date = '2026-03-16',
+    ): self {
+        $this->pi->additionalCosts()->create([
+            'cost_type' => AdditionalCostType::COMMISSION,
+            'description' => 'Commission',
+            'amount' => $amountMinor,
+            'currency_code' => $currency,
+            'exchange_rate' => 1,
+            'amount_in_document_currency' => $amountMinor,
+            'billable_to' => $billable,
+            'status' => AdditionalCostStatus::PENDING,
+            'cost_date' => $date,
+        ]);
+
+        return $this;
+    }
+
+    /** Quotation com comissão EMBUTIDA, vinculada à PI (subtotal = unitPrice × qty). */
+    public function withEmbeddedCommissionQuotation(
+        float $rate = 5.0,
+        int $subtotalMinor = 1_000_000_0,
+        string $currency = 'USD',
+    ): self {
+        $quotation = Quotation::create([
+            'reference' => $this->pi->reference.'-Q',
+            'company_id' => $this->client->id,
+            'currency_code' => $currency,
+            'commission_type' => CommissionType::EMBEDDED,
+            'commission_rate' => $rate,
+            'status' => QuotationStatus::DRAFT,
+            'version' => 1,
+            'created_by' => null,
+        ]);
+
+        QuotationItem::create([
+            'quotation_id' => $quotation->id,
+            'product_id' => \App\Domain\Catalog\Models\Product::factory()->create()->id,
+            'quantity' => 1,
+            'unit_price' => $subtotalMinor,
+            'sort_order' => 1,
+        ]);
+
+        $this->pi->quotations()->attach($quotation->id);
 
         return $this;
     }

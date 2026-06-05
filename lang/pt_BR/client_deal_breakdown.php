@@ -16,6 +16,8 @@ return [
         'total_paid_suppliers' => 'Pago a Fornecedores',
         'total_paid_shipments' => 'Pago a Shipments',
         'total_margin' => 'Margem',
+        'commission_received' => 'Comissão Recebida',
+        'commission_paid' => 'Comissão Paga',
     ],
     'columns' => [
         'pi' => 'PI',
@@ -28,6 +30,8 @@ return [
         'paid_shipments' => 'Pago Frete',
         'cash_balance' => 'Saldo Caixa',
         'margin' => 'Margem',
+        'commission_received' => 'Com. Receb.',
+        'commission_paid' => 'Com. Paga',
         'currency' => 'Moeda',
     ],
     'sections' => [
@@ -43,6 +47,10 @@ return [
         'quantity' => 'rateio: qtd (peso ausente)',
         'value' => 'rateio: valor (peso/volume/qtd ausentes)',
         'none' => 'rateio: indisponível',
+    ],
+    'freight' => [
+        'client_charge' => 'Cobrado do cliente',
+        'received_client' => 'Reembolso do cliente',
     ],
     'fx_unavailable_tooltip' => 'Taxa de câmbio indisponível para um ou mais pares de moedas no período.',
     'no_pos' => 'Nenhum PO vinculado',

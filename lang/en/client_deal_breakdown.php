@@ -16,6 +16,8 @@ return [
         'total_paid_suppliers' => 'Paid to Suppliers',
         'total_paid_shipments' => 'Paid to Shipments',
         'total_margin' => 'Margin',
+        'commission_received' => 'Commission Received',
+        'commission_paid' => 'Commission Paid',
     ],
     'columns' => [
         'pi' => 'PI',
@@ -28,6 +30,8 @@ return [
         'paid_shipments' => 'Paid Freight',
         'cash_balance' => 'Cash Balance',
         'margin' => 'Margin',
+        'commission_received' => 'Comm. Recv.',
+        'commission_paid' => 'Comm. Paid',
         'currency' => 'Currency',
     ],
     'sections' => [
@@ -43,6 +47,10 @@ return [
         'quantity' => 'allocation: qty (weight missing)',
         'value' => 'allocation: value (weight/volume/qty missing)',
         'none' => 'allocation: unavailable',
+    ],
+    'freight' => [
+        'client_charge' => 'Charged to client',
+        'received_client' => 'Client reimbursement',
     ],
     'fx_unavailable_tooltip' => 'FX rate not available for one or more currency pairs in this range.',
     'no_pos' => 'No linked purchase orders',
