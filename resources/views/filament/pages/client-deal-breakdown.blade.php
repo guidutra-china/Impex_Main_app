@@ -153,16 +153,22 @@
                                     </span>
                                 </td>
                                 <td class="p-3 text-right">
-                                    {{ \App\Domain\Infrastructure\Support\Money::format($deal->pi->totalPresentation ?? 0) }}
+                                    {{ \App\Domain\Infrastructure\Support\Money::format($deal->totals->billedToClientPresentation) }}
+                                    @if ($deal->totals->billedToClientPresentation !== ($deal->pi->totalPresentation ?? 0))
+                                        <div class="text-[10px] text-gray-500">
+                                            {{ __('client_deal_breakdown.columns.pi') }}:
+                                            {{ \App\Domain\Infrastructure\Support\Money::format($deal->pi->totalPresentation ?? 0) }}
+                                        </div>
+                                    @endif
                                     @if ($deal->pi->currencyOriginal !== $report->presentationCurrency)
-                                        <div class="text-xs text-gray-500">
+                                        <div class="text-[10px] text-gray-500">
                                             {{ \App\Domain\Infrastructure\Support\Money::format($deal->pi->totalOriginal) }}
                                             {{ $deal->pi->currencyOriginal }}
                                         </div>
                                     @endif
                                 </td>
                                 <td class="p-3 text-right text-green-600">
-                                    {{ \App\Domain\Infrastructure\Support\Money::format(($deal->receipts->paidPresentation ?? 0) + collect($deal->shipments)->sum(fn($s) => $s->freightReceivedPresentation ?? 0)) }}
+                                    {{ \App\Domain\Infrastructure\Support\Money::format($deal->totals->receivedTotalPresentation) }}
                                 </td>
                                 <td class="p-3 text-right text-red-600">
                                     {{ \App\Domain\Infrastructure\Support\Money::format(collect($deal->purchaseOrders)->sum(fn($p) => $p->paidPresentation ?? 0)) }}

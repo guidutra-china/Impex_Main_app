@@ -146,6 +146,10 @@ final class DealBreakdownReportService
 
         $commission = $this->buildCommission($pi, $fx, $piIssue, $piTotalOriginal, $receipts, $unconverted);
 
+        // Total faturado ao cliente: mercadoria (já inclui comissão embutida) +
+        // frete cobrado do cliente (atribuído) + comissão separate cobrada.
+        $billedToClient = (int) ($piTotalPres ?? 0) + $freightChargePres + (int) ($commission->receivedSeparatePresentation ?? 0);
+
         return new DealRow(
             pi: $piInfo,
             receipts: $receipts,
@@ -155,6 +159,8 @@ final class DealBreakdownReportService
                 cashBalance: $cashBalance,
                 margin: $margin,
                 marginPct: $marginPct,
+                billedToClientPresentation: $billedToClient,
+                receivedTotalPresentation: $received,
             ),
             commission: $commission,
         );
