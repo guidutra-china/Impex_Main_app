@@ -54,6 +54,10 @@ class CancelProformaInvoiceAction
             PurchaseOrderStatus::AWAITING_SHIPMENT,
         ];
 
+        // Invariant: cancellation must never be blocked. No model declares a blocker for a
+        // CANCELLED target (see getTransitionBlockers), so execute() will not throw
+        // TransitionBlockedException here. If that ever changes, wrap this in a try/catch —
+        // an uncaught throw mid-cascade would roll back the whole PI cancellation transaction.
         $pi->purchaseOrders()
             ->whereIn('status', $cancellableStatuses)
             ->each(function ($po) use ($transitionAction, $pi) {
@@ -89,6 +93,7 @@ class CancelProformaInvoiceAction
             return;
         }
 
+        // Invariant: cancellation must never be blocked (see note in cancelPurchaseOrders).
         ShipmentPlan::whereIn('id', $shipmentPlanIds)
             ->whereIn('status', $cancellableStatuses)
             ->each(function ($plan) use ($transitionAction, $pi) {

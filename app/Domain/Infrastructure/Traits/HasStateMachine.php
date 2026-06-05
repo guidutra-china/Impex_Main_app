@@ -61,6 +61,19 @@ trait HasStateMachine
     }
 
     /**
+     * Business-rule blockers for a transition to $toStatus.
+     * Default: none. Models with prerequisites override this and return
+     * an array of human-readable messages; a non-empty array hard-blocks
+     * the transition in TransitionStatusAction::execute().
+     *
+     * @return string[]
+     */
+    public function getTransitionBlockers(string $toStatus): array
+    {
+        return [];
+    }
+
+    /**
      * Convenience method to transition the model's status.
      * Delegates to TransitionStatusAction for validation, persistence, and audit logging.
      */

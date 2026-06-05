@@ -5,6 +5,8 @@ namespace App\Domain\Planning\Models;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Enums\DocumentType;
 use App\Domain\Infrastructure\Traits\HasReference;
+use App\Domain\Infrastructure\Traits\HasStateMachine;
+use App\Domain\Planning\Enums\ProductionScheduleStatus;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Models\User;
@@ -17,11 +19,31 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class ProductionSchedule extends Model
 {
-    use HasFactory, HasReference, LogsActivity;
+    use HasFactory, HasReference, HasStateMachine, LogsActivity;
 
     protected static function newFactory(): \Database\Factories\ProductionScheduleFactory
     {
         return \Database\Factories\ProductionScheduleFactory::new();
+    }
+
+    // --- HasStateMachine ---
+
+    public static function allowedTransitions(): array
+    {
+        return [
+            ProductionScheduleStatus::Draft->value => [ProductionScheduleStatus::PendingApproval->value],
+            ProductionScheduleStatus::Rejected->value => [ProductionScheduleStatus::PendingApproval->value],
+            ProductionScheduleStatus::PendingApproval->value => [
+                ProductionScheduleStatus::Approved->value,
+                ProductionScheduleStatus::Rejected->value,
+            ],
+            ProductionScheduleStatus::Approved->value => [
+                ProductionScheduleStatus::Completed->value,
+                // Supplier can request edit on an Approved schedule (canRequestEdit) and resubmit.
+                ProductionScheduleStatus::PendingApproval->value,
+            ],
+            ProductionScheduleStatus::Completed->value => [],
+        ];
     }
 
     protected $fillable = [
@@ -149,7 +171,7 @@ class ProductionSchedule extends Model
     {
         $risk = [];
         $this->components->each(function (ProductionScheduleComponent $component) use (&$risk) {
-            $key = 'item-' . $component->proforma_invoice_item_id;
+            $key = 'item-'.$component->proforma_invoice_item_id;
             foreach ($this->entries as $entry) {
                 if ($entry->proforma_invoice_item_id !== $component->proforma_invoice_item_id) {
                     continue;
@@ -162,11 +184,12 @@ class ProductionSchedule extends Model
         foreach ($risk as $key => $dates) {
             $risk[$key] = array_values(array_unique($dates));
         }
+
         return $risk;
     }
 
     public function hasComponentRisk(): bool
     {
-        return !empty($this->componentRiskDates());
+        return ! empty($this->componentRiskDates());
     }
 }

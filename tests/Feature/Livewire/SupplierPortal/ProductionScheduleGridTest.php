@@ -20,8 +20,11 @@ class ProductionScheduleGridTest extends TestCase
     use RefreshDatabase;
 
     private Company $company;
+
     private ProformaInvoice $pi;
+
     private ProformaInvoiceItem $piItem;
+
     private ProformaInvoiceItem $piItem2;
 
     protected function setUp(): void
@@ -34,36 +37,36 @@ class ProductionScheduleGridTest extends TestCase
         $this->company = Company::create(['name' => 'Test Co', 'status' => 'active']);
 
         $inquiry = Inquiry::create([
-            'reference'     => 'INQ-GRID-001',
-            'company_id'    => $this->company->id,
-            'status'        => 'received',
-            'source'        => 'email',
+            'reference' => 'INQ-GRID-001',
+            'company_id' => $this->company->id,
+            'status' => 'received',
+            'source' => 'email',
             'currency_code' => 'USD',
         ]);
 
         $this->pi = ProformaInvoice::create([
-            'reference'     => 'PI-GRID-001',
-            'inquiry_id'    => $inquiry->id,
-            'company_id'    => $this->company->id,
+            'reference' => 'PI-GRID-001',
+            'inquiry_id' => $inquiry->id,
+            'company_id' => $this->company->id,
             'currency_code' => 'USD',
-            'issue_date'    => '2025-03-01',
-            'status'        => 'confirmed',
+            'issue_date' => '2025-03-01',
+            'status' => 'confirmed',
         ]);
 
         $this->piItem = ProformaInvoiceItem::create([
             'proforma_invoice_id' => $this->pi->id,
-            'description'         => 'Widget A',
-            'quantity'            => 200,
-            'unit_price'          => 10_00,
-            'unit_cost'           => 5_00,
+            'description' => 'Widget A',
+            'quantity' => 200,
+            'unit_price' => 10_00,
+            'unit_cost' => 5_00,
         ]);
 
         $this->piItem2 = ProformaInvoiceItem::create([
             'proforma_invoice_id' => $this->pi->id,
-            'description'         => 'Widget B',
-            'quantity'            => 150,
-            'unit_price'          => 20_00,
-            'unit_cost'           => 10_00,
+            'description' => 'Widget B',
+            'quantity' => 150,
+            'unit_price' => 20_00,
+            'unit_cost' => 10_00,
         ]);
     }
 
@@ -72,9 +75,9 @@ class ProductionScheduleGridTest extends TestCase
         return ProductionSchedule::create([
             'proforma_invoice_id' => $this->pi->id,
             'supplier_company_id' => $this->company->id,
-            'reference'           => 'PS-GRID-' . rand(1000, 9999),
-            'version'             => 1,
-            'status'              => $status,
+            'reference' => 'PS-GRID-'.rand(1000, 9999),
+            'version' => 1,
+            'status' => $status,
         ]);
     }
 
@@ -83,10 +86,10 @@ class ProductionScheduleGridTest extends TestCase
         $schedule = $this->makeSchedule();
 
         ProductionScheduleEntry::create([
-            'production_schedule_id'   => $schedule->id,
+            'production_schedule_id' => $schedule->id,
             'proforma_invoice_item_id' => $this->piItem->id,
-            'production_date'          => '2025-04-10',
-            'quantity'                 => 100,
+            'production_date' => '2025-04-10',
+            'quantity' => 100,
         ]);
 
         Livewire::test(ProductionScheduleGrid::class, ['schedule' => $schedule])
@@ -103,9 +106,9 @@ class ProductionScheduleGridTest extends TestCase
 
         $this->assertTrue(
             ProductionScheduleEntry::where([
-                'production_schedule_id'   => $schedule->id,
+                'production_schedule_id' => $schedule->id,
                 'proforma_invoice_item_id' => $this->piItem->id,
-                'quantity'                 => 150,
+                'quantity' => 150,
             ])->whereDate('production_date', '2025-04-10')->exists()
         );
     }
@@ -125,10 +128,10 @@ class ProductionScheduleGridTest extends TestCase
         $schedule = $this->makeSchedule();
 
         ProductionScheduleEntry::create([
-            'production_schedule_id'   => $schedule->id,
+            'production_schedule_id' => $schedule->id,
             'proforma_invoice_item_id' => $this->piItem->id,
-            'production_date'          => '2025-04-10',
-            'quantity'                 => 100,
+            'production_date' => '2025-04-10',
+            'quantity' => 100,
         ]);
 
         Livewire::test(ProductionScheduleGrid::class, ['schedule' => $schedule])
@@ -146,16 +149,16 @@ class ProductionScheduleGridTest extends TestCase
 
         // piItem requires 200, piItem2 requires 150
         ProductionScheduleEntry::create([
-            'production_schedule_id'   => $schedule->id,
+            'production_schedule_id' => $schedule->id,
             'proforma_invoice_item_id' => $this->piItem->id,
-            'production_date'          => '2025-04-10',
-            'quantity'                 => 200,
+            'production_date' => '2025-04-10',
+            'quantity' => 200,
         ]);
         ProductionScheduleEntry::create([
-            'production_schedule_id'   => $schedule->id,
+            'production_schedule_id' => $schedule->id,
             'proforma_invoice_item_id' => $this->piItem2->id,
-            'production_date'          => '2025-04-10',
-            'quantity'                 => 150,
+            'production_date' => '2025-04-10',
+            'quantity' => 150,
         ]);
 
         Livewire::test(ProductionScheduleGrid::class, ['schedule' => $schedule])
@@ -172,5 +175,32 @@ class ProductionScheduleGridTest extends TestCase
             ->call('updateQuantity', $this->piItem->id, '2025-04-10', '999');
 
         $this->assertDatabaseCount('production_schedule_entries', 0);
+    }
+
+    public function test_approved_schedule_can_be_edited_and_resubmitted_for_approval(): void
+    {
+        // Supplier "Edit Schedule" (canRequestEdit on Approved) → startEditing → "Resubmit".
+        // Approved → PendingApproval must be an allowed transition or the guarded path throws.
+        $schedule = $this->makeSchedule(ProductionScheduleStatus::Approved);
+
+        ProductionScheduleEntry::create([
+            'production_schedule_id' => $schedule->id,
+            'proforma_invoice_item_id' => $this->piItem->id,
+            'production_date' => '2025-04-10',
+            'quantity' => 200,
+        ]);
+        ProductionScheduleEntry::create([
+            'production_schedule_id' => $schedule->id,
+            'proforma_invoice_item_id' => $this->piItem2->id,
+            'production_date' => '2025-04-10',
+            'quantity' => 150,
+        ]);
+
+        Livewire::test(ProductionScheduleGrid::class, ['schedule' => $schedule])
+            ->call('startEditing')
+            ->call('submit');
+
+        $this->assertEquals(ProductionScheduleStatus::PendingApproval, $schedule->fresh()->status);
+        $this->assertSame(1, $schedule->fresh()->stateTransitions()->count());
     }
 }

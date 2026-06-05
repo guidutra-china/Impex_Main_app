@@ -4,13 +4,10 @@ namespace App\Filament\Pages;
 
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Infrastructure\Support\Money;
-use App\Domain\Inquiries\Enums\InquiryStatus;
 use App\Domain\Inquiries\Models\Inquiry;
-use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\Shipment;
-use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
+use App\Domain\Operations\OperationsPipeline;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
-use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Filament\Resources\Inquiries\InquiryResource;
 use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
@@ -18,7 +15,6 @@ use App\Filament\Resources\PurchaseOrders\PurchaseOrderResource;
 use App\Filament\Resources\Shipments\ShipmentResource;
 use BackedEnum;
 use Filament\Pages\Page;
-use UnitEnum;
 
 class OrderPipelineKanban extends Page
 {
@@ -64,17 +60,16 @@ class OrderPipelineKanban extends Page
 
     protected function buildInquiryColumn(): array
     {
-        $inquiries = Inquiry::query()
-            ->with(['company', 'items'])
-            ->whereIn('status', [InquiryStatus::RECEIVED, InquiryStatus::QUOTING])
+        $stage = OperationsPipeline::stage('inquiry');
+        $inquiries = $stage->query()
             ->orderBy('created_at', 'desc')
             ->limit(50)
             ->get();
 
         return [
-            'id' => 'inquiry',
-            'title' => 'Inquiry',
-            'color' => 'gray',
+            'id' => $stage->key,
+            'title' => $stage->title,
+            'color' => $stage->color,
             'count' => $inquiries->count(),
             'cards' => $inquiries->map(fn (Inquiry $inquiry) => [
                 'id' => $inquiry->id,
@@ -86,24 +81,23 @@ class OrderPipelineKanban extends Page
                 'payment_progress' => null,
                 'days_open' => $inquiry->created_at->diffInDays(now()),
                 'items_count' => $inquiry->items->count(),
-                'subtitle' => $inquiry->items->count() . ' item(s)',
+                'subtitle' => $inquiry->items->count().' item(s)',
             ])->toArray(),
         ];
     }
 
     protected function buildQuotingColumn(): array
     {
-        $inquiries = Inquiry::query()
-            ->with(['company', 'items'])
-            ->where('status', InquiryStatus::QUOTED)
+        $stage = OperationsPipeline::stage('quoting');
+        $inquiries = $stage->query()
             ->orderBy('updated_at', 'desc')
             ->limit(50)
             ->get();
 
         return [
-            'id' => 'quoting',
-            'title' => 'Quoted',
-            'color' => 'info',
+            'id' => $stage->key,
+            'title' => $stage->title,
+            'color' => $stage->color,
             'count' => $inquiries->count(),
             'cards' => $inquiries->map(fn (Inquiry $inquiry) => [
                 'id' => $inquiry->id,
@@ -122,23 +116,16 @@ class OrderPipelineKanban extends Page
 
     protected function buildPiIssuedColumn(): array
     {
-        $pis = ProformaInvoice::query()
-            ->with(['company', 'items', 'paymentScheduleItems'])
-            ->whereIn('status', [
-                ProformaInvoiceStatus::DRAFT,
-                ProformaInvoiceStatus::SENT,
-                ProformaInvoiceStatus::CONFIRMED,
-                ProformaInvoiceStatus::FINALIZED,
-                ProformaInvoiceStatus::REOPENED,
-            ])
+        $stage = OperationsPipeline::stage('pi_issued');
+        $pis = $stage->query()
             ->orderBy('updated_at', 'desc')
             ->limit(50)
             ->get();
 
         return [
-            'id' => 'pi_issued',
-            'title' => 'PI Issued',
-            'color' => 'primary',
+            'id' => $stage->key,
+            'title' => $stage->title,
+            'color' => $stage->color,
             'count' => $pis->count(),
             'cards' => $pis->map(fn (ProformaInvoice $pi) => [
                 'id' => $pi->id,
@@ -159,21 +146,16 @@ class OrderPipelineKanban extends Page
 
     protected function buildInProductionColumn(): array
     {
-        $pos = PurchaseOrder::query()
-            ->with(['supplierCompany', 'items', 'paymentScheduleItems', 'proformaInvoice'])
-            ->whereIn('status', [
-                PurchaseOrderStatus::CONFIRMED,
-                PurchaseOrderStatus::IN_PRODUCTION,
-                PurchaseOrderStatus::AWAITING_SHIPMENT,
-            ])
+        $stage = OperationsPipeline::stage('in_production');
+        $pos = $stage->query()
             ->orderBy('updated_at', 'desc')
             ->limit(50)
             ->get();
 
         return [
-            'id' => 'in_production',
-            'title' => 'In Production',
-            'color' => 'warning',
+            'id' => $stage->key,
+            'title' => $stage->title,
+            'color' => $stage->color,
             'count' => $pos->count(),
             'cards' => $pos->map(fn (PurchaseOrder $po) => [
                 'id' => $po->id,
@@ -195,21 +177,16 @@ class OrderPipelineKanban extends Page
 
     protected function buildShippingColumn(): array
     {
-        $shipments = Shipment::query()
-            ->with(['company', 'items.purchaseOrderItem.purchaseOrder'])
-            ->whereIn('status', [
-                ShipmentStatus::BOOKED,
-                ShipmentStatus::CUSTOMS,
-                ShipmentStatus::IN_TRANSIT,
-            ])
+        $stage = OperationsPipeline::stage('shipping');
+        $shipments = $stage->query()
             ->orderBy('updated_at', 'desc')
             ->limit(50)
             ->get();
 
         return [
-            'id' => 'shipping',
-            'title' => 'Shipping',
-            'color' => 'success',
+            'id' => $stage->key,
+            'title' => $stage->title,
+            'color' => $stage->color,
             'count' => $shipments->count(),
             'cards' => $shipments->map(fn (Shipment $shipment) => [
                 'id' => $shipment->id,
@@ -229,18 +206,17 @@ class OrderPipelineKanban extends Page
 
     protected function buildDeliveredColumn(): array
     {
-        $shipments = Shipment::query()
-            ->with(['company', 'items'])
-            ->where('status', ShipmentStatus::ARRIVED)
+        $stage = OperationsPipeline::stage('delivered');
+        $shipments = $stage->query()
             ->where('updated_at', '>=', now()->subDays(30))
             ->orderBy('updated_at', 'desc')
             ->limit(20)
             ->get();
 
         return [
-            'id' => 'delivered',
-            'title' => 'Delivered (30d)',
-            'color' => 'gray',
+            'id' => $stage->key,
+            'title' => $stage->title,
+            'color' => $stage->color,
             'count' => $shipments->count(),
             'cards' => $shipments->map(fn (Shipment $shipment) => [
                 'id' => $shipment->id,
@@ -252,7 +228,7 @@ class OrderPipelineKanban extends Page
                 'payment_progress' => null,
                 'days_open' => null,
                 'items_count' => $shipment->total_items_count,
-                'subtitle' => 'Arrived ' . $shipment->updated_at->diffForHumans(),
+                'subtitle' => 'Arrived '.$shipment->updated_at->diffForHumans(),
             ])->toArray(),
         ];
     }

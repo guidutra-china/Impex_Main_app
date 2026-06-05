@@ -6,6 +6,7 @@ use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
+use App\Domain\Inquiries\Actions\AdvanceInquiryToQuotedAction;
 use App\Domain\Inquiries\Enums\InquiryStatus;
 use App\Domain\Inquiries\Enums\ProjectTeamRole;
 use App\Domain\Inquiries\Models\Inquiry;
@@ -747,6 +748,8 @@ trait InquiryHeaderActions
 
                         return $proformaInvoice;
                     });
+
+                    app(AdvanceInquiryToQuotedAction::class)->execute($inquiry);
 
                     Notification::make()
                         ->title($existingPi

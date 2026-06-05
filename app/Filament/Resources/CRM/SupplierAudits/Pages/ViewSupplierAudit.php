@@ -43,6 +43,8 @@ class ViewSupplierAudit extends ViewRecord
                 ->modalHeading('Complete Audit')
                 ->modalDescription('This will calculate the final score and mark the audit as completed.')
                 ->action(function () {
+                    abort_unless(auth()->user()?->can('conduct-supplier-audits'), 403);
+
                     $scoring = app(AuditScoringService::class)->calculate($this->record);
 
                     $this->record->update([
@@ -81,6 +83,8 @@ class ViewSupplierAudit extends ViewRecord
                         ->default(fn () => $this->record->next_audit_date),
                 ])
                 ->action(function (array $data) {
+                    abort_unless(auth()->user()?->can('review-supplier-audits'), 403);
+
                     $this->record->update([
                         'status' => AuditStatus::REVIEWED,
                         'result' => $data['result'],

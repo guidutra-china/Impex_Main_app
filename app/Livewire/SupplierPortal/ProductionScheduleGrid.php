@@ -2,6 +2,7 @@
 
 namespace App\Livewire\SupplierPortal;
 
+use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Planning\Enums\ProductionScheduleStatus;
 use App\Domain\Planning\Models\ProductionSchedule;
 use App\Domain\Planning\Models\ProductionScheduleEntry;
@@ -12,12 +13,19 @@ use Livewire\Component;
 class ProductionScheduleGrid extends Component
 {
     public ProductionSchedule $schedule;
+
     public array $quantities = [];
+
     public array $dates = [];
+
     public array $items = [];
+
     public bool $showAddDate = false;
+
     public ?string $newDateInput = null;
+
     public array $riskDates = [];
+
     public bool $editingMode = false;
 
     public function mount(ProductionSchedule $schedule): void
@@ -32,9 +40,9 @@ class ProductionScheduleGrid extends Component
 
         $this->items = $this->schedule->proformaInvoice->items
             ->map(fn ($item) => [
-                'id'          => $item->id,
-                'name'        => $item->product?->name ?? $item->description ?? '—',
-                'sku'         => $item->product?->sku ?? '',
+                'id' => $item->id,
+                'name' => $item->product?->name ?? $item->description ?? '—',
+                'sku' => $item->product?->sku ?? '',
                 'pi_quantity' => $item->quantity,
             ])
             ->values()
@@ -45,7 +53,7 @@ class ProductionScheduleGrid extends Component
 
         foreach ($this->schedule->entries as $entry) {
             $dateKey = $entry->production_date->format('Y-m-d');
-            $itemKey = 'item-' . $entry->proforma_invoice_item_id;
+            $itemKey = 'item-'.$entry->proforma_invoice_item_id;
             $this->quantities[$itemKey][$dateKey] = $entry->quantity;
             $dateSet[$dateKey] = true;
         }
@@ -85,24 +93,24 @@ class ProductionScheduleGrid extends Component
         }
 
         $quantity = ($value !== null && $value !== '') ? max(0, (int) $value) : 0;
-        $itemKey  = 'item-' . $itemId;
+        $itemKey = 'item-'.$itemId;
 
         $this->quantities[$itemKey][$date] = $quantity;
 
         if ($quantity > 0) {
             ProductionScheduleEntry::updateOrCreate(
                 [
-                    'production_schedule_id'   => $this->schedule->id,
+                    'production_schedule_id' => $this->schedule->id,
                     'proforma_invoice_item_id' => $itemId,
-                    'production_date'          => $date,
+                    'production_date' => $date,
                 ],
                 ['quantity' => $quantity]
             );
         } else {
             ProductionScheduleEntry::where([
-                'production_schedule_id'   => $this->schedule->id,
+                'production_schedule_id' => $this->schedule->id,
                 'proforma_invoice_item_id' => $itemId,
-                'production_date'          => $date,
+                'production_date' => $date,
             ])->delete();
         }
     }
@@ -134,7 +142,7 @@ class ProductionScheduleGrid extends Component
         $this->dates = array_values(array_filter($this->dates, fn ($d) => $d !== $date));
 
         foreach ($this->items as $item) {
-            unset($this->quantities['item-' . $item['id']][$date]);
+            unset($this->quantities['item-'.$item['id']][$date]);
         }
     }
 
@@ -146,7 +154,7 @@ class ProductionScheduleGrid extends Component
 
         $errors = [];
         foreach ($this->items as $item) {
-            $total = array_sum($this->quantities['item-' . $item['id']] ?? []);
+            $total = array_sum($this->quantities['item-'.$item['id']] ?? []);
             if ($total < $item['pi_quantity']) {
                 $errors[] = "{$item['name']}: planned {$total} / PI qty {$item['pi_quantity']}";
             }
@@ -158,15 +166,21 @@ class ProductionScheduleGrid extends Component
                 ->title('Validation failed — quantities insufficient')
                 ->body(implode("\n", $errors))
                 ->send();
+
             return;
         }
 
-        $this->schedule->update([
-            'status'       => ProductionScheduleStatus::PendingApproval,
-            'submitted_at' => now(),
-            'approved_by'  => null,
-            'approved_at'  => null,
-        ]);
+        app(TransitionStatusAction::class)->execute(
+            $this->schedule,
+            ProductionScheduleStatus::PendingApproval->value,
+            sideEffects: function (ProductionSchedule $schedule): void {
+                $schedule->update([
+                    'submitted_at' => now(),
+                    'approved_by' => null,
+                    'approved_at' => null,
+                ]);
+            },
+        );
         $this->schedule->refresh();
         $this->editingMode = false;
 
@@ -180,9 +194,10 @@ class ProductionScheduleGrid extends Component
         foreach ($this->dates as $date) {
             $totals[$date] = 0;
             foreach ($this->items as $item) {
-                $totals[$date] += $this->quantities['item-' . $item['id']][$date] ?? 0;
+                $totals[$date] += $this->quantities['item-'.$item['id']][$date] ?? 0;
             }
         }
+
         return $totals;
     }
 
@@ -190,9 +205,10 @@ class ProductionScheduleGrid extends Component
     {
         $totals = [];
         foreach ($this->items as $item) {
-            $key = 'item-' . $item['id'];
+            $key = 'item-'.$item['id'];
             $totals[$key] = array_sum($this->quantities[$key] ?? []);
         }
+
         return $totals;
     }
 

@@ -15,7 +15,7 @@ class StatusTransitionActions
      * Designed for use in table ->recordActions([...]).
      *
      * @param  class-string<\BackedEnum>  $enumClass  The status enum (e.g., InquiryStatus::class)
-     * @param  array<string, array{icon?: string, color?: string, requiresConfirmation?: bool, requiresNotes?: bool, sideEffects?: callable}>  $overrides  Per-status visual/behavior overrides keyed by enum value
+     * @param  array<string, array{icon?: string, color?: string, requiresConfirmation?: bool, requiresNotes?: bool, sideEffects?: callable}>  $overrides  Per-status visual/behavior overrides keyed by enum value.
      */
     public static function make(string $enumClass, array $overrides = []): ActionGroup
     {
@@ -52,7 +52,7 @@ class StatusTransitionActions
                         $newLabel = $enumClass::from($statusValue)->getLabel();
 
                         Notification::make()
-                            ->title(__('messages.status_changed_to') . ' ' . $newLabel)
+                            ->title(__('messages.status_changed_to').' '.$newLabel)
                             ->success()
                             ->send();
                     } catch (\Throwable $e) {

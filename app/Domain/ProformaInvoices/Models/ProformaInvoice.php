@@ -301,6 +301,13 @@ class ProformaInvoice extends Model
         return $blockers;
     }
 
+    public function getTransitionBlockers(string $toStatus): array
+    {
+        return $toStatus === ProformaInvoiceStatus::FINALIZED->value
+            ? $this->getFinalizationBlockers()
+            : [];
+    }
+
     public function canFinalize(): bool
     {
         return empty($this->getFinalizationBlockers());

@@ -8,6 +8,7 @@ use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Infrastructure\Pdf\Templates\QuotationPdfTemplate;
+use App\Domain\Inquiries\Actions\AdvanceInquiryToQuotedAction;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
@@ -266,6 +267,8 @@ trait QuotationHeaderActions
 
                         return $proformaInvoice;
                     });
+
+                    app(AdvanceInquiryToQuotedAction::class)->execute($pi->inquiry);
 
                     Notification::make()
                         ->title(__('messages.pi_created').': '.$pi->reference)

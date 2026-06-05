@@ -81,6 +81,7 @@ trait PurchaseOrderHeaderActions
                 $allowed = $this->record->getAllowedNextStatuses();
                 $options = collect($allowed)->mapWithKeys(function ($status) {
                     $enum = PurchaseOrderStatus::from($status);
+
                     return [$status => $enum->getLabel()];
                 })->toArray();
 
@@ -114,7 +115,7 @@ trait PurchaseOrderHeaderActions
                     );
 
                     Notification::make()
-                        ->title(__('messages.status_changed_to') . ' ' . $newStatus->getLabel())
+                        ->title(__('messages.status_changed_to').' '.$newStatus->getLabel())
                         ->success()
                         ->send();
 

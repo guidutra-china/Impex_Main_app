@@ -2,8 +2,10 @@
 
 namespace App\Domain\Infrastructure\Actions;
 
+use App\Domain\Infrastructure\Exceptions\TransitionBlockedException;
 use App\Domain\Infrastructure\Models\StateTransition;
 use App\Domain\Infrastructure\Traits\HasStateMachine;
+use App\Domain\Operations\OperationsPipeline;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -14,13 +16,10 @@ class TransitionStatusAction
      * Validates the transition, updates the status, logs the change, and executes side-effects.
      *
      * @param  Model&HasStateMachine  $model
-     * @param  string|\BackedEnum  $toStatus
-     * @param  string|null  $notes
-     * @param  array  $metadata
      * @param  callable|null  $sideEffects  Closure executed inside the transaction after status change
-     * @return Model
      *
      * @throws \InvalidArgumentException if the transition is not allowed
+     * @throws \App\Domain\Infrastructure\Exceptions\TransitionBlockedException if a business-rule blocker is present
      */
     public function execute(
         Model $model,
@@ -40,11 +39,16 @@ class TransitionStatusAction
             $modelClass = class_basename($model);
             throw new \InvalidArgumentException(
                 "Invalid status transition for {$modelClass}: [{$fromStatusValue}] → [{$toStatusValue}]. "
-                . 'Allowed: [' . implode(', ', $model->getAllowedNextStatuses()) . ']'
+                .'Allowed: ['.implode(', ', $model->getAllowedNextStatuses()).']'
             );
         }
 
-        return DB::transaction(function () use ($model, $toStatus, $toStatusValue, $fromStatusValue, $notes, $metadata, $sideEffects) {
+        $blockers = $model->getTransitionBlockers($toStatusValue);
+        if (! empty($blockers)) {
+            throw new TransitionBlockedException($blockers);
+        }
+
+        $result = DB::transaction(function () use ($model, $toStatus, $toStatusValue, $fromStatusValue, $notes, $metadata, $sideEffects) {
             $column = $model->getStatusColumn();
             $model->{$column} = $toStatus;
             $model->save();
@@ -66,5 +70,54 @@ class TransitionStatusAction
 
             return $model;
         });
+
+        $this->runAutoAdvances($model, $toStatusValue);
+
+        return $result;
+    }
+
+    /**
+     * Apply declarative pipeline auto-advances after a successful transition.
+     * Best-effort: resolve is guarded separately from per-target execution so a
+     * single failing target can never block the others or the originating transition.
+     */
+    private function runAutoAdvances(Model $model, string $toStatusValue): void
+    {
+        foreach (OperationsPipeline::autoAdvancesFor($model, $toStatusValue) as $advance) {
+            try {
+                $resolved = ($advance->resolveTargets)($model);
+            } catch (\Throwable $e) {
+                report($e);
+
+                continue;
+            }
+
+            $targets = match (true) {
+                $resolved === null => [],
+                $resolved instanceof Model => [$resolved],
+                default => $resolved, // iterable of Models (Eloquent Collection or array)
+            };
+
+            foreach ($targets as $target) {
+                try {
+                    if ($target instanceof Model && $target->canTransitionTo($advance->targetStatus)) {
+                        $this->execute(
+                            $target,
+                            $advance->targetStatus,
+                            notes: 'Auto-advance triggered by '.class_basename($model).' #'.$model->getKey().' reaching '.$toStatusValue,
+                        );
+                    }
+                } catch (\Throwable $e) {
+                    // Best-effort: never break the originating transition, but keep enough
+                    // context to diagnose a missed auto-advance from the logs.
+                    report(new \RuntimeException(
+                        'Auto-advance failed: '.class_basename($model).' #'.$model->getKey()
+                        .' → '.($target instanceof Model ? class_basename($target).' #'.$target->getKey() : 'unknown')
+                        .' status='.$advance->targetStatus,
+                        previous: $e,
+                    ));
+                }
+            }
+        }
     }
 }
