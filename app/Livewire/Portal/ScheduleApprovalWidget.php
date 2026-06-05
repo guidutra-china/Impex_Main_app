@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Portal;
 
+use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Planning\Enums\ProductionScheduleStatus;
 use App\Domain\Planning\Models\ProductionSchedule;
 use Filament\Notifications\Notification;
@@ -11,6 +12,7 @@ use Livewire\Component;
 class ScheduleApprovalWidget extends Component
 {
     public ProductionSchedule $schedule;
+
     public string $approvalNote = '';
 
     public function mount(ProductionSchedule $schedule): void
@@ -24,11 +26,16 @@ class ScheduleApprovalWidget extends Component
             return;
         }
 
-        $this->schedule->update([
-            'status'      => ProductionScheduleStatus::Approved,
-            'approved_by' => auth()->id(),
-            'approved_at' => now(),
-        ]);
+        app(TransitionStatusAction::class)->execute(
+            $this->schedule,
+            ProductionScheduleStatus::Approved->value,
+            sideEffects: function (ProductionSchedule $schedule): void {
+                $schedule->update([
+                    'approved_by' => auth()->id(),
+                    'approved_at' => now(),
+                ]);
+            },
+        );
         $this->schedule->refresh();
 
         Notification::make()->success()->title('Schedule approved')->send();
@@ -43,12 +50,17 @@ class ScheduleApprovalWidget extends Component
 
         $this->validate(['approvalNote' => 'required|string|min:5']);
 
-        $this->schedule->update([
-            'status'         => ProductionScheduleStatus::Rejected,
-            'approved_by'    => auth()->id(),
-            'approved_at'    => now(),
-            'approval_notes' => $this->approvalNote,
-        ]);
+        app(TransitionStatusAction::class)->execute(
+            $this->schedule,
+            ProductionScheduleStatus::Rejected->value,
+            sideEffects: function (ProductionSchedule $schedule): void {
+                $schedule->update([
+                    'approved_by' => auth()->id(),
+                    'approved_at' => now(),
+                    'approval_notes' => $this->approvalNote,
+                ]);
+            },
+        );
         $this->schedule->refresh();
 
         Notification::make()->warning()->title('Schedule rejected — supplier will be notified')->send();
@@ -66,7 +78,7 @@ class ScheduleApprovalWidget extends Component
             ->get()
             ->map(function ($piItem) use ($entries) {
                 $itemEntries = $entries->where('proforma_invoice_item_id', $piItem->id);
-                $dates       = $itemEntries->pluck('production_date')
+                $dates = $itemEntries->pluck('production_date')
                     ->map->format('Y-m-d')
                     ->sort()
                     ->values();
@@ -76,12 +88,12 @@ class ScheduleApprovalWidget extends Component
                 }
 
                 return [
-                    'id'          => $piItem->id,
-                    'name'        => $piItem->product?->name ?? $piItem->description ?? '—',
+                    'id' => $piItem->id,
+                    'name' => $piItem->product?->name ?? $piItem->description ?? '—',
                     'pi_quantity' => $piItem->quantity,
-                    'dates'       => $dates,
-                    'quantities'  => $quantities,
-                    'total'       => $itemEntries->sum('quantity'),
+                    'dates' => $dates,
+                    'quantities' => $quantities,
+                    'total' => $itemEntries->sum('quantity'),
                 ];
             });
 
@@ -92,7 +104,7 @@ class ScheduleApprovalWidget extends Component
             ->values();
 
         return view('livewire.portal.schedule-approval-widget', [
-            'items'    => $items,
+            'items' => $items,
             'allDates' => $allDates,
             'isPending' => $this->schedule->status === ProductionScheduleStatus::PendingApproval,
         ]);
