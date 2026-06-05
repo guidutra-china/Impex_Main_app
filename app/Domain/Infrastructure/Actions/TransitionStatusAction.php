@@ -78,33 +78,45 @@ class TransitionStatusAction
 
     /**
      * Apply declarative pipeline auto-advances after a successful transition.
-     * Best-effort: each is guarded by canTransitionTo and wrapped in try/catch
-     * so a downstream failure can never break the originating transition.
+     * Best-effort: resolve is guarded separately from per-target execution so a
+     * single failing target can never block the others or the originating transition.
      */
     private function runAutoAdvances(Model $model, string $toStatusValue): void
     {
         foreach (OperationsPipeline::autoAdvancesFor($model, $toStatusValue) as $advance) {
-            $target = null;
-
             try {
-                $target = ($advance->resolveTarget)($model);
-
-                if ($target !== null && $target->canTransitionTo($advance->targetStatus)) {
-                    $this->execute(
-                        $target,
-                        $advance->targetStatus,
-                        notes: 'Auto-advance triggered by '.class_basename($model).' #'.$model->getKey().' reaching '.$toStatusValue,
-                    );
-                }
+                $resolved = ($advance->resolveTargets)($model);
             } catch (\Throwable $e) {
-                // Best-effort: never break the originating transition, but keep enough
-                // context to diagnose a missed auto-advance from the logs.
-                report(new \RuntimeException(
-                    'Auto-advance failed: '.class_basename($model).' #'.$model->getKey()
-                    .' → '.($target ? class_basename($target).' #'.$target->getKey() : 'null target')
-                    .' status='.$advance->targetStatus,
-                    previous: $e,
-                ));
+                report($e);
+
+                continue;
+            }
+
+            $targets = match (true) {
+                $resolved === null => [],
+                $resolved instanceof Model => [$resolved],
+                default => $resolved, // iterable of Models (Eloquent Collection or array)
+            };
+
+            foreach ($targets as $target) {
+                try {
+                    if ($target instanceof Model && $target->canTransitionTo($advance->targetStatus)) {
+                        $this->execute(
+                            $target,
+                            $advance->targetStatus,
+                            notes: 'Auto-advance triggered by '.class_basename($model).' #'.$model->getKey().' reaching '.$toStatusValue,
+                        );
+                    }
+                } catch (\Throwable $e) {
+                    // Best-effort: never break the originating transition, but keep enough
+                    // context to diagnose a missed auto-advance from the logs.
+                    report(new \RuntimeException(
+                        'Auto-advance failed: '.class_basename($model).' #'.$model->getKey()
+                        .' → '.($target instanceof Model ? class_basename($target).' #'.$target->getKey() : 'unknown')
+                        .' status='.$advance->targetStatus,
+                        previous: $e,
+                    ));
+                }
             }
         }
     }
