@@ -9,7 +9,6 @@ use App\Domain\Infrastructure\Traits\HasDocuments;
 use App\Domain\Infrastructure\Traits\HasReference;
 use App\Domain\Infrastructure\Traits\HasStateMachine;
 use App\Domain\Inquiries\Models\Inquiry;
-use App\Domain\Inquiries\Models\InquiryItem;
 use App\Domain\Settings\Models\PaymentTerm;
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
 use App\Models\User;
@@ -21,7 +20,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SupplierQuotation extends Model
 {
-    use HasFactory, SoftDeletes, HasReference, HasStateMachine, HasDocuments;
+    use HasDocuments, HasFactory, HasReference, HasStateMachine, SoftDeletes;
 
     protected $fillable = [
         'reference',
@@ -55,6 +54,11 @@ class SupplierQuotation extends Model
         ];
     }
 
+    protected static function newFactory(): \Database\Factories\SupplierQuotationFactory
+    {
+        return \Database\Factories\SupplierQuotationFactory::new();
+    }
+
     // --- HasReference ---
 
     public function getDocumentType(): DocumentType
@@ -73,6 +77,7 @@ class SupplierQuotation extends Model
             ],
             SupplierQuotationStatus::RECEIVED->value => [
                 SupplierQuotationStatus::UNDER_ANALYSIS->value,
+                SupplierQuotationStatus::SELECTED->value,
                 SupplierQuotationStatus::REJECTED->value,
                 SupplierQuotationStatus::EXPIRED->value,
             ],
