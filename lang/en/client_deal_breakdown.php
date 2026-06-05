@@ -52,6 +52,10 @@ return [
         'client_charge' => 'Charged to client',
         'received_client' => 'Client reimbursement',
     ],
+    'commission' => [
+        'outstanding' => 'due',
+        'settled' => 'settled',
+    ],
     'fx_unavailable_tooltip' => 'FX rate not available for one or more currency pairs in this range.',
     'no_pos' => 'No linked purchase orders',
     'no_shipments' => 'No linked shipments',

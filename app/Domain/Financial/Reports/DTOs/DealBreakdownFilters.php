@@ -28,6 +28,7 @@ final readonly class DealBreakdownFilters
         return [
             ProformaInvoiceStatus::SENT,
             ProformaInvoiceStatus::CONFIRMED,
+            ProformaInvoiceStatus::SHIPPED,
             ProformaInvoiceStatus::FINALIZED,
             ProformaInvoiceStatus::REOPENED,
         ];

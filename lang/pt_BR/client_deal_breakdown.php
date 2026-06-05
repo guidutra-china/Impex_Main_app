@@ -52,6 +52,10 @@ return [
         'client_charge' => 'Cobrado do cliente',
         'received_client' => 'Reembolso do cliente',
     ],
+    'commission' => [
+        'outstanding' => 'falta',
+        'settled' => 'quitada',
+    ],
     'fx_unavailable_tooltip' => 'Taxa de câmbio indisponível para um ou mais pares de moedas no período.',
     'no_pos' => 'Nenhum PO vinculado',
     'no_shipments' => 'Nenhum shipment vinculado',

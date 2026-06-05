@@ -113,7 +113,6 @@ class DealBreakdownReportServiceTest extends TestCase
                 clientReimbursedMinor: 120_000_0,
             )
             ->withPiCommission(amountMinor: 50_000_0, billable: \App\Domain\Financial\Enums\BillableTo::CLIENT)
-            ->withPiCommission(amountMinor: 20_000_0, billable: \App\Domain\Financial\Enums\BillableTo::SUPPLIER)
             ->withEmbeddedCommissionQuotation(rate: 5.0, subtotalMinor: 1_000_000_0)
             ->build();
 
@@ -144,16 +143,56 @@ class DealBreakdownReportServiceTest extends TestCase
         // Cash balance = received(1,000k + 120k reimbursement) - suppliers(600k) - shipments(100k) = 420k
         $this->assertSame(420_000_0, $deal->totals->cashBalance);
 
-        // Commission received = separate client(50k) + embedded(1,000k × 5% = 50k) = 100k; paid = supplier 20k
+        // Commission charged (received) = separate client(50k) + embedded(1,000k × 5% = 50k) = 100k
         $this->assertSame(50_000_0, $deal->commission->receivedSeparatePresentation);
         $this->assertSame(50_000_0, $deal->commission->receivedEmbeddedPresentation);
         $this->assertSame(100_000_0, $deal->commission->receivedPresentation);
-        $this->assertSame(20_000_0, $deal->commission->paidPresentation);
+        // Paid by client: separate not yet collected (0) + embedded collected with the
+        // fully-paid PI (50k) = 50k; outstanding = 50k (the separate commission).
+        $this->assertSame(50_000_0, $deal->commission->paidPresentation);
+        $this->assertSame(50_000_0, $deal->commission->outstandingPresentation);
 
         // KPIs aggregate commission.
         $this->assertSame(100_000_0, $report->kpi->totalCommissionReceived);
-        $this->assertSame(20_000_0, $report->kpi->totalCommissionPaid);
+        $this->assertSame(50_000_0, $report->kpi->totalCommissionPaid);
         $this->assertSame(100_000_0, $report->kpi->totalPaidShipments);
+    }
+
+    public function test_commission_paid_tracks_client_separate_payment(): void
+    {
+        $client = Company::factory()->create(['status' => 'active']);
+
+        DealScenarioBuilder::make()
+            ->forClient($client)
+            ->withPi(reference: 'PI-400', totalMinor: 100_000_0, currency: 'USD')
+            // Separate client commission of 40k; client has paid 25k of it (via its PSI).
+            ->withPiCommission(
+                amountMinor: 40_000_0,
+                billable: \App\Domain\Financial\Enums\BillableTo::CLIENT,
+                paidMinor: 25_000_0,
+            )
+            ->build();
+
+        $filters = new DealBreakdownFilters(
+            from: CarbonImmutable::parse('2026-01-01'),
+            to: CarbonImmutable::parse('2026-12-31'),
+            presentationCurrency: 'USD',
+            statuses: DealBreakdownFilters::defaultStatuses(),
+        );
+
+        $report = app(DealBreakdownReportService::class)->build($client, $filters);
+        $deal = collect($report->deals)->firstWhere(fn ($d) => $d->pi->reference === 'PI-400');
+        $this->assertNotNull($deal);
+
+        $this->assertSame(40_000_0, $deal->commission->receivedPresentation);
+        $this->assertSame(40_000_0, $deal->commission->receivedSeparatePresentation);
+        $this->assertSame(0, $deal->commission->receivedEmbeddedPresentation);
+        // Client paid 25k of the 40k commission → 15k outstanding.
+        $this->assertSame(25_000_0, $deal->commission->paidPresentation);
+        $this->assertSame(15_000_0, $deal->commission->outstandingPresentation);
+
+        $this->assertSame(40_000_0, $report->kpi->totalCommissionReceived);
+        $this->assertSame(25_000_0, $report->kpi->totalCommissionPaid);
     }
 
     public function test_draft_and_cancelled_excluded_by_default_status_filter(): void

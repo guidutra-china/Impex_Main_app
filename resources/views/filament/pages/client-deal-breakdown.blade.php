@@ -191,9 +191,19 @@
                                         <span class="text-amber-600">⚠</span>
                                     @endif
                                 </td>
-                                <td class="p-3 text-right text-red-600">
+                                <td class="p-3 text-right">
                                     @if ($deal->commission->paidPresentation !== null)
-                                        {{ \App\Domain\Infrastructure\Support\Money::format($deal->commission->paidPresentation) }}
+                                        <div class="text-green-600">
+                                            {{ \App\Domain\Infrastructure\Support\Money::format($deal->commission->paidPresentation) }}
+                                        </div>
+                                        @if (($deal->commission->outstandingPresentation ?? 0) > 0)
+                                            <div class="text-[10px] text-amber-600">
+                                                {{ __('client_deal_breakdown.commission.outstanding') }}:
+                                                {{ \App\Domain\Infrastructure\Support\Money::format($deal->commission->outstandingPresentation) }}
+                                            </div>
+                                        @elseif (($deal->commission->receivedPresentation ?? 0) > 0)
+                                            <div class="text-[10px] text-green-600">✓ {{ __('client_deal_breakdown.commission.settled') }}</div>
+                                        @endif
                                     @else
                                         <span class="text-amber-600">⚠</span>
                                     @endif

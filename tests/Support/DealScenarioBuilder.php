@@ -423,14 +423,19 @@ class DealScenarioBuilder
         return $this;
     }
 
-    /** Comissão lançada como AdditionalCost de tipo COMMISSION na PI. */
+    /**
+     * Comissão lançada como AdditionalCost de tipo COMMISSION na PI, gerando o PSI
+     * correspondente (source = AdditionalCost). $paidMinor simula quanto o cliente
+     * já pagou dessa comissão (pagamento INBOUND alocado ao PSI).
+     */
     public function withPiCommission(
         int $amountMinor,
         BillableTo $billable = BillableTo::CLIENT,
+        int $paidMinor = 0,
         string $currency = 'USD',
         string $date = '2026-03-16',
     ): self {
-        $this->pi->additionalCosts()->create([
+        $cost = $this->pi->additionalCosts()->create([
             'cost_type' => AdditionalCostType::COMMISSION,
             'description' => 'Commission',
             'amount' => $amountMinor,
@@ -441,6 +446,39 @@ class DealScenarioBuilder
             'status' => AdditionalCostStatus::PENDING,
             'cost_date' => $date,
         ]);
+
+        $schedule = $this->pi->paymentScheduleItems()->create([
+            'label' => 'Commission',
+            'percentage' => 0,
+            'amount' => $amountMinor,
+            'currency_code' => $currency,
+            'status' => PaymentScheduleStatus::DUE,
+            'is_blocking' => false,
+            'is_credit' => $billable === BillableTo::SUPPLIER,
+            'source_type' => \App\Domain\Financial\Models\AdditionalCost::class,
+            'source_id' => $cost->id,
+            'sort_order' => 50,
+        ]);
+
+        if ($paidMinor > 0) {
+            $payment = Payment::create([
+                'direction' => PaymentDirection::INBOUND,
+                'company_id' => $this->client->id,
+                'amount' => $paidMinor,
+                'currency_code' => $currency,
+                'payment_date' => $date,
+                'reference' => 'COMM-PAY-'.$cost->id,
+                'status' => PaymentStatus::APPROVED,
+            ]);
+            PaymentAllocation::create([
+                'payment_id' => $payment->id,
+                'payment_schedule_item_id' => $schedule->id,
+                'allocated_amount' => $paidMinor,
+                'exchange_rate' => 1.0,
+                'allocated_amount_in_document_currency' => $paidMinor,
+                'created_at' => $date,
+            ]);
+        }
 
         return $this;
     }

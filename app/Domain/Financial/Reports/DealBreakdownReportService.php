@@ -7,6 +7,7 @@ use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentStatus;
+use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\DebitNote;
 use App\Domain\Financial\Reports\DTOs\AdditionalCostRow;
 use App\Domain\Financial\Reports\DTOs\CommissionBlock;
@@ -143,7 +144,7 @@ final class DealBreakdownReportService
             ? (float) round($margin / $costBase * 100, 1)
             : 0.0;
 
-        $commission = $this->buildCommission($pi, $fx, $piIssue, $unconverted);
+        $commission = $this->buildCommission($pi, $fx, $piIssue, $piTotalOriginal, $receipts, $unconverted);
 
         return new DealRow(
             pi: $piInfo,
@@ -400,28 +401,31 @@ final class DealBreakdownReportService
     /**
      * Comissão por deal (PI), em moeda de apresentação.
      *
-     * - recebida (separate) = AdditionalCost COMMISSION billable_to=client na PI.
-     * - recebida (embedded) = derivada das quotations ligadas com commission_type=EMBEDDED
-     *   (subtotal × rate/100). Já está embutida no unit_price da PI; valor informativo.
-     * - paga = AdditionalCost COMMISSION billable_to=supplier/company na PI.
+     * - recebida (cobrada do cliente):
+     *     separate = AdditionalCost COMMISSION billable_to=client na PI;
+     *     embedded = derivada das quotations ligadas com commission_type=EMBEDDED
+     *     (subtotal × rate/100), já embutida no unit_price da PI.
+     * - paga (quanto o cliente já pagou):
+     *     separate = alocações aprovadas nos PSIs gerados desses custos de comissão;
+     *     embedded = proporcional ao pagamento das mercadorias (está no preço da PI).
+     * - outstanding = recebida − paga.
      *
      * Custos da PI estão na moeda do documento PI; conversão usa moeda/data da PI.
      */
-    private function buildCommission(ProformaInvoice $pi, FxConverter $fx, CarbonImmutable $piIssue, array &$unconverted): CommissionBlock
+    private function buildCommission(ProformaInvoice $pi, FxConverter $fx, CarbonImmutable $piIssue, int $piTotalOriginal, ReceiptsBlock $receipts, array &$unconverted): CommissionBlock
     {
         $currency = (string) $pi->currency_code;
 
+        // Comissão cobrada do cliente (a receber).
+        $commissionCostIds = [];
         $separateOriginal = 0;
-        $paidOriginal = 0;
         foreach ($pi->additionalCosts as $cost) {
             if ($cost->cost_type !== AdditionalCostType::COMMISSION) {
                 continue;
             }
-            $amt = (int) $cost->amount_in_document_currency;
             if ($cost->billable_to === BillableTo::CLIENT) {
-                $separateOriginal += $amt;
-            } elseif ($cost->billable_to === BillableTo::SUPPLIER || $cost->billable_to === BillableTo::COMPANY) {
-                $paidOriginal += $amt;
+                $separateOriginal += (int) $cost->amount_in_document_currency;
+                $commissionCostIds[$cost->id] = true;
             }
         }
 
@@ -432,9 +436,36 @@ final class DealBreakdownReportService
             }
         }
 
+        // Quanto o cliente já pagou da comissão "separate": alocações aprovadas nos
+        // PSIs cuja origem é um AdditionalCost de comissão (billable_to=client).
+        $separatePaidOriginal = 0;
+        foreach ($pi->paymentScheduleItems as $scheduleItem) {
+            if ($scheduleItem->source_type !== AdditionalCost::class || ! isset($commissionCostIds[$scheduleItem->source_id])) {
+                continue;
+            }
+            foreach ($scheduleItem->allocations as $alloc) {
+                if ($alloc->payment?->status !== PaymentStatus::APPROVED) {
+                    continue;
+                }
+                $separatePaidOriginal += (int) $alloc->allocated_amount_in_document_currency;
+            }
+        }
+
+        // Comissão embutida é coletada proporcionalmente ao pagamento das mercadorias.
+        // goods_paid = recebido total na PI − parcela de comissão separate já paga.
+        $goodsPaidOriginal = max(0, (int) $receipts->paidOriginal - $separatePaidOriginal);
+        $embeddedPaidOriginal = ($embeddedOriginal > 0 && $piTotalOriginal > 0)
+            ? (int) round($embeddedOriginal * min(1.0, $goodsPaidOriginal / $piTotalOriginal))
+            : 0;
+
+        $receivedOriginal = $separateOriginal + $embeddedOriginal;
+        $paidOriginal = $separatePaidOriginal + $embeddedPaidOriginal;
+        $outstandingOriginal = max(0, $receivedOriginal - $paidOriginal);
+
         $separatePres = $separateOriginal > 0 ? $fx->convertDocument($separateOriginal, $currency, $piIssue) : 0;
         $embeddedPres = $embeddedOriginal > 0 ? $fx->convertDocument($embeddedOriginal, $currency, $piIssue) : 0;
         $paidPres = $paidOriginal > 0 ? $fx->convertDocument($paidOriginal, $currency, $piIssue) : 0;
+        $outstandingPres = $outstandingOriginal > 0 ? $fx->convertDocument($outstandingOriginal, $currency, $piIssue) : 0;
 
         $this->recordMissing($separatePres, $currency, $unconverted);
         $this->recordMissing($embeddedPres, $currency, $unconverted);
@@ -447,6 +478,7 @@ final class DealBreakdownReportService
         return new CommissionBlock(
             receivedPresentation: $receivedPres,
             paidPresentation: $paidPres,
+            outstandingPresentation: $outstandingPres,
             receivedSeparatePresentation: $separatePres,
             receivedEmbeddedPresentation: $embeddedPres,
         );
