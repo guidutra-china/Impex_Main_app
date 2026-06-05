@@ -10,6 +10,7 @@ use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
+use Illuminate\Database\Eloquent\Model;
 
 final class OperationsPipeline
 {
@@ -57,5 +58,35 @@ final class OperationsPipeline
         }
 
         throw new \InvalidArgumentException("Unknown pipeline stage: {$key}");
+    }
+
+    /**
+     * Declarative lifecycle auto-advances applied by TransitionStatusAction
+     * after a successful transition.
+     *
+     * @return array<AutoAdvance>
+     */
+    public static function autoAdvances(): array
+    {
+        return [
+            // Confirming a Proforma Invoice marks its originating Inquiry as won.
+            new AutoAdvance(
+                ProformaInvoice::class,
+                ProformaInvoiceStatus::CONFIRMED->value,
+                fn (ProformaInvoice $pi) => $pi->inquiry,
+                InquiryStatus::WON->value,
+            ),
+        ];
+    }
+
+    /**
+     * @return array<AutoAdvance>
+     */
+    public static function autoAdvancesFor(Model $model, string $toStatus): array
+    {
+        return array_values(array_filter(
+            self::autoAdvances(),
+            fn (AutoAdvance $a) => $model instanceof $a->sourceModelClass && $a->sourceToStatus === $toStatus,
+        ));
     }
 }
