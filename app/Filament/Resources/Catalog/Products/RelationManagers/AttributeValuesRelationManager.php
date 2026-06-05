@@ -5,7 +5,6 @@ namespace App\Filament\Resources\Catalog\Products\RelationManagers;
 use App\Domain\Catalog\Enums\AttributeType;
 use App\Domain\Catalog\Models\CategoryAttribute;
 use App\Domain\Catalog\Services\DuplicateProductDetector;
-use App\Domain\Catalog\Services\ProductNameGenerator;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -258,10 +257,6 @@ class AttributeValuesRelationManager extends RelationManager
     protected function afterAttributeSaved(): void
     {
         $product = $this->getOwnerRecord()->fresh();
-
-        ProductNameGenerator::updateProductName($product);
-
-        $this->dispatch('product-name-updated');
 
         if (! $product->category_id) {
             return;

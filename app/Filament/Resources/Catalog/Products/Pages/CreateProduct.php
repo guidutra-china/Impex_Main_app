@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Catalog\Products\Pages;
 
 use App\Domain\Catalog\Models\Category;
-use App\Domain\Catalog\Services\ProductNameGenerator;
 use App\Filament\Resources\Catalog\Products\Concerns\ManagesProductGallery;
 use App\Filament\Resources\Catalog\Products\ProductResource;
 use Filament\Notifications\Notification;
@@ -46,8 +45,6 @@ class CreateProduct extends CreateRecord
             ]);
             $count++;
         }
-
-        ProductNameGenerator::updateProductName($product);
 
         Notification::make()
             ->title(__('messages.attributes_added'))
