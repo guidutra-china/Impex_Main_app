@@ -78,12 +78,13 @@ final class OperationsPipeline
                 InquiryStatus::WON->value,
             ),
 
-            // Confirming a Proforma Invoice selects all its linked supplier quotations
-            // (canTransitionTo filters to those still in received/under_analysis).
+            // Confirming a Proforma Invoice selects all supplier quotations linked to its
+            // inquiry (SQs are scoped to the inquiry via inquiry_id, not to the PI pivot).
+            // Null-safe: if the PI has no inquiry (shouldn't happen), returns null → [].
             new AutoAdvance(
                 ProformaInvoice::class,
                 ProformaInvoiceStatus::CONFIRMED->value,
-                fn (ProformaInvoice $pi) => $pi->supplierQuotations,
+                fn (ProformaInvoice $pi) => $pi->inquiry?->supplierQuotations,
                 SupplierQuotationStatus::SELECTED->value,
             ),
         ];

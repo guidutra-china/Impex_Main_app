@@ -29,8 +29,10 @@ class PiConfirmSelectsSupplierQuotationsTest extends TestCase
     private function piWithLinkedSq(SupplierQuotationStatus $sqStatus): array
     {
         $pi = ProformaInvoice::factory()->create(['status' => ProformaInvoiceStatus::SENT->value]);
-        $sq = SupplierQuotation::factory()->create(['status' => $sqStatus->value]);
-        $pi->supplierQuotations()->attach($sq->id);
+        $sq = SupplierQuotation::factory()->create([
+            'inquiry_id' => $pi->inquiry_id,
+            'status' => $sqStatus->value,
+        ]);
 
         return [$pi, $sq];
     }
@@ -74,9 +76,14 @@ class PiConfirmSelectsSupplierQuotationsTest extends TestCase
     public function test_confirming_pi_selects_all_linked_sqs(): void
     {
         $pi = ProformaInvoice::factory()->create(['status' => ProformaInvoiceStatus::SENT->value]);
-        $sq1 = SupplierQuotation::factory()->create(['status' => SupplierQuotationStatus::RECEIVED->value]);
-        $sq2 = SupplierQuotation::factory()->create(['status' => SupplierQuotationStatus::UNDER_ANALYSIS->value]);
-        $pi->supplierQuotations()->attach([$sq1->id, $sq2->id]);
+        $sq1 = SupplierQuotation::factory()->create([
+            'inquiry_id' => $pi->inquiry_id,
+            'status' => SupplierQuotationStatus::RECEIVED->value,
+        ]);
+        $sq2 = SupplierQuotation::factory()->create([
+            'inquiry_id' => $pi->inquiry_id,
+            'status' => SupplierQuotationStatus::UNDER_ANALYSIS->value,
+        ]);
 
         $this->confirmPi($pi);
 
@@ -87,8 +94,8 @@ class PiConfirmSelectsSupplierQuotationsTest extends TestCase
     public function test_unlinked_sq_is_untouched(): void
     {
         $pi = ProformaInvoice::factory()->create(['status' => ProformaInvoiceStatus::SENT->value]);
+        // Different inquiry — genuinely unrelated to $pi.
         $other = SupplierQuotation::factory()->create(['status' => SupplierQuotationStatus::RECEIVED->value]);
-        // NOT attached to $pi.
 
         $this->confirmPi($pi);
 
@@ -119,8 +126,10 @@ class PiConfirmSelectsSupplierQuotationsTest extends TestCase
             'inquiry_id' => $inquiry->id,
             'status' => ProformaInvoiceStatus::SENT->value,
         ]);
-        $sq = SupplierQuotation::factory()->create(['status' => SupplierQuotationStatus::RECEIVED->value]);
-        $pi->supplierQuotations()->attach($sq->id);
+        $sq = SupplierQuotation::factory()->create([
+            'inquiry_id' => $inquiry->id,
+            'status' => SupplierQuotationStatus::RECEIVED->value,
+        ]);
 
         $this->confirmPi($pi);
 
