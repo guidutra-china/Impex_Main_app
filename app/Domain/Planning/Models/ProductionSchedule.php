@@ -37,7 +37,11 @@ class ProductionSchedule extends Model
                 ProductionScheduleStatus::Approved->value,
                 ProductionScheduleStatus::Rejected->value,
             ],
-            ProductionScheduleStatus::Approved->value => [ProductionScheduleStatus::Completed->value],
+            ProductionScheduleStatus::Approved->value => [
+                ProductionScheduleStatus::Completed->value,
+                // Supplier can request edit on an Approved schedule (canRequestEdit) and resubmit.
+                ProductionScheduleStatus::PendingApproval->value,
+            ],
             ProductionScheduleStatus::Completed->value => [],
         ];
     }
