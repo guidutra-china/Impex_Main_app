@@ -108,7 +108,7 @@
                 <div class="text-[11px] uppercase font-semibold text-gray-400 mb-1">
                     {{ __('client_deal_breakdown.kpi.group_profitability') }}
                 </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
                     <x-filament::section>
                         <div class="text-xs uppercase text-gray-500" title="{{ __('client_deal_breakdown.kpi.margin_tooltip') }}">
                             {{ __('client_deal_breakdown.kpi.total_margin') }}
@@ -127,6 +127,10 @@
                     <x-filament::section>
                         <div class="text-xs uppercase text-gray-500">{{ __('client_deal_breakdown.kpi.commission_paid') }}</div>
                         <div class="text-2xl font-bold text-green-600">{{ $fmt($report->kpi->totalCommissionPaid) }}</div>
+                    </x-filament::section>
+                    <x-filament::section>
+                        <div class="text-xs uppercase text-gray-500">{{ __('client_deal_breakdown.kpi.freight_margin') }}</div>
+                        <div class="text-2xl font-bold {{ $report->kpi->totalFreightMargin >= 0 ? 'text-blue-600' : 'text-red-600' }}">{{ $fmt($report->kpi->totalFreightMargin) }}</div>
                     </x-filament::section>
                     <x-filament::section>
                         <div class="text-xs uppercase text-gray-500" title="{{ __('client_deal_breakdown.kpi.real_gain_tooltip') }}">

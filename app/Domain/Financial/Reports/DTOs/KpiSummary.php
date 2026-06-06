@@ -16,5 +16,6 @@ final readonly class KpiSummary
         public int $totalCashBalance,
         public int $totalOverallGain,
         public int $totalDebitNotes,
+        public int $totalFreightMargin,
     ) {}
 }

@@ -166,6 +166,7 @@ final class DealBreakdownReportService
                 marginPct: $marginPct,
                 billedToClientPresentation: $billedToClient,
                 receivedTotalPresentation: $received,
+                freightMarginPresentation: $freightMargin,
                 overallGainPresentation: $overallGain,
             ),
             commission: $commission,
@@ -584,6 +585,7 @@ final class DealBreakdownReportService
         $billed = 0;
         $cashBalance = 0;
         $overallGain = 0;
+        $freightMargin = 0;
 
         foreach ($deals as $deal) {
             $received += (int) ($deal->receipts->paidPresentation ?? 0);
@@ -601,6 +603,7 @@ final class DealBreakdownReportService
             $billed += $deal->totals->billedToClientPresentation;
             $cashBalance += $deal->totals->cashBalance;
             $overallGain += $deal->totals->overallGainPresentation;
+            $freightMargin += $deal->totals->freightMarginPresentation;
         }
 
         // DNs not allocable to a specific deal — subtract their total from
@@ -623,6 +626,7 @@ final class DealBreakdownReportService
             totalCashBalance: $cashBalance,
             totalOverallGain: $overallGain,
             totalDebitNotes: $dnTotal,
+            totalFreightMargin: $freightMargin,
         );
     }
 

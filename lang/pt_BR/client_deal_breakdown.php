@@ -25,6 +25,7 @@ return [
         'margin_tooltip' => 'Margem comercial do deal (mercadoria + frete). Inclui comissão embutida; não somar com Ganho Real.',
         'commission_received' => 'Comissão a Receber',
         'commission_paid' => 'Comissão Recebida',
+        'freight_margin' => 'Margem de Frete',
         'real_gain' => 'Ganho Real',
         'real_gain_tooltip' => 'Ganho da Impex como intermediária = comissão recebida + margem de frete (cobrado − custo). Não somar com Margem.',
     ],

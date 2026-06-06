@@ -25,6 +25,7 @@ return [
         'margin_tooltip' => 'Deal commercial margin (goods + freight). Includes embedded commission; do not add to Real Gain.',
         'commission_received' => 'Commission Receivable',
         'commission_paid' => 'Commission Received',
+        'freight_margin' => 'Freight Margin',
         'real_gain' => 'Real Gain',
         'real_gain_tooltip' => 'Impex earnings as intermediary = commission received + freight margin (charged − cost). Do not add to Margin.',
     ],

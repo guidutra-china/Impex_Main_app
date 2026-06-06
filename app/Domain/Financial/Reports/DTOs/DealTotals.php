@@ -13,8 +13,11 @@ final readonly class DealTotals
         public int $billedToClientPresentation,
         // Total recebido do cliente (mercadoria + reembolso de frete + comissão paga).
         public int $receivedTotalPresentation,
-        // Ganho real da Impex na PI = comissão recebida (cobrada) + margem de frete
-        // (reembolso do cliente − pago ao forwarder), em moeda de apresentação.
+        // Margem de frete (accrual: cobrado do cliente − custo real do forwarder),
+        // em moeda de apresentação.
+        public int $freightMarginPresentation,
+        // Ganho real da Impex na PI = comissão recebida (cobrada) + margem de frete,
+        // em moeda de apresentação.
         public int $overallGainPresentation,
     ) {}
 }

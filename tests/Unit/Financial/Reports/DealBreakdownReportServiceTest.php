@@ -170,6 +170,9 @@ class DealBreakdownReportServiceTest extends TestCase
         $this->assertSame(420_000_0, $report->kpi->totalCashBalance);
         $this->assertSame(120_000_0, $report->kpi->totalOverallGain);
         $this->assertSame(0, $report->kpi->totalDebitNotes);
+        // Freight margin (accrual) = charged 120k - forwarder cost 100k = 20k.
+        $this->assertSame(20_000_0, $deal->totals->freightMarginPresentation);
+        $this->assertSame(20_000_0, $report->kpi->totalFreightMargin);
     }
 
     public function test_commission_paid_tracks_client_separate_payment(): void
