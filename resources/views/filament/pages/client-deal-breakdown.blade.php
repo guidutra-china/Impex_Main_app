@@ -122,7 +122,7 @@
                     </x-filament::section>
                     <x-filament::section>
                         <div class="text-xs uppercase text-gray-500">{{ __('client_deal_breakdown.kpi.commission_received') }}</div>
-                        <div class="text-2xl font-bold text-green-600">{{ $fmt($report->kpi->totalCommissionReceived) }}</div>
+                        <div class="text-2xl font-bold text-gray-700 dark:text-gray-200">{{ $fmt($report->kpi->totalCommissionReceived) }}</div>
                     </x-filament::section>
                     <x-filament::section>
                         <div class="text-xs uppercase text-gray-500">{{ __('client_deal_breakdown.kpi.commission_paid') }}</div>
@@ -217,7 +217,7 @@
                                     </div>
                                     <div class="text-xs text-gray-500">{{ $deal->totals->marginPct }}%</div>
                                 </td>
-                                <td class="p-3 text-right text-green-600">
+                                <td class="p-3 text-right text-gray-700 dark:text-gray-200">
                                     @if ($deal->commission->receivedPresentation !== null)
                                         {{ \App\Domain\Infrastructure\Support\Money::format($deal->commission->receivedPresentation) }}
                                         @if (($deal->commission->receivedEmbeddedPresentation ?? 0) > 0)
