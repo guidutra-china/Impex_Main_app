@@ -782,6 +782,7 @@ return [
         'filter_by_supplier' => 'Filter by Supplier',
     ],
     'helpers' => [
+        'import_modality_affects_ci_and_packing_list' => 'The import modality affects the Commercial Invoice and Packing List.',
         'internal_expense' => 'Check when the trip is an internal company expense (no linked client/supplier).',
         'indicative_rate' => 'Indicative rate — can be changed.',
         'choose_billing_currency' => 'Choose the billing currency and review the FX rates before approving.',

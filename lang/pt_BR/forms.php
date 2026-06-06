@@ -777,6 +777,7 @@ return [
         'filter_by_supplier' => 'Filtrar por Fornecedor',
     ],
     'helpers' => [
+        'import_modality_affects_ci_and_packing_list' => 'A modalidade de importação afeta a Commercial Invoice e o Packing List.',
         'internal_expense' => 'Marque quando a viagem for despesa interna da empresa (sem cliente/fornecedor vinculado).',
         'indicative_rate' => 'Taxa indicativa — pode ser alterada.',
         'choose_billing_currency' => 'Escolha a moeda de cobrança e confira as taxas de câmbio antes de aprovar.',

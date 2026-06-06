@@ -753,6 +753,7 @@ return [
         'filter_by_supplier' => '按供应商筛选',
     ],
     'helpers' => [
+        'import_modality_affects_ci_and_packing_list' => '进口方式会影响商业发票和装箱单。',
         'internal_expense' => '当出差为公司内部费用（无关联客户/供应商）时勾选。',
         'indicative_rate' => '指示性汇率 — 可修改。',
         'choose_billing_currency' => '批准前请选择计费币种并核对汇率。',
