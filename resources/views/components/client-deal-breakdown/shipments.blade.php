@@ -72,7 +72,7 @@
                             {{ \App\Domain\Infrastructure\Support\Money::format($s->outstandingOriginal) }}
                         </td>
                         <td class="p-2 text-right">
-                            @php($fm = $s->freightReceivedOriginal - $s->paidOriginal)
+                            @php($fm = $s->attributedClientChargeOriginal - $s->attributedOriginal)
                             <span class="font-semibold {{ $fm >= 0 ? 'text-blue-600' : 'text-red-600' }}">
                                 {{ \App\Domain\Infrastructure\Support\Money::format($fm) }}
                             </span>

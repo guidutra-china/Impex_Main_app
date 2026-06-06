@@ -48,62 +48,93 @@
                 {{ __('client_deal_breakdown.empty_state') }}
             </div>
         @elseif ($report)
-            {{-- KPI cards --}}
-            <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
-                <x-filament::section>
-                    <div class="text-xs uppercase text-gray-500">
-                        {{ __('client_deal_breakdown.kpi.total_received') }}
-                    </div>
-                    <div class="text-2xl font-bold text-green-600">
-                        {{ \App\Domain\Infrastructure\Support\Money::format($report->kpi->totalReceived) }}
-                        {{ $report->presentationCurrency }}
-                    </div>
-                </x-filament::section>
-                <x-filament::section>
-                    <div class="text-xs uppercase text-gray-500">
-                        {{ __('client_deal_breakdown.kpi.total_paid_suppliers') }}
-                    </div>
-                    <div class="text-2xl font-bold text-red-600">
-                        {{ \App\Domain\Infrastructure\Support\Money::format($report->kpi->totalPaidSuppliers) }}
-                        {{ $report->presentationCurrency }}
-                    </div>
-                </x-filament::section>
-                <x-filament::section>
-                    <div class="text-xs uppercase text-gray-500">
-                        {{ __('client_deal_breakdown.kpi.total_paid_shipments') }}
-                    </div>
-                    <div class="text-2xl font-bold text-orange-600">
-                        {{ \App\Domain\Infrastructure\Support\Money::format($report->kpi->totalPaidShipments) }}
-                        {{ $report->presentationCurrency }}
-                    </div>
-                </x-filament::section>
-                <x-filament::section>
-                    <div class="text-xs uppercase text-gray-500">
-                        {{ __('client_deal_breakdown.kpi.total_margin') }}
-                    </div>
-                    <div class="text-2xl font-bold {{ $report->kpi->totalMargin >= 0 ? 'text-blue-600' : 'text-red-600' }}">
-                        {{ \App\Domain\Infrastructure\Support\Money::format($report->kpi->totalMargin) }}
-                        {{ $report->presentationCurrency }}
-                    </div>
-                </x-filament::section>
-                <x-filament::section>
-                    <div class="text-xs uppercase text-gray-500">
-                        {{ __('client_deal_breakdown.kpi.commission_received') }}
-                    </div>
-                    <div class="text-2xl font-bold text-green-600">
-                        {{ \App\Domain\Infrastructure\Support\Money::format($report->kpi->totalCommissionReceived) }}
-                        {{ $report->presentationCurrency }}
-                    </div>
-                </x-filament::section>
-                <x-filament::section>
-                    <div class="text-xs uppercase text-gray-500">
-                        {{ __('client_deal_breakdown.kpi.commission_paid') }}
-                    </div>
-                    <div class="text-2xl font-bold text-red-600">
-                        {{ \App\Domain\Infrastructure\Support\Money::format($report->kpi->totalCommissionPaid) }}
-                        {{ $report->presentationCurrency }}
-                    </div>
-                </x-filament::section>
+            {{-- KPI groups --}}
+            @php($cur = $report->presentationCurrency)
+            @php($fmt = fn ($v) => \App\Domain\Infrastructure\Support\Money::format($v).' '.$cur)
+            @php($receivable = $report->kpi->totalBilled - $report->kpi->totalReceived)
+            @php($fxGap = ! empty($report->unconvertedCurrencyPairs))
+
+            {{-- Caixa --}}
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="text-[11px] uppercase font-semibold text-gray-400">
+                        {{ __('client_deal_breakdown.kpi.group_cash') }}
+                    </span>
+                    @if ($fxGap)
+                        <span class="text-[10px] text-amber-600" title="{{ __('client_deal_breakdown.fx_unavailable_tooltip') }}">
+                            ⚠ FX
+                        </span>
+                    @endif
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <x-filament::section>
+                        <div class="text-xs uppercase text-gray-500">{{ __('client_deal_breakdown.kpi.total_billed') }}</div>
+                        <div class="text-2xl font-bold text-gray-700 dark:text-gray-200">{{ $fmt($report->kpi->totalBilled) }}</div>
+                    </x-filament::section>
+                    <x-filament::section>
+                        <div class="text-xs uppercase text-gray-500">{{ __('client_deal_breakdown.kpi.total_received') }}</div>
+                        <div class="text-2xl font-bold text-green-600">{{ $fmt($report->kpi->totalReceived) }}</div>
+                    </x-filament::section>
+                    <x-filament::section>
+                        <div class="text-xs uppercase text-gray-500">{{ __('client_deal_breakdown.kpi.receivable') }}</div>
+                        <div class="text-2xl font-bold {{ $receivable > 0 ? 'text-amber-600' : 'text-green-600' }}">{{ $fmt($receivable) }}</div>
+                    </x-filament::section>
+                    <x-filament::section>
+                        <div class="text-xs uppercase text-gray-500">{{ __('client_deal_breakdown.kpi.cash_balance') }}</div>
+                        <div class="text-2xl font-bold {{ $report->kpi->totalCashBalance >= 0 ? 'text-green-600' : 'text-red-600' }}">{{ $fmt($report->kpi->totalCashBalance) }}</div>
+                    </x-filament::section>
+                </div>
+            </div>
+
+            {{-- Saídas --}}
+            <div>
+                <div class="text-[11px] uppercase font-semibold text-gray-400 mb-1">
+                    {{ __('client_deal_breakdown.kpi.group_outflows') }}
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <x-filament::section>
+                        <div class="text-xs uppercase text-gray-500">{{ __('client_deal_breakdown.kpi.total_paid_suppliers') }}</div>
+                        <div class="text-2xl font-bold text-red-600">{{ $fmt($report->kpi->totalPaidSuppliers) }}</div>
+                    </x-filament::section>
+                    <x-filament::section>
+                        <div class="text-xs uppercase text-gray-500">{{ __('client_deal_breakdown.kpi.total_paid_shipments') }}</div>
+                        <div class="text-2xl font-bold text-orange-600">{{ $fmt($report->kpi->totalPaidShipments) }}</div>
+                    </x-filament::section>
+                </div>
+            </div>
+
+            {{-- Lucratividade --}}
+            <div>
+                <div class="text-[11px] uppercase font-semibold text-gray-400 mb-1">
+                    {{ __('client_deal_breakdown.kpi.group_profitability') }}
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <x-filament::section>
+                        <div class="text-xs uppercase text-gray-500" title="{{ __('client_deal_breakdown.kpi.margin_tooltip') }}">
+                            {{ __('client_deal_breakdown.kpi.total_margin') }}
+                        </div>
+                        <div class="text-2xl font-bold {{ $report->kpi->totalMargin >= 0 ? 'text-blue-600' : 'text-red-600' }}">{{ $fmt($report->kpi->totalMargin) }}</div>
+                        @if ($report->kpi->totalDebitNotes > 0)
+                            <div class="text-[10px] text-purple-600">
+                                − {{ __('client_deal_breakdown.sections.debit_notes') }}: {{ $fmt($report->kpi->totalDebitNotes) }}
+                            </div>
+                        @endif
+                    </x-filament::section>
+                    <x-filament::section>
+                        <div class="text-xs uppercase text-gray-500">{{ __('client_deal_breakdown.kpi.commission_received') }}</div>
+                        <div class="text-2xl font-bold text-green-600">{{ $fmt($report->kpi->totalCommissionReceived) }}</div>
+                    </x-filament::section>
+                    <x-filament::section>
+                        <div class="text-xs uppercase text-gray-500">{{ __('client_deal_breakdown.kpi.commission_paid') }}</div>
+                        <div class="text-2xl font-bold text-green-600">{{ $fmt($report->kpi->totalCommissionPaid) }}</div>
+                    </x-filament::section>
+                    <x-filament::section>
+                        <div class="text-xs uppercase text-gray-500" title="{{ __('client_deal_breakdown.kpi.real_gain_tooltip') }}">
+                            {{ __('client_deal_breakdown.kpi.real_gain') }}
+                        </div>
+                        <div class="text-2xl font-bold {{ $report->kpi->totalOverallGain >= 0 ? 'text-emerald-600' : 'text-red-600' }}">{{ $fmt($report->kpi->totalOverallGain) }}</div>
+                    </x-filament::section>
+                </div>
             </div>
 
             {{-- Main table --}}

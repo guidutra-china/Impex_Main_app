@@ -150,8 +150,9 @@ final class DealBreakdownReportService
         // frete cobrado do cliente (atribuído) + comissão separate cobrada.
         $billedToClient = (int) ($piTotalPres ?? 0) + $freightChargePres + (int) ($commission->receivedSeparatePresentation ?? 0);
 
-        // Ganho real da Impex = comissão recebida + margem de frete (reembolso − pago).
-        $freightMargin = $freightReceived - $paidShipments;
+        // Ganho real da Impex = comissão recebida + margem de frete (accrual:
+        // cobrado do cliente − custo real do forwarder).
+        $freightMargin = $freightChargePres - $shipCostPres;
         $overallGain = (int) ($commission->receivedPresentation ?? 0) + $freightMargin;
 
         return new DealRow(
@@ -580,6 +581,9 @@ final class DealBreakdownReportService
         $margin = 0;
         $commissionReceived = 0;
         $commissionPaid = 0;
+        $billed = 0;
+        $cashBalance = 0;
+        $overallGain = 0;
 
         foreach ($deals as $deal) {
             $received += (int) ($deal->receipts->paidPresentation ?? 0);
@@ -594,6 +598,9 @@ final class DealBreakdownReportService
             $margin += $deal->totals->margin;
             $commissionReceived += (int) ($deal->commission->receivedPresentation ?? 0);
             $commissionPaid += (int) ($deal->commission->paidPresentation ?? 0);
+            $billed += $deal->totals->billedToClientPresentation;
+            $cashBalance += $deal->totals->cashBalance;
+            $overallGain += $deal->totals->overallGainPresentation;
         }
 
         // DNs not allocable to a specific deal — subtract their total from
@@ -612,6 +619,10 @@ final class DealBreakdownReportService
             dealCount: count($deals),
             totalCommissionReceived: $commissionReceived,
             totalCommissionPaid: $commissionPaid,
+            totalBilled: $billed,
+            totalCashBalance: $cashBalance,
+            totalOverallGain: $overallGain,
+            totalDebitNotes: $dnTotal,
         );
     }
 

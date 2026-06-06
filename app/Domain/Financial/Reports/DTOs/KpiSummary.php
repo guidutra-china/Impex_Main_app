@@ -12,5 +12,9 @@ final readonly class KpiSummary
         public int $dealCount,
         public int $totalCommissionReceived,
         public int $totalCommissionPaid,
+        public int $totalBilled,
+        public int $totalCashBalance,
+        public int $totalOverallGain,
+        public int $totalDebitNotes,
     ) {}
 }

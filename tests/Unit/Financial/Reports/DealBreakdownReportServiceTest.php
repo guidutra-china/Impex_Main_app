@@ -164,6 +164,12 @@ class DealBreakdownReportServiceTest extends TestCase
         $this->assertSame(100_000_0, $report->kpi->totalCommissionReceived);
         $this->assertSame(50_000_0, $report->kpi->totalCommissionPaid);
         $this->assertSame(100_000_0, $report->kpi->totalPaidShipments);
+
+        // Reorganized KPI aggregates.
+        $this->assertSame(1_170_000_0, $report->kpi->totalBilled);
+        $this->assertSame(420_000_0, $report->kpi->totalCashBalance);
+        $this->assertSame(120_000_0, $report->kpi->totalOverallGain);
+        $this->assertSame(0, $report->kpi->totalDebitNotes);
     }
 
     public function test_commission_paid_tracks_client_separate_payment(): void
