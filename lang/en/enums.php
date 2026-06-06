@@ -401,6 +401,7 @@ return array (
     array (
     'direct' => 'Direct Import',
     'conta_e_ordem' => 'Import on Behalf (Conta e Ordem)',
+    'encomenda' => 'Import by Order (Encomenda)',
     ),
     'project_team_role' =>
     array (

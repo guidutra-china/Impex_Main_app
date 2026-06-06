@@ -401,6 +401,7 @@ return array (
     array (
     'direct' => 'Importação Direta',
     'conta_e_ordem' => 'Importação por Conta e Ordem',
+    'encomenda' => 'Importação por Encomenda',
     ),
     'project_team_role' =>
     array (

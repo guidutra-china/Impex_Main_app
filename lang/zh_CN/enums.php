@@ -401,6 +401,7 @@ return array (
     array (
     'direct' => '直接进口',
     'conta_e_ordem' => '代理进口（Conta e Ordem）',
+    'encomenda' => '订单进口（Encomenda）',
     ),
     'project_team_role' =>
     array (
