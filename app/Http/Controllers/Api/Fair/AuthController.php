@@ -23,13 +23,13 @@ class AuthController
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
+                'email' => ['Email ou senha incorretos.'],
             ]);
         }
 
         if ($user->type !== UserType::INTERNAL || $user->status !== 'active') {
             throw ValidationException::withMessages([
-                'email' => ['This account is not allowed to use the Fair mobile app.'],
+                'email' => ['Esta conta não tem permissão para usar o app de feira.'],
             ]);
         }
 

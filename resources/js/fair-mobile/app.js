@@ -95,7 +95,7 @@ Alpine.data('fairApp', () => ({
         } catch (err) {
             this.error = err instanceof ApiError
                 ? (err.body?.errors?.email?.[0] || err.message)
-                : 'Unable to connect.';
+                : 'Não foi possível conectar.';
         } finally {
             this.submitting = false;
         }
@@ -333,7 +333,7 @@ Alpine.data('fairApp', () => ({
                 this.runSync();
             }
         } catch (err) {
-            this.error = err?.message || 'Could not queue submission.';
+            this.error = err?.message || 'Não foi possível salvar o cadastro na fila.';
         } finally {
             this.submitting = false;
         }

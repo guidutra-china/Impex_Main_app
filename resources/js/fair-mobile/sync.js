@@ -121,26 +121,26 @@ function classifyError(err) {
         if (err.status === 409) {
             return {
                 status: SubmissionStatus.NEEDS_REVIEW,
-                lastError: err.body?.message || 'Conflict — existing company detected.',
+                lastError: err.body?.message || 'Conflito — empresa já cadastrada.',
                 conflict: err.body || null,
             };
         }
         if (err.status === 422) {
             return {
                 status: SubmissionStatus.FAILED,
-                lastError: firstValidationMessage(err.body) || 'Validation error.',
+                lastError: firstValidationMessage(err.body) || 'Erro de validação.',
             };
         }
         if (err.status === 401) {
             return {
                 status: SubmissionStatus.PENDING,
-                lastError: 'Session expired — please log in again.',
+                lastError: 'Sessão expirada — faça login novamente.',
             };
         }
     }
     return {
         status: SubmissionStatus.PENDING,
-        lastError: err?.message || 'Network error — will retry.',
+        lastError: err?.message || 'Erro de rede — vamos tentar de novo.',
     };
 }
 
