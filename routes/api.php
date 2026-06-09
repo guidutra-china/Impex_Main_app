@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\Fair\AuthController;
 use App\Http\Controllers\Api\Fair\CompanySearchController;
+use App\Http\Controllers\Api\Fair\FairCategoryController;
+use App\Http\Controllers\Api\Fair\FairCompanyController;
 use App\Http\Controllers\Api\Fair\FairSupplierController;
 use App\Http\Controllers\Api\Fair\ReferenceDataController;
 use App\Http\Controllers\Api\Fair\TradeFairController;
@@ -21,7 +23,9 @@ Route::prefix('fair/v1')->group(function () {
         Route::get('auth/me', [AuthController::class, 'me']);
 
         Route::get('trade-fairs/active', [TradeFairController::class, 'active']);
+        Route::get('trade-fairs/{tradeFair}/companies', [FairCompanyController::class, 'index']);
         Route::get('reference-data', [ReferenceDataController::class, 'index']);
+        Route::post('categories', [FairCategoryController::class, 'store']);
         Route::post('companies/search', [CompanySearchController::class, 'search']);
         Route::post('fair-suppliers', [FairSupplierController::class, 'store']);
     });

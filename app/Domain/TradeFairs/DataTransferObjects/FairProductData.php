@@ -6,6 +6,7 @@ final class FairProductData
 {
     /**
      * @param  array<int, \Symfony\Component\HttpFoundation\File\UploadedFile|string>  $photos
+     * @param  array<int, int>  $deletedImageIds
      */
     public function __construct(
         public readonly string $name,
@@ -15,5 +16,9 @@ final class FairProductData
         public readonly string $currencyCode = 'USD',
         public readonly ?int $moq = null,
         public readonly array $photos = [],
+        // Offline-sync identity + image deletions (null/empty for create-only payloads).
+        public readonly ?string $clientUuid = null,
+        public readonly ?int $serverId = null,
+        public readonly array $deletedImageIds = [],
     ) {}
 }

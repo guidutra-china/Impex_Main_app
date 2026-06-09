@@ -207,12 +207,12 @@ class FairApiTest extends TestCase
         $response = $this->postJson('/api/fair/v1/fair-suppliers', $payload)
             ->assertStatus(201)
             ->assertJsonStructure([
-                'company' => ['id', 'name', 'trade_fair_id', 'photo_count'],
-                'product_names',
+                'company' => ['id', 'client_uuid', 'name', 'trade_fair_id', 'contact', 'photos', 'products'],
                 'reused_existing_company',
             ]);
 
         $companyId = $response->json('company.id');
+        $this->assertSame('Bluetooth Speaker X1', $response->json('company.products.0.name'));
 
         $this->assertDatabaseHas('companies', [
             'id' => $companyId,
@@ -241,7 +241,7 @@ class FairApiTest extends TestCase
         ]);
 
         // Legacy business_card_photo field is mapped to the company photo gallery.
-        $this->assertSame(1, $response->json('company.photo_count'));
+        $this->assertCount(1, $response->json('company.photos'));
 
         $photoPath = \App\Domain\CRM\Models\CompanyPhoto::where('company_id', $companyId)
             ->where('is_primary', true)
@@ -345,5 +345,73 @@ class FairApiTest extends TestCase
         $existing->refresh();
         $this->assertSame($fair->id, $existing->trade_fair_id);
         $this->assertSame('Updated at this fair', $existing->notes);
+    }
+
+    public function test_store_fair_supplier_allows_missing_contact(): void
+    {
+        $fair = $this->activeFair();
+
+        Sanctum::actingAs($this->internalUser(), ['fair:register']);
+
+        $response = $this->postJson('/api/fair/v1/fair-suppliers', [
+            'trade_fair_id' => $fair->id,
+            'company_name' => 'No Contact Vendor',
+            'address_country' => 'CN',
+        ])->assertStatus(201);
+
+        $companyId = $response->json('company.id');
+        $this->assertDatabaseHas('companies', ['id' => $companyId, 'name' => 'No Contact Vendor']);
+        $this->assertDatabaseMissing('contacts', ['company_id' => $companyId]);
+    }
+
+    public function test_fair_supplier_upsert_is_idempotent_by_client_uuid(): void
+    {
+        $fair = $this->activeFair();
+        $uuid = (string) \Illuminate\Support\Str::uuid();
+
+        Sanctum::actingAs($this->internalUser(), ['fair:register']);
+
+        $first = $this->postJson('/api/fair/v1/fair-suppliers', [
+            'trade_fair_id' => $fair->id,
+            'client_uuid' => $uuid,
+            'company_name' => 'Idempotent Co.',
+        ])->assertStatus(201);
+
+        // Re-sync the same client_uuid with an edited name — must update, not dupe.
+        $this->postJson('/api/fair/v1/fair-suppliers', [
+            'trade_fair_id' => $fair->id,
+            'client_uuid' => $uuid,
+            'company_name' => 'Idempotent Co. (edited)',
+        ])->assertStatus(201);
+
+        $this->assertSame(1, Company::where('client_uuid', $uuid)->count());
+        $this->assertSame($first->json('company.id'), Company::where('client_uuid', $uuid)->value('id'));
+        $this->assertSame('Idempotent Co. (edited)', Company::where('client_uuid', $uuid)->value('name'));
+    }
+
+    public function test_list_companies_for_fair_returns_fair_companies(): void
+    {
+        $fair = $this->activeFair();
+        Company::create(['name' => 'Fair Vendor A', 'status' => CompanyStatus::PROSPECT, 'trade_fair_id' => $fair->id]);
+        Company::create(['name' => 'Fair Vendor B', 'status' => CompanyStatus::PROSPECT, 'trade_fair_id' => $fair->id]);
+        Company::create(['name' => 'Unrelated', 'status' => CompanyStatus::ACTIVE]);
+
+        Sanctum::actingAs($this->internalUser());
+
+        $this->getJson("/api/fair/v1/trade-fairs/{$fair->id}/companies")
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonStructure(['data' => [['id', 'name', 'products', 'photos']]]);
+    }
+
+    public function test_quick_add_category_creates_category(): void
+    {
+        Sanctum::actingAs($this->internalUser());
+
+        $this->postJson('/api/fair/v1/categories', ['name' => 'Brand New Category'])
+            ->assertStatus(201)
+            ->assertJsonStructure(['id', 'name']);
+
+        $this->assertDatabaseHas('categories', ['name' => 'Brand New Category']);
     }
 }

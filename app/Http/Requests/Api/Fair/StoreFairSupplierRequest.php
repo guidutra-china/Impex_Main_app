@@ -20,9 +20,15 @@ class StoreFairSupplierRequest extends FormRequest
     {
         return [
             'trade_fair_id' => ['required', 'integer', Rule::exists((new TradeFair)->getTable(), 'id')],
+
+            // Offline-sync identity: client_uuid for device-created companies,
+            // id when editing a company fetched from the server.
+            'id' => ['nullable', 'integer', 'exists:companies,id'],
+            'client_uuid' => ['nullable', 'uuid'],
             'existing_company_id' => ['nullable', 'integer', 'exists:companies,id'],
 
-            'company_name' => ['required_without:existing_company_id', 'nullable', 'string', 'max:255'],
+            // A name is only required when creating a brand-new company.
+            'company_name' => ['required_without_all:existing_company_id,id', 'nullable', 'string', 'max:255'],
             'address_city' => ['nullable', 'string', 'max:120'],
             'address_country' => ['nullable', 'string', 'size:2'],
             'company_notes' => ['nullable', 'string', 'max:5000'],
@@ -30,7 +36,8 @@ class StoreFairSupplierRequest extends FormRequest
             'category_ids' => ['nullable', 'array'],
             'category_ids.*' => ['integer', 'exists:categories,id'],
 
-            'contact_name' => ['required_without:existing_company_id', 'nullable', 'string', 'max:255'],
+            // Contact is fully optional — a company can be registered without one.
+            'contact_name' => ['nullable', 'string', 'max:255'],
             'contact_email' => ['nullable', 'email', 'max:255'],
             'contact_phone' => ['nullable', 'string', 'max:50'],
             'contact_wechat' => ['nullable', 'string', 'max:120'],
@@ -41,6 +48,8 @@ class StoreFairSupplierRequest extends FormRequest
             'business_card_photo' => ['nullable', 'file', 'image', 'max:10240'],
 
             'products' => ['nullable', 'array', 'max:50'],
+            'products.*.id' => ['nullable', 'integer', 'exists:company_product,id'],
+            'products.*.client_uuid' => ['nullable', 'uuid'],
             'products.*.name' => ['required', 'string', 'max:255'],
             'products.*.category_id' => ['required', 'integer', 'exists:categories,id'],
             'products.*.description' => ['nullable', 'string', 'max:5000'],
@@ -51,6 +60,13 @@ class StoreFairSupplierRequest extends FormRequest
             'products.*.photos.*' => ['nullable', 'file', 'image', 'max:10240'],
             // Legacy single-photo field — kept so already-queued offline payloads still sync.
             'products.*.photo' => ['nullable', 'file', 'image', 'max:10240'],
+            'products.*.deleted_image_ids' => ['nullable', 'array'],
+            'products.*.deleted_image_ids.*' => ['integer'],
+
+            'deleted_product_uuids' => ['nullable', 'array'],
+            'deleted_product_uuids.*' => ['uuid'],
+            'deleted_product_ids' => ['nullable', 'array'],
+            'deleted_product_ids.*' => ['integer'],
         ];
     }
 }

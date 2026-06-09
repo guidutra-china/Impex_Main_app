@@ -2,72 +2,111 @@ import '../../css/fair-mobile/app.css';
 import Alpine from 'alpinejs';
 import { api, auth, ApiError } from './api.js';
 import {
-    SubmissionStatus,
-    countPendingSubmissions,
-    deletePendingSubmission,
-    listPendingSubmissions,
+    companyHasPending,
+    deleteFairCompany,
+    emptyCompany,
+    emptyProduct,
+    getFairCompany,
+    listFairCompanies,
     loadFairs,
     loadReferenceData,
-    queuePendingSubmission,
+    mergeServerCompanies,
+    migrateLegacyQueue,
+    saveFairCompany,
     saveFairs,
     saveReferenceData,
-    updatePendingSubmission,
 } from './db.js';
 import { compressImage } from './image.js';
 import { defaultLocale, numberLocale, resolveLocale, t as translate } from './i18n.js';
-import { drainQueue, requestBackgroundSync } from './sync.js';
+import { requestBackgroundSync, syncFairCompanies } from './sync.js';
 
 window.Alpine = Alpine;
 
-function emptyProduct() {
-    return {
-        name: '',
-        category_id: '',
-        unit_price: '',
-        currency_code: 'USD',
-        moq: '',
-        // Array of { blob, filename, type, preview } — first entry is the cover.
-        photos: [],
-    };
+const MAX_PHOTOS = 8;
+
+function plainPhoto(p) {
+    return p?.blob ? { blob: p.blob, filename: p.filename, type: p.type } : null;
 }
 
-function emptyDraft() {
-    return {
-        company_name: '',
-        address_city: '',
-        address_country: 'CN',
-        company_notes: '',
-        contact_name: '',
-        contact_email: '',
-        contact_phone: '',
-        contact_wechat: '',
-        // Array of { blob, filename, type, preview } — first entry is the cover/scanned card.
-        company_photos: [],
-        products: [emptyProduct()],
+function plainImage(i) {
+    return { id: i.id, url: i.url };
+}
+
+/**
+ * Deep-copy a (possibly Alpine-reactive) company into a plain object safe for
+ * IndexedDB. structuredClone — used internally by IDB — throws DataCloneError on
+ * Alpine's Proxy wrappers, so we rebuild the graph by hand. Blobs are kept;
+ * object-URL previews and proxies are dropped.
+ */
+function toPlainCompany(c) {
+    const plain = {
+        client_uuid: c.client_uuid,
+        server_id: c.server_id ?? null,
+        trade_fair_id: c.trade_fair_id ?? null,
+        name: c.name || '',
+        address_city: c.address_city || '',
+        address_country: c.address_country || 'CN',
+        company_notes: c.company_notes || '',
+        contact: {
+            name: c.contact?.name || '',
+            email: c.contact?.email || '',
+            phone: c.contact?.phone || '',
+            wechat: c.contact?.wechat || '',
+        },
+        existing_photos: (c.existing_photos || []).map(plainImage),
+        company_photos: (c.company_photos || []).map(plainPhoto).filter(Boolean),
+        products: (c.products || []).map((p) => ({
+            client_uuid: p.client_uuid,
+            server_id: p.server_id ?? null,
+            name: p.name || '',
+            category_id: p.category_id || '',
+            unit_price: p.unit_price ?? '',
+            currency_code: p.currency_code || 'USD',
+            moq: p.moq ?? '',
+            existing_images: (p.existing_images || []).map(plainImage),
+            photos: (p.photos || []).map(plainPhoto).filter(Boolean),
+            deleted_image_ids: [...(p.deleted_image_ids || [])],
+            synced: !!p.synced,
+        })),
+        deletedProductUuids: [...(c.deletedProductUuids || [])],
+        deletedProductIds: [...(c.deletedProductIds || [])],
+        headerSynced: !!c.headerSynced,
+        lastError: c.lastError ?? null,
+        createdAt: c.createdAt || Date.now(),
+        updatedAt: Date.now(),
     };
+    if (c.localId != null) plain.localId = c.localId;
+    return plain;
 }
 
 Alpine.data('fairApp', () => ({
-    screen: 'loading',                // loading | login | capture | success | pending
+    screen: 'loading',                // loading | login | list | companyForm | companyDetail | productForm
     submitting: false,
     error: null,
     online: navigator.onLine,
-    locale: defaultLocale(),          // follows the logged-in user's locale once known
+    locale: defaultLocale(),
 
     user: null,
     fairs: [],
     selectedFairId: null,
     reference: { categories: [], currencies: [], countries: [] },
-    cacheStale: false,                // true when we booted from IDB (no network)
-
-    pendingCount: 0,
-    pendingItems: [],
+    cacheStale: false,
     syncing: false,
-    syncStats: null,
+
+    companies: [],
+    currentCompanyLocalId: null,
+    companyDraft: null,
+    productDraft: null,
+    editingProductUuid: null,
+
+    // Category combobox
+    categoryQuery: '',
+    showCategoryDropdown: false,
+    creatingCategory: false,
 
     loginForm: { email: '', password: '' },
-    draft: emptyDraft(),
-    lastResult: null,
+
+    // ─── i18n / helpers ─────────────────────────────────────────
 
     t(key, params = {}) {
         return translate(this.locale, key, params);
@@ -75,34 +114,36 @@ Alpine.data('fairApp', () => ({
 
     applyUserLocale() {
         const resolved = resolveLocale(auth.user()?.locale);
-        if (resolved) {
-            this.locale = resolved;
-        }
+        if (resolved) this.locale = resolved;
     },
 
-    /** Localized country label for the picker, e.g. "BR — Brasil" / "BR — 巴西". */
     countryLabel(c) {
         let name = c.name;
         try {
             name = new Intl.DisplayNames([numberLocale(this.locale)], { type: 'region' }).of(c.code) || c.name;
-        } catch { /* Intl.DisplayNames unsupported — fall back to the API name */ }
+        } catch { /* unsupported — fall back to API name */ }
         return `${c.code} — ${name}`;
     },
+
+    categoryName(id) {
+        const cat = (this.reference.categories || []).find((c) => c.id === id);
+        return cat ? cat.name : '';
+    },
+
+    // ─── Boot ───────────────────────────────────────────────────
 
     async init() {
         this.applyUserLocale();
         window.addEventListener('online', () => { this.online = true; this.handleOnline(); });
         window.addEventListener('offline', () => { this.online = false; });
         document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && this.online && auth.token()) {
-                this.runSync();
-            }
+            if (!document.hidden && this.online && auth.token()) this.runSync();
         });
 
-        await this.refreshPendingCount();
+        await migrateLegacyQueue();
 
         if (auth.token()) {
-            await this.bootIntoCapture();
+            await this.bootIntoApp();
         } else {
             this.screen = 'login';
         }
@@ -114,7 +155,7 @@ Alpine.data('fairApp', () => ({
         try {
             const deviceName = navigator.userAgent.slice(0, 100);
             await api.login(this.loginForm.email, this.loginForm.password, deviceName);
-            await this.bootIntoCapture();
+            await this.bootIntoApp();
         } catch (err) {
             this.error = err instanceof ApiError
                 ? (err.body?.errors?.email?.[0] || err.message)
@@ -124,7 +165,7 @@ Alpine.data('fairApp', () => ({
         }
     },
 
-    async bootIntoCapture() {
+    async bootIntoApp() {
         this.screen = 'loading';
         this.cacheStale = false;
         try {
@@ -132,10 +173,6 @@ Alpine.data('fairApp', () => ({
                 api.activeFairs(),
                 api.referenceData(),
             ]);
-            // Persist to IDB FIRST, while the data is still a plain object.
-            // Once it goes through Alpine's reactive() wrapper, structuredClone
-            // (which IndexedDB uses internally) throws DataCloneError on some
-            // browsers: "the object can not be cloned".
             await Promise.all([
                 saveFairs(fairsResponse.data),
                 saveReferenceData(refResponse),
@@ -148,13 +185,7 @@ Alpine.data('fairApp', () => ({
                 this.screen = 'login';
                 return;
             }
-            // Try cache fallback for transient network errors. If the underlying
-            // problem is a server error (5xx) or unauthorised (403), surface it
-            // instead of pretending the user is offline.
-            const [cachedFairs, cachedRef] = await Promise.all([
-                loadFairs(),
-                loadReferenceData(),
-            ]);
+            const [cachedFairs, cachedRef] = await Promise.all([loadFairs(), loadReferenceData()]);
             if (cachedRef && cachedFairs?.length) {
                 this.fairs = cachedFairs;
                 this.reference = cachedRef;
@@ -168,229 +199,338 @@ Alpine.data('fairApp', () => ({
 
         this.user = auth.user();
         this.applyUserLocale();
-        if (this.fairs.length > 0) {
+        if (this.fairs.length > 0 && !this.selectedFairId) {
             this.selectedFairId = this.fairs[0].id;
         }
-        this.screen = 'capture';
+        await this.refreshServerCompanies();
+        await this.loadCompanies();
+        this.screen = 'list';
 
-        if (this.online) {
-            this.runSync();
-        }
-    },
-
-    async logout() {
-        try {
-            await api.logout();
-        } catch { /* offline logout is fine */ }
-        this.screen = 'login';
-        this.loginForm = { email: '', password: '' };
-        this.user = null;
-    },
-
-    /**
-     * Wipe local token + IndexedDB caches and reload. Used when the user is
-     * stuck on the "no cached data" screen with a bad/stale token.
-     */
-    async resetLocalState() {
-        auth.clear();
-        try {
-            await Promise.all([
-                saveFairs([]),
-                saveReferenceData(null),
-            ]);
-        } catch { /* IDB might not be initialised yet */ }
-        window.location.reload();
+        if (this.online) this.runSync();
     },
 
     describeBootError(err) {
         if (err instanceof ApiError) {
-            if (err.status === 403) {
-                return this.t('boot_err_403');
-            }
-            if (err.status >= 500) {
-                return this.t('boot_err_500', { status: err.status });
-            }
+            if (err.status === 403) return this.t('boot_err_403');
+            if (err.status >= 500) return this.t('boot_err_500', { status: err.status });
             return this.t('boot_err_api', { status: err.status, message: err.message || '' }).trim();
         }
-        // SyntaxError (JSON parse) usually means the API returned HTML — common
-        // when the request is redirected to a non-existent /login route.
-        if (err?.name === 'SyntaxError') {
-            return this.t('boot_err_html');
-        }
+        if (err?.name === 'SyntaxError') return this.t('boot_err_html');
         return err?.message || this.t('err_connect');
     },
 
-    // ─── Capture form handlers ──────────────────────────────────
-
-    async onCompanyPhotoChange(event) {
-        const files = Array.from(event.target.files || []);
-        if (!files.length) return;
-
-        const MAX_PHOTOS = 8;
-
-        for (const file of files) {
-            if (this.draft.company_photos.length >= MAX_PHOTOS) break;
-            const compressed = await compressImage(file);
-            this.draft.company_photos.push({
-                ...compressed,
-                preview: URL.createObjectURL(compressed.blob),
-            });
-        }
-
-        // Allow re-selecting the same file(s) again.
-        event.target.value = '';
+    async logout() {
+        try { await api.logout(); } catch { /* offline logout is fine */ }
+        this.screen = 'login';
+        this.loginForm = { email: '', password: '' };
+        this.user = null;
+        this.companies = [];
     },
 
-    removeCompanyPhoto(photoIdx) {
-        const removed = this.draft.company_photos.splice(photoIdx, 1)[0];
-        if (removed?.preview) {
-            URL.revokeObjectURL(removed.preview);
-        }
-    },
-
-    async onProductPhotoChange(event, idx) {
-        const files = Array.from(event.target.files || []);
-        if (!files.length) return;
-
-        const product = this.draft.products[idx];
-        const MAX_PHOTOS = 8;
-
-        for (const file of files) {
-            if (product.photos.length >= MAX_PHOTOS) break;
-            const compressed = await compressImage(file);
-            product.photos.push({
-                ...compressed,
-                preview: URL.createObjectURL(compressed.blob),
-            });
-        }
-
-        // Allow re-selecting the same file(s) again.
-        event.target.value = '';
-    },
-
-    removeProductPhoto(idx, photoIdx) {
-        const product = this.draft.products[idx];
-        const removed = product.photos.splice(photoIdx, 1)[0];
-        if (removed?.preview) {
-            URL.revokeObjectURL(removed.preview);
-        }
-    },
-
-    addProduct() { this.draft.products.push(emptyProduct()); },
-
-    removeProduct(idx) {
-        if (this.draft.products.length === 1) {
-            this.draft.products[0] = emptyProduct();
-        } else {
-            this.draft.products.splice(idx, 1);
-        }
-    },
-
-    resetDraft() { this.draft = emptyDraft(); },
-
-    canSubmit() {
-        if (!this.selectedFairId) return false;
-        if (!this.draft.company_name.trim()) return false;
-        if (!this.draft.contact_name.trim()) return false;
-        const validProducts = this.draft.products.filter(p => p.name.trim());
-        if (validProducts.length === 0) return false;
-        return validProducts.every(p => p.category_id);
-    },
-
-    /**
-     * Serialise the draft into the JSON-safe payload that lives in IndexedDB.
-     * Blobs travel inside the photo wrappers — IndexedDB stores them natively.
-     *
-     * IMPORTANT: this method must return plain objects, not the Alpine-reactive
-     * proxies that live inside `this.draft`. IndexedDB's structuredClone refuses
-     * to clone Proxy-wrapped objects on some browsers (DataCloneError: "the
-     * object can not be cloned"). Blobs themselves are passed through as-is
-     * because they are host objects that Alpine does not wrap.
-     */
-    buildPayload() {
-        const flattenFile = (f) => (f && f.blob)
-            ? { blob: f.blob, filename: f.filename, type: f.type }
-            : null;
-
-        return {
-            trade_fair_id: this.selectedFairId,
-            company_name: this.draft.company_name.trim(),
-            address_city: this.draft.address_city || null,
-            address_country: this.draft.address_country || null,
-            company_notes: this.draft.company_notes || null,
-            contact_name: this.draft.contact_name.trim(),
-            contact_email: this.draft.contact_email || null,
-            contact_phone: this.draft.contact_phone || null,
-            contact_wechat: this.draft.contact_wechat || null,
-            company_photos: (this.draft.company_photos || []).map(flattenFile).filter(Boolean),
-            products: this.draft.products
-                .filter(p => p.name.trim())
-                .map(p => ({
-                    name: p.name.trim(),
-                    category_id: p.category_id,
-                    unit_price: p.unit_price === '' ? null : Number(p.unit_price),
-                    currency_code: p.currency_code || 'USD',
-                    moq: p.moq === '' ? null : Number(p.moq),
-                    photos: (p.photos || []).map(flattenFile).filter(Boolean),
-                })),
-        };
-    },
-
-    async submit() {
-        if (!this.canSubmit() || this.submitting) return;
-        this.error = null;
-        this.submitting = true;
+    async resetLocalState() {
+        auth.clear();
         try {
-            const payload = this.buildPayload();
-            await queuePendingSubmission(payload);
-            await this.refreshPendingCount();
+            await Promise.all([saveFairs([]), saveReferenceData(null)]);
+        } catch { /* IDB might not be initialised */ }
+        window.location.reload();
+    },
 
-            // Reset form right away — the user can keep capturing while sync runs.
-            this.lastResult = { company: { name: payload.company_name }, product_names: payload.products.map(p => p.name) };
-            this.resetDraft();
-            this.screen = 'success';
+    // ─── Companies list ─────────────────────────────────────────
 
-            // Trigger sync (best-effort). Background Sync registration is also fine
-            // to call when offline — the SW will fire when the network returns.
+    async loadCompanies() {
+        this.companies = await listFairCompanies(this.selectedFairId);
+    },
+
+    async refreshServerCompanies() {
+        if (!this.online || !this.selectedFairId) return;
+        try {
+            const response = await api.fairCompanies(this.selectedFairId);
+            await mergeServerCompanies(response.data, this.selectedFairId);
+        } catch { /* keep local cache */ }
+    },
+
+    async onFairChange() {
+        await this.refreshServerCompanies();
+        await this.loadCompanies();
+    },
+
+    pendingCount() {
+        return this.companies.filter((c) => companyHasPending(c)).length;
+    },
+
+    currentCompany() {
+        return this.companies.find((c) => c.localId === this.currentCompanyLocalId) || null;
+    },
+
+    openCompany(localId) {
+        this.currentCompanyLocalId = localId;
+        this.error = null;
+        this.screen = 'companyDetail';
+    },
+
+    // ─── Company form (new / edit header) ───────────────────────
+
+    newCompany() {
+        this.companyDraft = emptyCompany(this.selectedFairId);
+        this.currentCompanyLocalId = null;
+        this.error = null;
+        this.screen = 'companyForm';
+    },
+
+    editCompany() {
+        const c = this.currentCompany();
+        if (!c) return;
+        this.companyDraft = JSON.parse(JSON.stringify({
+            name: c.name,
+            address_city: c.address_city,
+            address_country: c.address_country,
+            company_notes: c.company_notes,
+            contact: c.contact || { name: '', email: '', phone: '', wechat: '' },
+            existing_photos: c.existing_photos || [],
+        }));
+        this.companyDraft.company_photos = []; // new uploads only
+        this.error = null;
+        this.screen = 'companyForm';
+    },
+
+    canSaveCompany() {
+        return !!this.companyDraft?.name?.trim();
+    },
+
+    async saveCompany() {
+        if (!this.canSaveCompany() || this.submitting) return;
+        this.submitting = true;
+        this.error = null;
+        try {
+            const base = this.currentCompanyLocalId == null
+                ? emptyCompany(this.selectedFairId)
+                : this.currentCompany();
+            const company = toPlainCompany(base);
+
+            company.name = this.companyDraft.name.trim();
+            company.address_city = this.companyDraft.address_city || '';
+            company.address_country = this.companyDraft.address_country || 'CN';
+            company.company_notes = this.companyDraft.company_notes || '';
+            company.contact = {
+                name: this.companyDraft.contact?.name || '',
+                email: this.companyDraft.contact?.email || '',
+                phone: this.companyDraft.contact?.phone || '',
+                wechat: this.companyDraft.contact?.wechat || '',
+            };
+            company.existing_photos = (this.companyDraft.existing_photos || []).map(plainImage);
+            company.company_photos = [
+                ...company.company_photos,
+                ...(this.companyDraft.company_photos || []).map(plainPhoto).filter(Boolean),
+            ];
+            company.headerSynced = false;
+
+            await saveFairCompany(company);
+            this.currentCompanyLocalId = company.localId;
+            await this.loadCompanies();
+            this.screen = 'companyDetail';
+
             requestBackgroundSync();
-            if (this.online) {
-                this.runSync();
-            }
+            if (this.online) this.runSync();
         } catch (err) {
-            this.error = err?.message || this.t('err_queue');
+            console.error('[fair-mobile] saveCompany failed', err);
+            this.error = err?.message || this.t('err_connect');
         } finally {
             this.submitting = false;
         }
     },
 
-    captureAnother() {
-        this.lastResult = null;
+    async discardCompany() {
+        const c = this.currentCompany();
+        if (!c) return;
+        if (!confirm(this.t('confirm_discard_company'))) return;
+        await deleteFairCompany(c.localId);
+        this.currentCompanyLocalId = null;
+        await this.loadCompanies();
+        this.screen = 'list';
+    },
+
+    // ─── Product form (add / edit / delete) ─────────────────────
+
+    addProduct() {
+        this.productDraft = emptyProduct();
+        this.editingProductUuid = null;
+        this.categoryQuery = '';
+        this.showCategoryDropdown = false;
         this.error = null;
-        this.resetDraft();
-        this.screen = 'capture';
+        this.screen = 'productForm';
     },
 
-    // ─── Sync + pending list ────────────────────────────────────
-
-    async refreshPendingCount() {
-        this.pendingCount = await countPendingSubmissions();
+    editProduct(clientUuid) {
+        const company = this.currentCompany();
+        const product = (company?.products || []).find((p) => p.client_uuid === clientUuid);
+        if (!product) return;
+        this.productDraft = JSON.parse(JSON.stringify(product));
+        this.productDraft.photos = [];
+        this.editingProductUuid = clientUuid;
+        this.categoryQuery = this.categoryName(product.category_id);
+        this.showCategoryDropdown = false;
+        this.error = null;
+        this.screen = 'productForm';
     },
 
-    async openPending() {
-        this.pendingItems = await listPendingSubmissions();
-        this.screen = 'pending';
+    canSaveProduct() {
+        return !!this.productDraft?.name?.trim() && !!this.productDraft?.category_id;
     },
+
+    async saveProduct() {
+        if (!this.canSaveProduct() || this.submitting) return;
+        const base = this.currentCompany();
+        if (!base) return;
+        this.submitting = true;
+        this.error = null;
+        try {
+            const company = toPlainCompany(base);
+            const draft = {
+                name: this.productDraft.name.trim(),
+                category_id: this.productDraft.category_id,
+                unit_price: this.productDraft.unit_price,
+                currency_code: this.productDraft.currency_code || 'USD',
+                moq: this.productDraft.moq,
+                existing_images: (this.productDraft.existing_images || []).map(plainImage),
+                deleted_image_ids: [...(this.productDraft.deleted_image_ids || [])],
+                photos: (this.productDraft.photos || []).map(plainPhoto).filter(Boolean),
+            };
+
+            if (this.editingProductUuid) {
+                const idx = company.products.findIndex((p) => p.client_uuid === this.editingProductUuid);
+                if (idx !== -1) {
+                    const existing = company.products[idx];
+                    company.products[idx] = {
+                        ...existing,
+                        ...draft,
+                        photos: [...existing.photos, ...draft.photos],
+                        synced: false,
+                    };
+                }
+            } else {
+                company.products.push({
+                    ...emptyProduct(),
+                    ...draft,
+                    synced: false,
+                });
+            }
+
+            await saveFairCompany(company);
+            await this.loadCompanies();
+            this.screen = 'companyDetail';
+
+            requestBackgroundSync();
+            if (this.online) this.runSync();
+        } catch (err) {
+            console.error('[fair-mobile] saveProduct failed', err);
+            this.error = err?.message || this.t('err_connect');
+        } finally {
+            this.submitting = false;
+        }
+    },
+
+    async deleteProduct(clientUuid) {
+        const base = this.currentCompany();
+        if (!base) return;
+        if (!confirm(this.t('confirm_delete_product'))) return;
+        const company = toPlainCompany(base);
+        const product = company.products.find((p) => p.client_uuid === clientUuid);
+        if (product?.server_id) {
+            company.deletedProductIds.push(product.server_id);
+        }
+        company.products = company.products.filter((p) => p.client_uuid !== clientUuid);
+        await saveFairCompany(company);
+        await this.loadCompanies();
+
+        requestBackgroundSync();
+        if (this.online) this.runSync();
+    },
+
+    // ─── Category combobox ──────────────────────────────────────
+
+    filteredCategories() {
+        const q = this.categoryQuery.trim().toLowerCase();
+        const list = this.reference.categories || [];
+        if (!q) return list.slice(0, 50);
+        return list.filter((c) => c.name.toLowerCase().includes(q)).slice(0, 50);
+    },
+
+    exactCategoryMatch() {
+        const q = this.categoryQuery.trim().toLowerCase();
+        return (this.reference.categories || []).some((c) => c.name.toLowerCase() === q);
+    },
+
+    canCreateCategory() {
+        return this.online && this.categoryQuery.trim().length > 0 && !this.exactCategoryMatch();
+    },
+
+    selectCategory(c) {
+        this.productDraft.category_id = c.id;
+        this.categoryQuery = c.name;
+        this.showCategoryDropdown = false;
+    },
+
+    async createCategory() {
+        if (!this.canCreateCategory() || this.creatingCategory) return;
+        this.creatingCategory = true;
+        try {
+            const cat = await api.createCategory(this.categoryQuery.trim());
+            this.reference.categories.push(cat);
+            this.reference.categories.sort((a, b) => a.name.localeCompare(b.name));
+            await saveReferenceData(this.reference);
+            this.productDraft.category_id = cat.id;
+            this.categoryQuery = cat.name;
+            this.showCategoryDropdown = false;
+        } catch (err) {
+            this.error = err?.message || this.t('err_connect');
+        } finally {
+            this.creatingCategory = false;
+        }
+    },
+
+    // ─── Photo handlers ─────────────────────────────────────────
+
+    async onCompanyPhotoChange(event) {
+        await this.appendPhotos(event, this.companyDraft.company_photos);
+    },
+
+    removeCompanyPhoto(idx) {
+        const removed = this.companyDraft.company_photos.splice(idx, 1)[0];
+        if (removed?.preview) URL.revokeObjectURL(removed.preview);
+    },
+
+    async onProductPhotoChange(event) {
+        await this.appendPhotos(event, this.productDraft.photos);
+    },
+
+    removeProductPhoto(idx) {
+        const removed = this.productDraft.photos.splice(idx, 1)[0];
+        if (removed?.preview) URL.revokeObjectURL(removed.preview);
+    },
+
+    removeExistingProductImage(image) {
+        this.productDraft.existing_images = (this.productDraft.existing_images || []).filter((i) => i.id !== image.id);
+        this.productDraft.deleted_image_ids = [...(this.productDraft.deleted_image_ids || []), image.id];
+    },
+
+    async appendPhotos(event, target) {
+        const files = Array.from(event.target.files || []);
+        for (const file of files) {
+            if (target.length >= MAX_PHOTOS) break;
+            const compressed = await compressImage(file);
+            target.push({ ...compressed, preview: URL.createObjectURL(compressed.blob) });
+        }
+        event.target.value = '';
+    },
+
+    // ─── Sync ───────────────────────────────────────────────────
 
     async runSync() {
         if (this.syncing || !this.online || !auth.token()) return;
         this.syncing = true;
         try {
-            const stats = await drainQueue(() => {}, this.locale);
-            this.syncStats = stats;
-            await this.refreshPendingCount();
-            if (this.screen === 'pending') {
-                this.pendingItems = await listPendingSubmissions();
-            }
+            await syncFairCompanies(() => {}, this.locale);
+            await this.loadCompanies();
         } catch (err) {
             console.warn('Sync failed', err);
         } finally {
@@ -400,58 +540,14 @@ Alpine.data('fairApp', () => ({
 
     async handleOnline() {
         if (auth.token()) {
-            // Light refresh: try to pull fresh reference data + fairs in background.
-            this.tryRefreshReference();
+            await this.refreshServerCompanies();
+            await this.loadCompanies();
             this.runSync();
         }
     },
 
-    async tryRefreshReference() {
-        try {
-            const [fairsResponse, refResponse] = await Promise.all([
-                api.activeFairs(),
-                api.referenceData(),
-            ]);
-            // Save before assigning to reactive props — see bootIntoCapture note.
-            await Promise.all([
-                saveFairs(fairsResponse.data),
-                saveReferenceData(refResponse),
-            ]);
-            this.fairs = fairsResponse.data;
-            this.reference = refResponse;
-            this.cacheStale = false;
-        } catch { /* keep cached values */ }
-    },
-
-    async retryPending(id) {
-        const item = await updatePendingSubmission(id, { status: SubmissionStatus.PENDING, lastError: null });
-        if (item) {
-            await this.runSync();
-        }
-    },
-
-    async deletePending(id) {
-        await deletePendingSubmission(id);
-        this.pendingItems = await listPendingSubmissions();
-        await this.refreshPendingCount();
-    },
-
-    statusLabel(status) {
-        return {
-            [SubmissionStatus.PENDING]: this.t('status_pending'),
-            [SubmissionStatus.SYNCING]: this.t('status_syncing'),
-            [SubmissionStatus.FAILED]: this.t('status_failed'),
-            [SubmissionStatus.NEEDS_REVIEW]: this.t('status_needs_review'),
-        }[status] || status;
-    },
-
-    statusClass(status) {
-        return {
-            [SubmissionStatus.PENDING]: 'bg-amber-100 text-amber-800',
-            [SubmissionStatus.SYNCING]: 'bg-blue-100 text-blue-800',
-            [SubmissionStatus.FAILED]: 'bg-red-100 text-red-800',
-            [SubmissionStatus.NEEDS_REVIEW]: 'bg-purple-100 text-purple-800',
-        }[status] || 'bg-gray-100 text-gray-800';
+    companyHasPending(company) {
+        return companyHasPending(company);
     },
 }));
 
@@ -464,9 +560,6 @@ if ('serviceWorker' in navigator) {
         });
     });
 
-    // Background Sync API (via SW) wakes the SPA to drain when connectivity
-    // returns even if the user did not open the app. The SW posts 'sync-now'
-    // and we trigger drainQueue on the currently mounted Alpine component.
     navigator.serviceWorker.addEventListener('message', (event) => {
         if (event.data?.type === 'sync-now') {
             const root = document.querySelector('[x-data]');

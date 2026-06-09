@@ -16,6 +16,7 @@ class CompanyProduct extends Pivot
     public $incrementing = true;
 
     protected $fillable = [
+        'client_uuid',
         'company_id',
         'product_id',
         'role',

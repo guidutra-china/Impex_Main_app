@@ -81,6 +81,13 @@ export const api = {
     activeFairs: () => request('/trade-fairs/active'),
     referenceData: () => request('/reference-data'),
 
+    fairCompanies: (fairId) => request(`/trade-fairs/${fairId}/companies`),
+
+    createCategory: (name) => request('/categories', {
+        method: 'POST',
+        body: { name },
+    }),
+
     searchCompanies: (q) => request('/companies/search', {
         method: 'POST',
         body: { q },

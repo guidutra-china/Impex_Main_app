@@ -27,6 +27,7 @@ class Company extends Model
     }
 
     protected $fillable = [
+        'client_uuid',
         'parent_company_id',
         'name',
         'legal_name',
