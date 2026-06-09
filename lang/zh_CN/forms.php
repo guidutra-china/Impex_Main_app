@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'actions' => [
+        'view' => '查看',
+        'edit' => '编辑',
+    ],
+
     'labels' => [
         'trip_title' => '出差标题 / 事由',
         'fx_rate' => '汇率 :from → 计费',

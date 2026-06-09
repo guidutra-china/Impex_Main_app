@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'actions' => [
+        'view' => 'Ver',
+        'edit' => 'Editar',
+    ],
+
     'labels' => [
         'trip_title' => 'Título da Viagem',
         'fx_rate' => 'Câmbio :from → cobrança',

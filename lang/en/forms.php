@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'actions' => [
+        'view' => 'View',
+        'edit' => 'Edit',
+    ],
+
     'labels' => [
         'trip_title' => 'Trip Title / Purpose',
         'fx_rate' => 'FX rate :from → billing',
