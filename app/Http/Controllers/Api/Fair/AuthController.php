@@ -21,15 +21,22 @@ class AuthController
 
         $user = User::where('email', $credentials['email'])->first();
 
+        // Login runs before authentication, so SetLocale cannot key off the
+        // request user. Honour the looked-up user's locale here so the error
+        // messages still follow their language preference.
+        if ($user && in_array($user->locale, ['en', 'zh_CN', 'pt_BR'], true)) {
+            app()->setLocale($user->locale);
+        }
+
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['Email ou senha incorretos.'],
+                'email' => [__('fair.auth.invalid_credentials')],
             ]);
         }
 
         if ($user->type !== UserType::INTERNAL || $user->status !== 'active') {
             throw ValidationException::withMessages([
-                'email' => ['Esta conta não tem permissão para usar o app de feira.'],
+                'email' => [__('fair.auth.not_allowed')],
             ]);
         }
 
@@ -44,6 +51,7 @@ class AuthController
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'locale' => $user->locale,
             ],
         ]);
     }
@@ -63,6 +71,7 @@ class AuthController
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
+            'locale' => $user->locale,
         ]);
     }
 }

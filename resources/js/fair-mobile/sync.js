@@ -5,6 +5,7 @@ import {
     listPendingSubmissions,
     updatePendingSubmission,
 } from './db.js';
+import { t } from './i18n.js';
 
 const SYNC_TAG = 'fair-mobile-sync';
 
@@ -74,9 +75,10 @@ export function buildFormData(payload) {
  * Failures are recorded; the loop does not abort on a single failure.
  *
  * @param {(event: { type: string, item?: any, error?: any }) => void} [onEvent]
+ * @param {string} [locale] UI locale for the error messages stored on failures.
  * @returns {Promise<{ ok: number, failed: number, needsReview: number }>}
  */
-export async function drainQueue(onEvent = () => {}) {
+export async function drainQueue(onEvent = () => {}, locale = 'en') {
     const items = await listPendingSubmissions();
     const stats = { ok: 0, failed: 0, needsReview: 0 };
 
@@ -97,7 +99,7 @@ export async function drainQueue(onEvent = () => {}) {
             onEvent({ type: 'synced', item, result });
             stats.ok++;
         } catch (err) {
-            const patch = classifyError(err);
+            const patch = classifyError(err, locale);
             if (patch.status === SubmissionStatus.NEEDS_REVIEW) {
                 stats.needsReview++;
             } else {
@@ -116,31 +118,31 @@ export async function drainQueue(onEvent = () => {}) {
     return stats;
 }
 
-function classifyError(err) {
+function classifyError(err, locale = 'en') {
     if (err instanceof ApiError) {
         if (err.status === 409) {
             return {
                 status: SubmissionStatus.NEEDS_REVIEW,
-                lastError: err.body?.message || 'Conflito — empresa já cadastrada.',
+                lastError: err.body?.message || t(locale, 'sync_err_conflict'),
                 conflict: err.body || null,
             };
         }
         if (err.status === 422) {
             return {
                 status: SubmissionStatus.FAILED,
-                lastError: firstValidationMessage(err.body) || 'Erro de validação.',
+                lastError: firstValidationMessage(err.body) || t(locale, 'sync_err_validation'),
             };
         }
         if (err.status === 401) {
             return {
                 status: SubmissionStatus.PENDING,
-                lastError: 'Sessão expirada — faça login novamente.',
+                lastError: t(locale, 'sync_err_session'),
             };
         }
     }
     return {
         status: SubmissionStatus.PENDING,
-        lastError: err?.message || 'Erro de rede — vamos tentar de novo.',
+        lastError: err?.message || t(locale, 'sync_err_network'),
     };
 }
 

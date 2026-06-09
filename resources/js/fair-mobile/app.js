@@ -14,6 +14,7 @@ import {
     updatePendingSubmission,
 } from './db.js';
 import { compressImage } from './image.js';
+import { defaultLocale, numberLocale, resolveLocale, t as translate } from './i18n.js';
 import { drainQueue, requestBackgroundSync } from './sync.js';
 
 window.Alpine = Alpine;
@@ -51,6 +52,7 @@ Alpine.data('fairApp', () => ({
     submitting: false,
     error: null,
     online: navigator.onLine,
+    locale: defaultLocale(),          // follows the logged-in user's locale once known
 
     user: null,
     fairs: [],
@@ -67,7 +69,28 @@ Alpine.data('fairApp', () => ({
     draft: emptyDraft(),
     lastResult: null,
 
+    t(key, params = {}) {
+        return translate(this.locale, key, params);
+    },
+
+    applyUserLocale() {
+        const resolved = resolveLocale(auth.user()?.locale);
+        if (resolved) {
+            this.locale = resolved;
+        }
+    },
+
+    /** Localized country label for the picker, e.g. "BR — Brasil" / "BR — 巴西". */
+    countryLabel(c) {
+        let name = c.name;
+        try {
+            name = new Intl.DisplayNames([numberLocale(this.locale)], { type: 'region' }).of(c.code) || c.name;
+        } catch { /* Intl.DisplayNames unsupported — fall back to the API name */ }
+        return `${c.code} — ${name}`;
+    },
+
     async init() {
+        this.applyUserLocale();
         window.addEventListener('online', () => { this.online = true; this.handleOnline(); });
         window.addEventListener('offline', () => { this.online = false; });
         document.addEventListener('visibilitychange', () => {
@@ -95,7 +118,7 @@ Alpine.data('fairApp', () => ({
         } catch (err) {
             this.error = err instanceof ApiError
                 ? (err.body?.errors?.email?.[0] || err.message)
-                : 'Não foi possível conectar.';
+                : this.t('err_connect');
         } finally {
             this.submitting = false;
         }
@@ -144,6 +167,7 @@ Alpine.data('fairApp', () => ({
         }
 
         this.user = auth.user();
+        this.applyUserLocale();
         if (this.fairs.length > 0) {
             this.selectedFairId = this.fairs[0].id;
         }
@@ -181,19 +205,19 @@ Alpine.data('fairApp', () => ({
     describeBootError(err) {
         if (err instanceof ApiError) {
             if (err.status === 403) {
-                return 'API recusou o acesso (403). Sua conta talvez não esteja como tipo "internal" no servidor.';
+                return this.t('boot_err_403');
             }
             if (err.status >= 500) {
-                return `Erro ${err.status} no servidor ao carregar dados. Veja o console / logs do servidor.`;
+                return this.t('boot_err_500', { status: err.status });
             }
-            return `Falha na API: ${err.status} ${err.message || ''}`.trim();
+            return this.t('boot_err_api', { status: err.status, message: err.message || '' }).trim();
         }
         // SyntaxError (JSON parse) usually means the API returned HTML — common
         // when the request is redirected to a non-existent /login route.
         if (err?.name === 'SyntaxError') {
-            return 'Servidor devolveu HTML em vez de JSON — sessão pode ter expirado. Limpe os dados locais e faça login de novo.';
+            return this.t('boot_err_html');
         }
-        return err?.message || 'Não foi possível conectar.';
+        return err?.message || this.t('err_connect');
     },
 
     // ─── Capture form handlers ──────────────────────────────────
@@ -333,7 +357,7 @@ Alpine.data('fairApp', () => ({
                 this.runSync();
             }
         } catch (err) {
-            this.error = err?.message || 'Não foi possível salvar o cadastro na fila.';
+            this.error = err?.message || this.t('err_queue');
         } finally {
             this.submitting = false;
         }
@@ -361,7 +385,7 @@ Alpine.data('fairApp', () => ({
         if (this.syncing || !this.online || !auth.token()) return;
         this.syncing = true;
         try {
-            const stats = await drainQueue();
+            const stats = await drainQueue(() => {}, this.locale);
             this.syncStats = stats;
             await this.refreshPendingCount();
             if (this.screen === 'pending') {
@@ -414,10 +438,10 @@ Alpine.data('fairApp', () => ({
 
     statusLabel(status) {
         return {
-            [SubmissionStatus.PENDING]: 'Pendente',
-            [SubmissionStatus.SYNCING]: 'Sincronizando…',
-            [SubmissionStatus.FAILED]: 'Falhou',
-            [SubmissionStatus.NEEDS_REVIEW]: 'Precisa revisão',
+            [SubmissionStatus.PENDING]: this.t('status_pending'),
+            [SubmissionStatus.SYNCING]: this.t('status_syncing'),
+            [SubmissionStatus.FAILED]: this.t('status_failed'),
+            [SubmissionStatus.NEEDS_REVIEW]: this.t('status_needs_review'),
         }[status] || status;
     },
 
