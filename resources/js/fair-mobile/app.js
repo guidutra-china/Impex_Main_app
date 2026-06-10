@@ -47,6 +47,7 @@ function toPlainCompany(c) {
         address_city: c.address_city || '',
         address_country: c.address_country || 'CN',
         company_notes: c.company_notes || '',
+        category_ids: [...(c.category_ids || [])],
         contact: {
             name: c.contact?.name || '',
             email: c.contact?.email || '',
@@ -99,10 +100,12 @@ Alpine.data('fairApp', () => ({
     productDraft: null,
     editingProductUuid: null,
 
-    // Category combobox
+    // Category comboboxes
     categoryQuery: '',
     showCategoryDropdown: false,
     creatingCategory: false,
+    companyCategoryQuery: '',
+    showCompanyCatDropdown: false,
 
     loginForm: { email: '', password: '' },
 
@@ -273,6 +276,8 @@ Alpine.data('fairApp', () => ({
     newCompany() {
         this.companyDraft = emptyCompany(this.selectedFairId);
         this.currentCompanyLocalId = null;
+        this.companyCategoryQuery = '';
+        this.showCompanyCatDropdown = false;
         this.error = null;
         this.screen = 'companyForm';
     },
@@ -285,10 +290,13 @@ Alpine.data('fairApp', () => ({
             address_city: c.address_city,
             address_country: c.address_country,
             company_notes: c.company_notes,
+            category_ids: c.category_ids || [],
             contact: c.contact || { name: '', email: '', phone: '', wechat: '' },
             existing_photos: c.existing_photos || [],
         }));
         this.companyDraft.company_photos = []; // new uploads only
+        this.companyCategoryQuery = '';
+        this.showCompanyCatDropdown = false;
         this.error = null;
         this.screen = 'companyForm';
     },
@@ -311,6 +319,7 @@ Alpine.data('fairApp', () => ({
             company.address_city = this.companyDraft.address_city || '';
             company.address_country = this.companyDraft.address_country || 'CN';
             company.company_notes = this.companyDraft.company_notes || '';
+            company.category_ids = [...(this.companyDraft.category_ids || [])];
             company.contact = {
                 name: this.companyDraft.contact?.name || '',
                 email: this.companyDraft.contact?.email || '',
@@ -470,17 +479,71 @@ Alpine.data('fairApp', () => ({
         this.showCategoryDropdown = false;
     },
 
+    /** Create a category on the server and add it to the cached reference list. */
+    async createCategoryRaw(name) {
+        const cat = await api.createCategory(name);
+        if (!this.reference.categories.some((c) => c.id === cat.id)) {
+            this.reference.categories.push(cat);
+            this.reference.categories.sort((a, b) => a.name.localeCompare(b.name));
+            await saveReferenceData(this.reference);
+        }
+        return cat;
+    },
+
     async createCategory() {
         if (!this.canCreateCategory() || this.creatingCategory) return;
         this.creatingCategory = true;
         try {
-            const cat = await api.createCategory(this.categoryQuery.trim());
-            this.reference.categories.push(cat);
-            this.reference.categories.sort((a, b) => a.name.localeCompare(b.name));
-            await saveReferenceData(this.reference);
+            const cat = await this.createCategoryRaw(this.categoryQuery.trim());
             this.productDraft.category_id = cat.id;
             this.categoryQuery = cat.name;
             this.showCategoryDropdown = false;
+        } catch (err) {
+            this.error = err?.message || this.t('err_connect');
+        } finally {
+            this.creatingCategory = false;
+        }
+    },
+
+    // ─── Company product-categories combobox (multi-select) ─────
+
+    filteredCompanyCategories() {
+        const q = this.companyCategoryQuery.trim().toLowerCase();
+        const selected = this.companyDraft?.category_ids || [];
+        return (this.reference.categories || [])
+            .filter((c) => !selected.includes(c.id))
+            .filter((c) => !q || c.name.toLowerCase().includes(q))
+            .slice(0, 50);
+    },
+
+    companyCategoryNames() {
+        return (this.companyDraft?.category_ids || []).map((id) => ({ id, name: this.categoryName(id) }));
+    },
+
+    addCompanyCategory(c) {
+        if (!this.companyDraft.category_ids.includes(c.id)) {
+            this.companyDraft.category_ids.push(c.id);
+        }
+        this.companyCategoryQuery = '';
+        this.showCompanyCatDropdown = false;
+    },
+
+    removeCompanyCategory(id) {
+        this.companyDraft.category_ids = this.companyDraft.category_ids.filter((x) => x !== id);
+    },
+
+    canCreateCompanyCategory() {
+        const q = this.companyCategoryQuery.trim().toLowerCase();
+        return this.online && q.length > 0
+            && !(this.reference.categories || []).some((c) => c.name.toLowerCase() === q);
+    },
+
+    async createCompanyCategory() {
+        if (!this.canCreateCompanyCategory() || this.creatingCategory) return;
+        this.creatingCategory = true;
+        try {
+            const cat = await this.createCategoryRaw(this.companyCategoryQuery.trim());
+            this.addCompanyCategory(cat);
         } catch (err) {
             this.error = err?.message || this.t('err_connect');
         } finally {

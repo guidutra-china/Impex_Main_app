@@ -33,6 +33,7 @@ class FairCompanyPresenter
             'address_city' => $company->address_city,
             'address_country' => $company->address_country,
             'company_notes' => $company->notes,
+            'category_ids' => $company->categories->pluck('id')->values()->all(),
             'contact' => $primary ? [
                 'name' => $primary->name,
                 'email' => $primary->email,

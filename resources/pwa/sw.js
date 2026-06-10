@@ -6,7 +6,7 @@
 // because the queued items reference an auth token that lives in the SPA's
 // localStorage. When a sync event fires, we nudge any open client to drain.
 
-const VERSION = 'fair-mobile-v4';
+const VERSION = 'fair-mobile-v5';
 const SHELL_CACHE = `${VERSION}-shell`;
 const SYNC_TAG = 'fair-mobile-sync';
 

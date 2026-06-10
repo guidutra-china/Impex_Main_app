@@ -52,7 +52,11 @@ class FairSupplierController
             addressCity: $validated['address_city'] ?? null,
             addressCountry: $validated['address_country'] ?? null,
             companyNotes: $validated['company_notes'] ?? null,
-            categoryIds: $validated['category_ids'] ?? [],
+            // Only treat categories as authoritative when the client opted in via
+            // the sync_categories flag; legacy payloads leave them untouched (null).
+            categoryIds: $request->boolean('sync_categories')
+                ? array_map('intval', array_values($validated['category_ids'] ?? []))
+                : null,
             contactName: $validated['contact_name'] ?? null,
             contactEmail: $validated['contact_email'] ?? null,
             contactPhone: $validated['contact_phone'] ?? null,

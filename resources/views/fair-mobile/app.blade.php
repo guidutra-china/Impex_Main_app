@@ -199,6 +199,41 @@
                         <textarea x-model="companyDraft.company_notes" rows="2"
                                   class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2"></textarea>
                     </div>
+
+                    {{-- Product categories (multi-select, searchable + quick-add) --}}
+                    <div class="relative">
+                        <label class="block text-xs font-medium text-gray-700" x-text="t('product_categories')"></label>
+                        <div class="mt-1 flex flex-wrap gap-1.5" x-show="companyDraft.category_ids.length > 0">
+                            <template x-for="cat in companyCategoryNames()" :key="cat.id">
+                                <span class="inline-flex items-center gap-1 bg-orange-50 text-orange-800 text-xs font-medium pl-2 pr-1 py-1 rounded-full">
+                                    <span x-text="cat.name"></span>
+                                    <button type="button" @click="removeCompanyCategory(cat.id)"
+                                            class="text-orange-500 hover:text-orange-700 leading-none">&times;</button>
+                                </span>
+                            </template>
+                        </div>
+                        <input type="text" x-model="companyCategoryQuery"
+                               @focus="showCompanyCatDropdown = true" @input="showCompanyCatDropdown = true"
+                               :placeholder="t('search_category')"
+                               class="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-3">
+                        <div x-show="showCompanyCatDropdown" @click.away="showCompanyCatDropdown = false"
+                             class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-auto">
+                            <template x-for="c in filteredCompanyCategories()" :key="c.id">
+                                <button type="button" @click="addCompanyCategory(c)"
+                                        class="block w-full text-left px-3 py-2 text-sm hover:bg-orange-50" x-text="c.name"></button>
+                            </template>
+                            <template x-if="canCreateCompanyCategory()">
+                                <button type="button" @click="createCompanyCategory()" :disabled="creatingCategory"
+                                        class="block w-full text-left px-3 py-2 text-sm text-orange-700 font-semibold border-t border-gray-100 disabled:opacity-50">
+                                    <span x-show="!creatingCategory" x-text="t('create_category', { name: companyCategoryQuery.trim() })"></span>
+                                    <span x-show="creatingCategory" x-text="t('creating_category')"></span>
+                                </button>
+                            </template>
+                            <template x-if="!online && companyCategoryQuery.trim()">
+                                <p class="px-3 py-2 text-xs text-gray-400" x-text="t('category_offline')"></p>
+                            </template>
+                        </div>
+                    </div>
                 </section>
 
                 {{-- Contact (optional) --}}

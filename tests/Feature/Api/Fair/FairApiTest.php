@@ -404,6 +404,39 @@ class FairApiTest extends TestCase
             ->assertJsonStructure(['data' => [['id', 'name', 'products', 'photos']]]);
     }
 
+    public function test_fair_supplier_syncs_company_product_categories(): void
+    {
+        $fair = $this->activeFair();
+        $catA = $this->category('Cat A');
+        $catB = $this->category('Cat B');
+
+        Sanctum::actingAs($this->internalUser(), ['fair:register']);
+
+        $uuid = (string) \Illuminate\Support\Str::uuid();
+
+        $this->postJson('/api/fair/v1/fair-suppliers', [
+            'trade_fair_id' => $fair->id,
+            'client_uuid' => $uuid,
+            'company_name' => 'Cat Co.',
+            'sync_categories' => '1',
+            'category_ids' => [$catA->id, $catB->id],
+        ])->assertStatus(201)->assertJsonCount(2, 'company.category_ids');
+
+        $company = Company::where('client_uuid', $uuid)->firstOrFail();
+        $this->assertEqualsCanonicalizing([$catA->id, $catB->id], $company->categories->pluck('id')->all());
+
+        // Re-sync with one category — sync() must remove the other.
+        $this->postJson('/api/fair/v1/fair-suppliers', [
+            'trade_fair_id' => $fair->id,
+            'client_uuid' => $uuid,
+            'company_name' => 'Cat Co.',
+            'sync_categories' => '1',
+            'category_ids' => [$catA->id],
+        ])->assertStatus(201);
+
+        $this->assertEqualsCanonicalizing([$catA->id], $company->fresh()->categories->pluck('id')->all());
+    }
+
     public function test_quick_add_category_creates_category(): void
     {
         Sanctum::actingAs($this->internalUser());

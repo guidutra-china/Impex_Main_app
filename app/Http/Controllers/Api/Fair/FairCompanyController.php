@@ -17,7 +17,7 @@ class FairCompanyController
     {
         $companies = Company::query()
             ->where('trade_fair_id', $tradeFair->id)
-            ->with(['photos', 'contacts'])
+            ->with(['photos', 'contacts', 'categories:id'])
             ->orderByDesc('id')
             ->get();
 

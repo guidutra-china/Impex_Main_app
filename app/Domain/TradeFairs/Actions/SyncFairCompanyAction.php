@@ -34,8 +34,9 @@ class SyncFairCompanyAction
         return DB::transaction(function () use ($data) {
             [$company, $reused] = $this->resolveCompany($data);
 
-            if (! empty($data->categoryIds)) {
-                $company->categories()->syncWithoutDetaching($data->categoryIds);
+            // null = not sent (leave as is); array = authoritative set (add + remove).
+            if ($data->categoryIds !== null) {
+                $company->categories()->sync($data->categoryIds);
             }
 
             // Contact is optional — only touch it when a name was provided.

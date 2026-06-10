@@ -20,7 +20,9 @@ final class FairSupplierData
         public readonly ?string $addressCity,
         public readonly ?string $addressCountry,
         public readonly ?string $companyNotes,
-        public readonly array $categoryIds,
+        // null = field not sent (leave categories untouched, e.g. legacy payloads);
+        // array (even empty) = authoritative set to sync.
+        public readonly ?array $categoryIds,
         public readonly ?string $contactName,
         public readonly ?string $contactEmail,
         public readonly ?string $contactPhone,

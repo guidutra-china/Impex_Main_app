@@ -19,6 +19,12 @@ export function buildCompanyFormData(company) {
     fd.append('address_country', company.address_country || '');
     fd.append('company_notes', company.company_notes || '');
 
+    // Authoritative category set (flag lets the server tell "empty" from "absent").
+    fd.append('sync_categories', '1');
+    (company.category_ids || []).forEach((id, i) => {
+        fd.append(`category_ids[${i}]`, id);
+    });
+
     const contact = company.contact || {};
     fd.append('contact_name', contact.name || '');
     fd.append('contact_email', contact.email || '');
