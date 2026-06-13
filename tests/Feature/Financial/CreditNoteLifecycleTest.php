@@ -154,6 +154,40 @@ class CreditNoteLifecycleTest extends TestCase
         $this->assertSame(2_000_000, $creditNote->remaining_amount);
     }
 
+    public function test_applying_credit_to_already_approved_payment_consumes_immediately(): void
+    {
+        // Mirrors the "Manage Allocations" modal on an approved outgoing
+        // payment: the allocation is created while the payment is already
+        // APPROVED, so the observer must consume the credit on creation
+        // (no later approve() step).
+        $creditNote = $this->issuedCreditNote([3_000_000]);
+        $creditPsi = $this->creditScheduleItems($creditNote)->firstOrFail();
+        $targetPsi = $this->openSupplierItem(3_000_000);
+
+        $payment = Payment::create([
+            'direction' => PaymentDirection::OUTBOUND,
+            'company_id' => $this->supplier->id,
+            'amount' => 0,
+            'currency_code' => 'USD',
+            'payment_date' => '2026-06-11',
+            'status' => PaymentStatus::APPROVED,
+        ]);
+
+        PaymentAllocation::create([
+            'payment_id' => $payment->id,
+            'payment_schedule_item_id' => $targetPsi->id,
+            'credit_schedule_item_id' => $creditPsi->id,
+            'allocated_amount' => 0,
+            'exchange_rate' => null,
+            'allocated_amount_in_document_currency' => $creditPsi->amount,
+        ]);
+
+        $this->assertSame(CreditNoteStatus::APPLIED, $creditNote->refresh()->status);
+        $this->assertSame(PaymentScheduleStatus::PAID, $creditPsi->refresh()->status);
+        $this->assertSame(PaymentScheduleStatus::PAID, $targetPsi->refresh()->status);
+        $this->assertSame(3_000_000, $creditNote->applied_amount);
+    }
+
     public function test_reference_uses_max_plus_one_even_after_force_delete(): void
     {
         $first = $this->draftCreditNote([1_000_000]);

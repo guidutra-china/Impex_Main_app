@@ -179,86 +179,97 @@ trait HasPaymentFormSections
                 ->description(__('forms.descriptions.apply_credits_to_offset_schedule_item_balances_this_does'))
                 ->visible(fn (Get $get) => filled($get('company_id'))
                     && static::getCompanyCreditItems((int) $get('company_id'), $direction)->isNotEmpty())
-                ->collapsed()
                 ->schema([
-                    Repeater::make('credit_applications')
-                        ->label('')
-                        ->schema([
-                            Select::make('credit_schedule_item_id')
-                                ->label(__('forms.labels.credit'))
-                                ->options(function (Get $get) use ($direction) {
-                                    $companyId = $get('../../company_id');
-                                    if (! $companyId) {
-                                        return [];
-                                    }
-
-                                    return static::getCompanyCreditItems((int) $companyId, $direction)
-                                        ->mapWithKeys(fn ($item) => [
-                                            $item->id => static::formatCreditItemLabel($item),
-                                        ]);
-                                })
-                                ->getOptionLabelUsing(function ($value): ?string {
-                                    $item = PaymentScheduleItem::with('payable')->find($value);
-
-                                    return $item ? static::formatCreditItemLabel($item) : null;
-                                })
-                                ->required()
-                                ->distinct()
-                                ->searchable()
-                                ->columnSpan(4),
-                            Select::make('payment_schedule_item_id')
-                                ->label(__('forms.labels.apply_to'))
-                                ->options(function (Get $get) use ($direction) {
-                                    $companyId = $get('../../company_id');
-                                    if (! $companyId) {
-                                        return [];
-                                    }
-
-                                    return static::getCompanyScheduleItems((int) $companyId, $direction)
-                                        ->mapWithKeys(fn ($item) => [
-                                            $item->id => static::formatScheduleItemLabel($item),
-                                        ]);
-                                })
-                                ->getOptionLabelUsing(function ($value): ?string {
-                                    $item = PaymentScheduleItem::with('payable')->find($value);
-
-                                    return $item ? static::formatScheduleItemLabel($item) : null;
-                                })
-                                ->required()
-                                ->searchable()
-                                ->columnSpan(4),
-                            TextInput::make('credit_amount')
-                                ->label(__('forms.labels.amount'))
-                                ->numeric()
-                                ->step('0.01')
-                                ->minValue(0.01)
-                                ->required()
-                                ->rules([
-                                    fn (Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
-                                        $creditItemId = $get('credit_schedule_item_id');
-                                        if (! $creditItemId) {
-                                            return;
-                                        }
-                                        $creditItem = PaymentScheduleItem::find($creditItemId);
-                                        if (! $creditItem) {
-                                            return;
-                                        }
-                                        $maxAmount = Money::toMajor($creditItem->amount);
-                                        if ((float) $value > $maxAmount) {
-                                            $fail("Amount cannot exceed the credit value of {$creditItem->currency_code} ".number_format($maxAmount, 2).'.');
-                                        }
-                                    },
-                                ])
-                                ->columnSpan(2),
-                        ])
-                        ->columns(10)
-                        ->defaultItems(0)
-                        ->addActionLabel('+ Apply Credit')
-                        ->live()
-                        ->columnSpanFull(),
+                    static::creditApplicationsRepeater($direction),
                 ])
                 ->columnSpanFull(),
         ];
+    }
+
+    /**
+     * Repeater for applying available credits (Credit Notes, supplier
+     * deductions) against open schedule items. Shared between the
+     * Create/Edit payment form and the "Manage Allocations" modal so an
+     * approved payment can still consume a credit. Reads ../../company_id,
+     * so company_id must exist at the enclosing form root.
+     */
+    public static function creditApplicationsRepeater(PaymentDirection $direction): Repeater
+    {
+        return Repeater::make('credit_applications')
+            ->label('')
+            ->schema([
+                Select::make('credit_schedule_item_id')
+                    ->label(__('forms.labels.credit'))
+                    ->options(function (Get $get) use ($direction) {
+                        $companyId = $get('../../company_id');
+                        if (! $companyId) {
+                            return [];
+                        }
+
+                        return static::getCompanyCreditItems((int) $companyId, $direction)
+                            ->mapWithKeys(fn ($item) => [
+                                $item->id => static::formatCreditItemLabel($item),
+                            ]);
+                    })
+                    ->getOptionLabelUsing(function ($value): ?string {
+                        $item = PaymentScheduleItem::with('payable')->find($value);
+
+                        return $item ? static::formatCreditItemLabel($item) : null;
+                    })
+                    ->required()
+                    ->distinct()
+                    ->searchable()
+                    ->columnSpan(4),
+                Select::make('payment_schedule_item_id')
+                    ->label(__('forms.labels.apply_to'))
+                    ->options(function (Get $get) use ($direction) {
+                        $companyId = $get('../../company_id');
+                        if (! $companyId) {
+                            return [];
+                        }
+
+                        return static::getCompanyScheduleItems((int) $companyId, $direction)
+                            ->mapWithKeys(fn ($item) => [
+                                $item->id => static::formatScheduleItemLabel($item),
+                            ]);
+                    })
+                    ->getOptionLabelUsing(function ($value): ?string {
+                        $item = PaymentScheduleItem::with('payable')->find($value);
+
+                        return $item ? static::formatScheduleItemLabel($item) : null;
+                    })
+                    ->required()
+                    ->searchable()
+                    ->columnSpan(4),
+                TextInput::make('credit_amount')
+                    ->label(__('forms.labels.amount'))
+                    ->numeric()
+                    ->step('0.01')
+                    ->minValue(0.01)
+                    ->required()
+                    ->rules([
+                        fn (Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
+                            $creditItemId = $get('credit_schedule_item_id');
+                            if (! $creditItemId) {
+                                return;
+                            }
+                            $creditItem = PaymentScheduleItem::find($creditItemId);
+                            if (! $creditItem) {
+                                return;
+                            }
+                            $maxAmount = Money::toMajor($creditItem->amount);
+                            if ((float) $value > $maxAmount) {
+                                $fail("Amount cannot exceed the credit value of {$creditItem->currency_code} ".number_format($maxAmount, 2).'.');
+                            }
+                        },
+                    ])
+                    ->columnSpan(2),
+            ])
+            ->columns(10)
+            ->defaultItems(0)
+            ->addActionLabel('+ Apply Credit')
+            ->live()
+            ->columnSpanFull();
     }
 
     public static function getCompanyScheduleItems(int $companyId, mixed $direction): Collection

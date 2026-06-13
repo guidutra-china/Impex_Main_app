@@ -20,6 +20,7 @@ class DebitNoteForm
         return $schema->components([
             Section::make(__('forms.sections.debit_note_details'))
                 ->columns(2)
+                ->columnSpanFull()
                 ->schema([
                     Select::make('company_id')
                         ->label(__('forms.labels.client'))

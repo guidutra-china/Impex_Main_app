@@ -11,6 +11,7 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Support\HtmlString;
 use InvalidArgumentException;
@@ -34,7 +35,8 @@ trait HasManageAllocationsAction
             ->icon('heroicon-o-banknotes')
             ->color('warning')
             ->visible(fn () => $this->record->status === \App\Domain\Financial\Enums\PaymentStatus::APPROVED
-                && $this->record->unallocated_amount > 0)
+                && ($this->record->unallocated_amount > 0
+                    || static::getCompanyCreditItems((int) $this->record->company_id, $this->record->direction)->isNotEmpty()))
             ->modalHeading(__('forms.labels.manage_allocations'))
             ->modalDescription(fn () => new HtmlString(
                 '<div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">'
@@ -60,7 +62,7 @@ trait HasManageAllocationsAction
                     ->label('')
                     ->schema(static::allocationRepeaterSchema($this->record->direction))
                     ->columns(12)
-                    ->defaultItems(1)
+                    ->defaultItems(0)
                     ->live()
                     ->addActionLabel('+ '.__('forms.labels.add_allocation')),
 
@@ -73,6 +75,15 @@ trait HasManageAllocationsAction
                             $this->record->currency_code,
                         ));
                     }),
+
+                // Apply available credits (Credit Notes, supplier deductions)
+                // against open items, independent of the wire amount.
+                Section::make(__('forms.sections.credit_applications'))
+                    ->description(__('forms.descriptions.apply_credits_to_offset_schedule_item_balances_this_does'))
+                    ->visible(fn () => static::getCompanyCreditItems((int) $this->record->company_id, $this->record->direction)->isNotEmpty())
+                    ->schema([
+                        static::creditApplicationsRepeater($this->record->direction),
+                    ]),
             ])
             ->action(function (array $data) {
                 $payment = $this->record;
@@ -163,6 +174,38 @@ trait HasManageAllocationsAction
                     // item, but we refresh+recalc here to keep the feedback
                     // deterministic within this request.
                     $scheduleItem->recalculateStatus();
+                }
+
+                // Credit applications: consume an is_credit item (Credit Note,
+                // supplier deduction) against an open item. allocated_amount=0
+                // so the wire amount is untouched; the document-currency amount
+                // carries the credit value. The observer reconciles statuses.
+                foreach ($data['credit_applications'] ?? [] as $creditData) {
+                    $creditItemId = $creditData['credit_schedule_item_id'] ?? null;
+                    $targetItemId = $creditData['payment_schedule_item_id'] ?? null;
+                    $creditAmount = (float) ($creditData['credit_amount'] ?? 0);
+
+                    if (! $creditItemId || ! $targetItemId || $creditAmount <= 0) {
+                        continue;
+                    }
+
+                    $creditItem = PaymentScheduleItem::find($creditItemId);
+                    $targetItem = PaymentScheduleItem::find($targetItemId);
+
+                    if (! $creditItem || ! $targetItem) {
+                        continue;
+                    }
+
+                    PaymentAllocation::create([
+                        'payment_id' => $payment->id,
+                        'payment_schedule_item_id' => $targetItemId,
+                        'credit_schedule_item_id' => $creditItemId,
+                        'allocated_amount' => 0,
+                        'exchange_rate' => null,
+                        'allocated_amount_in_document_currency' => Money::toMinor($creditAmount),
+                    ]);
+
+                    $targetItem->recalculateStatus();
                 }
 
                 Notification::make()

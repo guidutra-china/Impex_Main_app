@@ -21,6 +21,7 @@ class CreditNoteForm
         return $schema->components([
             Section::make(__('forms.sections.credit_note_details'))
                 ->columns(2)
+                ->columnSpanFull()
                 ->schema([
                     Select::make('party_type')
                         ->label(__('forms.labels.party'))
