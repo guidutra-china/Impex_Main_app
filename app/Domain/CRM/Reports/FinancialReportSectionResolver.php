@@ -4,6 +4,7 @@ namespace App\Domain\CRM\Reports;
 
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Reports\FinancialSectionBuilders\AdditionalCostFinancialSectionBuilder;
+use App\Domain\CRM\Reports\FinancialSectionBuilders\CreditNoteSectionBuilder;
 use App\Domain\CRM\Reports\FinancialSectionBuilders\DebitNoteSectionBuilder;
 use App\Domain\CRM\Reports\FinancialSectionBuilders\FinancialSectionBuilder;
 use App\Domain\CRM\Reports\FinancialSectionBuilders\MarginAnalysisSectionBuilder;
@@ -34,18 +35,20 @@ final class FinancialReportSectionResolver
         $sections = [];
 
         if ($role === CompanyRole::CLIENT) {
-            $sections[] = new PiFinancialSectionBuilder();
-            $sections[] = new PoFinancialSectionBuilder();
+            $sections[] = new PiFinancialSectionBuilder;
+            $sections[] = new PoFinancialSectionBuilder;
             $sections[] = new ShipmentCostSectionBuilder(CompanyRole::CLIENT);
-            $sections[] = new PaymentSectionBuilder();
-            $sections[] = new DebitNoteSectionBuilder();
-            $sections[] = new AdditionalCostFinancialSectionBuilder();
-            $sections[] = new MarginAnalysisSectionBuilder();
+            $sections[] = new PaymentSectionBuilder;
+            $sections[] = new DebitNoteSectionBuilder;
+            $sections[] = new CreditNoteSectionBuilder;
+            $sections[] = new AdditionalCostFinancialSectionBuilder;
+            $sections[] = new MarginAnalysisSectionBuilder;
         } elseif ($role === CompanyRole::SUPPLIER) {
-            $sections[] = new PoFinancialSectionBuilder();
+            $sections[] = new PoFinancialSectionBuilder;
             $sections[] = new ShipmentCostSectionBuilder(CompanyRole::SUPPLIER);
-            $sections[] = new PaymentSectionBuilder();
-            $sections[] = new AdditionalCostFinancialSectionBuilder();
+            $sections[] = new PaymentSectionBuilder;
+            $sections[] = new CreditNoteSectionBuilder;
+            $sections[] = new AdditionalCostFinancialSectionBuilder;
         }
 
         return $sections;
@@ -55,11 +58,12 @@ final class FinancialReportSectionResolver
     private function clientSections(): array
     {
         return [
-            new PiFinancialSectionBuilder(),
+            new PiFinancialSectionBuilder,
             new ShipmentCostSectionBuilder(CompanyRole::CLIENT),
-            new PaymentSectionBuilder(),
-            new DebitNoteSectionBuilder(),
-            new AdditionalCostFinancialSectionBuilder(),
+            new PaymentSectionBuilder,
+            new DebitNoteSectionBuilder,
+            new CreditNoteSectionBuilder,
+            new AdditionalCostFinancialSectionBuilder,
         ];
     }
 
@@ -67,10 +71,11 @@ final class FinancialReportSectionResolver
     private function supplierSections(): array
     {
         return [
-            new PoFinancialSectionBuilder(),
+            new PoFinancialSectionBuilder,
             new ShipmentCostSectionBuilder(CompanyRole::SUPPLIER),
-            new PaymentSectionBuilder(),
-            new AdditionalCostFinancialSectionBuilder(),
+            new PaymentSectionBuilder,
+            new CreditNoteSectionBuilder,
+            new AdditionalCostFinancialSectionBuilder,
         ];
     }
 }

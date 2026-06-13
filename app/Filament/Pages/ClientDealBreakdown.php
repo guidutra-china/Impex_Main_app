@@ -17,8 +17,11 @@ use Livewire\Attributes\Url;
 class ClientDealBreakdown extends Page
 {
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-chart-bar-square';
-    protected static ?int $navigationSort = 2;
+
+    protected static ?int $navigationSort = 70;
+
     protected static ?string $slug = 'client-deal-breakdown';
+
     protected string $view = 'filament.pages.client-deal-breakdown';
 
     #[Url(as: 'client')]
@@ -120,6 +123,7 @@ class ClientDealBreakdown extends Page
         if (empty($codes)) {
             return ['USD' => 'USD'];
         }
+
         return array_combine($codes, $codes);
     }
 
@@ -129,6 +133,7 @@ class ClientDealBreakdown extends Page
         foreach (ProformaInvoiceStatus::cases() as $case) {
             $options[$case->value] = $case->getLabel();
         }
+
         return $options;
     }
 
@@ -165,6 +170,7 @@ class ClientDealBreakdown extends Page
         if ($pis->isEmpty()) {
             return 'USD';
         }
+
         return $pis->countBy()->sortDesc()->keys()->first();
     }
 }

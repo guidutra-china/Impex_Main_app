@@ -1,6 +1,12 @@
 <?php
 
 return [
+    'credit_note_issued' => 'Credit note issued',
+    'credit_note_cancelled' => 'Credit note cancelled',
+    'debit_note_issued' => 'Debit note issued',
+    'debit_note_cancelled' => 'Debit note cancelled',
+    'no_unbilled_costs' => 'No unbilled costs found',
+    'costs_added_as_line_items' => ':count cost(s) added as line items',
     // Notification titles
     'audit_cannot_modify' => 'This audit cannot be modified',
     'audit_responses_saved' => 'Audit responses saved',

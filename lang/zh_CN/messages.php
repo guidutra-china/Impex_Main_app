@@ -1,6 +1,12 @@
 <?php
 
 return [
+    'credit_note_issued' => '贷记通知单已开具',
+    'credit_note_cancelled' => '贷记通知单已取消',
+    'debit_note_issued' => '借记通知单已开具',
+    'debit_note_cancelled' => '借记通知单已取消',
+    'no_unbilled_costs' => '未找到待开票费用',
+    'costs_added_as_line_items' => '已添加 :count 项费用',
     // Notification titles
     'audit_cannot_modify' => '此审核无法修改',
     'audit_responses_saved' => '审核回复已保存',

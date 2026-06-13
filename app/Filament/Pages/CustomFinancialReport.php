@@ -44,6 +44,7 @@ class CustomFinancialReport extends FinancialReportPreview
         'shipments' => [],
         'payments' => [],
         'debit_notes' => [],
+        'credit_notes' => [],
         'additional_costs' => [],
     ];
 

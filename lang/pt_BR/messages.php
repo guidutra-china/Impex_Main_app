@@ -1,6 +1,12 @@
 <?php
 
 return [
+    'credit_note_issued' => 'Nota de crédito emitida',
+    'credit_note_cancelled' => 'Nota de crédito cancelada',
+    'debit_note_issued' => 'Nota de débito emitida',
+    'debit_note_cancelled' => 'Nota de débito cancelada',
+    'no_unbilled_costs' => 'Nenhum custo pendente de faturamento encontrado',
+    'costs_added_as_line_items' => ':count custo(s) adicionados como itens',
     // Notification titles
     'audit_cannot_modify' => 'Esta auditoria não pode ser modificada',
     'audit_responses_saved' => 'Respostas da auditoria salvas',

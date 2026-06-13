@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Finance\AccountsPayable;
 
+use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\Payment;
 use App\Filament\Resources\Finance\AccountsPayable\Pages\CreateAccountsPayable;
 use App\Filament\Resources\Finance\AccountsPayable\Pages\EditAccountsPayable;
@@ -23,7 +24,7 @@ class AccountsPayableResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-arrow-up-right';
 
-    protected static ?int $navigationSort = 62;
+    protected static ?int $navigationSort = 63;
 
     protected static ?string $slug = 'accounts-payable';
 
@@ -78,6 +79,20 @@ class AccountsPayableResource extends Resource
     public static function getNavigationGroup(): ?string
     {
         return __('navigation.groups.finance');
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        $count = Payment::where('direction', 'outbound')
+            ->where('status', PaymentStatus::PENDING_APPROVAL)
+            ->count();
+
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'warning';
     }
 
     public static function getNavigationLabel(): string

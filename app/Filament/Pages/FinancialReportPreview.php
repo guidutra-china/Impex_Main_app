@@ -38,7 +38,7 @@ abstract class FinancialReportPreview extends Page
     /** @return list<string> */
     protected function availableSections(): array
     {
-        return ['proforma_invoices', 'purchase_orders', 'shipments', 'payments', 'debit_notes', 'additional_costs', 'margin_analysis'];
+        return ['proforma_invoices', 'purchase_orders', 'shipments', 'payments', 'debit_notes', 'credit_notes', 'additional_costs', 'margin_analysis'];
     }
 
     protected function initializeReport(): void

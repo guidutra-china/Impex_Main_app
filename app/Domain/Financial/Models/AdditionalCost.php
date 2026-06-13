@@ -98,6 +98,11 @@ class AdditionalCost extends Model
         return $this->hasMany(DebitNoteLineItem::class);
     }
 
+    public function creditNoteLineItems(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(CreditNoteLineItem::class);
+    }
+
     // --- Scopes ---
 
     public function scopeBillableToClient($query)

@@ -15,15 +15,14 @@ use App\Filament\Resources\ProformaInvoices\RelationManagers\PaymentsRelationMan
 use App\Filament\Resources\ProformaInvoices\RelationManagers\ProductionSchedulesRelationManager;
 use App\Filament\Resources\ProformaInvoices\RelationManagers\ShipmentPlansRelationManager;
 use App\Filament\Resources\ProformaInvoices\Schemas\ProformaInvoiceForm;
-use App\Filament\Resources\ProformaInvoices\Widgets\ProformaInvoiceStats;
-use App\Filament\Resources\ProformaInvoices\Widgets\ShipmentFulfillmentWidget;
 use App\Filament\Resources\ProformaInvoices\Schemas\ProformaInvoiceInfolist;
 use App\Filament\Resources\ProformaInvoices\Tables\ProformaInvoicesTable;
+use App\Filament\Resources\ProformaInvoices\Widgets\ProformaInvoiceStats;
+use App\Filament\Resources\ProformaInvoices\Widgets\ShipmentFulfillmentWidget;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
-use UnitEnum;
 
 class ProformaInvoiceResource extends Resource
 {
@@ -70,6 +69,7 @@ class ProformaInvoiceResource extends Resource
             PaymentScheduleRelationManager::class,
             PaymentsRelationManager::class,
             \App\Filament\RelationManagers\DebitNotesRelationManager::class,
+            \App\Filament\RelationManagers\CreditNotesRelationManager::class,
             ProductionSchedulesRelationManager::class,
             ShipmentPlansRelationManager::class,
             DocumentsRelationManager::class,

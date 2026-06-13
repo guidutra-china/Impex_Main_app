@@ -399,13 +399,32 @@ trait HasPaymentFormSections
                 PaymentScheduleStatus::WAIVED->value,
             ]);
 
+        // Credit notes issued to this company become credit items owned by
+        // the CreditNote itself; surface them alongside document credits.
+        $creditNoteIds = \App\Domain\Financial\Models\CreditNote::query()
+            ->where('company_id', $companyId)
+            ->where('party_type', ($directionValue === PaymentDirection::INBOUND->value || $directionValue === 'inbound')
+                ? \App\Domain\Financial\Enums\CreditNoteParty::CLIENT->value
+                : \App\Domain\Financial\Enums\CreditNoteParty::SUPPLIER->value)
+            ->pluck('id');
+
         if ($directionValue === PaymentDirection::INBOUND->value || $directionValue === 'inbound') {
             // Same rule as getCompanyScheduleItems: client AR credits attach
             // to the PI canonical item, never to a shipment mirror.
             $piIds = ProformaInvoice::where('company_id', $companyId)->pluck('id');
 
-            $query->where('payable_type', ProformaInvoice::class)
-                ->whereIn('payable_id', $piIds);
+            $query->where(function ($q) use ($piIds, $creditNoteIds) {
+                $q->where(function ($q2) use ($piIds) {
+                    $q2->where('payable_type', ProformaInvoice::class)
+                        ->whereIn('payable_id', $piIds);
+                });
+                if ($creditNoteIds->isNotEmpty()) {
+                    $q->orWhere(function ($q2) use ($creditNoteIds) {
+                        $q2->where('payable_type', \App\Domain\Financial\Models\CreditNote::class)
+                            ->whereIn('payable_id', $creditNoteIds);
+                    });
+                }
+            });
         } else {
             if ($isForwarder) {
                 $costableIds = \App\Domain\Financial\Models\AdditionalCost::where('forwarder_company_id', $companyId)
@@ -413,8 +432,16 @@ trait HasPaymentFormSections
                     ->pluck('costable_id')
                     ->unique();
 
-                $query->where(function ($q) use ($costableIds) {
-                    $q->where('payable_type', Shipment::class)->whereIn('payable_id', $costableIds);
+                $query->where(function ($q) use ($costableIds, $creditNoteIds) {
+                    $q->where(function ($q2) use ($costableIds) {
+                        $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $costableIds);
+                    });
+                    if ($creditNoteIds->isNotEmpty()) {
+                        $q->orWhere(function ($q2) use ($creditNoteIds) {
+                            $q2->where('payable_type', \App\Domain\Financial\Models\CreditNote::class)
+                                ->whereIn('payable_id', $creditNoteIds);
+                        });
+                    }
                 });
             } else {
                 $poIds = PurchaseOrder::where('supplier_company_id', $companyId)->pluck('id');
@@ -428,7 +455,7 @@ trait HasPaymentFormSections
                     ->where('supplier_company_id', $companyId)
                     ->pluck('id');
 
-                $query->where(function ($q) use ($poIds, $supplierAdditionalCostIds) {
+                $query->where(function ($q) use ($poIds, $supplierAdditionalCostIds, $creditNoteIds) {
                     $q->where(function ($q2) use ($poIds) {
                         $q2->where('payable_type', PurchaseOrder::class)->whereIn('payable_id', $poIds);
                     });
@@ -436,6 +463,12 @@ trait HasPaymentFormSections
                         $q->orWhere(function ($q2) use ($supplierAdditionalCostIds) {
                             $q2->where('source_type', \App\Domain\Financial\Models\AdditionalCost::class)
                                 ->whereIn('source_id', $supplierAdditionalCostIds);
+                        });
+                    }
+                    if ($creditNoteIds->isNotEmpty()) {
+                        $q->orWhere(function ($q2) use ($creditNoteIds) {
+                            $q2->where('payable_type', \App\Domain\Financial\Models\CreditNote::class)
+                                ->whereIn('payable_id', $creditNoteIds);
                         });
                     }
                 });

@@ -5,16 +5,16 @@ namespace App\Filament\Pages;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
-use App\Domain\ProformaInvoices\Models\ProformaInvoice;
-use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Planning\Models\ShipmentPlan;
+use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Filament\Pages\Widgets\CashFlowProjection;
+use App\Filament\Pages\Widgets\FinancialStatsOverview;
 use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
 use App\Filament\Resources\PurchaseOrders\PurchaseOrderResource;
-use App\Filament\Resources\Shipments\ShipmentResource;
 use App\Filament\Resources\ShipmentPlans\ShipmentPlanResource;
-use App\Filament\Pages\Widgets\FinancialStatsOverview;
+use App\Filament\Resources\Shipments\ShipmentResource;
 use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Tables\Columns\TextColumn;
@@ -44,7 +44,7 @@ class FinancialOverview extends Page implements HasTable
         return __('navigation.pages.financial_overview');
     }
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 60;
 
     protected static ?string $slug = 'financial-overview';
 

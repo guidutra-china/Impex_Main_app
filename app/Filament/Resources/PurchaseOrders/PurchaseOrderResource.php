@@ -3,24 +3,23 @@
 namespace App\Filament\Resources\PurchaseOrders;
 
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
-use App\Filament\Resources\PurchaseOrders\RelationManagers\DocumentsRelationManager;
 use App\Filament\Resources\PurchaseOrders\Pages\CreatePurchaseOrder;
 use App\Filament\Resources\PurchaseOrders\Pages\EditPurchaseOrder;
 use App\Filament\Resources\PurchaseOrders\Pages\ListPurchaseOrders;
 use App\Filament\Resources\PurchaseOrders\Pages\ViewPurchaseOrder;
+use App\Filament\Resources\PurchaseOrders\RelationManagers\DocumentsRelationManager;
 use App\Filament\Resources\PurchaseOrders\RelationManagers\ItemsRelationManager;
 use App\Filament\Resources\PurchaseOrders\RelationManagers\PaymentScheduleRelationManager;
 use App\Filament\Resources\PurchaseOrders\RelationManagers\PaymentsRelationManager;
 use App\Filament\Resources\PurchaseOrders\Schemas\PurchaseOrderForm;
-use App\Filament\Resources\PurchaseOrders\Widgets\POShipmentFulfillmentWidget;
-use App\Filament\Resources\PurchaseOrders\Widgets\PurchaseOrderStats;
 use App\Filament\Resources\PurchaseOrders\Schemas\PurchaseOrderInfolist;
 use App\Filament\Resources\PurchaseOrders\Tables\PurchaseOrdersTable;
+use App\Filament\Resources\PurchaseOrders\Widgets\POShipmentFulfillmentWidget;
+use App\Filament\Resources\PurchaseOrders\Widgets\PurchaseOrderStats;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
-use UnitEnum;
 
 class PurchaseOrderResource extends Resource
 {
@@ -65,6 +64,7 @@ class PurchaseOrderResource extends Resource
             ItemsRelationManager::class,
             PaymentScheduleRelationManager::class,
             PaymentsRelationManager::class,
+            \App\Filament\RelationManagers\CreditNotesRelationManager::class,
             DocumentsRelationManager::class,
         ];
     }

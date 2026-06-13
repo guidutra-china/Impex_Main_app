@@ -157,6 +157,11 @@ class PurchaseOrder extends Model
         return $this->belongsTo(Company::class, 'supplier_company_id');
     }
 
+    public function creditNotes(): HasMany
+    {
+        return $this->hasMany(\App\Domain\Financial\Models\CreditNote::class);
+    }
+
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);

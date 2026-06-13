@@ -2,160 +2,26 @@
 
 namespace App\Domain\Financial\Observers;
 
-use App\Domain\Financial\Enums\AdditionalCostStatus;
-use App\Domain\Financial\Enums\DebitNoteStatus;
-use App\Domain\Financial\Enums\PaymentScheduleStatus;
-use App\Domain\Financial\Models\AdditionalCost;
-use App\Domain\Financial\Models\DebitNoteLineItem;
+use App\Domain\Financial\Actions\ReconcileSettlementStateAction;
 use App\Domain\Financial\Models\PaymentAllocation;
-use App\Domain\Financial\Models\PaymentScheduleItem;
 
+/**
+ * Note: mass-delete via Query Builder ($payment->allocations()->delete())
+ * bypasses model events, so callers performing bulk deletion must invoke
+ * PaymentScheduleItem::recalculateStatus() explicitly. This observer
+ * covers the per-model creation/deletion path. Payment approval state
+ * changes are reconciled by ApprovePaymentAction through the same shared
+ * ReconcileSettlementStateAction.
+ */
 class PaymentAllocationObserver
 {
     public function created(PaymentAllocation $allocation): void
     {
-        $this->recalculateScheduleItemStatus($allocation);
-        $this->checkDebitNoteReconciliation($allocation);
-        $this->syncAdditionalCostStatus($allocation);
+        app(ReconcileSettlementStateAction::class)->forAllocation($allocation);
     }
 
     public function deleted(PaymentAllocation $allocation): void
     {
-        $this->recalculateScheduleItemStatus($allocation);
-        $this->checkDebitNoteReconciliation($allocation);
-        $this->syncAdditionalCostStatus($allocation);
-    }
-
-    /**
-     * Keep the schedule item's stored status in sync with its live
-     * paid_amount. Without this, removing an allocation (for example by
-     * editing a payment or cancelling it) leaves the item stuck at PAID
-     * even after paid_amount falls back to 0.
-     *
-     * Note: mass-delete via Query Builder ($payment->allocations()->delete())
-     * bypasses model events, so callers performing bulk deletion must invoke
-     * PaymentScheduleItem::recalculateStatus() explicitly. This observer
-     * covers the per-model deletion path.
-     */
-    protected function recalculateScheduleItemStatus(PaymentAllocation $allocation): void
-    {
-        $scheduleItem = $allocation->scheduleItem;
-
-        if ($scheduleItem) {
-            $scheduleItem->recalculateStatus();
-        }
-
-        if ($allocation->credit_schedule_item_id) {
-            $creditItem = PaymentScheduleItem::find($allocation->credit_schedule_item_id);
-            $creditItem?->recalculateStatus();
-        }
-    }
-
-    /**
-     * Check if all schedule items sourced from a DebitNote's line items are paid.
-     * If so, transition the DebitNote to PAID. If partially paid, set PARTIALLY_PAID.
-     */
-    protected function checkDebitNoteReconciliation(PaymentAllocation $allocation): void
-    {
-        $scheduleItem = $allocation->scheduleItem;
-
-        if (! $scheduleItem) {
-            return;
-        }
-
-        // Only process schedule items sourced from DebitNoteLineItem
-        if ($scheduleItem->source_type !== DebitNoteLineItem::class) {
-            return;
-        }
-
-        $lineItem = DebitNoteLineItem::find($scheduleItem->source_id);
-
-        if (! $lineItem) {
-            return;
-        }
-
-        $debitNote = $lineItem->debitNote;
-
-        if (! $debitNote || $debitNote->status === DebitNoteStatus::CANCELLED) {
-            return;
-        }
-
-        // Get all schedule items for this debit note
-        $lineItemIds = $debitNote->lineItems()->pluck('id');
-
-        $scheduleItems = PaymentScheduleItem::where('source_type', DebitNoteLineItem::class)
-            ->whereIn('source_id', $lineItemIds)
-            ->get();
-
-        if ($scheduleItems->isEmpty()) {
-            return;
-        }
-
-        $allPaid = $scheduleItems->every(fn ($item) => $item->status === PaymentScheduleStatus::PAID);
-        $anyPaid = $scheduleItems->contains(fn ($item) => $item->status === PaymentScheduleStatus::PAID);
-
-        if ($allPaid) {
-            $debitNote->update(['status' => DebitNoteStatus::PAID]);
-        } elseif ($anyPaid) {
-            $debitNote->update(['status' => DebitNoteStatus::PARTIALLY_PAID]);
-        } elseif ($debitNote->status !== DebitNoteStatus::ISSUED) {
-            $debitNote->update(['status' => DebitNoteStatus::ISSUED]);
-        }
-    }
-
-    /**
-     * Reflect the live PSI status onto the parent AdditionalCost. A freight
-     * cost can have two PSIs (client-billable and forwarder-payable); each
-     * is mapped to its own column on the AdditionalCost row so the user can
-     * see which side has been settled.
-     *
-     * The forwarder-side PSI is identified by the [forwarder-payable] tag
-     * stitched into PSI.notes by GeneratePaymentScheduleAction.
-     */
-    protected function syncAdditionalCostStatus(PaymentAllocation $allocation): void
-    {
-        foreach ($this->collectScheduleItems($allocation) as $scheduleItem) {
-            if (! $scheduleItem || $scheduleItem->source_type !== AdditionalCost::class) {
-                continue;
-            }
-
-            /** @var AdditionalCost|null $cost */
-            $cost = AdditionalCost::find($scheduleItem->source_id);
-            if (! $cost) {
-                continue;
-            }
-
-            $isForwarderSide = str_contains($scheduleItem->notes ?? '', '[forwarder-payable]');
-            $newStatus = $this->mapScheduleItemStatusToCostStatus($scheduleItem->status);
-
-            $column = $isForwarderSide ? 'forwarder_status' : 'status';
-            if ($cost->{$column} !== $newStatus) {
-                $cost->{$column} = $newStatus;
-                $cost->save();
-            }
-        }
-    }
-
-    /**
-     * @return iterable<PaymentScheduleItem|null>
-     */
-    protected function collectScheduleItems(PaymentAllocation $allocation): iterable
-    {
-        yield $allocation->scheduleItem;
-
-        if ($allocation->credit_schedule_item_id) {
-            yield PaymentScheduleItem::find($allocation->credit_schedule_item_id);
-        }
-    }
-
-    protected function mapScheduleItemStatusToCostStatus(?PaymentScheduleStatus $status): AdditionalCostStatus
-    {
-        return match ($status) {
-            PaymentScheduleStatus::PAID => AdditionalCostStatus::PAID,
-            PaymentScheduleStatus::WAIVED => AdditionalCostStatus::WAIVED,
-            PaymentScheduleStatus::DUE,
-            PaymentScheduleStatus::OVERDUE => AdditionalCostStatus::INVOICED,
-            default => AdditionalCostStatus::PENDING,
-        };
+        app(ReconcileSettlementStateAction::class)->forAllocation($allocation);
     }
 }

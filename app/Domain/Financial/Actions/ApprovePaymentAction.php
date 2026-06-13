@@ -2,14 +2,15 @@
 
 namespace App\Domain\Financial\Actions;
 
-use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\Payment;
-use App\Domain\Financial\Models\PaymentScheduleItem;
-use App\Domain\Logistics\Models\Shipment;
 
 class ApprovePaymentAction
 {
+    public function __construct(
+        protected ReconcileSettlementStateAction $reconciler,
+    ) {}
+
     public function approve(Payment $payment): void
     {
         $payment->update([
@@ -18,7 +19,7 @@ class ApprovePaymentAction
             'approved_at' => now(),
         ]);
 
-        $this->recalculateScheduleItemStatuses($payment);
+        $this->reconciler->forPayment($payment);
     }
 
     public function reject(Payment $payment, ?string $reason = null): void
@@ -31,6 +32,11 @@ class ApprovePaymentAction
                 ? ($payment->notes ? $payment->notes."\n\nRejection: ".$reason : 'Rejection: '.$reason)
                 : $payment->notes,
         ]);
+
+        // Allocations of a never-approved payment don't count toward paid
+        // amounts, but reconciliation is idempotent — run it to cover the
+        // edge of rejecting a previously approved record.
+        $this->reconciler->forPayment($payment);
     }
 
     public function cancel(Payment $payment, ?string $reason = null): void
@@ -45,81 +51,10 @@ class ApprovePaymentAction
         ]);
 
         if ($wasApproved) {
-            $this->rollbackScheduleItemStatuses($payment);
-        }
-    }
-
-    protected function recalculateScheduleItemStatuses(Payment $payment): void
-    {
-        $this->reconcileScheduleItems($payment);
-    }
-
-    protected function rollbackScheduleItemStatuses(Payment $payment): void
-    {
-        // After cancellation, paid_amount accessor returns 0 for this payment's
-        // allocations (filter by APPROVED), so recalculateStatus correctly
-        // transitions items back to PENDING/DUE. Same call path as recalc.
-        $this->reconcileScheduleItems($payment);
-    }
-
-    protected function reconcileScheduleItems(Payment $payment): void
-    {
-        $allocations = $payment->allocations()->with('scheduleItem')->get();
-
-        foreach ($allocations as $allocation) {
-            $scheduleItem = $allocation->scheduleItem;
-
-            if (! $scheduleItem) {
-                continue;
-            }
-
-            $scheduleItem->recalculateStatus();
-
-            $this->syncShipmentMirrorStatus($scheduleItem);
-        }
-    }
-
-    /**
-     * Sync status of shipment-owned mirror schedule items when a payment is
-     * recorded against a PI/PO schedule item. The shipment mirror's paid_amount
-     * accessor already includes mirror allocations, so we just trigger a
-     * recalculation based on the current state.
-     */
-    protected function syncShipmentMirrorStatus(PaymentScheduleItem $scheduleItem): void
-    {
-        // Only relevant if the paid item is PI/PO owned and linked to a shipment
-        if (! $scheduleItem->shipment_id || ! $scheduleItem->payment_term_stage_id) {
-            return;
-        }
-
-        if ($scheduleItem->payable_type === Shipment::class) {
-            return; // Shipment-owned itself — nothing to mirror
-        }
-
-        $shipmentMirrors = PaymentScheduleItem::where('payable_type', Shipment::class)
-            ->where('payable_id', $scheduleItem->shipment_id)
-            ->where('shipment_id', $scheduleItem->shipment_id)
-            ->where('payment_term_stage_id', $scheduleItem->payment_term_stage_id)
-            ->get();
-
-        foreach ($shipmentMirrors as $mirror) {
-            if ($mirror->status === PaymentScheduleStatus::WAIVED) {
-                continue;
-            }
-
-            $mirror->refresh();
-
-            if ($mirror->is_paid_in_full) {
-                $newStatus = PaymentScheduleStatus::PAID;
-            } elseif ($mirror->paid_amount > 0) {
-                $newStatus = PaymentScheduleStatus::DUE;
-            } else {
-                $newStatus = PaymentScheduleStatus::PENDING;
-            }
-
-            if ($mirror->status !== $newStatus) {
-                $mirror->update(['status' => $newStatus]);
-            }
+            // paid_amount accessors filter by APPROVED, so reconciling now
+            // rolls schedule items back and reverts DebitNote/AdditionalCost
+            // state derived from them.
+            $this->reconciler->forPayment($payment);
         }
     }
 }

@@ -21,7 +21,7 @@ class DebitNoteResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-document-text';
 
-    protected static ?int $navigationSort = 63;
+    protected static ?int $navigationSort = 65;
 
     protected static ?string $slug = 'debit-notes';
 

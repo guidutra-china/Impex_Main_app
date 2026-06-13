@@ -167,6 +167,11 @@ class ProformaInvoice extends Model
         return $this->hasMany(\App\Domain\Financial\Models\DebitNote::class);
     }
 
+    public function creditNotes(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Domain\Financial\Models\CreditNote::class);
+    }
+
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);

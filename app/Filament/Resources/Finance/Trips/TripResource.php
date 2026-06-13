@@ -22,7 +22,7 @@ class TripResource extends Resource
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-paper-airplane';
 
-    protected static ?int $navigationSort = 63;
+    protected static ?int $navigationSort = 68;
 
     protected static ?string $slug = 'trips';
 
