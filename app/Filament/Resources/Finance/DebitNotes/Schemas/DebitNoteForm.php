@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources\Finance\DebitNotes\Schemas;
 
+use App\Domain\Financial\Enums\PartyType;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\Settings\Models\Currency;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
@@ -22,12 +24,24 @@ class DebitNoteForm
                 ->columns(2)
                 ->columnSpanFull()
                 ->schema([
+                    Select::make('party_type')
+                        ->label(__('forms.labels.party'))
+                        ->options(PartyType::class)
+                        ->default(PartyType::CLIENT->value)
+                        ->required()
+                        ->live()
+                        ->afterStateUpdated(fn ($set) => $set('company_id', null)),
                     Select::make('company_id')
-                        ->label(__('forms.labels.client'))
+                        ->label(fn ($get) => $get('party_type') === PartyType::SUPPLIER->value
+                            ? __('forms.labels.supplier')
+                            : __('forms.labels.client'))
                         ->relationship(
                             'company',
                             'name',
-                            fn ($query) => $query->whereHas('companyRoles', fn ($q) => $q->where('role', 'client'))
+                            fn ($query, $get) => $query->whereHas(
+                                'companyRoles',
+                                fn ($q) => $q->where('role', $get('party_type') ?: PartyType::CLIENT->value)
+                            )
                         )
                         ->required()
                         ->searchable()
@@ -45,11 +59,24 @@ class DebitNoteForm
                             ->pluck('reference', 'id'))
                         ->searchable()
                         ->nullable()
-                        ->visible(fn ($get) => filled($get('company_id'))),
+                        ->visible(fn ($get) => filled($get('company_id'))
+                            && $get('party_type') === PartyType::CLIENT->value),
+                    Select::make('purchase_order_id')
+                        ->label(__('forms.labels.purchase_order'))
+                        ->options(fn ($get) => PurchaseOrder::query()
+                            ->where('supplier_company_id', $get('company_id'))
+                            ->pluck('reference', 'id'))
+                        ->searchable()
+                        ->nullable()
+                        ->visible(fn ($get) => filled($get('company_id'))
+                            && $get('party_type') === PartyType::SUPPLIER->value),
                     Select::make('shipment_id')
                         ->label(__('forms.labels.shipment'))
                         ->options(fn ($get) => Shipment::query()
-                            ->where('company_id', $get('company_id'))
+                            ->when(
+                                $get('party_type') === PartyType::CLIENT->value,
+                                fn ($q) => $q->where('company_id', $get('company_id'))
+                            )
                             ->pluck('reference', 'id'))
                         ->searchable()
                         ->nullable()
@@ -72,18 +99,13 @@ class DebitNoteForm
                             TextInput::make('description')
                                 ->label(__('forms.labels.description'))
                                 ->required()
-                                ->columnSpan(5),
+                                ->columnSpan(7),
                             TextInput::make('amount')
                                 ->label(__('forms.labels.amount'))
                                 ->numeric()
                                 ->step('0.01')
                                 ->required()
                                 ->columnSpan(3),
-                            Select::make('currency_code')
-                                ->label(__('forms.labels.currency'))
-                                ->options(fn () => Currency::pluck('code', 'code'))
-                                ->required()
-                                ->columnSpan(2),
                         ])
                         ->columns(10)
                         ->defaultItems(0)

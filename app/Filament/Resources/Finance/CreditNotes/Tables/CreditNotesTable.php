@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\Finance\CreditNotes\Tables;
 
-use App\Domain\Financial\Enums\CreditNoteParty;
 use App\Domain\Financial\Enums\CreditNoteStatus;
+use App\Domain\Financial\Enums\PartyType;
 use App\Domain\Infrastructure\Support\Money;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
@@ -74,7 +74,7 @@ class CreditNotesTable
                     ->options(CreditNoteStatus::class),
                 SelectFilter::make('party_type')
                     ->label(__('forms.labels.party'))
-                    ->options(CreditNoteParty::class),
+                    ->options(PartyType::class),
                 SelectFilter::make('company_id')
                     ->label(__('forms.labels.company'))
                     ->relationship('company', 'name')

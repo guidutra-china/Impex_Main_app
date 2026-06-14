@@ -5,8 +5,11 @@ namespace App\Domain\Financial\Queries;
 use App\Domain\Financial\DataTransferObjects\AccountsPayablePeriodGroup;
 use App\Domain\Financial\DataTransferObjects\AccountsPayableReport;
 use App\Domain\Financial\Enums\AdditionalCostType;
+use App\Domain\Financial\Enums\DebitNoteStatus;
+use App\Domain\Financial\Enums\PartyType;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\AdditionalCost;
+use App\Domain\Financial\Models\DebitNote;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use Carbon\CarbonImmutable;
@@ -46,12 +49,20 @@ final class AccountsReceivableQuery
             ->where('supplier_company_id', $companyId)
             ->pluck('id');
 
-        if ($poIds->isEmpty() && $additionalCostIds->isEmpty()) {
+        // Supplier-party Debit Notes: extra amounts Impex owes the supplier,
+        // owned by the DN itself (mirrors how PO/cost payables are scoped).
+        $debitNoteIds = DebitNote::query()
+            ->where('company_id', $companyId)
+            ->where('party_type', PartyType::SUPPLIER->value)
+            ->where('status', DebitNoteStatus::ISSUED->value)
+            ->pluck('id');
+
+        if ($poIds->isEmpty() && $additionalCostIds->isEmpty() && $debitNoteIds->isEmpty()) {
             return $this->emptyReport($dateFrom, $dateTo);
         }
 
         $base = PaymentScheduleItem::query()
-            ->where(function ($q) use ($poIds, $additionalCostIds) {
+            ->where(function ($q) use ($poIds, $additionalCostIds, $debitNoteIds) {
                 if ($poIds->isNotEmpty()) {
                     $q->orWhere(function ($sub) use ($poIds) {
                         $sub->where('payable_type', PurchaseOrder::class)
@@ -62,6 +73,12 @@ final class AccountsReceivableQuery
                     $q->orWhere(function ($sub) use ($additionalCostIds) {
                         $sub->where('source_type', AdditionalCost::class)
                             ->whereIn('source_id', $additionalCostIds);
+                    });
+                }
+                if ($debitNoteIds->isNotEmpty()) {
+                    $q->orWhere(function ($sub) use ($debitNoteIds) {
+                        $sub->where('payable_type', DebitNote::class)
+                            ->whereIn('payable_id', $debitNoteIds);
                     });
                 }
             })

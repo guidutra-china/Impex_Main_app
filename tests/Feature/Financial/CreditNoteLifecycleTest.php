@@ -6,8 +6,8 @@ use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Actions\ApprovePaymentAction;
 use App\Domain\Financial\Actions\IssueCreditNoteAction;
-use App\Domain\Financial\Enums\CreditNoteParty;
 use App\Domain\Financial\Enums\CreditNoteStatus;
+use App\Domain\Financial\Enums\PartyType;
 use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
@@ -59,7 +59,7 @@ class CreditNoteLifecycleTest extends TestCase
     {
         $empty = CreditNote::create([
             'company_id' => $this->supplier->id,
-            'party_type' => CreditNoteParty::SUPPLIER,
+            'party_type' => PartyType::SUPPLIER,
             'currency_code' => 'USD',
             'status' => CreditNoteStatus::DRAFT,
         ]);
@@ -211,7 +211,7 @@ class CreditNoteLifecycleTest extends TestCase
     {
         $creditNote = CreditNote::create([
             'company_id' => $this->supplier->id,
-            'party_type' => CreditNoteParty::SUPPLIER,
+            'party_type' => PartyType::SUPPLIER,
             'total_amount' => array_sum($lineAmounts),
             'currency_code' => 'USD',
             'status' => CreditNoteStatus::DRAFT,

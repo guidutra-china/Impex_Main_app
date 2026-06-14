@@ -162,6 +162,11 @@ class PurchaseOrder extends Model
         return $this->hasMany(\App\Domain\Financial\Models\CreditNote::class);
     }
 
+    public function debitNotes(): HasMany
+    {
+        return $this->hasMany(\App\Domain\Financial\Models\DebitNote::class);
+    }
+
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);

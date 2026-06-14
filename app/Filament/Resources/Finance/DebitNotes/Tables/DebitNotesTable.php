@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Finance\DebitNotes\Tables;
 
 use App\Domain\Financial\Enums\DebitNoteStatus;
+use App\Domain\Financial\Enums\PartyType;
 use App\Domain\Infrastructure\Support\Money;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
@@ -20,13 +21,20 @@ class DebitNotesTable
                     ->label(__('forms.labels.reference'))
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('party_type')
+                    ->label(__('forms.labels.party'))
+                    ->badge(),
                 TextColumn::make('company.name')
-                    ->label(__('forms.labels.client'))
+                    ->label(__('forms.labels.company'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('proformaInvoice.reference')
                     ->label(__('forms.labels.proforma_invoice'))
                     ->placeholder('—'),
+                TextColumn::make('purchaseOrder.reference')
+                    ->label(__('forms.labels.purchase_order'))
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('total_amount')
                     ->label(__('forms.labels.amount'))
                     ->formatStateUsing(fn ($state) => Money::format($state))
@@ -71,8 +79,11 @@ class DebitNotesTable
             ->filters([
                 SelectFilter::make('status')
                     ->options(DebitNoteStatus::class),
+                SelectFilter::make('party_type')
+                    ->label(__('forms.labels.party'))
+                    ->options(PartyType::class),
                 SelectFilter::make('company_id')
-                    ->label(__('forms.labels.client'))
+                    ->label(__('forms.labels.company'))
                     ->relationship('company', 'name')
                     ->searchable()
                     ->preload(),

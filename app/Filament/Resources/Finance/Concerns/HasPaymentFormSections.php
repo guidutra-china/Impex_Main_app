@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Finance\Concerns;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\DebitNoteStatus;
+use App\Domain\Financial\Enums\PartyType;
 use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\AdditionalCost;
@@ -327,10 +328,12 @@ trait HasPaymentFormSections
                 })
                 ->pluck('id');
 
-            // (c) Issued Debit Notes — payable_type=DebitNote, payable_id ∈ dnIds.
+            // (c) Issued CLIENT Debit Notes — payable_type=DebitNote, payable_id ∈ dnIds.
             //     Schedule items are created by IssueDebitNoteAction with the DN
             //     itself as the payable so DNs without a PI are still allocatable.
+            //     Supplier-party DNs are payables and surface in the OUTBOUND branch.
             $dnIds = DebitNote::where('company_id', $companyId)
+                ->where('party_type', PartyType::CLIENT->value)
                 ->where('status', DebitNoteStatus::ISSUED->value)
                 ->pluck('id');
 
@@ -380,7 +383,15 @@ trait HasPaymentFormSections
                     ->where('supplier_company_id', $companyId)
                     ->pluck('id');
 
-                $query->where(function ($q) use ($poIds, $supplierAdditionalCostIds) {
+                // Issued SUPPLIER Debit Notes — extra amounts Impex owes the
+                // supplier (payables) owned by the DN itself, mirroring how the
+                // INBOUND branch surfaces client DNs as receivables.
+                $supplierDnIds = DebitNote::where('company_id', $companyId)
+                    ->where('party_type', PartyType::SUPPLIER->value)
+                    ->where('status', DebitNoteStatus::ISSUED->value)
+                    ->pluck('id');
+
+                $query->where(function ($q) use ($poIds, $supplierAdditionalCostIds, $supplierDnIds) {
                     $q->where(function ($q2) use ($poIds) {
                         $q2->where('payable_type', PurchaseOrder::class)->whereIn('payable_id', $poIds);
                     });
@@ -388,6 +399,12 @@ trait HasPaymentFormSections
                         $q->orWhere(function ($q2) use ($supplierAdditionalCostIds) {
                             $q2->where('source_type', \App\Domain\Financial\Models\AdditionalCost::class)
                                 ->whereIn('source_id', $supplierAdditionalCostIds);
+                        });
+                    }
+                    if ($supplierDnIds->isNotEmpty()) {
+                        $q->orWhere(function ($q2) use ($supplierDnIds) {
+                            $q2->where('payable_type', DebitNote::class)
+                                ->whereIn('payable_id', $supplierDnIds);
                         });
                     }
                 });
@@ -415,8 +432,8 @@ trait HasPaymentFormSections
         $creditNoteIds = \App\Domain\Financial\Models\CreditNote::query()
             ->where('company_id', $companyId)
             ->where('party_type', ($directionValue === PaymentDirection::INBOUND->value || $directionValue === 'inbound')
-                ? \App\Domain\Financial\Enums\CreditNoteParty::CLIENT->value
-                : \App\Domain\Financial\Enums\CreditNoteParty::SUPPLIER->value)
+                ? PartyType::CLIENT->value
+                : PartyType::SUPPLIER->value)
             ->pluck('id');
 
         if ($directionValue === PaymentDirection::INBOUND->value || $directionValue === 'inbound') {

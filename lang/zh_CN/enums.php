@@ -319,7 +319,7 @@ return [
         'refunded' => '已退款',
         'cancelled' => '已取消',
     ],
-    'credit_note_party' => [
+    'party_type' => [
         'client' => '客户',
         'supplier' => '供应商',
     ],

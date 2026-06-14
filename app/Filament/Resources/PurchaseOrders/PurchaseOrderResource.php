@@ -64,6 +64,7 @@ class PurchaseOrderResource extends Resource
             ItemsRelationManager::class,
             PaymentScheduleRelationManager::class,
             PaymentsRelationManager::class,
+            \App\Filament\RelationManagers\DebitNotesRelationManager::class,
             \App\Filament\RelationManagers\CreditNotesRelationManager::class,
             DocumentsRelationManager::class,
         ];

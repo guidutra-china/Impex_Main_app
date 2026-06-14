@@ -3,6 +3,7 @@
 namespace App\Filament\RelationManagers;
 
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Filament\Resources\Finance\DebitNotes\DebitNoteResource;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -66,10 +67,23 @@ class DebitNotesRelationManager extends RelationManager
                     ->label(__('forms.labels.create_debit_note'))
                     ->icon('heroicon-o-plus-circle')
                     ->color('primary')
-                    ->url(fn () => DebitNoteResource::getUrl('create', [
-                        'company_id' => $this->getOwnerRecord()->company_id,
-                        'proforma_invoice_id' => $this->getOwnerRecord()->id,
-                    ]))
+                    ->url(function () {
+                        $owner = $this->getOwnerRecord();
+
+                        if ($owner instanceof PurchaseOrder) {
+                            return DebitNoteResource::getUrl('create', [
+                                'party_type' => 'supplier',
+                                'company_id' => $owner->supplier_company_id,
+                                'purchase_order_id' => $owner->id,
+                            ]);
+                        }
+
+                        return DebitNoteResource::getUrl('create', [
+                            'party_type' => 'client',
+                            'company_id' => $owner->company_id,
+                            'proforma_invoice_id' => $owner->id,
+                        ]);
+                    })
                     ->openUrlInNewTab(),
             ]);
     }

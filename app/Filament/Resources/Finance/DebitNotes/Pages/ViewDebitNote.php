@@ -91,7 +91,8 @@ class ViewDebitNote extends ViewRecord
             ->requiresConfirmation()
             ->modalHeading(__('forms.labels.auto_populate_line_items'))
             ->modalDescription(__('forms.labels.auto_populate_description'))
-            ->visible(fn () => $this->record->status === DebitNoteStatus::DRAFT)
+            ->visible(fn () => $this->record->status === DebitNoteStatus::DRAFT
+                && $this->record->party_type === \App\Domain\Financial\Enums\PartyType::CLIENT)
             ->action(function () {
                 $companyId = $this->record->company_id;
 

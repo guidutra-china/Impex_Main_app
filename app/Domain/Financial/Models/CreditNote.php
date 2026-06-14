@@ -3,8 +3,8 @@
 namespace App\Domain\Financial\Models;
 
 use App\Domain\CRM\Models\Company;
-use App\Domain\Financial\Enums\CreditNoteParty;
 use App\Domain\Financial\Enums\CreditNoteStatus;
+use App\Domain\Financial\Enums\PartyType;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
@@ -52,7 +52,7 @@ class CreditNote extends Model
     {
         return [
             'status' => CreditNoteStatus::class,
-            'party_type' => CreditNoteParty::class,
+            'party_type' => PartyType::class,
             'total_amount' => 'integer',
             'issued_at' => 'datetime',
         ];

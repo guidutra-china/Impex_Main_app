@@ -47,6 +47,7 @@ final class FinancialReportSectionResolver
             $sections[] = new PoFinancialSectionBuilder;
             $sections[] = new ShipmentCostSectionBuilder(CompanyRole::SUPPLIER);
             $sections[] = new PaymentSectionBuilder;
+            $sections[] = new DebitNoteSectionBuilder;
             $sections[] = new CreditNoteSectionBuilder;
             $sections[] = new AdditionalCostFinancialSectionBuilder;
         }
@@ -74,6 +75,7 @@ final class FinancialReportSectionResolver
             new PoFinancialSectionBuilder,
             new ShipmentCostSectionBuilder(CompanyRole::SUPPLIER),
             new PaymentSectionBuilder,
+            new DebitNoteSectionBuilder,
             new CreditNoteSectionBuilder,
             new AdditionalCostFinancialSectionBuilder,
         ];

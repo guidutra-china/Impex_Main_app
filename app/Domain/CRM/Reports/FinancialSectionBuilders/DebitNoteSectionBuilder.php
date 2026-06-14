@@ -34,7 +34,7 @@ final class DebitNoteSectionBuilder implements FinancialSectionBuilder
             $query->where('currency_code', $filters->currency);
         }
 
-        $rows = $query->with(['proformaInvoice', 'lineItems'])
+        $rows = $query->with(['proformaInvoice', 'purchaseOrder', 'lineItems'])
             ->get()
             ->reject(fn (DebitNote $dn) => $filters->isExcluded('debit_notes', (int) $dn->id))
             ->map(function (DebitNote $dn) {
@@ -44,7 +44,9 @@ final class DebitNoteSectionBuilder implements FinancialSectionBuilder
                     '_row_type' => 'header',
                     '_entity_id' => (int) $dn->id,
                     'reference' => (string) ($dn->reference ?? ''),
-                    'proforma_invoice' => (string) ($dn->proformaInvoice?->reference ?? ''),
+                    'document' => (string) ($dn->proformaInvoice?->reference
+                        ?? $dn->purchaseOrder?->reference
+                        ?? ''),
                     'date' => optional($dn->issued_at)->format('Y-m-d'),
                     'due_date' => optional($dn->due_date)->format('Y-m-d'),
                     'total' => round($total / Money::SCALE, 2),
@@ -58,7 +60,7 @@ final class DebitNoteSectionBuilder implements FinancialSectionBuilder
         return new StatementSection(
             key: 'debit_notes',
             titleKey: 'financial_report.sections.debit_notes',
-            columns: ['reference', 'proforma_invoice', 'date', 'due_date', 'total', 'status', 'currency'],
+            columns: ['reference', 'document', 'date', 'due_date', 'total', 'status', 'currency'],
             rows: $rows,
         );
     }

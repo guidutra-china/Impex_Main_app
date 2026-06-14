@@ -88,6 +88,7 @@ class PostTripFinancialsAction
         if ($debitNote === null) {
             $debitNote = DebitNote::create([
                 'company_id' => $trip->company_id,
+                'party_type' => \App\Domain\Financial\Enums\PartyType::CLIENT,
                 'trip_id' => $trip->id,
                 'currency_code' => $billing->billingCurrency,
                 'status' => DebitNoteStatus::DRAFT,

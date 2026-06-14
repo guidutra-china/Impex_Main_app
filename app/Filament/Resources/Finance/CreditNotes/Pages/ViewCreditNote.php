@@ -5,8 +5,8 @@ namespace App\Filament\Resources\Finance\CreditNotes\Pages;
 use App\Domain\Financial\Actions\IssueCreditNoteAction;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\BillableTo;
-use App\Domain\Financial\Enums\CreditNoteParty;
 use App\Domain\Financial\Enums\CreditNoteStatus;
+use App\Domain\Financial\Enums\PartyType;
 use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\CreditNoteLineItem;
 use App\Domain\Infrastructure\Support\Money;
@@ -98,7 +98,7 @@ class ViewCreditNote extends ViewRecord
             ->modalHeading(__('forms.labels.auto_populate_line_items'))
             ->modalDescription(__('forms.labels.auto_populate_description'))
             ->visible(fn () => $this->record->status === CreditNoteStatus::DRAFT
-                && $this->record->party_type === CreditNoteParty::SUPPLIER)
+                && $this->record->party_type === PartyType::SUPPLIER)
             ->action(function () {
                 $costs = AdditionalCost::query()
                     ->where('billable_to', BillableTo::SUPPLIER)

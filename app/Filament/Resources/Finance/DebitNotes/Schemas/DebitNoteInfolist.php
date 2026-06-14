@@ -19,13 +19,19 @@ class DebitNoteInfolist
                 ->schema([
                     TextEntry::make('reference')
                         ->label(__('forms.labels.reference')),
+                    TextEntry::make('party_type')
+                        ->label(__('forms.labels.party'))
+                        ->badge(),
                     TextEntry::make('company.name')
-                        ->label(__('forms.labels.client')),
+                        ->label(__('forms.labels.company')),
                     TextEntry::make('status')
                         ->label(__('forms.labels.status'))
                         ->badge(),
                     TextEntry::make('proformaInvoice.reference')
                         ->label(__('forms.labels.proforma_invoice'))
+                        ->placeholder('—'),
+                    TextEntry::make('purchaseOrder.reference')
+                        ->label(__('forms.labels.purchase_order'))
                         ->placeholder('—'),
                     TextEntry::make('shipment.reference')
                         ->label(__('forms.labels.shipment'))

@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Finance\CreditNotes\Schemas;
 
-use App\Domain\Financial\Enums\CreditNoteParty;
+use App\Domain\Financial\Enums\PartyType;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
@@ -25,13 +25,13 @@ class CreditNoteForm
                 ->schema([
                     Select::make('party_type')
                         ->label(__('forms.labels.party'))
-                        ->options(CreditNoteParty::class)
-                        ->default(CreditNoteParty::SUPPLIER->value)
+                        ->options(PartyType::class)
+                        ->default(PartyType::SUPPLIER->value)
                         ->required()
                         ->live()
                         ->afterStateUpdated(fn ($set) => $set('company_id', null)),
                     Select::make('company_id')
-                        ->label(fn ($get) => $get('party_type') === CreditNoteParty::CLIENT->value
+                        ->label(fn ($get) => $get('party_type') === PartyType::CLIENT->value
                             ? __('forms.labels.client')
                             : __('forms.labels.supplier'))
                         ->relationship(
@@ -39,7 +39,7 @@ class CreditNoteForm
                             'name',
                             fn ($query, $get) => $query->whereHas(
                                 'companyRoles',
-                                fn ($q) => $q->where('role', $get('party_type') ?: CreditNoteParty::SUPPLIER->value)
+                                fn ($q) => $q->where('role', $get('party_type') ?: PartyType::SUPPLIER->value)
                             )
                         )
                         ->required()
@@ -59,7 +59,7 @@ class CreditNoteForm
                         ->searchable()
                         ->nullable()
                         ->visible(fn ($get) => filled($get('company_id'))
-                            && $get('party_type') === CreditNoteParty::CLIENT->value),
+                            && $get('party_type') === PartyType::CLIENT->value),
                     Select::make('purchase_order_id')
                         ->label(__('forms.labels.purchase_order'))
                         ->options(fn ($get) => PurchaseOrder::query()
@@ -68,12 +68,12 @@ class CreditNoteForm
                         ->searchable()
                         ->nullable()
                         ->visible(fn ($get) => filled($get('company_id'))
-                            && $get('party_type') === CreditNoteParty::SUPPLIER->value),
+                            && $get('party_type') === PartyType::SUPPLIER->value),
                     Select::make('shipment_id')
                         ->label(__('forms.labels.shipment'))
                         ->options(fn ($get) => Shipment::query()
                             ->when(
-                                $get('party_type') === CreditNoteParty::CLIENT->value,
+                                $get('party_type') === PartyType::CLIENT->value,
                                 fn ($q) => $q->where('company_id', $get('company_id'))
                             )
                             ->pluck('reference', 'id'))
@@ -95,18 +95,13 @@ class CreditNoteForm
                             TextInput::make('description')
                                 ->label(__('forms.labels.description'))
                                 ->required()
-                                ->columnSpan(5),
+                                ->columnSpan(7),
                             TextInput::make('amount')
                                 ->label(__('forms.labels.amount'))
                                 ->numeric()
                                 ->step('0.01')
                                 ->required()
                                 ->columnSpan(3),
-                            Select::make('currency_code')
-                                ->label(__('forms.labels.currency'))
-                                ->options(fn () => Currency::pluck('code', 'code'))
-                                ->required()
-                                ->columnSpan(2),
                         ])
                         ->columns(10)
                         ->defaultItems(0)

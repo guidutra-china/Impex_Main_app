@@ -5,8 +5,8 @@ namespace App\Domain\Financial\Actions;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\BillableTo;
-use App\Domain\Financial\Enums\CreditNoteParty;
 use App\Domain\Financial\Enums\CreditNoteStatus;
+use App\Domain\Financial\Enums\PartyType;
 use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\CreditNote;
 use App\Domain\Financial\Models\CreditNoteLineItem;
@@ -31,7 +31,7 @@ class GenerateCreditNoteFromCostsAction
 
         $creditNote = CreditNote::create([
             'company_id' => $supplier->id,
-            'party_type' => CreditNoteParty::SUPPLIER,
+            'party_type' => PartyType::SUPPLIER,
             'purchase_order_id' => $po?->id,
             'shipment_id' => $shipment?->id,
             'currency_code' => $currencyCode,

@@ -4,9 +4,11 @@ namespace App\Domain\Financial\Models;
 
 use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\DebitNoteStatus;
+use App\Domain\Financial\Enums\PartyType;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -21,7 +23,9 @@ class DebitNote extends Model
     protected $fillable = [
         'reference',
         'company_id',
+        'party_type',
         'proforma_invoice_id',
+        'purchase_order_id',
         'shipment_id',
         'trip_id',
         'total_amount',
@@ -37,6 +41,7 @@ class DebitNote extends Model
     {
         return [
             'status' => DebitNoteStatus::class,
+            'party_type' => PartyType::class,
             'total_amount' => 'integer',
             'issued_at' => 'datetime',
             'due_date' => 'date',
@@ -55,14 +60,23 @@ class DebitNote extends Model
         });
     }
 
+    /**
+     * Sequencial por ano baseado em max(sufixo)+1 — count()+1 gera duplicatas
+     * após force-delete ou em concorrência. Chamar dentro de transação; o
+     * unique index na coluna reference é a barreira final.
+     */
     public static function generateReference(): string
     {
         $year = now()->year;
-        $lastNumber = static::withTrashed()
-            ->where('reference', 'like', "DN-{$year}-%")
-            ->count();
+        $prefix = sprintf('DN-%d-', $year);
 
-        return sprintf('DN-%d-%04d', $year, $lastNumber + 1);
+        $max = static::withTrashed()
+            ->where('reference', 'like', $prefix.'%')
+            ->pluck('reference')
+            ->map(fn (string $ref) => (int) substr($ref, strlen($prefix)))
+            ->max() ?? 0;
+
+        return sprintf('%s%04d', $prefix, $max + 1);
     }
 
     // --- Relationships ---
@@ -75,6 +89,11 @@ class DebitNote extends Model
     public function proformaInvoice(): BelongsTo
     {
         return $this->belongsTo(ProformaInvoice::class);
+    }
+
+    public function purchaseOrder(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseOrder::class);
     }
 
     public function shipment(): BelongsTo

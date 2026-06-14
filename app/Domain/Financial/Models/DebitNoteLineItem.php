@@ -4,6 +4,7 @@ namespace App\Domain\Financial\Models;
 
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -13,6 +14,7 @@ class DebitNoteLineItem extends Model
         'debit_note_id',
         'additional_cost_id',
         'proforma_invoice_id',
+        'purchase_order_id',
         'shipment_id',
         'description',
         'amount',
@@ -41,6 +43,11 @@ class DebitNoteLineItem extends Model
     public function proformaInvoice(): BelongsTo
     {
         return $this->belongsTo(ProformaInvoice::class);
+    }
+
+    public function purchaseOrder(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseOrder::class);
     }
 
     public function shipment(): BelongsTo

@@ -319,7 +319,7 @@ return [
         'refunded' => 'Refunded',
         'cancelled' => 'Cancelled',
     ],
-    'credit_note_party' => [
+    'party_type' => [
         'client' => 'Client',
         'supplier' => 'Supplier',
     ],
