@@ -23,6 +23,7 @@ class PurchaseOrdersTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn ($query) => $query->with('proformaInvoice.company'))
             ->columns([
                 TextColumn::make('reference')
                     ->label(__('forms.labels.reference'))
@@ -57,7 +58,10 @@ class PurchaseOrdersTable
                         ? route('filament.admin.resources.proforma-invoices.view', $record->proforma_invoice_id)
                         : null
                     )
-                    ->color('primary'),
+                    ->color('primary')
+                    // Mostra o cliente da PI logo abaixo, em letras menores, para
+                    // identificar rapidamente para qual cliente é a PO.
+                    ->description(fn ($record) => $record->proformaInvoice?->company?->name),
                 TextColumn::make('supplierCompany.name')
                     ->label(__('forms.labels.supplier'))
                     ->searchable()
