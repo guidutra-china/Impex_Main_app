@@ -208,6 +208,9 @@ class ProductsTable
                     ->color('gray')
                     ->excludeAttributes([
                         'sku',
+                        // reference_code has a unique index; copying it would violate
+                        // products_reference_code_unique on the cloned record's insert.
+                        'reference_code',
                         'avatar',
                         // Virtual withCount attributes injected by Filament's ->counts() on TextColumn.
                         // Eloquent's replicate() copies $attributes including these dynamic keys,
@@ -218,6 +221,7 @@ class ProductsTable
                     ])
                     ->beforeReplicaSaved(function (Model $replica): void {
                         $replica->sku = null;
+                        $replica->reference_code = null;
                         $replica->name = $replica->name.' (Copy)';
                         $replica->status = ProductStatus::DRAFT;
                     })
