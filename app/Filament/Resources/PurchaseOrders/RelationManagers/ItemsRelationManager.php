@@ -42,13 +42,19 @@ class ItemsRelationManager extends RelationManager
         return $schema->components([
             Select::make('product_id')
                 ->label(__('forms.labels.product'))
-                ->options(
-                    fn () => Product::active()
-                        ->orderBy('name')
-                        ->get()
-                        ->mapWithKeys(fn ($p) => [$p->id => $p->sku.' — '.$p->name])
-                )
                 ->searchable()
+                ->getSearchResultsUsing(fn (string $search) => Product::active()
+                    ->where(function ($query) use ($search) {
+                        $query->where('name', 'like', "%{$search}%")
+                            ->orWhere('sku', 'like', "%{$search}%")
+                            ->orWhere('model_number', 'like', "%{$search}%");
+                    })
+                    ->orderBy('name')
+                    ->limit(50)
+                    ->get()
+                    ->mapWithKeys(fn ($p) => [$p->id => self::productOptionLabel($p)])
+                )
+                ->getOptionLabelUsing(fn ($value) => ($p = Product::find($value)) ? self::productOptionLabel($p) : null)
                 ->live()
                 ->afterStateUpdated(function (?string $state, Get $get, Set $set) {
                     if ($state) {
@@ -121,10 +127,14 @@ class ItemsRelationManager extends RelationManager
                     ->searchable()
                     ->limit(30)
                     ->placeholder(__('forms.placeholders.manual_item')),
+                TextColumn::make('product.model_number')
+                    ->label(__('forms.labels.model_number'))
+                    ->searchable()
+                    ->placeholder('—'),
                 TextColumn::make('description')
                     ->label(__('forms.labels.description'))
                     ->limit(40)
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('quantity')
                     ->label(__('forms.labels.qty'))
                     ->alignCenter(),
@@ -422,5 +432,19 @@ class ItemsRelationManager extends RelationManager
         }
 
         return $quotationItem->supplier_quotation_item_id;
+    }
+
+    /**
+     * Label exibido na busca de produto: SKU — Nome (Model Number).
+     */
+    protected static function productOptionLabel(Product $product): string
+    {
+        $label = $product->sku.' — '.$product->name;
+
+        if ($product->model_number) {
+            $label .= ' ('.$product->model_number.')';
+        }
+
+        return $label;
     }
 }

@@ -56,13 +56,19 @@ class ItemsRelationManager extends RelationManager
         return $schema->components([
             Select::make('product_id')
                 ->label(__('forms.labels.product'))
-                ->options(
-                    fn () => Product::active()
-                        ->orderBy('name')
-                        ->get()
-                        ->mapWithKeys(fn ($p) => [$p->id => $p->sku.' — '.$p->name])
-                )
                 ->searchable()
+                ->getSearchResultsUsing(fn (string $search) => Product::active()
+                    ->where(function ($query) use ($search) {
+                        $query->where('name', 'like', "%{$search}%")
+                            ->orWhere('sku', 'like', "%{$search}%")
+                            ->orWhere('model_number', 'like', "%{$search}%");
+                    })
+                    ->orderBy('name')
+                    ->limit(50)
+                    ->get()
+                    ->mapWithKeys(fn ($p) => [$p->id => self::productOptionLabel($p)])
+                )
+                ->getOptionLabelUsing(fn ($value) => ($p = Product::find($value)) ? self::productOptionLabel($p) : null)
                 ->live()
                 ->afterStateUpdated(function (?string $state, Get $get, Set $set) {
                     if ($state) {
@@ -921,5 +927,19 @@ class ItemsRelationManager extends RelationManager
         if ($clientPivot && $clientPivot->unit_price > 0) {
             $set('unit_price', Money::toMajor($clientPivot->unit_price));
         }
+    }
+
+    /**
+     * Label exibido na busca de produto: SKU — Nome (Model Number).
+     */
+    protected static function productOptionLabel(Product $product): string
+    {
+        $label = $product->sku.' — '.$product->name;
+
+        if ($product->model_number) {
+            $label .= ' ('.$product->model_number.')';
+        }
+
+        return $label;
     }
 }
