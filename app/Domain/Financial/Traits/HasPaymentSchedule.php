@@ -51,6 +51,24 @@ trait HasPaymentSchedule
         return round(($this->schedule_paid_total / $this->schedule_total) * 100, 1);
     }
 
+    /**
+     * Summarized payment state for badge display.
+     *
+     * @return 'paid'|'partial'|'pending'|'none'
+     */
+    public function getPaymentStateAttribute(): string
+    {
+        if ($this->schedule_total <= 0) {
+            return 'none';
+        }
+
+        if ($this->schedule_remaining <= 0) {
+            return 'paid';
+        }
+
+        return $this->schedule_paid_total > 0 ? 'partial' : 'pending';
+    }
+
     public function hasUnresolvedBlockingPayments(string $targetStatus): bool
     {
         $blockers = PaymentScheduleItem::blockingConditionsForTransition($this, $targetStatus);

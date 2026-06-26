@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\ProformaInvoices\Schemas;
 
-use Filament\Infolists\Components\IconEntry;
+use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
@@ -206,6 +206,62 @@ class ProformaInvoiceInfolist
                         ->state(fn ($record) => $record->items->count()),
                 ])
                 ->columns(3),
+
+            Section::make(__('forms.sections.linked_purchase_orders'))
+                ->icon('heroicon-o-shopping-cart')
+                ->schema([
+                    TextEntry::make('no_purchase_orders')
+                        ->hiddenLabel()
+                        ->state(__('forms.placeholders.no_purchase_orders_linked'))
+                        ->color('gray')
+                        ->visible(fn ($record) => $record->purchaseOrders()->count() === 0),
+                    RepeatableEntry::make('purchaseOrders')
+                        ->hiddenLabel()
+                        ->visible(fn ($record) => $record->purchaseOrders()->count() > 0)
+                        ->schema([
+                            TextEntry::make('reference')
+                                ->label(__('forms.labels.reference'))
+                                ->weight(FontWeight::Bold)
+                                ->color('primary')
+                                ->url(fn ($record) => route('filament.admin.resources.purchase-orders.view', $record)),
+                            TextEntry::make('status')
+                                ->label(__('forms.labels.status'))
+                                ->badge(),
+                            TextEntry::make('total')
+                                ->label(__('forms.labels.total_cost'))
+                                ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?: '$').' '.\App\Domain\Infrastructure\Support\Money::format($state))
+                                ->weight(FontWeight::Bold)
+                                ->color('danger'),
+                            TextEntry::make('schedule_paid_total')
+                                ->label(__('forms.labels.paid'))
+                                ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?: '$').' '.\App\Domain\Infrastructure\Support\Money::format($state))
+                                ->color('success'),
+                            TextEntry::make('schedule_remaining')
+                                ->label(__('forms.labels.remaining'))
+                                ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?: '$').' '.\App\Domain\Infrastructure\Support\Money::format($state))
+                                ->color(fn ($state) => $state > 0 ? 'danger' : 'success'),
+                            TextEntry::make('payment_state')
+                                ->label(__('forms.labels.payment_status'))
+                                ->badge()
+                                ->formatStateUsing(fn ($state) => match ($state) {
+                                    'paid' => __('forms.labels.paid'),
+                                    'partial' => __('forms.labels.partial'),
+                                    'pending' => __('forms.labels.pending'),
+                                    default => __('forms.labels.no_schedule'),
+                                })
+                                ->color(fn ($state) => match ($state) {
+                                    'paid' => 'success',
+                                    'partial' => 'warning',
+                                    default => 'gray',
+                                })
+                                ->icon(fn ($state) => match ($state) {
+                                    'paid' => 'heroicon-o-check-circle',
+                                    'partial' => 'heroicon-o-clock',
+                                    default => 'heroicon-o-minus-circle',
+                                }),
+                        ])
+                        ->columns(6),
+                ]),
         ];
     }
 
