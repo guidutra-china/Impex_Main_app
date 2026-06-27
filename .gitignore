@@ -26,3 +26,28 @@ Thumbs.db
 
 # Visual brainstorming
 .superpowers/
+
+# Local dev DB / scratch
+/database.sqlite
+/storage/app.db
+
+# Office lock files
+.~lock.*#
+
+# Client documents (not for the repo)
+/Inquiry_Import_*.xlsx
+/docs/*.xlsx
+/docs/*.xls
+
+# Local patches
+/*.patch
+
+# AI / agent tooling
+/.claude/
+/.claude.backup-*/
+/.serena/
+/.junie/
+/.ai/
+/.mcp.json
+/boost.json
+/CLAUDE.md.ruflo-backup

@@ -111,10 +111,13 @@ return [
     'pages' => [
         'financial_overview' => '财务概览',
         'financial_reports' => '财务报表',
+        'accounts_receivable_open' => '应收账款',
+        'accounts_payable_open' => '应付账款',
         'client_deal_breakdown' => 'Client Deal Breakdown',
         'order_pipeline' => '订单流程',
         'client_360' => '客户 360',
         'company_settings' => '公司设置',
         'dashboard' => '仪表盘',
+        'assistant' => 'AI 助手',
     ],
 ];

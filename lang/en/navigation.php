@@ -121,10 +121,13 @@ return [
     'pages' => [
         'financial_overview' => 'Financial Overview',
         'financial_reports' => 'Financial Reports',
+        'accounts_receivable_open' => 'Accounts Receivable',
+        'accounts_payable_open' => 'Accounts Payable',
         'client_deal_breakdown' => 'Client Deal Breakdown',
         'order_pipeline' => 'Order Pipeline',
         'client_360' => 'Client 360',
         'company_settings' => 'Company Settings',
         'dashboard' => 'Dashboard',
+        'assistant' => 'AI Assistant',
     ],
 ];

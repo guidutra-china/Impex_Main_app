@@ -166,6 +166,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'view-client-360',
             'send-documents-by-email',
 
+            // AI Assistant
+            'view-assistant',
+
             // Audit Log
             'view-audit-log',
 

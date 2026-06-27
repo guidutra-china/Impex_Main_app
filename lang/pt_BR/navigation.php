@@ -114,10 +114,13 @@ return [
     'pages' => [
         'financial_overview' => 'Visão Financeira',
         'financial_reports' => 'Relatórios Financeiros',
+        'accounts_receivable_open' => 'Contas a Receber',
+        'accounts_payable_open' => 'Contas a Pagar',
         'client_deal_breakdown' => 'Análise de Operações por Cliente',
         'order_pipeline' => 'Pipeline de Pedidos',
         'client_360' => 'Cliente 360',
         'company_settings' => 'Configurações da Empresa',
         'dashboard' => 'Painel',
+        'assistant' => 'Assistente IA',
     ],
 ];

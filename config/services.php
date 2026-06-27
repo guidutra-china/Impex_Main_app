@@ -61,6 +61,9 @@ return [
     'anthropic' => [
         'key' => env('ANTHROPIC_API_KEY'),
         'model' => env('ANTHROPIC_MODEL', 'claude-haiku-4-5-20251001'),
+        // Model used by the interactive AI assistant (tool use). Kept separate from
+        // the lightweight `model` above so import analysis stays on Haiku.
+        'assistant_model' => env('ANTHROPIC_ASSISTANT_MODEL', 'claude-opus-4-8'),
     ],
 
 ];

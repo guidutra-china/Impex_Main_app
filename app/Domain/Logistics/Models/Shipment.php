@@ -27,6 +27,11 @@ class Shipment extends Model
 {
     use HasAdditionalCosts, HasDocuments, HasFactory, HasPaymentSchedule, HasReference, HasStateMachine, LogsActivity, SoftDeletes;
 
+    protected static function newFactory(): \Database\Factories\ShipmentFactory
+    {
+        return \Database\Factories\ShipmentFactory::new();
+    }
+
     protected $fillable = [
         'reference',
         'client_reference',
