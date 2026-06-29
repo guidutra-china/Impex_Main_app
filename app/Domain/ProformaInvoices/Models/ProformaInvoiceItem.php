@@ -7,6 +7,7 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\ShipmentItem;
 use App\Domain\Planning\Models\ShipmentPlanItem;
+use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
 use App\Domain\PurchaseOrders\Models\PurchaseOrderItem;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Quotations\Models\QuotationItem;
@@ -79,6 +80,24 @@ class ProformaInvoiceItem extends Model
             $item->unit_cost_in_document_currency = (int) round(
                 (int) $item->unit_cost * (float) $rate
             );
+        });
+
+        // Quando uma linha da PI é removida, apaga as linhas de PO que ela gerou.
+        // O FK proforma_invoice_item_id é "on delete set null", então sem isto a
+        // linha de PO ficaria órfã (link nulo) e a regeração da PO a duplicaria,
+        // pois o sync casa por proforma_invoice_item_id e não reaproveita nulos.
+        // Mantém linhas de PO já confirmadas/embarcadas ou referenciadas por embarque.
+        static::deleting(function (ProformaInvoiceItem $item) {
+            PurchaseOrderItem::query()
+                ->where('proforma_invoice_item_id', $item->id)
+                ->whereDoesntHave('shipmentItems')
+                ->whereHas('purchaseOrder', fn ($query) => $query->whereIn('status', [
+                    PurchaseOrderStatus::DRAFT->value,
+                    PurchaseOrderStatus::SENT->value,
+                ]))
+                ->get()
+                ->each
+                ->delete();
         });
     }
 
