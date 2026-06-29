@@ -5,6 +5,7 @@ namespace App\Filament\Resources\CRM\Companies\Tables;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Enums\CompanyStatus;
 use App\Domain\CRM\Models\Company;
+use App\Domain\CRM\Models\CompanyRoleAssignment;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
@@ -16,6 +17,7 @@ use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class CompaniesTable
 {
@@ -24,6 +26,10 @@ class CompaniesTable
         return $table
             ->query(fn () => Company::query()->with('parentCompany'))
             ->columns([
+                TextColumn::make('id')
+                    ->label('ID')
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('name')
                     ->label(__('forms.labels.company'))
                     ->searchable()
@@ -37,7 +43,15 @@ class CompaniesTable
                 TextColumn::make('companyRoles.role')
                     ->label(__('forms.labels.roles'))
                     ->badge()
-                    ->separator(','),
+                    ->separator(',')
+                    ->sortable(query: fn (Builder $query, string $direction): Builder => $query->orderBy(
+                        CompanyRoleAssignment::query()
+                            ->select('role')
+                            ->whereColumn('company_roles.company_id', 'companies.id')
+                            ->orderBy('role')
+                            ->limit(1),
+                        $direction
+                    )),
                 TextColumn::make('categories.name')
                     ->label(__('forms.labels.categories'))
                     ->badge()
@@ -49,10 +63,12 @@ class CompaniesTable
                 TextColumn::make('address_city')
                     ->label(__('forms.labels.city'))
                     ->searchable()
+                    ->sortable()
                     ->toggleable(),
                 TextColumn::make('address_country')
                     ->label(__('forms.labels.country'))
                     ->searchable()
+                    ->sortable()
                     ->badge()
                     ->color('gray')
                     ->toggleable(),
@@ -167,6 +183,7 @@ class CompaniesTable
                     DeleteBulkAction::make(),
                 ]),
             ])
+            ->reorderableColumns()
             ->persistFiltersInSession()
             ->persistSearchInSession()
             ->defaultSort('name', 'asc')
