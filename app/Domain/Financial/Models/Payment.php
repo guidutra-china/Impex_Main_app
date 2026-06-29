@@ -17,7 +17,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Payment extends Model
 {
-    use SoftDeletes, LogsActivity;
+    use LogsActivity, SoftDeletes;
 
     protected $fillable = [
         'direction',
@@ -63,6 +63,16 @@ class Payment extends Model
             if (empty($payment->created_by)) {
                 $payment->created_by = auth()->id();
             }
+        });
+
+        // Releasing allocations per-model fires the PaymentAllocation deleted
+        // observer, which reconciles each schedule item back to its unpaid
+        // state. Without this, deleting a payment leaves orphaned allocations:
+        // the schedule item / additional cost stay stuck at PAID and the cost
+        // can no longer be edited (its client schedule item can't be removed
+        // because it still "has" an allocation).
+        static::deleting(function (Payment $payment) {
+            $payment->allocations()->get()->each(fn (PaymentAllocation $allocation) => $allocation->delete());
         });
     }
 
