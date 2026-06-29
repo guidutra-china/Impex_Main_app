@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Finance\CreditNotes\Pages;
 
 use App\Domain\Financial\Enums\CreditNoteStatus;
+use App\Domain\Financial\Enums\PartyType;
 use App\Domain\Financial\Models\CreditNoteLineItem;
 use App\Domain\Infrastructure\Support\Money;
 use App\Filament\Resources\Finance\CreditNotes\CreditNoteResource;
@@ -13,6 +14,21 @@ class CreateCreditNote extends CreateRecord
     protected static string $resource = CreditNoteResource::class;
 
     protected array $pendingLineItems = [];
+
+    /**
+     * Pré-preenche o formulário com o contexto passado na URL pelos botões
+     * "Criar Nota de Crédito" dentro de uma PO/PI (party, empresa e o vínculo
+     * com o documento). Sem query, mantém o default da nota de crédito (Fornecedor).
+     */
+    protected function fillForm(): void
+    {
+        $this->form->fill(array_filter([
+            'party_type' => request()->query('party_type', PartyType::SUPPLIER->value),
+            'company_id' => request()->query('company_id'),
+            'purchase_order_id' => request()->query('purchase_order_id'),
+            'proforma_invoice_id' => request()->query('proforma_invoice_id'),
+        ], fn ($value) => filled($value)));
+    }
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
