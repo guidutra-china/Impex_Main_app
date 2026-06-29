@@ -44,6 +44,7 @@ return [
         'unit_price' => '单价',
         'total' => '金额',
         'category' => '分类',
+        'status' => '状态',
         'photo' => '照片',
         'product' => '产品',
     ],

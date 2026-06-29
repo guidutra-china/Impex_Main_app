@@ -38,9 +38,23 @@
                 <p class="font-semibold">{{ __('assistant.preview_title') }}</p>
                 <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ __('assistant.review_hint') }}</p>
 
+                {{-- Resumo --}}
+                @php($novos = collect($form['itens'])->where('status', 'novo')->count())
+                @php($semCat = collect($form['itens'])->filter(fn ($it) => blank($it['category_id'] ?? null))->count())
+                <p class="mt-1 text-xs text-gray-600 dark:text-gray-300">
+                    {{ __('assistant.summary_counts', ['total' => count($form['itens']), 'existing' => count($form['itens']) - $novos, 'new' => $novos]) }}
+                    @if ($semCat > 0)
+                        · {{ __('assistant.uncategorized_warning', ['count' => $semCat]) }}
+                    @endif
+                </p>
+
                 {{-- Fornecedor --}}
                 <div class="mt-2 grid grid-cols-2 gap-2 md:grid-cols-4">
-                    <label class="col-span-2 text-xs">{{ __('assistant.supplier') }}
+                    <label class="col-span-2 text-xs">
+                        {{ __('assistant.supplier') }}
+                        <span class="ml-1 rounded px-1.5 py-0.5 text-[10px] {{ ($form['fornecedor']['status'] ?? '') === 'novo' ? 'bg-amber-200 text-amber-900' : 'bg-green-200 text-green-900' }}">
+                            {{ ($form['fornecedor']['status'] ?? '') === 'novo' ? __('assistant.status_new') : __('assistant.status_existing') }}
+                        </span>
                         <input type="text" wire:model="form.fornecedor.nome" class="mt-0.5 block w-full rounded border-gray-300 text-sm dark:bg-gray-900 dark:border-white/10" />
                     </label>
                     <label class="text-xs">{{ __('assistant.currency') }}
@@ -63,6 +77,7 @@
                                 <th class="px-2 py-1">{{ __('assistant.col.unit') }}</th>
                                 <th class="px-2 py-1 text-right">{{ __('assistant.col.unit_price') }}</th>
                                 <th class="px-2 py-1">{{ __('assistant.col.category') }}</th>
+                                <th class="px-2 py-1">{{ __('assistant.col.status') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -92,10 +107,15 @@
                                             @endforeach
                                         </select>
                                     </td>
+                                    <td class="px-2 py-1">
+                                        <span class="rounded px-1.5 py-0.5 text-[10px] {{ ($item['status'] ?? '') === 'novo' ? 'bg-amber-200 text-amber-900' : 'bg-green-200 text-green-900' }}">
+                                            {{ ($item['status'] ?? '') === 'novo' ? __('assistant.status_new') : __('assistant.status_existing') }}
+                                        </span>
+                                    </td>
                                 </tr>
                                 {{-- Galeria do pool para este item --}}
                                 <tr x-show="gallery === {{ $i }}" x-cloak wire:key="gal-{{ $i }}">
-                                    <td colspan="7" class="bg-gray-50 px-2 py-2 dark:bg-white/5">
+                                    <td colspan="8" class="bg-gray-50 px-2 py-2 dark:bg-white/5">
                                         <div class="flex flex-wrap gap-2">
                                             <button type="button" wire:click="setItemPhoto({{ $i }}, null)" x-on:click="gallery = null"
                                                     class="flex h-16 w-16 items-center justify-center rounded border border-dashed border-gray-300 text-xs text-gray-500 dark:border-white/15">

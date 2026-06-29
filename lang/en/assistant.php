@@ -44,6 +44,7 @@ return [
         'unit_price' => 'Unit price',
         'total' => 'Total',
         'category' => 'Category',
+        'status' => 'Status',
         'photo' => 'Photo',
         'product' => 'Product',
     ],
