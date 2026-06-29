@@ -5,8 +5,11 @@ namespace Tests\Feature\Financial;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\PartyType;
+use App\Domain\Financial\Models\CreditNote;
+use App\Domain\Financial\Models\DebitNote;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
+use App\Domain\Settings\Models\Currency;
 use App\Filament\Resources\Finance\CreditNotes\Pages\CreateCreditNote;
 use App\Filament\Resources\Finance\DebitNotes\Pages\CreateDebitNote;
 use App\Models\User;
@@ -51,6 +54,18 @@ class NoteCreatePrefillTest extends TestCase
         $company->companyRoles()->create(['role' => CompanyRole::CLIENT->value]);
 
         return $company;
+    }
+
+    private function usd(): void
+    {
+        Currency::firstOrCreate(['code' => 'USD'], [
+            'name' => 'US Dollar',
+            'name_plural' => 'US Dollars',
+            'symbol' => '$',
+            'decimal_places' => 2,
+            'is_base' => true,
+            'is_active' => true,
+        ]);
     }
 
     public function test_credit_note_prefills_supplier_and_po_from_po_context(): void
@@ -99,6 +114,72 @@ class NoteCreatePrefillTest extends TestCase
             'company_id' => $client->id,
             'proforma_invoice_id' => $pi->id,
         ]);
+    }
+
+    public function test_credit_note_created_from_po_is_persisted_with_the_po_link(): void
+    {
+        $this->usd();
+
+        $supplier = $this->supplier();
+        $po = PurchaseOrder::factory()->create(['supplier_company_id' => $supplier->id]);
+
+        Livewire::withQueryParams([
+            'party_type' => 'supplier',
+            'company_id' => (string) $supplier->id,
+            'purchase_order_id' => (string) $po->id,
+        ])->test(CreateCreditNote::class)
+            ->set('data.currency_code', 'USD')
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $creditNote = CreditNote::query()->latest('id')->first();
+
+        $this->assertNotNull($creditNote);
+        $this->assertSame($po->id, $creditNote->purchase_order_id, 'CN created from a PO must be linked to that PO.');
+    }
+
+    public function test_debit_note_created_from_po_is_persisted_with_the_po_link(): void
+    {
+        $this->usd();
+
+        $supplier = $this->supplier();
+        $po = PurchaseOrder::factory()->create(['supplier_company_id' => $supplier->id]);
+
+        Livewire::withQueryParams([
+            'party_type' => 'supplier',
+            'company_id' => (string) $supplier->id,
+            'purchase_order_id' => (string) $po->id,
+        ])->test(CreateDebitNote::class)
+            ->set('data.currency_code', 'USD')
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $debitNote = DebitNote::query()->latest('id')->first();
+
+        $this->assertNotNull($debitNote);
+        $this->assertSame($po->id, $debitNote->purchase_order_id, 'DN created from a PO must be linked to that PO.');
+    }
+
+    public function test_debit_note_created_from_pi_is_persisted_with_the_pi_link(): void
+    {
+        $this->usd();
+
+        $client = $this->client();
+        $pi = ProformaInvoice::factory()->create(['company_id' => $client->id]);
+
+        Livewire::withQueryParams([
+            'party_type' => 'client',
+            'company_id' => (string) $client->id,
+            'proforma_invoice_id' => (string) $pi->id,
+        ])->test(CreateDebitNote::class)
+            ->set('data.currency_code', 'USD')
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $debitNote = DebitNote::query()->latest('id')->first();
+
+        $this->assertNotNull($debitNote);
+        $this->assertSame($pi->id, $debitNote->proforma_invoice_id, 'DN created from a PI must be linked to that PI.');
     }
 
     public function test_defaults_apply_when_opened_without_query(): void

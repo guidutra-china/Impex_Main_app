@@ -16,6 +16,22 @@ use Filament\Schemas\Schema;
 
 class CreditNoteForm
 {
+    /**
+     * The party_type select stores its state as a PartyType enum, so a raw
+     * `=== PartyType::X->value` (string) comparison in a `$get()` closure is
+     * always false. Normalize before comparing.
+     */
+    private static function partyIs($get, PartyType $party): bool
+    {
+        $value = $get('party_type');
+
+        if (! $value instanceof PartyType) {
+            $value = filled($value) ? PartyType::tryFrom((string) $value) : null;
+        }
+
+        return $value === $party;
+    }
+
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
@@ -31,7 +47,7 @@ class CreditNoteForm
                         ->live()
                         ->afterStateUpdated(fn ($set) => $set('company_id', null)),
                     Select::make('company_id')
-                        ->label(fn ($get) => $get('party_type') === PartyType::CLIENT->value
+                        ->label(fn ($get) => self::partyIs($get, PartyType::CLIENT)
                             ? __('forms.labels.client')
                             : __('forms.labels.supplier'))
                         ->relationship(
@@ -39,7 +55,9 @@ class CreditNoteForm
                             'name',
                             fn ($query, $get) => $query->whereHas(
                                 'companyRoles',
-                                fn ($q) => $q->where('role', $get('party_type') ?: PartyType::SUPPLIER->value)
+                                fn ($q) => $q->where('role', self::partyIs($get, PartyType::CLIENT)
+                                    ? PartyType::CLIENT->value
+                                    : PartyType::SUPPLIER->value)
                             )
                         )
                         ->required()
@@ -59,7 +77,7 @@ class CreditNoteForm
                         ->searchable()
                         ->nullable()
                         ->visible(fn ($get) => filled($get('company_id'))
-                            && $get('party_type') === PartyType::CLIENT->value),
+                            && self::partyIs($get, PartyType::CLIENT)),
                     Select::make('purchase_order_id')
                         ->label(__('forms.labels.purchase_order'))
                         ->options(fn ($get) => PurchaseOrder::query()
@@ -68,12 +86,12 @@ class CreditNoteForm
                         ->searchable()
                         ->nullable()
                         ->visible(fn ($get) => filled($get('company_id'))
-                            && $get('party_type') === PartyType::SUPPLIER->value),
+                            && self::partyIs($get, PartyType::SUPPLIER)),
                     Select::make('shipment_id')
                         ->label(__('forms.labels.shipment'))
                         ->options(fn ($get) => Shipment::query()
                             ->when(
-                                $get('party_type') === PartyType::CLIENT->value,
+                                self::partyIs($get, PartyType::CLIENT),
                                 fn ($q) => $q->where('company_id', $get('company_id'))
                             )
                             ->pluck('reference', 'id'))
