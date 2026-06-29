@@ -10,6 +10,9 @@ return [
     'chat_error' => '与助手通信时出错，请稍后重试。',
     'edit_done' => '完成。',
     'edit_hint' => '有问题？在下方聊天中让我修改（例如"把所有单位设为 pcs"）。',
+    'review_hint' => '请逐项核对并调整字段与照片，然后确认。',
+    'photo_none' => '无照片',
+    'currency' => '货币',
 
     // 导入 — 拖放区
     'dropzone_drag' => '拖放',
@@ -41,6 +44,7 @@ return [
         'unit_price' => '单价',
         'total' => '金额',
         'category' => '分类',
+        'photo' => '照片',
         'product' => '产品',
     ],
 

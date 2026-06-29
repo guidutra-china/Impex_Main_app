@@ -41,13 +41,16 @@ class DocumentExtractor
     {
         $sheet = IOFactory::load($filePath)->getActiveSheet();
         $lines = [];
+        $rowNumber = 0;
 
         foreach ($sheet->toArray() as $row) {
+            $rowNumber++;
             $cells = array_map(
                 fn ($cell) => $cell === null ? '' : (string) $cell,
                 $row,
             );
-            $lines[] = implode(' | ', $cells);
+            $prefix = $rowNumber === 1 ? '' : "Linha {$rowNumber}: ";
+            $lines[] = $prefix.implode(' | ', $cells);
         }
 
         return implode("\n", $lines);

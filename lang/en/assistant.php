@@ -10,6 +10,9 @@ return [
     'chat_error' => 'There was an error talking to the assistant. Please try again shortly.',
     'edit_done' => 'Done.',
     'edit_hint' => 'Something off? Ask me here in the chat to fix it (e.g. "set unit to pcs for all").',
+    'review_hint' => 'Review and adjust each item and its photo, then confirm.',
+    'photo_none' => 'No photo',
+    'currency' => 'Currency',
 
     // Import — drop zone
     'dropzone_drag' => 'Drag and drop',
@@ -41,6 +44,7 @@ return [
         'unit_price' => 'Unit price',
         'total' => 'Total',
         'category' => 'Category',
+        'photo' => 'Photo',
         'product' => 'Product',
     ],
 

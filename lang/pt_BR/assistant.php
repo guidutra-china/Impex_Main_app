@@ -10,6 +10,9 @@ return [
     'chat_error' => 'Ocorreu um erro ao falar com o assistente. Tente novamente em instantes.',
     'edit_done' => 'Pronto.',
     'edit_hint' => 'Algo errado? Peça aqui no chat para a IA corrigir (ex.: "coloque pcs em todos").',
+    'review_hint' => 'Revise e ajuste cada item e a foto, depois confirme.',
+    'photo_none' => 'Sem foto',
+    'currency' => 'Moeda',
 
     // Importação — zona de arrastar e soltar
     'dropzone_drag' => 'Arraste e solte',
@@ -41,6 +44,7 @@ return [
         'unit_price' => 'Preço unit.',
         'total' => 'Total',
         'category' => 'Categoria',
+        'photo' => 'Foto',
         'product' => 'Produto',
     ],
 

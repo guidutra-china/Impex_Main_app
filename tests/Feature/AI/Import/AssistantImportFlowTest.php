@@ -119,4 +119,44 @@ class AssistantImportFlowTest extends TestCase
             ->assertSet('importPreview.itens.0.unit', 'box') // chat edit re-resolved the preview
             ->assertSee('Units updated.');
     }
+
+    public function test_edited_form_is_used_on_confirm(): void
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo(['view-assistant', 'create-supplier-quotations', 'create-companies', 'create-products']);
+        $this->actingAs($user);
+
+        $this->app->bind(SupplierQuotationExtractor::class, fn () => new class extends SupplierQuotationExtractor
+        {
+            public function __construct() {}
+
+            public function extract(array $documentBlocks, array $categoryNames = []): array
+            {
+                return [
+                    'fornecedor' => ['nome' => 'Flow Supplier', 'currency_code' => 'USD'],
+                    'itens' => [['part_no' => 'P-1', 'description' => 'Item', 'quantity' => 2, 'unit_price' => 50.0]],
+                ];
+            }
+        });
+
+        $ss = new Spreadsheet;
+        $ss->getActiveSheet()->fromArray([['Part', 'Qty', 'Price'], ['P-1', 2, 50.0]]);
+        $tmp = tempnam(sys_get_temp_dir(), 'flow').'.xlsx';
+        (new Xlsx($ss))->save($tmp);
+        $file = UploadedFile::fake()->createWithContent('cotacao.xlsx', (string) file_get_contents($tmp));
+
+        Livewire::test(Assistant::class)
+            ->set('upload', $file)
+            ->call('submitImport')
+            ->assertSet('form.itens.0.description', 'Item')
+            ->set('form.itens.0.description', 'Edited Item')
+            ->set('form.itens.0.quantity', 5)
+            ->call('confirmImport');
+
+        $sq = SupplierQuotation::first();
+        $this->assertNotNull($sq);
+        $item = $sq->items()->first();
+        $this->assertSame('Edited Item', $item->description);
+        $this->assertSame(5, (int) $item->quantity);
+    }
 }

@@ -30,6 +30,20 @@ class DocumentExtractorTest extends TestCase
         @unlink($path);
     }
 
+    public function test_xlsx_text_numbers_data_rows(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'imp').'.xlsx';
+        $ss = new Spreadsheet;
+        $ss->getActiveSheet()->fromArray([['Part', 'Qty'], ['AH1', 6], ['AH2', 3]]);
+        (new Xlsx($ss))->save($path);
+
+        $blocks = (new DocumentExtractor)->toContentBlocks($path);
+
+        $this->assertStringContainsString('Linha 2:', $blocks[0]['text']);
+        $this->assertStringContainsString('Linha 3:', $blocks[0]['text']);
+        @unlink($path);
+    }
+
     public function test_pdf_becomes_document_block(): void
     {
         $path = tempnam(sys_get_temp_dir(), 'imp').'.pdf';

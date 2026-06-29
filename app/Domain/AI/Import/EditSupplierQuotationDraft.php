@@ -108,6 +108,7 @@ class EditSupplierQuotationDraft
         - If the user only asks a QUESTION about the quotation, answer it in `reply` and return the
           draft unchanged.
         - Write `reply` as a short message in {$language}. Never invent data.
+        - Supplier contact fields (phone, email, address, etc.) may be edited when asked.
         PROMPT;
     }
 

@@ -127,4 +127,109 @@ class ImportSupplierQuotationActionTest extends TestCase
         $this->expectException(AuthorizationException::class);
         (new ImportSupplierQuotationAction)($this->previewWithNewSupplierAndProduct(), $user, $this->fakeFile());
     }
+
+    public function test_new_supplier_gets_contact_and_supplier_role(): void
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo(['create-supplier-quotations', 'create-companies', 'create-products']);
+
+        $preview = $this->previewWithNewSupplierAndProduct();
+        $preview['fornecedor_dados'] = ['phone' => '+86 1', 'email' => 's@x.com', 'address_city' => 'Shenzhen', 'legal_name' => 'Nova LTDA'];
+
+        $sq = (new ImportSupplierQuotationAction)($preview, $user, $this->fakeFile());
+        $company = $sq->company;
+
+        $this->assertSame('+86 1', $company->phone);
+        $this->assertSame('Shenzhen', $company->address_city);
+        $this->assertSame('Nova LTDA', $company->legal_name);
+        $this->assertTrue($company->fresh()->hasRole(\App\Domain\CRM\Enums\CompanyRole::SUPPLIER));
+    }
+
+    public function test_oversized_contact_fields_do_not_break_import(): void
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo(['create-supplier-quotations', 'create-companies', 'create-products']);
+
+        $preview = $this->previewWithNewSupplierAndProduct();
+        $preview['fornecedor_dados'] = [
+            'address_country' => 'China',             // full name -> normalized to CN (col is varchar(2))
+            'address_zip' => str_repeat('9', 50),     // > 20 -> truncated
+            'address_street' => str_repeat('A', 400), // > 255 -> truncated
+        ];
+        $preview['cabecalho']['incoterm'] = 'FOB (porto não informado) — detalhado'; // > 20 -> capped
+        $preview['itens'][0]['unit'] = str_repeat('u', 40); // > 20 -> capped
+
+        $sq = (new ImportSupplierQuotationAction)($preview, $user, $this->fakeFile());
+        $company = $sq->company;
+
+        $this->assertSame('CN', $company->address_country);
+        $this->assertSame(20, strlen($company->address_zip));
+        $this->assertSame(255, strlen($company->address_street));
+        $this->assertLessThanOrEqual(20, mb_strlen((string) $sq->incoterm));
+        $this->assertLessThanOrEqual(20, mb_strlen((string) $sq->items()->first()->unit));
+    }
+
+    public function test_attaches_photo_by_index_when_item_has_no_part_no(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+        $user = User::factory()->create();
+        $user->givePermissionTo(['create-supplier-quotations', 'create-companies', 'create-products']);
+
+        $img = storage_path('app/ai-imports-test-idx.png');
+        @mkdir(dirname($img), 0775, true);
+        file_put_contents($img, 'PNGDATA');
+
+        $preview = $this->previewWithNewSupplierAndProduct();
+        $preview['itens'][0]['part_no'] = null; // PDF-style item with no part number
+        $images = ['idx:0' => $img];           // matched by position
+
+        $sq = (new ImportSupplierQuotationAction)($preview, $user, $this->fakeFile(), $images);
+
+        $product = $sq->items()->first()->product;
+        $this->assertNotNull($product);
+        $this->assertSame(1, $product->images()->count());
+        // The avatar (used by product list/cards) must also point at the image.
+        $this->assertStringStartsWith('product-images/', (string) $product->avatar);
+        @unlink($img);
+    }
+
+    public function test_attaches_photo_to_new_product_and_skips_product_with_images(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+        $user = User::factory()->create();
+        $user->givePermissionTo(['create-supplier-quotations', 'create-companies', 'create-products']);
+
+        $img = storage_path('app/ai-imports-test-img.png');
+        @mkdir(dirname($img), 0775, true);
+        file_put_contents($img, 'PNGDATA');
+
+        $preview = $this->previewWithNewSupplierAndProduct(); // item part_no AH223014, novo
+        $images = ['AH223014' => $img];
+
+        $sq = (new ImportSupplierQuotationAction)($preview, $user, $this->fakeFile(), $images);
+
+        $product = Product::where('reference_code', 'AH223014')->first();
+        $this->assertSame(1, $product->images()->count());
+        $this->assertTrue((bool) $product->images()->first()->is_primary);
+        @unlink($img);
+    }
+
+    public function test_existing_supplier_keeps_data_but_gains_role_and_fills_blanks(): void
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo(['create-supplier-quotations', 'create-products']);
+
+        $existing = \App\Domain\CRM\Models\Company::factory()->create(['name' => 'Existing Co', 'phone' => '+86 ORIGINAL', 'email' => null]);
+
+        $preview = $this->previewWithNewSupplierAndProduct();
+        $preview['fornecedor'] = ['status' => 'existente', 'company_id' => $existing->id, 'nome' => 'Existing Co'];
+        $preview['fornecedor_dados'] = ['phone' => '+86 NEW', 'email' => 'filled@x.com'];
+
+        (new ImportSupplierQuotationAction)($preview, $user, $this->fakeFile());
+        $existing->refresh();
+
+        $this->assertSame('+86 ORIGINAL', $existing->phone);
+        $this->assertSame('filled@x.com', $existing->email);
+        $this->assertTrue($existing->hasRole(\App\Domain\CRM\Enums\CompanyRole::SUPPLIER));
+    }
 }

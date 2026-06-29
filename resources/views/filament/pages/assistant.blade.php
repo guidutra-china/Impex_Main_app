@@ -31,77 +31,84 @@
         </div>
 
         {{-- Importar cotação de fornecedor por arquivo --}}
-        @if ($importPreview)
-            <div class="rounded-xl border border-primary-300 bg-primary-50 p-4 text-sm dark:border-primary-700 dark:bg-primary-950/40">
+        @if ($form)
+            @php($previewCurrency = strtoupper($form['cabecalho']['currency_code'] ?? 'USD'))
+            <div class="rounded-xl border border-primary-300 bg-primary-50 p-4 text-sm dark:border-primary-700 dark:bg-primary-950/40"
+                 x-data="{ gallery: null }">
                 <p class="font-semibold">{{ __('assistant.preview_title') }}</p>
-                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ __('assistant.edit_hint') }}</p>
-                <p class="mt-1">
-                    {{ __('assistant.supplier') }}: <strong>{{ $importPreview['fornecedor']['nome'] }}</strong>
-                    <span class="ml-1 rounded px-1.5 py-0.5 text-xs {{ $importPreview['fornecedor']['status'] === 'novo' ? 'bg-amber-200 text-amber-900' : 'bg-green-200 text-green-900' }}">
-                        {{ $importPreview['fornecedor']['status'] === 'novo' ? __('assistant.status_new') : __('assistant.status_existing') }}
-                    </span>
-                </p>
-                <p class="mt-1">
-                    {{ __('assistant.summary_counts', ['total' => $importPreview['resumo']['total_itens'], 'existing' => $importPreview['resumo']['produtos_existentes'], 'new' => $importPreview['resumo']['produtos_novos']]) }}
-                    {{ __('assistant.items_total') }}: <strong>{{ $importPreview['resumo']['total_estimado'] }}</strong>
-                    @if (!empty($importPreview['resumo']['documento_total']))
-                        · {{ __('assistant.document_total') }}: <strong>{{ $importPreview['resumo']['documento_total'] }}</strong>
-                    @endif
-                </p>
+                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ __('assistant.review_hint') }}</p>
 
-                @if (!empty($importPreview['resumo']['extras']))
-                    <p class="mt-1 text-xs text-gray-600 dark:text-gray-300">
-                        {{ __('assistant.extras_note') }}
-                        @foreach ($importPreview['resumo']['extras'] as $extra)
-                            <span class="whitespace-nowrap">{{ $extra['descricao'] }} {{ $extra['valor'] }}</span>@if (!$loop->last); @endif
-                        @endforeach
-                    </p>
-                @endif
+                {{-- Fornecedor --}}
+                <div class="mt-2 grid grid-cols-2 gap-2 md:grid-cols-4">
+                    <label class="col-span-2 text-xs">{{ __('assistant.supplier') }}
+                        <input type="text" wire:model="form.fornecedor.nome" class="mt-0.5 block w-full rounded border-gray-300 text-sm dark:bg-gray-900 dark:border-white/10" />
+                    </label>
+                    <label class="text-xs">{{ __('assistant.currency') }}
+                        <input type="text" wire:model="form.cabecalho.currency_code" class="mt-0.5 block w-full rounded border-gray-300 text-sm dark:bg-gray-900 dark:border-white/10" />
+                    </label>
+                    <label class="text-xs">Incoterm
+                        <input type="text" wire:model="form.cabecalho.incoterm" class="mt-0.5 block w-full rounded border-gray-300 text-sm dark:bg-gray-900 dark:border-white/10" />
+                    </label>
+                </div>
 
-                @if (!empty($importPreview['resumo']['divergencia']))
-                    <p class="mt-2 rounded-lg bg-amber-100 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/50 dark:text-amber-200">
-                        {{ __('assistant.divergence_warning') }}
-                    </p>
-                @endif
-
-                @if (($importPreview['resumo']['produtos_sem_categoria'] ?? 0) > 0)
-                    <p class="mt-2 rounded-lg bg-amber-100 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/50 dark:text-amber-200">
-                        {{ __('assistant.uncategorized_warning', ['count' => $importPreview['resumo']['produtos_sem_categoria']]) }}
-                    </p>
-                @endif
-
-                @php($previewCurrency = strtoupper($importPreview['cabecalho']['currency_code'] ?? 'USD'))
-                <div class="mt-3 max-h-48 overflow-y-auto rounded border border-gray-200 bg-white dark:border-white/10 dark:bg-gray-900">
+                {{-- Itens editáveis --}}
+                <div class="mt-3 max-h-72 overflow-y-auto rounded border border-gray-200 bg-white dark:border-white/10 dark:bg-gray-900">
                     <table class="w-full text-left text-xs">
                         <thead class="sticky top-0 bg-gray-50 dark:bg-white/5">
                             <tr>
+                                <th class="px-2 py-1">{{ __('assistant.col.photo') }}</th>
                                 <th class="px-2 py-1">{{ __('assistant.col.part_no') }}</th>
                                 <th class="px-2 py-1">{{ __('assistant.col.description') }}</th>
                                 <th class="px-2 py-1 text-right">{{ __('assistant.col.qty') }}</th>
                                 <th class="px-2 py-1">{{ __('assistant.col.unit') }}</th>
                                 <th class="px-2 py-1 text-right">{{ __('assistant.col.unit_price') }}</th>
-                                <th class="px-2 py-1 text-right">{{ __('assistant.col.total') }}</th>
                                 <th class="px-2 py-1">{{ __('assistant.col.category') }}</th>
-                                <th class="px-2 py-1">{{ __('assistant.col.product') }}</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($importPreview['itens'] as $item)
-                                <tr class="border-t border-gray-100 dark:border-white/5">
-                                    <td class="px-2 py-1">{{ $item['part_no'] }}</td>
-                                    <td class="px-2 py-1">{{ \Illuminate\Support\Str::limit($item['description'], 60) }}</td>
-                                    <td class="px-2 py-1 text-right">{{ $item['quantity'] }}</td>
-                                    <td class="px-2 py-1">{{ $item['unit'] }}</td>
-                                    <td class="px-2 py-1 text-right whitespace-nowrap">{{ $previewCurrency }} {{ \App\Domain\Infrastructure\Support\Money::format($item['unit_cost_minor']) }}</td>
-                                    <td class="px-2 py-1 text-right whitespace-nowrap">{{ $previewCurrency }} {{ \App\Domain\Infrastructure\Support\Money::format($item['unit_cost_minor'] * $item['quantity']) }}</td>
+                            @foreach ($form['itens'] as $i => $item)
+                                <tr class="border-t border-gray-100 align-top dark:border-white/5" wire:key="item-{{ $i }}">
                                     <td class="px-2 py-1">
-                                        @if (!empty($item['category_name']))
-                                            {{ $item['category_name'] }}
-                                        @else
-                                            <span class="rounded bg-amber-200 px-1.5 py-0.5 text-amber-900">{{ __('assistant.no_category') }}</span>
-                                        @endif
+                                        @php($thumb = $item['photo_index'] !== null ? $this->importImageThumb($item['photo_index']) : null)
+                                        <button type="button" x-on:click="gallery = (gallery === {{ $i }} ? null : {{ $i }})"
+                                                class="flex h-12 w-12 items-center justify-center overflow-hidden rounded border border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/5">
+                                            @if ($thumb)
+                                                <img src="{{ $thumb }}" class="h-full w-full object-cover" alt="" />
+                                            @else
+                                                <span class="text-gray-400">＋</span>
+                                            @endif
+                                        </button>
                                     </td>
-                                    <td class="px-2 py-1">{{ $item['status'] === 'novo' ? __('assistant.status_new') : __('assistant.status_existing') }}</td>
+                                    <td class="px-2 py-1"><input type="text" wire:model="form.itens.{{ $i }}.part_no" class="w-24 rounded border-gray-300 text-xs dark:bg-gray-900 dark:border-white/10" /></td>
+                                    <td class="px-2 py-1"><input type="text" wire:model="form.itens.{{ $i }}.description" class="w-full min-w-[12rem] rounded border-gray-300 text-xs dark:bg-gray-900 dark:border-white/10" /></td>
+                                    <td class="px-2 py-1 text-right"><input type="number" wire:model="form.itens.{{ $i }}.quantity" class="w-16 rounded border-gray-300 text-right text-xs dark:bg-gray-900 dark:border-white/10" /></td>
+                                    <td class="px-2 py-1"><input type="text" wire:model="form.itens.{{ $i }}.unit" class="w-16 rounded border-gray-300 text-xs dark:bg-gray-900 dark:border-white/10" /></td>
+                                    <td class="px-2 py-1 text-right"><input type="number" step="0.01" wire:model="form.itens.{{ $i }}.unit_price" class="w-24 rounded border-gray-300 text-right text-xs dark:bg-gray-900 dark:border-white/10" /></td>
+                                    <td class="px-2 py-1">
+                                        <select wire:model="form.itens.{{ $i }}.category_id" class="w-32 rounded border-gray-300 text-xs dark:bg-gray-900 dark:border-white/10">
+                                            <option value="">{{ __('assistant.no_category') }}</option>
+                                            @foreach ($this->importCategoryOptions() as $catId => $catName)
+                                                <option value="{{ $catId }}">{{ $catName }}</option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                </tr>
+                                {{-- Galeria do pool para este item --}}
+                                <tr x-show="gallery === {{ $i }}" x-cloak wire:key="gal-{{ $i }}">
+                                    <td colspan="7" class="bg-gray-50 px-2 py-2 dark:bg-white/5">
+                                        <div class="flex flex-wrap gap-2">
+                                            <button type="button" wire:click="setItemPhoto({{ $i }}, null)" x-on:click="gallery = null"
+                                                    class="flex h-16 w-16 items-center justify-center rounded border border-dashed border-gray-300 text-xs text-gray-500 dark:border-white/15">
+                                                {{ __('assistant.photo_none') }}
+                                            </button>
+                                            @foreach ($importImagePool as $poolEntry)
+                                                <button type="button" wire:click="setItemPhoto({{ $i }}, {{ $poolEntry['id'] }})" x-on:click="gallery = null"
+                                                        class="h-16 w-16 overflow-hidden rounded border {{ $item['photo_index'] === $poolEntry['id'] ? 'border-primary-500 ring-2 ring-primary-400' : 'border-gray-200 dark:border-white/10' }}">
+                                                    <img src="{{ $this->importImageThumb($poolEntry['id']) }}" class="h-full w-full object-cover" alt="" />
+                                                </button>
+                                            @endforeach
+                                        </div>
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>

@@ -83,7 +83,9 @@ class SupplierQuotationExtractor
                 .($this->categoryNames !== []
                     ? 'Para cada item, atribua "categoria" escolhendo APENAS uma das categorias existentes fornecidas; '
                         .'se nenhuma for claramente adequada, omita a categoria (não invente).'
-                    : ''),
+                    : '')
+                .' Capture também os dados de contato do fornecedor quando constarem no documento '
+                .'(legal_name, tax_number, phone, email, website e endereço).',
             tools: [Tool::with(
                 inputSchema: SupplierQuotationDraftSchema::schema($this->categoryNames),
                 name: 'registrar_cotacao',

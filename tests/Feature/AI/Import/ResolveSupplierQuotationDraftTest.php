@@ -122,4 +122,24 @@ class ResolveSupplierQuotationDraftTest extends TestCase
         $this->assertSame('novo', $preview['fornecedor']['status']);
         $this->assertNull($preview['fornecedor']['company_id']);
     }
+
+    public function test_passes_supplier_contact_fields(): void
+    {
+        $preview = (new ResolveSupplierQuotationDraft)->resolve([
+            'fornecedor' => [
+                'nome' => 'New Supplier Co',
+                'phone' => '+86 123', 'email' => 'a@b.com', 'address_city' => 'Shenzhen',
+                'legal_name' => 'New Supplier Co Ltd', 'tax_number' => 'TX1',
+                'website' => 'x.com', 'address_street' => 'Rd 1', 'address_number' => '5',
+                'address_complement' => 'F2', 'address_state' => 'GD', 'address_zip' => '518000', 'address_country' => 'CN',
+            ],
+            'itens' => [['description' => 'x', 'quantity' => 1, 'unit_price' => 1.0]],
+        ]);
+
+        $d = $preview['fornecedor_dados'];
+        $this->assertSame('+86 123', $d['phone']);
+        $this->assertSame('a@b.com', $d['email']);
+        $this->assertSame('Shenzhen', $d['address_city']);
+        $this->assertSame('New Supplier Co Ltd', $d['legal_name']);
+    }
 }
