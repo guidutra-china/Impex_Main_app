@@ -171,7 +171,10 @@ class ItemsRelationManager extends RelationManager
                     ->label(__('forms.labels.pi_ref'))
                     ->sortable()
                     ->badge()
-                    ->color('gray'),
+                    ->color('gray')
+                    ->description(fn ($record) => filled($record->proformaInvoiceItem?->proformaInvoice?->client_reference)
+                        ? __('forms.labels.client_reference').': '.$record->proformaInvoiceItem->proformaInvoice->client_reference
+                        : null),
                 TextColumn::make('product_name')
                     ->label(__('forms.labels.product'))
                     ->searchable(query: function ($query, string $search) {
