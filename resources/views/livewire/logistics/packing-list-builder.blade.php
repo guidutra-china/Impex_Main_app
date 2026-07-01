@@ -158,11 +158,26 @@
                                                 🟨 {{ $p->label }} (loose)
                                             </option>
                                         @endforeach
+                                        @if ($this->cartonFillOptions->isNotEmpty())
+                                            <optgroup label="Caixas existentes (adicionar à mesma caixa)">
+                                                @foreach ($this->cartonFillOptions as $co)
+                                                    <option value="carton:{{ $co['id'] }}"
+                                                        @if($fillTargetType === 'carton' && $fillTargetId === $co['id']) selected @endif>
+                                                        📥 {{ $co['label'] }}
+                                                    </option>
+                                                @endforeach
+                                            </optgroup>
+                                        @endif
                                     </select>
                                 </label>
                                 <label class="block">
                                     <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Pieces</span>
-                                    <input type="number" min="1" wire:model.live.debounce.300ms="fillPieces"
+                                    @php
+                                        $packRow = $fillItemId ? $this->products->firstWhere('item.id', $fillItemId) : null;
+                                        $packRemaining = $packRow ? ($packRow['progress']?->remaining() ?? $packRow['item']->quantity) : null;
+                                    @endphp
+                                    <input type="number" min="1" wire:model.blur="fillPieces"
+                                        placeholder="{{ $packRemaining !== null ? 'Restante: '.$packRemaining.' (vazio = tudo)' : 'Peças' }}"
                                         class="mt-0.5 block w-full rounded-lg border-gray-300 text-sm dark:border-gray-700 dark:bg-gray-900" />
                                 </label>
                                 <div class="flex items-end gap-2">
@@ -170,21 +185,27 @@
                                     <x-filament::button wire:click="cancelFill" size="sm" color="gray">Cancel</x-filament::button>
                                 </div>
                             </div>
-                            @php $preview = $this->fillPreview; @endphp
-                            @if ($preview['cartons'] > 0 || $preview['remainder'] > 0)
+                            @if ($fillTargetType === 'carton')
                                 <div class="mt-2 rounded bg-white p-2 text-sm dark:bg-gray-900">
-                                    @if ($preview['cartons'] > 0)
-                                        <span class="font-semibold text-green-700 dark:text-green-400">→ {{ number_format($preview['cartons']) }} carton(s)</span>
-                                        @if ($preview['per_carton'] > 0)
-                                            <span class="text-gray-500">@ {{ $preview['per_carton'] }} pcs/carton</span>
-                                        @endif
-                                    @endif
-                                    @if ($preview['remainder'] > 0)
-                                        <span class="text-amber-600 dark:text-amber-400">
-                                            · {{ $preview['remainder'] }} pcs remaining (add manually)
-                                        </span>
-                                    @endif
+                                    <span class="font-semibold text-green-700 dark:text-green-400">→ adiciona as peças à caixa selecionada</span>
                                 </div>
+                            @else
+                                @php $preview = $this->fillPreview; @endphp
+                                @if ($preview['cartons'] > 0 || $preview['remainder'] > 0)
+                                    <div class="mt-2 rounded bg-white p-2 text-sm dark:bg-gray-900">
+                                        @if ($preview['cartons'] > 0)
+                                            <span class="font-semibold text-green-700 dark:text-green-400">→ {{ number_format($preview['cartons']) }} carton(s)</span>
+                                            @if ($preview['per_carton'] > 0)
+                                                <span class="text-gray-500">@ {{ $preview['per_carton'] }} pcs/carton</span>
+                                            @endif
+                                        @endif
+                                        @if ($preview['remainder'] > 0)
+                                            <span class="text-amber-600 dark:text-amber-400">
+                                                · {{ $preview['remainder'] }} pcs remaining (add manually)
+                                            </span>
+                                        @endif
+                                    </div>
+                                @endif
                             @endif
                         </div>
                     @endif

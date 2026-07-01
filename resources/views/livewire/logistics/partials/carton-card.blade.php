@@ -78,7 +78,12 @@
                     @endif
                 @endforeach
             </select>
-            <input type="number" min="1" wire:model="addContentPieces" placeholder="Pieces"
+            @php
+                $selRow = $addContentItemId ? $this->products->firstWhere('item.id', $addContentItemId) : null;
+                $selRemaining = $selRow ? ($selRow['progress']?->remaining() ?? $selRow['item']->quantity) : null;
+            @endphp
+            <input type="number" min="1" wire:model.blur="addContentPieces"
+                placeholder="{{ $selRemaining !== null ? 'Restante: '.$selRemaining.' (vazio = tudo)' : 'Peças' }}"
                 class="block w-full rounded border-gray-300 text-xs dark:border-gray-700 dark:bg-gray-900" />
             <div class="flex gap-2">
                 <x-filament::button wire:click="confirmAddContent" size="xs">Add</x-filament::button>

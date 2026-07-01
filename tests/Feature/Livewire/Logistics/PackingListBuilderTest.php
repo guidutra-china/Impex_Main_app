@@ -123,6 +123,51 @@ class PackingListBuilderTest extends TestCase
         $this->assertEquals(5, CartonContent::where('carton_id', $cartonId)->first()->pieces);
     }
 
+    public function test_add_content_defaults_to_remaining_when_pieces_blank(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['p' => 10]);
+
+        $component = Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->call('createCarton');
+
+        $cartonId = $shipment->cartons()->first()->id;
+
+        // Leaving pieces at 0/blank should pack all remaining, not nothing.
+        $component->call('startAddContent', $cartonId)
+            ->set('addContentItemId', $items['p']->id)
+            ->set('addContentPieces', 0)
+            ->call('confirmAddContent');
+
+        $content = CartonContent::where('carton_id', $cartonId)->first();
+        $this->assertNotNull($content);
+        $this->assertEquals(10, $content->pieces);
+    }
+
+    public function test_add_two_different_products_into_same_carton_with_partial_quantities(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['a' => 10, 'b' => 8]);
+
+        $component = Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->call('createCarton');
+
+        $cartonId = $shipment->cartons()->first()->id;
+
+        $component->call('startAddContent', $cartonId)
+            ->set('addContentItemId', $items['a']->id)
+            ->set('addContentPieces', 3)
+            ->call('confirmAddContent');
+
+        $component->call('startAddContent', $cartonId)
+            ->set('addContentItemId', $items['b']->id)
+            ->set('addContentPieces', 5)
+            ->call('confirmAddContent');
+
+        $contents = CartonContent::where('carton_id', $cartonId)->get();
+        $this->assertCount(2, $contents);
+        $this->assertEquals(3, $contents->firstWhere('shipment_item_id', $items['a']->id)->pieces);
+        $this->assertEquals(5, $contents->firstWhere('shipment_item_id', $items['b']->id)->pieces);
+    }
+
     public function test_confirm_add_content_rejects_split_items(): void
     {
         [$shipment, $items] = $this->makeShipment(['machine' => 4]);
@@ -599,15 +644,100 @@ class PackingListBuilderTest extends TestCase
 
         $container = $shipment->shipmentContainers()->first();
 
+        // Leaving the quantity blank packs all remaining (100 / 2 = 50 cartons).
         $component->call('startFillContainer', $container->id)
             ->assertSet('fillTargetType', 'container')
             ->assertSet('fillTargetId', $container->id)
             ->set('fillItemId', $item->id)
-            ->assertSet('fillPieces', 100) // auto-filled with remaining
             ->call('confirmFill');
 
         $this->assertEquals(50, $shipment->cartons()->count()); // 100 / 2
         $this->assertEquals(50, $shipment->cartons()->where('shipment_container_id', $container->id)->count());
+    }
+
+    public function test_fill_respects_explicit_smaller_quantity(): void
+    {
+        $client = \App\Domain\CRM\Models\Company::create(['name' => 'C-'.uniqid(), 'status' => 'active']);
+        $client->companyRoles()->create(['role' => 'client']);
+        $inquiry = \App\Domain\Inquiries\Models\Inquiry::create([
+            'reference' => 'INQ-'.uniqid(), 'company_id' => $client->id, 'status' => 'received',
+            'source' => 'email', 'currency_code' => 'USD',
+        ]);
+        $pi = \App\Domain\ProformaInvoices\Models\ProformaInvoice::create([
+            'reference' => 'PI-'.uniqid(), 'inquiry_id' => $inquiry->id, 'company_id' => $client->id,
+            'currency_code' => 'USD', 'issue_date' => '2026-04-09', 'status' => 'confirmed',
+        ]);
+        $product = \App\Domain\Catalog\Models\Product::create(['name' => 'Widget', 'sku' => 'W-'.uniqid()]);
+        \App\Domain\Catalog\Models\ProductPackaging::create([
+            'product_id' => $product->id, 'packaging_type' => 'carton',
+            'pcs_per_carton' => 2, 'carton_weight' => 5.0,
+        ]);
+        $piItem = \App\Domain\ProformaInvoices\Models\ProformaInvoiceItem::create([
+            'proforma_invoice_id' => $pi->id, 'product_id' => $product->id, 'description' => 'Widget',
+            'quantity' => 100, 'unit_price' => 1000, 'unit' => 'pcs',
+        ]);
+        $shipment = Shipment::create([
+            'reference' => 'SHIP-'.uniqid(), 'company_id' => $client->id, 'currency_code' => 'USD',
+            'status' => 'draft', 'transport_mode' => 'sea',
+            'origin_port' => 'Shanghai', 'destination_port' => 'Santos',
+        ]);
+        $item = ShipmentItem::create([
+            'shipment_id' => $shipment->id, 'proforma_invoice_item_id' => $piItem->id,
+            'quantity' => 100, 'sort_order' => 0,
+        ]);
+
+        $component = Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->call('createContainer');
+        $container = $shipment->shipmentContainers()->first();
+
+        // Explicit smaller quantity must be honoured, not the total.
+        $component->call('startFillContainer', $container->id)
+            ->set('fillItemId', $item->id)
+            ->set('fillPieces', 10)
+            ->call('confirmFill');
+
+        $this->assertEquals(5, $shipment->cartons()->count()); // 10 / 2
+    }
+
+    public function test_set_fill_target_parses_carton(): void
+    {
+        [$shipment] = $this->makeShipment();
+
+        $component = Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->call('createCarton');
+        $carton = $shipment->cartons()->first();
+
+        $component->call('setFillTarget', 'carton:'.$carton->id)
+            ->assertSet('fillTargetType', 'carton')
+            ->assertSet('fillTargetId', $carton->id);
+    }
+
+    public function test_pack_into_existing_carton_adds_content(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['a' => 10, 'b' => 8]);
+
+        $component = Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->call('createContainer');
+        $container = $shipment->shipmentContainers()->first();
+
+        $component->call('createCarton', $container->id);
+        $carton = $shipment->cartons()->first();
+
+        // Pack two different products into the same existing box.
+        $component->call('startPackProduct', $items['a']->id)
+            ->call('setFillTarget', 'carton:'.$carton->id)
+            ->set('fillPieces', 3)
+            ->call('confirmFill');
+
+        $component->call('startPackProduct', $items['b']->id)
+            ->call('setFillTarget', 'carton:'.$carton->id)
+            ->set('fillPieces', 5)
+            ->call('confirmFill');
+
+        $contents = CartonContent::where('carton_id', $carton->id)->get();
+        $this->assertCount(2, $contents);
+        $this->assertEquals(3, $contents->firstWhere('shipment_item_id', $items['a']->id)->pieces);
+        $this->assertEquals(5, $contents->firstWhere('shipment_item_id', $items['b']->id)->pieces);
     }
 
     public function test_fill_preview_calculates_cartons(): void

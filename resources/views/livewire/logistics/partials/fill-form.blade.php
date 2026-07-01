@@ -29,7 +29,12 @@
 
     <label class="block">
         <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Quantity (pieces)</span>
-        <input type="number" min="1" wire:model.live.debounce.300ms="fillPieces"
+        @php
+            $ffRow = $fillItemId ? $this->products->firstWhere('item.id', $fillItemId) : null;
+            $ffRemaining = $ffRow ? ($ffRow['progress']?->remaining() ?? $ffRow['item']->quantity) : null;
+        @endphp
+        <input type="number" min="1" wire:model.blur="fillPieces"
+            placeholder="{{ $ffRemaining !== null ? 'Restante: '.$ffRemaining.' (vazio = tudo)' : 'Peças' }}"
             class="mt-0.5 block w-full rounded-lg border-gray-300 text-sm dark:border-gray-700 dark:bg-gray-900" />
     </label>
 

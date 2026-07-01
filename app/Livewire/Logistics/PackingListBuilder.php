@@ -204,6 +204,35 @@ class PackingListBuilder extends Component
             ->get(['id', 'label']);
     }
 
+    /**
+     * Existing cartons as pack destinations, labelled with their parent and
+     * current piece count so the operator can pick a specific box.
+     *
+     * @return Collection<int, array{id: int, label: string}>
+     */
+    #[Computed]
+    public function cartonFillOptions(): Collection
+    {
+        return $this->shipment
+            ->cartons()
+            ->with(['contents:id,carton_id,pieces', 'shipmentContainer:id,label', 'pallet:id,label'])
+            ->orderBy('sort_order')
+            ->orderBy('label')
+            ->get()
+            ->map(function ($carton) {
+                $pieces = (int) $carton->contents->sum('pieces');
+                $parent = $carton->pallet?->label ?? $carton->shipmentContainer?->label;
+
+                $context = $parent ? " · {$parent}" : ' · solta';
+                $load = $pieces > 0 ? " ({$pieces} pcs)" : ' (vazia)';
+
+                return [
+                    'id' => $carton->id,
+                    'label' => $carton->label.$context.$load,
+                ];
+            });
+    }
+
     // ---------- Container actions ----------
 
     public function createContainer(): void
@@ -720,30 +749,19 @@ class PackingListBuilder extends Component
         $this->addContentPieces = 0;
     }
 
-    public function updatedAddContentItemId($value): void
+    public function updatedAddContentItemId(): void
     {
-        $itemId = (int) $value;
-        if ($itemId <= 0) {
-            $this->addContentPieces = 0;
-
-            return;
-        }
-
-        $item = $this->shipment->items()->find($itemId);
-        if (! $item) {
-            $this->addContentPieces = 0;
-
-            return;
-        }
-
-        $progress = app(PackingProgressService::class)->forShipmentItem($item);
-        $this->addContentPieces = $progress->remaining();
+        // Clear the quantity when the product changes so the field shows the
+        // remaining-count placeholder. We intentionally do NOT prefill the total
+        // here: a server-pushed value collides with the deferred input's DOM
+        // morph and would overwrite whatever the user types. confirmAddContent()
+        // treats a blank/zero quantity as "pack all remaining".
+        $this->addContentPieces = null;
     }
 
     public function confirmAddContent(): void
     {
-        $pieces = (int) $this->addContentPieces;
-        if (! $this->addContentCartonId || ! $this->addContentItemId || $pieces <= 0) {
+        if (! $this->addContentCartonId || ! $this->addContentItemId) {
             $this->cancelAddContent();
 
             return;
@@ -753,6 +771,18 @@ class PackingListBuilder extends Component
         $item = $this->shipment->items()->find($this->addContentItemId);
 
         if (! $carton || ! $item) {
+            $this->cancelAddContent();
+
+            return;
+        }
+
+        // Blank/zero quantity means "pack all remaining" for this product.
+        $pieces = (int) $this->addContentPieces;
+        if ($pieces <= 0) {
+            $pieces = app(PackingProgressService::class)->forShipmentItem($item)->remaining();
+        }
+
+        if ($pieces <= 0) {
             $this->cancelAddContent();
 
             return;
@@ -913,7 +943,7 @@ class PackingListBuilder extends Component
         $this->fillTargetType = 'container';
         $this->fillTargetId = $containerId;
         $this->fillItemId = null;
-        $this->fillPieces = 0;
+        $this->fillPieces = null;
     }
 
     public function startFillPallet(int $palletId): void
@@ -921,11 +951,11 @@ class PackingListBuilder extends Component
         $this->fillTargetType = 'pallet';
         $this->fillTargetId = $palletId;
         $this->fillItemId = null;
-        $this->fillPieces = 0;
+        $this->fillPieces = null;
     }
 
     /**
-     * Start fill from product card — user picks the target container/pallet.
+     * Start fill from product card — user picks the target container/pallet/box.
      */
     public function startPackProduct(int $itemId): void
     {
@@ -934,11 +964,10 @@ class PackingListBuilder extends Component
         $this->fillTargetId = null;
         $this->fillItemId = $itemId;
 
-        $item = $this->shipment->items()->find($itemId);
-        if ($item) {
-            $progress = app(PackingProgressService::class)->forShipmentItem($item);
-            $this->fillPieces = $progress->remaining();
-        }
+        // Do not prefill the total: the quantity field shows the remaining as a
+        // placeholder and confirmFill() treats blank/zero as "all remaining". A
+        // server-pushed value collides with the input's DOM morph.
+        $this->fillPieces = null;
     }
 
     public function cancelFill(): void
@@ -950,24 +979,12 @@ class PackingListBuilder extends Component
         $this->fillFromProduct = false;
     }
 
-    public function updatedFillItemId($value): void
+    public function updatedFillItemId(): void
     {
-        $itemId = (int) $value;
-        if ($itemId <= 0) {
-            $this->fillPieces = 0;
-
-            return;
-        }
-
-        $item = $this->shipment->items()->find($itemId);
-        if (! $item) {
-            $this->fillPieces = 0;
-
-            return;
-        }
-
-        $progress = app(PackingProgressService::class)->forShipmentItem($item);
-        $this->fillPieces = $progress->remaining();
+        // Clear the quantity when the product changes so the field shows the
+        // remaining-count placeholder. We intentionally do NOT prefill the total:
+        // confirmFill() treats a blank/zero quantity as "pack all remaining".
+        $this->fillPieces = null;
     }
 
     /**
@@ -999,6 +1016,9 @@ class PackingListBuilder extends Component
         } elseif (str_starts_with($target, 'pallet:')) {
             $this->fillTargetType = 'pallet';
             $this->fillTargetId = (int) substr($target, 7);
+        } elseif (str_starts_with($target, 'carton:')) {
+            $this->fillTargetType = 'carton';
+            $this->fillTargetId = (int) substr($target, 7);
         }
     }
 
@@ -1011,13 +1031,21 @@ class PackingListBuilder extends Component
     #[Computed]
     public function fillPreview(): array
     {
-        $pieces = (int) $this->fillPieces;
-        if (! $this->fillItemId || $pieces <= 0) {
+        if (! $this->fillItemId) {
             return ['cartons' => 0, 'per_carton' => 0, 'remainder' => 0];
         }
 
         $item = $this->shipment->items()->with('proformaInvoiceItem')->find($this->fillItemId);
         if (! $item) {
+            return ['cartons' => 0, 'per_carton' => 0, 'remainder' => 0];
+        }
+
+        // Blank/zero mirrors confirmFill: preview all remaining.
+        $pieces = (int) $this->fillPieces;
+        if ($pieces <= 0) {
+            $pieces = app(PackingProgressService::class)->forShipmentItem($item)->remaining();
+        }
+        if ($pieces <= 0) {
             return ['cartons' => 0, 'per_carton' => 0, 'remainder' => 0];
         }
 
@@ -1044,9 +1072,7 @@ class PackingListBuilder extends Component
 
     public function confirmFill(): void
     {
-        $fillPieces = (int) $this->fillPieces;
-
-        if (! $this->fillTargetType || ! $this->fillItemId || $fillPieces <= 0) {
+        if (! $this->fillTargetType || ! $this->fillItemId) {
             Notification::make()->warning()->title('Select a destination and quantity')->send();
 
             return;
@@ -1055,6 +1081,49 @@ class PackingListBuilder extends Component
         $item = $this->shipment->items()->find($this->fillItemId);
         if (! $item) {
             $this->cancelFill();
+
+            return;
+        }
+
+        // Blank/zero quantity means "pack all remaining" for this product.
+        $fillPieces = (int) $this->fillPieces;
+        if ($fillPieces <= 0) {
+            $fillPieces = app(PackingProgressService::class)->forShipmentItem($item)->remaining();
+        }
+
+        if ($fillPieces <= 0) {
+            Notification::make()->warning()->title('Select a destination and quantity')->send();
+
+            return;
+        }
+
+        // Target a specific existing box: add the pieces straight into it
+        // (lets the user put several different products in one carton).
+        if ($this->fillTargetType === 'carton') {
+            $carton = $this->shipment->cartons()->find($this->fillTargetId);
+            if (! $carton) {
+                $this->cancelFill();
+
+                return;
+            }
+
+            try {
+                app(AddContentToCartonAction::class)->execute($carton, $item, $fillPieces);
+
+                Notification::make()
+                    ->success()
+                    ->title("Packed {$fillPieces} pcs into {$carton->label}")
+                    ->send();
+            } catch (InvalidArgumentException $e) {
+                Notification::make()
+                    ->danger()
+                    ->title('Cannot add to box')
+                    ->body($e->getMessage())
+                    ->send();
+            }
+
+            $this->cancelFill();
+            $this->refreshData();
 
             return;
         }
