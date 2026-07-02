@@ -8,7 +8,10 @@ use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\Inquiries\Enums\InquiryStatus;
 use App\Filament\Actions\PasteItemsFromSpreadsheetAction;
+use App\Filament\Pages\Assistant;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -332,6 +335,17 @@ class ItemsRelationManager extends RelationManager
                         return $this->createItemWithDraftProduct($data);
                     }),
                 PasteItemsFromSpreadsheetAction::forInquiryItems(),
+                Action::make('importWithAi')
+                    ->label(__('assistant.import_with_ai'))
+                    ->icon('heroicon-o-sparkles')
+                    ->color('gray')
+                    ->visible(fn () => (auth()->user()?->can('edit-inquiries') ?? false)
+                        && (auth()->user()?->can('view-assistant') ?? false)
+                        && in_array($this->getOwnerRecord()->status, [InquiryStatus::RECEIVED, InquiryStatus::QUOTING], true))
+                    ->url(fn () => Assistant::getUrl([
+                        'import' => 'inquiry',
+                        'inquiry_id' => $this->getOwnerRecord()->getKey(),
+                    ])),
             ])
             ->recordActions([
                 EditAction::make()

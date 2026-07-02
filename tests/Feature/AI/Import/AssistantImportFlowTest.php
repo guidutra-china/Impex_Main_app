@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature\AI\Import;
 
-use App\Domain\AI\Import\EditSupplierQuotationDraft;
-use App\Domain\AI\Import\SupplierQuotationExtractor;
+use App\Domain\AI\Import\DocumentClassifier;
+use App\Domain\AI\Import\DraftEditor;
+use App\Domain\AI\Import\DraftExtractor;
+use App\Domain\AI\Import\Targets\ImportTarget;
 use App\Domain\SupplierQuotations\Models\SupplierQuotation;
 use App\Filament\Pages\Assistant;
 use App\Models\User;
@@ -30,6 +32,16 @@ class AssistantImportFlowTest extends TestCase
         }
         Storage::fake('local');
         \Filament\Facades\Filament::setCurrentPanel('admin');
+
+        $this->app->bind(DocumentClassifier::class, fn () => new class extends DocumentClassifier
+        {
+            public function __construct() {}
+
+            public function classify(array $documentBlocks, array $targets): array
+            {
+                return ['tipo' => 'supplier_quotation', 'confianca' => 'alta', 'motivo' => 'teste'];
+            }
+        });
     }
 
     public function test_upload_then_confirm_creates_records(): void
@@ -39,11 +51,11 @@ class AssistantImportFlowTest extends TestCase
         $this->actingAs($user);
 
         // Fake extractor → no API call; returns a canned draft.
-        $this->app->bind(SupplierQuotationExtractor::class, fn () => new class extends SupplierQuotationExtractor
+        $this->app->bind(DraftExtractor::class, fn () => new class extends DraftExtractor
         {
             public function __construct() {}
 
-            public function extract(array $documentBlocks, array $categoryNames = []): array
+            public function extract(ImportTarget $target, array $documentBlocks): array
             {
                 return [
                     'fornecedor' => ['nome' => 'Flow Supplier', 'currency_code' => 'USD'],
@@ -64,6 +76,8 @@ class AssistantImportFlowTest extends TestCase
         Livewire::test(Assistant::class)
             ->set('upload', $file)
             ->call('submitImport')
+            ->assertSet('importSuggestion.tipo', 'supplier_quotation')
+            ->call('chooseImportTarget', 'supplier_quotation')
             ->assertSet('importPreview.fornecedor.nome', 'Flow Supplier')
             ->call('confirmImport');
 
@@ -74,15 +88,15 @@ class AssistantImportFlowTest extends TestCase
     public function test_chat_message_edits_the_active_preview(): void
     {
         $user = User::factory()->create();
-        $user->givePermissionTo('view-assistant');
+        $user->givePermissionTo(['view-assistant', 'create-supplier-quotations']);
         $this->actingAs($user);
 
         // Extractor returns an item with no unit (Resolve defaults it to 'pcs').
-        $this->app->bind(SupplierQuotationExtractor::class, fn () => new class extends SupplierQuotationExtractor
+        $this->app->bind(DraftExtractor::class, fn () => new class extends DraftExtractor
         {
             public function __construct() {}
 
-            public function extract(array $documentBlocks, array $categoryNames = []): array
+            public function extract(ImportTarget $target, array $documentBlocks): array
             {
                 return [
                     'fornecedor' => ['nome' => 'Flow Supplier', 'currency_code' => 'USD'],
@@ -92,11 +106,11 @@ class AssistantImportFlowTest extends TestCase
         });
 
         // Editor flips the unit to 'box' and replies.
-        $this->app->bind(EditSupplierQuotationDraft::class, fn () => new class extends EditSupplierQuotationDraft
+        $this->app->bind(DraftEditor::class, fn () => new class extends DraftEditor
         {
             public function __construct() {}
 
-            public function edit(array $draft, string $instruction, array $categoryNames = []): array
+            public function edit(ImportTarget $target, array $draft, string $instruction): array
             {
                 $draft['itens'][0]['unit'] = 'box';
 
@@ -113,6 +127,8 @@ class AssistantImportFlowTest extends TestCase
         Livewire::test(Assistant::class)
             ->set('upload', $file)
             ->call('submitImport')
+            ->assertSet('importSuggestion.tipo', 'supplier_quotation')
+            ->call('chooseImportTarget', 'supplier_quotation')
             ->assertSet('importPreview.itens.0.unit', 'pcs') // default applied on extract
             ->set('draft', 'mude a unidade para box')
             ->call('send')
@@ -126,11 +142,11 @@ class AssistantImportFlowTest extends TestCase
         $user->givePermissionTo(['view-assistant', 'create-supplier-quotations', 'create-companies', 'create-products']);
         $this->actingAs($user);
 
-        $this->app->bind(SupplierQuotationExtractor::class, fn () => new class extends SupplierQuotationExtractor
+        $this->app->bind(DraftExtractor::class, fn () => new class extends DraftExtractor
         {
             public function __construct() {}
 
-            public function extract(array $documentBlocks, array $categoryNames = []): array
+            public function extract(ImportTarget $target, array $documentBlocks): array
             {
                 return [
                     'fornecedor' => ['nome' => 'Flow Supplier', 'currency_code' => 'USD'],
@@ -148,6 +164,8 @@ class AssistantImportFlowTest extends TestCase
         Livewire::test(Assistant::class)
             ->set('upload', $file)
             ->call('submitImport')
+            ->assertSet('importSuggestion.tipo', 'supplier_quotation')
+            ->call('chooseImportTarget', 'supplier_quotation')
             ->assertSet('form.itens.0.description', 'Item')
             ->set('form.itens.0.description', 'Edited Item')
             ->set('form.itens.0.quantity', 5)

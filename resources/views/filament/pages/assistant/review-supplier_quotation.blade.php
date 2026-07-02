@@ -1,0 +1,116 @@
+@php($previewCurrency = strtoupper($form['cabecalho']['currency_code'] ?? 'USD'))
+<div class="rounded-xl border border-primary-300 bg-primary-50 p-4 text-sm dark:border-primary-700 dark:bg-primary-950/40"
+     x-data="{ gallery: null }">
+    <p class="font-semibold">{{ __('assistant.preview_title') }}</p>
+    <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ __('assistant.review_hint') }}</p>
+
+    {{-- Resumo --}}
+    @php($novos = collect($form['itens'])->where('status', 'novo')->count())
+    @php($semCat = collect($form['itens'])->filter(fn ($it) => blank($it['category_id'] ?? null))->count())
+    <p class="mt-1 text-xs text-gray-600 dark:text-gray-300">
+        {{ __('assistant.summary_counts', ['total' => count($form['itens']), 'existing' => count($form['itens']) - $novos, 'new' => $novos]) }}
+        @if ($semCat > 0)
+            · {{ __('assistant.uncategorized_warning', ['count' => $semCat]) }}
+        @endif
+    </p>
+
+    {{-- Fornecedor --}}
+    <div class="mt-2 grid grid-cols-2 gap-2 md:grid-cols-4">
+        <label class="col-span-2 text-xs">
+            {{ __('assistant.supplier') }}
+            <span class="ml-1 rounded px-1.5 py-0.5 text-[10px] {{ ($form['fornecedor']['status'] ?? '') === 'novo' ? 'bg-amber-200 text-amber-900' : 'bg-green-200 text-green-900' }}">
+                {{ ($form['fornecedor']['status'] ?? '') === 'novo' ? __('assistant.status_new') : __('assistant.status_existing') }}
+            </span>
+            <input type="text" wire:model="form.fornecedor.nome" class="mt-0.5 block w-full rounded border-gray-300 text-sm dark:bg-gray-900 dark:border-white/10" />
+        </label>
+        <label class="text-xs">{{ __('assistant.currency') }}
+            <input type="text" wire:model="form.cabecalho.currency_code" class="mt-0.5 block w-full rounded border-gray-300 text-sm dark:bg-gray-900 dark:border-white/10" />
+        </label>
+        <label class="text-xs">Incoterm
+            <input type="text" wire:model="form.cabecalho.incoterm" class="mt-0.5 block w-full rounded border-gray-300 text-sm dark:bg-gray-900 dark:border-white/10" />
+        </label>
+    </div>
+
+    {{-- Itens editáveis --}}
+    <div class="mt-3 max-h-72 overflow-y-auto rounded border border-gray-200 bg-white dark:border-white/10 dark:bg-gray-900">
+        <table class="w-full text-left text-xs">
+            <thead class="sticky top-0 bg-gray-50 dark:bg-white/5">
+                <tr>
+                    <th class="px-2 py-1">{{ __('assistant.col.photo') }}</th>
+                    <th class="px-2 py-1">{{ __('assistant.col.part_no') }}</th>
+                    <th class="px-2 py-1">{{ __('assistant.col.description') }}</th>
+                    <th class="px-2 py-1 text-right">{{ __('assistant.col.qty') }}</th>
+                    <th class="px-2 py-1">{{ __('assistant.col.unit') }}</th>
+                    <th class="px-2 py-1 text-right">{{ __('assistant.col.unit_price') }}</th>
+                    <th class="px-2 py-1">{{ __('assistant.col.category') }}</th>
+                    <th class="px-2 py-1">{{ __('assistant.col.status') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($form['itens'] as $i => $item)
+                    <tr class="border-t border-gray-100 align-top dark:border-white/5" wire:key="item-{{ $i }}">
+                        <td class="px-2 py-1">
+                            @php($thumb = $item['photo_index'] !== null ? $this->importImageThumb($item['photo_index']) : null)
+                            <button type="button" x-on:click="gallery = (gallery === {{ $i }} ? null : {{ $i }})"
+                                    class="flex h-12 w-12 items-center justify-center overflow-hidden rounded border border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/5">
+                                @if ($thumb)
+                                    <img src="{{ $thumb }}" class="h-full w-full object-cover" alt="" />
+                                @else
+                                    <span class="text-gray-400">＋</span>
+                                @endif
+                            </button>
+                        </td>
+                        <td class="px-2 py-1"><input type="text" wire:model="form.itens.{{ $i }}.part_no" class="w-24 rounded border-gray-300 text-xs dark:bg-gray-900 dark:border-white/10" /></td>
+                        <td class="px-2 py-1"><input type="text" wire:model="form.itens.{{ $i }}.description" class="w-full min-w-[12rem] rounded border-gray-300 text-xs dark:bg-gray-900 dark:border-white/10" /></td>
+                        <td class="px-2 py-1 text-right"><input type="number" wire:model="form.itens.{{ $i }}.quantity" class="w-16 rounded border-gray-300 text-right text-xs dark:bg-gray-900 dark:border-white/10" /></td>
+                        <td class="px-2 py-1"><input type="text" wire:model="form.itens.{{ $i }}.unit" class="w-16 rounded border-gray-300 text-xs dark:bg-gray-900 dark:border-white/10" /></td>
+                        <td class="px-2 py-1 text-right"><input type="number" step="0.01" wire:model="form.itens.{{ $i }}.unit_price" class="w-24 rounded border-gray-300 text-right text-xs dark:bg-gray-900 dark:border-white/10" /></td>
+                        <td class="px-2 py-1">
+                            <select wire:model="form.itens.{{ $i }}.category_id" class="w-32 rounded border-gray-300 text-xs dark:bg-gray-900 dark:border-white/10">
+                                <option value="">{{ __('assistant.no_category') }}</option>
+                                @foreach ($this->importCategoryOptions() as $catId => $catName)
+                                    <option value="{{ $catId }}">{{ $catName }}</option>
+                                @endforeach
+                            </select>
+                        </td>
+                        <td class="px-2 py-1">
+                            <span class="rounded px-1.5 py-0.5 text-[10px] {{ ($item['status'] ?? '') === 'novo' ? 'bg-amber-200 text-amber-900' : 'bg-green-200 text-green-900' }}">
+                                {{ ($item['status'] ?? '') === 'novo' ? __('assistant.status_new') : __('assistant.status_existing') }}
+                            </span>
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+
+    {{-- Galeria única do pool: aberta ao clicar a foto de um item (gallery = índice do item) --}}
+    <div x-show="gallery !== null" x-cloak class="mt-2 rounded border border-gray-200 bg-gray-50 p-2 dark:border-white/10 dark:bg-white/5">
+        <div class="flex flex-wrap gap-2">
+            <button type="button" x-on:click="$wire.setItemPhoto(gallery, null); gallery = null"
+                    class="flex h-16 w-16 items-center justify-center rounded border border-dashed border-gray-300 text-xs text-gray-500 dark:border-white/15">
+                {{ __('assistant.photo_none') }}
+            </button>
+            @foreach ($importImagePool as $poolEntry)
+                <button type="button" x-on:click="$wire.setItemPhoto(gallery, {{ $poolEntry['id'] }}); gallery = null"
+                        class="h-16 w-16 overflow-hidden rounded border border-gray-200 dark:border-white/10">
+                    <img src="{{ $this->importImageThumb($poolEntry['id']) }}" class="h-full w-full object-cover" alt="" loading="lazy" />
+                </button>
+            @endforeach
+        </div>
+    </div>
+
+    <div class="mt-3 flex gap-2">
+        <x-filament::button wire:click="confirmImport" wire:loading.attr="disabled" wire:target="confirmImport" color="primary" size="sm">
+            {{ __('assistant.confirm_import') }}
+        </x-filament::button>
+        <x-filament::button wire:click="cancelImport" color="gray" size="sm">
+            {{ __('assistant.cancel') }}
+        </x-filament::button>
+        @if ($importLockedInquiryId === null)
+            <x-filament::button wire:click="reopenTargetChooser" color="gray" size="sm" outlined>
+                {{ __('assistant.switch_target') }}
+            </x-filament::button>
+        @endif
+    </div>
+</div>

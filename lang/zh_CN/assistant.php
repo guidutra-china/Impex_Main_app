@@ -13,10 +13,11 @@ return [
     'review_hint' => '请逐项核对并调整字段与照片，然后确认。',
     'photo_none' => '无照片',
     'currency' => '货币',
+    'notes' => '备注',
 
     // 导入 — 拖放区
     'dropzone_drag' => '拖放',
-    'dropzone_rest' => '供应商报价文件到此处，或点击选择',
+    'dropzone_rest' => '将文档拖到此处（供应商报价、客户询价…），或点击选择',
     'dropzone_formats' => 'xlsx、xls 或 PDF',
     'processing' => '处理中…',
     'processing_file' => '正在处理 :file…',
@@ -59,10 +60,20 @@ return [
     'invalid_file' => '无效的导入文件。',
     'import_failed' => '导入报价失败。',
 
+    // 导入目标
+    'target_supplier_quotation' => '供应商报价',
+    'target_inquiry' => '询价单（客户需求）',
+
     // 权限
     'perm_supplier_quotations' => '您没有创建供应商报价的权限。',
     'perm_companies' => '您没有创建公司（新供应商）的权限。',
     'perm_products' => '您没有创建产品的权限。',
+
+    // 通用导入 — 询价单目标
+    'perm_inquiries_create' => '您没有创建询价单的权限。',
+    'perm_inquiries_edit' => '您没有编辑询价单的权限。',
+    'inquiry_not_open' => '该询价单未处于打开状态（已接收/报价中），无法添加项目。',
+    'client_required' => '请填写客户以创建新询价单。',
 
     // 智能体循环
     'too_many_steps' => '无法完成请求（步骤过多）。请尝试更简单地重新表述。',
@@ -70,4 +81,28 @@ return [
     'tool_unknown' => '未知工具。',
     'tool_denied' => '权限被拒绝：您无权访问这些数据。',
     'tool_error' => '执行工具时出错：:error',
+
+    // 通用导入 — 目标选择
+    'suggest_target' => '该文档看起来是：:label — :reason',
+    'suggest_target_short' => '该文档看起来是：:label',
+    'suggest_unknown' => '无法自动识别文档类型。',
+    'choose_target' => '请选择导入目标：',
+    'import_as' => '导入为 :label',
+    'extracted_generic' => '数据已提取。请在下方检查并确认导入。',
+    'imported_generic' => ':reference 已导入 :count 个项目。',
+    'switch_target' => '更换目标',
+    'search_inquiry' => '按编号或客户搜索…',
+    'record_not_found' => '所引用的记录已不存在。请检查选择后重试。',
+
+    // 通用导入 — 询价单审核
+    'mode_new_inquiry' => '创建新询价单',
+    'mode_existing_inquiry' => '添加到现有询价单',
+    'client' => '客户',
+    'deadline' => '截止日期',
+    'inquiry_label' => '询价单',
+    'select_inquiry' => '选择询价单…',
+    'import_locked_inquiry' => '上传文件以将项目导入询价单 :reference。',
+    'summary_inquiry_counts' => '共 :total 项 — :matched 项已匹配产品，:unmatched 项未匹配（仅按描述导入）。',
+    'col_target_price' => '目标价',
+    'import_with_ai' => 'AI 导入',
 ];

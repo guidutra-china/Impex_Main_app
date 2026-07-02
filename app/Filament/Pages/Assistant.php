@@ -5,14 +5,16 @@ declare(strict_types=1);
 namespace App\Filament\Pages;
 
 use App\Domain\AI\ClaudeAssistant;
-use App\Filament\Pages\Concerns\HandlesSupplierQuotationImport;
+use App\Domain\Inquiries\Enums\InquiryStatus;
+use App\Domain\Inquiries\Models\Inquiry;
+use App\Filament\Pages\Concerns\HandlesDocumentImport;
 use BackedEnum;
 use Filament\Pages\Page;
 use Livewire\WithFileUploads;
 
 class Assistant extends Page
 {
-    use HandlesSupplierQuotationImport;
+    use HandlesDocumentImport;
     use WithFileUploads;
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-sparkles';
@@ -29,6 +31,26 @@ class Assistant extends Page
     public array $messages = [];
 
     public string $draft = '';
+
+    public function mount(): void
+    {
+        // Entry point from an Inquiry page: lock the import to that inquiry.
+        if (request()->query('import') !== 'inquiry') {
+            return;
+        }
+
+        $inquiry = Inquiry::find((int) request()->query('inquiry_id'));
+
+        if ($inquiry === null
+            || ! (auth()->user()?->can('edit-inquiries') ?? false)
+            || ! in_array($inquiry->status, [InquiryStatus::RECEIVED, InquiryStatus::QUOTING], true)) {
+            return; // invalid/unauthorized param → normal assistant flow
+        }
+
+        $this->importTargetKey = 'inquiry';
+        $this->importLockedInquiryId = $inquiry->id;
+        $this->messages[] = ['role' => 'assistant', 'text' => __('assistant.import_locked_inquiry', ['reference' => $inquiry->reference])];
+    }
 
     public static function canAccess(): bool
     {

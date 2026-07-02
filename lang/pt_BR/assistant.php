@@ -13,10 +13,11 @@ return [
     'review_hint' => 'Revise e ajuste cada item e a foto, depois confirme.',
     'photo_none' => 'Sem foto',
     'currency' => 'Moeda',
+    'notes' => 'Observações',
 
     // Importação — zona de arrastar e soltar
     'dropzone_drag' => 'Arraste e solte',
-    'dropzone_rest' => 'uma cotação de fornecedor aqui, ou clique para selecionar',
+    'dropzone_rest' => 'um documento aqui (cotação de fornecedor, pedido de cliente…), ou clique para selecionar',
     'dropzone_formats' => 'xlsx, xls ou PDF',
     'processing' => 'Processando…',
     'processing_file' => 'Processando :file…',
@@ -59,10 +60,20 @@ return [
     'invalid_file' => 'Arquivo de importação inválido.',
     'import_failed' => 'Falha ao importar a cotação.',
 
+    // Destinos de importação
+    'target_supplier_quotation' => 'Cotação de fornecedor',
+    'target_inquiry' => 'Inquiry (pedido de cliente)',
+
     // Permissões
     'perm_supplier_quotations' => 'Sem permissão para criar cotações de fornecedor.',
     'perm_companies' => 'Sem permissão para criar empresas (fornecedor novo).',
     'perm_products' => 'Sem permissão para criar produtos.',
+
+    // Import universal — destino inquiry
+    'perm_inquiries_create' => 'Você não tem permissão para criar inquiries.',
+    'perm_inquiries_edit' => 'Você não tem permissão para editar inquiries.',
+    'inquiry_not_open' => 'Esta inquiry não está aberta (recebida/cotando) — não é possível adicionar itens.',
+    'client_required' => 'Informe o cliente para criar uma inquiry nova.',
 
     // Loop agêntico
     'too_many_steps' => 'Não consegui concluir a solicitação (excesso de etapas). Tente reformular de forma mais simples.',
@@ -70,4 +81,28 @@ return [
     'tool_unknown' => 'Ferramenta desconhecida.',
     'tool_denied' => 'Permissão negada: você não tem acesso a esses dados.',
     'tool_error' => 'Erro ao executar a ferramenta: :error',
+
+    // Import universal — escolha do destino
+    'suggest_target' => 'Este documento parece ser: :label — :reason',
+    'suggest_target_short' => 'Este documento parece ser: :label',
+    'suggest_unknown' => 'Não consegui identificar o tipo do documento automaticamente.',
+    'choose_target' => 'Escolha o destino da importação:',
+    'import_as' => 'Importar como :label',
+    'extracted_generic' => 'Dados extraídos. Revise abaixo e confirme a importação.',
+    'imported_generic' => ':reference importada com :count item(ns).',
+    'switch_target' => 'Trocar destino',
+    'search_inquiry' => 'Buscar por referência ou cliente…',
+    'record_not_found' => 'O registro referenciado não existe mais. Revise a seleção e tente de novo.',
+
+    // Import universal — revisão de inquiry
+    'mode_new_inquiry' => 'Criar inquiry nova',
+    'mode_existing_inquiry' => 'Adicionar a inquiry existente',
+    'client' => 'Cliente',
+    'deadline' => 'Prazo',
+    'inquiry_label' => 'Inquiry',
+    'select_inquiry' => 'Selecione a inquiry…',
+    'import_locked_inquiry' => 'Envie um arquivo para importar itens na inquiry :reference.',
+    'summary_inquiry_counts' => ':total itens — :matched casados com produtos, :unmatched sem match (importados só com a descrição).',
+    'col_target_price' => 'Preço-alvo',
+    'import_with_ai' => 'Importar com IA',
 ];

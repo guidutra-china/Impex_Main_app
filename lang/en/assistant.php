@@ -13,10 +13,11 @@ return [
     'review_hint' => 'Review and adjust each item and its photo, then confirm.',
     'photo_none' => 'No photo',
     'currency' => 'Currency',
+    'notes' => 'Notes',
 
     // Import — drop zone
     'dropzone_drag' => 'Drag and drop',
-    'dropzone_rest' => 'a supplier quotation here, or click to select',
+    'dropzone_rest' => 'a document here (supplier quotation, client inquiry…), or click to select',
     'dropzone_formats' => 'xlsx, xls or PDF',
     'processing' => 'Processing…',
     'processing_file' => 'Processing :file…',
@@ -59,10 +60,20 @@ return [
     'invalid_file' => 'Invalid import file.',
     'import_failed' => 'Failed to import the quotation.',
 
+    // Import targets
+    'target_supplier_quotation' => 'Supplier quotation',
+    'target_inquiry' => 'Inquiry (client request)',
+
     // Permissions
     'perm_supplier_quotations' => 'You do not have permission to create supplier quotations.',
     'perm_companies' => 'You do not have permission to create companies (new supplier).',
     'perm_products' => 'You do not have permission to create products.',
+
+    // Universal import — inquiry target
+    'perm_inquiries_create' => 'You do not have permission to create inquiries.',
+    'perm_inquiries_edit' => 'You do not have permission to edit inquiries.',
+    'inquiry_not_open' => 'This inquiry is not open (received/quoting) — items cannot be added to it.',
+    'client_required' => 'Inform the client to create a new inquiry.',
 
     // Agentic loop
     'too_many_steps' => 'I could not complete the request (too many steps). Try rephrasing it more simply.',
@@ -70,4 +81,28 @@ return [
     'tool_unknown' => 'Unknown tool.',
     'tool_denied' => 'Permission denied: you do not have access to this data.',
     'tool_error' => 'Error running the tool: :error',
+
+    // Universal import — target chooser
+    'suggest_target' => 'This document looks like: :label — :reason',
+    'suggest_target_short' => 'This document looks like: :label',
+    'suggest_unknown' => "I couldn't identify the document type automatically.",
+    'choose_target' => 'Choose the import destination:',
+    'import_as' => 'Import as :label',
+    'extracted_generic' => 'Data extracted. Review below and confirm the import.',
+    'imported_generic' => ':reference imported with :count item(s).',
+    'switch_target' => 'Change destination',
+    'search_inquiry' => 'Search by reference or client…',
+    'record_not_found' => 'Referenced record no longer exists. Review the selection and try again.',
+
+    // Universal import — inquiry review card
+    'mode_new_inquiry' => 'Create new inquiry',
+    'mode_existing_inquiry' => 'Add to existing inquiry',
+    'client' => 'Client',
+    'deadline' => 'Deadline',
+    'inquiry_label' => 'Inquiry',
+    'select_inquiry' => 'Select the inquiry…',
+    'import_locked_inquiry' => 'Upload a file to import items into inquiry :reference.',
+    'summary_inquiry_counts' => ':total items — :matched matched to products, :unmatched without match (imported with description only).',
+    'col_target_price' => 'Target price',
+    'import_with_ai' => 'Import with AI',
 ];
