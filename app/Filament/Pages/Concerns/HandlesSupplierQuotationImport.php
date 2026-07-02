@@ -262,13 +262,44 @@ trait HandlesSupplierQuotationImport
         ];
     }
 
-    /** Data-URI thumbnail for a pool image (base64, server-read). Null if missing. */
+    /**
+     * Small data-URI thumbnail for a pool image (server-read, downscaled to keep the
+     * rendered HTML tiny — the full-size images would blow up memory when inlined).
+     */
     public function importImageThumb(int $id): ?string
     {
         $entry = $this->importImagePool[$id] ?? null;
         if ($entry === null || ! is_file($entry['path'])) {
             return null;
         }
+
+        $data = @file_get_contents($entry['path']);
+        if ($data === false || $data === '') {
+            return null;
+        }
+
+        // Downscale to a small thumbnail with GD so the inline base64 stays a few KB.
+        if (function_exists('imagecreatefromstring')) {
+            $src = @imagecreatefromstring($data);
+            if ($src !== false) {
+                $max = 96;
+                $w = imagesx($src);
+                $h = imagesy($src);
+                $scale = min(1, $max / max(1, $w, $h));
+                $thumb = imagescale($src, max(1, (int) round($w * $scale)), max(1, (int) round($h * $scale)));
+                ob_start();
+                imagepng($thumb !== false ? $thumb : $src);
+                $png = (string) ob_get_clean();
+                imagedestroy($src);
+                if ($thumb !== false) {
+                    imagedestroy($thumb);
+                }
+
+                return 'data:image/png;base64,'.base64_encode($png);
+            }
+        }
+
+        // Fallback: inline the original bytes.
         $mime = match (strtolower(pathinfo($entry['path'], PATHINFO_EXTENSION))) {
             'jpg', 'jpeg' => 'image/jpeg',
             'gif' => 'image/gif',
@@ -276,7 +307,7 @@ trait HandlesSupplierQuotationImport
             default => 'image/png',
         };
 
-        return 'data:'.$mime.';base64,'.base64_encode((string) file_get_contents($entry['path']));
+        return 'data:'.$mime.';base64,'.base64_encode($data);
     }
 
     /** Assign (or clear) the chosen pool image for an item. */

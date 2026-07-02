@@ -113,26 +113,25 @@
                                         </span>
                                     </td>
                                 </tr>
-                                {{-- Galeria do pool para este item --}}
-                                <tr x-show="gallery === {{ $i }}" x-cloak wire:key="gal-{{ $i }}">
-                                    <td colspan="8" class="bg-gray-50 px-2 py-2 dark:bg-white/5">
-                                        <div class="flex flex-wrap gap-2">
-                                            <button type="button" wire:click="setItemPhoto({{ $i }}, null)" x-on:click="gallery = null"
-                                                    class="flex h-16 w-16 items-center justify-center rounded border border-dashed border-gray-300 text-xs text-gray-500 dark:border-white/15">
-                                                {{ __('assistant.photo_none') }}
-                                            </button>
-                                            @foreach ($importImagePool as $poolEntry)
-                                                <button type="button" wire:click="setItemPhoto({{ $i }}, {{ $poolEntry['id'] }})" x-on:click="gallery = null"
-                                                        class="h-16 w-16 overflow-hidden rounded border {{ $item['photo_index'] === $poolEntry['id'] ? 'border-primary-500 ring-2 ring-primary-400' : 'border-gray-200 dark:border-white/10' }}">
-                                                    <img src="{{ $this->importImageThumb($poolEntry['id']) }}" class="h-full w-full object-cover" alt="" />
-                                                </button>
-                                            @endforeach
-                                        </div>
-                                    </td>
-                                </tr>
                             @endforeach
                         </tbody>
                     </table>
+                </div>
+
+                {{-- Galeria única do pool: aberta ao clicar a foto de um item (gallery = índice do item) --}}
+                <div x-show="gallery !== null" x-cloak class="mt-2 rounded border border-gray-200 bg-gray-50 p-2 dark:border-white/10 dark:bg-white/5">
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button" x-on:click="$wire.setItemPhoto(gallery, null); gallery = null"
+                                class="flex h-16 w-16 items-center justify-center rounded border border-dashed border-gray-300 text-xs text-gray-500 dark:border-white/15">
+                            {{ __('assistant.photo_none') }}
+                        </button>
+                        @foreach ($importImagePool as $poolEntry)
+                            <button type="button" x-on:click="$wire.setItemPhoto(gallery, {{ $poolEntry['id'] }}); gallery = null"
+                                    class="h-16 w-16 overflow-hidden rounded border border-gray-200 dark:border-white/10">
+                                <img src="{{ $this->importImageThumb($poolEntry['id']) }}" class="h-full w-full object-cover" alt="" loading="lazy" />
+                            </button>
+                        @endforeach
+                    </div>
                 </div>
 
                 <div class="mt-3 flex gap-2">
