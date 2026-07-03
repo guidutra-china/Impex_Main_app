@@ -7,6 +7,7 @@ use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Reports\ClientProductsExcelExporter;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Support\Money;
+use App\Filament\Actions\FlexibleProductImportAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Tests\TestCase;
@@ -66,16 +67,16 @@ class ClientProductsExcelExporterTest extends TestCase
 
         $sheet = IOFactory::load($path)->getActiveSheet();
 
-        // Title and headers.
+        // Title and headers (import-friendly labels matched by Quick Import auto-mapping).
         $this->assertSame('Produtos — Eletro Brasil', $sheet->getCell('A1')->getValue());
-        $this->assertSame('SKU', $sheet->getCell('B4')->getValue());
-        $this->assertSame('Código do Cliente', $sheet->getCell('G4')->getValue());
-        $this->assertSame('Preço de Venda', $sheet->getCell('J4')->getValue());
+        $this->assertSame('Reference Code (SKU)', $sheet->getCell('B4')->getValue());
+        $this->assertSame('Client Code', $sheet->getCell('G4')->getValue());
+        $this->assertSame('Selling Price', $sheet->getCell('J4')->getValue());
 
         // Data rows start at row 5, ordered by product name (AAA before BBB).
         $this->assertSame('SKU-A', $sheet->getCell('B5')->getValue());
-        $this->assertSame('MOD-A', $sheet->getCell('C5')->getValue());
-        $this->assertSame('AAA LED Panel 600x600', $sheet->getCell('D5')->getValue());
+        $this->assertSame('AAA LED Panel 600x600', $sheet->getCell('C5')->getValue());
+        $this->assertSame('MOD-A', $sheet->getCell('D5')->getValue());
         $this->assertSame('Original description A', $sheet->getCell('E5')->getValue());
         $this->assertSame('CLI-001', $sheet->getCell('G5')->getValue());
         $this->assertSame('Painel LED do Cliente', $sheet->getCell('H5')->getValue());
@@ -106,8 +107,47 @@ class ClientProductsExcelExporterTest extends TestCase
         $sheet = IOFactory::load($path)->getActiveSheet();
 
         $this->assertSame('Produtos — Sem Produtos Ltda', $sheet->getCell('A1')->getValue());
-        $this->assertSame('Foto', $sheet->getCell('A4')->getValue());
+        $this->assertSame('Photo', $sheet->getCell('A4')->getValue());
         $this->assertNull($sheet->getCell('B5')->getValue());
+
+        unlink($path);
+    }
+
+    /**
+     * Round-trip guard: the Quick Import auto-mapper must map every editable
+     * column of the exported report to the correct field, so the file can be
+     * re-imported through "Quick Import" on the Products (Client) tab.
+     */
+    public function test_export_headers_are_auto_mapped_by_quick_import(): void
+    {
+        $client = Company::factory()->create(['name' => 'Eletro Brasil']);
+        $product = Product::factory()->create(['name' => 'LED Panel']);
+        CompanyProduct::create([
+            'company_id' => $client->id,
+            'product_id' => $product->id,
+            'role' => 'client',
+            'unit_price' => 0,
+        ]);
+
+        $path = (new ClientProductsExcelExporter)->export($client);
+
+        $sheet = IOFactory::load($path)->getActiveSheet();
+        $headerRow = array_map(
+            fn (string $column) => (string) $sheet->getCell($column.'4')->getValue(),
+            ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'],
+        );
+
+        $mapping = FlexibleProductImportAction::detectMapping($headerRow, 'client');
+
+        // Column indexes are 0-based: B=1, C=2, D=3, G=6, H=7, I=8, J=9, K=10.
+        $this->assertSame('1', $mapping['reference_code'] ?? null, 'SKU column must map to reference_code (product match key)');
+        $this->assertSame('2', $mapping['product_name'] ?? null);
+        $this->assertSame('3', $mapping['model_number'] ?? null);
+        $this->assertSame('6', $mapping['external_code'] ?? null);
+        $this->assertSame('7', $mapping['external_name'] ?? null);
+        $this->assertSame('8', $mapping['external_description'] ?? null);
+        $this->assertSame('9', $mapping['unit_price'] ?? null);
+        $this->assertSame('10', $mapping['custom_price'] ?? null);
 
         unlink($path);
     }

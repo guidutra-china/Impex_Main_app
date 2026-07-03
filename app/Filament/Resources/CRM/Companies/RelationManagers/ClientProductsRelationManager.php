@@ -7,6 +7,7 @@ use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\Catalog\Models\CompanyProductDocument;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Reports\ClientProductsExcelExporter;
+use App\Domain\Catalog\Reports\ClientProductsReportImporter;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Enums\DocumentCategory;
 use App\Domain\Infrastructure\Support\Money;
@@ -175,6 +176,51 @@ class ClientProductsRelationManager extends RelationManager
                         $path = (new ClientProductsExcelExporter)->export($this->getOwnerRecord());
 
                         return response()->download($path)->deleteFileAfterSend();
+                    }),
+                Action::make('importReport')
+                    ->label('Importar Relatório')
+                    ->icon('heroicon-o-arrow-up-tray')
+                    ->color('gray')
+                    ->visible(fn () => auth()->user()?->can('edit-companies'))
+                    ->modalHeading('Importar Relatório de Produtos')
+                    ->modalDescription('Envie o Excel gerado por "Exportar Excel" (editado). Os produtos são localizados pelo SKU e os dados do cliente são atualizados direto, sem mapeamento. Células em branco limpam o campo correspondente.')
+                    ->modalSubmitActionLabel('Importar')
+                    ->form([
+                        FileUpload::make('file')
+                            ->label('Arquivo do relatório (.xlsx)')
+                            ->disk('local')
+                            ->directory('temp-imports')
+                            ->acceptedFileTypes([
+                                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            ])
+                            ->required(),
+                    ])
+                    ->action(function (array $data) {
+                        $file = $data['file'];
+                        $path = Storage::disk('local')->path($file);
+
+                        try {
+                            $stats = (new ClientProductsReportImporter)->import($this->getOwnerRecord(), $path);
+                        } catch (\InvalidArgumentException $e) {
+                            Notification::make()
+                                ->title('Arquivo inválido')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+
+                            return;
+                        } finally {
+                            Storage::disk('local')->delete($file);
+                        }
+
+                        Notification::make()
+                            ->title('Importação concluída')
+                            ->body(
+                                "{$stats['updated']} vínculos atualizados"
+                                .($stats['skipped'] > 0 ? ", {$stats['skipped']} linhas puladas (SKU não vinculado a este cliente)" : '')
+                            )
+                            ->success()
+                            ->send();
                     }),
                 FlexibleProductImportAction::make('client', fn () => $this->getOwnerRecord()),
                 FlexibleProductImportAction::makeDownloadSimpleTemplate('client')

@@ -41,7 +41,14 @@ class FlexibleProductImportAction
         self::forgetCacheKeys(['rows', 'images', 'mapping', 'row_origins', 'ai_analysis', 'enable_ai']);
     }
 
-    public static function make(string $role, \Closure $getCompany): Action
+    /**
+     * Header substring patterns used to auto-map spreadsheet columns to import
+     * fields. Public so exporters (e.g. ClientProductsExcelExporter) can be
+     * tested for round-trip compatibility with this import.
+     *
+     * @return array<string, list<string>>
+     */
+    public static function fieldPatterns(string $role): array
     {
         $isClient = $role === 'client';
 
@@ -79,6 +86,26 @@ class FlexibleProductImportAction
 
         // Add generic price patterns as fallback (only if specific ones didn't match)
         $fieldPatterns['unit_price'] = array_merge($fieldPatterns['unit_price'], ['price', 'preço', 'preco', 'valor', 'unit price', 'unit cost']);
+
+        return $fieldPatterns;
+    }
+
+    /**
+     * Runs the same auto-detection the import wizard uses on a header row.
+     *
+     * @param  list<string>  $headerRow
+     * @return array<string, string> field => 0-based column index
+     */
+    public static function detectMapping(array $headerRow, string $role): array
+    {
+        return self::autoDetectMapping($headerRow, self::fieldPatterns($role));
+    }
+
+    public static function make(string $role, \Closure $getCompany): Action
+    {
+        $isClient = $role === 'client';
+
+        $fieldPatterns = self::fieldPatterns($role);
 
         $fieldDefaults = [
             'product_name' => '',

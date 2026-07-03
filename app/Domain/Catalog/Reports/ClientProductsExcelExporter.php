@@ -25,23 +25,31 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
  */
 class ClientProductsExcelExporter
 {
+    /**
+     * Header labels are chosen to be auto-mapped by the Quick Import
+     * (FlexibleProductImportAction::fieldPatterns), so the exported file can
+     * be edited and re-imported on the Products (Client) tab. Column order
+     * matters: "Product Name" must come before "Model Number", otherwise the
+     * auto-mapper assigns product_name to the model column. The SKU in column
+     * B is the product match key on re-import.
+     */
     private const HEADERS = [
-        'A' => 'Foto',
-        'B' => 'SKU',
-        'C' => 'Model No.',
-        'D' => 'Nome (Original)',
-        'E' => 'Descrição (Original)',
-        'F' => 'Categoria',
-        'G' => 'Código do Cliente',
-        'H' => 'Nome (Cliente)',
-        'I' => 'Descrição (Cliente)',
-        'J' => 'Preço de Venda',
-        'K' => 'Preço CI',
-        'L' => 'Moeda',
+        'A' => 'Photo',
+        'B' => 'Reference Code (SKU)',
+        'C' => 'Product Name',
+        'D' => 'Model Number',
+        'E' => 'Original Description',
+        'F' => 'Category',
+        'G' => 'Client Code',
+        'H' => 'Client Product Name',
+        'I' => 'Invoice Description',
+        'J' => 'Selling Price',
+        'K' => 'Custom Price (CI)',
+        'L' => 'Currency',
     ];
 
     private const COLUMN_WIDTHS = [
-        'A' => 12, 'B' => 16, 'C' => 16, 'D' => 35, 'E' => 45, 'F' => 18,
+        'A' => 12, 'B' => 18, 'C' => 35, 'D' => 16, 'E' => 45, 'F' => 18,
         'G' => 18, 'H' => 35, 'I' => 45, 'J' => 14, 'K' => 14, 'L' => 8,
     ];
 
@@ -126,8 +134,8 @@ class ClientProductsExcelExporter
         $pivot = $product->pivot;
 
         $sheet->setCellValue('B'.$row, $product->sku);
-        $sheet->setCellValue('C'.$row, $product->model_number);
-        $sheet->setCellValue('D'.$row, $product->name);
+        $sheet->setCellValue('C'.$row, $product->name);
+        $sheet->setCellValue('D'.$row, $product->model_number);
         $sheet->setCellValue('E'.$row, $product->description);
         $sheet->setCellValue('F'.$row, $product->category?->name);
         $sheet->setCellValue('G'.$row, $pivot->external_code);

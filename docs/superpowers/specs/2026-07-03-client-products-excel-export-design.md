@@ -41,20 +41,51 @@ New class: `app/Domain/Catalog/Reports/ClientProductsExcelExporter.php`
 
 ## Columns
 
-| # | Column | Source |
-|---|--------|--------|
-| 1 | Foto | Embedded thumbnail: `pivot.avatar_path` (disk `pivot.avatar_disk`) if set, else product `avatar` (disk `public`); empty cell if neither |
-| 2 | SKU | `product.sku` |
-| 3 | Model No. | `product.model_number` |
-| 4 | Nome (original) | `product.name` |
-| 5 | Descrição (original) | `product.description` |
-| 6 | Categoria | `product.category.name` |
-| 7 | Código do Cliente | `pivot.external_code` |
-| 8 | Nome (Cliente) | `pivot.external_name` |
-| 9 | Descrição (Cliente) | `pivot.external_description` |
-| 10 | Preço de Venda | `pivot.unit_price` (minor -> major) |
-| 11 | Preço CI | `pivot.custom_price` (minor -> major, blank when null) |
-| 12 | Moeda | `pivot.currency_code` |
+**Round-trip requirement (added 2026-07-03):** headers are English labels chosen
+so the Quick Import (`FlexibleProductImportAction`) auto-maps every editable
+column; the exported file can be edited and re-imported on the Products
+(Client) tab. Column B carries `product.sku`, which is the product match key
+on re-import (import looks up `Product` by `sku`, then `reference_code`, then
+exact name). Column order matters: *Product Name* must precede *Model Number*
+or the auto-mapper assigns `product_name` to the model column. Guarded by
+`test_export_headers_are_auto_mapped_by_quick_import`, which runs
+`FlexibleProductImportAction::detectMapping()` (extracted public wrapper around
+the wizard's auto-detection) against the exported header row.
+
+| Col | Column | Source | Auto-maps to |
+|---|--------|--------|--------------|
+| A | Photo | Embedded thumbnail: `pivot.avatar_path` (disk `pivot.avatar_disk`) if set, else product `avatar` (disk `public`); empty cell if neither | (image per row) |
+| B | Reference Code (SKU) | `product.sku` | `reference_code` (match key) |
+| C | Product Name | `product.name` | `product_name` |
+| D | Model Number | `product.model_number` | `model_number` |
+| E | Original Description | `product.description` | — |
+| F | Category | `product.category.name` | — |
+| G | Client Code | `pivot.external_code` | `external_code` |
+| H | Client Product Name | `pivot.external_name` | `external_name` |
+| I | Invoice Description | `pivot.external_description` | `external_description` |
+| J | Selling Price | `pivot.unit_price` (minor -> major) | `unit_price` |
+| K | Custom Price (CI) | `pivot.custom_price` (minor -> major, blank when null) | `custom_price` |
+| L | Currency | `pivot.currency_code` | — (currency picked in wizard) |
+
+## Dedicated Re-Import (added 2026-07-03)
+
+The Quick Import wizard proved too heavy for round-tripping this report, so a
+dedicated importer exists: `ClientProductsReportImporter::import(Company, path)`
+plus an **"Importar Relatório"** header action (gated on `edit-companies`) next
+to the export button.
+
+- No mapping wizard: columns are fixed; the header row is located by finding
+  the `Reference Code (SKU)` label in column B (first 10 rows); anything else
+  throws `InvalidArgumentException` ("arquivo inválido" notification).
+- Products matched by SKU (column B). Only **existing client links** of the
+  owning company are updated — no product or link creation (that remains Quick
+  Import's job). Unknown/unlinked SKUs are counted as skipped.
+- Updated fields: external_code (G), external_name (H), external_description
+  (I), unit_price (J), custom_price (K), currency_code (L).
+- **Blank cells clear the stored value** (the sheet is the final state);
+  unit_price is NOT NULL so blank resets it to 0.
+- Photos are ignored on import (product avatars untouched). Runs in a DB
+  transaction; uploaded temp file is deleted afterwards.
 
 MOQ, lead time, incoterm, notes and is_preferred are intentionally out of scope
 (user chose identification + prices + photos only).
