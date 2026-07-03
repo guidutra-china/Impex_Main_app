@@ -4,14 +4,15 @@ namespace App\Filament\Resources\CRM\Companies\RelationManagers;
 
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\CompanyProduct;
-use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\CompanyProductDocument;
+use App\Domain\Catalog\Models\Product;
+use App\Domain\Catalog\Reports\ClientProductsExcelExporter;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Enums\DocumentCategory;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Settings\Models\Currency;
-use BackedEnum;
 use App\Filament\Actions\FlexibleProductImportAction;
+use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\AttachAction;
 use Filament\Actions\BulkAction;
@@ -63,7 +64,7 @@ class ClientProductsRelationManager extends RelationManager
                     ->label(__('forms.labels.product_photo'))
                     ->image()
                     ->disk('public')
-                    ->directory(fn () => 'company-product-avatars/' . $this->getOwnerRecord()->id)
+                    ->directory(fn () => 'company-product-avatars/'.$this->getOwnerRecord()->id)
                     ->imageResizeMode('cover')
                     ->imageCropAspectRatio('1:1')
                     ->imageResizeTargetWidth('400')
@@ -166,6 +167,15 @@ class ClientProductsRelationManager extends RelationManager
                     ->alignCenter(),
             ])
             ->headerActions([
+                Action::make('exportExcel')
+                    ->label('Exportar Excel')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('gray')
+                    ->action(function () {
+                        $path = (new ClientProductsExcelExporter)->export($this->getOwnerRecord());
+
+                        return response()->download($path)->deleteFileAfterSend();
+                    }),
                 FlexibleProductImportAction::make('client', fn () => $this->getOwnerRecord()),
                 FlexibleProductImportAction::makeDownloadSimpleTemplate('client')
                     ->visible(fn () => auth()->user()?->can('edit-companies')),
@@ -182,90 +192,91 @@ class ClientProductsRelationManager extends RelationManager
                             ->toArray();
 
                         return [
-                        Select::make('filter_category_id')
-                            ->label('Filter by Category')
-                            ->options(fn () => Category::active()->orderBy('name')->pluck('name', 'id'))
-                            ->searchable()
-                            ->placeholder('— All Categories —')
-                            ->live()
-                            ->afterStateUpdated(fn (Set $set) => $set('recordId', null)),
-                        TextInput::make('filter_search')
-                            ->label('Search Products')
-                            ->placeholder('Search by name, family, model, SKU...')
-                            ->live(debounce: 400)
-                            ->afterStateUpdated(fn (Set $set) => $set('recordId', null)),
-                        Select::make('recordId')
-                            ->label(__('forms.labels.product'))
-                            ->options(function (Get $get) use ($linkedIds) {
-                                $query = Product::where('status', 'active')
-                                    ->whereNotIn('id', $linkedIds);
+                            Select::make('filter_category_id')
+                                ->label('Filter by Category')
+                                ->options(fn () => Category::active()->orderBy('name')->pluck('name', 'id'))
+                                ->searchable()
+                                ->placeholder('— All Categories —')
+                                ->live()
+                                ->afterStateUpdated(fn (Set $set) => $set('recordId', null)),
+                            TextInput::make('filter_search')
+                                ->label('Search Products')
+                                ->placeholder('Search by name, family, model, SKU...')
+                                ->live(debounce: 400)
+                                ->afterStateUpdated(fn (Set $set) => $set('recordId', null)),
+                            Select::make('recordId')
+                                ->label(__('forms.labels.product'))
+                                ->options(function (Get $get) use ($linkedIds) {
+                                    $query = Product::where('status', 'active')
+                                        ->whereNotIn('id', $linkedIds);
 
-                                $categoryId = $get('filter_category_id');
-                                if ($categoryId) {
-                                    $query->where('category_id', $categoryId);
-                                }
+                                    $categoryId = $get('filter_category_id');
+                                    if ($categoryId) {
+                                        $query->where('category_id', $categoryId);
+                                    }
 
-                                $search = $get('filter_search');
-                                if ($search && strlen($search) >= 2) {
-                                    $query->where(function ($q) use ($search) {
-                                        $q->where('name', 'like', "%{$search}%")
-                                            ->orWhere('product_family', 'like', "%{$search}%")
-                                            ->orWhere('model_number', 'like', "%{$search}%")
-                                            ->orWhere('sku', 'like', "%{$search}%");
-                                    });
-                                }
+                                    $search = $get('filter_search');
+                                    if ($search && strlen($search) >= 2) {
+                                        $query->where(function ($q) use ($search) {
+                                            $q->where('name', 'like', "%{$search}%")
+                                                ->orWhere('product_family', 'like', "%{$search}%")
+                                                ->orWhere('model_number', 'like', "%{$search}%")
+                                                ->orWhere('sku', 'like', "%{$search}%");
+                                        });
+                                    }
 
-                                return $query->orderBy('name')
-                                    ->limit(100)
-                                    ->get()
-                                    ->mapWithKeys(fn ($p) => [$p->id => ($p->model_number ?? '') . ' — ' . $p->name]);
-                            })
-                            ->searchable()
-                            ->required(),
-                        FileUpload::make('avatar_path')
-                            ->label(__('forms.labels.product_photo'))
-                            ->image()
-                            ->disk('public')
-                            ->directory(fn () => 'company-product-avatars/' . $this->getOwnerRecord()->id)
-                            ->imageResizeMode('cover')
-                            ->imageCropAspectRatio('1:1')
-                            ->imageResizeTargetWidth('400')
-                            ->imageResizeTargetHeight('400')
-                            ->maxSize(5120),
-                        TextInput::make('external_code')
-                            ->label(__('forms.labels.client_code'))
-                            ->maxLength(100),
-                        TextInput::make('external_name')
-                            ->label(__('forms.labels.client_product_name'))
-                            ->maxLength(255),
-                        Textarea::make('external_description')
-                            ->label(__('forms.labels.client_product_description'))
-                            ->rows(3)
-                            ->maxLength(2000)
-                            ->helperText(__('forms.helpers.will_appear_on_invoices')),
-                        TextInput::make('unit_price')
-                            ->label(__('forms.labels.selling_price'))
-                            ->numeric()
-                            ->minValue(0)
-                            ->step(0.0001)
-                            ->prefix('$')
-                            ->inputMode('decimal')
-                            ->default(0),
-                        TextInput::make('custom_price')
-                            ->label(__('forms.labels.custom_price_ci_override'))
-                            ->numeric()
-                            ->minValue(0)
-                            ->step(0.0001)
-                            ->prefix('$')
-                            ->inputMode('decimal')
-                            ->helperText(__('forms.helpers.if_set_ci_uses_this_price')),
-                        Select::make('currency_code')
-                            ->label(__('forms.labels.currency'))
-                            ->options(fn () => Currency::pluck('code', 'code'))
-                            ->searchable(),
-                        Checkbox::make('is_preferred')
-                            ->label(__('forms.labels.primary_client')),
-                    ];})
+                                    return $query->orderBy('name')
+                                        ->limit(100)
+                                        ->get()
+                                        ->mapWithKeys(fn ($p) => [$p->id => ($p->model_number ?? '').' — '.$p->name]);
+                                })
+                                ->searchable()
+                                ->required(),
+                            FileUpload::make('avatar_path')
+                                ->label(__('forms.labels.product_photo'))
+                                ->image()
+                                ->disk('public')
+                                ->directory(fn () => 'company-product-avatars/'.$this->getOwnerRecord()->id)
+                                ->imageResizeMode('cover')
+                                ->imageCropAspectRatio('1:1')
+                                ->imageResizeTargetWidth('400')
+                                ->imageResizeTargetHeight('400')
+                                ->maxSize(5120),
+                            TextInput::make('external_code')
+                                ->label(__('forms.labels.client_code'))
+                                ->maxLength(100),
+                            TextInput::make('external_name')
+                                ->label(__('forms.labels.client_product_name'))
+                                ->maxLength(255),
+                            Textarea::make('external_description')
+                                ->label(__('forms.labels.client_product_description'))
+                                ->rows(3)
+                                ->maxLength(2000)
+                                ->helperText(__('forms.helpers.will_appear_on_invoices')),
+                            TextInput::make('unit_price')
+                                ->label(__('forms.labels.selling_price'))
+                                ->numeric()
+                                ->minValue(0)
+                                ->step(0.0001)
+                                ->prefix('$')
+                                ->inputMode('decimal')
+                                ->default(0),
+                            TextInput::make('custom_price')
+                                ->label(__('forms.labels.custom_price_ci_override'))
+                                ->numeric()
+                                ->minValue(0)
+                                ->step(0.0001)
+                                ->prefix('$')
+                                ->inputMode('decimal')
+                                ->helperText(__('forms.helpers.if_set_ci_uses_this_price')),
+                            Select::make('currency_code')
+                                ->label(__('forms.labels.currency'))
+                                ->options(fn () => Currency::pluck('code', 'code'))
+                                ->searchable(),
+                            Checkbox::make('is_preferred')
+                                ->label(__('forms.labels.primary_client')),
+                        ];
+                    })
                     ->action(function (array $arguments, array $data, \Filament\Schemas\Schema $schema, Action $action) {
                         $productId = $data['recordId'];
                         $companyId = $this->getOwnerRecord()->id;
@@ -333,6 +344,7 @@ class ClientProductsRelationManager extends RelationManager
                             ? Money::toMinor($data['custom_price'])
                             : null;
                         $data['avatar_disk'] = 'public';
+
                         return $data;
                     }),
                 DetachAction::make()
@@ -388,7 +400,7 @@ class ClientProductsRelationManager extends RelationManager
                     ->label(__('forms.labels.file'))
                     ->required()
                     ->disk('public')
-                    ->directory(fn (Model $record) => 'company-product-docs/' . $record->pivot->id)
+                    ->directory(fn (Model $record) => 'company-product-docs/'.$record->pivot->id)
                     ->maxSize(20480)
                     ->acceptedFileTypes([
                         'image/jpeg', 'image/png', 'image/webp', 'image/gif',
@@ -444,6 +456,7 @@ class ClientProductsRelationManager extends RelationManager
                         ->title(__('messages.invalid_formula'))
                         ->body(__('messages.formula_format_help'))
                         ->send();
+
                     return;
                 }
 
@@ -514,7 +527,7 @@ class ClientProductsRelationManager extends RelationManager
 
     private function getBulkSetFieldAction(string $column, string $label, string $icon, TextInput $field): BulkAction
     {
-        return BulkAction::make('set_' . $column)
+        return BulkAction::make('set_'.$column)
             ->label($label)
             ->icon($icon)
             ->form([$field])
