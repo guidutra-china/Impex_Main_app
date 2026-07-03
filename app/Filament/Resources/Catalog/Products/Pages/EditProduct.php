@@ -109,10 +109,16 @@ class EditProduct extends EditRecord
                         ]);
                     }
 
-                    // Replicate company relationships (suppliers and clients)
+                    // Replicate company relationships (suppliers and clients).
+                    // external_* são o código/nome do produto NO cliente/fornecedor —
+                    // específicos de cada produto; copiá-los faz a CI/Packing List
+                    // repetir o model number do produto original em todos os clones.
                     foreach ($original->companies as $company) {
                         $pivotData = collect($company->pivot->toArray())
-                            ->except(['product_id', 'company_id', 'created_at', 'updated_at'])
+                            ->except([
+                                'product_id', 'company_id', 'created_at', 'updated_at',
+                                'external_code', 'external_name', 'external_description',
+                            ])
                             ->toArray();
 
                         $replica->companies()->attach($company->id, $pivotData);
