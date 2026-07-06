@@ -87,6 +87,14 @@ class ItemsRelationManager extends RelationManager
                 })
                 ->searchable()
                 ->required()
+                // Não permite incluir no embarque um item sem PO vinculada (o
+                // vínculo com a PO é o que sustenta o acompanhamento do embarque
+                // no lado do fornecedor).
+                ->rule(fn () => function (string $attribute, $value, \Closure $fail) {
+                    if ($value && ! PurchaseOrderItem::where('proforma_invoice_item_id', $value)->exists()) {
+                        $fail('Este item não tem PO vinculada — gere/vincule a PO antes de incluí-lo no embarque.');
+                    }
+                })
                 ->live()
                 ->afterStateUpdated(function (Get $get, Set $set, $state) {
                     if (! $state) {
@@ -268,6 +276,7 @@ class ItemsRelationManager extends RelationManager
                                     }
 
                                     return ProformaInvoiceItem::where('proforma_invoice_id', $piId)
+                                        ->whereHas('purchaseOrderItem') // só itens com PO vinculada
                                         ->with('product')
                                         ->get()
                                         ->mapWithKeys(function ($item) {
@@ -282,6 +291,7 @@ class ItemsRelationManager extends RelationManager
                                             return [$item->id => $label];
                                         });
                                 })
+                                ->helperText('Apenas itens com PO vinculada aparecem. Itens sem PO precisam ter a PO gerada antes de embarcar.')
                                 ->visible(fn (Get $get) => filled($get('proforma_invoice_id')))
                                 ->bulkToggleable()
                                 ->required()
@@ -338,11 +348,18 @@ class ItemsRelationManager extends RelationManager
 
                             $poItem = PurchaseOrderItem::where('proforma_invoice_item_id', $piItem->id)->first();
 
+                            // Segurança: não embarcar item sem PO vinculada.
+                            if (! $poItem) {
+                                $skipped++;
+
+                                continue;
+                            }
+
                             $maxSort++;
                             ShipmentItem::create([
                                 'shipment_id' => $shipment->id,
                                 'proforma_invoice_item_id' => $piItem->id,
-                                'purchase_order_item_id' => $poItem?->id,
+                                'purchase_order_item_id' => $poItem->id,
                                 'quantity' => $qty,
                                 'unit' => $piItem->unit,
                                 'unit_weight' => $unitWeight,
