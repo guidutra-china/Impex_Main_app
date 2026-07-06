@@ -26,8 +26,11 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Filament\Tables\Columns\Summarizers\Sum;
+use Filament\Tables\Columns\Summarizers\Summarizer;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\DB;
 
 class ItemsRelationManager extends RelationManager
 {
@@ -126,33 +129,58 @@ class ItemsRelationManager extends RelationManager
                     ->label(__('forms.labels.product'))
                     ->searchable()
                     ->limit(30)
-                    ->placeholder(__('forms.placeholders.manual_item')),
+                    ->placeholder(__('forms.placeholders.manual_item'))
+                    ->toggleable(),
                 TextColumn::make('product.model_number')
                     ->label(__('forms.labels.model_number'))
                     ->searchable()
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('description')
                     ->label(__('forms.labels.description'))
                     ->limit(40)
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('quantity')
                     ->label(__('forms.labels.qty'))
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->toggleable()
+                    ->summarize(Sum::make()->label(__('forms.labels.total'))),
+                TextColumn::make('quantity_shipped')
+                    ->label(__('forms.labels.shipped'))
+                    ->getStateUsing(fn ($record) => $record->quantity_shipped)
+                    ->alignCenter()
+                    ->color(fn ($record) => $record->quantity_shipped > 0 ? 'success' : 'gray')
+                    ->toggleable(),
+                TextColumn::make('quantity_remaining')
+                    ->label(__('forms.labels.remaining'))
+                    ->getStateUsing(fn ($record) => $record->quantity_remaining)
+                    ->alignCenter()
+                    ->color(fn ($record) => $record->quantity_remaining <= 0 ? 'success' : 'warning')
+                    ->toggleable(),
                 TextColumn::make('unit')
                     ->label(__('forms.labels.unit'))
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->toggleable(),
                 TextColumn::make('unit_cost')
                     ->label(__('forms.labels.unit_cost'))
                     ->formatStateUsing(fn ($state) => Money::format($state, 4))
                     ->prefix('$ ')
-                    ->alignEnd(),
+                    ->alignEnd()
+                    ->toggleable(),
                 TextColumn::make('line_total')
                     ->label(__('forms.labels.total'))
                     ->getStateUsing(fn ($record) => $record->line_total)
                     ->formatStateUsing(fn ($state) => Money::format($state))
                     ->prefix('$ ')
                     ->alignEnd()
-                    ->weight('bold'),
+                    ->weight('bold')
+                    ->toggleable()
+                    ->summarize(
+                        Summarizer::make()
+                            ->label(__('forms.labels.total'))
+                            ->using(fn ($query): int => (int) $query->sum(DB::raw('unit_cost * quantity')))
+                            ->formatStateUsing(fn ($state) => '$ '.Money::format((int) $state))
+                    ),
                 TextColumn::make('source')
                     ->label(__('forms.labels.source'))
                     ->getStateUsing(function ($record) {
