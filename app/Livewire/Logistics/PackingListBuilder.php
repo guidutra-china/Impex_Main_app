@@ -4,6 +4,7 @@ namespace App\Livewire\Logistics;
 
 use App\Domain\Logistics\Actions\AddContentToCartonAction;
 use App\Domain\Logistics\Actions\BulkFillAction;
+use App\Domain\Logistics\Actions\BulkUpdateCartonsAction;
 use App\Domain\Logistics\Actions\CreateCartonAction;
 use App\Domain\Logistics\Actions\CreateContainerAction;
 use App\Domain\Logistics\Actions\CreatePalletAction;
@@ -30,7 +31,18 @@ use Livewire\Component;
 
 class PackingListBuilder extends Component
 {
+    /** How many carton cards each expanded subgroup shows per "load more" page. */
+    public const SUBGROUP_PAGE = 25;
+
     public Shipment $shipment;
+
+    // Lazy cargo tree: collapsed subgroups render nothing server-side, so the
+    // payload stays small even with thousands of cartons. Keyed by subgroup key.
+    /** @var array<string, bool> */
+    public array $expandedSubgroups = [];
+
+    /** @var array<string, int> */
+    public array $subgroupLimits = [];
 
     // Transient "Add content" form (per-carton)
     public ?int $addContentCartonId = null;
@@ -117,6 +129,10 @@ class PackingListBuilder extends Component
 
     public bool $fillFromProduct = false; // true when initiated from product card (pick target)
 
+    // Filtro dos selects de caixas: com 3000+ caixas num embarque, listar todas
+    // é inviável — os selects mostram uma lista curta e este termo busca o resto.
+    public string $cartonSearch = '';
+
     public function mount(Shipment $shipment): void
     {
         $this->shipment = $shipment;
@@ -192,45 +208,89 @@ class PackingListBuilder extends Component
     }
 
     /**
-     * Flat list of all cartons, for dropdowns and counts.
+     * Total de caixas do embarque (contagem barata para o cabeçalho e para a
+     * dica "mostrando X de Y" dos selects).
      */
     #[Computed]
-    public function allCartons(): Collection
+    public function cartonCount(): int
     {
-        return $this->shipment
-            ->cartons()
-            ->orderBy('sort_order')
-            ->orderBy('label')
-            ->get(['id', 'label']);
+        return $this->shipment->cartons()->count();
     }
 
     /**
      * Existing cartons as pack destinations, labelled with their parent and
      * current piece count so the operator can pick a specific box.
      *
+     * Nunca lista todas as caixas: sem busca, mostra só as candidatas
+     * relevantes (vazias, com o produto selecionado, recém-usadas); com
+     * $cartonSearch, busca por label da caixa/container/pallet.
+     *
      * @return Collection<int, array{id: int, label: string}>
      */
     #[Computed]
     public function cartonFillOptions(): Collection
     {
-        return $this->shipment
+        $base = fn () => $this->shipment
             ->cartons()
-            ->with(['contents:id,carton_id,pieces', 'shipmentContainer:id,label', 'pallet:id,label'])
-            ->orderBy('sort_order')
-            ->orderBy('label')
-            ->get()
-            ->map(function ($carton) {
-                $pieces = (int) $carton->contents->sum('pieces');
-                $parent = $carton->pallet?->label ?? $carton->shipmentContainer?->label;
+            ->with(['contents:id,carton_id,pieces', 'shipmentContainer:id,label', 'pallet:id,label']);
 
-                $context = $parent ? " · {$parent}" : ' · solta';
-                $load = $pieces > 0 ? " ({$pieces} pcs)" : ' (vazia)';
+        $search = trim($this->cartonSearch);
 
-                return [
-                    'id' => $carton->id,
-                    'label' => $carton->label.$context.$load,
-                ];
-            });
+        if ($search !== '') {
+            $cartons = $base()
+                ->where(function ($query) use ($search) {
+                    $query->where('label', 'like', "%{$search}%")
+                        ->orWhereHas('shipmentContainer', fn ($q) => $q->where('label', 'like', "%{$search}%"))
+                        ->orWhereHas('pallet', fn ($q) => $q->where('label', 'like', "%{$search}%"));
+                })
+                ->orderBy('sort_order')
+                ->orderBy('label')
+                ->limit(20)
+                ->get();
+        } else {
+            $empty = $base()
+                ->whereDoesntHave('contents')
+                ->orderBy('sort_order')
+                ->orderBy('label')
+                ->limit(15)
+                ->get();
+
+            $withSelectedProduct = $this->fillItemId
+                ? $base()
+                    ->whereHas('contents', fn ($q) => $q->where('shipment_item_id', $this->fillItemId))
+                    ->latest('updated_at')
+                    ->limit(10)
+                    ->get()
+                : collect();
+
+            $recent = $base()->latest('updated_at')->limit(5)->get();
+
+            $cartons = $empty
+                ->concat($withSelectedProduct)
+                ->concat($recent)
+                ->unique('id')
+                ->sortBy([['sort_order', 'asc'], ['label', 'asc']])
+                ->values();
+        }
+
+        // A caixa já escolhida como destino precisa continuar na lista, senão o
+        // select nativo deixa de exibi-la como selecionada.
+        if ($this->fillTargetType === 'carton' && $this->fillTargetId && ! $cartons->contains('id', $this->fillTargetId)) {
+            $cartons = $base()->whereKey($this->fillTargetId)->get()->concat($cartons);
+        }
+
+        return $cartons->map(function ($carton) {
+            $pieces = (int) $carton->contents->sum('pieces');
+            $parent = $carton->pallet?->label ?? $carton->shipmentContainer?->label;
+
+            $context = $parent ? " · {$parent}" : ' · solta';
+            $load = $pieces > 0 ? " ({$pieces} pcs)" : ' (vazia)';
+
+            return [
+                'id' => $carton->id,
+                'label' => $carton->label.$context.$load,
+            ];
+        });
     }
 
     // ---------- Container actions ----------
@@ -463,14 +523,16 @@ class PackingListBuilder extends Component
             return;
         }
 
-        $cartons = $this->shipment->cartons()->whereIn('id', $cartonIds)->get();
-        $count = $cartons->count();
+        $ids = $this->shipment->cartons()->whereIn('id', $cartonIds)->pluck('id');
+        $count = $ids->count();
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($cartons) {
-            foreach ($cartons as $carton) {
-                $carton->contents()->delete();
-                $carton->delete();
-            }
+        if ($count === 0) {
+            return;
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($ids) {
+            CartonContent::whereIn('carton_id', $ids)->delete();
+            \App\Domain\Logistics\Models\Carton::whereKey($ids)->delete();
         });
 
         if ($this->shipment->status === ShipmentStatus::DRAFT) {
@@ -638,33 +700,18 @@ class PackingListBuilder extends Component
             return;
         }
 
-        $cartons = $this->shipment->cartons()->whereIn('id', $this->bulkEditCartonIds)->get();
-        $updateCarton = app(UpdateCartonAction::class);
-
-        $updated = 0;
-        $skipped = 0;
-        $lastError = null;
-
-        foreach ($cartons as $carton) {
-            try {
-                $updateCarton->execute($carton, $attrs);
-                $updated++;
-            } catch (InvalidArgumentException $e) {
-                $skipped++;
-                $lastError = $e->getMessage();
-            }
-        }
+        $result = app(BulkUpdateCartonsAction::class)->execute($this->shipment, $this->bulkEditCartonIds, $attrs);
 
         Notification::make()
             ->success()
-            ->title("{$updated} caixa(s) atualizada(s)")
+            ->title("{$result['updated']} caixa(s) atualizada(s)")
             ->send();
 
-        if ($skipped > 0) {
+        if ($result['skipped'] > 0) {
             Notification::make()
                 ->warning()
-                ->title("{$skipped} caixa(s) ignorada(s)")
-                ->body($lastError)
+                ->title("{$result['skipped']} caixa(s) ignorada(s)")
+                ->body($result['error'])
                 ->send();
         }
 
@@ -977,6 +1024,7 @@ class PackingListBuilder extends Component
         $this->fillItemId = null;
         $this->fillPieces = 0;
         $this->fillFromProduct = false;
+        $this->cartonSearch = '';
     }
 
     public function updatedFillItemId(): void
@@ -1182,6 +1230,22 @@ class PackingListBuilder extends Component
         $this->refreshData();
     }
 
+    // ---------- Subgroup expand/collapse (lazy rendering) ----------
+
+    public function toggleSubgroup(string $key): void
+    {
+        if ($this->expandedSubgroups[$key] ?? false) {
+            unset($this->expandedSubgroups[$key], $this->subgroupLimits[$key]);
+        } else {
+            $this->expandedSubgroups[$key] = true;
+        }
+    }
+
+    public function showMoreInSubgroup(string $key): void
+    {
+        $this->subgroupLimits[$key] = ($this->subgroupLimits[$key] ?? self::SUBGROUP_PAGE) + self::SUBGROUP_PAGE;
+    }
+
     // ---------- Helpers ----------
 
     public function placeFormKey(int $itemId, string $partLabel): string
@@ -1195,7 +1259,8 @@ class PackingListBuilder extends Component
             $this->containers,
             $this->loosePallets,
             $this->looseCartons,
-            $this->allCartons,
+            $this->cartonFillOptions,
+            $this->cartonCount,
             $this->products,
             $this->fillPreview,
         );

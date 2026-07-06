@@ -778,6 +778,229 @@ class PackingListBuilderTest extends TestCase
             ->assertSet('fillPieces', 0);
     }
 
+    // ---------- Carton fill options (lista curta + busca) ----------
+
+    /**
+     * Creates $total cartons directly; the first $filled get content from $item.
+     *
+     * @return \Illuminate\Support\Collection<int, \App\Domain\Logistics\Models\Carton>
+     */
+    private function makeCartons(Shipment $shipment, ShipmentItem $item, int $total, int $filled): \Illuminate\Support\Collection
+    {
+        $cartons = collect(range(1, $total))->map(fn (int $i) => $shipment->cartons()->create([
+            'label' => sprintf('BOX-%03d', $i),
+            'sort_order' => $i,
+        ]));
+
+        $cartons->take($filled)->each(fn ($carton) => $carton->contents()->create([
+            'shipment_item_id' => $item->id,
+            'pieces' => 2,
+        ]));
+
+        return $cartons;
+    }
+
+    public function test_carton_fill_options_shows_shortlist_instead_of_all_cartons(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['p' => 500]);
+        $this->makeCartons($shipment, $items['p'], 50, 40);
+
+        $component = Livewire::test(PackingListBuilder::class, ['shipment' => $shipment]);
+
+        $options = $component->get('cartonFillOptions');
+
+        $this->assertLessThanOrEqual(30, $options->count(), 'Select must not list every carton');
+        $this->assertEquals(50, $component->get('cartonCount'));
+
+        // Every empty box (BOX-041..BOX-050) must be offered as a candidate.
+        $labels = $options->pluck('label')->implode("\n");
+        foreach (range(41, 50) as $i) {
+            $this->assertStringContainsString(sprintf('BOX-%03d', $i), $labels);
+        }
+    }
+
+    public function test_carton_fill_options_search_filters_by_label(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['p' => 500]);
+        $this->makeCartons($shipment, $items['p'], 50, 50);
+
+        $component = Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->set('cartonSearch', 'BOX-004');
+
+        $options = $component->get('cartonFillOptions');
+
+        $this->assertCount(1, $options);
+        $this->assertStringContainsString('BOX-004', $options->first()['label']);
+    }
+
+    public function test_carton_fill_options_always_includes_selected_target(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['p' => 500]);
+        $cartons = $this->makeCartons($shipment, $items['p'], 50, 40);
+
+        // A filled box early in the list is not part of the shortlist…
+        $target = $cartons[4]; // BOX-005, has content
+        \App\Domain\Logistics\Models\Carton::whereKey($cartons->take(40)->pluck('id'))
+            ->update(['updated_at' => now()->subDay()]);
+
+        $component = Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->call('startPackProduct', $items['p']->id)
+            ->call('setFillTarget', 'carton:'.$target->id);
+
+        // …but once selected as target it must stay visible in the select.
+        $options = $component->get('cartonFillOptions');
+        $this->assertTrue($options->contains('id', $target->id));
+    }
+
+    public function test_cancel_fill_resets_carton_search(): void
+    {
+        [$shipment] = $this->makeShipment();
+
+        Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->set('cartonSearch', 'BOX-001')
+            ->call('cancelFill')
+            ->assertSet('cartonSearch', '');
+    }
+
+    public function test_bulk_edit_cartons_still_updates_whole_group(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['p' => 500]);
+        $cartons = $this->makeCartons($shipment, $items['p'], 3, 3);
+        $ids = $cartons->pluck('id')->all();
+
+        Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->call('startBulkEditCartons', $ids, 'sg-key')
+            ->set('bulkEditForm.gross_weight', 12)
+            ->set('bulkEditForm.length', 60)
+            ->set('bulkEditForm.width', 40)
+            ->set('bulkEditForm.height', 30)
+            ->call('saveBulkEditCartons');
+
+        foreach ($cartons as $carton) {
+            $carton->refresh();
+            $this->assertEquals('12.000', $carton->gross_weight);
+            $this->assertEquals('10.800', $carton->net_weight); // auto: 90% of gross
+            $this->assertEquals('0.0720', $carton->volume); // 60*40*30 / 1e6
+        }
+    }
+
+    public function test_subgroups_render_empty_group_and_non_contiguous_labels(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['p' => 500]);
+
+        $component = Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->call('createContainer');
+        $container = $shipment->shipmentContainers()->first();
+
+        // 12 boxes in the container (> subgroup threshold of 10):
+        // BOX-001 and BOX-012 share a signature (non-contiguous pair),
+        // BOX-002..BOX-011 stay empty.
+        $cartons = collect(range(1, 12))->map(fn (int $i) => $shipment->cartons()->create([
+            'label' => sprintf('BOX-%03d', $i),
+            'sort_order' => $i,
+            'shipment_container_id' => $container->id,
+        ]));
+
+        foreach ([0, 11] as $index) {
+            $cartons[$index]->contents()->create([
+                'shipment_item_id' => $items['p']->id,
+                'pieces' => 50,
+            ]);
+        }
+
+        Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->assertSee('Vazias')
+            ->assertSee('BOX-002 → BOX-011')
+            ->assertSee('BOX-001, BOX-012')
+            ->assertDontSee('BOX-001 → BOX-012');
+    }
+
+    public function test_collapsed_subgroup_renders_no_cards_and_expand_paginates(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['p' => 5000]);
+
+        $component = Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->call('createContainer');
+        $container = $shipment->shipmentContainers()->first();
+
+        // 30 identical boxes → one subgroup with pagination (page size 25).
+        $cartons = collect(range(1, 30))->map(fn (int $i) => $shipment->cartons()->create([
+            'label' => sprintf('BOX-%03d', $i),
+            'sort_order' => $i,
+            'shipment_container_id' => $container->id,
+        ]));
+        $cartons->each(fn ($carton) => $carton->contents()->create([
+            'shipment_item_id' => $items['p']->id,
+            'pieces' => 50,
+        ]));
+
+        $sgKey = md5(sprintf('item:%d|part:|pcs:%d', $items['p']->id, 50)).'-'.$cartons->first()->id;
+
+        $component = Livewire::test(PackingListBuilder::class, ['shipment' => $shipment]);
+
+        // Collapsed: no individual carton card in the HTML at all.
+        $component->assertDontSeeHtml('carton-card-');
+
+        // Expanded: first page of 25 cards, not the 30th box yet.
+        $component->call('toggleSubgroup', $sgKey)
+            ->assertSeeHtml('carton-card-'.$cartons[0]->id)
+            ->assertSeeHtml('carton-card-'.$cartons[24]->id)
+            ->assertDontSeeHtml('carton-card-'.$cartons[29]->id)
+            ->assertSee('Mostrar mais');
+
+        // Load more: the remaining 5 cards appear.
+        $component->call('showMoreInSubgroup', $sgKey)
+            ->assertSeeHtml('carton-card-'.$cartons[29]->id);
+
+        // Collapse again: cards gone.
+        $component->call('toggleSubgroup', $sgKey)
+            ->assertDontSeeHtml('carton-card-'.$cartons[0]->id);
+    }
+
+    public function test_bulk_edit_skips_cartons_with_inconsistent_weight_share(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['p' => 500]);
+
+        $ok = $shipment->cartons()->create(['label' => 'BOX-001', 'sort_order' => 1]);
+        $ok->contents()->create(['shipment_item_id' => $items['p']->id, 'pieces' => 10]);
+
+        // weight_share 5.0 will not match the new gross of 12 → must be skipped.
+        $bad = $shipment->cartons()->create(['label' => 'BOX-002', 'sort_order' => 2]);
+        $bad->contents()->create(['shipment_item_id' => $items['p']->id, 'pieces' => 10, 'weight_share' => 5.0]);
+
+        Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->call('startBulkEditCartons', [$ok->id, $bad->id], 'sg-key')
+            ->set('bulkEditForm.gross_weight', 12)
+            ->call('saveBulkEditCartons');
+
+        $this->assertEquals('12.000', $ok->refresh()->gross_weight);
+        $this->assertEquals('10.800', $ok->net_weight); // auto: 90% of gross
+        $this->assertNull($bad->refresh()->gross_weight);
+    }
+
+    public function test_delete_all_cartons_removes_contents_and_renumbers(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['p' => 500]);
+
+        $cartons = collect(range(1, 5))->map(fn (int $i) => $shipment->cartons()->create([
+            'label' => sprintf('BOX-%03d', $i),
+            'sort_order' => $i,
+        ]));
+        $cartons->each(fn ($carton) => $carton->contents()->create([
+            'shipment_item_id' => $items['p']->id,
+            'pieces' => 10,
+        ]));
+
+        Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->call('deleteAllCartons', [$cartons[1]->id, $cartons[3]->id]);
+
+        $this->assertEquals(0, CartonContent::whereIn('carton_id', [$cartons[1]->id, $cartons[3]->id])->count());
+
+        // Draft shipment → survivors renumbered to a contiguous range.
+        $labels = $shipment->cartons()->orderBy('sort_order')->pluck('label')->all();
+        $this->assertSame(['BOX-001', 'BOX-002', 'BOX-003'], $labels);
+    }
+
     public function test_delete_container_leaves_contents_loose(): void
     {
         [$shipment] = $this->makeShipment();

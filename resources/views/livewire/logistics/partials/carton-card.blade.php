@@ -1,4 +1,4 @@
-<div class="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
+<div wire:key="carton-card-{{ $carton->id }}" class="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
     <div class="flex items-start justify-between gap-3">
         <div class="flex-1">
             <div class="flex flex-wrap items-center gap-2 text-base">

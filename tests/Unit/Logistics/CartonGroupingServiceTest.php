@@ -214,6 +214,70 @@ class CartonGroupingServiceTest extends TestCase
         $this->assertEqualsCanonicalizing([3, 2], $sizes);
     }
 
+    public function test_empty_cartons_form_their_own_group_not_mixed(): void
+    {
+        [$shipment, $items] = $this->makeShipmentWithItems([
+            'caneca' => 100,
+            'copo' => 100,
+        ]);
+
+        // A truly mixed box (two products)…
+        $mixed = $this->makeCarton($shipment, 'BOX-1', 1);
+        $this->addContent($mixed, $items['caneca']->id, 5);
+        $this->addContent($mixed, $items['copo']->id, 5);
+
+        // …and two empty boxes must NOT land in the same subgroup.
+        $emptyA = $this->makeCarton($shipment, 'BOX-2', 2);
+        $emptyB = $this->makeCarton($shipment, 'BOX-3', 3);
+
+        $groups = $this->service->groupByContent($this->reload([$mixed, $emptyA, $emptyB]));
+
+        $this->assertCount(2, $groups);
+        $this->assertArrayHasKey(CartonGroupingService::SIGNATURE_MIXED, $groups->all());
+        $this->assertArrayHasKey(CartonGroupingService::SIGNATURE_EMPTY, $groups->all());
+        $this->assertEquals(1, $groups[CartonGroupingService::SIGNATURE_MIXED]->count());
+        $this->assertEquals(2, $groups[CartonGroupingService::SIGNATURE_EMPTY]->count());
+    }
+
+    public function test_repeated_rows_of_same_product_are_summed_not_mixed(): void
+    {
+        [$shipment, $items] = $this->makeShipmentWithItems(['etiqueta' => 3000]);
+
+        // Same product added in two operations (1000 + 500) — not a mixed box.
+        $c1 = $this->makeCarton($shipment, 'BOX-1', 1);
+        $this->addContent($c1, $items['etiqueta']->id, 1000);
+        $this->addContent($c1, $items['etiqueta']->id, 500);
+
+        // Single row with the same total → same subgroup as BOX-1.
+        $c2 = $this->makeCarton($shipment, 'BOX-2', 2);
+        $this->addContent($c2, $items['etiqueta']->id, 1500);
+
+        // Different total → its own subgroup.
+        $c3 = $this->makeCarton($shipment, 'BOX-3', 3);
+        $this->addContent($c3, $items['etiqueta']->id, 300);
+
+        $groups = $this->service->groupByContent($this->reload([$c1, $c2, $c3]));
+
+        $this->assertCount(2, $groups);
+        $this->assertArrayNotHasKey(CartonGroupingService::SIGNATURE_MIXED, $groups->all());
+        $sizes = $groups->map->count()->values()->all();
+        $this->assertEqualsCanonicalizing([2, 1], $sizes);
+    }
+
+    public function test_same_product_with_different_part_labels_is_still_mixed(): void
+    {
+        [$shipment, $items] = $this->makeShipmentWithItems(['chair' => 10]);
+        $setId = (string) \Illuminate\Support\Str::ulid();
+
+        $c = $this->makeCarton($shipment, 'BOX-1', 1);
+        $this->addContent($c, $items['chair']->id, 2, 'Frame', $setId);
+        $this->addContent($c, $items['chair']->id, 2, 'Accessories', $setId);
+
+        $groups = $this->service->groupByContent($this->reload([$c]));
+
+        $this->assertArrayHasKey(CartonGroupingService::SIGNATURE_MIXED, $groups->all());
+    }
+
     public function test_preserves_sort_order_across_subgroups(): void
     {
         [$shipment, $items] = $this->makeShipmentWithItems([

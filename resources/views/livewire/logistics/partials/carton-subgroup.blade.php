@@ -4,7 +4,8 @@
     to the subgroup.
 
     Props:
-      - $signature : string  (CartonGroupingService::SIGNATURE_MIXED for mixed boxes)
+      - $signature : string  (CartonGroupingService::SIGNATURE_MIXED for mixed boxes,
+                              CartonGroupingService::SIGNATURE_EMPTY for empty boxes)
       - $cartons   : Collection<Carton>
 --}}
 @php
@@ -18,6 +19,7 @@
     $totalVolume = (float) $cartons->sum('volume');
 
     $isMixed = $signature === CartonGroupingService::SIGNATURE_MIXED;
+    $isEmpty = $signature === CartonGroupingService::SIGNATURE_EMPTY;
 
     if ($isMixed) {
         $distinctProducts = $cartons
@@ -26,21 +28,43 @@
             ->unique()
             ->count();
         $contentSummary = $cartons->flatMap(fn ($c) => $c->contents)->groupBy('shipment_item_id');
-    } else {
-        $firstContent = $cartons->first()->contents->first();
+    } elseif (! $isEmpty) {
+        $firstCartonContents = $cartons->first()->contents;
+        $firstContent = $firstCartonContents->first();
         $productName = $firstContent?->shipmentItem?->product_name ?? '—';
         $partLabel = $firstContent?->part_label;
-        $piecesEach = (int) ($firstContent?->pieces ?? 0);
+        // Sum, not first row: a box may hold the same product in multiple rows.
+        $piecesEach = (int) $firstCartonContents->sum('pieces');
     }
 
-    $rangeLabel = $count > 1 ? "{$firstLabel} → {$lastLabel}" : $firstLabel;
+    // "A → B" só quando os labels formam um intervalo contíguo de verdade;
+    // grupos esparsos (ex.: Mistas com BOX-001 e BOX-2952) listam os labels
+    // ou usam "…" para não parecerem um intervalo de milhares de caixas.
+    $labelNumbers = $cartons->map(fn ($c) => preg_match('/(\d+)\s*$/', (string) $c->label, $m) ? (int) $m[1] : null);
+    $isContiguous = $count > 1
+        && ! $labelNumbers->contains(null)
+        && $labelNumbers->unique()->count() === $count
+        && ($labelNumbers->max() - $labelNumbers->min() + 1) === $count;
+
+    $rangeLabel = match (true) {
+        $count === 1 => $firstLabel,
+        $isContiguous => "{$firstLabel} → {$lastLabel}",
+        $count <= 4 => $cartons->pluck('label')->implode(', '),
+        default => "{$firstLabel} … {$lastLabel}",
+    };
     $boxCountLabel = $count === 1 ? '1 box' : number_format($count) . ' boxes';
 
     $sgKey = md5($signature) . '-' . $cartons->first()->id;
     $cartonIds = $cartons->pluck('id')->values();
+
+    // Lazy rendering: collapsed subgroups render no carton cards at all, and
+    // expanded ones paginate — with 3000 boxes the old always-render-and-hide
+    // approach shipped megabytes of hidden HTML on every Livewire round-trip.
+    $isExpanded = (bool) ($expandedSubgroups[$sgKey] ?? false);
+    $visibleCount = (int) ($subgroupLimits[$sgKey] ?? \App\Livewire\Logistics\PackingListBuilder::SUBGROUP_PAGE);
 @endphp
 
-<div wire:key="carton-subgroup-{{ md5($signature) }}-{{ $cartons->first()->id }}" x-data="{ expanded: false }">
+<div wire:key="carton-subgroup-{{ md5($signature) }}-{{ $cartons->first()->id }}">
     {{-- Subgroup header --}}
     <div class="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
         <div class="flex items-start justify-between gap-3">
@@ -67,7 +91,13 @@
                 </div>
 
                 <div class="mt-2 space-y-1">
-                    @if ($isMixed)
+                    @if ($isEmpty)
+                        <div class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                            <span>•</span>
+                            <span class="font-medium">Vazias</span>
+                            <span class="text-gray-500">sem conteúdo</span>
+                        </div>
+                    @elseif ($isMixed)
                         <div class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                             <span>•</span>
                             <span class="font-medium">Mistas</span>
@@ -98,10 +128,9 @@
             </div>
 
             <div class="flex items-center gap-1.5">
-                <button type="button" x-on:click="expanded = ! expanded"
+                <button type="button" wire:click="toggleSubgroup('{{ $sgKey }}')"
                     class="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30">
-                    <span x-show="! expanded">Expand boxes</span>
-                    <span x-show="expanded" style="display: none;">Collapse</span>
+                    <span>{{ $isExpanded ? 'Collapse' : 'Expand boxes' }}</span>
                 </button>
                 <button type="button"
                     wire:click="startBulkEditCartons({{ json_encode($cartonIds) }}, '{{ $sgKey }}')"
@@ -165,10 +194,20 @@
         </div>
     @endif
 
-    {{-- Expanded individual cartons --}}
-    <div x-show="expanded" style="display: none;" class="mt-2 space-y-2">
-        @foreach ($cartons as $carton)
-            @include('livewire.logistics.partials.carton-card', ['carton' => $carton, 'nested' => true])
-        @endforeach
-    </div>
+    {{-- Expanded individual cartons (paginated) --}}
+    @if ($isExpanded)
+        <div class="mt-2 space-y-2">
+            @foreach ($cartons->take($visibleCount) as $carton)
+                @include('livewire.logistics.partials.carton-card', ['carton' => $carton, 'nested' => true])
+            @endforeach
+
+            @if ($count > $visibleCount)
+                <button type="button" wire:click="showMoreInSubgroup('{{ $sgKey }}')"
+                    class="w-full rounded-md border border-dashed border-gray-300 px-3 py-2 text-sm text-primary-600 hover:bg-primary-50 dark:border-gray-700 dark:hover:bg-primary-900/30">
+                    Mostrar mais {{ min(\App\Livewire\Logistics\PackingListBuilder::SUBGROUP_PAGE, $count - $visibleCount) }}
+                    ({{ $visibleCount }} de {{ number_format($count) }} exibidas)
+                </button>
+            @endif
+        </div>
+    @endif
 </div>

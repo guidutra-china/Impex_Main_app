@@ -3,20 +3,25 @@
 namespace App\Domain\Logistics\Services;
 
 use App\Domain\Logistics\Models\Carton;
+use App\Domain\Logistics\Models\CartonContent;
 use Illuminate\Support\Collection;
 
 class CartonGroupingService
 {
     public const SIGNATURE_MIXED = '__mixed__';
 
+    public const SIGNATURE_EMPTY = '__empty__';
+
     /**
      * Group cartons by content signature so the UI can render each subgroup
      * with its own expand/collapse control.
      *
      * Signature rules:
-     *   - 1 content per carton → "item:{id}|part:{label}|pcs:{n}"
-     *     (same product, same part_label, same piece count → same subgroup)
-     *   - 2+ contents per carton → SIGNATURE_MIXED
+     *   - 0 contents → SIGNATURE_EMPTY (all empty boxes form one "Vazias" subgroup)
+     *   - all contents share product + part_label → "item:{id}|part:{label}|pcs:{sum}"
+     *     (linhas repetidas da mesma mercadoria são somadas — adicionar o mesmo
+     *     produto em duas operações não torna a caixa "mista")
+     *   - 2+ distinct product/part combinations → SIGNATURE_MIXED
      *     (all mixed boxes collapse into one "Mistas" subgroup)
      *
      * The returned Collection is keyed by signature and ordered by the lowest
@@ -40,17 +45,25 @@ class CartonGroupingService
     {
         $contents = $carton->contents;
 
-        if ($contents->count() !== 1) {
+        if ($contents->isEmpty()) {
+            return self::SIGNATURE_EMPTY;
+        }
+
+        $distinct = $contents->groupBy(
+            fn (CartonContent $content) => $content->shipment_item_id.'|'.($content->part_label ?? ''),
+        );
+
+        if ($distinct->count() !== 1) {
             return self::SIGNATURE_MIXED;
         }
 
-        $content = $contents->first();
+        $first = $contents->first();
 
         return sprintf(
             'item:%d|part:%s|pcs:%d',
-            (int) $content->shipment_item_id,
-            (string) ($content->part_label ?? ''),
-            (int) $content->pieces,
+            (int) $first->shipment_item_id,
+            (string) ($first->part_label ?? ''),
+            (int) $contents->sum('pieces'),
         );
     }
 }

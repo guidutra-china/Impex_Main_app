@@ -3,6 +3,7 @@
 namespace App\Domain\Logistics\Actions;
 
 use App\Domain\Logistics\Models\Shipment;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class RenumberCartonsAction
@@ -29,18 +30,40 @@ class RenumberCartonsAction
                 return 0;
             }
 
-            foreach ($cartons as $carton) {
-                DB::table('cartons')->where('id', $carton->id)->update([
-                    'label' => '__TMP-'.$carton->id,
-                ]);
-            }
+            // Both stages run as chunked CASE updates (portable SQL, no string
+            // functions) — renumbering thousands of cartons must not issue 2×N queries.
+            $cartons->values()->chunk(500)->each(function (Collection $chunk) {
+                $labelCase = 'CASE id ';
+                $ids = [];
 
-            foreach ($cartons->values() as $i => $carton) {
-                DB::table('cartons')->where('id', $carton->id)->update([
-                    'label' => 'BOX-'.str_pad((string) ($i + 1), 3, '0', STR_PAD_LEFT),
-                    'sort_order' => $i + 1,
-                ]);
-            }
+                foreach ($chunk as $carton) {
+                    $labelCase .= "WHEN {$carton->id} THEN '__TMP-{$carton->id}' ";
+                    $ids[] = $carton->id;
+                }
+
+                DB::update(
+                    'UPDATE cartons SET label = '.$labelCase.'END WHERE id IN ('.implode(',', $ids).')',
+                );
+            });
+
+            $cartons->values()->chunk(500)->each(function (Collection $chunk, int $chunkIndex) {
+                $labelCase = 'CASE id ';
+                $sortCase = 'CASE id ';
+                $ids = [];
+
+                foreach ($chunk->values() as $i => $carton) {
+                    $position = $chunkIndex * 500 + $i + 1;
+                    $label = 'BOX-'.str_pad((string) $position, 3, '0', STR_PAD_LEFT);
+
+                    $labelCase .= "WHEN {$carton->id} THEN '{$label}' ";
+                    $sortCase .= "WHEN {$carton->id} THEN {$position} ";
+                    $ids[] = $carton->id;
+                }
+
+                DB::update(
+                    'UPDATE cartons SET label = '.$labelCase.'END, sort_order = '.$sortCase.'END WHERE id IN ('.implode(',', $ids).')',
+                );
+            });
 
             return $cartons->count();
         });

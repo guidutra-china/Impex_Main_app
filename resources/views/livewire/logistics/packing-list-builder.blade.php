@@ -6,7 +6,7 @@
                 Packing List · {{ $shipment->reference }}
             </h2>
             <p class="text-sm text-gray-500 dark:text-gray-400">
-                {{ $this->allCartons->count() }} carton(s) ·
+                {{ $this->cartonCount }} carton(s) ·
                 {{ collect($this->products)->sum(fn ($r) => $r['progress']?->packedComplete ?? 0) }} /
                 {{ collect($this->products)->sum(fn ($r) => $r['progress']?->total ?? $r['item']->quantity) }} pieces packed
             </p>
@@ -133,6 +133,9 @@
                             <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
                                 <label class="block">
                                     <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Destination</span>
+                                    <input type="search" wire:model.live.debounce.400ms="cartonSearch"
+                                        placeholder="Filtrar caixas… (ex.: BOX-154)"
+                                        class="mt-0.5 block w-full rounded-lg border-gray-300 text-sm dark:border-gray-700 dark:bg-gray-900" />
                                     <select onchange="@this.call('setFillTarget', this.value)"
                                         class="mt-0.5 block w-full rounded-lg border-gray-300 text-sm dark:border-gray-700 dark:bg-gray-900">
                                         <option value="">Select target…</option>
@@ -159,7 +162,7 @@
                                             </option>
                                         @endforeach
                                         @if ($this->cartonFillOptions->isNotEmpty())
-                                            <optgroup label="Caixas existentes (adicionar à mesma caixa)">
+                                            <optgroup label="{{ trim($cartonSearch) !== '' ? 'Caixas encontradas' : 'Caixas sugeridas (vazias · recentes)' }}">
                                                 @foreach ($this->cartonFillOptions as $co)
                                                     <option value="carton:{{ $co['id'] }}"
                                                         @if($fillTargetType === 'carton' && $fillTargetId === $co['id']) selected @endif>
@@ -169,6 +172,11 @@
                                             </optgroup>
                                         @endif
                                     </select>
+                                    @if ($this->cartonCount > $this->cartonFillOptions->count())
+                                        <span class="mt-0.5 block text-xs text-gray-400 dark:text-gray-500">
+                                            Mostrando {{ $this->cartonFillOptions->count() }} de {{ number_format($this->cartonCount) }} caixas — use o filtro para buscar outra.
+                                        </span>
+                                    @endif
                                 </label>
                                 <label class="block">
                                     <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Pieces</span>
@@ -212,6 +220,11 @@
 
                     @if ($isSplit && $progress)
                         <div class="mt-3 space-y-2 border-t border-gray-200 pt-3 dark:border-gray-700">
+                            @if (collect($progress->parts)->contains(fn ($p) => $p['remaining'] > 0))
+                                <input type="search" wire:model.live.debounce.400ms="cartonSearch"
+                                    placeholder="Filtrar caixas dos selects abaixo… (ex.: BOX-154)"
+                                    class="block w-full rounded border-gray-300 text-xs dark:border-gray-700 dark:bg-gray-900" />
+                            @endif
                             @foreach ($progress->parts as $part)
                                 @php
                                     $key = $this->placeFormKey($item->id, $part['label']);
@@ -235,8 +248,8 @@
                                             <select wire:model="placeForm.{{ $key }}.cartonId"
                                                 class="flex-1 rounded border-gray-300 text-xs dark:border-gray-700 dark:bg-gray-900">
                                                 <option value="">Box…</option>
-                                                @foreach ($this->allCartons as $c)
-                                                    <option value="{{ $c->id }}">{{ $c->label }}</option>
+                                                @foreach ($this->cartonFillOptions as $co)
+                                                    <option value="{{ $co['id'] }}">{{ $co['label'] }}</option>
                                                 @endforeach
                                             </select>
                                             <input type="number" min="1" max="{{ $partRem }}" placeholder="pcs"
