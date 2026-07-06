@@ -44,6 +44,11 @@ class PackingListBuilder extends Component
     /** @var array<string, int> */
     public array $subgroupLimits = [];
 
+    // Containers colapsados (padrão: expandido). Colapsado não renderiza
+    // pallets/caixas do container — só o cabeçalho com o resumo.
+    /** @var array<int, bool> */
+    public array $collapsedContainers = [];
+
     // Transient "Add content" form (per-carton)
     public ?int $addContentCartonId = null;
 
@@ -1244,6 +1249,15 @@ class PackingListBuilder extends Component
     public function showMoreInSubgroup(string $key): void
     {
         $this->subgroupLimits[$key] = ($this->subgroupLimits[$key] ?? self::SUBGROUP_PAGE) + self::SUBGROUP_PAGE;
+    }
+
+    public function toggleContainer(int $containerId): void
+    {
+        if ($this->collapsedContainers[$containerId] ?? false) {
+            unset($this->collapsedContainers[$containerId]);
+        } else {
+            $this->collapsedContainers[$containerId] = true;
+        }
     }
 
     // ---------- Helpers ----------

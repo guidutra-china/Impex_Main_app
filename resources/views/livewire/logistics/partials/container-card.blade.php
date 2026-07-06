@@ -3,13 +3,23 @@
     $totalWeight = (float) $cartonsInContainer->sum('gross_weight');
     $totalVolume = (float) $cartonsInContainer->sum('volume');
     $totalCartons = $cartonsInContainer->count();
+    $isContainerCollapsed = (bool) ($collapsedContainers[$container->id] ?? false);
 @endphp
 
-<div class="rounded-lg border-2 border-blue-300 bg-blue-50/30 p-4 dark:border-blue-800 dark:bg-blue-950/20">
+<div wire:key="container-card-{{ $container->id }}" class="rounded-lg border-2 border-blue-300 bg-blue-50/30 p-4 dark:border-blue-800 dark:bg-blue-950/20">
     {{-- Header --}}
     <div class="mb-3 flex items-center justify-between gap-3">
         <div class="flex-1">
             <div class="flex flex-wrap items-center gap-2">
+                <button type="button" wire:click="toggleContainer({{ $container->id }})"
+                    class="inline-flex items-center rounded-md p-1 text-gray-500 hover:bg-blue-100 hover:text-gray-700 dark:hover:bg-blue-900/40"
+                    title="{{ $isContainerCollapsed ? 'Expandir container' : 'Recolher container' }}">
+                    @if ($isContainerCollapsed)
+                        <x-heroicon-o-chevron-right class="h-5 w-5" />
+                    @else
+                        <x-heroicon-o-chevron-down class="h-5 w-5" />
+                    @endif
+                </button>
                 <span class="text-2xl">📦</span>
                 <span class="text-lg font-semibold text-gray-900 dark:text-white">
                     {{ $container->label }}
@@ -105,22 +115,25 @@
         </div>
     @endif
 
-    {{-- Nested pallets --}}
-    @foreach ($container->pallets as $pallet)
-        <div class="ml-4 mt-2">
-            @include('livewire.logistics.partials.pallet-card', ['pallet' => $pallet, 'nested' => true])
-        </div>
-    @endforeach
+    {{-- Contents (hidden when the container is collapsed) --}}
+    @if (! $isContainerCollapsed)
+        {{-- Nested pallets --}}
+        @foreach ($container->pallets as $pallet)
+            <div class="ml-4 mt-2">
+                @include('livewire.logistics.partials.pallet-card', ['pallet' => $pallet, 'nested' => true])
+            </div>
+        @endforeach
 
-    {{-- Direct cartons (no pallet inside this container) --}}
-    @php $directCartons = $container->directCartons; @endphp
-    @if ($directCartons->count() > 0)
-        <div class="ml-4 mt-2">
-            @include('livewire.logistics.partials.carton-group', ['cartons' => $directCartons])
-        </div>
-    @endif
+        {{-- Direct cartons (no pallet inside this container) --}}
+        @php $directCartons = $container->directCartons; @endphp
+        @if ($directCartons->count() > 0)
+            <div class="ml-4 mt-2">
+                @include('livewire.logistics.partials.carton-group', ['cartons' => $directCartons])
+            </div>
+        @endif
 
-    @if ($container->pallets->isEmpty() && $directCartons->isEmpty())
-        <div class="ml-4 mt-2 text-sm italic text-gray-400">Empty — add a pallet or a box.</div>
+        @if ($container->pallets->isEmpty() && $directCartons->isEmpty())
+            <div class="ml-4 mt-2 text-sm italic text-gray-400">Empty — add a pallet or a box.</div>
+        @endif
     @endif
 </div>

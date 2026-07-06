@@ -28,9 +28,6 @@ class ShipmentInfolist
                     TextEntry::make('transport_mode')
                         ->badge()
                         ->placeholder('—'),
-                    TextEntry::make('container_type')
-                        ->badge()
-                        ->placeholder('—'),
                     TextEntry::make('incoterm')
                         ->label(__('forms.labels.incoterm'))
                         ->badge()

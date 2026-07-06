@@ -9,6 +9,7 @@ class DeleteContainerAction
 {
     public function __construct(
         private readonly RecalculateShipmentTotalsAction $recalc,
+        private readonly SyncShipmentContainerNumbersAction $syncNumbers,
     ) {}
 
     /**
@@ -26,5 +27,6 @@ class DeleteContainerAction
         });
 
         $this->recalc->execute($shipment);
+        $this->syncNumbers->execute($shipment);
     }
 }

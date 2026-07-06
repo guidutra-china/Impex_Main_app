@@ -8,7 +8,6 @@ use App\Domain\Logistics\Enums\ImportModality;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Enums\TransportMode;
 use App\Domain\Quotations\Enums\Incoterm;
-use App\Domain\Settings\Models\ContainerType;
 use App\Domain\Settings\Models\Currency;
 use App\Domain\Users\Enums\UserType;
 use App\Models\User;
@@ -93,13 +92,6 @@ class ShipmentForm
                         ->required(),
                     Select::make('transport_mode')
                         ->options(TransportMode::class),
-                    Select::make('container_type')
-                        ->options(
-                            ContainerType::active()
-                                ->pluck('name', 'code')
-                                ->toArray()
-                        )
-                        ->searchable(),
                     Select::make('incoterm')
                         ->label(__('forms.labels.incoterm'))
                         ->options(Incoterm::class)

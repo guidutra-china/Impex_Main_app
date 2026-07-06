@@ -1001,6 +1001,72 @@ class PackingListBuilderTest extends TestCase
         $this->assertSame(['BOX-001', 'BOX-002', 'BOX-003'], $labels);
     }
 
+    public function test_toggle_container_hides_and_shows_its_contents(): void
+    {
+        [$shipment] = $this->makeShipment();
+
+        $component = Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->call('createContainer');
+        $container = $shipment->shipmentContainers()->first();
+
+        $component->call('createCarton', $container->id);
+        $carton = $shipment->cartons()->first();
+
+        // Expanded by default: the carton card is rendered.
+        $component->assertSeeHtml('carton-card-'.$carton->id);
+
+        $component->call('toggleContainer', $container->id)
+            ->assertDontSeeHtml('carton-card-'.$carton->id)
+            ->assertSee($container->label); // header stays visible
+
+        $component->call('toggleContainer', $container->id)
+            ->assertSeeHtml('carton-card-'.$carton->id);
+    }
+
+    public function test_container_numbers_sync_to_shipment_container_number_field(): void
+    {
+        [$shipment] = $this->makeShipment();
+
+        $component = Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->call('createContainer')
+            ->call('createContainer');
+
+        [$first, $second] = $shipment->shipmentContainers()->orderBy('sort_order')->get();
+
+        $component->call('startEditContainer', $first->id)
+            ->set('editContainerForm.container_number', 'CCLU7730065')
+            ->call('saveEditContainer');
+
+        $this->assertEquals('CCLU7730065', $shipment->refresh()->container_number);
+
+        $component->call('startEditContainer', $second->id)
+            ->set('editContainerForm.container_number', 'MSKU1234567')
+            ->call('saveEditContainer');
+
+        $this->assertEquals('CCLU7730065, MSKU1234567', $shipment->refresh()->container_number);
+
+        // Removing a container re-syncs the list.
+        $component->call('deleteContainer', $first->id);
+        $this->assertEquals('MSKU1234567', $shipment->refresh()->container_number);
+    }
+
+    public function test_container_sync_does_not_clobber_manual_value_when_no_numbers_filled(): void
+    {
+        [$shipment] = $this->makeShipment();
+        $shipment->update(['container_number' => 'MANUAL-123']);
+
+        $component = Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->call('createContainer');
+        $container = $shipment->shipmentContainers()->first();
+
+        // Saving a container without a number must not clear the manual field.
+        $component->call('startEditContainer', $container->id)
+            ->set('editContainerForm.seal_number', 'SEAL-1')
+            ->call('saveEditContainer');
+
+        $this->assertEquals('MANUAL-123', $shipment->refresh()->container_number);
+    }
+
     public function test_delete_container_leaves_contents_loose(): void
     {
         [$shipment] = $this->makeShipment();

@@ -6,6 +6,10 @@ use App\Domain\Logistics\Models\ShipmentContainer;
 
 class UpdateContainerAction
 {
+    public function __construct(
+        private readonly SyncShipmentContainerNumbersAction $syncNumbers,
+    ) {}
+
     /**
      * Update mutable container fields. `id`, `shipment_id`, and `label` in
      * $attributes are ignored (label is server-generated, never edited post-creation).
@@ -15,6 +19,8 @@ class UpdateContainerAction
         unset($attributes['id'], $attributes['shipment_id'], $attributes['label']);
 
         $container->fill($attributes)->save();
+
+        $this->syncNumbers->execute($container->shipment);
 
         return $container->fresh();
     }

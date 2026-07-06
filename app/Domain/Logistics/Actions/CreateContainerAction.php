@@ -16,7 +16,7 @@ class CreateContainerAction
      */
     public function execute(Shipment $shipment, array $attributes = []): ShipmentContainer
     {
-        return DB::transaction(function () use ($shipment, $attributes) {
+        $container = DB::transaction(function () use ($shipment, $attributes) {
             $label = $this->generateNextLabel($shipment);
 
             $attributes = array_merge([
@@ -28,6 +28,10 @@ class CreateContainerAction
 
             return ShipmentContainer::create($attributes);
         });
+
+        app(SyncShipmentContainerNumbersAction::class)->execute($shipment);
+
+        return $container;
     }
 
     private function generateNextLabel(Shipment $shipment): string

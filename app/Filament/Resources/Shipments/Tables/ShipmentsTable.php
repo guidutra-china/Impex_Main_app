@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Shipments\Tables;
 
-use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Enums\TransportMode;
 use App\Filament\Actions\StatusTransitionActions;
@@ -39,9 +38,6 @@ class ShipmentsTable
                 TextColumn::make('transport_mode')
                     ->badge()
                     ->toggleable(),
-                TextColumn::make('container_type')
-                    ->badge()
-                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('bl_number')
                     ->label(__('forms.labels.bl'))
                     ->searchable()
