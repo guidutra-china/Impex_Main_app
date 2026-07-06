@@ -174,15 +174,40 @@ class ItemsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(function ($query) {
+                $companyId = $this->getOwnerRecord()->company_id;
+
+                return $query->with([
+                    'proformaInvoiceItem.proformaInvoice',
+                    // Só o pivot do cliente do embarque — é dele que sai o MODEL NO.
+                    'proformaInvoiceItem.product.companies' => fn ($q) => $q
+                        ->where('companies.id', $companyId)
+                        ->where('company_product.role', 'client'),
+                ]);
+            })
             ->columns([
                 TextColumn::make('proformaInvoiceItem.proformaInvoice.reference')
                     ->label(__('forms.labels.pi_ref'))
                     ->sortable()
                     ->badge()
                     ->color('gray')
-                    ->description(fn ($record) => filled($record->proformaInvoiceItem?->proformaInvoice?->client_reference)
-                        ? __('forms.labels.client_reference').': '.$record->proformaInvoiceItem->proformaInvoice->client_reference
-                        : null),
+                    ->description(fn ($record) => $record->proformaInvoiceItem?->proformaInvoice?->client_reference ?: null)
+                    ->toggleable(),
+                TextColumn::make('model_no')
+                    ->label(__('forms.labels.model_number'))
+                    // Mesma regra do CI/PL: código do cliente (pivot) > modelo > SKU.
+                    ->state(function ($record) {
+                        $product = $record->proformaInvoiceItem?->product;
+                        if (! $product) {
+                            return null;
+                        }
+
+                        $pivot = $product->companies->first()?->pivot;
+
+                        return $pivot?->external_code ?: ($product->model_number ?: $product->sku);
+                    })
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('product_name')
                     ->label(__('forms.labels.product'))
                     ->searchable(query: function ($query, string $search) {
@@ -190,7 +215,8 @@ class ItemsRelationManager extends RelationManager
                             $q->where('name', 'like', "%{$search}%");
                         });
                     })
-                    ->limit(40),
+                    ->limit(40)
+                    ->toggleable(),
                 TextInputColumn::make('quantity')
                     ->label(__('forms.labels.qty'))
                     ->alignCenter()
@@ -198,18 +224,22 @@ class ItemsRelationManager extends RelationManager
                     ->afterStateUpdated(function ($record) {
                         app(RecalculateShipmentTotalsAction::class)->execute($this->getOwnerRecord());
                     })
-                    ->summarize(Sum::make()->label(__('forms.labels.total'))),
+                    ->summarize(Sum::make()->label(__('forms.labels.total')))
+                    ->toggleable(),
                 TextColumn::make('unit')
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('unit_price')
                     ->label(__('forms.labels.unit_price'))
                     ->formatStateUsing(fn ($state) => Money::format($state))
-                    ->alignEnd(),
+                    ->alignEnd()
+                    ->toggleable(),
                 TextColumn::make('line_total')
                     ->label(__('forms.labels.total'))
                     ->formatStateUsing(fn ($state) => Money::format($state))
                     ->alignEnd()
-                    ->weight('bold'),
+                    ->weight('bold')
+                    ->toggleable(),
                 TextColumn::make('unit_weight')
                     ->label(__('forms.labels.unit_wt_kg'))
                     ->placeholder('—')
@@ -219,12 +249,14 @@ class ItemsRelationManager extends RelationManager
                     ->label(__('forms.labels.weight_kg'))
                     ->placeholder('—')
                     ->alignEnd()
-                    ->summarize(Sum::make()->label(__('forms.labels.total'))->suffix(' kg')),
+                    ->summarize(Sum::make()->label(__('forms.labels.total'))->suffix(' kg'))
+                    ->toggleable(),
                 TextColumn::make('total_volume')
                     ->label(__('forms.labels.vol_cbm'))
                     ->placeholder('—')
                     ->alignEnd()
-                    ->summarize(Sum::make()->label(__('forms.labels.total'))->suffix(' CBM')),
+                    ->summarize(Sum::make()->label(__('forms.labels.total'))->suffix(' CBM'))
+                    ->toggleable(),
             ])
             ->recordActions([
                 \Filament\Actions\EditAction::make()
