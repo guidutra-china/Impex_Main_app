@@ -38,10 +38,13 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Filament\Tables\Columns\Summarizers\Sum;
+use Filament\Tables\Columns\Summarizers\Summarizer;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 class ItemsRelationManager extends RelationManager
 {
@@ -196,7 +199,8 @@ class ItemsRelationManager extends RelationManager
                 TextColumn::make('sort_order')
                     ->label(__('forms.labels.hash'))
                     ->sortable()
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->toggleable(),
                 \Filament\Tables\Columns\ImageColumn::make('product.avatar')
                     ->label('')
                     ->disk('public')
@@ -208,7 +212,8 @@ class ItemsRelationManager extends RelationManager
                     ->searchable()
                     ->sortable()
                     ->limit(30)
-                    ->placeholder(__('forms.placeholders.manual_item')),
+                    ->placeholder(__('forms.placeholders.manual_item'))
+                    ->toggleable(),
                 TextColumn::make('product.model_number')
                     ->label(__('forms.labels.model_number'))
                     ->searchable()
@@ -224,17 +229,32 @@ class ItemsRelationManager extends RelationManager
                     ->label(__('forms.labels.supplier'))
                     ->sortable()
                     ->limit(20)
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextInputColumn::make('quantity')
                     ->label(__('forms.labels.qty'))
                     ->type('number')
                     ->inputMode('numeric')
                     ->step('1')
                     ->rules(['required', 'integer', 'min:1'])
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->summarize(Sum::make()->label(__('forms.labels.total'))),
+                TextColumn::make('quantity_shipped')
+                    ->label(__('forms.labels.shipped'))
+                    ->getStateUsing(fn ($record) => $record->quantity_shipped)
+                    ->alignCenter()
+                    ->color(fn ($record) => $record->quantity_shipped > 0 ? 'success' : 'gray')
+                    ->toggleable(),
+                TextColumn::make('quantity_remaining')
+                    ->label(__('forms.labels.remaining'))
+                    ->getStateUsing(fn ($record) => $record->quantity_remaining)
+                    ->alignCenter()
+                    ->color(fn ($record) => $record->quantity_remaining <= 0 ? 'success' : 'warning')
+                    ->toggleable(),
                 TextColumn::make('unit')
                     ->label(__('forms.labels.unit'))
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->toggleable(),
                 TextInputColumn::make('unit_price')
                     ->label(__('forms.labels.price'))
                     ->type('number')
@@ -250,7 +270,8 @@ class ItemsRelationManager extends RelationManager
 
                         return number_format($floatValue, 4, '.', '');
                     })
-                    ->alignEnd(),
+                    ->alignEnd()
+                    ->toggleable(),
                 TextColumn::make('cost_currency_code')
                     ->label(__('forms.labels.cost_currency_short'))
                     ->alignCenter()
@@ -293,20 +314,29 @@ class ItemsRelationManager extends RelationManager
 
                         return number_format($floatValue, 4, '.', '');
                     })
-                    ->alignEnd(),
+                    ->alignEnd()
+                    ->toggleable(),
                 TextColumn::make('line_total')
                     ->label(__('forms.labels.total'))
                     ->getStateUsing(fn ($record) => $record->line_total)
                     ->formatStateUsing(fn ($state) => Money::format($state))
                     ->prefix('$ ')
                     ->alignEnd()
-                    ->weight('bold'),
+                    ->weight('bold')
+                    ->toggleable()
+                    ->summarize(
+                        Summarizer::make()
+                            ->label(__('forms.labels.total'))
+                            ->using(fn ($query): int => (int) $query->sum(DB::raw('unit_price * quantity')))
+                            ->formatStateUsing(fn ($state) => '$ '.Money::format((int) $state))
+                    ),
                 TextColumn::make('margin')
                     ->label(__('forms.labels.margin'))
                     ->getStateUsing(fn ($record) => $record->margin)
                     ->suffix('%')
                     ->alignCenter()
-                    ->color(fn ($state) => $state > 0 ? 'success' : 'danger'),
+                    ->color(fn ($state) => $state > 0 ? 'success' : 'danger')
+                    ->toggleable(),
             ])
             ->headerActions([
                 CreateAction::make()
