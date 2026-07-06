@@ -1067,6 +1067,35 @@ class PackingListBuilderTest extends TestCase
         $this->assertEquals('MANUAL-123', $shipment->refresh()->container_number);
     }
 
+    public function test_products_list_shows_model_number_preferring_client_pivot_code(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['a' => 10, 'b' => 10]);
+        $client = $shipment->company;
+
+        // Product with a client-specific code on the pivot → pivot wins.
+        $withPivot = \App\Domain\Catalog\Models\Product::create([
+            'name' => 'Widget A', 'sku' => 'SKU-A', 'model_number' => 'MOD-A',
+        ]);
+        $withPivot->companies()->attach($client->id, ['role' => 'client', 'external_code' => 'EXT-A']);
+
+        // Product without pivot → falls back to its own model_number.
+        $plain = \App\Domain\Catalog\Models\Product::create([
+            'name' => 'Widget B', 'sku' => 'SKU-B', 'model_number' => 'MOD-B',
+        ]);
+
+        $items['a']->proformaInvoiceItem->update(['product_id' => $withPivot->id]);
+        $items['b']->proformaInvoiceItem->update(['product_id' => $plain->id]);
+
+        $component = Livewire::test(PackingListBuilder::class, ['shipment' => $shipment]);
+
+        $modelNos = $component->get('products')->pluck('model_no')->all();
+        $this->assertSame(['EXT-A', 'MOD-B'], $modelNos);
+
+        $component->assertSee('EXT-A')
+            ->assertSee('MOD-B')
+            ->assertDontSee('MOD-A'); // pivot code takes priority over the product's own model
+    }
+
     public function test_delete_container_leaves_contents_loose(): void
     {
         [$shipment] = $this->makeShipment();

@@ -73,7 +73,7 @@
                     @endphp
                     @if ($rem > 0 && ! $isSplit)
                         <option value="{{ $row['item']->id }}">
-                            {{ $row['item']->product_name }} (remaining: {{ $rem }})
+                            {{ $row['model_no'] ? $row['model_no'].' — ' : '' }}{{ $row['item']->product_name }} (remaining: {{ $rem }})
                         </option>
                     @endif
                 @endforeach

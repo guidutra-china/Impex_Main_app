@@ -86,8 +86,13 @@
                 <div class="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
                     <div class="flex items-start justify-between gap-2">
                         <div class="flex-1">
-                            <div class="flex items-center gap-2">
+                            <div class="flex flex-wrap items-center gap-2">
                                 <span class="{{ $statusColor }} text-lg font-bold">{{ $statusIcon }}</span>
+                                @if ($row['model_no'])
+                                    <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                                        {{ $row['model_no'] }}
+                                    </span>
+                                @endif
                                 <span class="text-base font-medium text-gray-900 dark:text-white">{{ $item->product_name }}</span>
                             </div>
                             <div class="mt-1 flex flex-wrap gap-x-3 text-sm text-gray-500 dark:text-gray-400">

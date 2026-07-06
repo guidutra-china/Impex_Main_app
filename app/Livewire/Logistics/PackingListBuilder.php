@@ -159,7 +159,13 @@ class PackingListBuilder extends Component
         // Load products with trashed — soft-deleted products still have valid packaging.
         $productIds = $items->pluck('proformaInvoiceItem.product_id')->filter()->unique();
         $products = \App\Domain\Catalog\Models\Product::withTrashed()
-            ->with('packaging')
+            ->with([
+                'packaging',
+                // Pivot do cliente do embarque — fonte do MODEL NO (mesma regra do CI/PL).
+                'companies' => fn ($q) => $q
+                    ->where('companies.id', $this->shipment->company_id)
+                    ->where('company_product.role', 'client'),
+            ])
             ->whereIn('id', $productIds)
             ->get()
             ->keyBy('id');
@@ -167,12 +173,14 @@ class PackingListBuilder extends Component
         return $items->map(function ($item) use ($progress, $products) {
             $product = $products[$item->proformaInvoiceItem?->product_id] ?? null;
             $packaging = $product?->packaging;
+            $clientPivot = $product?->companies->first()?->pivot;
 
             return [
                 'item' => $item,
                 'progress' => $progress[$item->id] ?? null,
                 'pcs_per_carton' => (int) ($packaging?->pcs_per_carton ?? 0),
                 'carton_weight' => $packaging?->carton_weight,
+                'model_no' => $clientPivot?->external_code ?: ($product?->model_number ?: $product?->sku),
             ];
         });
     }
