@@ -207,7 +207,11 @@ class ItemsRelationManager extends RelationManager
                         return $data;
                     }),
                 DeleteAction::make()
-                    ->visible(fn () => auth()->user()?->can('edit-purchase-orders')),
+                    ->visible(fn () => auth()->user()?->can('edit-purchase-orders'))
+                    ->disabled(fn ($record) => $record->shipmentItems()->exists())
+                    ->tooltip(fn ($record) => $record->shipmentItems()->exists()
+                        ? 'Linha já embarcada — não pode ser excluída (desfaça o embarque primeiro).'
+                        : null),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

@@ -39,6 +39,22 @@ class PurchaseOrderItem extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        // Bloqueia apagar uma linha de PO que já tem embarque. O FK
+        // shipment_items.purchase_order_item_id é "on delete set null", então
+        // apagar a linha zeraria silenciosamente o vínculo do embarque com a PO
+        // (a baixa contra a PI continua, mas o acompanhamento da PO fica furado).
+        // Cobre exclusão manual (single/bulk) e qualquer chamada a delete();
+        // a regeração da PO e o hook de exclusão de item da PI já excluem
+        // apenas linhas sem embarque, então esta guarda nunca dispara neles.
+        static::deleting(function (PurchaseOrderItem $item) {
+            if ($item->shipmentItems()->exists()) {
+                return false;
+            }
+        });
+    }
+
     // --- Relationships ---
 
     public function purchaseOrder(): BelongsTo
