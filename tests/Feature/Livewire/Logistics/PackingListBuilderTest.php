@@ -740,6 +740,100 @@ class PackingListBuilderTest extends TestCase
         $this->assertEquals(5, $contents->firstWhere('shipment_item_id', $items['b']->id)->pieces);
     }
 
+    public function test_fill_with_pcs_override_creates_boxes_for_product_without_packaging(): void
+    {
+        // Cenário: 120 pcs, 3 por caixa, produto SEM padrão cadastrado.
+        [$shipment, $items] = $this->makeShipment(['p' => 120]);
+
+        $component = Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->call('createContainer');
+        $container = $shipment->shipmentContainers()->first();
+
+        // Blank quantity = all remaining (120); override = 3 pcs per box.
+        $component->call('startFillContainer', $container->id)
+            ->set('fillItemId', $items['p']->id)
+            ->set('fillPcsPerCarton', 3)
+            ->call('confirmFill');
+
+        $this->assertEquals(40, $shipment->cartons()->count());
+        $this->assertEquals(40, CartonContent::whereIn('carton_id', $shipment->cartons()->pluck('id'))->count());
+        $this->assertEquals(120, CartonContent::whereIn('carton_id', $shipment->cartons()->pluck('id'))->sum('pieces'));
+        $this->assertEquals(3, CartonContent::whereIn('carton_id', $shipment->cartons()->pluck('id'))->min('pieces'));
+        $this->assertEquals(3, CartonContent::whereIn('carton_id', $shipment->cartons()->pluck('id'))->max('pieces'));
+    }
+
+    public function test_fill_pcs_override_scales_weights_and_clears_standard_dimensions(): void
+    {
+        $client = \App\Domain\CRM\Models\Company::create(['name' => 'C-'.uniqid(), 'status' => 'active']);
+        $client->companyRoles()->create(['role' => 'client']);
+        $inquiry = \App\Domain\Inquiries\Models\Inquiry::create([
+            'reference' => 'INQ-'.uniqid(), 'company_id' => $client->id, 'status' => 'received',
+            'source' => 'email', 'currency_code' => 'USD',
+        ]);
+        $pi = \App\Domain\ProformaInvoices\Models\ProformaInvoice::create([
+            'reference' => 'PI-'.uniqid(), 'inquiry_id' => $inquiry->id, 'company_id' => $client->id,
+            'currency_code' => 'USD', 'issue_date' => '2026-07-06', 'status' => 'confirmed',
+        ]);
+        $product = \App\Domain\Catalog\Models\Product::create(['name' => 'Widget', 'sku' => 'W-'.uniqid()]);
+        \App\Domain\Catalog\Models\ProductPackaging::create([
+            'product_id' => $product->id, 'packaging_type' => 'carton',
+            'pcs_per_carton' => 2, 'carton_weight' => 5.0,
+            'carton_length' => 50, 'carton_width' => 40, 'carton_height' => 30,
+        ]);
+        $piItem = \App\Domain\ProformaInvoices\Models\ProformaInvoiceItem::create([
+            'proforma_invoice_id' => $pi->id, 'product_id' => $product->id, 'description' => 'Widget',
+            'quantity' => 10, 'unit_price' => 1000, 'unit' => 'pcs',
+        ]);
+        $shipment = Shipment::create([
+            'reference' => 'SHIP-'.uniqid(), 'company_id' => $client->id, 'currency_code' => 'USD',
+            'status' => 'draft', 'transport_mode' => 'sea',
+            'origin_port' => 'Shanghai', 'destination_port' => 'Santos',
+        ]);
+        $item = ShipmentItem::create([
+            'shipment_id' => $shipment->id, 'proforma_invoice_item_id' => $piItem->id,
+            'quantity' => 10, 'sort_order' => 0,
+        ]);
+
+        $component = Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->call('createContainer');
+        $container = $shipment->shipmentContainers()->first();
+
+        // Standard is 2 pcs/box @ 5 kg; override to 1 pc/box → weight scales to 2.5 kg,
+        // standard box dimensions no longer apply and must be left blank.
+        $component->call('startFillContainer', $container->id)
+            ->set('fillItemId', $item->id)
+            ->set('fillPcsPerCarton', 1)
+            ->call('confirmFill');
+
+        $this->assertEquals(10, $shipment->cartons()->count());
+
+        $carton = $shipment->cartons()->first();
+        $this->assertEquals('2.500', $carton->gross_weight);
+        $this->assertNull($carton->length);
+        $this->assertNull($carton->width);
+        $this->assertNull($carton->height);
+        $this->assertNull($carton->volume);
+    }
+
+    public function test_fill_preview_honors_pcs_override(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['p' => 120]);
+
+        $component = Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->call('createContainer');
+        $container = $shipment->shipmentContainers()->first();
+
+        $component->call('startFillContainer', $container->id)
+            ->set('fillItemId', $items['p']->id)
+            ->set('fillPieces', 120)
+            ->set('fillPcsPerCarton', 3);
+
+        $preview = $component->get('fillPreview');
+        $this->assertEquals(40, $preview['cartons']);
+        $this->assertEquals(3, $preview['per_carton']);
+        $this->assertEquals(0, $preview['remainder']);
+    }
+
     public function test_fill_preview_calculates_cartons(): void
     {
         [$shipment, $items] = $this->makeShipment(['w' => 100]);

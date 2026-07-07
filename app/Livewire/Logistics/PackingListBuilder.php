@@ -132,6 +132,10 @@ class PackingListBuilder extends Component
 
     public mixed $fillPieces = 0; // mixed: browser sends "" when input cleared
 
+    // Pcs por caixa fora do padrão para esta operação (em branco = padrão do
+    // cadastro do produto). Não altera o ProductPackaging.
+    public mixed $fillPcsPerCarton = null;
+
     public bool $fillFromProduct = false; // true when initiated from product card (pick target)
 
     // Filtro dos selects de caixas: com 3000+ caixas num embarque, listar todas
@@ -1004,6 +1008,7 @@ class PackingListBuilder extends Component
         $this->fillTargetId = $containerId;
         $this->fillItemId = null;
         $this->fillPieces = null;
+        $this->fillPcsPerCarton = null;
     }
 
     public function startFillPallet(int $palletId): void
@@ -1012,6 +1017,7 @@ class PackingListBuilder extends Component
         $this->fillTargetId = $palletId;
         $this->fillItemId = null;
         $this->fillPieces = null;
+        $this->fillPcsPerCarton = null;
     }
 
     /**
@@ -1028,6 +1034,7 @@ class PackingListBuilder extends Component
         // placeholder and confirmFill() treats blank/zero as "all remaining". A
         // server-pushed value collides with the input's DOM morph.
         $this->fillPieces = null;
+        $this->fillPcsPerCarton = null;
     }
 
     public function cancelFill(): void
@@ -1036,6 +1043,7 @@ class PackingListBuilder extends Component
         $this->fillTargetId = null;
         $this->fillItemId = null;
         $this->fillPieces = 0;
+        $this->fillPcsPerCarton = null;
         $this->fillFromProduct = false;
         $this->cartonSearch = '';
     }
@@ -1115,7 +1123,11 @@ class PackingListBuilder extends Component
             ? \App\Domain\Catalog\Models\Product::withTrashed()->with('packaging')->find($productId)
             : null;
         $packaging = $product?->packaging;
-        $pcsPerCarton = (int) ($packaging?->pcs_per_carton ?? 0);
+
+        // Override pontual digitado no form vence o padrão do cadastro.
+        $pcsPerCarton = (int) $this->fillPcsPerCarton > 0
+            ? (int) $this->fillPcsPerCarton
+            : (int) ($packaging?->pcs_per_carton ?? 0);
 
         if ($pcsPerCarton <= 0) {
             return ['cartons' => 1, 'per_carton' => $pieces, 'remainder' => 0];
@@ -1209,8 +1221,10 @@ class PackingListBuilder extends Component
         }
         // 'loose' → both null, cartons created without parent
 
+        $pcsOverride = (int) $this->fillPcsPerCarton > 0 ? (int) $this->fillPcsPerCarton : null;
+
         try {
-            $created = app(BulkFillAction::class)->execute($item, $fillPieces, $container, $pallet);
+            $created = app(BulkFillAction::class)->execute($item, $fillPieces, $container, $pallet, $pcsOverride);
 
             $targetLabel = $container?->label ?? $pallet?->label ?? 'target';
             Notification::make()

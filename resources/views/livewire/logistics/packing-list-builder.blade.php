@@ -135,7 +135,7 @@
                                 <x-heroicon-o-archive-box-arrow-down class="h-4 w-4" />
                                 Pack {{ $item->product_name }}
                             </h4>
-                            <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                            <div class="grid grid-cols-1 gap-2 sm:grid-cols-4">
                                 <label class="block">
                                     <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Destination</span>
                                     <input type="search" wire:model.live.debounce.400ms="cartonSearch"
@@ -183,14 +183,21 @@
                                         </span>
                                     @endif
                                 </label>
+                                @php
+                                    $packRow = $fillItemId ? $this->products->firstWhere('item.id', $fillItemId) : null;
+                                    $packRemaining = $packRow ? ($packRow['progress']?->remaining() ?? $packRow['item']->quantity) : null;
+                                    $packStandardPcs = (int) ($packRow['pcs_per_carton'] ?? 0);
+                                @endphp
                                 <label class="block">
                                     <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Pieces</span>
-                                    @php
-                                        $packRow = $fillItemId ? $this->products->firstWhere('item.id', $fillItemId) : null;
-                                        $packRemaining = $packRow ? ($packRow['progress']?->remaining() ?? $packRow['item']->quantity) : null;
-                                    @endphp
                                     <input type="number" min="1" wire:model.blur="fillPieces"
                                         placeholder="{{ $packRemaining !== null ? 'Restante: '.$packRemaining.' (vazio = tudo)' : 'Peças' }}"
+                                        class="mt-0.5 block w-full rounded-lg border-gray-300 text-sm dark:border-gray-700 dark:bg-gray-900" />
+                                </label>
+                                <label class="block">
+                                    <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Pcs por caixa</span>
+                                    <input type="number" min="1" wire:model.blur="fillPcsPerCarton"
+                                        placeholder="{{ $packStandardPcs > 0 ? 'padrão: '.$packStandardPcs : 'sem padrão (tudo em 1 caixa)' }}"
                                         class="mt-0.5 block w-full rounded-lg border-gray-300 text-sm dark:border-gray-700 dark:bg-gray-900" />
                                 </label>
                                 <div class="flex items-end gap-2">

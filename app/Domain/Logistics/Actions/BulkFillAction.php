@@ -33,6 +33,9 @@ class BulkFillAction
     /**
      * Pack $pieces of $item into $container (or $pallet) as auto-sized cartons.
      *
+     * $pcsPerCartonOverride empacota fora do padrão cadastrado (ex.: 3 pcs/caixa
+     * numa operação pontual) sem tocar no ProductPackaging do produto.
+     *
      * @return int number of cartons created
      */
     public function execute(
@@ -40,6 +43,7 @@ class BulkFillAction
         int $pieces,
         ?ShipmentContainer $container = null,
         ?ShipmentPallet $pallet = null,
+        ?int $pcsPerCartonOverride = null,
     ): int {
         if ($pieces <= 0) {
             throw new InvalidArgumentException('pieces must be greater than 0');
@@ -80,7 +84,11 @@ class BulkFillAction
             ? \App\Domain\Catalog\Models\Product::withTrashed()->with('packaging')->find($piItem->product_id)
             : null;
         $packaging = $product?->packaging;
-        $pcsPerCarton = (int) ($packaging?->pcs_per_carton ?? 0);
+        $standardPcs = (int) ($packaging?->pcs_per_carton ?? 0);
+
+        $pcsPerCarton = ($pcsPerCartonOverride !== null && $pcsPerCartonOverride > 0)
+            ? $pcsPerCartonOverride
+            : $standardPcs;
 
         if ($pcsPerCarton <= 0) {
             // No packaging metadata — pack everything into a single carton
@@ -96,6 +104,20 @@ class BulkFillAction
         $packedPieces = $fullCartons * $pcsPerCarton;
 
         $defaults = $this->cartonDefaultsFromPackaging($packaging);
+
+        // Caixa fora do padrão: as medidas do cadastro descrevem a caixa padrão,
+        // então ficam em branco (preencher depois via "Editar medidas" do grupo);
+        // pesos são escalados pelo peso unitário quando o padrão é conhecido.
+        if ($pcsPerCartonOverride !== null && $pcsPerCartonOverride > 0 && $pcsPerCartonOverride !== $standardPcs) {
+            $defaults = $standardPcs > 0
+                ? $this->scaleDefaults($defaults, $pcsPerCartonOverride / $standardPcs)
+                : array_merge($defaults, ['gross_weight' => null, 'net_weight' => null]);
+
+            $defaults['length'] = null;
+            $defaults['width'] = null;
+            $defaults['height'] = null;
+            $defaults['volume'] = null;
+        }
 
         $created = DB::transaction(function () use (
             $shipment,

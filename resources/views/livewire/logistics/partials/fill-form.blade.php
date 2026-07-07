@@ -27,16 +27,25 @@
         </select>
     </label>
 
-    <label class="block">
-        <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Quantity (pieces)</span>
-        @php
-            $ffRow = $fillItemId ? $this->products->firstWhere('item.id', $fillItemId) : null;
-            $ffRemaining = $ffRow ? ($ffRow['progress']?->remaining() ?? $ffRow['item']->quantity) : null;
-        @endphp
-        <input type="number" min="1" wire:model.blur="fillPieces"
-            placeholder="{{ $ffRemaining !== null ? 'Restante: '.$ffRemaining.' (vazio = tudo)' : 'Peças' }}"
-            class="mt-0.5 block w-full rounded-lg border-gray-300 text-sm dark:border-gray-700 dark:bg-gray-900" />
-    </label>
+    @php
+        $ffRow = $fillItemId ? $this->products->firstWhere('item.id', $fillItemId) : null;
+        $ffRemaining = $ffRow ? ($ffRow['progress']?->remaining() ?? $ffRow['item']->quantity) : null;
+        $ffStandardPcs = (int) ($ffRow['pcs_per_carton'] ?? 0);
+    @endphp
+    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <label class="block">
+            <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Quantity (pieces)</span>
+            <input type="number" min="1" wire:model.blur="fillPieces"
+                placeholder="{{ $ffRemaining !== null ? 'Restante: '.$ffRemaining.' (vazio = tudo)' : 'Peças' }}"
+                class="mt-0.5 block w-full rounded-lg border-gray-300 text-sm dark:border-gray-700 dark:bg-gray-900" />
+        </label>
+        <label class="block">
+            <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Pcs por caixa</span>
+            <input type="number" min="1" wire:model.blur="fillPcsPerCarton"
+                placeholder="{{ $ffStandardPcs > 0 ? 'padrão: '.$ffStandardPcs : 'sem padrão (tudo em 1 caixa)' }}"
+                class="mt-0.5 block w-full rounded-lg border-gray-300 text-sm dark:border-gray-700 dark:bg-gray-900" />
+        </label>
+    </div>
 
     @php $preview = $this->fillPreview; @endphp
     @if ($preview['cartons'] > 0 || $preview['remainder'] > 0)
