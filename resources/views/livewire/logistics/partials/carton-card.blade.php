@@ -9,10 +9,13 @@
                     </x-filament::badge>
                 @endif
                 @if ($carton->gross_weight)
-                    <span class="text-sm text-gray-500">{{ number_format((float) $carton->gross_weight, 1) }} kg</span>
+                    <span class="whitespace-nowrap text-sm text-gray-500">{{ number_format((float) $carton->gross_weight, 1) }} kg</span>
                 @endif
                 @if ($carton->length && $carton->width && $carton->height)
-                    <span class="text-sm text-gray-500">{{ (int) $carton->length }}×{{ (int) $carton->width }}×{{ (int) $carton->height }} cm</span>
+                    <span class="whitespace-nowrap text-sm text-gray-500">{{ (int) $carton->length }}×{{ (int) $carton->width }}×{{ (int) $carton->height }} cm</span>
+                @endif
+                @if ($carton->volume)
+                    <span class="whitespace-nowrap text-sm text-gray-500">{{ number_format((float) $carton->volume, 3) }} CBM</span>
                 @endif
             </div>
 

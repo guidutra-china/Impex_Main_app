@@ -65,88 +65,88 @@
 @endphp
 
 <div wire:key="carton-subgroup-{{ md5($signature) }}-{{ $cartons->first()->id }}">
-    {{-- Subgroup header --}}
+    {{-- Subgroup header: title + actions on the first row, then summary and
+         content lines using the FULL card width (content beside a button
+         column squeezed long product names into a narrow strip). --}}
     <div class="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
-        <div class="flex items-start justify-between gap-3">
-            <div class="flex-1">
-                <div class="flex flex-wrap items-center gap-2 text-base">
-                    <span class="font-semibold text-gray-900 dark:text-white">
-                        {{ $rangeLabel }}
-                    </span>
-                    <span class="rounded bg-primary-100 px-2 py-0.5 text-sm font-semibold text-primary-800 dark:bg-primary-900 dark:text-primary-200">
-                        {{ $boxCountLabel }}
-                    </span>
-                </div>
-
-                <div class="mt-1 flex flex-wrap gap-x-3 text-sm text-gray-500 dark:text-gray-400">
-                    @if ($totalGross > 0)
-                        <span>GW {{ number_format($totalGross, 1) }} kg</span>
-                    @endif
-                    @if ($totalNet > 0)
-                        <span>NW {{ number_format($totalNet, 1) }} kg</span>
-                    @endif
-                    @if ($totalVolume > 0)
-                        <span>CBM {{ number_format($totalVolume, 3) }}</span>
-                    @endif
-                </div>
-
-                <div class="mt-2 space-y-1">
-                    @if ($isEmpty)
-                        <div class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                            <span>•</span>
-                            <span class="font-medium">Vazias</span>
-                            <span class="text-gray-500">sem conteúdo</span>
-                        </div>
-                    @elseif ($isMixed)
-                        <div class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                            <span>•</span>
-                            <span class="font-medium">Mistas</span>
-                            <span class="text-gray-500">{{ $distinctProducts }} produtos distintos</span>
-                        </div>
-                        @foreach ($contentSummary as $itemId => $contents)
-                            @php
-                                $totalPieces = (int) $contents->sum('pieces');
-                                $name = $contents->first()->shipmentItem?->product_name ?? '—';
-                            @endphp
-                            <div class="ml-4 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                <span>◦</span>
-                                <span>{{ $name }}</span>
-                                <span>· {{ number_format($totalPieces) }} pcs</span>
-                            </div>
-                        @endforeach
-                    @else
-                        <div class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                            <span>•</span>
-                            <span class="font-medium">{{ $productName }}</span>
-                            @if ($partLabel)
-                                <span class="text-xs text-primary-600 dark:text-primary-400">[{{ $partLabel }}]</span>
-                            @endif
-                            <span class="text-gray-500">{{ number_format($piecesEach) }} pcs / box</span>
-                        </div>
-                    @endif
-                </div>
+        <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <div class="flex flex-wrap items-center gap-2 text-base">
+                <span class="font-semibold text-gray-900 dark:text-white">
+                    {{ $rangeLabel }}
+                </span>
+                <span class="whitespace-nowrap rounded bg-primary-100 px-2 py-0.5 text-sm font-semibold text-primary-800 dark:bg-primary-900 dark:text-primary-200">
+                    {{ $boxCountLabel }}
+                </span>
             </div>
 
-            <div class="flex items-center gap-1.5">
+            <div class="flex flex-wrap items-center gap-1.5">
                 <button type="button" wire:click="toggleSubgroup('{{ $sgKey }}')"
-                    class="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30">
+                    class="inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-1.5 text-sm text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30">
                     <span>{{ $isExpanded ? 'Collapse' : 'Expand boxes' }}</span>
                 </button>
                 <button type="button"
                     wire:click="startBulkEditCartons({{ json_encode($cartonIds) }}, '{{ $sgKey }}')"
-                    class="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30"
+                    class="inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-1.5 text-sm text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30"
                     title="Editar medidas e peso de todas as {{ $count }} caixas do grupo">
                     <x-heroicon-o-pencil-square class="h-5 w-5" />
                     Editar medidas
                 </button>
                 <button type="button"
                     wire:click="deleteAllCartons({{ json_encode($cartonIds) }})"
-                    class="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm text-red-500 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950"
+                    class="inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-1.5 text-sm text-red-500 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950"
                     title="Delete all {{ $count }} cartons in this subgroup">
                     <x-heroicon-o-trash class="h-5 w-5" />
                     Delete all
                 </button>
             </div>
+        </div>
+
+        <div class="mt-1 flex flex-wrap gap-x-3 text-sm text-gray-500 dark:text-gray-400">
+            @if ($totalGross > 0)
+                <span class="whitespace-nowrap">GW {{ number_format($totalGross, 1) }} kg</span>
+            @endif
+            @if ($totalNet > 0)
+                <span class="whitespace-nowrap">NW {{ number_format($totalNet, 1) }} kg</span>
+            @endif
+            @if ($totalVolume > 0)
+                <span class="whitespace-nowrap">CBM {{ number_format($totalVolume, 3) }}</span>
+            @endif
+        </div>
+
+        <div class="mt-2 space-y-1">
+            @if ($isEmpty)
+                <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm text-gray-700 dark:text-gray-300">
+                    <span>•</span>
+                    <span class="font-medium">Vazias</span>
+                    <span class="text-gray-500">sem conteúdo</span>
+                </div>
+            @elseif ($isMixed)
+                <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm text-gray-700 dark:text-gray-300">
+                    <span>•</span>
+                    <span class="font-medium">Mistas</span>
+                    <span class="whitespace-nowrap text-gray-500">{{ $distinctProducts }} produtos distintos</span>
+                </div>
+                @foreach ($contentSummary as $itemId => $contents)
+                    @php
+                        $totalPieces = (int) $contents->sum('pieces');
+                        $name = $contents->first()->shipmentItem?->product_name ?? '—';
+                    @endphp
+                    <div class="ml-4 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
+                        <span>◦</span>
+                        <span>{{ $name }}</span>
+                        <span class="whitespace-nowrap">· {{ number_format($totalPieces) }} pcs</span>
+                    </div>
+                @endforeach
+            @else
+                <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm text-gray-700 dark:text-gray-300">
+                    <span>•</span>
+                    <span class="font-medium">{{ $productName }}</span>
+                    @if ($partLabel)
+                        <span class="whitespace-nowrap text-xs text-primary-600 dark:text-primary-400">[{{ $partLabel }}]</span>
+                    @endif
+                    <span class="whitespace-nowrap text-gray-500">{{ number_format($piecesEach) }} pcs / box</span>
+                </div>
+            @endif
         </div>
     </div>
 
