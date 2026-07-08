@@ -63,6 +63,7 @@ return [
     'draft_product_created' => '草稿产品已创建',
     'items_imported' => '项目已导入',
     'items_imported_from_inquiry' => '项目已从询价导入',
+    'items_skipped_no_remaining_quantity' => '项目已跳过（无剩余数量）。',
 
     // Notification bodies
     'formula_format_help' => '使用格式：*1.10，/1.05，+5，或 -2.50',

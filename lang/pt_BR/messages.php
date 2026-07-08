@@ -73,6 +73,7 @@ return [
     'draft_product_created' => 'Produto rascunho criado',
     'items_imported' => 'itens importados',
     'items_imported_from_inquiry' => 'itens importados da consulta',
+    'items_skipped_no_remaining_quantity' => 'itens pulados (sem saldo restante).',
 
     // Notification bodies
     'formula_format_help' => 'Use o formato: *1.10, /1.05, +5, ou -2.50',

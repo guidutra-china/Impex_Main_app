@@ -395,7 +395,7 @@ class ItemsRelationManager extends RelationManager
 
                 $quotationItems = QuotationItem::query()
                     ->whereHas('quotation', fn ($q) => $q->where('inquiry_id', $pi->inquiry_id))
-                    ->with(['quotation', 'product'])
+                    ->with(['quotation', 'product.clients' => fn ($q) => $q->where('companies.id', $pi->company_id)])
                     ->get();
 
                 if ($quotationItems->isEmpty()) {
@@ -406,12 +406,20 @@ class ItemsRelationManager extends RelationManager
                     ];
                 }
 
-                $options = $quotationItems->mapWithKeys(fn ($item) => [
-                    $item->id => '['.$item->quotation->reference.'] '
-                        .($item->product?->name ?? 'Item #'.$item->id)
-                        .' — Qty: '.$item->quantity
-                        .' — $'.Money::format($item->unit_price, 4),
-                ])->toArray();
+                $options = $quotationItems->mapWithKeys(function ($item) {
+                    $product = $item->product;
+                    // MODEL NO segue a regra do CI/PL: external_code do cliente > model_number > SKU.
+                    $clientPivot = $product?->clients->first()?->pivot;
+                    $modelNo = $clientPivot?->external_code ?: ($product?->model_number ?: $product?->sku);
+
+                    return [
+                        $item->id => '['.$item->quotation->reference.'] '
+                            .($modelNo ? $modelNo.' — ' : '')
+                            .($product?->name ?? 'Item #'.$item->id)
+                            .' — Qty: '.$item->quantity
+                            .' — $'.Money::format($item->unit_price, 4),
+                    ];
+                })->toArray();
 
                 return [
                     \Filament\Forms\Components\CheckboxList::make('item_ids')
@@ -658,7 +666,7 @@ class ItemsRelationManager extends RelationManager
 
                 $inquiryItems = InquiryItem::query()
                     ->where('inquiry_id', $pi->inquiry_id)
-                    ->with('product')
+                    ->with(['product.clients' => fn ($q) => $q->where('companies.id', $pi->company_id)])
                     ->orderBy('sort_order')
                     ->get();
 
@@ -670,11 +678,27 @@ class ItemsRelationManager extends RelationManager
                     ];
                 }
 
-                $options = $inquiryItems->mapWithKeys(fn ($item) => [
-                    $item->id => ($item->product?->name ?? $item->description ?? 'Item #'.$item->id)
-                        .' — Qty: '.$item->quantity
-                        .($item->target_price ? ' — Target: $'.Money::format($item->target_price) : ''),
-                ])->toArray();
+                $importedByProduct = $this->importedQuantitiesByProduct($pi);
+                $importedByDescription = $this->importedQuantitiesByDescription($pi);
+
+                $options = $inquiryItems->mapWithKeys(function ($item) use ($importedByProduct, $importedByDescription) {
+                    $product = $item->product;
+                    // MODEL NO segue a regra do CI/PL: external_code do cliente > model_number > SKU.
+                    $clientPivot = $product?->clients->first()?->pivot;
+                    $modelNo = $clientPivot?->external_code ?: ($product?->model_number ?: $product?->sku);
+
+                    $imported = $item->product_id
+                        ? (int) ($importedByProduct[$item->product_id] ?? 0)
+                        : (int) ($importedByDescription[$item->description] ?? 0);
+                    $remaining = $item->quantity - $imported;
+
+                    return [
+                        $item->id => ($modelNo ? $modelNo.' — ' : '')
+                            .($product?->name ?? $item->description ?? 'Item #'.$item->id)
+                            .' — Qty: '.$item->quantity.' | Remaining: '.$remaining
+                            .($item->target_price ? ' — Target: $'.Money::format($item->target_price) : ''),
+                    ];
+                })->toArray();
 
                 return [
                     \Filament\Forms\Components\CheckboxList::make('item_ids')
@@ -684,11 +708,15 @@ class ItemsRelationManager extends RelationManager
                         ->searchable()
                         ->bulkToggleable()
                         ->helperText(__('forms.helpers.import_items_directly_from_the_inquiry_use_this_for')),
+                    \Filament\Forms\Components\Checkbox::make('only_remaining')
+                        ->label(__('forms.labels.only_import_remaining_quantities_exclude_already_imported'))
+                        ->default(true),
                 ];
             })
             ->action(function (array $data) {
                 $pi = $this->getOwnerRecord();
                 $itemIds = $data['item_ids'] ?? [];
+                $onlyRemaining = $data['only_remaining'] ?? true;
 
                 if (empty($itemIds)) {
                     return;
@@ -698,12 +726,27 @@ class ItemsRelationManager extends RelationManager
                     ->with(['product', 'product.suppliers', 'product.specification', 'product.clients'])
                     ->get();
 
+                $importedByProduct = $this->importedQuantitiesByProduct($pi);
+                $importedByDescription = $this->importedQuantitiesByDescription($pi);
+
                 $maxSort = $pi->items()->max('sort_order') ?? 0;
                 $imported = 0;
+                $skipped = 0;
 
                 $resolver = app(ProformaInvoiceItemCurrencyResolver::class);
 
                 foreach ($items as $item) {
+                    $alreadyImported = $item->product_id
+                        ? (int) ($importedByProduct[$item->product_id] ?? 0)
+                        : (int) ($importedByDescription[$item->description] ?? 0);
+                    $quantity = $onlyRemaining ? $item->quantity - $alreadyImported : $item->quantity;
+
+                    if ($quantity <= 0) {
+                        $skipped++;
+
+                        continue;
+                    }
+
                     $supplierId = null;
                     $unitCost = 0;
                     $unitPrice = $item->target_price ?? 0;
@@ -747,7 +790,7 @@ class ItemsRelationManager extends RelationManager
                         'supplier_company_id' => $supplierId,
                         'description' => $item->product?->name ?? $item->description,
                         'specifications' => $item->product?->specification?->description ?? $item->specifications,
-                        'quantity' => $item->quantity,
+                        'quantity' => $quantity,
                         'unit' => $item->unit ?? 'pcs',
                         'unit_price' => $unitPrice,
                         'unit_cost' => $unitCost,
@@ -763,10 +806,43 @@ class ItemsRelationManager extends RelationManager
 
                 Notification::make()
                     ->title($imported.' '.__('messages.items_imported_from_inquiry'))
-                    ->body(__('messages.prices_prefilled'))
+                    ->body(
+                        __('messages.prices_prefilled')
+                        .($skipped > 0 ? ' '.$skipped.' '.__('messages.items_skipped_no_remaining_quantity') : '')
+                    )
                     ->success()
                     ->send();
             });
+    }
+
+    /**
+     * Quantidades já importadas na PI, somadas por produto.
+     *
+     * @return \Illuminate\Support\Collection<int, int|string>
+     */
+    protected function importedQuantitiesByProduct($pi): \Illuminate\Support\Collection
+    {
+        return $pi->items()
+            ->whereNotNull('product_id')
+            ->toBase()
+            ->selectRaw('product_id, SUM(quantity) AS total')
+            ->groupBy('product_id')
+            ->pluck('total', 'product_id');
+    }
+
+    /**
+     * Quantidades já importadas na PI para itens sem produto, somadas por descrição.
+     *
+     * @return \Illuminate\Support\Collection<string, int|string>
+     */
+    protected function importedQuantitiesByDescription($pi): \Illuminate\Support\Collection
+    {
+        return $pi->items()
+            ->whereNull('product_id')
+            ->toBase()
+            ->selectRaw('description, SUM(quantity) AS total')
+            ->groupBy('description')
+            ->pluck('total', 'description');
     }
 
     protected function createCommissionCosts($pi, array $quotationIds): void

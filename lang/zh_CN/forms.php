@@ -342,6 +342,7 @@ return [
         'number' => '数量',
         'number_of_packages' => '包裹数量',
         'only_import_remaining_quantities_exclude_already_shipped' => '仅导入剩余数量（排除已发货）',
+        'only_import_remaining_quantities_exclude_already_imported' => '仅导入剩余数量（排除已导入）',
         'options' => '选项',
         'order' => '订单',
         'origin' => '产地',

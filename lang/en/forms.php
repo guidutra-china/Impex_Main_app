@@ -368,6 +368,7 @@ return [
         'number' => 'Number',
         'number_of_packages' => 'Number of Packages',
         'only_import_remaining_quantities_exclude_already_shipped' => 'Only import remaining quantities (exclude already shipped)',
+        'only_import_remaining_quantities_exclude_already_imported' => 'Only import remaining quantities (exclude already imported)',
         'options' => 'Options',
         'order' => 'Order',
         'origin' => 'Origin',

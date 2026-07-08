@@ -73,6 +73,7 @@ return [
     'draft_product_created' => 'Draft product created',
     'items_imported' => 'items imported',
     'items_imported_from_inquiry' => 'items imported from inquiry',
+    'items_skipped_no_remaining_quantity' => 'items skipped (no remaining quantity).',
 
     // Notification bodies
     'formula_format_help' => 'Use format: *1.10, /1.05, +5, or -2.50',
