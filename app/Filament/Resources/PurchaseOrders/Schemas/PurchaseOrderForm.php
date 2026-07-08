@@ -8,6 +8,7 @@ use App\Domain\CRM\Models\Contact;
 use App\Domain\ProformaInvoices\Enums\ConfirmationMethod;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
+use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Settings\Models\Currency;
 use App\Domain\Settings\Models\PaymentTerm;
@@ -76,11 +77,12 @@ class PurchaseOrderForm
                                 ->limit(100)
                                 ->get()
                                 ->mapWithKeys(fn ($pi) => [
-                                    $pi->id => $pi->reference . ' — ' . ($pi->company?->name ?? 'N/A'),
+                                    $pi->id => $pi->reference.' — '.($pi->company?->name ?? 'N/A'),
                                 ])
                         )
                         ->searchable()
                         ->required()
+                        ->live()
                         ->helperText(__('forms.helpers.the_proforma_invoice_this_po_originates_from')),
                     Select::make('currency_code')
                         ->label(__('forms.labels.currency'))
@@ -114,7 +116,19 @@ class PurchaseOrderForm
                         ->searchable()
                         ->required()
                         ->live()
-                        ->afterStateUpdated(fn (Set $set) => $set('contact_id', null)),
+                        ->afterStateUpdated(fn (Set $set) => $set('contact_id', null))
+                        // Aviso (não bloqueia): já existe PO ativa deste fornecedor nesta PI.
+                        ->hint(function (Get $get, ?PurchaseOrder $record): ?string {
+                            $existing = static::existingPoForPiAndSupplier($get, $record);
+
+                            return $existing
+                                ? __('forms.helpers.po_already_exists_for_this_pi_and_supplier', ['reference' => $existing->reference])
+                                : null;
+                        })
+                        ->hintColor('warning')
+                        ->hintIcon(fn (Get $get, ?PurchaseOrder $record) => static::existingPoForPiAndSupplier($get, $record)
+                            ? 'heroicon-o-exclamation-triangle'
+                            : null),
                     Select::make('contact_id')
                         ->label(__('forms.labels.contact'))
                         ->options(function (Get $get) {
@@ -232,5 +246,27 @@ class PurchaseOrderForm
                         ->columnSpanFull(),
                 ]),
         ];
+    }
+
+    /**
+     * PO ativa já existente para a PI + fornecedor selecionados no form
+     * (ignorando o próprio registro em edição). Duas POs do mesmo fornecedor
+     * na mesma PI são permitidas, mas merecem aviso: a regeneração via PI só
+     * sincroniza a primeira.
+     */
+    protected static function existingPoForPiAndSupplier(Get $get, ?PurchaseOrder $record): ?PurchaseOrder
+    {
+        $piId = $get('proforma_invoice_id');
+        $supplierId = $get('supplier_company_id');
+
+        if (! $piId || ! $supplierId) {
+            return null;
+        }
+
+        return PurchaseOrder::query()
+            ->where('proforma_invoice_id', $piId)
+            ->where('supplier_company_id', $supplierId)
+            ->when($record, fn ($q) => $q->whereKeyNot($record->getKey()))
+            ->first();
     }
 }

@@ -274,26 +274,32 @@ class ItemsRelationManager extends RelationManager
                     ->orderBy('sort_order')
                     ->get();
 
-                $existingPiItemIds = $po->items()
-                    ->whereNotNull('proforma_invoice_item_id')
-                    ->pluck('proforma_invoice_item_id')
-                    ->toArray();
+                // Saldo por PI item contra TODAS as POs ativas desta PI — pode
+                // haver mais de uma PO do mesmo fornecedor (pedido dividido),
+                // e o que importa é a quantidade ainda não coberta por PO.
+                $ordered = $this->orderedQuantitiesByPiItem($po->proforma_invoice_id);
 
-                $available = $piItems->filter(fn ($item) => ! in_array($item->id, $existingPiItemIds));
+                $available = $piItems->filter(
+                    fn ($item) => $item->quantity - (int) ($ordered[$item->id] ?? 0) > 0
+                );
 
                 if ($available->isEmpty()) {
                     return [
                         Placeholder::make('no_items')
                             ->label('')
-                            ->content('All PI items for this supplier have already been imported.'),
+                            ->content('All PI items for this supplier are fully covered by POs of this PI.'),
                     ];
                 }
 
-                $options = $available->mapWithKeys(fn ($item) => [
-                    $item->id => ($item->product?->name ?? $item->description ?? 'Item #'.$item->id)
-                        .' — Qty: '.$item->quantity
-                        .' — $'.Money::format($item->unit_cost, 4),
-                ])->toArray();
+                $options = $available->mapWithKeys(function ($item) use ($ordered) {
+                    $remaining = $item->quantity - (int) ($ordered[$item->id] ?? 0);
+
+                    return [
+                        $item->id => ($item->product?->name ?? $item->description ?? 'Item #'.$item->id)
+                            .' — Qty: '.$item->quantity.' | Remaining: '.$remaining
+                            .' — $'.Money::format($item->unit_cost, 4),
+                    ];
+                })->toArray();
 
                 return [
                     CheckboxList::make('item_ids')
@@ -302,16 +308,24 @@ class ItemsRelationManager extends RelationManager
                         ->required()
                         ->searchable()
                         ->bulkToggleable()
-                        ->helperText('Import items from the linked Proforma Invoice that belong to this supplier. Already imported items are excluded.'),
+                        ->helperText('Import items from the linked Proforma Invoice that belong to this supplier. Quantities already on POs of this PI are deducted.'),
+                    \Filament\Forms\Components\Checkbox::make('only_remaining')
+                        ->label(__('forms.labels.only_import_remaining_quantities_exclude_already_imported'))
+                        ->default(true),
                 ];
             })
             ->action(function (array $data) {
                 $po = $this->getOwnerRecord();
                 $itemIds = $data['item_ids'] ?? [];
+                $onlyRemaining = $data['only_remaining'] ?? true;
 
                 if (empty($itemIds)) {
                     return;
                 }
+
+                // Recalcula o saldo no momento do import: o modal pode estar
+                // aberto enquanto outra PO da mesma PI absorve quantidades.
+                $ordered = $this->orderedQuantitiesByPiItem($po->proforma_invoice_id);
 
                 $items = ProformaInvoiceItem::whereIn('id', $itemIds)
                     ->with(['product', 'product.specification'])
@@ -319,8 +333,18 @@ class ItemsRelationManager extends RelationManager
 
                 $maxSort = $po->items()->max('sort_order') ?? 0;
                 $imported = 0;
+                $skipped = 0;
 
                 foreach ($items as $piItem) {
+                    $remaining = $piItem->quantity - (int) ($ordered[$piItem->id] ?? 0);
+                    $quantity = $onlyRemaining ? $remaining : $piItem->quantity;
+
+                    if ($quantity <= 0) {
+                        $skipped++;
+
+                        continue;
+                    }
+
                     PurchaseOrderItem::create([
                         'purchase_order_id' => $po->id,
                         'product_id' => $piItem->product_id,
@@ -328,7 +352,7 @@ class ItemsRelationManager extends RelationManager
                         'supplier_quotation_item_id' => $this->findSqItemId($piItem),
                         'description' => $piItem->description,
                         'specifications' => $piItem->specifications,
-                        'quantity' => $piItem->quantity,
+                        'quantity' => $quantity,
                         'unit' => $piItem->unit,
                         'unit_cost' => $piItem->unit_cost,
                         'incoterm' => $piItem->incoterm,
@@ -340,10 +364,30 @@ class ItemsRelationManager extends RelationManager
 
                 Notification::make()
                     ->title($imported.' '.__('messages.items_imported'))
-                    ->body('Items imported from Proforma Invoice.')
+                    ->body(
+                        'Items imported from Proforma Invoice.'
+                        .($skipped > 0
+                            ? ' '.$skipped.' skipped (no remaining quantity on this PI).'
+                            : '')
+                    )
                     ->success()
                     ->send();
             });
+    }
+
+    /**
+     * Quantidades já cobertas por POs ativas da PI, somadas por PI item.
+     *
+     * @return \Illuminate\Support\Collection<int, int|string>
+     */
+    protected function orderedQuantitiesByPiItem(int $proformaInvoiceId): \Illuminate\Support\Collection
+    {
+        return PurchaseOrderItem::query()
+            ->whereNotNull('proforma_invoice_item_id')
+            ->whereHas('purchaseOrder', fn ($q) => $q->where('proforma_invoice_id', $proformaInvoiceId))
+            ->selectRaw('proforma_invoice_item_id, SUM(quantity) AS total')
+            ->groupBy('proforma_invoice_item_id')
+            ->pluck('total', 'proforma_invoice_item_id');
     }
 
     protected function importFromSupplierQuotationAction(): Action

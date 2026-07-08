@@ -942,6 +942,7 @@ return [
         'the_client_inquiry_this_supplier_quotation_is_for' => 'The client inquiry this supplier quotation is for.',
         'the_person_who_will_conduct_the_audit' => 'The person who will conduct the audit.',
         'the_proforma_invoice_this_po_originates_from' => 'The proforma invoice this PO originates from.',
+        'po_already_exists_for_this_pi_and_supplier' => 'PO :reference for this supplier already exists on this PI. PI regeneration only syncs the first PO.',
         'total_balance_including_pending_transactions' => 'Total balance including pending transactions.',
         'total_products_carton_filling' => 'Total: products + carton + filling',
         'upload_photos_certificates_reports_or_any_supporting' => 'Upload photos, certificates, reports, or any supporting documents. Max 10MB per file.',

@@ -902,6 +902,7 @@ return [
         'the_client_inquiry_this_supplier_quotation_is_for' => '此供应商报价对应的客户询价。',
         'the_person_who_will_conduct_the_audit' => '将执行审核的人。',
         'the_proforma_invoice_this_po_originates_from' => '此采购订单来源的形式发票。',
+        'po_already_exists_for_this_pi_and_supplier' => '此形式发票已存在该供应商的采购订单 :reference。通过形式发票重新生成只会同步第一张采购订单。',
         'total_balance_including_pending_transactions' => '包括待处理交易的总余额。',
         'total_products_carton_filling' => '总计：产品 + 箱子 + 填充物',
         'upload_photos_certificates_reports_or_any_supporting' => '上传照片、证书、报告或任何支持文件。每个文件最大10MB。',

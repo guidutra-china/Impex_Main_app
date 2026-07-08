@@ -937,6 +937,7 @@ return [
         'the_client_inquiry_this_supplier_quotation_is_for' => 'A consulta do cliente para a qual esta cotação do fornecedor é destinada.',
         'the_person_who_will_conduct_the_audit' => 'A pessoa que realizará a auditoria.',
         'the_proforma_invoice_this_po_originates_from' => 'A fatura proforma da qual este PO se origina.',
+        'po_already_exists_for_this_pi_and_supplier' => 'Já existe a PO :reference deste fornecedor nesta PI. A regeneração via PI sincroniza apenas a primeira PO.',
         'total_balance_including_pending_transactions' => 'Saldo total incluindo transações pendentes.',
         'total_products_carton_filling' => 'Total: produtos + caixa + preenchimento',
         'upload_photos_certificates_reports_or_any_supporting' => 'Envie fotos, certificados, relatórios ou quaisquer documentos de suporte. Máx. 10MB por arquivo.',
