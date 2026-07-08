@@ -11,8 +11,9 @@ use App\Domain\Infrastructure\Support\Money;
 
 /**
  * Deterministically resolves an extracted draft into a preview model: matches the
- * supplier and each product (by reference_code/model_number), and converts decimal
- * prices to integer minor units. No writes, no LLM.
+ * supplier and each product (by part number vs reference_code/model_number/sku,
+ * with a supplier-scoped exact-name fallback for documents that carry no model
+ * column), and converts decimal prices to integer minor units. No writes, no LLM.
  *
  * Per-unit cost is derived from the line total (the document's "Amount" column)
  * when present — this is the trustworthy figure when the unit price is quoted per
@@ -34,7 +35,8 @@ class ResolveSupplierQuotationDraft
             : null;
 
         $currency = strtoupper((string) ($draft['fornecedor']['currency_code'] ?? 'USD'));
-        $itens = array_map(fn (array $item) => $this->resolveItem($item), $draft['itens'] ?? []);
+        $supplierProductsByName = $this->supplierProductsByName($supplier);
+        $itens = array_map(fn (array $item) => $this->resolveItem($item, $supplierProductsByName), $draft['itens'] ?? []);
 
         $existing = count(array_filter($itens, fn ($i) => $i['status'] === 'existente'));
         $itemsMinor = array_sum(array_map(fn ($i) => $i['line_total_minor'], $itens));
@@ -104,15 +106,69 @@ class ResolveSupplierQuotationDraft
     }
 
     /**
+     * Produtos do fornecedor indexados por nome normalizado — usados como
+     * fallback de match quando o documento não traz números de modelo (só
+     * nomes descritivos), evitando recriar produtos que já existem. Nomes
+     * repetidos dentro do fornecedor são descartados (match precisa ser único).
+     *
+     * @return array<string, Product>
+     */
+    private function supplierProductsByName(?Company $supplier): array
+    {
+        if ($supplier === null) {
+            return [];
+        }
+
+        $map = [];
+        $duplicated = [];
+
+        Product::query()
+            ->whereHas('companies', fn ($q) => $q
+                ->where('companies.id', $supplier->id)
+                ->where('company_product.role', 'supplier'))
+            ->get(['id', 'name'])
+            ->each(function (Product $product) use (&$map, &$duplicated) {
+                $key = $this->normalizeName($product->name);
+                if ($key === '' || isset($duplicated[$key])) {
+                    return;
+                }
+                if (isset($map[$key])) {
+                    unset($map[$key]);
+                    $duplicated[$key] = true;
+
+                    return;
+                }
+                $map[$key] = $product;
+            });
+
+        return $map;
+    }
+
+    private function normalizeName(?string $name): string
+    {
+        return mb_strtoupper(trim(preg_replace('/\s+/', ' ', (string) $name) ?? ''));
+    }
+
+    /**
      * @param  array<string,mixed>  $item
+     * @param  array<string, Product>  $supplierProductsByName
      * @return array<string,mixed>
      */
-    private function resolveItem(array $item): array
+    private function resolveItem(array $item, array $supplierProductsByName): array
     {
         $partNo = trim((string) ($item['part_no'] ?? ''));
         $product = $partNo !== ''
-            ? Product::where('reference_code', $partNo)->orWhere('model_number', $partNo)->first()
+            ? Product::where('reference_code', $partNo)
+                ->orWhere('model_number', $partNo)
+                ->orWhere('sku', $partNo)
+                ->first()
             : null;
+
+        // Documento sem coluna de modelo: casa a descrição com o NOME dos
+        // produtos deste fornecedor (exato, normalizado, único).
+        if ($product === null) {
+            $product = $supplierProductsByName[$this->normalizeName($item['description'] ?? null)] ?? null;
+        }
 
         $quantity = (int) ($item['quantity'] ?? 0);
         $unitCostMinor = $this->unitCostMinor($item, $quantity);

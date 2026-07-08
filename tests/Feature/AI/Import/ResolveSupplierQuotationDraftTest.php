@@ -47,6 +47,40 @@ class ResolveSupplierQuotationDraftTest extends TestCase
         $this->assertSame(1, $preview['resumo']['produtos_novos']);
     }
 
+    public function test_matches_by_supplier_scoped_product_name_when_document_has_no_part_numbers(): void
+    {
+        $supplier = Company::factory()->create(['name' => 'Hebei Yangrun Sports Equipment Co., Ltd.']);
+        $other = Company::factory()->create(['name' => 'Outra Fábrica']);
+
+        $rack = Product::factory()->create(['name' => 'Vertical Dumbbell Rack', 'model_number' => null, 'reference_code' => null]);
+        $rack->companies()->attach($supplier->id, ['role' => 'supplier']);
+
+        // Homônimo de OUTRO fornecedor não pode ser usado.
+        $foreignTwin = Product::factory()->create(['name' => 'Weight plate 5kg']);
+        $foreignTwin->companies()->attach($other->id, ['role' => 'supplier']);
+
+        // Nome duplicado DENTRO do fornecedor → match ambíguo, fica novo.
+        foreach (range(1, 2) as $i) {
+            $dup = Product::factory()->create(['name' => 'Dumbbell 15kg']);
+            $dup->companies()->attach($supplier->id, ['role' => 'supplier']);
+        }
+
+        $preview = (new ResolveSupplierQuotationDraft)->resolve([
+            'fornecedor' => ['nome' => 'Hebei Yangrun', 'currency_code' => 'USD'],
+            'itens' => [
+                ['description' => 'Vertical  dumbbell rack', 'quantity' => 24, 'unit_price' => 33.58], // case/espaços normalizados
+                ['description' => 'Weight plate 5kg', 'quantity' => 240, 'unit_price' => 0.97],
+                ['description' => 'Dumbbell 15kg', 'quantity' => 48, 'unit_price' => 0.94],
+            ],
+        ]);
+
+        $this->assertSame('existente', $preview['itens'][0]['status']);
+        $this->assertSame($rack->id, $preview['itens'][0]['product_id']);
+
+        $this->assertSame('novo', $preview['itens'][1]['status'], 'homônimo de outro fornecedor não casa');
+        $this->assertSame('novo', $preview['itens'][2]['status'], 'nome duplicado no fornecedor não casa');
+    }
+
     public function test_derives_unit_cost_from_line_total_and_folds_extras_into_notes(): void
     {
         // Dumbbell priced per kg ($0.94) but the line total ($796.65) is the real amount.
