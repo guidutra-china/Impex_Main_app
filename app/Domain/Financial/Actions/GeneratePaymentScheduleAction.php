@@ -1159,7 +1159,7 @@ class GeneratePaymentScheduleAction
             ->get();
 
         foreach ($items as $item) {
-            if (in_array($item->status, [PaymentScheduleStatus::WAIVED, PaymentScheduleStatus::PAID])) {
+            if ($item->status === PaymentScheduleStatus::WAIVED) {
                 continue;
             }
 
@@ -1167,6 +1167,12 @@ class GeneratePaymentScheduleAction
 
             if ($item->is_paid_in_full) {
                 $newStatus = PaymentScheduleStatus::PAID;
+            } elseif ($item->status === PaymentScheduleStatus::PAID) {
+                // A regeneração pode AUMENTAR o valor de uma parcela já quitada
+                // (PI atualizada → 10% maior). O saldo reaberto precisa voltar a
+                // DUE, senão o item some da lista de alocação de pagamentos e a
+                // diferença fica impossível de lançar.
+                $newStatus = PaymentScheduleStatus::DUE;
             } elseif ($item->paid_amount > 0) {
                 $newStatus = PaymentScheduleStatus::DUE;
             } else {

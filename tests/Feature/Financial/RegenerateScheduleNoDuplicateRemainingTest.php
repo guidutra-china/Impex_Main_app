@@ -150,4 +150,95 @@ class RegenerateScheduleNoDuplicateRemainingTest extends TestCase
         $this->assertStringContainsString($shipment->reference, $promoted->label);
         $this->assertSame(1, $promoted->allocations()->count());
     }
+
+    public function test_regeneration_demotes_paid_installment_when_amount_grows(): void
+    {
+        $client = Company::create(['name' => 'Regen Grow Client', 'status' => 'active']);
+        $client->companyRoles()->create(['role' => 'client']);
+
+        $inquiry = Inquiry::create([
+            'reference' => 'INQ-REGEN-GROW',
+            'company_id' => $client->id,
+            'status' => 'received',
+            'source' => 'email',
+            'currency_code' => 'USD',
+        ]);
+
+        $term = PaymentTerm::create(['name' => 'Grow Term', 'is_active' => true]);
+        $downStage = PaymentTermStage::create([
+            'payment_term_id' => $term->id, 'sort_order' => 1,
+            'percentage' => 10, 'days' => 0, 'calculation_base' => CalculationBase::ORDER_DATE,
+        ]);
+        PaymentTermStage::create([
+            'payment_term_id' => $term->id, 'sort_order' => 2,
+            'percentage' => 90, 'days' => 0, 'calculation_base' => CalculationBase::BEFORE_SHIPMENT,
+        ]);
+
+        $pi = ProformaInvoice::create([
+            'reference' => 'PI-REGEN-GROW',
+            'inquiry_id' => $inquiry->id,
+            'company_id' => $client->id,
+            'currency_code' => 'USD',
+            'issue_date' => '2026-06-01',
+            'status' => 'confirmed',
+            'payment_term_id' => $term->id,
+        ]);
+        $piItem = ProformaInvoiceItem::create([
+            'proforma_invoice_id' => $pi->id,
+            'description' => 'Widget',
+            'quantity' => 100,
+            'unit_price' => 1000, // total 100_000
+            'sort_order' => 1,
+        ]);
+
+        // 10% de entrada (10_000), integralmente paga.
+        $down = PaymentScheduleItem::create([
+            'payable_type' => ProformaInvoice::class,
+            'payable_id' => $pi->id,
+            'payment_term_stage_id' => $downStage->id,
+            'label' => '10% — Order Date',
+            'percentage' => 10,
+            'amount' => 10_000,
+            'currency_code' => 'USD',
+            'due_condition' => CalculationBase::ORDER_DATE,
+            'status' => PaymentScheduleStatus::PENDING,
+            'sort_order' => 1,
+        ]);
+        $payment = Payment::create([
+            'direction' => PaymentDirection::INBOUND,
+            'company_id' => $client->id,
+            'amount' => 10_000,
+            'currency_code' => 'USD',
+            'payment_date' => '2026-06-05',
+            'status' => PaymentStatus::APPROVED,
+        ]);
+        PaymentAllocation::create([
+            'payment_id' => $payment->id,
+            'payment_schedule_item_id' => $down->id,
+            'allocated_amount' => 10_000,
+            'exchange_rate' => 1.0,
+            'allocated_amount_in_document_currency' => 10_000,
+        ]);
+        $down->recalculateStatus();
+        $this->assertSame(PaymentScheduleStatus::PAID, $down->refresh()->status);
+
+        // A PI cresce (novo item) → 10% passa a valer 15_000; sobra 5_000 na entrada.
+        ProformaInvoiceItem::create([
+            'proforma_invoice_id' => $pi->id,
+            'description' => 'Widget extra',
+            'quantity' => 50,
+            'unit_price' => 1000,
+            'sort_order' => 2,
+        ]);
+
+        app(GeneratePaymentScheduleAction::class)->regenerate($pi->fresh());
+
+        $down->refresh();
+        $this->assertSame(15_000, (int) $down->amount, 'valor da entrada acompanha o novo total');
+        $this->assertSame(
+            PaymentScheduleStatus::DUE,
+            $down->status,
+            'entrada com saldo reaberto volta para DUE e reaparece na lista de alocação',
+        );
+    }
 }
