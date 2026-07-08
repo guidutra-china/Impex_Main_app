@@ -61,7 +61,7 @@ class LinkInquiryItemsToProductsCommand extends Command
         foreach ($orphans as $item) {
             $candidates = collect();
 
-            foreach ($this->candidateCodes((string) $item->description) as $code) {
+            foreach ($this->candidateCodes((string) $item->description, $item->specifications) as $code) {
                 $candidates = $productsByCode->get($code, collect());
 
                 if ($candidates->isNotEmpty()) {
@@ -136,21 +136,37 @@ class LinkInquiryItemsToProductsCommand extends Command
     }
 
     /**
-     * Códigos candidatos derivados da descrição, do mais específico ao menos:
-     * a descrição inteira e, em seguida, com o prefixo de cliente (primeiro
-     * segmento antes de "-") removido.
+     * Códigos candidatos, do mais específico ao menos: a descrição inteira;
+     * a descrição sem o prefixo de cliente (primeiro segmento antes de "-");
+     * as duas variantes sem o sufixo de ordem "-N" que algumas extrações
+     * anexaram ao código; e o campo specifications inteiro (extrações antigas
+     * truncavam a descrição mas guardavam o código completo nas specs).
      *
      * @return array<int, string>
      */
-    protected function candidateCodes(string $description): array
+    protected function candidateCodes(string $description, ?string $specifications = null): array
     {
-        $codes = [$this->normalize($description)];
+        $variants = [$description];
 
         if (str_contains($description, '-')) {
-            $codes[] = $this->normalize(explode('-', $description, 2)[1]);
+            $variants[] = explode('-', $description, 2)[1];
         }
 
-        return array_values(array_unique(array_filter($codes)));
+        foreach ($variants as $variant) {
+            $withoutOrderSuffix = preg_replace('/-\d+$/', '', $variant);
+            if ($withoutOrderSuffix !== $variant) {
+                $variants[] = $withoutOrderSuffix;
+            }
+        }
+
+        if (filled($specifications)) {
+            $variants[] = $specifications;
+        }
+
+        return array_values(array_unique(array_filter(array_map(
+            fn (string $code) => $this->normalize($code),
+            $variants,
+        ))));
     }
 
     /**
