@@ -4,7 +4,11 @@ namespace Tests\Feature;
 
 use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Actions\GeneratePaymentScheduleAction;
+use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
+use App\Domain\Financial\Enums\PaymentStatus;
+use App\Domain\Financial\Models\Payment;
+use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Inquiries\Models\Inquiry;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
@@ -20,13 +24,15 @@ class GeneratePaymentScheduleActionTest extends TestCase
     use RefreshDatabase;
 
     private GeneratePaymentScheduleAction $action;
+
     private Company $company;
+
     private Inquiry $inquiry;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->action = new GeneratePaymentScheduleAction();
+        $this->action = new GeneratePaymentScheduleAction;
 
         $this->company = Company::create([
             'name' => 'Test Company',
@@ -46,7 +52,7 @@ class GeneratePaymentScheduleActionTest extends TestCase
     private function createProformaInvoice(array $overrides = []): ProformaInvoice
     {
         $pi = ProformaInvoice::create(array_merge([
-            'reference' => 'PI-TEST-' . uniqid(),
+            'reference' => 'PI-TEST-'.uniqid(),
             'inquiry_id' => $this->inquiry->id,
             'company_id' => $this->company->id,
             'currency_code' => 'USD',
@@ -246,10 +252,28 @@ class GeneratePaymentScheduleActionTest extends TestCase
         $pi = $this->createProformaInvoice(['payment_term_id' => $term->id]);
         $this->action->execute($pi);
 
-        // Mark first item as paid
+        // Mark first item as paid, backed by a real allocation covering the
+        // full amount — regeneration demotes PAID items that are not paid in
+        // full (see RegenerateScheduleNoDuplicateRemainingTest), so a bare
+        // status update would no longer survive.
         $firstItem = PaymentScheduleItem::where('payable_id', $pi->id)
             ->orderBy('sort_order')
             ->first();
+        $payment = Payment::create([
+            'direction' => PaymentDirection::INBOUND,
+            'company_id' => $this->company->id,
+            'amount' => $firstItem->amount,
+            'currency_code' => 'USD',
+            'payment_date' => '2026-03-05',
+            'status' => PaymentStatus::APPROVED,
+        ]);
+        PaymentAllocation::create([
+            'payment_id' => $payment->id,
+            'payment_schedule_item_id' => $firstItem->id,
+            'allocated_amount' => $firstItem->amount,
+            'exchange_rate' => 1.0,
+            'allocated_amount_in_document_currency' => $firstItem->amount,
+        ]);
         $firstItem->update(['status' => PaymentScheduleStatus::PAID]);
 
         $pi->load('items');

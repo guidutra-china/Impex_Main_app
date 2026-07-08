@@ -676,9 +676,33 @@ class GeneratePaymentScheduleAction
             }
         }
 
+        $this->regeneratePoSchedulesForShipment($shipment);
+
         $this->syncAdditionalCosts($shipment);
 
         return $created;
+    }
+
+    /**
+     * Split shipped vs remaining on the supplier side (AP): regenerate the
+     * schedule of every PO that has items in this shipment. Without this,
+     * regenerating from the shipment only rebuilds the PI side and the PO
+     * ship-specific installments never appear (prod: SH-2026-00025 / PO-2026-00005).
+     */
+    protected function regeneratePoSchedulesForShipment(Shipment $shipment): void
+    {
+        $shipment->loadMissing(['items.purchaseOrderItem.purchaseOrder.paymentTerm.stages']);
+
+        $shipment->items
+            ->filter(fn ($item) => $item->purchaseOrderItem?->purchaseOrder)
+            ->groupBy(fn ($item) => $item->purchaseOrderItem->purchase_order_id)
+            ->each(function ($shipmentItems) {
+                $po = $shipmentItems->first()->purchaseOrderItem->purchaseOrder;
+
+                if ($po->paymentTerm && $po->hasPaymentSchedule()) {
+                    $this->regenerateShipmentItemsForPo($po);
+                }
+            });
     }
 
     public function regenerateForShipment(Shipment $shipment): int
@@ -808,6 +832,8 @@ class GeneratePaymentScheduleAction
                 $this->regenerateShipmentItemsForPi($pi);
             }
         }
+
+        $this->regeneratePoSchedulesForShipment($shipment);
 
         return $created;
     }
