@@ -69,6 +69,7 @@ class CompanyFinancialStatement extends Widget
         $rows = [];
         $totalInvoiced = 0;
         $totalPaid = 0;
+        $totalWaived = 0;
         $totalOverdue = 0;
 
         foreach ($invoices as $pi) {
@@ -76,13 +77,16 @@ class CompanyFinancialStatement extends Widget
             $total = $pi->total;
             $scheduleItems = $pi->paymentScheduleItems->where('is_credit', false);
             $paid = $scheduleItems->sum(fn ($i) => $i->paid_amount);
-            $remaining = max(0, $total - $paid);
+            // Parcela waived é dívida perdoada — sai do saldo em aberto.
+            $waived = $this->waivedOpen($scheduleItems);
+            $remaining = max(0, $total - $paid - $waived);
             $overdue = $scheduleItems
                 ->where('status', PaymentScheduleStatus::OVERDUE)
                 ->sum(fn ($i) => $i->remaining_amount);
 
             $totalInvoiced += $total;
             $totalPaid += $paid;
+            $totalWaived += $waived;
             $totalOverdue += $overdue;
 
             $rows[] = [
@@ -109,7 +113,7 @@ class CompanyFinancialStatement extends Widget
             'summary' => [
                 'total_invoiced' => Money::format($totalInvoiced),
                 'total_paid' => Money::format($totalPaid),
-                'total_remaining' => Money::format(max(0, $totalInvoiced - $totalPaid)),
+                'total_remaining' => Money::format(max(0, $totalInvoiced - $totalPaid - $totalWaived)),
                 'total_overdue' => $totalOverdue > 0 ? Money::format($totalOverdue) : null,
             ],
             'unallocated_payments' => $unallocatedPayments,
@@ -128,6 +132,7 @@ class CompanyFinancialStatement extends Widget
         $rows = [];
         $totalOrdered = 0;
         $totalPaid = 0;
+        $totalWaived = 0;
         $totalOverdue = 0;
 
         foreach ($orders as $po) {
@@ -135,13 +140,16 @@ class CompanyFinancialStatement extends Widget
             $total = $po->total;
             $scheduleItems = $po->paymentScheduleItems->where('is_credit', false);
             $paid = $scheduleItems->sum(fn ($i) => $i->paid_amount);
-            $remaining = max(0, $total - $paid);
+            // Parcela waived é dívida perdoada — sai do saldo em aberto.
+            $waived = $this->waivedOpen($scheduleItems);
+            $remaining = max(0, $total - $paid - $waived);
             $overdue = $scheduleItems
                 ->where('status', PaymentScheduleStatus::OVERDUE)
                 ->sum(fn ($i) => $i->remaining_amount);
 
             $totalOrdered += $total;
             $totalPaid += $paid;
+            $totalWaived += $waived;
             $totalOverdue += $overdue;
 
             $rows[] = [
@@ -168,7 +176,7 @@ class CompanyFinancialStatement extends Widget
             'summary' => [
                 'total_invoiced' => Money::format($totalOrdered),
                 'total_paid' => Money::format($totalPaid),
-                'total_remaining' => Money::format(max(0, $totalOrdered - $totalPaid)),
+                'total_remaining' => Money::format(max(0, $totalOrdered - $totalPaid - $totalWaived)),
                 'total_overdue' => $totalOverdue > 0 ? Money::format($totalOverdue) : null,
             ],
             'unallocated_payments' => $unallocatedPayments,
@@ -207,7 +215,7 @@ class CompanyFinancialStatement extends Widget
                 ->get();
 
             $paid = $paidItems->sum('paid_amount');
-            $remaining = max(0, $total - $paid);
+            $remaining = max(0, $total - $paid - $this->waivedOpen($paidItems));
             $overdue = $paidItems
                 ->where('status', PaymentScheduleStatus::OVERDUE)
                 ->sum(fn ($i) => $i->remaining_amount);
@@ -246,6 +254,17 @@ class CompanyFinancialStatement extends Widget
             'unallocated_payments' => $unallocatedPayments,
             'type' => 'forwarder',
         ];
+    }
+
+    /**
+     * Valor ainda em aberto das parcelas WAIVED — dívida perdoada que não
+     * deve constar no saldo restante.
+     */
+    private function waivedOpen($scheduleItems): int
+    {
+        return (int) $scheduleItems
+            ->where('status', PaymentScheduleStatus::WAIVED)
+            ->sum(fn ($i) => max(0, (int) $i->amount - (int) $i->paid_amount));
     }
 
     private function getUnallocatedPayments(int $companyId, PaymentDirection $direction): array

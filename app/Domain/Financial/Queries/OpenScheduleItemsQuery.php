@@ -116,6 +116,8 @@ final class OpenScheduleItemsQuery
         return PaymentScheduleItem::query()
             ->where('is_credit', false)
             ->whereIn('status', self::openStatuses())
+            // Documento pai cancelado → fora do balance, mesmo com parcela aberta.
+            ->payableNotCancelled()
             ->with(['payable', 'source', 'shipment']);
     }
 }

@@ -53,6 +53,8 @@ final class FinancialSummaryBuilder
     {
         return ProformaInvoice::query()
             ->where('company_id', $company->id)
+            // Documento cancelado não entra no balance, independente do statusScope.
+            ->where('status', '!=', 'cancelled')
             ->whereBetween('issue_date', [$filters->from->toDateString(), $filters->to->toDateString()])
             ->with(['items', 'paymentScheduleItems.allocations.payment'])
             ->get();
@@ -62,6 +64,8 @@ final class FinancialSummaryBuilder
     {
         return PurchaseOrder::query()
             ->where('supplier_company_id', $company->id)
+            // Documento cancelado não entra no balance, independente do statusScope.
+            ->where('status', '!=', 'cancelled')
             ->whereBetween('issue_date', [$filters->from->toDateString(), $filters->to->toDateString()])
             ->with(['items', 'paymentScheduleItems.allocations.payment'])
             ->get();
@@ -83,28 +87,44 @@ final class FinancialSummaryBuilder
 
             $total = (int) ($doc->grand_total ?? $doc->total ?? 0);
             $paid = (int) ($doc->schedule_paid_total ?? 0);
+            $waivedOpen = $this->waivedOpenAmount($doc);
 
             if (! isset($byCurrency[$currency])) {
-                $byCurrency[$currency] = ['invoiced' => 0, 'paid' => 0];
+                $byCurrency[$currency] = ['invoiced' => 0, 'paid' => 0, 'waived' => 0];
             }
 
             $byCurrency[$currency]['invoiced'] += $total;
             $byCurrency[$currency]['paid'] += $paid;
+            $byCurrency[$currency]['waived'] += $waivedOpen;
         }
 
         $result = [];
         foreach ($byCurrency as $currency => $vals) {
             $invoiced = $vals['invoiced'] / Money::SCALE;
             $paid = $vals['paid'] / Money::SCALE;
+            $waived = $vals['waived'] / Money::SCALE;
             $result[] = new CurrencyTotals(
                 currency: $currency,
                 invoiced: round($invoiced, 2),
                 paid: round($paid, 2),
-                open: round($invoiced - $paid, 2),
+                // Parcela waived é dívida perdoada — sai do saldo em aberto.
+                open: round($invoiced - $paid - $waived, 2),
             );
         }
 
         return $result;
+    }
+
+    /**
+     * Valor ainda em aberto das parcelas WAIVED (não-crédito) do documento —
+     * dívida perdoada que não deve constar no balance.
+     */
+    private function waivedOpenAmount(ProformaInvoice|PurchaseOrder $doc): int
+    {
+        return (int) $doc->paymentScheduleItems
+            ->where('is_credit', false)
+            ->where('status', \App\Domain\Financial\Enums\PaymentScheduleStatus::WAIVED)
+            ->sum(fn ($item) => max(0, (int) $item->amount - (int) $item->paid_amount));
     }
 
     /**
@@ -128,6 +148,11 @@ final class FinancialSummaryBuilder
 
             foreach ($doc->paymentScheduleItems as $item) {
                 if ($item->is_credit) {
+                    continue;
+                }
+
+                // Waived não envelhece: dívida perdoada fica fora do aging.
+                if ($item->status === \App\Domain\Financial\Enums\PaymentScheduleStatus::WAIVED) {
                     continue;
                 }
 

@@ -20,7 +20,7 @@ class CashFlowProjection extends Widget
 
     protected string $view = 'filament.widgets.cash-flow-projection';
 
-    protected int | string | array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 'full';
 
     public static function canView(): bool
     {
@@ -39,6 +39,7 @@ class CashFlowProjection extends Widget
         $periods = $this->buildPeriods();
 
         $pendingItems = PaymentScheduleItem::query()
+            ->payableNotCancelled()
             ->where('is_credit', false)
             ->whereNotIn('status', [
                 PaymentScheduleStatus::PAID->value,
@@ -163,37 +164,37 @@ class CashFlowProjection extends Widget
             ],
             [
                 'label' => __('widgets.cash_flow.this_week'),
-                'range' => $today->format('d/m') . ' – ' . $today->copy()->endOfWeek()->format('d/m'),
+                'range' => $today->format('d/m').' – '.$today->copy()->endOfWeek()->format('d/m'),
                 'start' => $today->copy(),
                 'end' => $today->copy()->endOfWeek()->endOfDay(),
             ],
             [
                 'label' => __('widgets.cash_flow.next_week'),
-                'range' => $today->copy()->addWeek()->startOfWeek()->format('d/m') . ' – ' . $today->copy()->addWeek()->endOfWeek()->format('d/m'),
+                'range' => $today->copy()->addWeek()->startOfWeek()->format('d/m').' – '.$today->copy()->addWeek()->endOfWeek()->format('d/m'),
                 'start' => $today->copy()->addWeek()->startOfWeek(),
                 'end' => $today->copy()->addWeek()->endOfWeek()->endOfDay(),
             ],
             [
                 'label' => '15 Days',
-                'range' => $today->copy()->addWeeks(2)->startOfWeek()->format('d/m') . ' – ' . $today->copy()->addDays(15)->format('d/m'),
+                'range' => $today->copy()->addWeeks(2)->startOfWeek()->format('d/m').' – '.$today->copy()->addDays(15)->format('d/m'),
                 'start' => $today->copy()->addWeeks(2)->startOfWeek(),
                 'end' => $today->copy()->addDays(15)->endOfDay(),
             ],
             [
                 'label' => '30 Days',
-                'range' => $today->copy()->addDays(16)->format('d/m') . ' – ' . $today->copy()->addDays(30)->format('d/m'),
+                'range' => $today->copy()->addDays(16)->format('d/m').' – '.$today->copy()->addDays(30)->format('d/m'),
                 'start' => $today->copy()->addDays(16),
                 'end' => $today->copy()->addDays(30)->endOfDay(),
             ],
             [
                 'label' => '60 Days',
-                'range' => $today->copy()->addDays(31)->format('d/m') . ' – ' . $today->copy()->addDays(60)->format('d/m'),
+                'range' => $today->copy()->addDays(31)->format('d/m').' – '.$today->copy()->addDays(60)->format('d/m'),
                 'start' => $today->copy()->addDays(31),
                 'end' => $today->copy()->addDays(60)->endOfDay(),
             ],
             [
                 'label' => '90 Days',
-                'range' => $today->copy()->addDays(61)->format('d/m') . ' – ' . $today->copy()->addDays(90)->format('d/m'),
+                'range' => $today->copy()->addDays(61)->format('d/m').' – '.$today->copy()->addDays(90)->format('d/m'),
                 'start' => $today->copy()->addDays(61),
                 'end' => $today->copy()->addDays(90)->endOfDay(),
             ],

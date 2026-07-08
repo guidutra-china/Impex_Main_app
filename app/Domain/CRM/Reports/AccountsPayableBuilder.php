@@ -36,7 +36,8 @@ final class AccountsPayableBuilder
                         ->whereHasMorph(
                             'payable',
                             [ProformaInvoice::class],
-                            fn ($sub) => $sub->where('company_id', $company->id),
+                            fn ($sub) => $sub->where('company_id', $company->id)
+                                ->where('status', '!=', 'cancelled'),
                         );
                 })->orWhere(function ($q) use ($company) {
                     // Shipment-level items: only include AdditionalCost-sourced
@@ -48,7 +49,8 @@ final class AccountsPayableBuilder
                         ->whereHasMorph(
                             'payable',
                             [Shipment::class],
-                            fn ($sub) => $sub->where('company_id', $company->id),
+                            fn ($sub) => $sub->where('company_id', $company->id)
+                                ->where('status', '!=', 'cancelled'),
                         );
                 });
             })

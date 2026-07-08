@@ -87,7 +87,7 @@ final class PoFinancialSectionBuilder implements FinancialSectionBuilder
                 'payment_term' => (string) ($po->paymentTerm?->name ?? ''),
                 'total' => round($total / Money::SCALE, 2),
                 'paid' => round($paid / Money::SCALE, 2),
-                'balance' => round(($total - $paid) / Money::SCALE, 2),
+                'balance' => round(\App\Domain\CRM\Reports\DocumentBalance::open($po, $total, $paid) / Money::SCALE, 2),
                 'currency' => (string) ($po->currency_code ?? ''),
             ];
 
@@ -105,7 +105,11 @@ final class PoFinancialSectionBuilder implements FinancialSectionBuilder
 
                 $itemAmount = (int) $item->amount;
                 $itemPaid = $this->computePaidAmount($item);
-                $itemRemaining = max(0, $itemAmount - $itemPaid);
+                // Cancelado/waived: nada mais é devido nesta parcela.
+                $itemRemaining = (\App\Domain\CRM\Reports\DocumentBalance::isCancelled($po)
+                    || $item->status === \App\Domain\Financial\Enums\PaymentScheduleStatus::WAIVED)
+                    ? 0
+                    : max(0, $itemAmount - $itemPaid);
 
                 $rows[] = [
                     '_row_type' => 'detail',

@@ -23,7 +23,7 @@ class FinancialStatsOverview extends Widget
 
     protected string $view = 'filament.widgets.financial-stats-overview';
 
-    protected int | string | array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 'full';
 
     public static function canView(): bool
     {
@@ -57,6 +57,7 @@ class FinancialStatsOverview extends Widget
         $piMorphClass = (new ProformaInvoice)->getMorphClass();
 
         $outstandingItems = PaymentScheduleItem::query()
+            ->payableNotCancelled()
             ->where('payable_type', $piMorphClass)
             ->where('is_credit', false)
             ->whereNotIn('status', [
@@ -68,6 +69,7 @@ class FinancialStatsOverview extends Widget
             ->pluck('total', 'currency_code');
 
         $overdueItems = PaymentScheduleItem::query()
+            ->payableNotCancelled()
             ->where('payable_type', $piMorphClass)
             ->where('is_credit', false)
             ->where('status', PaymentScheduleStatus::OVERDUE->value)
@@ -122,6 +124,7 @@ class FinancialStatsOverview extends Widget
         $poMorphClass = (new PurchaseOrder)->getMorphClass();
 
         $outstandingItems = PaymentScheduleItem::query()
+            ->payableNotCancelled()
             ->where('payable_type', $poMorphClass)
             ->where('is_credit', false)
             ->whereNotIn('status', [
@@ -133,6 +136,7 @@ class FinancialStatsOverview extends Widget
             ->pluck('total', 'currency_code');
 
         $overdueItems = PaymentScheduleItem::query()
+            ->payableNotCancelled()
             ->where('payable_type', $poMorphClass)
             ->where('is_credit', false)
             ->where('status', PaymentScheduleStatus::OVERDUE->value)
@@ -194,11 +198,12 @@ class FinancialStatsOverview extends Widget
             $alerts[] = [
                 'type' => 'warning',
                 'icon' => 'heroicon-o-clock',
-                'text' => $pendingApproval . ' payment' . ($pendingApproval > 1 ? 's' : '') . ' pending approval',
+                'text' => $pendingApproval.' payment'.($pendingApproval > 1 ? 's' : '').' pending approval',
             ];
         }
 
         $overdueCount = PaymentScheduleItem::query()
+            ->payableNotCancelled()
             ->where('is_credit', false)
             ->where('status', PaymentScheduleStatus::OVERDUE->value)
             ->count();
@@ -207,11 +212,12 @@ class FinancialStatsOverview extends Widget
             $alerts[] = [
                 'type' => 'danger',
                 'icon' => 'heroicon-o-exclamation-triangle',
-                'text' => $overdueCount . ' overdue payment' . ($overdueCount > 1 ? 's' : '') . ' across all documents',
+                'text' => $overdueCount.' overdue payment'.($overdueCount > 1 ? 's' : '').' across all documents',
             ];
         }
 
         $dueThisWeek = PaymentScheduleItem::query()
+            ->payableNotCancelled()
             ->where('is_credit', false)
             ->where('status', PaymentScheduleStatus::DUE->value)
             ->whereBetween('due_date', [now()->startOfDay(), now()->addDays(7)->endOfDay()])
@@ -221,7 +227,7 @@ class FinancialStatsOverview extends Widget
             $alerts[] = [
                 'type' => 'primary',
                 'icon' => 'heroicon-o-calendar',
-                'text' => $dueThisWeek . ' payment' . ($dueThisWeek > 1 ? 's' : '') . ' due this week',
+                'text' => $dueThisWeek.' payment'.($dueThisWeek > 1 ? 's' : '').' due this week',
             ];
         }
 
@@ -292,7 +298,7 @@ class FinancialStatsOverview extends Widget
 
         $unconvertedDisplay = [];
         foreach ($unconverted as $code => $amountMinor) {
-            $unconvertedDisplay[] = $code . ' ' . Money::format($amountMinor);
+            $unconvertedDisplay[] = $code.' '.Money::format($amountMinor);
         }
 
         return [
@@ -362,7 +368,7 @@ class FinancialStatsOverview extends Widget
 
         $unconvertedDisplay = [];
         foreach ($unconverted as $code => $amountMinor) {
-            $unconvertedDisplay[] = $code . ' ' . Money::format($amountMinor);
+            $unconvertedDisplay[] = $code.' '.Money::format($amountMinor);
         }
 
         return [

@@ -73,7 +73,7 @@ final class PiFinancialSectionBuilder implements FinancialSectionBuilder
                 'additional_costs' => round($additionalCosts / Money::SCALE, 2),
                 'grand_total' => round($grandTotal / Money::SCALE, 2),
                 'paid' => round($paid / Money::SCALE, 2),
-                'balance' => round(($grandTotal - $paid) / Money::SCALE, 2),
+                'balance' => round(\App\Domain\CRM\Reports\DocumentBalance::open($pi, $grandTotal, $paid) / Money::SCALE, 2),
                 'currency' => (string) ($pi->currency_code ?? ''),
             ];
 
@@ -91,7 +91,11 @@ final class PiFinancialSectionBuilder implements FinancialSectionBuilder
 
                 $itemAmount = (int) $item->amount;
                 $itemPaid = $this->computePaidAmount($item);
-                $itemRemaining = max(0, $itemAmount - $itemPaid);
+                // Cancelado/waived: nada mais é devido nesta parcela.
+                $itemRemaining = (\App\Domain\CRM\Reports\DocumentBalance::isCancelled($pi)
+                    || $item->status === \App\Domain\Financial\Enums\PaymentScheduleStatus::WAIVED)
+                    ? 0
+                    : max(0, $itemAmount - $itemPaid);
 
                 $label = $item->label ?? __('financial_report.columns.installment');
                 $enrichedLabel = $this->enrichInstallmentLabel((string) $label, $pi, $item->shipment);

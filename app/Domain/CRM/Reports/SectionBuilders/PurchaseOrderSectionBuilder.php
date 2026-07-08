@@ -12,9 +12,7 @@ use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 
 final class PurchaseOrderSectionBuilder implements SectionBuilder
 {
-    public function __construct(private readonly CompanyRole $role = CompanyRole::SUPPLIER)
-    {
-    }
+    public function __construct(private readonly CompanyRole $role = CompanyRole::SUPPLIER) {}
 
     public function key(): string
     {
@@ -62,7 +60,7 @@ final class PurchaseOrderSectionBuilder implements SectionBuilder
                     'payment_term' => (string) ($po->paymentTerm?->name ?? ''),
                     'total' => round($total / Money::SCALE, 2),
                     'paid' => round($paid / Money::SCALE, 2),
-                    'balance' => round(($total - $paid) / Money::SCALE, 2),
+                    'balance' => round(\App\Domain\CRM\Reports\DocumentBalance::open($po, $total, $paid) / Money::SCALE, 2),
                     'currency' => (string) ($po->currency_code ?? ''),
                 ];
             })

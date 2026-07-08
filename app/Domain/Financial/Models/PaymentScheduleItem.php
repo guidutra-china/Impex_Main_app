@@ -2,10 +2,13 @@
 
 namespace App\Domain\Financial\Models;
 
+use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Planning\Models\ShipmentPlan;
+use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\Settings\Enums\CalculationBase;
 use App\Domain\Settings\Models\PaymentTermStage;
 use App\Models\User;
@@ -66,6 +69,18 @@ class PaymentScheduleItem extends Model
         ];
     }
 
+    // --- Scopes ---
+
+    /**
+     * Exclui parcelas cujo documento pai (PI, PO, Shipment, Debit Note...) foi
+     * cancelado — valores de documentos cancelados não entram em nenhum balance
+     * ou relatório financeiro. Todos os payables têm coluna `status`.
+     */
+    public function scopePayableNotCancelled(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->whereHasMorph('payable', '*', fn ($q) => $q->where('status', '!=', 'cancelled'));
+    }
+
     // --- Relationships ---
 
     public function payable(): MorphTo
@@ -111,6 +126,57 @@ class PaymentScheduleItem extends Model
     public function creditAllocations(): HasMany
     {
         return $this->hasMany(PaymentAllocation::class, 'credit_schedule_item_id');
+    }
+
+    // --- Counterparty resolution ---
+
+    /**
+     * The company on the other side of this schedule item, resolved with the
+     * payment direction in mind:
+     *  - OUTBOUND (we pay): a supplier additional-cost lives under a Shipment
+     *    payable, but the party we pay is the cost's supplier; PO → supplier;
+     *    supplier DebitNote → its company.
+     *  - INBOUND (we receive): PI / client DebitNote / Shipment client cost all
+     *    resolve to the document's client company.
+     */
+    public function counterpartyCompanyId(PaymentDirection $direction): ?int
+    {
+        if ($direction === PaymentDirection::OUTBOUND
+            && $this->source instanceof AdditionalCost
+            && $this->source->supplier_company_id) {
+            return (int) $this->source->supplier_company_id;
+        }
+
+        $payable = $this->payable;
+
+        return match (true) {
+            $payable instanceof PurchaseOrder => $payable->supplier_company_id,
+            $payable instanceof ProformaInvoice,
+            $payable instanceof Shipment,
+            $payable instanceof DebitNote,
+            $payable instanceof CreditNote => $payable->company_id,
+            default => null,
+        };
+    }
+
+    public function counterpartyName(PaymentDirection $direction): ?string
+    {
+        if ($direction === PaymentDirection::OUTBOUND
+            && $this->source instanceof AdditionalCost
+            && $this->source->supplier_company_id) {
+            return $this->source->supplierCompany?->name;
+        }
+
+        $payable = $this->payable;
+
+        return match (true) {
+            $payable instanceof PurchaseOrder => $payable->supplierCompany?->name,
+            $payable instanceof ProformaInvoice,
+            $payable instanceof Shipment,
+            $payable instanceof DebitNote,
+            $payable instanceof CreditNote => $payable->company?->name,
+            default => null,
+        };
     }
 
     // --- Accessors ---

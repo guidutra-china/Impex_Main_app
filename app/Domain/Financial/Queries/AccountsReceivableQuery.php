@@ -62,6 +62,8 @@ final class AccountsReceivableQuery
         }
 
         $base = PaymentScheduleItem::query()
+            // Documento pai cancelado → fora do balance, mesmo com parcela aberta.
+            ->payableNotCancelled()
             ->where(function ($q) use ($poIds, $additionalCostIds, $debitNoteIds) {
                 if ($poIds->isNotEmpty()) {
                     $q->orWhere(function ($sub) use ($poIds) {

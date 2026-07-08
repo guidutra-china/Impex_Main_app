@@ -64,56 +64,56 @@ final class ProformaInvoiceSectionBuilder implements SectionBuilder
         $hasProduction = false;
 
         $rows = $pis->map(function (ProformaInvoice $pi) use (&$hasProduction) {
-                $total = (int) $pi->grand_total;
-                $paid = (int) $pi->schedule_paid_total;
+            $total = (int) $pi->grand_total;
+            $paid = (int) $pi->schedule_paid_total;
 
-                // Try production schedules first (detailed tracking)
-                $planned = 0;
-                $actual = 0;
-                foreach ($pi->productionSchedules as $schedule) {
-                    foreach ($schedule->entries as $entry) {
-                        $planned += (int) $entry->quantity;
-                        $actual += (int) $entry->actual_quantity;
-                    }
+            // Try production schedules first (detailed tracking)
+            $planned = 0;
+            $actual = 0;
+            foreach ($pi->productionSchedules as $schedule) {
+                foreach ($schedule->entries as $entry) {
+                    $planned += (int) $entry->quantity;
+                    $actual += (int) $entry->actual_quantity;
                 }
+            }
 
-                $production = null;
-                if ($planned > 0) {
-                    $hasProduction = true;
-                    $pct = min(100, round(($actual / $planned) * 100));
-                    $production = $pct . '%';
-                } elseif ($pi->purchaseOrders->isNotEmpty()) {
-                    // Fallback: use the most advanced PO status
-                    $statusPriority = [
-                        PurchaseOrderStatus::COMPLETED->value => 4,
-                        PurchaseOrderStatus::SHIPPED->value => 3,
-                        PurchaseOrderStatus::AWAITING_SHIPMENT->value => 2,
-                        PurchaseOrderStatus::IN_PRODUCTION->value => 1,
-                    ];
-
-                    $bestStatus = $pi->purchaseOrders
-                        ->sortByDesc(fn ($po) => $statusPriority[$po->status->value] ?? 0)
-                        ->first()
-                        ->status;
-
-                    $hasProduction = true;
-                    $production = $bestStatus->getLabel();
-                }
-
-                return [
-                    'number' => $pi->reference ?? (string) $pi->id,
-                    'client_reference' => (string) ($pi->client_reference ?? ''),
-                    'date' => optional($pi->issue_date)->format('Y-m-d'),
-                    'status' => $pi->status instanceof \BackedEnum ? $pi->status->value : (string) $pi->status,
-                    'incoterm' => $pi->incoterm instanceof \BackedEnum ? $pi->incoterm->value : (string) ($pi->incoterm ?? ''),
-                    'payment_term' => (string) ($pi->paymentTerm?->name ?? ''),
-                    'total' => round($total / Money::SCALE, 2),
-                    'paid' => round($paid / Money::SCALE, 2),
-                    'balance' => round(($total - $paid) / Money::SCALE, 2),
-                    'currency' => (string) ($pi->currency_code ?? ''),
-                    'production' => $production,
+            $production = null;
+            if ($planned > 0) {
+                $hasProduction = true;
+                $pct = min(100, round(($actual / $planned) * 100));
+                $production = $pct.'%';
+            } elseif ($pi->purchaseOrders->isNotEmpty()) {
+                // Fallback: use the most advanced PO status
+                $statusPriority = [
+                    PurchaseOrderStatus::COMPLETED->value => 4,
+                    PurchaseOrderStatus::SHIPPED->value => 3,
+                    PurchaseOrderStatus::AWAITING_SHIPMENT->value => 2,
+                    PurchaseOrderStatus::IN_PRODUCTION->value => 1,
                 ];
-            })
+
+                $bestStatus = $pi->purchaseOrders
+                    ->sortByDesc(fn ($po) => $statusPriority[$po->status->value] ?? 0)
+                    ->first()
+                    ->status;
+
+                $hasProduction = true;
+                $production = $bestStatus->getLabel();
+            }
+
+            return [
+                'number' => $pi->reference ?? (string) $pi->id,
+                'client_reference' => (string) ($pi->client_reference ?? ''),
+                'date' => optional($pi->issue_date)->format('Y-m-d'),
+                'status' => $pi->status instanceof \BackedEnum ? $pi->status->value : (string) $pi->status,
+                'incoterm' => $pi->incoterm instanceof \BackedEnum ? $pi->incoterm->value : (string) ($pi->incoterm ?? ''),
+                'payment_term' => (string) ($pi->paymentTerm?->name ?? ''),
+                'total' => round($total / Money::SCALE, 2),
+                'paid' => round($paid / Money::SCALE, 2),
+                'balance' => round(\App\Domain\CRM\Reports\DocumentBalance::open($pi, $total, $paid) / Money::SCALE, 2),
+                'currency' => (string) ($pi->currency_code ?? ''),
+                'production' => $production,
+            ];
+        })
             ->all();
 
         $columns = ['number', 'client_reference', 'date', 'status', 'incoterm', 'payment_term', 'total', 'paid', 'balance', 'currency'];
