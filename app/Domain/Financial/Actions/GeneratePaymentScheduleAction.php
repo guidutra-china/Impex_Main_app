@@ -8,7 +8,6 @@ use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Logistics\Models\Shipment;
-use App\Domain\Logistics\Models\ShipmentItem;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\Settings\Enums\CalculationBase;
@@ -152,12 +151,14 @@ class GeneratePaymentScheduleAction
         foreach ($paymentTerm->stages as $stage) {
             if ($stage->calculation_base?->isShipmentDependent()) {
                 $processed++;
+
                 continue;
             }
 
             // Skip if a surviving item already covers this stage
             if (in_array($stage->id, $existingStageIds)) {
                 $processed++;
+
                 continue;
             }
 
@@ -226,7 +227,7 @@ class GeneratePaymentScheduleAction
             ->whereNull('source_type')
             ->where(function ($q) {
                 $q->whereNotNull('shipment_id')
-                  ->orWhere('label', 'LIKE', '%[remaining]%');
+                    ->orWhere('label', 'LIKE', '%[remaining]%');
             })
             ->whereNotIn('status', [
                 PaymentScheduleStatus::PAID->value,
@@ -263,6 +264,11 @@ class GeneratePaymentScheduleAction
                     continue;
                 }
 
+                // Um [remaining] pago/alocado antes do shipment existir precisa
+                // ser PROMOVIDO a ship-specific — senão o create abaixo duplica
+                // a parcela (paga no [remaining] E pendente no ship-specific).
+                $this->promoteRemainingItemForShipment($piType, $pi->id, $stage, $shipment, $shipmentValue, $pi->reference);
+
                 // Check for surviving item (paid/waived/with allocations — not deleted above)
                 $existingItem = PaymentScheduleItem::where('payable_type', $piType)
                     ->where('payable_id', $pi->id)
@@ -274,6 +280,7 @@ class GeneratePaymentScheduleAction
                     // Update amount to match current shipment value
                     $correctAmount = (int) round($shipmentValue * ($stage->percentage / 100));
                     $existingItem->update(['amount' => $correctAmount]);
+
                     continue;
                 }
 
@@ -321,11 +328,12 @@ class GeneratePaymentScheduleAction
                 if ($existingRemaining) {
                     $correctAmount = (int) round($remainingValue * ($stage->percentage / 100));
                     $existingRemaining->update(['amount' => $correctAmount]);
+
                     continue;
                 }
 
                 $amount = (int) round($remainingValue * ($stage->percentage / 100));
-                $label = $this->generateShipmentLabel($stage, $pi->reference, null) . ' [remaining]';
+                $label = $this->generateShipmentLabel($stage, $pi->reference, null).' [remaining]';
 
                 PaymentScheduleItem::create([
                     'payable_type' => $piType,
@@ -387,7 +395,7 @@ class GeneratePaymentScheduleAction
             ->whereNull('source_type')
             ->where(function ($q) {
                 $q->whereNotNull('shipment_id')
-                  ->orWhere('label', 'LIKE', '%[remaining]%');
+                    ->orWhere('label', 'LIKE', '%[remaining]%');
             })
             ->whereNotIn('status', [
                 PaymentScheduleStatus::PAID->value,
@@ -423,6 +431,9 @@ class GeneratePaymentScheduleAction
                     continue;
                 }
 
+                // Mesma proteção do lado PI: promover [remaining] pago em vez de duplicar.
+                $this->promoteRemainingItemForShipment($poType, $po->id, $stage, $shipment, $shipmentValue, $po->reference);
+
                 $existingItem = PaymentScheduleItem::where('payable_type', $poType)
                     ->where('payable_id', $po->id)
                     ->where('shipment_id', $shipment->id)
@@ -432,6 +443,7 @@ class GeneratePaymentScheduleAction
                 if ($existingItem) {
                     $correctAmount = (int) round($shipmentValue * ($stage->percentage / 100));
                     $existingItem->update(['amount' => $correctAmount]);
+
                     continue;
                 }
 
@@ -477,11 +489,12 @@ class GeneratePaymentScheduleAction
                 if ($existingRemaining) {
                     $correctAmount = (int) round($remainingValue * ($stage->percentage / 100));
                     $existingRemaining->update(['amount' => $correctAmount]);
+
                     continue;
                 }
 
                 $amount = (int) round($remainingValue * ($stage->percentage / 100));
-                $label = $this->generateShipmentLabel($stage, $po->reference, null) . ' [remaining]';
+                $label = $this->generateShipmentLabel($stage, $po->reference, null).' [remaining]';
 
                 PaymentScheduleItem::create([
                     'payable_type' => $poType,
@@ -502,6 +515,76 @@ class GeneratePaymentScheduleAction
     }
 
     // ─── Shipment-specific: one schedule per PI ───
+
+    /**
+     * Promove um item [remaining] pago/alocado para ship-specific do shipment,
+     * em vez de deixar a regeneração criar uma duplicata pendente do mesmo
+     * stage. Mesma semântica de
+     * RecalculatePaymentScheduleForShipmentAction::promoteRemainingBaseItemsWithAllocations().
+     */
+    protected function promoteRemainingItemForShipment(
+        string $docType,
+        int $docId,
+        $stage,
+        Shipment $shipment,
+        int $shipmentValue,
+        string $docReference,
+    ): void {
+        if ($shipmentValue <= 0) {
+            return;
+        }
+
+        $remainingBase = PaymentScheduleItem::where('payable_type', $docType)
+            ->where('payable_id', $docId)
+            ->whereNull('shipment_id')
+            ->whereNull('source_type')
+            ->where('payment_term_stage_id', $stage->id)
+            ->where('label', 'LIKE', '%[remaining]%')
+            ->where(function ($q) {
+                $q->whereHas('allocations')
+                    ->orWhere('status', PaymentScheduleStatus::PAID->value);
+            })
+            ->first();
+
+        if (! $remainingBase) {
+            return;
+        }
+
+        // Só é seguro promover se nenhum outro shipment já reivindicou o stage.
+        $otherShipmentExists = PaymentScheduleItem::where('payable_type', $docType)
+            ->where('payable_id', $docId)
+            ->where('payment_term_stage_id', $stage->id)
+            ->whereNotNull('shipment_id')
+            ->where('shipment_id', '!=', $shipment->id)
+            ->exists();
+
+        if ($otherShipmentExists) {
+            return;
+        }
+
+        // Remove o ship-specific vazio deste shipment+stage, se existir — o
+        // [remaining] promovido passa a ser o canônico.
+        PaymentScheduleItem::where('payable_type', $docType)
+            ->where('payable_id', $docId)
+            ->where('shipment_id', $shipment->id)
+            ->where('payment_term_stage_id', $stage->id)
+            ->whereDoesntHave('allocations')
+            ->whereNotIn('status', [
+                PaymentScheduleStatus::PAID->value,
+                PaymentScheduleStatus::WAIVED->value,
+            ])
+            ->delete();
+
+        $remainingBase->update([
+            'shipment_id' => $shipment->id,
+            'amount' => (int) round($shipmentValue * ($stage->percentage / 100)),
+            'label' => $this->generateShipmentLabel($stage, $docReference, $shipment->reference),
+            'due_date' => $this->calculateShipmentDueDate($shipment, $stage),
+        ]);
+
+        $remainingBase->refresh();
+        $remainingBase->recalculateStatus();
+    }
 
     public function executeForShipment(Shipment $shipment): int
     {
@@ -526,6 +609,7 @@ class GeneratePaymentScheduleAction
             // Calculate value of this PI's items in this shipment
             $piValue = $shipmentItems->sum(function ($item) {
                 $piItem = $item->proformaInvoiceItem;
+
                 return $piItem ? $piItem->unit_price * $item->quantity : 0;
             });
 
@@ -551,7 +635,7 @@ class GeneratePaymentScheduleAction
                     ->where('payable_id', $shipment->id)
                     ->where('payment_term_stage_id', $stage->id)
                     ->whereNull('source_type')
-                    ->where('label', 'LIKE', '%/ ' . $pi->reference . ']%')
+                    ->where('label', 'LIKE', '%/ '.$pi->reference.']%')
                     ->first();
 
                 if ($existingItem) {
@@ -560,6 +644,7 @@ class GeneratePaymentScheduleAction
                         'due_date' => $dueDate,
                         'label' => $label,
                     ]);
+
                     continue;
                 }
 
@@ -655,6 +740,7 @@ class GeneratePaymentScheduleAction
 
             $piValue = $shipmentItems->sum(function ($item) {
                 $piItem = $item->proformaInvoiceItem;
+
                 return $piItem ? $piItem->unit_price * $item->quantity : 0;
             });
 
@@ -678,7 +764,7 @@ class GeneratePaymentScheduleAction
                 $existingItem = PaymentScheduleItem::where('payable_type', get_class($shipment))
                     ->where('payable_id', $shipment->id)
                     ->where('payment_term_stage_id', $stage->id)
-                    ->where('label', 'LIKE', '%/ ' . $pi->reference . ']%')
+                    ->where('label', 'LIKE', '%/ '.$pi->reference.']%')
                     ->first();
 
                 if ($existingItem) {
@@ -689,6 +775,7 @@ class GeneratePaymentScheduleAction
                         'amount' => $correctAmount,
                         'label' => $label,
                     ]);
+
                     continue;
                 }
 
@@ -1010,7 +1097,7 @@ class GeneratePaymentScheduleAction
 
     protected function generateLabel($stage): string
     {
-        $parts = [$stage->percentage . '%'];
+        $parts = [$stage->percentage.'%'];
 
         if ($stage->calculation_base) {
             $conditionLabel = $stage->calculation_base->getLabel();
@@ -1018,9 +1105,9 @@ class GeneratePaymentScheduleAction
         }
 
         if ($stage->days > 0) {
-            $parts[] = '(+' . $stage->days . ' days)';
+            $parts[] = '(+'.$stage->days.' days)';
         } elseif ($stage->days < 0) {
-            $parts[] = '(' . $stage->days . ' days)';
+            $parts[] = '('.$stage->days.' days)';
         }
 
         return implode(' — ', $parts);
@@ -1029,20 +1116,20 @@ class GeneratePaymentScheduleAction
     protected function generateShipmentLabel($stage, string $docReference, ?string $shipmentReference): string
     {
         $parts = [
-            $stage->percentage . '%',
+            $stage->percentage.'%',
             $stage->calculation_base->getLabel(),
         ];
 
         if ($stage->days > 0) {
-            $parts[] = '(+' . $stage->days . ' days)';
+            $parts[] = '(+'.$stage->days.' days)';
         } elseif ($stage->days < 0) {
-            $parts[] = '(' . $stage->days . ' days)';
+            $parts[] = '('.$stage->days.' days)';
         }
 
         if ($shipmentReference) {
-            $parts[] = '[' . $shipmentReference . ' / ' . $docReference . ']';
+            $parts[] = '['.$shipmentReference.' / '.$docReference.']';
         } else {
-            $parts[] = '[' . $docReference . ']';
+            $parts[] = '['.$docReference.']';
         }
 
         return implode(' — ', $parts);
