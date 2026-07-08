@@ -268,17 +268,62 @@ class ItemsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(function ($query) {
+                $companyId = $this->getOwnerRecord()->company_id;
+
+                // Só o pivot do cliente da inquiry — é dele que saem MODEL NO e descrição (mesma regra do CI/PL).
+                return $query->with([
+                    'product.companies' => fn ($q) => $q
+                        ->where('companies.id', $companyId)
+                        ->where('company_product.role', 'client'),
+                ]);
+            })
             ->columns([
+                \Filament\Tables\Columns\ImageColumn::make('product.avatar')
+                    ->label('')
+                    ->disk('public')
+                    ->circular()
+                    ->size(40)
+                    ->defaultImageUrl(fn () => 'https://ui-avatars.com/api/?background=e2e8f0&color=94a3b8&name=P&size=40')
+                    ->toggleable(),
                 TextColumn::make('product.sku')
                     ->label(__('forms.labels.sku'))
                     ->placeholder('—')
                     ->searchable()
                     ->badge()
-                    ->color(fn ($record) => $record->product?->status === ProductStatus::DRAFT ? 'warning' : 'gray'),
+                    ->color(fn ($record) => $record->product?->status === ProductStatus::DRAFT ? 'warning' : 'gray')
+                    ->toggleable(),
+                TextColumn::make('model_no')
+                    ->label(__('forms.labels.model_number'))
+                    // Mesma regra do CI/PL: código do cliente (pivot) > modelo > SKU.
+                    ->state(function ($record) {
+                        $product = $record->product;
+                        if (! $product) {
+                            return null;
+                        }
+
+                        $pivot = $product->companies->first()?->pivot;
+
+                        return $pivot?->external_code ?: ($product->model_number ?: $product->sku);
+                    })
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('displayName')
                     ->label(__('forms.labels.item'))
                     ->searchable(['description'])
-                    ->limit(40),
+                    ->limit(40)
+                    ->toggleable(),
+                TextColumn::make('model_description')
+                    ->label(__('forms.labels.description'))
+                    // Mesma regra do CI/PL: descrição do cliente (pivot) > descrição do produto.
+                    ->state(function ($record) {
+                        $pivot = $record->product?->companies->first()?->pivot;
+
+                        return $pivot?->external_description ?: $record->product?->description;
+                    })
+                    ->placeholder('—')
+                    ->limit(30)
+                    ->toggleable(),
 
                 // --- Inline editable columns ---
                 TextInputColumn::make('quantity')
@@ -287,11 +332,13 @@ class ItemsRelationManager extends RelationManager
                     ->inputMode('numeric')
                     ->step('1')
                     ->rules(['required', 'integer', 'min:1'])
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->toggleable(),
                 TextInputColumn::make('unit')
                     ->label(__('forms.labels.unit'))
                     ->rules(['required', 'max:20'])
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->toggleable(),
                 TextInputColumn::make('target_price')
                     ->label(__('forms.labels.target_price'))
                     ->type('number')
@@ -315,10 +362,12 @@ class ItemsRelationManager extends RelationManager
 
                         return number_format($floatValue, 4, '.', '');
                     })
-                    ->alignEnd(),
+                    ->alignEnd()
+                    ->toggleable(),
                 TextInputColumn::make('notes')
                     ->label(__('forms.labels.notes'))
-                    ->rules(['nullable', 'max:1000']),
+                    ->rules(['nullable', 'max:1000'])
+                    ->toggleable(),
                 TextColumn::make('specifications')
                     ->label(__('forms.labels.specs'))
                     ->limit(30)
