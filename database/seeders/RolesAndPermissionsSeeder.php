@@ -164,6 +164,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'view-operational-dashboard',
             'view-order-pipeline',
             'view-client-360',
+            'view-statements',
             'send-documents-by-email',
 
             // AI Assistant
