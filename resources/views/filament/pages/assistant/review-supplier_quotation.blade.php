@@ -4,6 +4,12 @@
     <p class="font-semibold">{{ __('assistant.preview_title') }}</p>
     <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ __('assistant.review_hint') }}</p>
 
+    @if ($importLockedInquiryId !== null)
+        <p class="mt-1 text-xs font-medium text-primary-700 dark:text-primary-300">
+            {{ __('assistant.sq_will_link_inquiry', ['inquiry' => $this->lockedInquiryLabel()]) }}
+        </p>
+    @endif
+
     {{-- Resumo --}}
     @php($novos = collect($form['itens'])->where('status', 'novo')->count())
     @php($semCat = collect($form['itens'])->filter(fn ($it) => blank($it['category_id'] ?? null))->count())
@@ -107,10 +113,8 @@
         <x-filament::button wire:click="cancelImport" color="gray" size="sm">
             {{ __('assistant.cancel') }}
         </x-filament::button>
-        @if ($importLockedInquiryId === null)
-            <x-filament::button wire:click="reopenTargetChooser" color="gray" size="sm" outlined>
-                {{ __('assistant.switch_target') }}
-            </x-filament::button>
-        @endif
+        <x-filament::button wire:click="reopenTargetChooser" color="gray" size="sm" outlined>
+            {{ __('assistant.switch_target') }}
+        </x-filament::button>
     </div>
 </div>

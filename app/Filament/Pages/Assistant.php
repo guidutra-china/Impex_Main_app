@@ -47,7 +47,9 @@ class Assistant extends Page
             return; // invalid/unauthorized param → normal assistant flow
         }
 
-        $this->importTargetKey = 'inquiry';
+        // A inquiry é CONTEXTO (o import ficará vinculado a ela), não decisão de
+        // destino: o classificador roda normalmente e o usuário ainda escolhe entre
+        // itens da inquiry ou cotação de fornecedor (vinculada à inquiry).
         $this->importLockedInquiryId = $inquiry->id;
         $this->messages[] = ['role' => 'assistant', 'text' => __('assistant.import_locked_inquiry', ['reference' => $inquiry->reference])];
     }

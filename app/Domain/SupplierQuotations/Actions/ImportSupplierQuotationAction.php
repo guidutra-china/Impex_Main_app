@@ -10,6 +10,7 @@ use App\Domain\Catalog\Models\ProductImage;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Enums\DocumentSourceType;
+use App\Domain\Inquiries\Models\Inquiry;
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
 use App\Domain\SupplierQuotations\Models\SupplierQuotation;
 use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
@@ -31,60 +32,78 @@ class ImportSupplierQuotationAction
 
     /**
      * @param  array<string,mixed>  $preview  output of ResolveSupplierQuotationDraft
+     * @param  ?int  $inquiryId  vincula a SQ criada a uma inquiry (entrada do
+     *                           assistant a partir de uma Inquiry)
      */
-    public function __invoke(array $preview, User $user, string $filePath, array $images = []): SupplierQuotation
+    public function __invoke(array $preview, User $user, string $filePath, array $images = [], ?int $inquiryId = null): SupplierQuotation
     {
         $this->authorize($preview, $user);
 
-        return DB::transaction(function () use ($preview, $user, $filePath, $images) {
-            $company = $this->resolveSupplier($preview['fornecedor'], $preview['fornecedor_dados'] ?? []);
+        // Valida fora da transação: id inválido deve falhar antes de qualquer escrita.
+        $inquiry = $inquiryId !== null ? Inquiry::findOrFail($inquiryId) : null;
 
-            $sq = SupplierQuotation::create([
-                'company_id' => $company->id,
-                'status' => SupplierQuotationStatus::RECEIVED,
-                'currency_code' => $this->cap($preview['cabecalho']['currency_code'] ?? 'USD', 10),
-                'supplier_reference' => $this->cap($preview['cabecalho']['supplier_reference'] ?? null, 100),
-                'incoterm' => $this->cap($preview['cabecalho']['incoterm'] ?? null, 20),
-                'lead_time_days' => $preview['cabecalho']['lead_time_days'] ?? null,
-                'moq' => $preview['cabecalho']['moq'] ?? null,
-                'valid_until' => $preview['cabecalho']['valid_until'] ?? null,
-                'notes' => $preview['cabecalho']['notes'] ?? null,
-                'created_by' => $user->id,
-            ]);
+        $storedPath = null;
 
-            $createdByRef = [];
+        try {
+            return DB::transaction(function () use ($preview, $user, $filePath, $images, $inquiry, &$storedPath) {
+                $company = $this->resolveSupplier($preview['fornecedor'], $preview['fornecedor_dados'] ?? []);
 
-            foreach (array_values($preview['itens']) as $index => $item) {
-                $product = $this->resolveProduct($item, $company, $createdByRef);
-
-                $this->attachProductPhoto($product, $this->photoItemKey($item, $index), $images);
-
-                SupplierQuotationItem::create([
-                    'supplier_quotation_id' => $sq->id,
-                    'product_id' => $product?->id,
-                    'description' => $this->cap($item['description'], 500),
-                    'quantity' => $item['quantity'],
-                    // `unit` is NOT NULL; the extractor may omit it, so fall back to a neutral default.
-                    'unit' => $this->cap(($item['unit'] ?? null) ?: 'pcs', 20),
-                    'unit_cost' => $item['unit_cost_minor'],
-                    'specifications' => $item['specifications'] ?? null,
-                    'moq' => $item['moq'] ?? null,
-                    'lead_time_days' => $item['lead_time_days'] ?? null,
-                    'notes' => $item['notes'] ?? null,
-                    'sort_order' => $index,
+                $sq = SupplierQuotation::create([
+                    'inquiry_id' => $inquiry?->id,
+                    'company_id' => $company->id,
+                    'status' => SupplierQuotationStatus::RECEIVED,
+                    'currency_code' => $this->cap($preview['cabecalho']['currency_code'] ?? 'USD', 10),
+                    'supplier_reference' => $this->cap($preview['cabecalho']['supplier_reference'] ?? null, 100),
+                    'incoterm' => $this->cap($preview['cabecalho']['incoterm'] ?? null, 20),
+                    'lead_time_days' => $preview['cabecalho']['lead_time_days'] ?? null,
+                    'moq' => $preview['cabecalho']['moq'] ?? null,
+                    'valid_until' => $preview['cabecalho']['valid_until'] ?? null,
+                    'notes' => $preview['cabecalho']['notes'] ?? null,
+                    'created_by' => $user->id,
                 ]);
+
+                $createdByRef = [];
+
+                foreach (array_values($preview['itens']) as $index => $item) {
+                    $product = $this->resolveProduct($item, $company, $createdByRef);
+
+                    $this->attachProductPhoto($product, $this->photoItemKey($item, $index), $images);
+
+                    SupplierQuotationItem::create([
+                        'supplier_quotation_id' => $sq->id,
+                        'product_id' => $product?->id,
+                        'description' => $this->cap($item['description'], 500),
+                        'quantity' => $item['quantity'],
+                        // `unit` is NOT NULL; the extractor may omit it, so fall back to a neutral default.
+                        'unit' => $this->cap(($item['unit'] ?? null) ?: 'pcs', 20),
+                        'unit_cost' => $item['unit_cost_minor'],
+                        'specifications' => $item['specifications'] ?? null,
+                        'moq' => $item['moq'] ?? null,
+                        'lead_time_days' => $item['lead_time_days'] ?? null,
+                        'notes' => $item['notes'] ?? null,
+                        'sort_order' => $index,
+                    ]);
+                }
+
+                $this->attachSourceFile($sq, $filePath, $user, $storedPath);
+
+                activity('ai-assistant')
+                    ->causedBy($user)
+                    ->performedOn($sq)
+                    ->withProperties(['itens' => count($preview['itens'])])
+                    ->log('supplier_quotation_imported');
+
+                return $sq;
+            });
+        } catch (\Throwable $e) {
+            // Storage writes are not transactional: the rollback undid the quotation and
+            // its Document row, so delete the copied source file too.
+            if ($storedPath !== null) {
+                Storage::disk('local')->delete($storedPath);
             }
 
-            $this->attachSourceFile($sq, $filePath, $user);
-
-            activity('ai-assistant')
-                ->causedBy($user)
-                ->performedOn($sq)
-                ->withProperties(['itens' => count($preview['itens'])])
-                ->log('supplier_quotation_imported');
-
-            return $sq;
-        });
+            throw $e;
+        }
     }
 
     /**
@@ -325,12 +344,17 @@ class ImportSupplierQuotationAction
         }
     }
 
-    private function attachSourceFile(SupplierQuotation $sq, string $filePath, User $user): void
+    /**
+     * @param  ?string  $storedPath  set to the stored file path right after the copy,
+     *                               so the caller can clean it up on rollback
+     */
+    private function attachSourceFile(SupplierQuotation $sq, string $filePath, User $user, ?string &$storedPath): void
     {
         $disk = 'local';
         $name = basename($filePath);
         $stored = "supplier-quotations/{$sq->id}/{$name}";
         Storage::disk($disk)->put($stored, (string) file_get_contents($filePath));
+        $storedPath = $stored;
 
         $sq->documents()->create([
             'type' => 'supplier_quotation_source',

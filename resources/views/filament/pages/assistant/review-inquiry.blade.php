@@ -1,4 +1,5 @@
-<div class="rounded-xl border border-primary-300 bg-primary-50 p-4 text-sm dark:border-primary-700 dark:bg-primary-950/40">
+<div class="rounded-xl border border-primary-300 bg-primary-50 p-4 text-sm dark:border-primary-700 dark:bg-primary-950/40"
+     x-data="{ gallery: null }">
     <p class="font-semibold">{{ __('assistant.preview_title') }}</p>
     <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ __('assistant.review_hint') }}</p>
 
@@ -67,6 +68,7 @@
         <table class="w-full text-left text-xs">
             <thead class="sticky top-0 bg-gray-50 dark:bg-white/5">
                 <tr>
+                    <th class="px-2 py-1">{{ __('assistant.col.photo') }}</th>
                     <th class="px-2 py-1">{{ __('assistant.col.part_no') }}</th>
                     <th class="px-2 py-1">{{ __('assistant.col.description') }}</th>
                     <th class="px-2 py-1 text-right">{{ __('assistant.col.qty') }}</th>
@@ -78,6 +80,17 @@
             <tbody>
                 @foreach ($form['itens'] as $i => $item)
                     <tr class="border-t border-gray-100 align-top dark:border-white/5" wire:key="inq-item-{{ $i }}">
+                        <td class="px-2 py-1">
+                            @php($thumb = ($item['photo_index'] ?? null) !== null ? $this->importImageThumb($item['photo_index']) : null)
+                            <button type="button" x-on:click="gallery = (gallery === {{ $i }} ? null : {{ $i }})"
+                                    class="flex h-12 w-12 items-center justify-center overflow-hidden rounded border border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/5">
+                                @if ($thumb)
+                                    <img src="{{ $thumb }}" class="h-full w-full object-cover" alt="" />
+                                @else
+                                    <span class="text-gray-400">＋</span>
+                                @endif
+                            </button>
+                        </td>
                         <td class="px-2 py-1"><input type="text" wire:model="form.itens.{{ $i }}.part_no" class="w-24 rounded border-gray-300 text-xs dark:bg-gray-900 dark:border-white/10" /></td>
                         <td class="px-2 py-1"><input type="text" wire:model="form.itens.{{ $i }}.description" class="w-full min-w-[12rem] rounded border-gray-300 text-xs dark:bg-gray-900 dark:border-white/10" /></td>
                         <td class="px-2 py-1 text-right"><input type="number" wire:model="form.itens.{{ $i }}.quantity" class="w-16 rounded border-gray-300 text-right text-xs dark:bg-gray-900 dark:border-white/10" /></td>
@@ -94,6 +107,22 @@
         </table>
     </div>
 
+    {{-- Galeria única do pool: aberta ao clicar a foto de um item (gallery = índice do item) --}}
+    <div x-show="gallery !== null" x-cloak class="mt-2 rounded border border-gray-200 bg-gray-50 p-2 dark:border-white/10 dark:bg-white/5">
+        <div class="flex flex-wrap gap-2">
+            <button type="button" x-on:click="$wire.setItemPhoto(gallery, null); gallery = null"
+                    class="flex h-16 w-16 items-center justify-center rounded border border-dashed border-gray-300 text-xs text-gray-500 dark:border-white/15">
+                {{ __('assistant.photo_none') }}
+            </button>
+            @foreach ($importImagePool as $poolEntry)
+                <button type="button" x-on:click="$wire.setItemPhoto(gallery, {{ $poolEntry['id'] }}); gallery = null"
+                        class="h-16 w-16 overflow-hidden rounded border border-gray-200 dark:border-white/10">
+                    <img src="{{ $this->importImageThumb($poolEntry['id']) }}" class="h-full w-full object-cover" alt="" loading="lazy" />
+                </button>
+            @endforeach
+        </div>
+    </div>
+
     <div class="mt-3 flex gap-2">
         <x-filament::button wire:click="confirmImport" wire:loading.attr="disabled" wire:target="confirmImport" color="primary" size="sm">
             {{ __('assistant.confirm_import') }}
@@ -101,10 +130,8 @@
         <x-filament::button wire:click="cancelImport" color="gray" size="sm">
             {{ __('assistant.cancel') }}
         </x-filament::button>
-        @if ($importLockedInquiryId === null)
-            <x-filament::button wire:click="reopenTargetChooser" color="gray" size="sm" outlined>
-                {{ __('assistant.switch_target') }}
-            </x-filament::button>
-        @endif
+        <x-filament::button wire:click="reopenTargetChooser" color="gray" size="sm" outlined>
+            {{ __('assistant.switch_target') }}
+        </x-filament::button>
     </div>
 </div>

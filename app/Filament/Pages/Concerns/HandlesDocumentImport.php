@@ -158,7 +158,7 @@ trait HandlesDocumentImport
     /** Re-open the destination chooser for the current file (discards the extraction). */
     public function reopenTargetChooser(): void
     {
-        if ($this->importFilePath === null || $this->importLockedInquiryId !== null) {
+        if ($this->importFilePath === null) {
             return;
         }
 
@@ -345,7 +345,11 @@ trait HandlesDocumentImport
 
         try {
             ['preview' => $preview, 'images' => $images] = $target->formToConfirmPayload($this->form, $this->importImagePool);
-            $result = $target->confirm($preview, auth()->user(), $this->importFilePath, $images);
+            $result = $target->confirm($preview, auth()->user(), $this->importFilePath, $images, [
+                // Entrada via inquiry: o destino escolhido deve nascer vinculado a ela
+                // (o target de inquiry usa o form; o de SQ grava o inquiry_id).
+                'inquiry_id' => $this->importLockedInquiryId,
+            ]);
 
             Notification::make()->title(__('assistant.imported_title', ['reference' => $result['reference']]))->success()->send();
             $this->messages[] = ['role' => 'assistant', 'text' => __('assistant.imported_generic', ['reference' => $result['reference'], 'count' => $result['count']])];
@@ -368,9 +372,9 @@ trait HandlesDocumentImport
         $this->importPreview = null;
         $this->importDraft = null;
         $this->importSuggestion = null;
-        if ($this->importLockedInquiryId === null) {
-            $this->importTargetKey = null;
-        }
+        // O lock da inquiry sobrevive (próximo upload continua vinculado a ela),
+        // mas o destino volta a ser escolhido por documento.
+        $this->importTargetKey = null;
         $this->dispatch('assistant-updated');
     }
 
@@ -383,10 +387,8 @@ trait HandlesDocumentImport
         $this->form = null;
         $this->upload = null;
         $this->importSuggestion = null;
-        // Entry-point lock survives cancel so the next upload still goes to the inquiry.
-        if ($this->importLockedInquiryId === null) {
-            $this->importTargetKey = null;
-        }
+        // O lock da inquiry sobrevive ao cancel; o destino é re-escolhido por documento.
+        $this->importTargetKey = null;
     }
 
     /**

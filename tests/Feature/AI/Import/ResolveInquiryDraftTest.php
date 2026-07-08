@@ -44,6 +44,21 @@ class ResolveInquiryDraftTest extends TestCase
         $this->assertSame('USD '.\App\Domain\Infrastructure\Support\Money::format(\App\Domain\Infrastructure\Support\Money::toMinor(250.5) * 3), $preview['resumo']['total_estimado']);
     }
 
+    public function test_matches_product_by_sku_too(): void
+    {
+        $product = Product::factory()->create(['sku' => 'GYM-00029', 'reference_code' => null, 'model_number' => 'LT012']);
+
+        $preview = app(ResolveInquiryDraft::class)->resolve([
+            'cliente' => ['nome' => '', 'currency_code' => 'USD'],
+            'itens' => [
+                ['part_no' => 'GYM-00029', 'description' => 'Lat Pull Down', 'quantity' => 1],
+            ],
+        ]);
+
+        $this->assertSame('existente', $preview['itens'][0]['status']);
+        $this->assertSame($product->id, $preview['itens'][0]['product_id']);
+    }
+
     public function test_unknown_client_is_marked_new(): void
     {
         $preview = app(ResolveInquiryDraft::class)->resolve([

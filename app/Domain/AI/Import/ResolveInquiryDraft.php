@@ -68,7 +68,10 @@ class ResolveInquiryDraft
     {
         $partNo = trim((string) ($item['part_no'] ?? ''));
         $product = $partNo !== ''
-            ? Product::where('reference_code', $partNo)->orWhere('model_number', $partNo)->first()
+            ? Product::where('reference_code', $partNo)
+                ->orWhere('model_number', $partNo)
+                ->orWhere('sku', $partNo)
+                ->first()
             : null;
 
         $targetPrice = $item['target_price'] ?? null;

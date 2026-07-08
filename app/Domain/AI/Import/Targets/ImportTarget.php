@@ -77,7 +77,9 @@ interface ImportTarget
      *
      * @param  array<string,mixed>  $preview
      * @param  array<string,string>  $images  item key => absolute temp path
+     * @param  array<string,mixed>  $context  entry-point context (e.g. inquiry_id when
+     *                                        the assistant was opened from an Inquiry)
      * @return array{reference:string,count:int}
      */
-    public function confirm(array $preview, User $user, string $filePath, array $images): array;
+    public function confirm(array $preview, User $user, string $filePath, array $images, array $context = []): array;
 }

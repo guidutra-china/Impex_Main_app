@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Domain\Inquiries\Actions;
 
+use App\Domain\Catalog\Enums\ProductStatus;
+use App\Domain\Catalog\Models\Product;
+use App\Domain\Catalog\Models\ProductImage;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Enums\DocumentSourceType;
@@ -19,23 +22,25 @@ use Illuminate\Support\Facades\Storage;
 /**
  * Commits a resolved inquiry preview: creates a new Inquiry (finding/creating the
  * client) or appends items to an open existing one, and attaches the source file.
- * Products are only linked, never created — unmatched items keep product_id null,
- * mirroring the deterministic Excel import. Deterministic, transactional,
+ * Unmatched items WITH a part number get a DRAFT product created (same behavior as
+ * the manual add-item flow) so the extracted model code is never lost — items
+ * without any code keep product_id null. Deterministic, transactional,
  * permission-gated — triggered by the user's explicit confirmation, never by the model.
  */
 class ImportInquiryAction
 {
     /**
      * @param  array<string,mixed>  $preview  output of InquiryTarget::formToConfirmPayload()
+     * @param  array<string,string>  $images  item key (part_no ou "idx:N") => caminho absoluto temporário
      */
-    public function __invoke(array $preview, User $user, string $filePath): Inquiry
+    public function __invoke(array $preview, User $user, string $filePath, array $images = []): Inquiry
     {
         $this->authorize($preview, $user);
 
         $storedPath = null;
 
         try {
-            return DB::transaction(function () use ($preview, $user, $filePath, &$storedPath) {
+            return DB::transaction(function () use ($preview, $user, $filePath, $images, &$storedPath) {
                 $inquiry = ($preview['modo'] ?? 'nova') === 'existente'
                     ? $this->existingInquiry($preview)
                     : $this->createInquiry($preview, $user);
@@ -45,9 +50,15 @@ class ImportInquiryAction
                     : 0;
 
                 foreach (array_values($preview['itens']) as $index => $item) {
+                    $product = isset($item['product_id']) && $item['product_id']
+                        ? Product::find($item['product_id'])
+                        : $this->createDraftProduct($item);
+
+                    $this->attachProductPhoto($product, $this->photoItemKey($item, $index), $images);
+
                     InquiryItem::create([
                         'inquiry_id' => $inquiry->id,
-                        'product_id' => $item['product_id'] ?? null,
+                        'product_id' => $product?->id,
                         // `description` is varchar(255) — cap so extracted text never breaks the insert.
                         'description' => $this->cap($item['description'] ?? null, 255),
                         'quantity' => max(1, (int) ($item['quantity'] ?? 1)),
@@ -158,6 +169,92 @@ class ImportInquiryAction
         }
 
         return $company;
+    }
+
+    /**
+     * Item extraído com código de modelo mas sem match no catálogo: cria um
+     * produto DRAFT (mesmo comportamento do fluxo manual de adicionar item).
+     * Antes o part_no era usado só no match e descartado — os itens ficavam
+     * órfãos de produto e o código se perdia (casos INQ-2026-00063/00071).
+     *
+     * @param  array<string,mixed>  $item
+     */
+    private function createDraftProduct(array $item): ?Product
+    {
+        $partNo = trim((string) ($item['part_no'] ?? ''));
+
+        if ($partNo === '') {
+            return null;
+        }
+
+        // Revalida contra o catálogo (o preview pode estar defasado, e o mesmo
+        // código pode repetir dentro do próprio import) antes de criar.
+        $existing = Product::where('reference_code', $partNo)
+            ->orWhere('model_number', $partNo)
+            ->orWhere('sku', $partNo)
+            ->first();
+
+        if ($existing) {
+            return $existing;
+        }
+
+        return Product::create([
+            'name' => $this->cap(filled($item['description'] ?? null) ? (string) $item['description'] : $partNo, 255),
+            'model_number' => $this->cap($partNo, 255),
+            'status' => ProductStatus::DRAFT,
+        ]);
+    }
+
+    private function photoItemKey(array $item, int $index): string
+    {
+        $partNo = trim((string) ($item['part_no'] ?? ''));
+
+        return $partNo !== '' ? $partNo : 'idx:'.$index;
+    }
+
+    /**
+     * Anexa a foto extraída do documento ao produto (criado ou já existente sem
+     * fotos) — mesma mecânica do import de cotação de fornecedor.
+     *
+     * @param  array<string,string>  $images
+     */
+    private function attachProductPhoto(?Product $product, string $key, array $images): void
+    {
+        if ($product === null || ! isset($images[$key])) {
+            return;
+        }
+
+        if ($product->images()->exists()) {
+            return; // já tem foto
+        }
+
+        try {
+            $source = $images[$key];
+            if (! is_file($source)) {
+                return;
+            }
+            $ext = pathinfo($source, PATHINFO_EXTENSION) ?: 'png';
+            $stored = "product-images/{$product->id}/".\Illuminate\Support\Str::uuid()->toString().'.'.$ext;
+            Storage::disk('public')->put($stored, (string) file_get_contents($source));
+
+            ProductImage::create([
+                'product_id' => $product->id,
+                'disk' => 'public',
+                'path' => $stored,
+                'sort_order' => 0,
+                'is_primary' => true,
+                'original_name' => basename($source),
+                'size' => Storage::disk('public')->size($stored),
+            ]);
+
+            // The product avatar/list still reads `products.avatar` (public disk);
+            // point it at the primary image so the photo shows there too.
+            if (blank($product->avatar)) {
+                $product->update(['avatar' => $stored]);
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     /** Cap a string to a column max length (null-safe). */

@@ -6,6 +6,7 @@ namespace Tests\Feature\AI\Import;
 
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
+use App\Domain\Infrastructure\Models\Document;
 use App\Domain\SupplierQuotations\Actions\ImportSupplierQuotationAction;
 use App\Domain\SupplierQuotations\Models\SupplierQuotation;
 use App\Models\User;
@@ -69,6 +70,29 @@ class ImportSupplierQuotationActionTest extends TestCase
         $this->assertTrue($product->suppliers()->where('companies.id', $sq->company_id)->exists());
 
         $this->assertSame(1, $sq->documents()->count());
+    }
+
+    public function test_links_created_sq_to_inquiry_when_entry_context_given(): void
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo(['create-supplier-quotations', 'create-companies', 'create-products']);
+
+        $inquiry = \App\Domain\Inquiries\Models\Inquiry::factory()->create();
+
+        $sq = (new ImportSupplierQuotationAction)($this->previewWithNewSupplierAndProduct(), $user, $this->fakeFile(), [], $inquiry->id);
+
+        $this->assertSame($inquiry->id, $sq->inquiry_id);
+
+        // Sem contexto, continua sem vínculo.
+        $freePreview = $this->previewWithNewSupplierAndProduct();
+        $freePreview['fornecedor']['nome'] = 'Outra Fornecedora Ltd';
+        $freePreview['itens'][0]['part_no'] = 'AH223015';
+        $free = (new ImportSupplierQuotationAction)($freePreview, $user, $this->fakeFile());
+        $this->assertNull($free->inquiry_id);
+
+        // Inquiry inexistente falha antes de gravar qualquer coisa.
+        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        (new ImportSupplierQuotationAction)($this->previewWithNewSupplierAndProduct(), $user, $this->fakeFile(), [], 999999);
     }
 
     public function test_new_product_uses_matched_category_and_prefixed_sku(): void
@@ -231,5 +255,25 @@ class ImportSupplierQuotationActionTest extends TestCase
         $this->assertSame('+86 ORIGINAL', $existing->phone);
         $this->assertSame('filled@x.com', $existing->email);
         $this->assertTrue($existing->hasRole(\App\Domain\CRM\Enums\CompanyRole::SUPPLIER));
+    }
+
+    public function test_rollback_after_file_copy_leaves_no_orphan_file(): void
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo(['create-supplier-quotations', 'create-companies', 'create-products']);
+
+        // Fail the documents()->create() that runs right after the Storage::put,
+        // forcing the transaction to roll back with the file already copied.
+        Document::creating(fn () => throw new \RuntimeException('doc create failed'));
+
+        try {
+            (new ImportSupplierQuotationAction)($this->previewWithNewSupplierAndProduct(), $user, $this->fakeFile());
+            $this->fail('Expected RuntimeException was not thrown.');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('doc create failed', $e->getMessage());
+        }
+
+        $this->assertDatabaseCount('supplier_quotations', 0);
+        $this->assertSame([], Storage::disk('local')->allFiles());
     }
 }

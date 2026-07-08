@@ -191,9 +191,11 @@ class SupplierQuotationTarget implements ImportTarget
         ];
     }
 
-    public function confirm(array $preview, User $user, string $filePath, array $images): array
+    public function confirm(array $preview, User $user, string $filePath, array $images, array $context = []): array
     {
-        $sq = app(ImportSupplierQuotationAction::class)($preview, $user, $filePath, $images);
+        $inquiryId = isset($context['inquiry_id']) ? (int) $context['inquiry_id'] : null;
+
+        $sq = app(ImportSupplierQuotationAction::class)($preview, $user, $filePath, $images, $inquiryId ?: null);
 
         return ['reference' => (string) $sq->reference, 'count' => count($preview['itens'])];
     }

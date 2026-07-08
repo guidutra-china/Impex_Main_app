@@ -68,6 +68,57 @@ class ImportInquiryActionTest extends TestCase
         $this->assertSame(1, $inquiry->documents()->where('type', 'inquiry_source')->count());
     }
 
+    public function test_unmatched_item_with_part_no_creates_draft_product(): void
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo(['create-inquiries', 'create-companies']);
+
+        $inquiry = app(ImportInquiryAction::class)($this->previewNova([
+            'itens' => [
+                ['status' => 'novo', 'product_id' => null, 'part_no' => 'SQ-1043', 'description' => 'Fitness equipment (air rower)', 'quantity' => 5, 'unit' => 'pcs', 'target_price_minor' => 1050000, 'specifications' => null, 'notes' => null],
+                // Repetição do mesmo código no import não pode duplicar o produto.
+                ['status' => 'novo', 'product_id' => null, 'part_no' => 'SQ-1043', 'description' => 'Fitness equipment (air rower)', 'quantity' => 2, 'unit' => 'pcs', 'target_price_minor' => null, 'specifications' => null, 'notes' => null],
+                // Sem part_no: continua sem produto, como antes.
+                ['status' => 'novo', 'product_id' => null, 'part_no' => null, 'description' => 'Frete marítimo', 'quantity' => 1, 'unit' => 'pcs', 'target_price_minor' => null, 'specifications' => null, 'notes' => null],
+            ],
+        ]), $user, $this->tempFile);
+
+        $product = \App\Domain\Catalog\Models\Product::where('model_number', 'SQ-1043')->first();
+        $this->assertNotNull($product, 'draft product must be created from the part number');
+        $this->assertSame(\App\Domain\Catalog\Enums\ProductStatus::DRAFT, $product->status);
+        $this->assertSame('Fitness equipment (air rower)', $product->name);
+        $this->assertSame(1, \App\Domain\Catalog\Models\Product::where('model_number', 'SQ-1043')->count());
+
+        $items = $inquiry->items()->orderBy('sort_order')->get();
+        $this->assertSame($product->id, $items[0]->product_id);
+        $this->assertSame($product->id, $items[1]->product_id);
+        $this->assertNull($items[2]->product_id);
+    }
+
+    public function test_attaches_document_photo_to_created_draft_product(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+        $user = User::factory()->create();
+        $user->givePermissionTo(['create-inquiries', 'create-companies']);
+
+        $img = storage_path('app/ai-inquiry-photo.png');
+        @mkdir(dirname($img), 0775, true);
+        file_put_contents($img, 'PNGDATA');
+
+        $inquiry = app(ImportInquiryAction::class)($this->previewNova([
+            'itens' => [
+                ['status' => 'novo', 'product_id' => null, 'part_no' => 'SQ-1033', 'description' => 'Air bike', 'quantity' => 5, 'unit' => 'pcs', 'target_price_minor' => 1600000, 'specifications' => null, 'notes' => null],
+            ],
+        ]), $user, $this->tempFile, ['SQ-1033' => $img]);
+
+        $product = $inquiry->items()->first()->product;
+        $this->assertNotNull($product);
+        $this->assertSame(1, $product->images()->count());
+        // O avatar (usado nas listas/cards) também aponta para a foto.
+        $this->assertStringStartsWith('product-images/', (string) $product->avatar);
+        @unlink($img);
+    }
+
     public function test_new_mode_requires_create_inquiries_permission(): void
     {
         $user = User::factory()->create();

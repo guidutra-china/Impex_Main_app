@@ -27,7 +27,7 @@ class InquiryTargetTest extends TestCase
         $this->assertSame('inquiry', $target->key());
         $this->assertSame('registrar_inquiry', $target->extractionToolName());
         $this->assertSame('atualizar_inquiry', $target->editToolName());
-        $this->assertFalse($target->supportsImages());
+        $this->assertTrue($target->supportsImages());
         $this->assertArrayHasKey('cliente', $target->extractionSchema()['properties']);
     }
 

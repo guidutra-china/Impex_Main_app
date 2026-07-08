@@ -209,7 +209,7 @@ class AssistantInquiryImportFlowTest extends TestCase
         $this->assertSame(1, Inquiry::count());
     }
 
-    public function test_query_param_locks_target_to_existing_inquiry(): void
+    public function test_query_param_locks_inquiry_but_still_offers_target_choice(): void
     {
         $user = User::factory()->create();
         $user->givePermissionTo(['view-assistant', 'edit-inquiries']);
@@ -219,12 +219,14 @@ class AssistantInquiryImportFlowTest extends TestCase
 
         Livewire::withQueryParams(['import' => 'inquiry', 'inquiry_id' => $inquiry->id])
             ->test(Assistant::class)
-            ->assertSet('importTargetKey', 'inquiry')
+            // A inquiry é contexto, não decisão de destino: o classificador roda.
+            ->assertSet('importTargetKey', null)
             ->assertSet('importLockedInquiryId', $inquiry->id)
             ->set('upload', $this->fakeUpload())
             ->call('submitImport')
-            // Locked target: no chooser, extraction ran directly, mode pre-locked.
-            ->assertSet('importSuggestion', null)
+            ->assertSet('importSuggestion.tipo', 'inquiry')
+            ->call('chooseImportTarget', 'inquiry')
+            // Escolhido o destino inquiry, o modo trava na inquiry de origem.
             ->assertSet('form.modo', 'existente')
             ->assertSet('form.inquiry_id', $inquiry->id)
             ->call('confirmImport');

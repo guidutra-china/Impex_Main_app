@@ -83,7 +83,9 @@ class InquiryTarget implements ImportTarget
 
     public function supportsImages(): bool
     {
-        return false;
+        // Fotos do documento vão para os produtos DRAFT criados no confirm —
+        // mesma mecânica do import de cotação de fornecedor.
+        return true;
     }
 
     public function authorize(User $user): bool
@@ -94,7 +96,7 @@ class InquiryTarget implements ImportTarget
     public function buildForm(array $preview, array $itemPhoto): array
     {
         $itens = [];
-        foreach (array_values($preview['itens']) as $it) {
+        foreach (array_values($preview['itens']) as $i => $it) {
             $minor = $it['target_price_minor'] ?? null;
             $itens[] = [
                 'part_no' => $it['part_no'] ?? null,
@@ -106,6 +108,7 @@ class InquiryTarget implements ImportTarget
                 'notes' => $it['notes'] ?? null,
                 'status' => $it['status'] ?? 'novo',
                 'product_id' => $it['product_id'] ?? null,
+                'photo_index' => $itemPhoto[$i] ?? null,
             ];
         }
 
@@ -125,14 +128,16 @@ class InquiryTarget implements ImportTarget
     public function formToConfirmPayload(array $form, array $imagePool): array
     {
         $itens = [];
-        foreach (array_values($form['itens'] ?? []) as $it) {
+        $images = [];
+        foreach (array_values($form['itens'] ?? []) as $i => $it) {
             $price = $it['target_price'] ?? null;
+            $partNo = filled($it['part_no'] ?? null) ? trim((string) $it['part_no']) : null;
             $itens[] = [
                 // Status must be derived from the id: the form is client-editable, and the
                 // Action's authorize() gates must always match what the resolvers will do.
                 'status' => empty($it['product_id']) ? 'novo' : 'existente',
                 'product_id' => $it['product_id'] ?? null,
-                'part_no' => filled($it['part_no'] ?? null) ? trim((string) $it['part_no']) : null,
+                'part_no' => $partNo,
                 'description' => (string) ($it['description'] ?? ''),
                 'quantity' => (int) ($it['quantity'] ?? 0),
                 'unit' => $it['unit'] ?? null,
@@ -140,6 +145,11 @@ class InquiryTarget implements ImportTarget
                 'specifications' => $it['specifications'] ?? null,
                 'notes' => $it['notes'] ?? null,
             ];
+
+            $idx = $it['photo_index'] ?? null;
+            if ($idx !== null && isset($imagePool[$idx])) {
+                $images[$partNo !== null && $partNo !== '' ? $partNo : 'idx:'.$i] = $imagePool[$idx]['path'];
+            }
         }
 
         $c = $form['cliente'] ?? [];
@@ -154,13 +164,14 @@ class InquiryTarget implements ImportTarget
                 'cabecalho' => $form['cabecalho'] ?? [],
                 'itens' => $itens,
             ],
-            'images' => [],
+            'images' => $images,
         ];
     }
 
-    public function confirm(array $preview, User $user, string $filePath, array $images): array
+    public function confirm(array $preview, User $user, string $filePath, array $images, array $context = []): array
     {
-        $inquiry = app(ImportInquiryAction::class)($preview, $user, $filePath);
+        // O lock de inquiry já chega via form (modo=existente + inquiry_id); $context não é necessário aqui.
+        $inquiry = app(ImportInquiryAction::class)($preview, $user, $filePath, $images);
 
         return ['reference' => (string) $inquiry->reference, 'count' => count($preview['itens'])];
     }
