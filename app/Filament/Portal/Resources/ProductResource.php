@@ -168,6 +168,7 @@ class ProductResource extends Resource
                     ->label(__('forms.labels.export_excel'))
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('gray')
+                    ->visible(fn () => auth()->user()?->can('portal:view-financial-summary') ?? false)
                     ->action(function () {
                         /** @var \App\Domain\CRM\Models\Company $tenant */
                         $tenant = Filament::getTenant();

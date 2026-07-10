@@ -74,7 +74,7 @@ class PortalProductsExportTest extends TestCase
             ->assertFileDownloaded($expectedFilename);
     }
 
-    public function test_export_action_available_without_financial_permission(): void
+    public function test_export_action_hidden_without_financial_permission(): void
     {
         $company = Company::factory()->create();
         $this->actingAsPortalUser($company, ['portal:view-products']);
@@ -82,8 +82,7 @@ class PortalProductsExportTest extends TestCase
 
         Livewire::test(ListProducts::class)
             ->assertOk()
-            ->callTableAction('exportExcel')
-            ->assertFileDownloaded();
+            ->assertTableActionHidden('exportExcel');
     }
 
     public function test_exporter_omits_prices_when_include_prices_is_false(): void
