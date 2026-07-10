@@ -3,6 +3,7 @@
 namespace App\Filament\Portal\Resources;
 
 use App\Domain\Catalog\Models\CompanyProduct;
+use App\Domain\Catalog\Reports\ClientProductsExcelExporter;
 use App\Domain\Infrastructure\Support\Money;
 use App\Filament\Portal\Resources\ProductResource\Pages;
 use BackedEnum;
@@ -162,6 +163,21 @@ class ProductResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->recordUrl(fn (CompanyProduct $record) => Pages\ViewProduct::getUrl(['record' => $record]))
+            ->headerActions([
+                \Filament\Actions\Action::make('exportExcel')
+                    ->label(__('forms.labels.export_excel'))
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('gray')
+                    ->action(function () {
+                        /** @var \App\Domain\CRM\Models\Company $tenant */
+                        $tenant = Filament::getTenant();
+                        $includePrices = auth()->user()?->can('portal:view-financial-summary') ?? false;
+
+                        $path = (new ClientProductsExcelExporter)->export($tenant, $includePrices);
+
+                        return response()->download($path)->deleteFileAfterSend();
+                    }),
+            ])
             ->recordActions([
                 \Filament\Actions\ViewAction::make()
                     ->url(fn (CompanyProduct $record) => Pages\ViewProduct::getUrl(['record' => $record])),
@@ -207,7 +223,7 @@ class ProductResource extends Resource
                     TextEntry::make('avatar_url')
                         ->label('')
                         ->formatStateUsing(fn ($state) => $state
-                            ? '<img src="' . e($state) . '" class="w-24 h-24 rounded-lg object-cover shadow" />'
+                            ? '<img src="'.e($state).'" class="w-24 h-24 rounded-lg object-cover shadow" />'
                             : '<div class="w-24 h-24 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 text-2xl">📦</div>')
                         ->html()
                         ->columnSpanFull(),
@@ -494,12 +510,12 @@ class ProductResource extends Resource
                 ->schema([
                     TextEntry::make('unit_price')
                         ->label(__('forms.labels.selling_price'))
-                        ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 4))
+                        ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '').' '.Money::format($state, 4))
                         ->placeholder('—'),
 
                     TextEntry::make('custom_price')
                         ->label(__('forms.labels.ci_price'))
-                        ->formatStateUsing(fn ($state, $record) => $state ? ($record->currency_code ?? '') . ' ' . Money::format($state, 4) : '—')
+                        ->formatStateUsing(fn ($state, $record) => $state ? ($record->currency_code ?? '').' '.Money::format($state, 4) : '—')
                         ->placeholder('—'),
 
                     TextEntry::make('currency_code')

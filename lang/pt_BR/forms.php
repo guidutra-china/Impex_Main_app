@@ -7,6 +7,7 @@ return [
     ],
 
     'labels' => [
+        'export_excel' => 'Exportar Excel',
         'trip_title' => 'Título da Viagem',
         'fx_rate' => 'Câmbio :from → cobrança',
         'billing_currency' => 'Moeda de cobrança',

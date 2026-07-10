@@ -55,8 +55,12 @@ class ClientProductsExcelExporter
 
     /**
      * Generates the report and returns the absolute path of the .xlsx file.
+     *
+     * When $includePrices is false the price columns (Selling Price, Custom
+     * Price, Currency) are left blank — used by the client portal for users
+     * without the portal:view-financial-summary permission.
      */
-    public function export(Company $client): string
+    public function export(Company $client, bool $includePrices = true): string
     {
         $products = $client->clientProducts()
             ->with('category')
@@ -71,7 +75,7 @@ class ClientProductsExcelExporter
 
         $row = 5;
         foreach ($products as $product) {
-            $this->writeProductRow($sheet, $product, $row);
+            $this->writeProductRow($sheet, $product, $row, $includePrices);
             $row++;
         }
 
@@ -129,7 +133,7 @@ class ClientProductsExcelExporter
         }
     }
 
-    private function writeProductRow(Worksheet $sheet, Product $product, int $row): void
+    private function writeProductRow(Worksheet $sheet, Product $product, int $row, bool $includePrices = true): void
     {
         $pivot = $product->pivot;
 
@@ -141,13 +145,16 @@ class ClientProductsExcelExporter
         $sheet->setCellValue('G'.$row, $pivot->external_code);
         $sheet->setCellValue('H'.$row, $pivot->external_name);
         $sheet->setCellValue('I'.$row, $pivot->external_description);
-        $sheet->setCellValue('J'.$row, Money::toMajor($pivot->unit_price));
 
-        if ($pivot->custom_price !== null) {
-            $sheet->setCellValue('K'.$row, Money::toMajor($pivot->custom_price));
+        if ($includePrices) {
+            $sheet->setCellValue('J'.$row, Money::toMajor($pivot->unit_price));
+
+            if ($pivot->custom_price !== null) {
+                $sheet->setCellValue('K'.$row, Money::toMajor($pivot->custom_price));
+            }
+
+            $sheet->setCellValue('L'.$row, $pivot->currency_code);
         }
-
-        $sheet->setCellValue('L'.$row, $pivot->currency_code);
 
         $sheet->getStyle('J'.$row.':K'.$row)
             ->getNumberFormat()->setFormatCode('#,##0.0000');
