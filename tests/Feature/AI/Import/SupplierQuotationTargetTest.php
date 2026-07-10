@@ -167,4 +167,36 @@ class SupplierQuotationTargetTest extends TestCase
         $this->assertSame('existente', $payload['preview']['itens'][1]['status']);
         $this->assertSame('novo', $payload['preview']['fornecedor']['status']);
     }
+
+    public function test_build_form_and_payload_round_trip_combined_inquiry_fields(): void
+    {
+        $target = new SupplierQuotationTarget;
+
+        $preview = [
+            'fornecedor' => ['nome' => 'ACME', 'status' => 'novo', 'company_id' => null],
+            'cabecalho' => ['currency_code' => 'USD'],
+            'itens' => [],
+        ];
+
+        $form = $target->buildForm($preview, []);
+
+        // Defaults: fluxo combinado desligado até o usuário marcar.
+        $this->assertFalse($form['criar_inquiry']);
+        $this->assertNull($form['inquiry_company_id']);
+
+        $form['criar_inquiry'] = true;
+        $form['inquiry_company_id'] = '17'; // Livewire selects submit strings
+
+        $payload = $target->formToConfirmPayload($form, []);
+
+        $this->assertTrue($payload['preview']['criar_inquiry']);
+        $this->assertSame(17, $payload['preview']['inquiry_company_id']);
+
+        // Desmarcado/vazio volta como false/null.
+        $form['criar_inquiry'] = false;
+        $form['inquiry_company_id'] = '';
+        $payload = $target->formToConfirmPayload($form, []);
+        $this->assertFalse($payload['preview']['criar_inquiry']);
+        $this->assertNull($payload['preview']['inquiry_company_id']);
+    }
 }

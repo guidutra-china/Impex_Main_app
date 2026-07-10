@@ -44,6 +44,24 @@ class ResolveInquiryDraftTest extends TestCase
         $this->assertSame('USD '.\App\Domain\Infrastructure\Support\Money::format(\App\Domain\Infrastructure\Support\Money::toMinor(250.5) * 3), $preview['resumo']['total_estimado']);
     }
 
+    public function test_passes_through_description_inferred_flag_and_matched_product_name(): void
+    {
+        $product = Product::factory()->create(['name' => 'Slam Ball', 'reference_code' => 'SB-6']);
+
+        $preview = app(ResolveInquiryDraft::class)->resolve([
+            'cliente' => ['nome' => 'Cliente X'],
+            'itens' => [
+                ['part_no' => 'SB-6', 'description' => 'Bola de peso', 'quantity' => 1, 'descricao_inferida' => true],
+                ['description' => 'Sem foto', 'quantity' => 1],
+            ],
+        ]);
+
+        $this->assertTrue($preview['itens'][0]['description_inferred']);
+        $this->assertSame('Slam Ball', $preview['itens'][0]['product_name']);
+        $this->assertFalse($preview['itens'][1]['description_inferred']);
+        $this->assertNull($preview['itens'][1]['product_name']);
+    }
+
     public function test_matches_product_by_sku_too(): void
     {
         $product = Product::factory()->create(['sku' => 'GYM-00029', 'reference_code' => null, 'model_number' => 'LT012']);

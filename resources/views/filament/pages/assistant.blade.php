@@ -37,16 +37,39 @@
             {{-- Escolha do destino após a classificação --}}
             <div class="rounded-xl border border-primary-300 bg-primary-50 p-4 text-sm dark:border-primary-700 dark:bg-primary-950/40">
                 <p class="font-semibold">{{ __('assistant.choose_target') }}</p>
+                @php($targetOptions = $this->importTargetOptions())
                 <div class="mt-2 flex flex-wrap gap-2" wire:loading.remove wire:target="chooseImportTarget">
-                    @foreach ($this->importTargetOptions() as $key => $label)
+                    @foreach ($targetOptions as $key => $option)
+                        @if ($option['available'])
+                            <x-filament::button
+                                wire:click="chooseImportTarget('{{ $key }}')"
+                                :color="$key === ($importSuggestion['tipo'] ?? null) ? 'primary' : 'gray'"
+                                size="sm"
+                            >
+                                {{ __('assistant.import_as', ['label' => $option['label']]) }}
+                            </x-filament::button>
+                        @else
+                            <x-filament::button
+                                disabled
+                                color="gray"
+                                size="sm"
+                                outlined
+                                title="{{ __('assistant.target_unavailable_permission', ['label' => $option['label']]) }}"
+                            >
+                                {{ __('assistant.import_as', ['label' => $option['label']]) }} 🔒
+                            </x-filament::button>
+                        @endif
+                    @endforeach
+                    {{-- Atalho combinado: SQ + Inquiry vinculada num passo só (documento de fornecedor enviado por um cliente) --}}
+                    @if (($targetOptions['supplier_quotation']['available'] ?? false) && $importLockedInquiryId === null && auth()->user()->can('create-inquiries'))
                         <x-filament::button
-                            wire:click="chooseImportTarget('{{ $key }}')"
-                            :color="$key === ($importSuggestion['tipo'] ?? null) ? 'primary' : 'gray'"
+                            wire:click="chooseImportTarget('supplier_quotation_with_inquiry')"
+                            color="gray"
                             size="sm"
                         >
-                            {{ __('assistant.import_as', ['label' => $label]) }}
+                            {{ __('assistant.import_as_sq_with_inquiry') }}
                         </x-filament::button>
-                    @endforeach
+                    @endif
                     <x-filament::button wire:click="cancelImport" color="danger" size="sm" outlined>
                         {{ __('assistant.cancel') }}
                     </x-filament::button>

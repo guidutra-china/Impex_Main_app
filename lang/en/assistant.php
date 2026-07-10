@@ -38,8 +38,8 @@ return [
     'confirm_import' => 'Confirm import',
     'cancel' => 'Cancel',
     'col' => [
-        'part_no' => 'Part No.',
-        'description' => 'Description',
+        'part_no' => 'Model / Part No.',
+        'description' => 'Description (product name)',
         'qty' => 'Qty',
         'unit' => 'Unit',
         'unit_price' => 'Unit price',
@@ -90,7 +90,7 @@ return [
     'import_as' => 'Import as :label',
     'extracted_generic' => 'Data extracted. Review below and confirm the import.',
     'imported_generic' => ':reference imported with :count item(s).',
-    'switch_target' => 'Change destination',
+    'switch_target' => 'Import as another type…',
     'search_inquiry' => 'Search by reference or client…',
     'record_not_found' => 'Referenced record no longer exists. Review the selection and try again.',
 
@@ -106,4 +106,26 @@ return [
     'summary_inquiry_counts' => ':total items — :matched matched to products, :unmatched without match (imported with description only).',
     'col_target_price' => 'Target price',
     'import_with_ai' => 'Import with AI',
+
+    // Combined Inquiry + SQ flow
+    'create_linked_inquiry' => 'Create a linked Inquiry for a client',
+    'create_linked_inquiry_hint' => 'Besides the quotation, creates an Inquiry for the chosen client with the same items and products — ready to generate a Quotation/PI.',
+    'search_client' => 'Search client…',
+    'select_client' => 'Select the client…',
+    'inquiry_client_required' => 'Select the client for the linked Inquiry.',
+
+    // Review — explicit item → product mapping
+    'desc_inferred_badge' => 'inferred from photo — review',
+    'new_product_hint' => 'A draft product will be created: the description becomes the Name and the Model/Part No. becomes the Model Number. Edit the fields to fix them before importing.',
+    'existing_product_hint' => 'Item linked to an existing product — editing the description only changes this item, not the product.',
+    'unlink_product' => 'Unlink',
+    'link_product' => 'Link…',
+    'link_product_title' => 'Link to an existing catalog product',
+    'search_product' => 'Search product by name, SKU or model…',
+    'target_unavailable_permission' => 'Importing as :label requires a permission you do not have. Ask an administrator.',
+    'photo_upload' => 'Upload photo',
+    'photo_drop_hint' => 'Drag an image here, click to pick from the document, or Ctrl+V with the gallery open.',
+    'photo_flip' => 'Flip photo (upside down)',
+    'import_as_sq_with_inquiry' => 'Import as Supplier quotation + linked Inquiry',
+    'api_billing' => 'The Anthropic API account is out of credits. Top up at console.anthropic.com (Plans & Billing) and try again.',
 ];

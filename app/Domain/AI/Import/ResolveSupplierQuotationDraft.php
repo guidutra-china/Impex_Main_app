@@ -144,9 +144,14 @@ class ResolveSupplierQuotationDraft
         return $map;
     }
 
+    /**
+     * Chave de comparação de nomes: só letras e números, maiúsculas. Ignorar
+     * pontuação/espaços faz "Dumbbell — 5kg" casar com "Dumbbell 5kg" — variações
+     * de formatação entre extrações não podem virar produto duplicado.
+     */
     private function normalizeName(?string $name): string
     {
-        return mb_strtoupper(trim(preg_replace('/\s+/', ' ', (string) $name) ?? ''));
+        return mb_strtoupper(preg_replace('/[^\p{L}\p{N}]+/u', '', (string) $name) ?? '');
     }
 
     /**
@@ -177,8 +182,10 @@ class ResolveSupplierQuotationDraft
         return [
             'status' => $product ? 'existente' : 'novo',
             'product_id' => $product?->id,
+            'product_name' => $product?->name,
             'part_no' => $partNo !== '' ? $partNo : null,
             'description' => (string) ($item['description'] ?? ''),
+            'description_inferred' => (bool) ($item['descricao_inferida'] ?? false),
             'quantity' => $quantity,
             // Documents often omit a unit; default so the preview and the stored value match.
             'unit' => trim((string) ($item['unit'] ?? '')) ?: 'pcs',

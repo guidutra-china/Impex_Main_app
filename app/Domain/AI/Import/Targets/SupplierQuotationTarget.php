@@ -9,6 +9,7 @@ use App\Domain\AI\Import\SupplierQuotationDraftSchema;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\SupplierQuotations\Actions\ImportSupplierQuotationAction;
+use App\Domain\SupplierQuotations\Actions\ImportSupplierQuotationWithInquiryAction;
 use App\Models\User;
 
 class SupplierQuotationTarget implements ImportTarget
@@ -66,7 +67,17 @@ class SupplierQuotationTarget implements ImportTarget
                     .'se nenhuma for claramente adequada, omita a categoria (não invente).'
                 : '')
             .' Capture também os dados de contato do fornecedor quando constarem no documento '
-            .'(legal_name, tax_number, phone, email, website e endereço).';
+            .'(legal_name, tax_number, phone, email, website e endereço). '
+            .'Em documentos PDF, preencha "page" em CADA item com o número da página onde a linha aparece '
+            .'(1 = primeira página) — isso é usado para associar as fotos aos itens. '
+            .'Quando uma linha NÃO tiver descrição textual, descreva o produto objetivamente a partir da '
+            .'FOTO da linha (tipo de produto, material, cor — ex: "Puxador triangular de aço com pegada '
+            .'emborrachada") e marque descricao_inferida=true. Nunca deixe description vazio e nunca '
+            .'copie a descrição de outra linha. '
+            .'Quando uma linha do documento agrupar VARIAÇÕES do mesmo produto (pesos/tamanhos com '
+            .'quantidade e preço próprios), mantenha a descrição base no item e liste cada variação em '
+            .'"variantes" com rotulo (ex: "8kg"), quantity e unit_price/line_total próprios — não as '
+            .'repita como itens separados.';
     }
 
     public function editToolName(): string
@@ -120,6 +131,8 @@ class SupplierQuotationTarget implements ImportTarget
                 'part_no' => $it['part_no'] ?? null,
                 'status' => $it['status'] ?? 'novo',
                 'product_id' => $it['product_id'] ?? null,
+                'product_name' => $it['product_name'] ?? null,
+                'description_inferred' => (bool) ($it['description_inferred'] ?? false),
                 'specifications' => $it['specifications'] ?? null,
                 'moq' => $it['moq'] ?? null,
                 'lead_time_days' => $it['lead_time_days'] ?? null,
@@ -139,6 +152,10 @@ class SupplierQuotationTarget implements ImportTarget
             ),
             'cabecalho' => $preview['cabecalho'] ?? [],
             'itens' => $itens,
+            // Fluxo combinado: além da SQ, criar a Inquiry do cliente já vinculada
+            // (o cliente é escolhido pelo usuário no review, não vem do documento).
+            'criar_inquiry' => false,
+            'inquiry_company_id' => null,
         ];
     }
 
@@ -186,6 +203,8 @@ class SupplierQuotationTarget implements ImportTarget
                 'fornecedor_dados' => array_intersect_key($f, array_flip($contactKeys)),
                 'cabecalho' => $form['cabecalho'] ?? [],
                 'itens' => $itens,
+                'criar_inquiry' => (bool) ($form['criar_inquiry'] ?? false),
+                'inquiry_company_id' => filled($form['inquiry_company_id'] ?? null) ? (int) $form['inquiry_company_id'] : null,
             ],
             'images' => $images,
         ];
@@ -194,6 +213,21 @@ class SupplierQuotationTarget implements ImportTarget
     public function confirm(array $preview, User $user, string $filePath, array $images, array $context = []): array
     {
         $inquiryId = isset($context['inquiry_id']) ? (int) $context['inquiry_id'] : null;
+
+        // Fluxo combinado: cria Inquiry + SQ vinculadas. Só quando não há inquiry de
+        // contexto (entrada via Inquiry existente prevalece sobre o checkbox).
+        if ($inquiryId === null && ($preview['criar_inquiry'] ?? false)) {
+            if (empty($preview['inquiry_company_id'])) {
+                throw new \InvalidArgumentException(__('assistant.inquiry_client_required'));
+            }
+
+            $result = app(ImportSupplierQuotationWithInquiryAction::class)($preview, $user, $filePath, $images, (int) $preview['inquiry_company_id']);
+
+            return [
+                'reference' => $result['sq']->reference.' + '.$result['inquiry']->reference,
+                'count' => count($preview['itens']),
+            ];
+        }
 
         $sq = app(ImportSupplierQuotationAction::class)($preview, $user, $filePath, $images, $inquiryId ?: null);
 

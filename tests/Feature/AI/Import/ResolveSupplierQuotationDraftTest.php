@@ -47,6 +47,44 @@ class ResolveSupplierQuotationDraftTest extends TestCase
         $this->assertSame(1, $preview['resumo']['produtos_novos']);
     }
 
+    public function test_name_fallback_ignores_punctuation_and_spacing_differences(): void
+    {
+        $supplier = Company::factory()->create(['name' => 'Hebei Yangrun Sports Equipment Co., Ltd.']);
+        $dumbbell = Product::factory()->create(['name' => 'Dumbbell hexagonal 5kg', 'model_number' => null, 'reference_code' => null]);
+        $dumbbell->companies()->attach($supplier->id, ['role' => 'supplier']);
+
+        $preview = (new ResolveSupplierQuotationDraft)->resolve([
+            'fornecedor' => ['nome' => 'Hebei Yangrun', 'currency_code' => 'USD'],
+            'itens' => [
+                // Mesmo produto, formatação diferente (travessão da expansão de variantes).
+                ['description' => 'Dumbbell Hexagonal — 5kg', 'quantity' => 10, 'unit_price' => 3.5],
+            ],
+        ]);
+
+        $this->assertSame('existente', $preview['itens'][0]['status']);
+        $this->assertSame($dumbbell->id, $preview['itens'][0]['product_id']);
+    }
+
+    public function test_passes_through_description_inferred_flag_and_matched_product_name(): void
+    {
+        $product = Product::factory()->create(['name' => 'Triangle Handle', 'reference_code' => 'TH-100']);
+
+        $draft = [
+            'fornecedor' => ['nome' => 'Qualquer', 'currency_code' => 'USD'],
+            'itens' => [
+                ['part_no' => 'TH-100', 'description' => 'Puxador triangular', 'quantity' => 1, 'unit_price' => 5.0, 'descricao_inferida' => true],
+                ['part_no' => 'XX-1', 'description' => 'Outro', 'quantity' => 1, 'unit_price' => 1.0],
+            ],
+        ];
+
+        $preview = (new ResolveSupplierQuotationDraft)->resolve($draft);
+
+        $this->assertTrue($preview['itens'][0]['description_inferred']);
+        $this->assertSame('Triangle Handle', $preview['itens'][0]['product_name']);
+        $this->assertFalse($preview['itens'][1]['description_inferred']);
+        $this->assertNull($preview['itens'][1]['product_name']);
+    }
+
     public function test_matches_by_supplier_scoped_product_name_when_document_has_no_part_numbers(): void
     {
         $supplier = Company::factory()->create(['name' => 'Hebei Yangrun Sports Equipment Co., Ltd.']);

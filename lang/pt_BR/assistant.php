@@ -38,8 +38,8 @@ return [
     'confirm_import' => 'Confirmar importação',
     'cancel' => 'Cancelar',
     'col' => [
-        'part_no' => 'Part No.',
-        'description' => 'Descrição',
+        'part_no' => 'Modelo / Part Nº',
+        'description' => 'Descrição (nome do produto)',
         'qty' => 'Qtd',
         'unit' => 'Unid.',
         'unit_price' => 'Preço unit.',
@@ -90,7 +90,7 @@ return [
     'import_as' => 'Importar como :label',
     'extracted_generic' => 'Dados extraídos. Revise abaixo e confirme a importação.',
     'imported_generic' => ':reference importada com :count item(ns).',
-    'switch_target' => 'Trocar destino',
+    'switch_target' => 'Importar como outro tipo…',
     'search_inquiry' => 'Buscar por referência ou cliente…',
     'record_not_found' => 'O registro referenciado não existe mais. Revise a seleção e tente de novo.',
 
@@ -106,4 +106,26 @@ return [
     'summary_inquiry_counts' => ':total itens — :matched casados com produtos, :unmatched sem match (importados só com a descrição).',
     'col_target_price' => 'Preço-alvo',
     'import_with_ai' => 'Importar com IA',
+
+    // Fluxo combinado Inquiry + SQ
+    'create_linked_inquiry' => 'Criar Inquiry vinculada para um cliente',
+    'create_linked_inquiry_hint' => 'Além da cotação, cria uma Inquiry para o cliente escolhido com os mesmos itens e produtos — pronta para gerar Quotation/PI.',
+    'search_client' => 'Buscar cliente…',
+    'select_client' => 'Selecione o cliente…',
+    'inquiry_client_required' => 'Selecione o cliente da Inquiry vinculada.',
+
+    // Revisão — mapeamento explícito item → produto
+    'desc_inferred_badge' => 'inferida da foto — revisar',
+    'new_product_hint' => 'Será criado um produto draft: a descrição vira o Nome e o Modelo/Part Nº vira o Model Number. Edite os campos para corrigir antes de importar.',
+    'existing_product_hint' => 'Item vinculado a um produto existente — editar a descrição altera só este item, não o produto.',
+    'unlink_product' => 'Desvincular',
+    'link_product' => 'Vincular…',
+    'link_product_title' => 'Vincular a um produto existente do catálogo',
+    'search_product' => 'Buscar produto por nome, SKU ou modelo…',
+    'target_unavailable_permission' => 'Importar como :label requer permissão que você não possui. Peça ao administrador.',
+    'photo_upload' => 'Enviar foto',
+    'photo_drop_hint' => 'Arraste uma imagem aqui, clique para escolher do documento, ou Ctrl+V com a galeria aberta.',
+    'photo_flip' => 'Inverter foto (cabeça para baixo)',
+    'import_as_sq_with_inquiry' => 'Importar como Cotação + Inquiry vinculada',
+    'api_billing' => 'A conta da API Anthropic está sem créditos. Recarregue em console.anthropic.com (Plans & Billing) e tente novamente.',
 ];

@@ -12,12 +12,19 @@ use App\Domain\AI\Import\DraftEditor;
 use App\Domain\AI\Import\DraftExtractor;
 use App\Domain\AI\Import\Exceptions\ExtractionFailedException;
 use App\Domain\AI\Import\Exceptions\UnsupportedDocumentException;
+use App\Domain\AI\Import\ExpandDraftVariants;
+use App\Domain\AI\Import\ImageItemMatcher;
+use App\Domain\AI\Import\PhotoItemMatcher;
 use App\Domain\AI\Import\Targets\ImportTarget;
 use App\Domain\AI\Import\Targets\ImportTargetRegistry;
 use App\Domain\Catalog\Models\Category;
+use App\Domain\Catalog\Models\Product;
+use App\Domain\CRM\Enums\CompanyRole;
+use App\Domain\CRM\Models\Company;
 use App\Domain\Inquiries\Models\Inquiry;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Locked;
 
 /**
@@ -51,7 +58,7 @@ trait HandlesDocumentImport
     #[Locked]
     public ?array $importDraft = null;
 
-    /** Ordered pool of extracted images: list<array{id:int,path:string}>. Server-controlled. */
+    /** Ordered pool of extracted images: list<array{id:int,path:string,page:int}>. Server-controlled. */
     #[Locked]
     public array $importImagePool = [];
 
@@ -110,7 +117,7 @@ trait HandlesDocumentImport
         } catch (AnthropicException $e) {
             report($e);
             $this->cancelImport();
-            $this->messages[] = ['role' => 'assistant', 'text' => __('assistant.connection_failed')];
+            $this->messages[] = ['role' => 'assistant', 'text' => $this->anthropicFailureMessage($e)];
         } catch (\Throwable $e) {
             report($e);
             $this->cancelImport();
@@ -128,6 +135,16 @@ trait HandlesDocumentImport
             return;
         }
 
+        // Atalho do seletor: extrai como SQ e já deixa o fluxo combinado
+        // (Inquiry vinculada) pré-marcado no review.
+        $withInquiry = $key === 'supplier_quotation_with_inquiry';
+        if ($withInquiry) {
+            if ($this->importLockedInquiryId !== null || ! auth()->user()->can('create-inquiries')) {
+                return;
+            }
+            $key = 'supplier_quotation';
+        }
+
         $target = $this->resolveTarget($key);
         if ($target === null) {
             return;
@@ -142,11 +159,15 @@ trait HandlesDocumentImport
         try {
             $blocks = app(DocumentExtractor::class)->toContentBlocks($this->importFilePath);
             $this->runExtraction($target, $blocks);
+
+            if ($withInquiry && is_array($this->form) && array_key_exists('criar_inquiry', $this->form)) {
+                $this->form['criar_inquiry'] = true;
+            }
         } catch (UnsupportedDocumentException|ExtractionFailedException $e) {
             $this->messages[] = ['role' => 'assistant', 'text' => __('assistant.process_failed', ['error' => $e->getMessage()])];
         } catch (AnthropicException $e) {
             report($e);
-            $this->messages[] = ['role' => 'assistant', 'text' => __('assistant.connection_failed')];
+            $this->messages[] = ['role' => 'assistant', 'text' => $this->anthropicFailureMessage($e)];
         } catch (\Throwable $e) {
             report($e);
             $this->messages[] = ['role' => 'assistant', 'text' => __('assistant.process_error')];
@@ -201,13 +222,21 @@ trait HandlesDocumentImport
         // Compute everything into locals first — extract(), resolve() and buildForm()
         // can all throw, and a mid-extraction failure must leave the current state
         // (suggestion/chooser) intact for retry instead of a half-initialized import.
-        $draft = app(DraftExtractor::class)->extract($target, $blocks);
+        // Variant sub-rows are expanded immediately: the stored draft is always flat.
+        $draft = app(ExpandDraftVariants::class)->expand(app(DraftExtractor::class)->extract($target, $blocks));
 
         $imagesRaw = $target->supportsImages()
             ? app(DocumentImageExtractor::class)->extract($this->importFilePath)
             : ['by_row' => [], 'ordered' => []];
 
         [$pool, $itemPhoto] = $this->buildImagePool($draft, $imagesRaw);
+
+        // Reconciliação por visão só para PDFs (no xlsx a âncora de linha é confiável
+        // e itens sem foto são legítimos) e só quando o matching ficou incompleto.
+        if ($imagesRaw['by_row'] === []) {
+            $itemPhoto = $this->reconcilePhotosWithVision($draft, $pool, $itemPhoto);
+        }
+
         $preview = $target->resolve($draft);
         $formArr = $target->buildForm($preview, $itemPhoto);
 
@@ -239,15 +268,20 @@ trait HandlesDocumentImport
     }
 
     /**
-     * Chooser options for the blade: key => label, only targets the user may use.
+     * Chooser options for the blade: every registered target, flagged by whether
+     * the current user may use it. Unavailable targets render disabled with the
+     * reason instead of silently disappearing (users reported "can't import as
+     * inquiry" when the option was just permission-hidden).
      *
-     * @return array<string,string>
+     * @return array<string,array{label:string,available:bool}>
      */
     public function importTargetOptions(): array
     {
+        $user = auth()->user();
+
         return array_map(
-            fn (ImportTarget $t) => $t->label(),
-            app(ImportTargetRegistry::class)->allFor(auth()->user()),
+            fn (ImportTarget $t) => ['label' => $t->label(), 'available' => $t->authorize($user)],
+            app(ImportTargetRegistry::class)->all(),
         );
     }
 
@@ -277,6 +311,32 @@ trait HandlesDocumentImport
             ->all();
     }
 
+    /** Free-text filter for the "create linked inquiry" client select (combined Inquiry+SQ flow). */
+    public string $importClientSearch = '';
+
+    /**
+     * CLIENT-role companies for the combined Inquiry+SQ flow: id => name. The
+     * currently selected client is always included so a narrowed search never
+     * silently unsets the choice.
+     *
+     * @return array<int,string>
+     */
+    public function importClientOptions(): array
+    {
+        $search = trim($this->importClientSearch);
+        $selectedId = filled($this->form['inquiry_company_id'] ?? null) ? (int) $this->form['inquiry_company_id'] : null;
+
+        return Company::query()
+            ->withRole(CompanyRole::CLIENT)
+            ->when($search !== '', fn ($q) => $q->where(fn ($q) => $q
+                ->where('name', 'like', "%{$search}%")
+                ->when($selectedId !== null, fn ($q) => $q->orWhere('companies.id', $selectedId))))
+            ->orderBy('name')
+            ->limit(50)
+            ->pluck('name', 'id')
+            ->all();
+    }
+
     /** Label for the locked inquiry (entry-point flow) — direct lookup, independent of the top-50 search results. */
     public function lockedInquiryLabel(): string
     {
@@ -303,9 +363,13 @@ trait HandlesDocumentImport
         try {
             $result = app(DraftEditor::class)->edit($target, $this->importDraft, $instruction);
 
+            // O editor pode reintroduzir "variantes" — o draft armazenado é sempre plano.
+            $result['draft'] = app(ExpandDraftVariants::class)->expand($result['draft']);
+
             $this->importDraft = $result['draft'];
             $this->importPreview = $target->resolve($result['draft']);
             [, $itemPhoto] = $this->buildImagePool($result['draft'], $this->poolAsImagesRaw());
+            $itemPhoto = $this->reconcilePhotosWithVision($result['draft'], $this->importImagePool, $itemPhoto, checkOrientation: false);
             $this->form = $target->buildForm($this->importPreview, $itemPhoto);
 
             if ($keepModo !== null && array_key_exists('modo', $this->form)) {
@@ -317,13 +381,25 @@ trait HandlesDocumentImport
             $this->messages[] = ['role' => 'assistant', 'text' => $reply];
         } catch (AnthropicException $e) {
             report($e);
-            $this->messages[] = ['role' => 'assistant', 'text' => __('assistant.connection_failed')];
+            $this->messages[] = ['role' => 'assistant', 'text' => $this->anthropicFailureMessage($e)];
         } catch (\Throwable $e) {
             report($e);
             $this->messages[] = ['role' => 'assistant', 'text' => __('assistant.process_error')];
         }
 
         $this->dispatch('assistant-updated');
+    }
+
+    /**
+     * Mensagem amigável para falhas da API Anthropic. Erro de créditos/billing é
+     * mostrado como tal — antes caía no genérico "verifique conexão/VPN" e
+     * mascarava o diagnóstico real (saldo esgotado na key).
+     */
+    private function anthropicFailureMessage(AnthropicException $e): string
+    {
+        return str_contains($e->getMessage(), 'credit balance')
+            ? __('assistant.api_billing')
+            : __('assistant.connection_failed');
     }
 
     public function confirmImport(): void
@@ -393,46 +469,77 @@ trait HandlesDocumentImport
 
     /**
      * Flatten extracted images into an ordered pool and compute the initial
-     * per-item photo (auto-match): xlsx by anchor row, pdf by position.
+     * per-item photo (auto-match): xlsx by anchor row, pdf page-aware.
      *
      * @param  array<string,mixed>  $draft
-     * @param  array{by_row:array<int,string>,ordered:list<string>}  $images
-     * @return array{0:list<array{id:int,path:string}>,1:array<int,?int>}
+     * @param  array{by_row:array<int,string>,ordered:list<array{path:string,page:int,width:int,height:int}>}  $images
+     * @return array{0:list<array{id:int,path:string,page:int}>,1:array<int,?int>}
      */
     private function buildImagePool(array $draft, array $images): array
     {
-        $pool = [];
-        $itemPhoto = [];
-        $itens = array_values($draft['itens'] ?? []);
+        return app(ImageItemMatcher::class)->match($draft, $images);
+    }
 
-        if ($images['by_row'] !== []) {
-            $byRow = $images['by_row'];
-            ksort($byRow);
-            $rowToId = [];
-            foreach ($byRow as $row => $path) {
-                $id = count($pool);
-                $pool[] = ['id' => $id, 'path' => $path];
-                $rowToId[$row] = $id;
-            }
-            foreach ($itens as $i => $item) {
-                $itemPhoto[$i] = $rowToId[(int) ($item['source_row'] ?? 0)] ?? null;
-            }
-        } elseif ($images['ordered'] !== []) {
-            foreach (array_values($images['ordered']) as $i => $path) {
-                $pool[] = ['id' => $i, 'path' => $path];
-            }
-            foreach ($itens as $i => $item) {
-                $itemPhoto[$i] = isset($pool[$i]) ? $i : null;
-            }
+    /**
+     * Passe de visão sobre as fotos extraídas do PDF. Sempre corrige orientação
+     * (imagens espelhadas pelo pdfimages); o mapeamento foto↔item da visão só
+     * substitui o determinístico quando o alinhamento ficou suspeito (item sem
+     * foto ou imagem sobrando). Falha mantém o resultado atual.
+     *
+     * @param  array<string,mixed>  $draft
+     * @param  list<array{id:int,path:string,page:int}>  $pool
+     * @param  array<int,?int>  $itemPhoto
+     * @return array<int,?int>
+     */
+    private function reconcilePhotosWithVision(array $draft, array $pool, array $itemPhoto, bool $checkOrientation = true): array
+    {
+        if ($pool === []) {
+            return $itemPhoto;
         }
 
-        return [$pool, $itemPhoto];
+        $matcher = app(PhotoItemMatcher::class);
+        $applyMappings = $matcher->shouldRun($pool, $itemPhoto);
+
+        // Sem suspeita de desalinhamento e sem necessidade de checar orientação
+        // (ex.: re-match após edição via chat — as fotos já foram corrigidas na
+        // extração), não há o que a visão melhorar: pula a chamada.
+        if (! $applyMappings && ! $checkOrientation) {
+            return $itemPhoto;
+        }
+
+        // Contexto de layout: sem ver a página, o modelo não sabe qual foto está
+        // em qual linha da tabela (a ordem de desenho no PDF não segue as linhas).
+        $pageRenders = ($applyMappings && str_ends_with(strtolower((string) $this->importFilePath), '.pdf'))
+            ? app(DocumentImageExtractor::class)->renderPages($this->importFilePath)
+            : [];
+
+        return $matcher->reconcile(
+            $pool,
+            array_values($draft['itens'] ?? []),
+            $itemPhoto,
+            applyMappings: $applyMappings,
+            pageRenders: $pageRenders,
+        );
+    }
+
+    /** Inverte verticalmente uma imagem do pool (correção manual de foto espelhada). */
+    public function flipPoolImage(int $poolId): void
+    {
+        $entry = $this->importImagePool[$poolId] ?? null;
+        if ($entry !== null) {
+            PhotoItemMatcher::flipVertical($entry['path']);
+        }
     }
 
     /** Re-expose the current pool as a DocumentImageExtractor-shaped result for re-matching after a chat edit. */
     private function poolAsImagesRaw(): array
     {
-        return ['by_row' => [], 'ordered' => array_map(fn ($e) => $e['path'], $this->importImagePool)];
+        return ['by_row' => [], 'ordered' => array_map(fn ($e) => [
+            'path' => $e['path'],
+            'page' => (int) ($e['page'] ?? 0),
+            'width' => 0,
+            'height' => 0,
+        ], $this->importImagePool)];
     }
 
     /**
@@ -481,6 +588,111 @@ trait HandlesDocumentImport
         };
 
         return 'data:'.$mime.';base64,'.base64_encode($data);
+    }
+
+    /** Foto enviada manualmente no review (Livewire temporary upload). */
+    public $itemPhotoUpload = null;
+
+    /** Item de destino do upload manual — setado pelo blade antes de abrir o seletor de arquivo. */
+    public ?int $photoUploadTarget = null;
+
+    /**
+     * Upload manual de foto no review: cobre documentos cujo PDF não traz a foto
+     * extraível (ou traz errada). A imagem entra no pool compartilhado (na pasta
+     * images/ da sessão, limpa junto com o import) e é atribuída ao item alvo.
+     */
+    public function updatedItemPhotoUpload(): void
+    {
+        if ($this->itemPhotoUpload === null || $this->importFilePath === null || $this->form === null) {
+            return;
+        }
+
+        try {
+            $this->validate(['itemPhotoUpload' => 'image|mimes:jpg,jpeg,png,gif,webp|max:10240']);
+
+            $dir = dirname($this->importFilePath).'/images';
+            @mkdir($dir, 0775, true);
+            $ext = strtolower($this->itemPhotoUpload->getClientOriginalExtension() ?: 'png');
+            $path = $dir.'/upload_'.Str::uuid()->toString().'.'.$ext;
+            copy($this->itemPhotoUpload->getRealPath(), $path);
+
+            $id = count($this->importImagePool);
+            $this->importImagePool[] = ['id' => $id, 'path' => $path, 'page' => 0];
+
+            if ($this->photoUploadTarget !== null && isset($this->form['itens'][$this->photoUploadTarget])) {
+                $this->form['itens'][$this->photoUploadTarget]['photo_index'] = $id;
+            }
+
+            $this->dispatch('photo-uploaded');
+        } finally {
+            $this->itemPhotoUpload = null;
+            $this->photoUploadTarget = null;
+        }
+    }
+
+    /**
+     * Desvincula o produto casado de um item do review: o item volta a "novo" e o
+     * confirm criará um produto draft com a descrição (nome) e o part_no (model
+     * number) editados — em vez de manter o vínculo com o produto errado.
+     */
+    public function unlinkItemProduct(int $itemIndex): void
+    {
+        if (! isset($this->form['itens'][$itemIndex])) {
+            return;
+        }
+
+        $this->form['itens'][$itemIndex]['product_id'] = null;
+        $this->form['itens'][$itemIndex]['product_name'] = null;
+        $this->form['itens'][$itemIndex]['status'] = 'novo';
+    }
+
+    /** Busca do painel "vincular a produto existente" no review. */
+    public string $importProductSearch = '';
+
+    /**
+     * Candidatos para vínculo manual: nome, SKU, modelo ou reference code.
+     * Documentos sem coluna de código (com descrições inferidas por foto, que
+     * variam a cada extração) não têm como casar automaticamente com produtos já
+     * importados — o vínculo manual é o caminho anti-duplicata.
+     *
+     * @return array<int,string>
+     */
+    public function importProductOptions(): array
+    {
+        $search = trim($this->importProductSearch);
+        if (mb_strlen($search) < 2) {
+            return [];
+        }
+
+        return Product::query()
+            ->where(fn ($q) => $q
+                ->where('name', 'like', "%{$search}%")
+                ->orWhere('sku', 'like', "%{$search}%")
+                ->orWhere('model_number', 'like', "%{$search}%")
+                ->orWhere('reference_code', 'like', "%{$search}%"))
+            ->orderBy('name')
+            ->limit(20)
+            ->get(['id', 'name', 'sku'])
+            ->mapWithKeys(fn (Product $p) => [$p->id => $p->name.(filled($p->sku) ? " ({$p->sku})" : '')])
+            ->all();
+    }
+
+    /** Vincula um item do review a um produto existente do catálogo. */
+    public function linkItemProduct(int $itemIndex, int $productId): void
+    {
+        if (! isset($this->form['itens'][$itemIndex])) {
+            return;
+        }
+
+        $product = Product::find($productId);
+        if ($product === null) {
+            return;
+        }
+
+        $this->form['itens'][$itemIndex]['product_id'] = $product->id;
+        $this->form['itens'][$itemIndex]['product_name'] = $product->name;
+        $this->form['itens'][$itemIndex]['status'] = 'existente';
+        $this->dispatch('product-linked');
     }
 
     /** Assign (or clear) the chosen pool image for an item. */

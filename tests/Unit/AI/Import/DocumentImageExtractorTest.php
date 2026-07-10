@@ -46,4 +46,61 @@ class DocumentImageExtractorTest extends TestCase
         $this->assertSame([], $result['ordered']);
         @unlink($txt);
     }
+
+    public function test_parse_image_list_extracts_real_images_and_dedupes_repeated_draws(): void
+    {
+        // num 3 draws the same XObject (object 12) again — spreadsheet-exported PDFs
+        // do this for every photo; only the first draw may survive.
+        $output = <<<'TXT'
+        page   num  type   width height color comp bpc  enc interp  object ID x-ppi y-ppi size ratio
+        --------------------------------------------------------------------------------------------
+           1     0 image     400   300  rgb     3   8  jpeg   no        12  0   150   150 12.3K 3.5%
+           1     1 smask     400   300  gray    1   8  image  no        12  0   150   150 4096B 3.4%
+           2     2 image     250   250  rgb     3   8  image  no        18  0   150   150 88.9K  61%
+           2     3 image     400   300  rgb     3   8  jpeg   no        12  0   150   150 12.3K 3.5%
+        TXT;
+
+        $meta = $this->exposed()->parseList($output);
+
+        $this->assertSame([
+            0 => ['page' => 1, 'width' => 400, 'height' => 300],
+            2 => ['page' => 2, 'width' => 250, 'height' => 250],
+        ], $meta);
+    }
+
+    public function test_parse_image_list_returns_null_on_unparseable_output(): void
+    {
+        $this->assertNull($this->exposed()->parseList("something went wrong\nno data here"));
+    }
+
+    public function test_noise_filter_drops_tiny_and_extreme_aspect_keeps_photos_and_unknown(): void
+    {
+        $e = $this->exposed();
+
+        $this->assertTrue($e->noise(32, 32), 'tiny logo');
+        $this->assertTrue($e->noise(368, 1), 'cell border hairline');
+        $this->assertTrue($e->noise(1000, 80), '12.5:1 rule/banner');
+        $this->assertTrue($e->noise(220, 109), 'small near-square header logo');
+        $this->assertTrue($e->noise(109, 78), 'small icon/QR');
+        $this->assertFalse($e->noise(200, 200), 'square product photo');
+        $this->assertFalse($e->noise(454, 70), 'barbell bar photo (~6.5:1) is a real product');
+        $this->assertFalse($e->noise(0, 0), 'unknown dimensions never filtered');
+    }
+
+    /** Anonymous subclass exposing the protected parsing/filter seams. */
+    private function exposed(): object
+    {
+        return new class extends DocumentImageExtractor
+        {
+            public function parseList(string $output): ?array
+            {
+                return $this->parseImageList($output);
+            }
+
+            public function noise(int $w, int $h): bool
+            {
+                return $this->isNoise($w, $h);
+            }
+        };
+    }
 }

@@ -51,7 +51,15 @@ class InquiryTarget implements ImportTarget
             .'para uma trading company Brasil–China. Valores na moeda do documento, como números decimais. '
             .'Datas em YYYY-MM-DD. Cada item deve ter description e quantity; capture part_no, unit, '
             .'target_price (preço-alvo do cliente), specifications e notes quando constarem. '
-            .'Se o documento não identificar o cliente, use string vazia em cliente.nome.';
+            .'Se o documento não identificar o cliente, use string vazia em cliente.nome. '
+            .'Em documentos PDF, preencha "page" em CADA item com o número da página onde a linha aparece '
+            .'(1 = primeira página) — isso é usado para associar as fotos aos itens. '
+            .'Quando uma linha NÃO tiver descrição textual, descreva o produto objetivamente a partir da '
+            .'FOTO da linha (tipo de produto, material, cor) e marque descricao_inferida=true. '
+            .'Nunca deixe description vazio e nunca copie a descrição de outra linha. '
+            .'Quando uma linha agrupar VARIAÇÕES do mesmo produto (pesos/tamanhos com quantidade própria), '
+            .'mantenha a descrição base no item e liste cada variação em "variantes" com rotulo e '
+            .'quantity próprios — não as repita como itens separados.';
     }
 
     public function editToolName(): string
@@ -108,6 +116,8 @@ class InquiryTarget implements ImportTarget
                 'notes' => $it['notes'] ?? null,
                 'status' => $it['status'] ?? 'novo',
                 'product_id' => $it['product_id'] ?? null,
+                'product_name' => $it['product_name'] ?? null,
+                'description_inferred' => (bool) ($it['description_inferred'] ?? false),
                 'photo_index' => $itemPhoto[$i] ?? null,
             ];
         }

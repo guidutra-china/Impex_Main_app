@@ -80,8 +80,10 @@ class ResolveInquiryDraft
             // 'existente' = matched an existing product; 'novo' = no match (imports with product_id null).
             'status' => $product ? 'existente' : 'novo',
             'product_id' => $product?->id,
+            'product_name' => $product?->name,
             'part_no' => $partNo !== '' ? $partNo : null,
             'description' => (string) ($item['description'] ?? ''),
+            'description_inferred' => (bool) ($item['descricao_inferida'] ?? false),
             'quantity' => (int) ($item['quantity'] ?? 0),
             'unit' => trim((string) ($item['unit'] ?? '')) ?: 'pcs',
             'target_price_minor' => ($targetPrice !== null && $targetPrice !== '') ? Money::toMinor($targetPrice) : null,

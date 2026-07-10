@@ -38,8 +38,8 @@ return [
     'confirm_import' => '确认导入',
     'cancel' => '取消',
     'col' => [
-        'part_no' => '货号',
-        'description' => '描述',
+        'part_no' => '型号 / 货号',
+        'description' => '描述（产品名称）',
         'qty' => '数量',
         'unit' => '单位',
         'unit_price' => '单价',
@@ -90,7 +90,7 @@ return [
     'import_as' => '导入为 :label',
     'extracted_generic' => '数据已提取。请在下方检查并确认导入。',
     'imported_generic' => ':reference 已导入 :count 个项目。',
-    'switch_target' => '更换目标',
+    'switch_target' => '以其他类型导入…',
     'search_inquiry' => '按编号或客户搜索…',
     'record_not_found' => '所引用的记录已不存在。请检查选择后重试。',
 
@@ -106,4 +106,26 @@ return [
     'summary_inquiry_counts' => '共 :total 项 — :matched 项已匹配产品，:unmatched 项未匹配（仅按描述导入）。',
     'col_target_price' => '目标价',
     'import_with_ai' => 'AI 导入',
+
+    // 询价单 + 供应商报价组合流程
+    'create_linked_inquiry' => '为客户创建关联询价单',
+    'create_linked_inquiry_hint' => '除报价单外，还会为所选客户创建包含相同产品明细的询价单——可直接生成报价/形式发票。',
+    'search_client' => '搜索客户…',
+    'select_client' => '选择客户…',
+    'inquiry_client_required' => '请选择关联询价单的客户。',
+
+    // 审核 — 明确的行 → 产品映射
+    'desc_inferred_badge' => '由照片推断 — 请核对',
+    'new_product_hint' => '将创建草稿产品：描述成为产品名称，型号/货号成为 Model Number。导入前可编辑修正。',
+    'existing_product_hint' => '此行已关联现有产品——编辑描述只影响本行，不会修改产品。',
+    'unlink_product' => '取消关联',
+    'link_product' => '关联…',
+    'link_product_title' => '关联到目录中的现有产品',
+    'search_product' => '按名称、SKU 或型号搜索产品…',
+    'target_unavailable_permission' => '以 :label 导入需要您没有的权限，请联系管理员。',
+    'photo_upload' => '上传照片',
+    'photo_drop_hint' => '拖拽图片到此处，点击从文档中选择，或打开图库后 Ctrl+V 粘贴。',
+    'photo_flip' => '翻转照片（上下颠倒）',
+    'import_as_sq_with_inquiry' => '导入为供应商报价 + 关联询价单',
+    'api_billing' => 'Anthropic API 账户余额不足。请前往 console.anthropic.com（Plans & Billing）充值后重试。',
 ];

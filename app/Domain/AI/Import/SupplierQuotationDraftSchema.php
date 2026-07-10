@@ -61,6 +61,23 @@ class SupplierQuotationDraftSchema
                             'unit_price' => ['type' => 'number', 'description' => 'Preço unitário como aparece no documento.'],
                             'line_total' => ['type' => 'number', 'description' => 'Valor TOTAL da linha (coluna Amount/Total), quando existir.'],
                             'source_row' => ['type' => 'integer', 'description' => 'Número da linha de origem na planilha (campo "Linha N:"), quando houver.'],
+                            'page' => ['type' => 'integer', 'description' => 'Em PDFs: número da página onde a linha do item aparece (1 = primeira página).'],
+                            'descricao_inferida' => ['type' => 'boolean', 'description' => 'true quando a linha não tinha descrição textual e a description foi deduzida a partir da foto do produto.'],
+                            'variantes' => [
+                                'type' => 'array',
+                                'description' => 'Sub-linhas de variação do MESMO produto (pesos/tamanhos, ex: kettlebell 8kg/10kg/12kg), cada uma com qtd/preço próprios, compartilhando a foto e a descrição base. Use em vez de repetir itens.',
+                                'items' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'rotulo' => ['type' => 'string', 'description' => 'Rótulo da variação, ex: "8kg", "750mm".'],
+                                        'part_no' => ['type' => 'string'],
+                                        'quantity' => ['type' => 'integer'],
+                                        'unit_price' => ['type' => 'number'],
+                                        'line_total' => ['type' => 'number'],
+                                    ],
+                                    'required' => ['rotulo', 'quantity'],
+                                ],
+                            ],
                             ...($categoryNames !== [] ? [
                                 'categoria' => [
                                     'type' => 'string',
