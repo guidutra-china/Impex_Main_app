@@ -182,7 +182,7 @@
         <p class="text-xs font-medium">{{ __('assistant.link_product_title') }}</p>
         <input type="search" wire:model.live.debounce.400ms="importProductSearch" placeholder="{{ __('assistant.search_product') }}"
                class="mt-1 block w-full rounded border-gray-300 text-xs dark:bg-gray-900 dark:border-white/10" />
-        <div class="mt-1 flex flex-wrap gap-1">
+        <div class="mt-1 flex max-h-40 flex-wrap gap-1 overflow-y-auto">
             @foreach ($this->importProductOptions() as $productId => $productLabel)
                 <button type="button" x-on:click="$wire.linkItemProduct(linkPanel, {{ $productId }})"
                         class="rounded border border-gray-300 bg-white px-2 py-0.5 text-xs hover:bg-primary-50 dark:border-white/15 dark:bg-gray-900 dark:hover:bg-white/10">

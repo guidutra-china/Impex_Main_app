@@ -20,14 +20,14 @@ class PhotoItemMatcherTest extends TestCase
         return $path;
     }
 
-    /** Matcher whose callModel returns a canned mapear_fotos tool call. */
+    /** Matcher with both model calls faked: mapping returns $mapeamentos, orientation returns $invertidas. */
     private function matcherReturning(array $mapeamentos, array $invertidas = []): PhotoItemMatcher
     {
         return new class($mapeamentos, $invertidas) extends PhotoItemMatcher
         {
             public function __construct(private readonly array $mapeamentos, private readonly array $invertidas)
             {
-                // No Anthropic client: callModel is fully overridden.
+                // No Anthropic client: both model seams are fully overridden.
             }
 
             protected function callModel(array $content): object
@@ -35,7 +35,15 @@ class PhotoItemMatcherTest extends TestCase
                 return (object) ['content' => [
                     (object) ['type' => 'tool_use', 'name' => 'mapear_fotos', 'input' => [
                         'mapeamentos' => $this->mapeamentos,
-                        'imagens_invertidas' => $this->invertidas,
+                    ]],
+                ]];
+            }
+
+            protected function callOrientationModel(array $content): object
+            {
+                return (object) ['content' => [
+                    (object) ['type' => 'tool_use', 'name' => 'marcar_invertidas', 'input' => [
+                        'avaliacoes' => array_map(fn (int $id) => ['imagem' => $id, 'correta' => 'B'], $this->invertidas),
                     ]],
                 ]];
             }
@@ -170,7 +178,7 @@ class PhotoItemMatcherTest extends TestCase
         @unlink($png);
     }
 
-    public function test_reconcile_flips_images_flagged_as_upside_down(): void
+    public function test_orientation_check_flips_flagged_images_in_place(): void
     {
         $flipped = $this->topBottomPng();
         $upright = $this->topBottomPng();
@@ -182,7 +190,7 @@ class PhotoItemMatcherTest extends TestCase
         $before = $this->topLeftColor($flipped);
         $matcher = $this->matcherReturning([], invertidas: [0, 99]); // 99 fora do pool → ignorado
 
-        $matcher->reconcile($pool, [['description' => 'A'], ['description' => 'B']], [0 => 0, 1 => 1]);
+        $matcher->reconcile($pool, [['description' => 'A'], ['description' => 'B']], [0 => 0, 1 => 1], applyMappings: false, checkOrientation: true);
 
         $this->assertNotSame($before, $this->topLeftColor($flipped), 'flagged image must be flipped in place');
         $this->assertSame($before, $this->topLeftColor($upright), 'unflagged image untouched');
@@ -190,20 +198,54 @@ class PhotoItemMatcherTest extends TestCase
         @unlink($upright);
     }
 
-    public function test_reconcile_without_apply_mappings_fixes_orientation_but_keeps_assignment(): void
+    public function test_orientation_check_can_flip_all_images_without_touching_assignment(): void
     {
-        $png = $this->topBottomPng();
+        // Caso real (DeepFitness0701): TODAS as fotos do PDF armazenadas espelhadas.
+        $a = $this->topBottomPng();
+        $b = $this->topBottomPng();
+        $pool = [
+            ['id' => 0, 'path' => $a, 'page' => 1],
+            ['id' => 1, 'path' => $b, 'page' => 1],
+        ];
+        $beforeA = $this->topLeftColor($a);
+        $beforeB = $this->topLeftColor($b);
+
+        $matcher = $this->matcherReturning([['imagem' => 0, 'itens' => [1]]], invertidas: [0, 1]);
+
+        $result = $matcher->reconcile($pool, [['description' => 'A'], ['description' => 'B']], [0 => 0, 1 => 1], applyMappings: false, checkOrientation: true);
+
+        $this->assertSame([0 => 0, 1 => 1], $result, 'mapping untouched when applyMappings=false');
+        $this->assertNotSame($beforeA, $this->topLeftColor($a));
+        $this->assertNotSame($beforeB, $this->topLeftColor($b));
+        @unlink($a);
+        @unlink($b);
+    }
+
+    public function test_orientation_failure_does_not_block_mapping(): void
+    {
+        $png = $this->pngFile();
         $pool = [['id' => 0, 'path' => $png, 'page' => 1]];
-        $before = $this->topLeftColor($png);
 
-        // Visão sugere mapear a imagem para o item 1 — mas o determinístico não era
-        // suspeito, então só a orientação é aplicada.
-        $matcher = $this->matcherReturning([['imagem' => 0, 'itens' => [1]]], invertidas: [0]);
+        $matcher = new class extends PhotoItemMatcher
+        {
+            public function __construct() {}
 
-        $result = $matcher->reconcile($pool, [['description' => 'A'], ['description' => 'B']], [0 => 0, 1 => null], applyMappings: false);
+            protected function callOrientationModel(array $content): object
+            {
+                throw new \RuntimeException('orientation API down');
+            }
 
-        $this->assertSame([0 => 0, 1 => null], $result, 'mapping unchanged');
-        $this->assertNotSame($before, $this->topLeftColor($png), 'orientation still fixed');
+            protected function callModel(array $content): object
+            {
+                return (object) ['content' => [
+                    (object) ['type' => 'tool_use', 'name' => 'mapear_fotos', 'input' => ['mapeamentos' => [['imagem' => 0, 'itens' => [0]]]]],
+                ]];
+            }
+        };
+
+        $result = $matcher->reconcile($pool, [['description' => 'A']], [0 => null], applyMappings: true, checkOrientation: true);
+
+        $this->assertSame([0 => 0], $result, 'mapping still applied after orientation failure');
         @unlink($png);
     }
 

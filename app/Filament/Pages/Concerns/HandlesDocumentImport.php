@@ -507,9 +507,10 @@ trait HandlesDocumentImport
             return $itemPhoto;
         }
 
-        // Contexto de layout: sem ver a página, o modelo não sabe qual foto está
-        // em qual linha da tabela (a ordem de desenho no PDF não segue as linhas).
-        $pageRenders = ($applyMappings && str_ends_with(strtolower((string) $this->importFilePath), '.pdf'))
+        // Contexto de layout: sem ver a página, o modelo não sabe qual foto está em
+        // qual linha da tabela (a ordem de desenho no PDF não segue as linhas) nem
+        // qual a orientação correta de cada foto.
+        $pageRenders = str_ends_with(strtolower((string) $this->importFilePath), '.pdf')
             ? app(DocumentImageExtractor::class)->renderPages($this->importFilePath)
             : [];
 
@@ -519,6 +520,7 @@ trait HandlesDocumentImport
             $itemPhoto,
             applyMappings: $applyMappings,
             pageRenders: $pageRenders,
+            checkOrientation: $checkOrientation,
         );
     }
 
@@ -664,14 +666,18 @@ trait HandlesDocumentImport
             return [];
         }
 
+        // Limite 50: buscas genéricas ("dumbbell") casam com dezenas de variantes de
+        // peso e o corte em 20 escondia produtos existentes (caso real DBE-00009 —
+        // "8kg"/"9kg" ficavam fora do top-20 alfabético). Ordenação por tamanho do
+        // nome aproxima ordem natural: "1kg" antes de "10kg".
         return Product::query()
             ->where(fn ($q) => $q
                 ->where('name', 'like', "%{$search}%")
                 ->orWhere('sku', 'like', "%{$search}%")
                 ->orWhere('model_number', 'like', "%{$search}%")
                 ->orWhere('reference_code', 'like', "%{$search}%"))
-            ->orderBy('name')
-            ->limit(20)
+            ->orderByRaw('LENGTH(name), name')
+            ->limit(50)
             ->get(['id', 'name', 'sku'])
             ->mapWithKeys(fn (Product $p) => [$p->id => $p->name.(filled($p->sku) ? " ({$p->sku})" : '')])
             ->all();
