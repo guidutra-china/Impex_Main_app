@@ -651,11 +651,29 @@ trait HandlesDocumentImport
     /** Busca do painel "vincular a produto existente" no review. */
     public string $importProductSearch = '';
 
+    /** Quando true, a busca de vínculo ignora o escopo do fornecedor e varre o catálogo todo. */
+    public bool $importProductSearchAll = false;
+
+    /**
+     * Fornecedor resolvido do import atual (escopo padrão do vínculo manual);
+     * null no destino inquiry ou quando o fornecedor é novo.
+     */
+    public function importSupplierScopeId(): ?int
+    {
+        $id = $this->form['fornecedor']['company_id'] ?? null;
+
+        return filled($id) ? (int) $id : null;
+    }
+
     /**
      * Candidatos para vínculo manual: nome, SKU, modelo ou reference code.
      * Documentos sem coluna de código (com descrições inferidas por foto, que
      * variam a cada extração) não têm como casar automaticamente com produtos já
      * importados — o vínculo manual é o caminho anti-duplicata.
+     *
+     * Escopo padrão: produtos DO FORNECEDOR do documento (vincular a produto de
+     * outro fabricante é quase sempre erro); o toggle "todo o catálogo" cobre
+     * produtos ainda não linkados a ele.
      *
      * @return array<int,string>
      */
@@ -666,11 +684,16 @@ trait HandlesDocumentImport
             return [];
         }
 
+        $supplierId = $this->importProductSearchAll ? null : $this->importSupplierScopeId();
+
         // Limite 50: buscas genéricas ("dumbbell") casam com dezenas de variantes de
         // peso e o corte em 20 escondia produtos existentes (caso real DBE-00009 —
         // "8kg"/"9kg" ficavam fora do top-20 alfabético). Ordenação por tamanho do
         // nome aproxima ordem natural: "1kg" antes de "10kg".
         return Product::query()
+            ->when($supplierId !== null, fn ($q) => $q->whereHas('companies', fn ($c) => $c
+                ->where('companies.id', $supplierId)
+                ->where('company_product.role', 'supplier')))
             ->where(fn ($q) => $q
                 ->where('name', 'like', "%{$search}%")
                 ->orWhere('sku', 'like', "%{$search}%")

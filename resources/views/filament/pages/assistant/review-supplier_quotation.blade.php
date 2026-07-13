@@ -186,6 +186,15 @@
     <div x-show="linkPanel !== null" x-cloak x-on:product-linked.window="linkPanel = null"
          class="mt-2 rounded border border-gray-200 bg-gray-50 p-2 dark:border-white/10 dark:bg-white/5">
         <p class="text-xs font-medium">{{ __('assistant.link_product_title') }}</p>
+        @if ($this->importSupplierScopeId() !== null)
+            <label class="mt-0.5 flex items-center gap-1.5 text-[11px] text-gray-600 dark:text-gray-300">
+                <input type="checkbox" wire:model.live="importProductSearchAll" class="rounded border-gray-300 dark:border-white/10" />
+                {{ __('assistant.search_all_catalog') }}
+            </label>
+            <p class="text-[10px] text-gray-500 dark:text-gray-400">
+                {{ $importProductSearchAll ? __('assistant.scope_all_hint') : __('assistant.scope_supplier_hint', ['supplier' => $form['fornecedor']['nome'] ?? '']) }}
+            </p>
+        @endif
         <input type="search" wire:model.live.debounce.400ms="importProductSearch" placeholder="{{ __('assistant.search_product') }}"
                class="mt-1 block w-full rounded border-gray-300 text-xs dark:bg-gray-900 dark:border-white/10" />
         <div class="mt-1 flex max-h-40 flex-wrap gap-1 overflow-y-auto">

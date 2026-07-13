@@ -85,6 +85,39 @@ class AssistantImportFlowTest extends TestCase
         $this->assertDatabaseHas('companies', ['name' => 'Flow Supplier']);
     }
 
+    public function test_link_search_scopes_to_document_supplier_with_full_catalog_toggle(): void
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo(['view-assistant', 'create-supplier-quotations']);
+        $this->actingAs($user);
+
+        $supplier = \App\Domain\CRM\Models\Company::factory()->create(['name' => 'Hebei Yangrun Sports']);
+        $ours = \App\Domain\Catalog\Models\Product::factory()->create(['name' => 'Dumbbell 5kg']);
+        $ours->companies()->attach($supplier->id, ['role' => 'supplier']);
+        $foreign = \App\Domain\Catalog\Models\Product::factory()->create(['name' => 'Dumbbell 5kg (outro fabricante)']);
+
+        $component = Livewire::test(Assistant::class);
+        $instance = $component->instance();
+        // Review de SQ com fornecedor resolvido (o form é o estado que importa aqui).
+        $instance->form = ['fornecedor' => ['company_id' => $supplier->id, 'nome' => 'Hebei Yangrun Sports'], 'itens' => []];
+        $instance->importProductSearch = 'dumbbell';
+
+        $scoped = $instance->importProductOptions();
+        $this->assertArrayHasKey($ours->id, $scoped);
+        $this->assertArrayNotHasKey($foreign->id, $scoped, 'products from other manufacturers must be hidden by default');
+
+        $instance->importProductSearchAll = true;
+        $all = $instance->importProductOptions();
+        $this->assertArrayHasKey($ours->id, $all);
+        $this->assertArrayHasKey($foreign->id, $all);
+
+        // Destino inquiry (sem fornecedor no form): catálogo inteiro.
+        $instance->importProductSearchAll = false;
+        $instance->form = ['itens' => []];
+        $noScope = $instance->importProductOptions();
+        $this->assertArrayHasKey($foreign->id, $noScope);
+    }
+
     public function test_link_item_product_attaches_existing_product_and_confirm_reuses_it(): void
     {
         $user = User::factory()->create();
