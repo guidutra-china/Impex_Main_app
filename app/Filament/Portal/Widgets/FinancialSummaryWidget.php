@@ -33,28 +33,55 @@ class FinancialSummaryWidget extends BaseWidget
             ->get()
             ->sum(fn ($pi) => $pi->total);
 
-        $scheduleItems = PaymentScheduleItem::whereHasMorph('payable', [ProformaInvoice::class], function ($query) use ($companyId) {
-            $query->where('company_id', $companyId);
-        })->get();
+        // Mesma família de predicados do Contas a Pagar do portal: parcelas de
+        // PI não cancelada + custos adicionais por shipment (frete, comissão),
+        // sem linhas de crédito nem espelhos forwarder-payable.
+        $scheduleItems = PaymentScheduleItem::query()
+            ->where(function ($outer) use ($companyId) {
+                $outer->where(function ($q) use ($companyId) {
+                    $q->where('payable_type', ProformaInvoice::class)
+                        ->whereHasMorph('payable', [ProformaInvoice::class], fn ($sub) => $sub
+                            ->where('company_id', $companyId)
+                            ->where('status', '!=', 'cancelled'));
+                })->orWhere(function ($q) use ($companyId) {
+                    $q->where('payable_type', \App\Domain\Logistics\Models\Shipment::class)
+                        ->where('source_type', \App\Domain\Financial\Models\AdditionalCost::class)
+                        ->whereHasMorph('payable', [\App\Domain\Logistics\Models\Shipment::class], fn ($sub) => $sub
+                            ->where('company_id', $companyId)
+                            ->where('status', '!=', 'cancelled'));
+                });
+            })
+            ->where('is_credit', false)
+            ->where(function ($q) {
+                $q->whereNull('notes')
+                    ->orWhere('notes', 'NOT LIKE', '%[forwarder-payable]%');
+            })
+            ->with('allocations.payment')
+            ->get();
 
-        $totalPaid = $scheduleItems
-            ->where('status', PaymentScheduleStatus::PAID)
-            ->sum('amount');
+        // Pago = alocações aprovadas (captura pagamentos parciais); pendente =
+        // SALDO restante das parcelas abertas (pending + due + overdue —
+        // "due" ficava de fora e parcialmente pagas entravam pelo valor cheio).
+        $totalPaid = $scheduleItems->sum(fn ($item) => $item->paid_amount);
 
         $totalPending = $scheduleItems
-            ->whereIn('status', [PaymentScheduleStatus::PENDING, PaymentScheduleStatus::OVERDUE])
-            ->sum('amount');
+            ->whereIn('status', [
+                PaymentScheduleStatus::PENDING,
+                PaymentScheduleStatus::DUE,
+                PaymentScheduleStatus::OVERDUE,
+            ])
+            ->sum(fn ($item) => max(0, (int) $item->amount - (int) $item->paid_amount));
 
         return [
-            Stat::make(__('widgets.portal.total_pi_value'), 'USD ' . Money::format($totalPiValue))
+            Stat::make(__('widgets.portal.total_pi_value'), 'USD '.Money::format($totalPiValue))
                 ->description(__('widgets.portal.confirmed_proforma_invoices'))
                 ->icon('heroicon-o-document-check')
                 ->color('primary'),
-            Stat::make(__('widgets.portal.total_paid'), 'USD ' . Money::format($totalPaid))
+            Stat::make(__('widgets.portal.total_paid'), 'USD '.Money::format($totalPaid))
                 ->description(__('widgets.portal.payments_received'))
                 ->icon('heroicon-o-check-circle')
                 ->color('success'),
-            Stat::make(__('widgets.portal.pending_balance'), 'USD ' . Money::format($totalPending))
+            Stat::make(__('widgets.portal.pending_balance'), 'USD '.Money::format($totalPending))
                 ->description(__('widgets.portal.outstanding_payments'))
                 ->icon('heroicon-o-clock')
                 ->color($totalPending > 0 ? 'warning' : 'success'),

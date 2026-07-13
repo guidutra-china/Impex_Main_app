@@ -79,7 +79,10 @@ class ProductResource extends Resource
                     ->whereColumn('products.id', 'company_product.product_id')
                     ->limit(1),
             ])
-            ->where('role', 'client');
+            ->where('role', 'client')
+            // Pivô órfão (produto soft-deletado) renderizaria uma linha em branco
+            // só com o preço — whereHas respeita o SoftDeletes do Product.
+            ->whereHas('product');
 
         if ($tenant) {
             $query->where('company_id', $tenant->getKey());
