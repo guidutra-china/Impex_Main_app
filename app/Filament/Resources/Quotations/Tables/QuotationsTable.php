@@ -29,6 +29,13 @@ class QuotationsTable
                     ->sortable()
                     ->weight('bold')
                     ->copyable(),
+                TextColumn::make('description')
+                    ->label(__('forms.labels.description'))
+                    ->searchable()
+                    ->limit(35)
+                    ->tooltip(fn ($record) => $record->description)
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('company.name')
                     ->label(__('forms.labels.client'))
                     ->searchable()

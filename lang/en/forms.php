@@ -965,6 +965,7 @@ return [
         'type_to_search_by_name_sku_or_code_use_filters_above' => 'Type to search by name, SKU, or supplier/client code. Use filters above to narrow results. ★ = client product.',
         'cost_currency_to_pi_currency' => 'Rate from cost currency to the PI currency, frozen on the item.',
         'cost_currency_to_quote_currency' => 'Rate from the cost currency to the quotation currency, frozen on the item.',
+        'inherited_from_the_inquiry_on_creation' => 'Inherited from the inquiry when the quotation is created.',
         'embedded_default_rate_new_items' => 'Default rate for new items — the commission is embedded in each unit price.',
         'quotation_incoterm_shown_to_client' => 'Default incoterm for this quotation, shown to the client in the PDF.',
         'recalculate_client_prices_help' => 'Also rebuild each client unit price from the converted cost using the new rate (embedded commission applied when set).',

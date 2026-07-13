@@ -62,6 +62,7 @@ class CreateOrUpdateQuotationFromInquiryAction
 
             if ($existing) {
                 $existing->update([
+                    'description' => $existing->description ?? $inquiry->description,
                     'company_id' => $inquiry->company_id,
                     'contact_id' => $inquiry->contact_id,
                     'currency_code' => $inquiry->currency_code,
@@ -74,6 +75,7 @@ class CreateOrUpdateQuotationFromInquiryAction
             } else {
                 $quotation = Quotation::create([
                     'reference' => 'Q-'.now()->format('Ymd').'-'.str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT),
+                    'description' => $inquiry->description,
                     'inquiry_id' => $inquiry->id,
                     'company_id' => $inquiry->company_id,
                     'contact_id' => $inquiry->contact_id,

@@ -45,6 +45,9 @@ class QuotationInfolist
                         ->label(__('forms.labels.reference'))
                         ->weight(FontWeight::Bold)
                         ->copyable(),
+                    TextEntry::make('description')
+                        ->label(__('forms.labels.description'))
+                        ->placeholder('—'),
                     TextEntry::make('status')
                         ->label(__('forms.labels.status'))
                         ->badge(),

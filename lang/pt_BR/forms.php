@@ -964,6 +964,7 @@ return [
         'type_to_search_by_name_sku_or_code_use_filters_above' => 'Digite para buscar por nome, SKU ou código do fornecedor/cliente. Use os filtros acima para refinar. ★ = produto do cliente.',
         'cost_currency_to_pi_currency' => 'Taxa da moeda de custo para a moeda da PI, congelada no item.',
         'cost_currency_to_quote_currency' => 'Taxa da moeda de custo para a moeda da cotação, congelada no item.',
+        'inherited_from_the_inquiry_on_creation' => 'Herdado da inquiry na criação da cotação.',
         'embedded_default_rate_new_items' => 'Taxa padrão para novos itens — a comissão fica embutida em cada preço unitário.',
         'quotation_incoterm_shown_to_client' => 'Incoterm padrão desta cotação, exibido ao cliente no PDF.',
         'recalculate_client_prices_help' => 'Recalcula também o preço unitário ao cliente a partir do custo convertido com a nova taxa (aplica a comissão embutida, se houver).',

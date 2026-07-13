@@ -383,6 +383,40 @@ class CreateOrUpdateQuotationFromInquiryActionTest extends TestCase
         $this->assertSame($items[0]->product_id, $quotation2->items->first()->product_id);
     }
 
+    public function test_description_is_inherited_from_inquiry_and_manual_edit_is_preserved(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems();
+        $inquiry->update(['description' => 'Fitness equipment March order']);
+        $supplier = Company::factory()->create();
+        $sq = $this->buildSqWith($inquiry, $supplier, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 1000],
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry->fresh('items'),
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+        );
+
+        $this->assertSame('Fitness equipment March order', $quotation->description);
+
+        // A manual edit on the quotation survives a re-run.
+        $quotation->update(['description' => 'Custom title']);
+
+        $quotation2 = $this->makeAction()->execute(
+            inquiry: $inquiry->fresh('items'),
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+        );
+
+        $this->assertSame($quotation->id, $quotation2->id);
+        $this->assertSame('Custom title', $quotation2->description);
+    }
+
     public function test_embedded_commission_rate_is_persisted_on_header(): void
     {
         [$client, $inquiry, $items] = $this->buildInquiryWithItems();
