@@ -5,10 +5,10 @@ namespace App\Filament\Resources\Settings\ExchangeRates\Schemas;
 use App\Domain\Settings\Enums\ExchangeRateSource;
 use App\Domain\Settings\Enums\ExchangeRateStatus;
 use Filament\Forms\Components\DatePicker;
-use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
 class ExchangeRateForm
@@ -46,6 +46,12 @@ class ExchangeRateForm
                             ->numeric()
                             ->minValue(0.00000001)
                             ->step(0.00000001)
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, \Filament\Schemas\Components\Utilities\Set $set) {
+                                if ((float) $state > 0) {
+                                    $set('inverse_rate', round(1 / (float) $state, 8));
+                                }
+                            })
                             ->helperText(__('forms.helpers.how_many_units_of_target_currency_per_1_unit_of_base')),
                         TextInput::make('inverse_rate')
                             ->label(__('forms.labels.inverse_rate'))

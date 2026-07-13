@@ -40,6 +40,19 @@ class ExchangeRate extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        // Keep the inverse in sync when only the rate changes; an
+        // explicitly provided inverse (custom spread) is preserved.
+        static::saving(function (ExchangeRate $exchangeRate) {
+            if ($exchangeRate->isDirty('rate')
+                && ! $exchangeRate->isDirty('inverse_rate')
+                && (float) $exchangeRate->rate > 0) {
+                $exchangeRate->inverse_rate = round(1 / (float) $exchangeRate->rate, 8);
+            }
+        });
+    }
+
     public function baseCurrency(): BelongsTo
     {
         return $this->belongsTo(Currency::class, 'base_currency_id');
@@ -80,24 +93,26 @@ class ExchangeRate extends Model
 
         $baseCurrency = Currency::base();
 
-        if (!$baseCurrency) {
+        if (! $baseCurrency) {
             return null;
         }
 
         if ($fromCurrencyId === $baseCurrency->id) {
             $rate = self::getLatestRate($baseCurrency->id, $toCurrencyId, $date);
+
             return $rate ? $amount * (float) $rate->rate : null;
         }
 
         if ($toCurrencyId === $baseCurrency->id) {
             $rate = self::getLatestRate($baseCurrency->id, $fromCurrencyId, $date);
+
             return $rate ? $amount * (float) $rate->inverse_rate : null;
         }
 
         $rateBaseToFrom = self::getLatestRate($baseCurrency->id, $fromCurrencyId, $date);
         $rateBaseToTo = self::getLatestRate($baseCurrency->id, $toCurrencyId, $date);
 
-        if (!$rateBaseToFrom || !$rateBaseToTo) {
+        if (! $rateBaseToFrom || ! $rateBaseToTo) {
             return null;
         }
 
