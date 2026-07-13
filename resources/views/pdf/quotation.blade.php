@@ -20,6 +20,12 @@
             <td class="meta-label">{{ $labels['currency'] }}</td>
             <td class="meta-value">{{ $quotation['currency_code'] }}</td>
         </tr>
+        @if(! empty($quotation['incoterm']))
+            <tr>
+                <td class="meta-label">{{ $labels['incoterm'] }}</td>
+                <td class="meta-value">{{ $quotation['incoterm'] }}</td>
+            </tr>
+        @endif
         @if($quotation['inquiry_reference'])
             <tr>
                 <td class="meta-label">{{ $labels['inquiry_reference'] ?? 'Inquiry Ref.' }}</td>

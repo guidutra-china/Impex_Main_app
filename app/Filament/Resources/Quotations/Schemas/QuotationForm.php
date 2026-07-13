@@ -133,8 +133,14 @@ class QuotationForm
                         ->step(0.01)
                         ->suffix('%')
                         ->default(0)
-                        ->visible(fn (Get $get) => $get('commission_type') === CommissionType::SEPARATE->value || $get('commission_type') === CommissionType::SEPARATE)
-                        ->helperText(__('forms.helpers.applied_to_the_total_value_separate_model_only')),
+                        ->helperText(function (Get $get) {
+                            $isSeparate = $get('commission_type') === CommissionType::SEPARATE->value
+                                || $get('commission_type') === CommissionType::SEPARATE;
+
+                            return $isSeparate
+                                ? __('forms.helpers.applied_to_the_total_value_separate_model_only')
+                                : __('forms.helpers.embedded_default_rate_new_items');
+                        }),
                     Toggle::make('show_suppliers')
                         ->label(__('forms.labels.show_suppliers_to_client'))
                         ->default(false)
@@ -144,6 +150,11 @@ class QuotationForm
 
             Section::make(__('forms.sections.terms_validity'))
                 ->schema([
+                    Select::make('incoterm')
+                        ->label(__('forms.labels.incoterm'))
+                        ->options(\App\Domain\Quotations\Enums\Incoterm::class)
+                        ->placeholder(__('forms.placeholders.select_incoterm'))
+                        ->helperText(__('forms.helpers.quotation_incoterm_shown_to_client')),
                     Select::make('payment_term_id')
                         ->label(__('forms.labels.payment_terms'))
                         ->options(fn () => PaymentTerm::where('is_active', true)->pluck('name', 'id'))

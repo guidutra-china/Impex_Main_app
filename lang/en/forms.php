@@ -965,6 +965,8 @@ return [
         'type_to_search_by_name_sku_or_code_use_filters_above' => 'Type to search by name, SKU, or supplier/client code. Use filters above to narrow results. ★ = client product.',
         'cost_currency_to_pi_currency' => 'Rate from cost currency to the PI currency, frozen on the item.',
         'cost_currency_to_quote_currency' => 'Rate from the cost currency to the quotation currency, frozen on the item.',
+        'embedded_default_rate_new_items' => 'Default rate for new items — the commission is embedded in each unit price.',
+        'quotation_incoterm_shown_to_client' => 'Default incoterm for this quotation, shown to the client in the PDF.',
         'recalculate_client_prices_help' => 'Also rebuild each client unit price from the converted cost using the new rate (embedded commission applied when set).',
         'fx_rate_unavailable' => 'no rate available',
         'multi_currency_explanation' => 'Some item costs were quoted in a different currency than this PI. The rate snapshot was taken when each item was created. Use the button below to refresh all rates against today\'s FX table.',

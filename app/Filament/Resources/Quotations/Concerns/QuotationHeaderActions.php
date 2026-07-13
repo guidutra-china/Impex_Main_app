@@ -257,7 +257,7 @@ trait QuotationHeaderActions
                                 'unit_cost' => $item->unit_cost,
                                 'cost_currency_code' => $item->cost_currency_code,
                                 'cost_exchange_rate' => $item->cost_exchange_rate,
-                                'incoterm' => $item->incoterm,
+                                'incoterm' => $item->incoterm ?? $quotation->incoterm,
                                 'notes' => $item->notes,
                                 'sort_order' => ++$sortOrder,
                             ]);

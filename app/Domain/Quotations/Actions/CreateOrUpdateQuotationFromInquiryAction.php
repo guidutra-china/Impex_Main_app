@@ -4,6 +4,7 @@ namespace App\Domain\Quotations\Actions;
 
 use App\Domain\Inquiries\Models\Inquiry;
 use App\Domain\Quotations\Enums\CommissionType;
+use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Quotations\Enums\QuotationStatus;
 use App\Domain\Quotations\Exceptions\QuotationLockedException;
 use App\Domain\Quotations\Models\Quotation;
@@ -35,9 +36,10 @@ class CreateOrUpdateQuotationFromInquiryAction
         bool $showSuppliers,
         bool $forceNewVersion = false,
         array $itemOverrides = [],
+        ?Incoterm $incoterm = null,
     ): Quotation {
         return DB::transaction(function () use (
-            $inquiry, $supplierQuotationIds, $commissionType, $commissionRate, $showSuppliers, $forceNewVersion, $itemOverrides
+            $inquiry, $supplierQuotationIds, $commissionType, $commissionRate, $showSuppliers, $forceNewVersion, $itemOverrides, $incoterm
         ) {
             $existing = $inquiry->quotations()->latest('version')->first();
 
@@ -64,7 +66,8 @@ class CreateOrUpdateQuotationFromInquiryAction
                     'contact_id' => $inquiry->contact_id,
                     'currency_code' => $inquiry->currency_code,
                     'commission_type' => $commissionType,
-                    'commission_rate' => $commissionType === CommissionType::SEPARATE ? $commissionRate : 0,
+                    'commission_rate' => $commissionRate,
+                    'incoterm' => $incoterm ?? $existing->incoterm,
                     'show_suppliers' => $showSuppliers,
                 ]);
                 $quotation = $existing;
@@ -78,7 +81,8 @@ class CreateOrUpdateQuotationFromInquiryAction
                     'version' => $newVersion,
                     'currency_code' => $inquiry->currency_code,
                     'commission_type' => $commissionType,
-                    'commission_rate' => $commissionType === CommissionType::SEPARATE ? $commissionRate : 0,
+                    'commission_rate' => $commissionRate,
+                    'incoterm' => $incoterm,
                     'show_suppliers' => $showSuppliers,
                 ]);
             }
@@ -189,6 +193,9 @@ class CreateOrUpdateQuotationFromInquiryAction
                 'cost_exchange_rate_captured_at' => $rateCapturedAt,
                 'commission_rate' => $itemCommissionRate,
                 'unit_price' => $unitPrice,
+                'incoterm' => $primary?->supplierQuotation?->incoterm
+                    ?? $existingItem?->incoterm
+                    ?? $quotation->incoterm,
                 'sort_order' => $sortOrder++,
             ];
 

@@ -382,4 +382,69 @@ class CreateOrUpdateQuotationFromInquiryActionTest extends TestCase
         $this->assertCount(1, $quotation2->items, 'orphan QuotationItem should be deleted on re-run');
         $this->assertSame($items[0]->product_id, $quotation2->items->first()->product_id);
     }
+
+    public function test_embedded_commission_rate_is_persisted_on_header(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems();
+        $supplier = Company::factory()->create();
+        $sq = $this->buildSqWith($inquiry, $supplier, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 1000],
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 10,
+            showSuppliers: false,
+        );
+
+        $this->assertEqualsWithDelta(10.0, (float) $quotation->commission_rate, 0.01);
+        $this->assertEqualsWithDelta(10.0, (float) $quotation->items->first()->commission_rate, 0.01);
+    }
+
+    public function test_header_incoterm_is_persisted_and_defaults_items(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems();
+        $supplier = Company::factory()->create();
+        $sq = $this->buildSqWith($inquiry, $supplier, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 1000],
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+            incoterm: \App\Domain\Quotations\Enums\Incoterm::FOB,
+        );
+
+        $this->assertSame(\App\Domain\Quotations\Enums\Incoterm::FOB, $quotation->incoterm);
+        // The SQ has no incoterm, so items inherit the quotation default.
+        $this->assertSame(\App\Domain\Quotations\Enums\Incoterm::FOB, $quotation->items->first()->incoterm);
+    }
+
+    public function test_item_incoterm_is_copied_from_source_supplier_quotation(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems();
+        $supplier = Company::factory()->create();
+        $sq = $this->buildSqWith($inquiry, $supplier, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 1000],
+        ]);
+        $sq->update(['incoterm' => 'EXW']);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+            incoterm: \App\Domain\Quotations\Enums\Incoterm::FOB,
+        );
+
+        // The SQ incoterm wins over the quotation default on the item.
+        $this->assertSame(\App\Domain\Quotations\Enums\Incoterm::EXW, $quotation->items->first()->incoterm);
+        $this->assertSame(\App\Domain\Quotations\Enums\Incoterm::FOB, $quotation->incoterm);
+    }
 }

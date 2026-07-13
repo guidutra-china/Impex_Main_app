@@ -10,6 +10,7 @@ use App\Domain\Infrastructure\Traits\HasReference;
 use App\Domain\Infrastructure\Traits\HasStateMachine;
 use App\Domain\Inquiries\Models\Inquiry;
 use App\Domain\Quotations\Enums\CommissionType;
+use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Quotations\Enums\QuotationStatus;
 use App\Domain\Settings\Models\PaymentTerm;
 use App\Models\User;
@@ -35,6 +36,7 @@ class Quotation extends Model
         'currency_code',
         'commission_type',
         'commission_rate',
+        'incoterm',
         'show_suppliers',
         'validity_days',
         'valid_until',
@@ -50,6 +52,7 @@ class Quotation extends Model
             'status' => QuotationStatus::class,
             'commission_type' => CommissionType::class,
             'commission_rate' => 'decimal:2',
+            'incoterm' => Incoterm::class,
             'show_suppliers' => 'boolean',
             'validity_days' => 'integer',
             'valid_until' => 'date',

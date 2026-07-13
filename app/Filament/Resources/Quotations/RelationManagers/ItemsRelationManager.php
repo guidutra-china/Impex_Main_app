@@ -308,6 +308,7 @@ class ItemsRelationManager extends RelationManager
                 Select::make('incoterm')
                     ->label(__('forms.labels.incoterm'))
                     ->options(Incoterm::class)
+                    ->default(fn () => $this->getOwnerRecord()->incoterm)
                     ->placeholder(__('forms.placeholders.select_incoterm')),
 
                 Textarea::make('notes')

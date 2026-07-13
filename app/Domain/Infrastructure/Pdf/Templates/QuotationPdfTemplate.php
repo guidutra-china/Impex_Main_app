@@ -139,6 +139,9 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
                 'date' => $this->formatDate($quotation->created_at),
                 'valid_until' => $this->formatDate($quotation->valid_until),
                 'currency_code' => $currencyCode,
+                'incoterm' => $quotation->incoterm instanceof \BackedEnum
+                    ? $quotation->incoterm->value
+                    : $quotation->incoterm,
                 'version' => $quotation->version ?? 1,
                 'inquiry_reference' => $quotation->inquiry?->reference,
                 'notes' => $quotation->notes,

@@ -16,6 +16,7 @@ use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
 use App\Domain\ProformaInvoices\Services\ProformaInvoiceItemCurrencyResolver;
 use App\Domain\Quotations\Actions\CreateOrUpdateQuotationFromInquiryAction;
 use App\Domain\Quotations\Enums\CommissionType;
+use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Quotations\Enums\QuotationStatus;
 use App\Domain\Quotations\Exceptions\QuotationLockedException;
 use App\Domain\Quotations\Models\Quotation;
@@ -420,6 +421,12 @@ trait InquiryHeaderActions
                     })
                     ->helperText(__('forms.helpers.applied_to_items_where_the_client_has_no_catalog_price'));
 
+                $fields[] = Select::make('incoterm')
+                    ->label(__('forms.labels.incoterm'))
+                    ->options(Incoterm::class)
+                    ->placeholder(__('forms.placeholders.select_incoterm'))
+                    ->helperText(__('forms.helpers.quotation_incoterm_shown_to_client'));
+
                 $fields[] = Toggle::make('show_suppliers')
                     ->label(__('forms.labels.show_suppliers_to_client'))
                     ->default(false)
@@ -481,6 +488,11 @@ trait InquiryHeaderActions
                         }
                     }
 
+                    $incoterm = $data['incoterm'] ?? null;
+                    if ($incoterm !== null && ! $incoterm instanceof Incoterm) {
+                        $incoterm = Incoterm::tryFrom((string) $incoterm);
+                    }
+
                     $quotation = app(CreateOrUpdateQuotationFromInquiryAction::class)
                         ->execute(
                             inquiry: Inquiry::with('items')->findOrFail($this->record->id),
@@ -489,6 +501,7 @@ trait InquiryHeaderActions
                             commissionRate: $commissionRate,
                             showSuppliers: (bool) ($data['show_suppliers'] ?? false),
                             itemOverrides: $itemOverrides,
+                            incoterm: $incoterm,
                         );
 
                     if ($this->record->status === InquiryStatus::RECEIVED) {
@@ -553,6 +566,7 @@ trait InquiryHeaderActions
                             commissionRate: (float) $latest->commission_rate,
                             showSuppliers: (bool) $latest->show_suppliers,
                             forceNewVersion: true,
+                            incoterm: $latest->incoterm,
                         );
 
                     Notification::make()

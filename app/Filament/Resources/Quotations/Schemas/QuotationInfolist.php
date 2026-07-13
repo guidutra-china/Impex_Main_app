@@ -107,6 +107,11 @@ class QuotationInfolist
 
             Section::make(__('forms.sections.terms_validity'))
                 ->schema([
+                    TextEntry::make('incoterm')
+                        ->label(__('forms.labels.incoterm'))
+                        ->badge()
+                        ->color('info')
+                        ->placeholder('—'),
                     TextEntry::make('paymentTerm.name')
                         ->label(__('forms.labels.payment_terms'))
                         ->placeholder('—'),

@@ -926,6 +926,8 @@ return [
         'person_responsible_for_this_inquiry' => '负责管理此项目的内部用户。',
         'cost_currency_to_pi_currency' => '从成本币种到形式发票币种的汇率,创建时已锁定。',
         'cost_currency_to_quote_currency' => '从成本币种到报价币种的汇率，固定在该项目上。',
+        'embedded_default_rate_new_items' => '新项目的默认佣金率——佣金包含在每个单价中。',
+        'quotation_incoterm_shown_to_client' => '此报价的默认贸易术语，将在PDF中展示给客户。',
         'recalculate_client_prices_help' => '同时使用新汇率根据换算后的成本重新计算客户单价（如设置了内含佣金则一并计算）。',
         'fx_rate_unavailable' => '无可用汇率',
         'multi_currency_explanation' => '部分商品以与本形式发票不同的币种报价。汇率在商品创建时已锁定。点击下方按钮可根据最新汇率表刷新所有汇率。',
