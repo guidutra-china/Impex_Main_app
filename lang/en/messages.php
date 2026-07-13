@@ -146,4 +146,6 @@ return [
     'currency_updated_for_items' => 'Cost currency updated for :count item(s)',
     'supplier_updated_for_items' => 'Supplier updated for :count item(s)',
     'unit_updated_for_items' => 'Unit updated for :count item(s)',
+    'fx_rates_updated_title' => 'Exchange rates updated',
+    'fx_rates_updated_body' => ':updated item(s) updated, :skipped skipped (no rate available)',
 ];

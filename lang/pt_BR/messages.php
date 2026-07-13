@@ -144,4 +144,6 @@ return [
     'currency_updated_for_items' => 'Moeda do custo atualizada para :count item(ns)',
     'supplier_updated_for_items' => 'Fornecedor atualizado para :count item(ns)',
     'unit_updated_for_items' => 'Unidade atualizada para :count item(ns)',
+    'fx_rates_updated_title' => 'Câmbio atualizado',
+    'fx_rates_updated_body' => ':updated item(ns) atualizado(s), :skipped ignorado(s) (sem taxa disponível)',
 ];

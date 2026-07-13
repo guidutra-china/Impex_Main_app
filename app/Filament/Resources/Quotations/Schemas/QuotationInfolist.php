@@ -167,24 +167,28 @@ class QuotationInfolist
 
                             return $cost > 0 ? round((($record->subtotal - $cost) / $cost) * 100, 2).'%' : '—';
                         }),
-                    TextEntry::make('fx_rate_dates')
+                    TextEntry::make('fx_rates_used')
                         ->label(__('forms.labels.fx_rate'))
                         ->state(function ($record) {
-                            $dates = $record->items
-                                ->pluck('cost_exchange_rate_captured_at')
-                                ->filter()
-                                ->map(fn ($d) => $d->toDateString())
-                                ->unique()
-                                ->sort()
-                                ->values();
-                            if ($dates->isEmpty()) {
-                                return '—';
-                            }
-                            $first = \Carbon\Carbon::parse($dates->first())->format('d/m/Y');
-                            $last = \Carbon\Carbon::parse($dates->last())->format('d/m/Y');
+                            $lines = $record->items
+                                ->filter(fn ($item) => $item->cost_currency_code
+                                    && $item->cost_currency_code !== $record->currency_code
+                                    && $item->cost_exchange_rate !== null)
+                                ->map(function ($item) use ($record) {
+                                    $line = $item->cost_currency_code.' → '.$record->currency_code
+                                        .': '.number_format((float) $item->cost_exchange_rate, 4);
+                                    if ($item->cost_exchange_rate_captured_at) {
+                                        $line .= ' ('.$item->cost_exchange_rate_captured_at->format('d/m/Y').')';
+                                    }
 
-                            return $first === $last ? $first : "{$first} – {$last}";
-                        }),
+                                    return $line;
+                                })
+                                ->unique()
+                                ->values();
+
+                            return $lines->isEmpty() ? '—' : $lines->all();
+                        })
+                        ->listWithLineBreaks(),
                 ])
                 ->columns(4),
         ];

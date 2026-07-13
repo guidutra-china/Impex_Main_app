@@ -134,4 +134,6 @@ return [
     'currency_updated_for_items' => '已更新 :count 项的成本货币',
     'supplier_updated_for_items' => '已更新 :count 项的供应商',
     'unit_updated_for_items' => '已更新 :count 项的单位',
+    'fx_rates_updated_title' => '汇率已更新',
+    'fx_rates_updated_body' => '已更新 :updated 项，跳过 :skipped 项（无可用汇率）',
 ];
