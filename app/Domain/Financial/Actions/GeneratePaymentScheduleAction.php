@@ -562,6 +562,26 @@ class GeneratePaymentScheduleAction
             return;
         }
 
+        // Se ESTE shipment já tem a parcela coberta (paga/alocada), as
+        // alocações do [remaining] pertencem ao saldo não embarcado —
+        // promover aqui clamparia o valor (Overpaid) e duplicaria o stage.
+        $thisShipmentCovered = PaymentScheduleItem::where('payable_type', $docType)
+            ->where('payable_id', $docId)
+            ->where('payment_term_stage_id', $stage->id)
+            ->where('shipment_id', $shipment->id)
+            ->where(function ($q) {
+                $q->whereHas('allocations')
+                    ->orWhereIn('status', [
+                        PaymentScheduleStatus::PAID->value,
+                        PaymentScheduleStatus::WAIVED->value,
+                    ]);
+            })
+            ->exists();
+
+        if ($thisShipmentCovered) {
+            return;
+        }
+
         // Remove o ship-specific vazio deste shipment+stage, se existir — o
         // [remaining] promovido passa a ser o canônico.
         PaymentScheduleItem::where('payable_type', $docType)

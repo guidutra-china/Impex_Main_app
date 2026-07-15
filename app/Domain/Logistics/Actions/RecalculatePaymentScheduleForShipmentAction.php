@@ -145,6 +145,7 @@ class RecalculatePaymentScheduleForShipmentAction
             if ($existingItem) {
                 $correctAmount = (int) round($shipmentValue * ($stage->percentage / 100));
                 $existingItem->update(['amount' => $correctAmount]);
+
                 continue;
             }
 
@@ -218,6 +219,26 @@ class RecalculatePaymentScheduleForShipmentAction
                 ->exists();
 
             if ($otherShipmentExists) {
+                continue;
+            }
+
+            // Se ESTE shipment já tem a parcela coberta (paga/alocada), as
+            // alocações do [remaining] pertencem ao saldo não embarcado —
+            // promover aqui clamparia o valor (Overpaid) e duplicaria o stage.
+            $thisShipmentCovered = PaymentScheduleItem::where('payable_type', $docType)
+                ->where('payable_id', $document->id)
+                ->where('payment_term_stage_id', $stage->id)
+                ->where('shipment_id', $shipment->id)
+                ->where(function ($q) {
+                    $q->whereHas('allocations')
+                        ->orWhereIn('status', [
+                            PaymentScheduleStatus::PAID->value,
+                            PaymentScheduleStatus::WAIVED->value,
+                        ]);
+                })
+                ->exists();
+
+            if ($thisShipmentCovered) {
                 continue;
             }
 
@@ -337,6 +358,7 @@ class RecalculatePaymentScheduleForShipmentAction
             // If orphaned SP items exist, the base item is redundant — delete it
             if ($orphanedSpIds->isNotEmpty() && $remainingValue > 0) {
                 $baseItem->delete();
+
                 continue;
             }
 
@@ -346,7 +368,7 @@ class RecalculatePaymentScheduleForShipmentAction
                 $newAmount = (int) round($remainingValue * ($stage->percentage / 100));
                 $baseItem->update([
                     'amount' => $newAmount,
-                    'label' => $this->generateLabel($stage, $document->reference, null) . ' [remaining]',
+                    'label' => $this->generateLabel($stage, $document->reference, null).' [remaining]',
                 ]);
             }
         }
@@ -378,20 +400,20 @@ class RecalculatePaymentScheduleForShipmentAction
     protected function generateLabel($stage, string $docReference, ?string $shipmentReference): string
     {
         $parts = [
-            $stage->percentage . '%',
+            $stage->percentage.'%',
             $stage->calculation_base->getLabel(),
         ];
 
         if ($stage->days > 0) {
-            $parts[] = '(+' . $stage->days . ' days)';
+            $parts[] = '(+'.$stage->days.' days)';
         } elseif ($stage->days < 0) {
-            $parts[] = '(' . $stage->days . ' days)';
+            $parts[] = '('.$stage->days.' days)';
         }
 
         if ($shipmentReference) {
-            $parts[] = '[' . $shipmentReference . ' / ' . $docReference . ']';
+            $parts[] = '['.$shipmentReference.' / '.$docReference.']';
         } else {
-            $parts[] = '[' . $docReference . ']';
+            $parts[] = '['.$docReference.']';
         }
 
         return implode(' — ', $parts);
