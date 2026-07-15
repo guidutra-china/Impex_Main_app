@@ -29,30 +29,46 @@ class GeneratePdfAction
             ->modalSubmitActionLabel('Generate')
             ->form($formSchema)
             ->action(function ($record, array $data = []) use ($templateClass) {
-                try {
-                    $template = self::createTemplate($templateClass, $record, $data);
-                    $service = new PdfGeneratorService(
-                        new PdfRenderer(),
-                        new DocumentService(),
-                    );
-
-                    $document = $service->generate($template);
-
-                    Notification::make()
-                        ->title('PDF Generated')
-                        ->body("Version {$document->version} created: {$document->name}")
-                        ->success()
-                        ->send();
-                } catch (\Throwable $e) {
-                    report($e);
-
-                    Notification::make()
-                        ->title('PDF Generation Failed')
-                        ->body($e->getMessage())
-                        ->danger()
-                        ->send();
-                }
+                self::generateAndNotify($templateClass, $record, $data);
             });
+    }
+
+    /**
+     * Generate the PDF document and send the outcome notification.
+     */
+    protected static function generateAndNotify(
+        string $templateClass,
+        $record,
+        array $data,
+        ?\Closure $beforeGenerate = null,
+    ): void {
+        try {
+            if ($beforeGenerate) {
+                $beforeGenerate($record, $data);
+            }
+
+            $template = self::createTemplate($templateClass, $record, $data);
+            $service = new PdfGeneratorService(
+                new PdfRenderer,
+                new DocumentService,
+            );
+
+            $document = $service->generate($template);
+
+            Notification::make()
+                ->title('PDF Generated')
+                ->body("Version {$document->version} created: {$document->name}")
+                ->success()
+                ->send();
+        } catch (\Throwable $e) {
+            report($e);
+
+            Notification::make()
+                ->title('PDF Generation Failed')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
     }
 
     public static function download(
@@ -125,6 +141,7 @@ class GeneratePdfAction
         string $label = 'Preview PDF',
         string $icon = 'heroicon-o-eye',
         array $formSchema = [],
+        ?\Closure $beforeGenerate = null,
     ): Action {
         return Action::make('previewPdf')
             ->label($label)
@@ -134,7 +151,7 @@ class GeneratePdfAction
             ->form($formSchema)
             ->modalHeading('PDF Preview')
             ->modalWidth('7xl')
-            ->modalSubmitAction(false)
+            ->modalSubmitActionLabel('Generate PDF')
             ->modalCancelActionLabel('Close')
             ->modalContent(function (Action $action, $record) use ($templateClass) {
                 try {
@@ -151,9 +168,12 @@ class GeneratePdfAction
 
                     return view('filament.partials.pdf-html-preview', [
                         'html' => '<p style="padding:24px;font-family:sans-serif;color:#b91c1c;">Preview failed: '
-                            . e($e->getMessage()) . '</p>',
+                            .e($e->getMessage()).'</p>',
                     ]);
                 }
+            })
+            ->action(function ($record, array $data = []) use ($templateClass, $beforeGenerate) {
+                self::generateAndNotify($templateClass, $record, $data, $beforeGenerate);
             });
     }
 }

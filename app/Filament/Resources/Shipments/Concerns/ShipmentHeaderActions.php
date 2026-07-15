@@ -72,6 +72,7 @@ trait ShipmentHeaderActions
                     templateClass: CommercialInvoicePdfTemplate::class,
                     label: 'Preview PDF',
                     formSchema: $this->commercialInvoiceOptions(),
+                    beforeGenerate: fn ($record, array $data) => $this->handleSaveCustomPrices($record, $data),
                 )->name('previewCommercialInvoicePdf'),
                 SendDocumentByEmailAction::make(
                     documentType: 'commercial_invoice_pdf',
@@ -93,6 +94,7 @@ trait ShipmentHeaderActions
                     templateClass: ShipmentProformaInvoicePdfTemplate::class,
                     label: 'Preview PDF',
                     formSchema: $this->commercialInvoiceOptions(),
+                    beforeGenerate: fn ($record, array $data) => $this->handleSaveCustomPrices($record, $data),
                 )->name('previewShipmentProformaInvoicePdf'),
                 SendDocumentByEmailAction::make(
                     documentType: 'shipment_proforma_invoice_pdf',
@@ -132,6 +134,7 @@ trait ShipmentHeaderActions
                 $allowed = $this->record->getAllowedNextStatuses();
                 $options = collect($allowed)->mapWithKeys(function ($status) {
                     $enum = ShipmentStatus::from($status);
+
                     return [$status => $enum->getLabel()];
                 })->toArray();
 
@@ -155,7 +158,7 @@ trait ShipmentHeaderActions
                     );
 
                     Notification::make()
-                        ->title(__('messages.status_changed_to') . ' ' . ShipmentStatus::from($data['new_status'])->getLabel())
+                        ->title(__('messages.status_changed_to').' '.ShipmentStatus::from($data['new_status'])->getLabel())
                         ->success()
                         ->send();
 
@@ -275,8 +278,8 @@ trait ShipmentHeaderActions
 
                     $template = new CommercialInvoicePdfTemplate($record, 'en', $data);
                     $service = new PdfGeneratorService(
-                        new PdfRenderer(),
-                        new DocumentService(),
+                        new PdfRenderer,
+                        new DocumentService,
                     );
 
                     $document = $service->generate($template);
@@ -317,8 +320,8 @@ trait ShipmentHeaderActions
 
                     $template = new ShipmentProformaInvoicePdfTemplate($record, 'en', $data);
                     $service = new PdfGeneratorService(
-                        new PdfRenderer(),
-                        new DocumentService(),
+                        new PdfRenderer,
+                        new DocumentService,
                     );
 
                     $document = $service->generate($template);
