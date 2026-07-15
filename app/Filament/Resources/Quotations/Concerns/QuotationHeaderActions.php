@@ -2,13 +2,10 @@
 
 namespace App\Filament\Resources\Quotations\Concerns;
 
-use App\Domain\Financial\Enums\AdditionalCostStatus;
-use App\Domain\Financial\Enums\AdditionalCostType;
-use App\Domain\Financial\Enums\BillableTo;
-use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Infrastructure\Pdf\Templates\QuotationPdfTemplate;
 use App\Domain\Inquiries\Actions\AdvanceInquiryToQuotedAction;
+use App\Domain\ProformaInvoices\Actions\CreateQuotationCommissionCostsAction;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
@@ -263,7 +260,8 @@ trait QuotationHeaderActions
                             ]);
                         }
 
-                        $this->createCommissionCost($proformaInvoice, $quotation);
+                        app(CreateQuotationCommissionCostsAction::class)
+                            ->execute($proformaInvoice, [$quotation->id]);
 
                         return $proformaInvoice;
                     });
@@ -286,42 +284,5 @@ trait QuotationHeaderActions
                         ->send();
                 }
             });
-    }
-
-    protected function createCommissionCost(ProformaInvoice $pi, $quotation): void
-    {
-        if ($quotation->commission_type !== CommissionType::SEPARATE) {
-            return;
-        }
-
-        if (! $quotation->commission_rate || $quotation->commission_rate <= 0) {
-            return;
-        }
-
-        $itemsTotal = $pi->items()
-            ->whereHas('quotationItem', fn ($q) => $q->where('quotation_id', $quotation->id))
-            ->get()
-            ->sum(fn ($item) => $item->line_total);
-
-        if ($itemsTotal <= 0) {
-            return;
-        }
-
-        $commissionAmount = (int) round($itemsTotal * ($quotation->commission_rate / 100));
-
-        AdditionalCost::create([
-            'costable_type' => $pi->getMorphClass(),
-            'costable_id' => $pi->id,
-            'cost_type' => AdditionalCostType::COMMISSION,
-            'description' => 'Service Fee ('.$quotation->commission_rate.'%) — '.$quotation->reference,
-            'amount' => $commissionAmount,
-            'currency_code' => $pi->currency_code,
-            'exchange_rate' => 1,
-            'amount_in_document_currency' => $commissionAmount,
-            'billable_to' => BillableTo::CLIENT,
-            'cost_date' => now()->toDateString(),
-            'status' => AdditionalCostStatus::PENDING,
-            'notes' => 'Auto-generated from '.$quotation->reference.' (Separate commission '.$quotation->commission_rate.'%)',
-        ]);
     }
 }

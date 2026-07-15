@@ -21,6 +21,11 @@ class ProformaInvoiceItem extends Model
 {
     use HasFactory;
 
+    protected static function newFactory(): \Database\Factories\ProformaInvoiceItemFactory
+    {
+        return \Database\Factories\ProformaInvoiceItemFactory::new();
+    }
+
     protected $fillable = [
         'proforma_invoice_id',
         'product_id',

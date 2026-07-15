@@ -10,6 +10,7 @@ use App\Domain\Inquiries\Actions\AdvanceInquiryToQuotedAction;
 use App\Domain\Inquiries\Enums\InquiryStatus;
 use App\Domain\Inquiries\Enums\ProjectTeamRole;
 use App\Domain\Inquiries\Models\Inquiry;
+use App\Domain\ProformaInvoices\Actions\CreateQuotationCommissionCostsAction;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
@@ -662,7 +663,21 @@ trait InquiryHeaderActions
                 Select::make('quotation_ids')
                     ->label(__('forms.labels.link_quotations_optional'))
                     ->multiple()
-                    ->default($isUpdate ? $existingPi?->quotations()->pluck('quotations.id')->toArray() : [])
+                    ->default(function () use ($isUpdate, $existingPi) {
+                        if ($isUpdate) {
+                            return $existingPi?->quotations()->pluck('quotations.id')->toArray();
+                        }
+
+                        // Pré-seleciona a última versão da quotation desta inquiry.
+                        $latest = Quotation::query()
+                            ->where('inquiry_id', $this->record->id)
+                            ->whereNotIn('status', ['cancelled'])
+                            ->orderByDesc('version')
+                            ->orderByDesc('id')
+                            ->first();
+
+                        return $latest ? [$latest->id] : [];
+                    })
                     ->options(function () {
                         $inquiry = $this->record;
 
@@ -688,7 +703,21 @@ trait InquiryHeaderActions
                 Select::make('supplier_quotation_ids')
                     ->label('Link Supplier Quotations (Optional)')
                     ->multiple()
-                    ->default($isUpdate ? $existingPi?->supplierQuotations()->pluck('supplier_quotations.id')->toArray() : [])
+                    ->default(function () use ($isUpdate, $existingPi) {
+                        if ($isUpdate) {
+                            return $existingPi?->supplierQuotations()->pluck('supplier_quotations.id')->toArray();
+                        }
+
+                        // Pré-seleciona as SQs válidas desta inquiry (fonte de custo).
+                        return SupplierQuotation::query()
+                            ->where('inquiry_id', $this->record->id)
+                            ->whereNotIn('status', [
+                                SupplierQuotationStatus::REJECTED->value,
+                                SupplierQuotationStatus::EXPIRED->value,
+                            ])
+                            ->pluck('id')
+                            ->toArray();
+                    })
                     ->options(function () {
                         $inquiry = $this->record;
 
@@ -759,6 +788,9 @@ trait InquiryHeaderActions
 
                             $this->syncPiItemsFromInquiry($proformaInvoice, $inquiry, $data['supplier_quotation_ids'] ?? []);
                         }
+
+                        app(CreateQuotationCommissionCostsAction::class)
+                            ->execute($proformaInvoice, $data['quotation_ids'] ?? []);
 
                         return $proformaInvoice;
                     });
