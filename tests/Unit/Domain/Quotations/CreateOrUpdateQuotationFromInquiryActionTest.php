@@ -149,6 +149,29 @@ class CreateOrUpdateQuotationFromInquiryActionTest extends TestCase
         $this->assertSame(1200, $item->unit_price);
     }
 
+    public function test_new_quotation_gets_standard_sequential_reference(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems();
+        $supplier = Company::factory()->create();
+        $sq = $this->buildSqWith($inquiry, $supplier, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 1000],
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 20,
+            showSuppliers: false,
+        );
+
+        $this->assertMatchesRegularExpression(
+            '/^QT-'.now()->year.'-\d+$/',
+            $quotation->reference,
+            'reference must follow the QT-YYYY-NNNNN sequence, not the legacy Q-Ymd-rand format'
+        );
+    }
+
     public function test_cross_currency_cny_to_usd_snapshots_rate(): void
     {
         [$client, $inquiry, $items] = $this->buildInquiryWithItems();
