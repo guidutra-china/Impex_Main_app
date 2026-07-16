@@ -53,6 +53,7 @@ return [
     'confirm_transition' => 'Alterar status de :from para :to?',
     'no_schedule_items_created' => 'Nenhum item de cronograma criado',
     'schedule_items_shipment_dependent' => 'Todas as etapas de pagamento dependem do embarque e serão criadas quando os Planos de Embarque forem feitos.',
+    'schedule_stale_banner' => 'Cronograma desatualizado: agendado :scheduled, mas os valores atuais somam :expected. Use "Regenerar" para atualizar.',
 
     // Dynamic notification titles
     'sq_created' => 'cotação(ões) de fornecedor criada(s)',
@@ -146,4 +147,5 @@ return [
     'unit_updated_for_items' => 'Unidade atualizada para :count item(ns)',
     'fx_rates_updated_title' => 'Câmbio atualizado',
     'fx_rates_updated_body' => ':updated item(ns) atualizado(s), :skipped ignorado(s) (sem taxa disponível)',
+    'allocation_conversion_incomplete' => 'Dados de alocação incompletos',
 ];

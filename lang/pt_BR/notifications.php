@@ -13,4 +13,8 @@ return [
         'view_inquiry' => 'Ver Consulta',
         'view_document' => 'Ver Documento',
     ],
+    'stale_schedules' => [
+        'found_title' => ':count cronograma(s) de pagamento desatualizado(s)',
+        'fixed_title' => ':count cronograma(s) de pagamento regenerado(s) automaticamente',
+    ],
 ];

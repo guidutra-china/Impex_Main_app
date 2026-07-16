@@ -2,14 +2,16 @@
 
 namespace App\Filament\Widgets;
 
+use App\Domain\Financial\Actions\GeneratePaymentScheduleAction;
 use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\Payment;
 use App\Domain\Financial\Models\PaymentScheduleItem;
-use App\Domain\Financial\Actions\GeneratePaymentScheduleAction;
+use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Inquiries\Enums\InquiryStatus;
 use App\Domain\Inquiries\Models\Inquiry;
+use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
@@ -17,6 +19,7 @@ use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use Filament\Notifications\Notification;
 use Filament\Widgets\Widget;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class OperationalAlertsWidget extends Widget
@@ -231,7 +234,106 @@ class OperationalAlertsWidget extends Widget
             ];
         }
 
+        // Payment schedules that no longer match current document values
+        // (values edited without clicking "Regenerate").
+        foreach ($this->getStaleScheduleFindings() as $finding) {
+            $alerts[] = [
+                'type' => 'danger',
+                'icon' => 'heroicon-o-arrow-path',
+                'title' => __('widgets.alerts.stale_schedule_title', ['ref' => $finding['reference']]),
+                'description' => __('widgets.alerts.stale_schedule_desc', [
+                    'scheduled' => Money::format($finding['actual']),
+                    'expected' => Money::format($finding['expected']),
+                ]),
+                'url' => $finding['url'],
+                'action' => __('widgets.alerts.view_document'),
+                'regen_payable_type' => $finding['type'],
+                'regen_payable_id' => $finding['id'],
+                'regen_action_label' => __('widgets.alerts.regenerate_schedule'),
+            ];
+        }
+
         return ['alerts' => $alerts];
+    }
+
+    /**
+     * Cached scan (5 min): every active PI/PO/Shipment whose base payment
+     * schedule diverges from the live document values. The scan runs
+     * isScheduleStale() per document, so it must not run on every poll.
+     *
+     * @return array<int, array{type: string, id: int, reference: string, actual: int, expected: int, url: string}>
+     */
+    protected function getStaleScheduleFindings(): array
+    {
+        return Cache::remember('operational-alerts:stale-schedules', 300, function () {
+            $findings = [];
+
+            $sources = [
+                ['pi', ProformaInvoice::query()->active(), 'filament.admin.resources.proforma-invoices.view'],
+                ['po', PurchaseOrder::query()->active(), 'filament.admin.resources.purchase-orders.view'],
+                ['shipment', Shipment::query()->whereNot('status', ShipmentStatus::CANCELLED), 'filament.admin.resources.shipments.view'],
+            ];
+
+            foreach ($sources as [$type, $query, $route]) {
+                $query
+                    ->whereHas('paymentScheduleItems', fn ($q) => $q->whereNotNull('payment_term_stage_id'))
+                    ->chunkById(100, function ($documents) use (&$findings, $type, $route) {
+                        foreach ($documents as $document) {
+                            $staleness = $document->scheduleStaleness();
+
+                            if ($staleness['state'] !== 'stale') {
+                                continue;
+                            }
+
+                            $findings[] = [
+                                'type' => $type,
+                                'id' => $document->getKey(),
+                                'reference' => $document->reference,
+                                'actual' => $staleness['actual'],
+                                'expected' => $staleness['expected'],
+                                'url' => route($route, ['record' => $document->getKey()]),
+                            ];
+                        }
+                    });
+            }
+
+            return $findings;
+        });
+    }
+
+    public function regenerateStaleSchedule(string $type, int $id): void
+    {
+        if (! auth()->user()?->can('generate-payment-schedule')) {
+            Notification::make()
+                ->danger()
+                ->title(__('widgets.alerts.regenerate_unauthorized'))
+                ->send();
+
+            return;
+        }
+
+        $document = match ($type) {
+            'pi' => ProformaInvoice::find($id),
+            'po' => PurchaseOrder::find($id),
+            'shipment' => Shipment::find($id),
+            default => null,
+        };
+
+        if (! $document) {
+            return;
+        }
+
+        $count = $document instanceof Shipment
+            ? app(GeneratePaymentScheduleAction::class)->regenerateForShipment($document)
+            : app(GeneratePaymentScheduleAction::class)->regenerate($document);
+
+        Cache::forget('operational-alerts:stale-schedules');
+
+        Notification::make()
+            ->success()
+            ->title(__('widgets.alerts.regenerate_done_title'))
+            ->body(__('widgets.alerts.regenerate_done_body', ['ref' => $document->reference, 'count' => $count]))
+            ->send();
     }
 
     public function recalcShipment(int $shipmentId): void
@@ -263,6 +365,8 @@ class OperationalAlertsWidget extends Widget
 
             return $count;
         });
+
+        Cache::forget('operational-alerts:stale-schedules');
 
         Notification::make()
             ->success()

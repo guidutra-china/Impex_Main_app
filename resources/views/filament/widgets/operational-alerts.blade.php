@@ -49,6 +49,19 @@
                                 {{ $alert['action'] }}
                             </a>
 
+                            @if (! empty($alert['regen_payable_type']))
+                                <button
+                                    type="button"
+                                    wire:click="regenerateStaleSchedule('{{ $alert['regen_payable_type'] }}', {{ $alert['regen_payable_id'] }})"
+                                    wire:loading.attr="disabled"
+                                    wire:target="regenerateStaleSchedule('{{ $alert['regen_payable_type'] }}', {{ $alert['regen_payable_id'] }})"
+                                    class="inline-flex items-center gap-1 rounded-lg bg-danger-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-danger-500 disabled:opacity-50"
+                                >
+                                    <x-filament::icon icon="heroicon-o-arrow-path" class="h-4 w-4" wire:loading.class="animate-spin" wire:target="regenerateStaleSchedule('{{ $alert['regen_payable_type'] }}', {{ $alert['regen_payable_id'] }})" />
+                                    {{ $alert['regen_action_label'] }}
+                                </button>
+                            @endif
+
                             @if (! empty($alert['recalc_shipment_id']))
                                 <button
                                     type="button"

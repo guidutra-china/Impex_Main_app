@@ -13,4 +13,8 @@ return [
         'view_inquiry' => 'View Inquiry',
         'view_document' => 'View Document',
     ],
+    'stale_schedules' => [
+        'found_title' => ':count payment schedule(s) out of date',
+        'fixed_title' => ':count payment schedule(s) regenerated automatically',
+    ],
 ];

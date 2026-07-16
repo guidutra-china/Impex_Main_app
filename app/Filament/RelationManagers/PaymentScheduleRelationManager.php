@@ -29,6 +29,7 @@ class PaymentScheduleRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->description(fn () => $this->getStaleScheduleBanner())
             ->columns([
                 TextColumn::make('sort_order')
                     ->label(__('forms.labels.hash'))
@@ -335,12 +336,51 @@ class PaymentScheduleRelationManager extends RelationManager
             });
     }
 
+    /**
+     * Warning banner shown above the table when the schedule no longer
+     * matches the document's current values (edited without regenerating).
+     */
+    protected function getStaleScheduleBanner(): ?HtmlString
+    {
+        $owner = $this->getOwnerRecord();
+
+        if (! method_exists($owner, 'scheduleStaleness')) {
+            return null;
+        }
+
+        $staleness = $owner->scheduleStaleness();
+
+        if ($staleness['state'] !== 'stale') {
+            return null;
+        }
+
+        $symbol = $this->getCurrencySymbol($owner->currency_code ?? null);
+
+        $text = __('messages.schedule_stale_banner', [
+            'scheduled' => $symbol.' '.Money::format($staleness['actual']),
+            'expected' => $symbol.' '.Money::format($staleness['expected']),
+        ]);
+
+        return new HtmlString(
+            '<span class="inline-flex items-center gap-1 font-semibold text-danger-600 dark:text-danger-400">'
+            .'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4"><path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd"/></svg>'
+            .e($text)
+            .'</span>'
+        );
+    }
+
     protected function regenerateScheduleAction(): Action
     {
         return Action::make('regenerateSchedule')
             ->label(__('forms.labels.regenerate'))
             ->icon('heroicon-o-arrow-path')
-            ->color('warning')
+            ->color(function () {
+                $owner = $this->getOwnerRecord();
+
+                return method_exists($owner, 'isScheduleStale') && $owner->isScheduleStale()
+                    ? 'danger'
+                    : 'warning';
+            })
             ->requiresConfirmation()
             ->modalHeading('Regenerate Payment Schedule')
             ->modalDescription('This will delete unpaid/unwaived schedule items without payments and recreate them from the current payment terms and total. Paid and waived items will be preserved.')

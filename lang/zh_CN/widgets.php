@@ -121,6 +121,13 @@ return [
         'recalc_done_title' => '付款计划已重新计算',
         'recalc_done_body' => '货运 :ref 的 :count 个付款计划项已重新生成。',
         'recalc_unauthorized' => '只有货运负责人可以重新计算。',
+        'stale_schedule_title' => '付款计划已过期：:ref',
+        'stale_schedule_desc' => '计划金额为 :scheduled，但当前值合计为 :expected。请重新生成付款计划。',
+        'view_document' => '查看单据',
+        'regenerate_schedule' => '重新生成',
+        'regenerate_unauthorized' => '您没有权限重新生成付款计划。',
+        'regenerate_done_title' => '付款计划已重新生成',
+        'regenerate_done_body' => ':ref 的 :count 个付款计划项已重新生成。',
     ],
     'audit_stats' => [
         'scheduled_audits' => '计划审核',

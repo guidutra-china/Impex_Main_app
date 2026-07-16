@@ -7,6 +7,7 @@ use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\Financial\Services\ScheduleExpectationCalculator;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
@@ -1183,19 +1184,7 @@ class GeneratePaymentScheduleAction
 
     protected function calculateTotalFromDb(Model $payable): int
     {
-        if ($payable instanceof ProformaInvoice) {
-            return (int) $payable->items()
-                ->selectRaw('SUM(unit_price * quantity) as total')
-                ->value('total');
-        }
-
-        if ($payable instanceof PurchaseOrder) {
-            return (int) $payable->items()
-                ->selectRaw('SUM(unit_cost * quantity) as total')
-                ->value('total');
-        }
-
-        return 0;
+        return app(ScheduleExpectationCalculator::class)->documentTotalFromDb($payable);
     }
 
     protected function recalculateAllStatuses(Model $payable): void

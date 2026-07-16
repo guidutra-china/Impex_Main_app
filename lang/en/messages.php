@@ -53,6 +53,7 @@ return [
     'confirm_transition' => 'Change status from :from to :to?',
     'no_schedule_items_created' => 'No schedule items created',
     'schedule_items_shipment_dependent' => 'All payment stages are shipment-dependent and will be created when Shipping Plans are made.',
+    'schedule_stale_banner' => 'Schedule out of date: scheduled :scheduled but current values total :expected. Use "Regenerate" to update it.',
 
     // Dynamic notification titles
     'sq_created' => 'supplier quotation(s) created',
@@ -148,4 +149,5 @@ return [
     'unit_updated_for_items' => 'Unit updated for :count item(s)',
     'fx_rates_updated_title' => 'Exchange rates updated',
     'fx_rates_updated_body' => ':updated item(s) updated, :skipped skipped (no rate available)',
+    'allocation_conversion_incomplete' => 'Incomplete allocation data',
 ];

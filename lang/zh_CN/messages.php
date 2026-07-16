@@ -43,6 +43,7 @@ return [
     'confirm_transition' => '将状态从 :from 更改为 :to？',
     'no_schedule_items_created' => '未创建付款计划项',
     'schedule_items_shipment_dependent' => '所有付款阶段都依赖于发货，将在创建发货计划时生成。',
+    'schedule_stale_banner' => '付款计划已过期：计划金额为 :scheduled，但当前值合计为 :expected。请使用"重新生成"更新。',
 
     // Dynamic notification titles
     'sq_created' => '供应商报价已创建',
@@ -136,4 +137,5 @@ return [
     'unit_updated_for_items' => '已更新 :count 项的单位',
     'fx_rates_updated_title' => '汇率已更新',
     'fx_rates_updated_body' => '已更新 :updated 项，跳过 :skipped 项（无可用汇率）',
+    'allocation_conversion_incomplete' => '分摊数据不完整',
 ];

@@ -121,6 +121,13 @@ return [
         'recalc_done_title' => 'Schedule recalculated',
         'recalc_done_body' => ':count schedule items for shipment :ref were regenerated.',
         'recalc_unauthorized' => 'Only the shipment owner may recalculate.',
+        'stale_schedule_title' => 'Payment schedule out of date: :ref',
+        'stale_schedule_desc' => 'Scheduled :scheduled but current values total :expected. Regenerate the payment schedule.',
+        'view_document' => 'View Document',
+        'regenerate_schedule' => 'Regenerate',
+        'regenerate_unauthorized' => 'You are not allowed to regenerate payment schedules.',
+        'regenerate_done_title' => 'Schedule regenerated',
+        'regenerate_done_body' => ':count schedule items for :ref were regenerated.',
     ],
     'audit_stats' => [
         'scheduled_audits' => 'Scheduled Audits',

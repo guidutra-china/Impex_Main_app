@@ -13,4 +13,8 @@ return [
         'view_inquiry' => '查看询价',
         'view_document' => '查看文档',
     ],
+    'stale_schedules' => [
+        'found_title' => ':count 个付款计划已过期',
+        'fixed_title' => ':count 个付款计划已自动重新生成',
+    ],
 ];

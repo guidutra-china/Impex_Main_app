@@ -121,6 +121,13 @@ return [
         'recalc_done_title' => 'Cronograma recalculado',
         'recalc_done_body' => ':count parcelas do embarque :ref foram regeneradas.',
         'recalc_unauthorized' => 'Apenas o responsável pelo embarque pode recalcular.',
+        'stale_schedule_title' => 'Cronograma de pagamentos desatualizado: :ref',
+        'stale_schedule_desc' => 'Agendado :scheduled, mas os valores atuais somam :expected. Regenere o cronograma de pagamentos.',
+        'view_document' => 'Ver Documento',
+        'regenerate_schedule' => 'Regenerar',
+        'regenerate_unauthorized' => 'Você não tem permissão para regenerar cronogramas de pagamento.',
+        'regenerate_done_title' => 'Cronograma regenerado',
+        'regenerate_done_body' => ':count parcelas de :ref foram regeneradas.',
     ],
     'audit_stats' => [
         'scheduled_audits' => 'Auditorias Agendadas',
