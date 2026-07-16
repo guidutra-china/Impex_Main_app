@@ -282,8 +282,8 @@
                         </td>
                         <td class="text-center">{{ number_format($group['totals']['equipment_qty']) }}</td>
                         <td class="text-center">{{ number_format($group['totals']['packages']) }}</td>
-                        <td class="text-right">{{ number_format($group['totals']['net_weight'], 1) }}</td>
-                        <td class="text-right">{{ number_format($group['totals']['gross_weight'], 1) }}</td>
+                        <td class="text-right">{{ number_format($group['totals']['net_weight'], 2) }}</td>
+                        <td class="text-right">{{ number_format($group['totals']['gross_weight'], 2) }}</td>
                         <td></td>
                         <td class="text-right">{{ number_format($group['totals']['volume'], 2) }}</td>
                     </tr>
@@ -295,8 +295,8 @@
                 <td colspan="4" class="text-right">GRAND TOTAL</td>
                 <td class="text-center">{{ number_format($totals['total_equipment_qty']) }}</td>
                 <td class="text-center">{{ number_format($totals['total_packages']) }}</td>
-                <td class="text-right">{{ number_format($totals['total_net_weight'], 1) }}</td>
-                <td class="text-right">{{ number_format($totals['total_gross_weight'], 1) }}</td>
+                <td class="text-right">{{ number_format($totals['total_net_weight'], 2) }}</td>
+                <td class="text-right">{{ number_format($totals['total_gross_weight'], 2) }}</td>
                 <td></td>
                 <td class="text-right">{{ number_format($totals['total_volume'], 2) }}</td>
             </tr>

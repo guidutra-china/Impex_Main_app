@@ -279,8 +279,8 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
                 'unit' => $shipmentItem?->unit ?? 'pcs',
                 'equipment_qty' => $totalEquipmentQty,
                 'package_qty' => $count,
-                'net_weight' => $totalNetWeight > 0 ? number_format($totalNetWeight, 1) : '',
-                'gross_weight' => $totalGrossWeight > 0 ? number_format($totalGrossWeight, 1) : '',
+                'net_weight' => $totalNetWeight > 0 ? number_format($totalNetWeight, 2) : '',
+                'gross_weight' => $totalGrossWeight > 0 ? number_format($totalGrossWeight, 2) : '',
                 'dimensions' => $this->formatCartonDimensions($firstCarton),
                 'volume' => $totalVolume > 0 ? number_format($totalVolume, 2) : '',
                 'is_sub_item' => false,
@@ -300,8 +300,8 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
             'unit' => '',
             'equipment_qty' => '',
             'package_qty' => 1,
-            'net_weight' => $carton->net_weight ? number_format((float) $carton->net_weight, 1) : '',
-            'gross_weight' => $carton->gross_weight ? number_format((float) $carton->gross_weight, 1) : '',
+            'net_weight' => $carton->net_weight ? number_format((float) $carton->net_weight, 2) : '',
+            'gross_weight' => $carton->gross_weight ? number_format((float) $carton->gross_weight, 2) : '',
             'dimensions' => $this->formatCartonDimensions($carton),
             'volume' => $carton->volume ? number_format((float) $carton->volume, 2) : '',
             'is_sub_item' => false,
@@ -360,11 +360,11 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
     {
         // Prefer weight_share when set; otherwise only show carton gross on first line.
         if ($content->weight_share !== null) {
-            return number_format((float) $content->weight_share, 1);
+            return number_format((float) $content->weight_share, 2);
         }
 
         if ($isFirst && $carton->gross_weight !== null) {
-            return number_format((float) $carton->gross_weight, 1);
+            return number_format((float) $carton->gross_weight, 2);
         }
 
         return '';
@@ -375,7 +375,7 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
         // Net weight follows the same pattern — no per-content net_weight field,
         // so only the first line carries the carton's net weight.
         if ($isFirst && $carton->net_weight !== null) {
-            return number_format((float) $carton->net_weight, 1);
+            return number_format((float) $carton->net_weight, 2);
         }
 
         return '';
