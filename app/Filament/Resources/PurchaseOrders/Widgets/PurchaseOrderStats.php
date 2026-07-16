@@ -17,7 +17,7 @@ class PurchaseOrderStats extends Widget
 
     protected string $view = 'filament.widgets.document-financial-summary';
 
-    protected int | string | array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 'full';
 
     public ?Model $record = null;
 
@@ -41,8 +41,15 @@ class PurchaseOrderStats extends Widget
         $totalCredits = $creditItems->sum(fn ($i) => abs($i->amount));
         $netDue = $totalDue - $totalCredits;
         $totalPaid = $regularItems->sum(fn ($i) => $i->paid_amount);
-        $netRemaining = max(0, $netDue - $totalPaid);
-        $progress = $netDue > 0 ? (int) round(($totalPaid / $netDue) * 100) : 0;
+
+        // Parcelas isentas (waived) contam como quitadas no saldo exibido.
+        $waivedTotal = $regularItems
+            ->where('status', PaymentScheduleStatus::WAIVED)
+            ->sum(fn ($i) => $i->remaining_amount);
+
+        $netRemaining = max(0, $netDue - $totalPaid - $waivedTotal);
+        $progress = $netDue > 0 ? (int) round((($totalPaid + $waivedTotal) / $netDue) * 100) : 0;
+        $paidProgress = $netDue > 0 ? (int) round(($totalPaid / $netDue) * 100) : 0;
 
         $overdueAmount = $regularItems
             ->where('status', PaymentScheduleStatus::OVERDUE)
@@ -57,28 +64,38 @@ class PurchaseOrderStats extends Widget
         $cards = [
             [
                 'label' => 'PO Total',
-                'value' => $currency . ' ' . Money::format($total),
+                'value' => $currency.' '.Money::format($total),
                 'description' => $totalCredits > 0
-                    ? __('widgets.document_summary.credits') . ': ' . $currency . ' ' . Money::format($totalCredits)
-                    : $po->items->count() . ' item(s)',
+                    ? __('widgets.document_summary.credits').': '.$currency.' '.Money::format($totalCredits)
+                    : $po->items->count().' item(s)',
                 'icon' => 'heroicon-o-shopping-cart',
                 'color' => 'primary',
             ],
             [
                 'label' => __('widgets.document_summary.paid'),
-                'value' => $currency . ' ' . Money::format($totalPaid),
-                'description' => $progress . '% paid',
+                'value' => $currency.' '.Money::format($totalPaid),
+                'description' => $paidProgress.'% paid',
                 'icon' => 'heroicon-o-banknotes',
                 'color' => $progress >= 100 ? 'success' : ($progress > 0 ? 'info' : 'gray'),
             ],
             [
                 'label' => __('widgets.document_summary.remaining'),
-                'value' => $currency . ' ' . Money::format($netRemaining),
+                'value' => $currency.' '.Money::format($netRemaining),
                 'description' => $this->buildRemainingDescription($overdueAmount, $regularItems, $netRemaining, $currency),
                 'icon' => 'heroicon-o-clock',
                 'color' => $overdueAmount > 0 ? 'danger' : ($netRemaining <= 0 ? 'success' : 'warning'),
             ],
         ];
+
+        if ($waivedTotal > 0) {
+            $cards[] = [
+                'label' => __('widgets.document_summary.waived'),
+                'value' => $currency.' '.Money::format($waivedTotal),
+                'description' => __('widgets.document_summary.waived_description'),
+                'icon' => 'heroicon-o-receipt-percent',
+                'color' => 'info',
+            ];
+        }
 
         $scheduleItems->loadMissing('shipment');
 
@@ -97,8 +114,8 @@ class PurchaseOrderStats extends Widget
             'amount_raw' => abs($item->amount),
             'paid' => Money::format($item->paid_amount),
             'paid_raw' => $item->paid_amount,
-            'remaining' => Money::format($item->remaining_amount),
-            'remaining_raw' => $item->remaining_amount,
+            'remaining' => Money::format($item->status === PaymentScheduleStatus::WAIVED ? 0 : $item->remaining_amount),
+            'remaining_raw' => $item->status === PaymentScheduleStatus::WAIVED ? 0 : $item->remaining_amount,
             'is_credit' => $item->is_credit,
             'is_blocking' => $item->is_blocking,
         ])->all();
@@ -112,7 +129,7 @@ class PurchaseOrderStats extends Widget
 
         $totalScheduleAmount = $regularItems->sum('amount');
         $totalSchedulePaid = $regularItems->sum(fn ($i) => $i->paid_amount);
-        $totalScheduleRemaining = max(0, $totalScheduleAmount - $totalSchedulePaid);
+        $totalScheduleRemaining = max(0, $totalScheduleAmount - $totalSchedulePaid - $waivedTotal);
 
         return [
             'heading' => __('widgets.document_summary.financial_summary'),
@@ -143,7 +160,7 @@ class PurchaseOrderStats extends Widget
         $parts = [];
 
         if ($overdueAmount > 0) {
-            $parts[] = __('widgets.document_summary.overdue') . ': ' . $currency . ' ' . Money::format($overdueAmount);
+            $parts[] = __('widgets.document_summary.overdue').': '.$currency.' '.Money::format($overdueAmount);
         }
 
         $nextDue = $regularItems
@@ -152,7 +169,7 @@ class PurchaseOrderStats extends Widget
             ->first();
 
         if ($nextDue?->due_date) {
-            $parts[] = __('widgets.document_summary.next') . ': ' . $nextDue->due_date->format('M d, Y');
+            $parts[] = __('widgets.document_summary.next').': '.$nextDue->due_date->format('M d, Y');
         }
 
         return implode(' | ', $parts) ?: __('widgets.document_summary.outstanding');
