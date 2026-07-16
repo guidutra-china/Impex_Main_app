@@ -58,6 +58,10 @@ trait HasManageAllocationsAction
                 Hidden::make('company_id')
                     ->default($this->record->company_id),
 
+                // Rate lookups resolve as of the payment date, not today.
+                Hidden::make('payment_date')
+                    ->default($this->record->payment_date?->toDateString()),
+
                 Repeater::make('new_allocations')
                     ->label('')
                     ->schema(static::allocationRepeaterSchema($this->record->direction))

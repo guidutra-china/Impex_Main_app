@@ -717,7 +717,7 @@ trait HasPaymentFormSections
                 ->visible(fn (Get $get) => static::rowHasDifferingCurrencies($get))
                 ->afterStateUpdated(function (Get $get, Set $set) {
                     static::syncAllocationRow($get, $set, 'exchange_rate');
-                    $set('exchange_rate_captured_at', now()->toDateString());
+                    $set('exchange_rate_captured_at', static::paymentDateFromForm($get) ?? now()->toDateString());
                 })
                 ->helperText(function (Get $get) {
                     $captured = $get('exchange_rate_captured_at');
@@ -736,11 +736,31 @@ trait HasPaymentFormSections
     }
 
     /**
+     * Payment date of the form (allocation rows live two levels below the
+     * root), normalized to Y-m-d. Null when the form has no such field or
+     * it is still empty.
+     */
+    protected static function paymentDateFromForm(Get $get): ?string
+    {
+        $raw = $get('../../payment_date');
+
+        if (blank($raw)) {
+            return null;
+        }
+
+        try {
+            return \Carbon\Carbon::parse($raw)->toDateString();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
      * Pre-fill the three amount fields and the hidden currency tracker when
-     * a schedule item is selected. Uses the current ExchangeRate when the
-     * currencies differ; when no approved rate exists, the payment-currency
-     * amount and the rate are left blank for the user to enter manually
-     * (no silent fallback).
+     * a schedule item is selected. Uses the ExchangeRate effective on the
+     * payment date (not today) when the currencies differ; when no approved
+     * rate exists, the payment-currency amount and the rate are left blank
+     * for the user to enter manually (no silent fallback).
      */
     protected static function prefillAllocationRowForItem(int $itemId, Get $get, Set $set): void
     {
@@ -765,13 +785,14 @@ trait HasPaymentFormSections
 
         $set('allocated_amount_in_document_currency', number_format($remainingDocMajor, 2, '.', ''));
 
-        $resolved = AllocationCalculator::lookupRateWithDate($pmtCurrency, $docCurrency);
+        $paymentDate = static::paymentDateFromForm($get);
+        $resolved = AllocationCalculator::lookupRateWithDate($pmtCurrency, $docCurrency, $paymentDate);
         $rate = $resolved['rate'];
 
         if ($rate !== null && $rate > 0) {
             $set('exchange_rate', number_format($rate, 8, '.', ''));
             $set('allocated_amount', number_format($remainingDocMajor / $rate, 2, '.', ''));
-            $set('exchange_rate_captured_at', $resolved['date'] ?? now()->toDateString());
+            $set('exchange_rate_captured_at', $resolved['date'] ?? $paymentDate ?? now()->toDateString());
         } else {
             $set('exchange_rate', null);
             $set('allocated_amount', null);

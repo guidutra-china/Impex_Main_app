@@ -95,22 +95,25 @@ class AllocationCalculator
     }
 
     /**
-     * Look up the current approved rate from payment currency to document
-     * currency. Returns null when no approved rate chain is available, in
-     * which case the caller must ask the user to supply rate/doc amount.
+     * Look up the approved rate from payment currency to document currency,
+     * effective as of $date (defaults to today). Returns null when no
+     * approved rate chain is available, in which case the caller must ask
+     * the user to supply rate/doc amount.
      */
-    public static function lookupRate(string $paymentCurrencyCode, string $documentCurrencyCode): ?float
+    public static function lookupRate(string $paymentCurrencyCode, string $documentCurrencyCode, ?string $date = null): ?float
     {
-        return self::lookupRateWithDate($paymentCurrencyCode, $documentCurrencyCode)['rate'];
+        return self::lookupRateWithDate($paymentCurrencyCode, $documentCurrencyCode, $date)['rate'];
     }
 
     /**
      * Same as lookupRate() but also returns the effective date of the
      * underlying ExchangeRate record (oldest date when triangulating).
+     * $date bounds the lookup: the newest approved rate ON OR BEFORE that
+     * date is used (payment date, not today, for retroactive payments).
      *
      * @return array{rate: ?float, date: ?string}
      */
-    public static function lookupRateWithDate(string $paymentCurrencyCode, string $documentCurrencyCode): array
+    public static function lookupRateWithDate(string $paymentCurrencyCode, string $documentCurrencyCode, ?string $date = null): array
     {
         if ($paymentCurrencyCode === $documentCurrencyCode) {
             return ['rate' => 1.0, 'date' => null];
@@ -123,7 +126,7 @@ class AllocationCalculator
             return ['rate' => null, 'date' => null];
         }
 
-        $rate = ExchangeRate::convert($pmt->id, $doc->id, 1.0);
+        $rate = ExchangeRate::convert($pmt->id, $doc->id, 1.0, $date);
         if ($rate === null) {
             return ['rate' => null, 'date' => null];
         }
@@ -132,13 +135,13 @@ class AllocationCalculator
         $dates = [];
         if ($base) {
             if ($pmt->id !== $base->id) {
-                $rec = ExchangeRate::getLatestRate($base->id, $pmt->id);
+                $rec = ExchangeRate::getLatestRate($base->id, $pmt->id, $date);
                 if ($rec) {
                     $dates[] = $rec->date->toDateString();
                 }
             }
             if ($doc->id !== $base->id) {
-                $rec = ExchangeRate::getLatestRate($base->id, $doc->id);
+                $rec = ExchangeRate::getLatestRate($base->id, $doc->id, $date);
                 if ($rec) {
                     $dates[] = $rec->date->toDateString();
                 }
