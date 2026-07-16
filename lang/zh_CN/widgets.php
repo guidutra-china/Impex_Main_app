@@ -46,6 +46,8 @@ return [
         'next' => '下一个',
         'outstanding' => '未结清',
         'fully_paid' => '已全额付款',
+        'waived' => '已豁免',
+        'waived_description' => '免收 — 该期款项已豁免',
         'from_client_available' => '来自该客户 — 可分配',
         'to_supplier_available' => '给该供应商 — 可分配',
     ],
@@ -309,5 +311,16 @@ return [
         'inquiries_no_update_5_days' => '5天以上未更新的询价',
         'pos_no_update_10_days' => '10天以上未更新的采购订单',
         'finalized_pis_without_po' => '已完成但未创建采购订单的形式发票',
+    ],
+
+    // Shipment Plan Summary Widget
+    'shipment_plan' => [
+        'total_planned_value' => '计划总金额',
+        'items_from_pis' => '来自 :pis 张形式发票的 :items 个项目',
+        'total_paid' => '已付总额',
+        'remaining' => '剩余 :amount',
+        'blocking_payments' => '阻止发货的付款',
+        'must_be_paid_before_shipping' => '发货前必须付清',
+        'all_clear' => '全部完成',
     ],
 ];

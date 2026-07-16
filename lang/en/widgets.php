@@ -46,6 +46,8 @@ return [
         'next' => 'Next',
         'outstanding' => 'Outstanding',
         'fully_paid' => 'Fully paid',
+        'waived' => 'Waived',
+        'waived_description' => 'No charge — this installment was waived',
         'from_client_available' => 'From this client — available to allocate',
         'to_supplier_available' => 'To this supplier — available to allocate',
     ],
@@ -309,5 +311,16 @@ return [
         'inquiries_no_update_5_days' => 'inquiry(ies) with no update for 5+ days',
         'pos_no_update_10_days' => 'PO(s) with no update for 10+ days',
         'finalized_pis_without_po' => 'finalized PI(s) without Purchase Order',
+    ],
+
+    // Shipment Plan Summary Widget
+    'shipment_plan' => [
+        'total_planned_value' => 'Total Planned Value',
+        'items_from_pis' => ':items items from :pis PI(s)',
+        'total_paid' => 'Total Paid',
+        'remaining' => ':amount remaining',
+        'blocking_payments' => 'Blocking Payments',
+        'must_be_paid_before_shipping' => 'Must be paid before shipping',
+        'all_clear' => 'All clear',
     ],
 ];

@@ -46,6 +46,8 @@ return [
         'next' => 'Próximo',
         'outstanding' => 'Em Aberto',
         'fully_paid' => 'Totalmente pago',
+        'waived' => 'Isento',
+        'waived_description' => 'Sem cobrança — esta parcela foi isentada',
         'from_client_available' => 'Deste cliente — disponível para alocar',
         'to_supplier_available' => 'Para este fornecedor — disponível para alocar',
     ],
@@ -309,5 +311,16 @@ return [
         'inquiries_no_update_5_days' => 'consulta(s) sem atualização há 5+ dias',
         'pos_no_update_10_days' => 'PO(s) sem atualização há 10+ dias',
         'finalized_pis_without_po' => 'PI(s) finalizada(s) sem Pedido de Compra',
+    ],
+
+    // Shipment Plan Summary Widget
+    'shipment_plan' => [
+        'total_planned_value' => 'Valor Total Planejado',
+        'items_from_pis' => ':items itens de :pis PI(s)',
+        'total_paid' => 'Total Pago',
+        'remaining' => ':amount restante',
+        'blocking_payments' => 'Pagamentos Bloqueantes',
+        'must_be_paid_before_shipping' => 'Deve ser pago antes do embarque',
+        'all_clear' => 'Tudo em dia',
     ],
 ];

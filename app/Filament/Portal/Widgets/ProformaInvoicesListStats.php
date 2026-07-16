@@ -2,6 +2,7 @@
 
 namespace App\Filament\Portal\Widgets;
 
+use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
@@ -41,8 +42,17 @@ class ProformaInvoicesListStats extends Widget
 
             $totalValue = $invoices->sum(fn ($pi) => $pi->grand_total);
             $totalPaid = $invoices->sum(fn ($pi) => $pi->paymentScheduleItems->sum('paid_amount'));
-            $totalRemaining = max(0, $totalValue - $totalPaid);
-            $paymentProgress = $totalValue > 0 ? round(($totalPaid / $totalValue) * 100, 1) : 0;
+
+            // Parcelas isentas (waived) contam como quitadas no saldo do Portal.
+            $totalWaived = $invoices->sum(
+                fn ($pi) => $pi->paymentScheduleItems
+                    ->where('is_credit', false)
+                    ->where('status', PaymentScheduleStatus::WAIVED)
+                    ->sum(fn ($i) => $i->remaining_amount)
+            );
+
+            $totalRemaining = max(0, $totalValue - $totalPaid - $totalWaived);
+            $paymentProgress = $totalValue > 0 ? round((($totalPaid + $totalWaived) / $totalValue) * 100, 1) : 0;
         }
 
         return [
