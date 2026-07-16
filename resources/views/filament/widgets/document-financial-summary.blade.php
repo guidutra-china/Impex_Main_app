@@ -4,7 +4,19 @@
         :icon="$icon"
     >
         {{-- Summary Cards --}}
-        <div class="grid grid-cols-2 gap-3 mb-6 sm:grid-cols-{{ count($cards) }}">
+        {{-- Static class map: Tailwind only generates classes it finds literally
+             in the source, so sm:grid-cols-{{ count(...) }} silently breaks. --}}
+        @php
+            $cardGridCols = match (count($cards)) {
+                1 => 'sm:grid-cols-1',
+                2 => 'sm:grid-cols-2',
+                3 => 'sm:grid-cols-3',
+                4 => 'sm:grid-cols-4',
+                5 => 'sm:grid-cols-3 lg:grid-cols-5',
+                default => 'sm:grid-cols-3 lg:grid-cols-6',
+            };
+        @endphp
+        <div class="grid grid-cols-2 gap-3 mb-6 {{ $cardGridCols }}">
             @foreach ($cards as $card)
                 <div @class([
                     'rounded-xl border p-4',
