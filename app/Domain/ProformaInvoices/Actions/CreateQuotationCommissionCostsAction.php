@@ -6,6 +6,7 @@ use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Models\AdditionalCost;
+use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Models\Quotation;
@@ -65,6 +66,70 @@ class CreateQuotationCommissionCostsAction
                 'notes' => 'Auto-generated from '.$quotation->reference.' (Separate commission '.$quotation->commission_rate.'%)',
             ]);
         }
+    }
+
+    /**
+     * Atualiza o custo de comissão da quotation na PI após uma regeneração.
+     * Recalcula o valor quando o custo ainda está intocado (PENDING e sem
+     * alocações de pagamento); cria se passou a se aplicar; remove se deixou
+     * de se aplicar. Custos já pagos/alocados são mantidos como estão.
+     */
+    public function refresh(ProformaInvoice $pi, Quotation $quotation): void
+    {
+        $cost = $pi->additionalCosts()
+            ->where('cost_type', AdditionalCostType::COMMISSION)
+            ->where('notes', 'like', '%'.$quotation->reference.'%')
+            ->first();
+
+        $applies = $quotation->commission_type === CommissionType::SEPARATE
+            && $quotation->commission_rate > 0;
+
+        $base = $applies ? $this->commissionBase($pi, $quotation) : 0;
+
+        if ($cost === null) {
+            if ($applies && $base > 0) {
+                $this->execute($pi, [$quotation->id]);
+            }
+
+            return;
+        }
+
+        if (! $this->isUntouched($cost)) {
+            return;
+        }
+
+        if (! $applies || $base <= 0) {
+            $cost->delete();
+
+            return;
+        }
+
+        $commissionAmount = (int) round($base * ($quotation->commission_rate / 100));
+
+        $cost->update([
+            'description' => 'Service Fee ('.$quotation->commission_rate.'%) — '.$quotation->reference,
+            'amount' => $commissionAmount,
+            'currency_code' => $pi->currency_code,
+            'amount_in_document_currency' => $commissionAmount,
+            'notes' => 'Auto-generated from '.$quotation->reference.' (Separate commission '.$quotation->commission_rate.'%)',
+        ]);
+    }
+
+    /**
+     * Um custo é "intocado" quando ainda está PENDING e nenhum pagamento foi
+     * alocado ao schedule item gerado a partir dele.
+     */
+    protected function isUntouched(AdditionalCost $cost): bool
+    {
+        if ($cost->status !== AdditionalCostStatus::PENDING) {
+            return false;
+        }
+
+        return ! PaymentScheduleItem::query()
+            ->where('source_type', AdditionalCost::class)
+            ->where('source_id', $cost->id)
+            ->whereHas('allocations')
+            ->exists();
     }
 
     /**

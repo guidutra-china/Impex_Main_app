@@ -4,6 +4,8 @@ namespace App\Domain\Quotations\Models;
 
 use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Models\Company;
+use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
+use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -54,6 +56,24 @@ class QuotationItem extends Model
                     $item->cost_exchange_rate_captured_at = now()->toDateString();
                 }
             }
+        });
+
+        // Quando um item da quotation é removido, apaga a linha de PI em DRAFT
+        // que ele gerou. O FK quotation_item_id é "on delete set null", então
+        // sem isto a linha ficaria órfã (link nulo) e a regeneração da PI a
+        // trataria como item manual, duplicando o valor. Linhas de PI já
+        // emitidas (não-DRAFT) ou com vínculo de embarque são mantidas.
+        static::deleting(function (QuotationItem $item) {
+            ProformaInvoiceItem::query()
+                ->where('quotation_item_id', $item->id)
+                ->whereDoesntHave('shipmentItems')
+                ->whereDoesntHave('shipmentPlanItems')
+                ->whereHas('proformaInvoice', fn ($query) => $query->where(
+                    'status', ProformaInvoiceStatus::DRAFT->value,
+                ))
+                ->get()
+                ->each
+                ->delete();
         });
     }
 

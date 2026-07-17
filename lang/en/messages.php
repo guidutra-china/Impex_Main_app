@@ -65,6 +65,7 @@ return [
     'product_link_updated' => 'Product link updated',
     'pi_created' => 'Proforma Invoice created',
     'pi_updated' => 'Proforma Invoice updated',
+    'pi_regeneration_blocked' => 'Proforma Invoice :reference has already been issued and can no longer be updated from this quotation.',
     'pi_update_description' => 'This will update the existing Proforma Invoice :reference with the current inquiry data (company, contact, currency).',
     'status_changed_to' => 'Status changed to',
     'auto_transitioned_on_shipment_complete' => 'Auto-transition: all items have been shipped.',

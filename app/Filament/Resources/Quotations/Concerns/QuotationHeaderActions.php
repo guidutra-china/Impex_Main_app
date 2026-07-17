@@ -5,11 +5,8 @@ namespace App\Filament\Resources\Quotations\Concerns;
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Infrastructure\Pdf\Templates\QuotationPdfTemplate;
 use App\Domain\Inquiries\Actions\AdvanceInquiryToQuotedAction;
-use App\Domain\ProformaInvoices\Actions\CreateQuotationCommissionCostsAction;
+use App\Domain\ProformaInvoices\Actions\SyncProformaInvoiceFromQuotationAction;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
-use App\Domain\ProformaInvoices\Models\ProformaInvoice;
-use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
-use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\QuotationStatus;
 use App\Domain\Quotations\Models\Quotation;
 use App\Filament\Actions\GeneratePdfAction;
@@ -21,7 +18,6 @@ use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Concrete slot implementations for QuotationResource pages.
@@ -192,84 +188,45 @@ trait QuotationHeaderActions
 
     protected function convertToProformaInvoiceAction(): Action
     {
+        $linkedPi = app(SyncProformaInvoiceFromQuotationAction::class)->findLinkedPi($this->record);
+        $hasDraftPi = $linkedPi !== null && $linkedPi->status === ProformaInvoiceStatus::DRAFT;
+        $isBlocked = $linkedPi !== null && ! $hasDraftPi;
+
         return Action::make('convertToProformaInvoice')
-            ->label(__('forms.labels.convert_to_pi'))
-            ->icon('heroicon-o-document-check')
+            ->label($hasDraftPi
+                ? __('forms.labels.update_pi', ['reference' => $linkedPi->reference])
+                : __('forms.labels.convert_to_pi'))
+            ->icon($hasDraftPi ? 'heroicon-o-arrow-path' : 'heroicon-o-document-check')
             ->color('success')
             ->requiresConfirmation()
-            ->modalHeading(__('forms.labels.convert_to_pi'))
-            ->modalDescription(__('forms.helpers.convert_quotation_to_pi_description'))
-            ->modalSubmitActionLabel(__('forms.labels.create_proforma_invoice'))
+            ->modalHeading($hasDraftPi
+                ? __('forms.labels.update_pi', ['reference' => $linkedPi->reference])
+                : __('forms.labels.convert_to_pi'))
+            ->modalDescription($hasDraftPi
+                ? __('forms.helpers.regenerate_quotation_pi_description')
+                : __('forms.helpers.convert_quotation_to_pi_description'))
+            ->modalSubmitActionLabel($hasDraftPi
+                ? __('forms.labels.update_proforma_invoice')
+                : __('forms.labels.create_proforma_invoice'))
             ->visible(fn () => auth()->user()?->can('create-proforma-invoices')
                 && $this->record->items()->count() > 0)
+            ->disabled($isBlocked)
+            ->tooltip($isBlocked
+                ? __('messages.pi_regeneration_blocked', ['reference' => $linkedPi->reference])
+                : null)
             ->action(function () {
                 try {
                     $quotation = $this->record;
 
-                    $pi = DB::transaction(function () use ($quotation) {
-                        $proformaInvoice = ProformaInvoice::create([
-                            'inquiry_id' => $quotation->inquiry_id,
-                            'company_id' => $quotation->company_id,
-                            'contact_id' => $quotation->contact_id,
-                            'payment_term_id' => $quotation->payment_term_id,
-                            'status' => ProformaInvoiceStatus::DRAFT,
-                            'currency_code' => $quotation->currency_code ?? 'USD',
-                            'issue_date' => now(),
-                            'validity_days' => $quotation->validity_days,
-                            'created_by' => auth()->id(),
-                            'responsible_user_id' => $quotation->responsible_user_id,
-                        ]);
+                    ['pi' => $pi, 'created' => $created] = app(SyncProformaInvoiceFromQuotationAction::class)
+                        ->execute($quotation);
 
-                        $proformaInvoice->quotations()->attach($quotation->id);
-
-                        $quotation->load('items.product.suppliers');
-                        $sortOrder = 0;
-
-                        $isSeparateCommission = $quotation->commission_type === CommissionType::SEPARATE;
-
-                        foreach ($quotation->items as $item) {
-                            $supplierId = $item->selected_supplier_id;
-
-                            if (! $supplierId && $item->product) {
-                                $preferred = $item->product->suppliers()
-                                    ->orderByDesc('company_product.is_preferred')
-                                    ->first();
-                                $supplierId = $preferred?->id;
-                            }
-
-                            // SEPARATE commission: PI unit_price equals cost in PI/quote currency,
-                            // so use the converted cost (raw unit_cost is now in source currency).
-                            $unitPrice = $isSeparateCommission ? $item->converted_unit_cost : $item->unit_price;
-
-                            ProformaInvoiceItem::create([
-                                'proforma_invoice_id' => $proformaInvoice->id,
-                                'product_id' => $item->product_id,
-                                'quotation_item_id' => $item->id,
-                                'supplier_company_id' => $supplierId,
-                                'description' => $item->product?->name,
-                                'specifications' => $item->product?->specification?->description ?? null,
-                                'quantity' => $item->quantity,
-                                'unit' => 'pcs',
-                                'unit_price' => $unitPrice,
-                                'unit_cost' => $item->unit_cost,
-                                'cost_currency_code' => $item->cost_currency_code,
-                                'cost_exchange_rate' => $item->cost_exchange_rate,
-                                'incoterm' => $item->incoterm ?? $quotation->incoterm,
-                                'notes' => $item->notes,
-                                'sort_order' => ++$sortOrder,
-                            ]);
-                        }
-
-                        app(CreateQuotationCommissionCostsAction::class)
-                            ->execute($proformaInvoice, [$quotation->id]);
-
-                        return $proformaInvoice;
-                    });
-
-                    app(AdvanceInquiryToQuotedAction::class)->execute($pi->inquiry);
+                    if ($created) {
+                        app(AdvanceInquiryToQuotedAction::class)->execute($pi->inquiry);
+                    }
 
                     Notification::make()
-                        ->title(__('messages.pi_created').': '.$pi->reference)
+                        ->title(($created ? __('messages.pi_created') : __('messages.pi_updated')).': '.$pi->reference)
                         ->success()
                         ->send();
 
