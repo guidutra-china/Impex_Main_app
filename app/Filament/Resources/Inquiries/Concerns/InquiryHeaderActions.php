@@ -189,6 +189,7 @@ trait InquiryHeaderActions
                             } else {
                                 $sq = SupplierQuotation::create([
                                     'inquiry_id' => $inquiry->id,
+                                    'description' => $inquiry->description,
                                     'company_id' => $companyId,
                                     'status' => SupplierQuotationStatus::REQUESTED,
                                     'currency_code' => $inquiry->currency_code,

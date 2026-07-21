@@ -24,6 +24,7 @@ class SupplierQuotation extends Model
 
     protected $fillable = [
         'reference',
+        'description',
         'inquiry_id',
         'company_id',
         'contact_id',

@@ -24,6 +24,13 @@ class SupplierQuotationsTable
                     ->searchable()
                     ->sortable()
                     ->copyable(),
+                TextColumn::make('description')
+                    ->label(__('forms.labels.description'))
+                    ->searchable()
+                    ->limit(35)
+                    ->tooltip(fn ($record) => $record->description)
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('inquiry.reference')
                     ->label(__('forms.labels.inquiry'))
                     ->searchable()

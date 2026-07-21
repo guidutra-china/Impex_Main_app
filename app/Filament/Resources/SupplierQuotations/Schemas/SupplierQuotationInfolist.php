@@ -37,6 +37,10 @@ class SupplierQuotationInfolist
                     TextEntry::make('reference')
                         ->label(__('forms.labels.reference'))
                         ->copyable(),
+                    TextEntry::make('description')
+                        ->label(__('forms.labels.description'))
+                        ->placeholder('—')
+                        ->columnSpanFull(),
                     TextEntry::make('status')
                         ->label(__('forms.labels.status'))
                         ->badge(),

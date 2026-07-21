@@ -77,11 +77,12 @@ class ImportSupplierQuotationActionTest extends TestCase
         $user = User::factory()->create();
         $user->givePermissionTo(['create-supplier-quotations', 'create-companies', 'create-products']);
 
-        $inquiry = \App\Domain\Inquiries\Models\Inquiry::factory()->create();
+        $inquiry = \App\Domain\Inquiries\Models\Inquiry::factory()->create(['description' => 'Peças de trator John Deere']);
 
         $sq = (new ImportSupplierQuotationAction)($this->previewWithNewSupplierAndProduct(), $user, $this->fakeFile(), [], $inquiry->id);
 
         $this->assertSame($inquiry->id, $sq->inquiry_id);
+        $this->assertSame('Peças de trator John Deere', $sq->description);
 
         // Sem contexto, continua sem vínculo.
         $freePreview = $this->previewWithNewSupplierAndProduct();

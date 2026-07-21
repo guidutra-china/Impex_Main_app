@@ -50,6 +50,7 @@ class ImportSupplierQuotationAction
 
                 $sq = SupplierQuotation::create([
                     'inquiry_id' => $inquiry?->id,
+                    'description' => $inquiry?->description,
                     'company_id' => $company->id,
                     'status' => SupplierQuotationStatus::RECEIVED,
                     'currency_code' => $this->cap($preview['cabecalho']['currency_code'] ?? 'USD', 10),
