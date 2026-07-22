@@ -66,6 +66,8 @@ return [
     'items_imported' => '项目已导入',
     'items_imported_from_inquiry' => '项目已从询价导入',
     'items_skipped_no_remaining_quantity' => '项目已跳过（无剩余数量）。',
+    'products_added_to_inquiry' => '产品已添加到询价单',
+    'products_skipped_already_in_inquiry' => '产品已跳过（询价单中已存在）。',
 
     // Notification bodies
     'formula_format_help' => '使用格式：*1.10，/1.05，+5，或 -2.50',

@@ -76,6 +76,8 @@ return [
     'items_imported' => 'items imported',
     'items_imported_from_inquiry' => 'items imported from inquiry',
     'items_skipped_no_remaining_quantity' => 'items skipped (no remaining quantity).',
+    'products_added_to_inquiry' => 'products added to the inquiry',
+    'products_skipped_already_in_inquiry' => 'products skipped (already in the inquiry).',
 
     // Notification bodies
     'formula_format_help' => 'Use format: *1.10, /1.05, +5, or -2.50',

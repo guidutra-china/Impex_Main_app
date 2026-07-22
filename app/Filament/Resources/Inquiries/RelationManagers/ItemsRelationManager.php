@@ -17,6 +17,7 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -383,6 +384,7 @@ class ItemsRelationManager extends RelationManager
                     ->using(function (array $data, string $model) {
                         return $this->createItemWithDraftProduct($data);
                     }),
+                $this->bulkAddProductsAction(),
                 PasteItemsFromSpreadsheetAction::forInquiryItems(),
                 Action::make('importWithAi')
                     ->label(__('assistant.import_with_ai'))
@@ -412,6 +414,152 @@ class ItemsRelationManager extends RelationManager
             ->defaultSort('sort_order')
             ->emptyStateHeading('No items')
             ->emptyStateDescription('Add products or create new draft products for items the client is requesting.');
+    }
+
+    protected function bulkAddProductsAction(): Action
+    {
+        return Action::make('bulkAddProducts')
+            ->label(__('forms.labels.bulk_add_products'))
+            ->icon('heroicon-o-squares-plus')
+            ->color('info')
+            ->visible(fn () => auth()->user()?->can('edit-inquiries'))
+            ->modalWidth('2xl')
+            ->form([
+                Select::make('filter_category_id')
+                    ->label(__('forms.tabs.filter_by_category'))
+                    ->options(function () {
+                        return Category::active()
+                            ->orderBy('name')
+                            ->get()
+                            ->mapWithKeys(fn ($c) => [$c->id => $c->reverse_path]);
+                    })
+                    ->allowHtml()
+                    ->searchable()
+                    ->placeholder(__('forms.placeholders.all_categories'))
+                    ->live()
+                    ->dehydrated(false)
+                    ->afterStateUpdated(function (Set $set) {
+                        $set('filter_supplier_id', null);
+                        $set('product_ids', []);
+                    }),
+
+                Select::make('filter_supplier_id')
+                    ->label(__('forms.tabs.filter_by_supplier'))
+                    ->options(function (Get $get) {
+                        $categoryId = $get('filter_category_id');
+
+                        $query = Company::withRole(CompanyRole::SUPPLIER);
+
+                        if ($categoryId) {
+                            $categoryIds = $this->getCategoryWithDescendantIds((int) $categoryId);
+                            $query->whereHas('products', function ($q) use ($categoryIds) {
+                                $q->whereIn('category_id', $categoryIds)
+                                    ->where('company_product.role', 'supplier');
+                            });
+                        }
+
+                        return $query->orderBy('name')->pluck('name', 'id');
+                    })
+                    ->searchable()
+                    ->placeholder(__('forms.placeholders.all_suppliers'))
+                    ->live()
+                    ->dehydrated(false)
+                    ->afterStateUpdated(fn (Set $set) => $set('product_ids', [])),
+
+                CheckboxList::make('product_ids')
+                    ->label(__('forms.labels.select_products_to_add'))
+                    ->options(function (Get $get) {
+                        return $this->bulkProductOptions(
+                            $get('filter_category_id') ? (int) $get('filter_category_id') : null,
+                            $get('filter_supplier_id') ? (int) $get('filter_supplier_id') : null,
+                        );
+                    })
+                    ->required()
+                    ->searchable()
+                    ->bulkToggleable()
+                    ->columns(1)
+                    ->helperText(__('forms.helpers.bulk_add_products_qty_hint')),
+            ])
+            ->action(function (array $data) {
+                $inquiry = $this->getOwnerRecord();
+                $productIds = array_map('intval', $data['product_ids'] ?? []);
+
+                if (empty($productIds)) {
+                    return;
+                }
+
+                $existingProductIds = $inquiry->items()
+                    ->whereNotNull('product_id')
+                    ->pluck('product_id')
+                    ->map(fn ($id) => (int) $id)
+                    ->all();
+
+                $products = Product::whereIn('id', $productIds)->orderBy('name')->get();
+
+                $maxSort = $inquiry->items()->max('sort_order') ?? 0;
+                $created = 0;
+                $skipped = 0;
+
+                foreach ($products as $product) {
+                    if (in_array($product->id, $existingProductIds, true)) {
+                        $skipped++;
+
+                        continue;
+                    }
+
+                    $inquiry->items()->create([
+                        'product_id' => $product->id,
+                        'description' => $product->name,
+                        'quantity' => 1,
+                        'unit' => 'pcs',
+                        'sort_order' => ++$maxSort,
+                    ]);
+
+                    $created++;
+                }
+
+                Notification::make()
+                    ->title($created.' '.__('messages.products_added_to_inquiry'))
+                    ->body($skipped > 0 ? $skipped.' '.__('messages.products_skipped_already_in_inquiry') : null)
+                    ->success()
+                    ->send();
+            });
+    }
+
+    /**
+     * Options for the bulk-add CheckboxList: filtered by category/supplier,
+     * client products (★) first. Text search happens client-side in the list.
+     *
+     * @return array<int, string>
+     */
+    protected function bulkProductOptions(?int $categoryId, ?int $supplierId): array
+    {
+        $clientId = $this->getOwnerRecord()->company_id;
+
+        $query = Product::query()
+            ->with(['clients' => fn ($q) => $q->where('companies.id', $clientId)]);
+
+        if ($categoryId) {
+            $categoryIds = $this->getCategoryWithDescendantIds($categoryId);
+            $query->whereIn('category_id', $categoryIds);
+        }
+
+        if ($supplierId) {
+            $query->whereHas('suppliers', fn ($q) => $q->where('companies.id', $supplierId));
+        }
+
+        $products = $query->orderBy('name')->limit(200)->get();
+
+        return $products
+            ->sortBy(fn (Product $p) => $p->clients->isEmpty() ? 1 : 0)
+            ->mapWithKeys(function (Product $p) {
+                $prefix = $p->status === ProductStatus::DRAFT ? '[DRAFT] ' : '';
+                $clientBadge = $p->clients->isNotEmpty() ? ' ★' : '';
+                $model = $p->model_number ? ' · '.$p->model_number : '';
+
+                return [$p->id => $prefix.$p->sku.' — '.$p->name.$model.$clientBadge];
+            })
+            ->toArray();
     }
 
     protected function createItemWithDraftProduct(array $data): \Illuminate\Database\Eloquent\Model
