@@ -18,6 +18,7 @@ use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\Shipment;
+use App\Filament\Resources\Finance\Concerns\HasPaymentFormSections;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -154,6 +155,87 @@ class CreditNoteLifecycleTest extends TestCase
         $this->assertSame(2_000_000, $creditNote->remaining_amount);
     }
 
+    public function test_partial_application_keeps_credit_item_available(): void
+    {
+        // CN-2026-0004 regression: applying part of a credit must NOT mark
+        // the credit PSI as PAID — the remaining balance has to stay visible
+        // in the payment form's available-credits list.
+        $creditNote = $this->issuedCreditNote([3_000_000]);
+        $creditPsi = $this->creditScheduleItems($creditNote)->firstOrFail();
+        $targetPsi = $this->openSupplierItem(5_000_000);
+
+        $allocation = $this->applyCreditViaPendingPayment($creditPsi, $targetPsi, 1_000_000);
+        app(ApprovePaymentAction::class)->approve($allocation->payment);
+
+        $this->assertSame(CreditNoteStatus::PARTIALLY_APPLIED, $creditNote->refresh()->status);
+        $this->assertSame(PaymentScheduleStatus::PENDING, $creditPsi->refresh()->status);
+        $this->assertSame(1_000_000, $creditPsi->credit_consumed_amount);
+        $this->assertSame(2_000_000, $creditPsi->credit_remaining_amount);
+    }
+
+    public function test_credit_item_fully_consumed_across_partial_applications_marks_paid(): void
+    {
+        $creditNote = $this->issuedCreditNote([3_000_000]);
+        $creditPsi = $this->creditScheduleItems($creditNote)->firstOrFail();
+        $targetPsi = $this->openSupplierItem(5_000_000);
+
+        $first = $this->applyCreditViaPendingPayment($creditPsi, $targetPsi, 1_000_000);
+        app(ApprovePaymentAction::class)->approve($first->payment);
+
+        $second = $this->applyCreditViaPendingPayment($creditPsi, $targetPsi, 2_000_000);
+        app(ApprovePaymentAction::class)->approve($second->payment);
+
+        $this->assertSame(CreditNoteStatus::APPLIED, $creditNote->refresh()->status);
+        $this->assertSame(PaymentScheduleStatus::PAID, $creditPsi->refresh()->status);
+        $this->assertSame(0, $creditPsi->credit_remaining_amount);
+    }
+
+    public function test_cancelling_one_of_two_partial_consumptions_reopens_the_credit(): void
+    {
+        $creditNote = $this->issuedCreditNote([3_000_000]);
+        $creditPsi = $this->creditScheduleItems($creditNote)->firstOrFail();
+        $targetPsi = $this->openSupplierItem(5_000_000);
+        $action = app(ApprovePaymentAction::class);
+
+        $first = $this->applyCreditViaPendingPayment($creditPsi, $targetPsi, 1_000_000);
+        $action->approve($first->payment);
+
+        $second = $this->applyCreditViaPendingPayment($creditPsi, $targetPsi, 2_000_000);
+        $action->approve($second->payment);
+        $this->assertSame(PaymentScheduleStatus::PAID, $creditPsi->refresh()->status);
+
+        $action->cancel($second->payment->refresh(), 'application reversed');
+
+        $this->assertSame(CreditNoteStatus::PARTIALLY_APPLIED, $creditNote->refresh()->status);
+        $this->assertSame(PaymentScheduleStatus::PENDING, $creditPsi->refresh()->status);
+        $this->assertSame(2_000_000, $creditPsi->credit_remaining_amount);
+    }
+
+    public function test_partially_applied_credit_still_offered_in_payment_form_with_remaining_amount(): void
+    {
+        $creditNote = $this->issuedCreditNote([3_000_000]);
+        $creditPsi = $this->creditScheduleItems($creditNote)->firstOrFail();
+        $targetPsi = $this->openSupplierItem(5_000_000);
+
+        $allocation = $this->applyCreditViaPendingPayment($creditPsi, $targetPsi, 1_000_000);
+        app(ApprovePaymentAction::class)->approve($allocation->payment);
+
+        $sections = new class
+        {
+            use HasPaymentFormSections;
+        };
+
+        $credits = $sections::getCompanyCreditItems($this->supplier->id, PaymentDirection::OUTBOUND);
+        $this->assertTrue(
+            $credits->contains('id', $creditPsi->id),
+            'Partially applied credit must remain in the available-credits list.'
+        );
+
+        $label = $sections::formatCreditItemLabel($credits->firstWhere('id', $creditPsi->id));
+        $this->assertStringContainsString('200.00', $label, 'Label must show the remaining balance.');
+        $this->assertStringContainsString('300.00', $label, 'Label must show the original credit total.');
+    }
+
     public function test_applying_credit_to_already_approved_payment_consumes_immediately(): void
     {
         // Mirrors the "Manage Allocations" modal on an approved outgoing
@@ -271,7 +353,7 @@ class CreditNoteLifecycleTest extends TestCase
         ]);
     }
 
-    private function applyCreditViaPendingPayment(PaymentScheduleItem $creditPsi, PaymentScheduleItem $targetPsi): PaymentAllocation
+    private function applyCreditViaPendingPayment(PaymentScheduleItem $creditPsi, PaymentScheduleItem $targetPsi, ?int $amount = null): PaymentAllocation
     {
         $payment = Payment::create([
             'direction' => PaymentDirection::OUTBOUND,
@@ -288,7 +370,7 @@ class CreditNoteLifecycleTest extends TestCase
             'credit_schedule_item_id' => $creditPsi->id,
             'allocated_amount' => 0,
             'exchange_rate' => null,
-            'allocated_amount_in_document_currency' => $creditPsi->amount,
+            'allocated_amount_in_document_currency' => $amount ?? $creditPsi->amount,
         ]);
     }
 }

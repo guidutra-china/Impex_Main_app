@@ -289,6 +289,38 @@ class PaymentScheduleItem extends Model
         return $this->creditAllocations()->exists();
     }
 
+    /**
+     * Amount of this credit item consumed by APPROVED payments — via credit
+     * applications (allocations pointing at it) or direct cash refunds
+     * (allocations paying it). Minor units. Always 0 for non-credit items.
+     */
+    public function getCreditConsumedAmountAttribute(): int
+    {
+        if (! $this->is_credit) {
+            return 0;
+        }
+
+        $applied = (int) $this->creditAllocations()
+            ->whereHas('payment', fn ($q) => $q->where('status', PaymentStatus::APPROVED))
+            ->sum('allocated_amount_in_document_currency');
+
+        $refunded = (int) $this->allocations()
+            ->whereNull('credit_schedule_item_id')
+            ->whereHas('payment', fn ($q) => $q->where('status', PaymentStatus::APPROVED))
+            ->sum('allocated_amount_in_document_currency');
+
+        return $applied + $refunded;
+    }
+
+    public function getCreditRemainingAmountAttribute(): int
+    {
+        if (! $this->is_credit) {
+            return 0;
+        }
+
+        return max(0, $this->amount - $this->credit_consumed_amount);
+    }
+
     public function getRemainingAmountAttribute(): int
     {
         if ($this->is_credit) {

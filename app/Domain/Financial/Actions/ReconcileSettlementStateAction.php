@@ -5,8 +5,8 @@ namespace App\Domain\Financial\Actions;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\DebitNoteStatus;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
-use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\AdditionalCost;
+use App\Domain\Financial\Models\CreditNote;
 use App\Domain\Financial\Models\CreditNoteLineItem;
 use App\Domain\Financial\Models\DebitNoteLineItem;
 use App\Domain\Financial\Models\Payment;
@@ -131,8 +131,9 @@ class ReconcileSettlementStateAction
      * consumed either as a credit application (this allocation's
      * credit_schedule_item_id points at it) or as a cash refund (this
      * allocation pays it directly). recalculateStatus() skips is_credit
-     * items, so their availability status is managed here: PAID once
-     * consumed (hides it from the available-credits list), back to PENDING
+     * items, so their availability status is managed here: PAID only when
+     * fully consumed (hides it from the available-credits list), PENDING
+     * while any balance remains — including after a partial application or
      * when the consuming payment is cancelled.
      */
     protected function checkCreditNoteReconciliation(PaymentAllocation $allocation): void
@@ -147,9 +148,10 @@ class ReconcileSettlementStateAction
             }
 
             if ($scheduleItem->status !== PaymentScheduleStatus::WAIVED) {
-                $consumed = $this->creditItemConsumedAmount($scheduleItem);
+                $consumed = $scheduleItem->credit_consumed_amount;
+                $remaining = $scheduleItem->credit_remaining_amount;
 
-                $newStatus = $consumed > 0
+                $newStatus = ($consumed > 0 && $remaining <= CreditNote::SETTLEMENT_TOLERANCE)
                     ? PaymentScheduleStatus::PAID
                     : PaymentScheduleStatus::PENDING;
 
@@ -161,26 +163,6 @@ class ReconcileSettlementStateAction
             $lineItem = CreditNoteLineItem::find($scheduleItem->source_id);
             $lineItem?->creditNote?->recalculateStatus();
         }
-    }
-
-    /**
-     * Amount of a credit PSI consumed by APPROVED payments — via credit
-     * applications or direct refund allocations. Minor units.
-     */
-    protected function creditItemConsumedAmount(PaymentScheduleItem $creditItem): int
-    {
-        $applied = (int) PaymentAllocation::query()
-            ->where('credit_schedule_item_id', $creditItem->id)
-            ->whereHas('payment', fn ($q) => $q->where('status', PaymentStatus::APPROVED))
-            ->sum('allocated_amount_in_document_currency');
-
-        $refunded = (int) PaymentAllocation::query()
-            ->where('payment_schedule_item_id', $creditItem->id)
-            ->whereNull('credit_schedule_item_id')
-            ->whereHas('payment', fn ($q) => $q->where('status', PaymentStatus::APPROVED))
-            ->sum('allocated_amount_in_document_currency');
-
-        return $applied + $refunded;
     }
 
     /**
