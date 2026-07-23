@@ -6,10 +6,10 @@ use App\Domain\Catalog\Actions\SyncProductPrimaryImageAction;
 use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\Catalog\Models\Product;
+use App\Domain\CRM\Actions\ResolveOrCreateCompanyAction;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Enums\CompanyStatus;
 use App\Domain\CRM\Models\Company;
-use App\Domain\CRM\Models\CompanyRoleAssignment;
 use App\Domain\CRM\Models\Contact;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\TradeFairs\DataTransferObjects\FairProductData;
@@ -31,7 +31,7 @@ class RegisterFairSupplierAction
                 $company = $this->reuseExistingCompany($data);
                 $companyReused = true;
             } else {
-                $company = $this->createNewCompany($data);
+                [$company, $companyReused] = $this->resolveOrCreateCompany($data);
             }
 
             $productNames = [];
@@ -67,21 +67,38 @@ class RegisterFairSupplierAction
         return $company;
     }
 
-    private function createNewCompany(FairSupplierData $data): Company
+    /**
+     * Resolve the typed company name against the CRM before creating: a match by
+     * normalized name reuses the existing company (same treatment as picking it
+     * manually), preventing duplicate companies from fair registrations.
+     *
+     * @return array{0: Company, 1: bool} company and whether it pre-existed
+     */
+    private function resolveOrCreateCompany(FairSupplierData $data): array
     {
-        $company = Company::create([
-            'name' => $data->companyName,
+        $resolved = app(ResolveOrCreateCompanyAction::class)->execute($data->companyName, [
             'address_city' => $data->addressCity,
             'address_country' => $data->addressCountry,
             'status' => CompanyStatus::PROSPECT,
             'notes' => $data->companyNotes,
             'trade_fair_id' => $data->tradeFairId,
-        ]);
+        ], CompanyRole::SUPPLIER);
 
-        CompanyRoleAssignment::create([
-            'company_id' => $company->id,
-            'role' => CompanyRole::SUPPLIER,
-        ]);
+        $company = $resolved->company;
+
+        if (! $resolved->wasCreated) {
+            if (! $company->trade_fair_id) {
+                $company->update(['trade_fair_id' => $data->tradeFairId]);
+            }
+
+            if (! empty($data->companyNotes)) {
+                $company->update(['notes' => $data->companyNotes]);
+            }
+
+            $this->storeCompanyPhotos($company, $data->companyPhotos, $company->photos()->count());
+
+            return [$company, true];
+        }
 
         if (! empty($data->categoryIds)) {
             $company->categories()->attach($data->categoryIds);
@@ -98,7 +115,7 @@ class RegisterFairSupplierAction
 
         $this->storeCompanyPhotos($company, $data->companyPhotos);
 
-        return $company;
+        return [$company, false];
     }
 
     /**

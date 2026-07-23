@@ -7,6 +7,7 @@ namespace App\Domain\SupplierQuotations\Actions;
 use App\Domain\Catalog\Actions\GenerateProductSkuAction;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\ProductImage;
+use App\Domain\CRM\Actions\ResolveOrCreateCompanyAction;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Enums\DocumentSourceType;
@@ -150,13 +151,17 @@ class ImportSupplierQuotationAction
             }
             $company->save();
         } else {
-            $attributes = ['name' => $fornecedor['nome']];
+            $attributes = [];
             foreach ($contactFields as $field) {
                 if (filled($dados[$field] ?? null)) {
                     $attributes[$field] = $dados[$field];
                 }
             }
-            $company = Company::create($attributes);
+            // Reuse an existing company on tax_number/name match instead of
+            // duplicating it; blank fields are filled from the extracted data.
+            $company = app(ResolveOrCreateCompanyAction::class)
+                ->execute((string) $fornecedor['nome'], $attributes)
+                ->company;
         }
 
         $this->ensureSupplierRole($company);

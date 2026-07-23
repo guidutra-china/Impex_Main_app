@@ -203,4 +203,22 @@ class ImportInquiryActionTest extends TestCase
             $this->tempFile,
         );
     }
+
+    public function test_new_client_whose_name_matches_existing_company_is_reused(): void
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo(['create-inquiries', 'create-companies']);
+
+        $existing = Company::factory()->create(['name' => 'Cliente Novo SA']);
+
+        $inquiry = app(ImportInquiryAction::class)(
+            $this->previewNova(['cliente' => ['status' => 'novo', 'company_id' => null, 'nome' => '  cliente  novo sa ']]),
+            $user,
+            $this->tempFile,
+        );
+
+        $this->assertSame($existing->id, $inquiry->company_id);
+        $this->assertSame(1, Company::count());
+        $this->assertTrue($existing->companyRoles()->where('role', CompanyRole::CLIENT->value)->exists());
+    }
 }

@@ -30,6 +30,7 @@ class Company extends Model
         'client_uuid',
         'parent_company_id',
         'name',
+        'name_normalized',
         'legal_name',
         'tax_number',
         'website',
@@ -54,6 +55,24 @@ class Company extends Model
         return [
             'status' => CompanyStatus::class,
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (Company $company) {
+            $company->name_normalized = self::normalizeName((string) $company->name);
+        });
+    }
+
+    /**
+     * Dedup key for company names: trimmed, inner whitespace collapsed, uppercased.
+     * Must stay in sync with the backfill in the name_normalized migration.
+     */
+    public static function normalizeName(string $name): ?string
+    {
+        $collapsed = trim(preg_replace('/\s+/u', ' ', $name) ?? '');
+
+        return $collapsed === '' ? null : mb_strtoupper($collapsed);
     }
 
     // --- Relationships ---

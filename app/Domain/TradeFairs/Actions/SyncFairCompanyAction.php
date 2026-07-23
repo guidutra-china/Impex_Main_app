@@ -6,6 +6,7 @@ use App\Domain\Catalog\Actions\SyncProductPrimaryImageAction;
 use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\Catalog\Models\Product;
+use App\Domain\CRM\Actions\ResolveOrCreateCompanyAction;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Enums\CompanyStatus;
 use App\Domain\CRM\Models\Company;
@@ -91,19 +92,23 @@ class SyncFairCompanyAction
             return [$company, true];
         }
 
-        $company = Company::create([
+        // No identity match — resolve by tax_number/normalized name before
+        // creating, so the same supplier captured on two devices (distinct
+        // client_uuids) does not become two companies.
+        $resolved = app(ResolveOrCreateCompanyAction::class)->execute($data->companyName, [
             'client_uuid' => $data->clientUuid,
-            'name' => $data->companyName,
             'address_city' => $data->addressCity,
             'address_country' => $data->addressCountry,
             'status' => CompanyStatus::PROSPECT,
             'notes' => $data->companyNotes,
             'trade_fair_id' => $data->tradeFairId,
-        ]);
+        ], CompanyRole::SUPPLIER);
 
-        $company->companyRoles()->firstOrCreate(['role' => CompanyRole::SUPPLIER->value]);
+        if (! $resolved->wasCreated) {
+            $this->updateCompanyFields($resolved->company, $data);
+        }
 
-        return [$company, false];
+        return [$resolved->company, ! $resolved->wasCreated];
     }
 
     private function updateCompanyFields(Company $company, FairSupplierData $data): void

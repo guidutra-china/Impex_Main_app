@@ -7,6 +7,7 @@ namespace App\Domain\Inquiries\Actions;
 use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\ProductImage;
+use App\Domain\CRM\Actions\ResolveOrCreateCompanyAction;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Enums\DocumentSourceType;
@@ -161,7 +162,10 @@ class ImportInquiryAction
             if ($name === '') {
                 throw new \InvalidArgumentException(__('assistant.client_required'));
             }
-            $company = Company::create(['name' => $this->cap($name, 255)]);
+            // Reuse an existing company on name match instead of duplicating it.
+            $company = app(ResolveOrCreateCompanyAction::class)
+                ->execute($this->cap($name, 255))
+                ->company;
         }
 
         if (! $company->companyRoles()->where('role', CompanyRole::CLIENT->value)->exists()) {

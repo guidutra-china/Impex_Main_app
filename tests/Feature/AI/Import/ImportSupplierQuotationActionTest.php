@@ -277,4 +277,21 @@ class ImportSupplierQuotationActionTest extends TestCase
         $this->assertDatabaseCount('supplier_quotations', 0);
         $this->assertSame([], Storage::disk('local')->allFiles());
     }
+
+    public function test_new_supplier_whose_name_matches_existing_company_is_reused(): void
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo(['create-supplier-quotations', 'create-companies', 'create-products']);
+
+        $existing = \App\Domain\CRM\Models\Company::factory()->create(['name' => 'Nova Fornecedora Ltd']);
+
+        $preview = $this->previewWithNewSupplierAndProduct();
+        $preview['fornecedor'] = ['status' => 'novo', 'company_id' => null, 'nome' => ' NOVA  fornecedora ltd'];
+
+        $sq = (new ImportSupplierQuotationAction)($preview, $user, $this->fakeFile());
+
+        $this->assertSame($existing->id, $sq->company_id);
+        $this->assertSame(1, \App\Domain\CRM\Models\Company::count());
+        $this->assertTrue($existing->fresh()->hasRole(\App\Domain\CRM\Enums\CompanyRole::SUPPLIER));
+    }
 }
