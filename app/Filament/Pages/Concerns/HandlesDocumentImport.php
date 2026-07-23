@@ -13,6 +13,7 @@ use App\Domain\AI\Import\DraftExtractor;
 use App\Domain\AI\Import\Exceptions\ExtractionFailedException;
 use App\Domain\AI\Import\Exceptions\UnsupportedDocumentException;
 use App\Domain\AI\Import\ExpandDraftVariants;
+use App\Domain\AI\Import\FindPreviousImportsOfFileAction;
 use App\Domain\AI\Import\ImageItemMatcher;
 use App\Domain\AI\Import\PhotoItemMatcher;
 use App\Domain\AI\Import\Targets\ImportTarget;
@@ -66,6 +67,13 @@ trait HandlesDocumentImport
     #[Locked]
     public ?string $importFilePath = null;
 
+    /**
+     * Previous imports of this exact file (sha256 match), shown as a duplicate
+     * warning: list<array{reference:string,type:string}>. Server-controlled.
+     */
+    #[Locked]
+    public array $importDuplicateMatches = [];
+
     /** Editable review form (NOT locked) — the source of truth for Confirm. */
     public ?array $form = null;
 
@@ -87,6 +95,8 @@ trait HandlesDocumentImport
         $ext = strtolower($this->upload->getClientOriginalExtension());
         $stored = $this->upload->storeAs('ai-imports/'.uniqid('imp_'), 'source.'.$ext, 'local');
         $this->importFilePath = Storage::disk('local')->path($stored);
+
+        $this->detectDuplicateImport();
 
         try {
             $blocks = app(DocumentExtractor::class)->toContentBlocks($this->importFilePath);
@@ -454,6 +464,42 @@ trait HandlesDocumentImport
         $this->dispatch('assistant-updated');
     }
 
+    /**
+     * Fingerprint do arquivo: se o mesmo sha256 já foi importado antes, avisa o
+     * usuário com as referências existentes. Não bloqueia — reimportar de
+     * propósito continua possível.
+     */
+    private function detectDuplicateImport(): void
+    {
+        $this->importDuplicateMatches = [];
+
+        if ($this->importFilePath === null) {
+            return;
+        }
+
+        $matches = app(FindPreviousImportsOfFileAction::class)
+            ->execute($this->importFilePath)
+            ->map(fn ($document) => [
+                'reference' => (string) ($document->documentable->reference ?? ''),
+                'type' => (string) $document->type,
+            ])
+            ->filter(fn (array $match) => $match['reference'] !== '')
+            ->values()
+            ->all();
+
+        if ($matches === []) {
+            return;
+        }
+
+        $this->importDuplicateMatches = $matches;
+        $this->messages[] = [
+            'role' => 'assistant',
+            'text' => __('assistant.duplicate_file_warning', [
+                'references' => collect($matches)->pluck('reference')->implode(', '),
+            ]),
+        ];
+    }
+
     public function cancelImport(): void
     {
         $this->clearImportFile();
@@ -764,5 +810,6 @@ trait HandlesDocumentImport
         }
         $this->importFilePath = null;
         $this->importImagePool = [];
+        $this->importDuplicateMatches = [];
     }
 }

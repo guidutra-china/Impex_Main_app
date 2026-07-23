@@ -53,6 +53,8 @@ return [
     // 聊天 / 流程消息
     'extracted' => '我已从文件中提取了报价。请核对下方摘要并确认导入。',
     'process_failed' => '无法处理该文件：:error',
+    'duplicate_file_warning' => '⚠️ 该文件之前已导入过（:references）。如确需再次导入，请再确认。',
+    'duplicate_file_banner' => '该文件之前已导入过：:references。确认后将创建重复记录。',
     'connection_failed' => '无法连接到 AI 服务。请检查网络/VPN 后重试。',
     'process_error' => '处理文件时出错，请重试。',
     'imported_title' => '报价已导入：:reference',

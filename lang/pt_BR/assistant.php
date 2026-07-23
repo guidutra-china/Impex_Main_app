@@ -53,6 +53,8 @@ return [
     // Mensagens de chat / fluxo
     'extracted' => 'Extraí a cotação do arquivo. Revise o resumo abaixo e confirme para importar.',
     'process_failed' => 'Não consegui processar o arquivo: :error',
+    'duplicate_file_warning' => '⚠️ Este arquivo já foi importado antes (:references). Confirme apenas se quiser importar de novo.',
+    'duplicate_file_banner' => 'Este arquivo já foi importado antes: :references. Confirmar criará um registro duplicado.',
     'connection_failed' => 'Não foi possível conectar ao serviço de IA. Verifique a conexão/VPN e tente novamente.',
     'process_error' => 'Erro ao processar o arquivo. Tente novamente.',
     'imported_title' => 'Cotação importada: :reference',

@@ -53,6 +53,8 @@ return [
     // Chat / flow messages
     'extracted' => 'I extracted the quotation from the file. Review the summary below and confirm to import.',
     'process_failed' => 'I could not process the file: :error',
+    'duplicate_file_warning' => '⚠️ This file was already imported before (:references). Confirm only if you want to import it again.',
+    'duplicate_file_banner' => 'This file was already imported before: :references. Confirming will create a duplicate record.',
     'connection_failed' => 'Could not connect to the AI service. Check your connection/VPN and try again.',
     'process_error' => 'Error processing the file. Please try again.',
     'imported_title' => 'Quotation imported: :reference',

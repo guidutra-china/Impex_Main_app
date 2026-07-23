@@ -15,6 +15,12 @@
     <p class="font-semibold">{{ __('assistant.preview_title') }}</p>
     <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ __('assistant.review_hint') }}</p>
 
+    @if (! empty($importDuplicateMatches))
+        <div class="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+            {{ __('assistant.duplicate_file_banner', ['references' => collect($importDuplicateMatches)->pluck('reference')->implode(', ')]) }}
+        </div>
+    @endif
+
     @if ($importLockedInquiryId !== null)
         <p class="mt-1 text-xs font-medium text-primary-700 dark:text-primary-300">
             {{ __('assistant.sq_will_link_inquiry', ['inquiry' => $this->lockedInquiryLabel()]) }}
