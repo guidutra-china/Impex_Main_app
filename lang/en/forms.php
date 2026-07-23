@@ -551,6 +551,7 @@ return [
         'title' => 'Title',
         'to' => 'To',
         'products_total' => 'Products Total',
+        'freight' => 'Freight',
         'shipped' => 'Shipped',
         'total' => 'Total',
         'tools' => 'Tools',

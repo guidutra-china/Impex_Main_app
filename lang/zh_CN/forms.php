@@ -519,6 +519,7 @@ return [
         'title' => '标题',
         'to' => '至',
         'products_total' => '产品总计',
+        'freight' => '运费',
         'shipped' => '已发货',
         'tools' => '工具',
         'total' => '总计',

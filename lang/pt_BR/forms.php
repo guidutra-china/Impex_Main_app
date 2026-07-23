@@ -550,6 +550,7 @@ return [
         'title' => 'Título',
         'to' => 'Para',
         'products_total' => 'Total Produtos',
+        'freight' => 'Frete',
         'shipped' => 'Enviado',
         'tools' => 'Ferramentas',
         'total' => 'Total',

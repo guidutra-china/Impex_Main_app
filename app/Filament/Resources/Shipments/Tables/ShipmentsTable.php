@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources\Shipments\Tables;
 
+use App\Domain\Financial\Enums\AdditionalCostType;
+use App\Domain\Financial\Enums\BillableTo;
+use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Enums\TransportMode;
 use App\Filament\Actions\StatusTransitionActions;
@@ -22,6 +25,7 @@ class ShipmentsTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn ($query) => $query->with(['items.proformaInvoiceItem', 'additionalCosts']))
             ->columns([
                 TextColumn::make('reference')
                     ->searchable()
@@ -66,6 +70,21 @@ class ShipmentsTable
                     ->date('d/m/Y')
                     ->sortable()
                     ->placeholder('—'),
+                TextColumn::make('total_value')
+                    ->label(__('forms.labels.products_total'))
+                    ->getStateUsing(fn ($record) => $record->total_value)
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '').' '.Money::format($state, 2))
+                    ->alignEnd()
+                    ->toggleable(),
+                TextColumn::make('freight_total')
+                    ->label(__('forms.labels.freight'))
+                    ->getStateUsing(fn ($record) => $record->additionalCosts
+                        ->where('billable_to', BillableTo::CLIENT)
+                        ->where('cost_type', AdditionalCostType::FREIGHT)
+                        ->sum('amount_in_document_currency'))
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '').' '.Money::format($state, 2))
+                    ->alignEnd()
+                    ->toggleable(),
                 TextColumn::make('items_count')
                     ->label(__('forms.labels.items'))
                     ->counts('items')
