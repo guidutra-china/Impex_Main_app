@@ -102,6 +102,30 @@ class ProductCloneTest extends TestCase
         $this->assertClonedPivotHasNoExternalIdentity($clone, $client, $original);
     }
 
+    public function test_edit_page_clone_with_a_reference_code_does_not_violate_unique_index(): void
+    {
+        $original = Product::factory()->create([
+            'name' => 'LED Panel 600x600',
+            'reference_code' => 'REF-UNIQUE-002',
+            'status' => ProductStatus::ACTIVE,
+        ]);
+
+        Livewire::test(EditProduct::class, ['record' => $original->getRouteKey()])
+            ->callAction('replicate')
+            ->assertHasNoActionErrors();
+
+        $clone = Product::query()
+            ->where('id', '!=', $original->id)
+            ->where('name', 'LED Panel 600x600 (Copy)')
+            ->firstOrFail();
+
+        $this->assertNull($clone->reference_code);
+        $this->assertNotSame($original->sku, $clone->sku);
+        $this->assertNotNull($clone->sku);
+        $this->assertSame(ProductStatus::DRAFT, $clone->status);
+        $this->assertSame('REF-UNIQUE-002', $original->fresh()->reference_code);
+    }
+
     /**
      * @return array{0: Product, 1: Company}
      */

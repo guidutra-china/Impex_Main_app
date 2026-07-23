@@ -42,6 +42,9 @@ class EditProduct extends EditRecord
                 ->color('gray')
                 ->excludeAttributes([
                     'sku',
+                    // reference_code has a unique index; copying it would violate
+                    // products_reference_code_unique on the cloned record's insert.
+                    'reference_code',
                     'avatar',
                     // Virtual withCount attributes injected by Filament's ->counts() on TextColumn.
                     // Eloquent's replicate() copies $attributes including these dynamic keys,
@@ -54,11 +57,13 @@ class EditProduct extends EditRecord
                     $data['name'] = $data['name'].' (Copy)';
                     $data['status'] = ProductStatus::DRAFT->value;
                     $data['sku'] = null;
+                    $data['reference_code'] = null;
 
                     return $data;
                 })
                 ->beforeReplicaSaved(function (Model $replica): void {
                     $replica->sku = null;
+                    $replica->reference_code = null;
                     $replica->status = ProductStatus::DRAFT;
                 })
                 ->after(function (Model $replica): void {
