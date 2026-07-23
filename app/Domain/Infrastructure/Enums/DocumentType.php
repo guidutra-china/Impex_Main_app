@@ -14,18 +14,22 @@ enum DocumentType: string
     case PAYMENT = 'PAY';
     case PRODUCTION_SCHEDULE = 'PS';
     case SHIPMENT_PLAN = 'SP';
+    case DEBIT_NOTE = 'DN';
+    case CREDIT_NOTE = 'CN';
 
     public function padLength(): int
     {
         return match ($this) {
             self::PAYMENT => 6,
+            // DN/CN nasceram com 4 dígitos (DN-2026-0001) — manter o formato.
+            self::DEBIT_NOTE, self::CREDIT_NOTE => 4,
             default => 5,
         };
     }
 
     public function label(): string
     {
-        return __('enums.document_type.' . $this->value);
+        return __('enums.document_type.'.$this->value);
     }
 
     public function englishLabel(): string
@@ -41,6 +45,8 @@ enum DocumentType: string
             self::PAYMENT => 'Payment',
             self::PRODUCTION_SCHEDULE => 'Production Schedule',
             self::SHIPMENT_PLAN => 'Shipment Plan',
+            self::DEBIT_NOTE => 'Debit Note',
+            self::CREDIT_NOTE => 'Credit Note',
         };
     }
 }

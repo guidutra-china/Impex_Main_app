@@ -104,6 +104,8 @@ return [
         'PAY' => 'Pagamento',
         'PS' => 'Cronograma de Produção',
         'SP' => 'Plano de Embarque',
+        'DN' => 'Nota de Débito',
+        'CN' => 'Nota de Crédito',
     ],
     'inquiry_source' => [
         'email' => 'Email',

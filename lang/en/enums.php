@@ -104,6 +104,8 @@ return [
         'PAY' => 'Payment',
         'PS' => 'Production Schedule',
         'SP' => 'Shipment Plan',
+        'DN' => 'Debit Note',
+        'CN' => 'Credit Note',
     ],
     'inquiry_source' => [
         'email' => 'Email',

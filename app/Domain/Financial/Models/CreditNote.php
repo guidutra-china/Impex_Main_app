@@ -6,6 +6,8 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\CreditNoteStatus;
 use App\Domain\Financial\Enums\PartyType;
 use App\Domain\Financial\Enums\PaymentStatus;
+use App\Domain\Infrastructure\Actions\GenerateReferenceAction;
+use App\Domain\Infrastructure\Enums\DocumentType;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
@@ -71,22 +73,14 @@ class CreditNote extends Model
     }
 
     /**
-     * Sequencial por ano baseado em max(sufixo)+1 — count()+1 (padrão da
-     * DebitNote) gera duplicatas após force-delete ou em concorrência.
-     * Chamar dentro de transação; o unique index é a barreira final.
+     * Contador em reference_sequences com lockForUpdate — o antigo scan de
+     * max(sufixo)+1 entregava o mesmo número em concorrência e reemitia
+     * números após force-delete. Sequências existentes são semeadas pela
+     * migração 2026_07_23_120000.
      */
     public static function generateReference(): string
     {
-        $year = now()->year;
-        $prefix = sprintf('CN-%d-', $year);
-
-        $max = static::withTrashed()
-            ->where('reference', 'like', $prefix.'%')
-            ->pluck('reference')
-            ->map(fn (string $ref) => (int) substr($ref, strlen($prefix)))
-            ->max() ?? 0;
-
-        return sprintf('%s%04d', $prefix, $max + 1);
+        return app(GenerateReferenceAction::class)->execute(DocumentType::CREDIT_NOTE);
     }
 
     // --- Relationships ---
