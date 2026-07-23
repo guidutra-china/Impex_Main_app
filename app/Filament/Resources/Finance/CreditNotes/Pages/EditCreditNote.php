@@ -2,12 +2,15 @@
 
 namespace App\Filament\Resources\Finance\CreditNotes\Pages;
 
+use App\Domain\Financial\Actions\SyncCreditNoteScheduleAction;
 use App\Domain\Financial\Enums\CreditNoteStatus;
 use App\Domain\Financial\Models\CreditNoteLineItem;
+use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
 use App\Filament\Resources\Finance\CreditNotes\CreditNoteResource;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Validation\ValidationException;
 
 class EditCreditNote extends EditRecord
 {
@@ -18,6 +21,7 @@ class EditCreditNote extends EditRecord
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $data['line_items'] = $this->record->lineItems->map(fn ($item) => [
+            'id' => $item->id,
             'description' => $item->description,
             'amount' => Money::toMajor($item->amount),
             'currency_code' => $item->currency_code,
@@ -31,29 +35,80 @@ class EditCreditNote extends EditRecord
         $this->pendingLineItems = $data['line_items'] ?? [];
         unset($data['line_items']);
 
+        $this->ensureRemovedLinesAreNotAllocated();
+
         return $data;
+    }
+
+    /**
+     * A removed line whose credit schedule item was already consumed by a
+     * payment (application or refund) would orphan those allocations —
+     * block the save instead.
+     */
+    protected function ensureRemovedLinesAreNotAllocated(): void
+    {
+        $keptIds = collect($this->pendingLineItems)
+            ->pluck('id')
+            ->filter()
+            ->map(fn ($id) => (int) $id);
+
+        $removedIds = $this->record->lineItems()
+            ->whereNotIn('id', $keptIds)
+            ->pluck('id');
+
+        if ($removedIds->isEmpty()) {
+            return;
+        }
+
+        $allocated = PaymentScheduleItem::query()
+            ->where('source_type', CreditNoteLineItem::class)
+            ->whereIn('source_id', $removedIds)
+            ->where(fn ($q) => $q->whereHas('allocations')->orWhereHas('creditAllocations'))
+            ->exists();
+
+        if ($allocated) {
+            throw ValidationException::withMessages([
+                'data.line_items' => __('forms.validation.line_has_allocations_cannot_remove'),
+            ]);
+        }
     }
 
     protected function afterSave(): void
     {
         $creditNote = $this->record;
 
-        $creditNote->lineItems()->delete();
-
         $total = 0;
+        $keptIds = [];
+
         foreach ($this->pendingLineItems as $item) {
             $amount = Money::toMinor((float) ($item['amount'] ?? 0));
             $total += $amount;
 
-            CreditNoteLineItem::create([
-                'credit_note_id' => $creditNote->id,
+            $attributes = [
                 'description' => $item['description'] ?? '',
                 'amount' => $amount,
                 'currency_code' => $item['currency_code'] ?? $creditNote->currency_code,
-            ]);
+            ];
+
+            $existing = ! empty($item['id'])
+                ? $creditNote->lineItems()->find($item['id'])
+                : null;
+
+            if ($existing) {
+                $existing->update($attributes);
+                $keptIds[] = $existing->id;
+            } else {
+                $keptIds[] = CreditNoteLineItem::create(
+                    ['credit_note_id' => $creditNote->id] + $attributes,
+                )->id;
+            }
         }
 
+        $creditNote->lineItems()->whereNotIn('id', $keptIds)->delete();
+
         $creditNote->update(['total_amount' => $total]);
+
+        app(SyncCreditNoteScheduleAction::class)->execute($creditNote->refresh());
     }
 
     protected function getHeaderActions(): array

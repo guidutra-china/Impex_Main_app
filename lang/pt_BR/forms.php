@@ -1135,4 +1135,7 @@ return [
     'filters' => [
         'has_multi_currency_items' => 'Tem itens em múltiplas moedas',
     ],
+    'validation' => [
+        'line_has_allocations_cannot_remove' => 'Esta linha não pode ser removida: o item de cronograma dela já possui pagamentos alocados. Cancele as alocações primeiro.',
+    ],
 ];

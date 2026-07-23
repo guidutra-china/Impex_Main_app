@@ -78,6 +78,8 @@ class ViewCreditNote extends ViewRecord
             ]) && $this->record->consumed_amount === 0)
             ->action(function () {
                 $this->record->update(['status' => CreditNoteStatus::CANCELLED]);
+                app(\App\Domain\Financial\Actions\SyncCreditNoteScheduleAction::class)
+                    ->execute($this->record->refresh());
                 Notification::make()->title(__('messages.credit_note_cancelled'))->warning()->send();
                 $this->refreshFormData(['status']);
             });

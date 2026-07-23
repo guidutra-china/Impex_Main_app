@@ -40,7 +40,12 @@ class IssueCreditNoteAction
         });
     }
 
-    protected function createScheduleItem(CreditNote $creditNote, CreditNoteLineItem $lineItem): void
+    /**
+     * Upsert the schedule item for one line. Public so
+     * SyncCreditNoteScheduleAction can reuse it when line items
+     * change after issue.
+     */
+    public function createScheduleItem(CreditNote $creditNote, CreditNoteLineItem $lineItem): void
     {
         $existing = PaymentScheduleItem::where('source_type', CreditNoteLineItem::class)
             ->where('source_id', $lineItem->id)
@@ -50,6 +55,7 @@ class IssueCreditNoteAction
             $existing->update([
                 'amount' => $lineItem->amount,
                 'label' => $creditNote->reference.': '.$lineItem->description,
+                'currency_code' => $lineItem->currency_code,
             ]);
 
             return;

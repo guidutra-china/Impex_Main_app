@@ -77,6 +77,8 @@ class ViewDebitNote extends ViewRecord
             ]))
             ->action(function () {
                 $this->record->update(['status' => DebitNoteStatus::CANCELLED]);
+                app(\App\Domain\Financial\Actions\SyncDebitNoteScheduleAction::class)
+                    ->execute($this->record->refresh());
                 Notification::make()->title(__('messages.debit_note_cancelled'))->warning()->send();
                 $this->refreshFormData(['status']);
             });

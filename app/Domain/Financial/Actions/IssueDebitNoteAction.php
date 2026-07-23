@@ -53,7 +53,12 @@ class IssueDebitNoteAction
         });
     }
 
-    protected function createScheduleItem(DebitNote $debitNote, DebitNoteLineItem $lineItem): void
+    /**
+     * Upsert the schedule item for one line. Public so
+     * SyncDebitNoteScheduleAction can reuse it when line items
+     * change after issue.
+     */
+    public function createScheduleItem(DebitNote $debitNote, DebitNoteLineItem $lineItem): void
     {
         $existing = PaymentScheduleItem::where('source_type', DebitNoteLineItem::class)
             ->where('source_id', $lineItem->id)
@@ -63,6 +68,7 @@ class IssueDebitNoteAction
             $existing->update([
                 'amount' => $lineItem->amount,
                 'label' => $debitNote->reference.': '.$lineItem->description,
+                'currency_code' => $lineItem->currency_code,
                 'due_date' => $debitNote->due_date,
             ]);
 

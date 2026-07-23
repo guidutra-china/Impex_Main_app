@@ -1130,4 +1130,7 @@ return [
     'filters' => [
         'has_multi_currency_items' => 'Has multi-currency items',
     ],
+    'validation' => [
+        'line_has_allocations_cannot_remove' => 'This line cannot be removed: its schedule item already has payment allocations. Remove the allocations first.',
+    ],
 ];

@@ -7,6 +7,7 @@ use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\Settings\Models\Currency;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -110,6 +111,7 @@ class CreditNoteForm
                     Repeater::make('line_items')
                         ->label('')
                         ->schema([
+                            Hidden::make('id'),
                             TextInput::make('description')
                                 ->label(__('forms.labels.description'))
                                 ->required()
