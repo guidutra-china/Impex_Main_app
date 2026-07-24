@@ -2,6 +2,7 @@
 
 namespace App\Domain\PurchaseOrders\Actions;
 
+use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
@@ -10,8 +11,40 @@ use Illuminate\Support\Collection;
 
 class GeneratePurchaseOrdersAction
 {
-    public function execute(ProformaInvoice $pi): Collection
+    /**
+     * Items skipped by the "never below allocated" guard during the last execute().
+     *
+     * @var Collection<int, array{po_item: PurchaseOrderItem, shipped: int, requested: int}>
+     */
+    protected Collection $skippedShippedItems;
+
+    public function __construct()
     {
+        $this->skippedShippedItems = collect();
+    }
+
+    /**
+     * Statuses beyond SENT that may still be synced, but only when the user
+     * explicitly asks for it (regra de negócio 2026-07-24: PIs mudam depois
+     * da confirmação da PO, então o Workflow pode atualizar POs confirmadas
+     * mediante confirmação explícita no modal).
+     */
+    public const CONFIRMED_SYNCABLE_STATUSES = [
+        PurchaseOrderStatus::CONFIRMED,
+        PurchaseOrderStatus::IN_PRODUCTION,
+        PurchaseOrderStatus::AWAITING_SHIPMENT,
+    ];
+
+    public function execute(ProformaInvoice $pi, bool $updateConfirmed = false): Collection
+    {
+        $this->skippedShippedItems = collect();
+
+        $syncableStatuses = [PurchaseOrderStatus::DRAFT, PurchaseOrderStatus::SENT];
+
+        if ($updateConfirmed) {
+            $syncableStatuses = array_merge($syncableStatuses, self::CONFIRMED_SYNCABLE_STATUSES);
+        }
+
         $pi->loadMissing(['items.supplierCompany', 'items.product.suppliers']);
 
         // Resolve supplier for items that don't have one assigned
@@ -40,11 +73,11 @@ class GeneratePurchaseOrdersAction
                 ->first();
 
             if ($existing) {
-                // Update existing PO items if PO is still in DRAFT or SENT
-                if (in_array($existing->status, [PurchaseOrderStatus::DRAFT, PurchaseOrderStatus::SENT])) {
+                if (in_array($existing->status, $syncableStatuses)) {
                     $this->syncPoItems($existing, $items);
                     $result->push($existing);
                 }
+
                 continue;
             }
 
@@ -96,40 +129,78 @@ class GeneratePurchaseOrdersAction
             $poItem = $existingPoItems->get($piItem->id);
 
             if ($poItem) {
+                // Nunca reduzir a quantidade abaixo do que embarques (mesmo em
+                // rascunho) já alocaram para esta linha — o item é pulado por
+                // inteiro e reportado, para o usuário resolver o embarque antes.
+                $allocated = $this->allocatedShipmentQuantity($poItem);
+
+                if ($piItem->quantity < $allocated) {
+                    $this->skippedShippedItems->push([
+                        'po_item' => $poItem,
+                        'shipped' => $allocated,
+                        'requested' => $piItem->quantity,
+                    ]);
+
+                    continue;
+                }
+
                 $poItem->update([
-                    'product_id'     => $piItem->product_id,
-                    'description'    => $piItem->description,
+                    'product_id' => $piItem->product_id,
+                    'description' => $piItem->description,
                     'specifications' => $piItem->specifications,
-                    'quantity'       => $piItem->quantity,
-                    'unit'           => $piItem->unit,
-                    'unit_cost'      => $this->resolveUnitCost($piItem, $poCurrency, $piCurrency),
-                    'incoterm'       => $piItem->incoterm,
-                    'notes'          => $piItem->notes,
-                    'sort_order'     => $sortOrder,
+                    'quantity' => $piItem->quantity,
+                    'unit' => $piItem->unit,
+                    'unit_cost' => $this->resolveUnitCost($piItem, $poCurrency, $piCurrency),
+                    'incoterm' => $piItem->incoterm,
+                    'notes' => $piItem->notes,
+                    'sort_order' => $sortOrder,
                 ]);
             } else {
                 PurchaseOrderItem::create([
-                    'purchase_order_id'        => $po->id,
-                    'product_id'               => $piItem->product_id,
+                    'purchase_order_id' => $po->id,
+                    'product_id' => $piItem->product_id,
                     'proforma_invoice_item_id' => $piItem->id,
-                    'description'              => $piItem->description,
-                    'specifications'           => $piItem->specifications,
-                    'quantity'                 => $piItem->quantity,
-                    'unit'                     => $piItem->unit,
-                    'unit_cost'                => $this->resolveUnitCost($piItem, $poCurrency, $piCurrency),
-                    'incoterm'                 => $piItem->incoterm,
-                    'notes'                    => $piItem->notes,
-                    'sort_order'               => $sortOrder,
+                    'description' => $piItem->description,
+                    'specifications' => $piItem->specifications,
+                    'quantity' => $piItem->quantity,
+                    'unit' => $piItem->unit,
+                    'unit_cost' => $this->resolveUnitCost($piItem, $poCurrency, $piCurrency),
+                    'incoterm' => $piItem->incoterm,
+                    'notes' => $piItem->notes,
+                    'sort_order' => $sortOrder,
                 ]);
             }
         }
 
-        // Remove PO items no longer in PI (only if no shipments)
+        // Remove PO items no longer in PI (only if no shipments and no
+        // production schedule entries — both FKs are ON DELETE SET NULL and
+        // would be silently orphaned).
         $piItemIds = $piItems->pluck('id')->toArray();
         $po->items()
             ->whereNotIn('proforma_invoice_item_id', $piItemIds)
             ->whereDoesntHave('shipmentItems')
+            ->whereDoesntHave('productionScheduleEntries')
             ->delete();
+    }
+
+    /**
+     * Quantity already allocated to this PO line by non-cancelled shipments.
+     * Draft shipments count: lowering the PO below a planned allocation breaks
+     * the shipment↔PO link integrity even before anything physically ships.
+     */
+    protected function allocatedShipmentQuantity(PurchaseOrderItem $poItem): int
+    {
+        return (int) $poItem->shipmentItems()
+            ->whereHas('shipment', fn ($q) => $q->where('status', '!=', ShipmentStatus::CANCELLED->value))
+            ->sum('quantity');
+    }
+
+    /**
+     * @return Collection<int, array{po_item: PurchaseOrderItem, shipped: int, requested: int}>
+     */
+    public function getSkippedShippedItems(): Collection
+    {
+        return $this->skippedShippedItems;
     }
 
     /**

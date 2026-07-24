@@ -82,6 +82,11 @@ class PurchaseOrderItem extends Model
         return $this->hasMany(ShipmentItem::class);
     }
 
+    public function productionScheduleEntries(): HasMany
+    {
+        return $this->hasMany(\App\Domain\Planning\Models\ProductionScheduleEntry::class);
+    }
+
     // --- Accessors ---
 
     public function getLineTotalAttribute(): int

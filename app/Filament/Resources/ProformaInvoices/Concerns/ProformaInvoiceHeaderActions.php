@@ -6,7 +6,6 @@ use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\Financial\Actions\OverridePaymentBlocksAction;
 use App\Domain\Financial\Actions\RequestPaymentOverrideAuthorizationAction;
 use App\Domain\Financial\Models\PaymentScheduleItem;
-use App\Models\User;
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Infrastructure\Pdf\PdfGeneratorService;
 use App\Domain\Infrastructure\Pdf\PdfRenderer;
@@ -20,6 +19,7 @@ use App\Domain\ProformaInvoices\Services\ProformaInvoiceItemCurrencyResolver;
 use App\Domain\PurchaseOrders\Actions\GeneratePurchaseOrdersAction;
 use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Actions\SendDocumentByEmailAction;
+use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\Checkbox;
@@ -178,6 +178,7 @@ trait ProformaInvoiceHeaderActions
                 $allowed = $this->record->getAllowedNextStatuses();
                 $options = collect($allowed)->mapWithKeys(function ($status) {
                     $enum = ProformaInvoiceStatus::from($status);
+
                     return [$status => $enum->getLabel()];
                 })->toArray();
 
@@ -219,7 +220,7 @@ trait ProformaInvoiceHeaderActions
                     }
 
                     Notification::make()
-                        ->title(__('messages.status_changed_to') . ' ' . $newStatus->getLabel())
+                        ->title(__('messages.status_changed_to').' '.$newStatus->getLabel())
                         ->success()
                         ->send();
 
@@ -250,6 +251,7 @@ trait ProformaInvoiceHeaderActions
 
                 if (! empty($blockers)) {
                     $list = collect($blockers)->map(fn ($b) => "• {$b}")->implode("\n");
+
                     return "**Cannot finalize.** The following conditions must be met first:\n\n{$list}";
                 }
 
@@ -367,6 +369,7 @@ trait ProformaInvoiceHeaderActions
     protected function getCachedPaymentOverrideAuthorizers(): \Illuminate\Database\Eloquent\Collection
     {
         static $cache = null;
+
         return $cache ??= User::permission('override-payment-block')->get();
     }
 
@@ -397,19 +400,20 @@ trait ProformaInvoiceHeaderActions
                 if (count($blockers) > 0) {
                     $labels = collect($blockers)->map(function ($item) {
                         $amount = number_format($item->amount / 10000, 2);
+
                         return "• {$item->label} — {$item->currency_code} {$amount}";
                     })->implode("\n");
 
                     if (auth()->user()?->can('override-payment-block')) {
                         return "**The following upfront payments are pending:**\n\n{$labels}\n\n"
-                            . "Tick the box below to authorize PO generation anyway. The obligation will remain pending in the schedule.";
+                            .'Tick the box below to authorize PO generation anyway. The obligation will remain pending in the schedule.';
                     }
 
                     return "**Cannot generate POs.** The following upfront payments must be resolved first:\n\n{$labels}\n\n"
-                        . "Use 'Request authorization' to ask a manager to bypass this check.";
+                        ."Use 'Request authorization' to ask a manager to bypass this check.";
                 }
 
-                $action = new GeneratePurchaseOrdersAction();
+                $action = new GeneratePurchaseOrdersAction;
                 $existing = $action->getExistingPOs($record);
                 $skipped = $action->getSkippedSuppliers($record);
 
@@ -427,16 +431,28 @@ trait ProformaInvoiceHeaderActions
 
                 if ($existing->isNotEmpty()) {
                     $updatable = $existing->filter(fn ($po) => in_array($po->status->value, ['draft', 'sent']));
-                    $locked = $existing->filter(fn ($po) => ! in_array($po->status->value, ['draft', 'sent']));
+                    $confirmable = $existing->filter(fn ($po) => in_array($po->status, GeneratePurchaseOrdersAction::CONFIRMED_SYNCABLE_STATUSES));
+                    $locked = $existing
+                        ->reject(fn ($po) => in_array($po->status->value, ['draft', 'sent']))
+                        ->reject(fn ($po) => in_array($po->status, GeneratePurchaseOrdersAction::CONFIRMED_SYNCABLE_STATUSES));
 
                     if ($updatable->isNotEmpty()) {
-                        $names = $updatable->map(fn ($po) => $po->reference . ' (' . ($po->supplierCompany?->name ?? 'N/A') . ')')->implode(', ');
+                        $names = $updatable->map(fn ($po) => $po->reference.' ('.($po->supplierCompany?->name ?? 'N/A').')')->implode(', ');
                         $lines[] = "**{$updatable->count()} PO(s) will be updated:** {$names}";
                     }
 
+                    if ($confirmable->isNotEmpty()) {
+                        $names = $confirmable->map(fn ($po) => $po->reference.' ('.$po->status->getLabel().')')->implode(', ');
+                        $lines[] = __('messages.confirmed_pos_need_checkbox', [
+                            'count' => $confirmable->count(),
+                            'label' => __('messages.update_confirmed_pos'),
+                            'names' => $names,
+                        ]);
+                    }
+
                     if ($locked->isNotEmpty()) {
-                        $names = $locked->map(fn ($po) => $po->reference . ' (' . $po->status->getLabel() . ')')->implode(', ');
-                        $lines[] = "**Cannot update:** {$names} (already confirmed/shipped).";
+                        $names = $locked->map(fn ($po) => $po->reference.' ('.$po->status->getLabel().')')->implode(', ');
+                        $lines[] = "**Cannot update:** {$names} (already shipped/completed).";
                     }
                 }
 
@@ -450,26 +466,39 @@ trait ProformaInvoiceHeaderActions
                 $record = $this->getRecord();
                 $blockers = $this->getCachedPaymentBlockersFor($record);
 
+                $fields = [];
+
+                $hasConfirmablePos = (new GeneratePurchaseOrdersAction)
+                    ->getExistingPOs($record)
+                    ->contains(fn ($po) => in_array($po->status, GeneratePurchaseOrdersAction::CONFIRMED_SYNCABLE_STATUSES));
+
+                if ($hasConfirmablePos) {
+                    $fields[] = Checkbox::make('update_confirmed_pos')
+                        ->label(__('messages.update_confirmed_pos'))
+                        ->default(false);
+                }
+
                 if (count($blockers) === 0) {
-                    return [];
+                    return $fields;
                 }
 
                 if (! auth()->user()?->can('override-payment-block')) {
-                    return [];
+                    return $fields;
                 }
 
-                return [
-                    Checkbox::make('override_payment_block')
-                        ->label(__('messages.override_payment_block'))
-                        ->live()
-                        ->default(false),
-                    Textarea::make('override_reason')
-                        ->label(__('messages.override_reason'))
-                        ->rows(3)
-                        ->visible(fn (Get $get) => (bool) $get('override_payment_block'))
-                        ->requiredIf('override_payment_block', true)
-                        ->minLength(10),
-                ];
+                $fields[] = Checkbox::make('override_payment_block')
+                    ->label(__('messages.override_payment_block'))
+                    ->live()
+                    ->default(false);
+
+                $fields[] = Textarea::make('override_reason')
+                    ->label(__('messages.override_reason'))
+                    ->rows(3)
+                    ->visible(fn (Get $get) => (bool) $get('override_payment_block'))
+                    ->requiredIf('override_payment_block', true)
+                    ->minLength(10);
+
+                return $fields;
             })
             ->modalSubmitActionLabel('Generate')
             ->modalSubmitAction(function ($action) {
@@ -486,9 +515,9 @@ trait ProformaInvoiceHeaderActions
                 return $action;
             })
             ->visible(fn () => in_array($this->getRecord()->status, [
-                    ProformaInvoiceStatus::CONFIRMED,
-                    ProformaInvoiceStatus::REOPENED,
-                ])
+                ProformaInvoiceStatus::CONFIRMED,
+                ProformaInvoiceStatus::REOPENED,
+            ])
                 && $this->getRecord()->items()->exists()
                 && auth()->user()?->can('generate-purchase-orders'))
             ->action(function (array $data) {
@@ -522,8 +551,10 @@ trait ProformaInvoiceHeaderActions
                     );
                 }
 
-                $action = new GeneratePurchaseOrdersAction();
-                $result = $action->execute($record);
+                $updateConfirmed = (bool) ($data['update_confirmed_pos'] ?? false);
+
+                $action = new GeneratePurchaseOrdersAction;
+                $result = $action->execute($record, updateConfirmed: $updateConfirmed);
 
                 if ($result->isEmpty()) {
                     Notification::make()
@@ -535,15 +566,28 @@ trait ProformaInvoiceHeaderActions
                     return;
                 }
 
-                $refs = $result->pluck('reference')->implode(', ');
+                $bodyLines = [$result->pluck('reference')->implode(', ')];
+
+                $skipped = $action->getSkippedShippedItems();
+                if ($skipped->isNotEmpty()) {
+                    $items = $skipped
+                        ->map(fn (array $entry) => $entry['po_item']->description
+                            ." ({$entry['requested']} < {$entry['shipped']})")
+                        ->implode('; ');
+                    $bodyLines[] = __('messages.pos_skipped_shipped_items', ['items' => $items]);
+                }
+
+                if ($updateConfirmed) {
+                    $bodyLines[] = __('messages.check_payment_schedules');
+                }
 
                 $title = ($data['override_payment_block'] ?? false)
                     ? __('messages.generated_with_payment_override')
-                    : ($result->count() . ' ' . __('messages.pos_generated'));
+                    : ($result->count().' '.__('messages.pos_generated'));
 
                 Notification::make()
                     ->title($title)
-                    ->body($refs)
+                    ->body(implode("\n\n", $bodyLines))
                     ->success()
                     ->send();
             });
@@ -591,6 +635,7 @@ trait ProformaInvoiceHeaderActions
                 if ($authorizers->isEmpty()) {
                     return $action->hidden();
                 }
+
                 return $action;
             })
             ->visible(function () {
@@ -605,6 +650,7 @@ trait ProformaInvoiceHeaderActions
                     return false;
                 }
                 $blockers = $this->getCachedPaymentBlockersFor($record);
+
                 return count($blockers) > 0;
             })
             ->action(function (array $data) {
@@ -672,8 +718,8 @@ trait ProformaInvoiceHeaderActions
                         priceFormula: $formula,
                     );
                     $service = new PdfGeneratorService(
-                        new PdfRenderer(),
-                        new DocumentService(),
+                        new PdfRenderer,
+                        new DocumentService,
                     );
 
                     $document = $service->generate($template);
@@ -691,7 +737,7 @@ trait ProformaInvoiceHeaderActions
                         $document->name,
                         [
                             'Content-Type' => 'application/pdf',
-                            'Content-Disposition' => 'inline; filename="' . $document->name . '"',
+                            'Content-Disposition' => 'inline; filename="'.$document->name.'"',
                         ],
                     );
                 } catch (\Throwable $e) {
