@@ -71,4 +71,60 @@ class BackfillPiItemDescriptionsCommandTest extends TestCase
         $this->assertSame('New Name', $stale->fresh()->description);
         $this->assertSame('Other Old Name', $outOfScope->fresh()->description);
     }
+
+    public function test_pi_option_accepts_reference_and_bypasses_status_filter(): void
+    {
+        $issued = $this->makePiItem(
+            Product::factory()->create(['name' => 'Issued New Name']),
+            'Issued Old Name',
+            'confirmed',
+        );
+
+        $otherIssued = $this->makePiItem(
+            Product::factory()->create(['name' => 'Untouched New Name']),
+            'Untouched Old Name',
+            'confirmed',
+        );
+
+        $reference = $issued->proformaInvoice->reference;
+
+        $this->artisan('proforma-invoices:backfill-item-descriptions', ['--pi' => $reference])
+            ->assertSuccessful();
+
+        $this->assertSame('Issued New Name', $issued->fresh()->description);
+        $this->assertSame('Untouched Old Name', $otherIssued->fresh()->description);
+    }
+
+    public function test_all_statuses_option_includes_issued_pis(): void
+    {
+        $draft = $this->makePiItem(
+            Product::factory()->create(['name' => 'Draft New Name']),
+            'Draft Old Name',
+        );
+
+        $issued = $this->makePiItem(
+            Product::factory()->create(['name' => 'Sent New Name']),
+            'Sent Old Name',
+            'sent',
+        );
+
+        $this->artisan('proforma-invoices:backfill-item-descriptions', ['--all-statuses' => true])
+            ->assertSuccessful();
+
+        $this->assertSame('Draft New Name', $draft->fresh()->description);
+        $this->assertSame('Sent New Name', $issued->fresh()->description);
+    }
+
+    public function test_unknown_pi_fails_without_touching_anything(): void
+    {
+        $stale = $this->makePiItem(
+            Product::factory()->create(['name' => 'New Name']),
+            'Old Name',
+        );
+
+        $this->artisan('proforma-invoices:backfill-item-descriptions', ['--pi' => 'PI-9999-99999'])
+            ->assertFailed();
+
+        $this->assertSame('Old Name', $stale->fresh()->description);
+    }
 }
