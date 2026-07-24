@@ -13,6 +13,7 @@ class ViewShipment extends ViewRecord
     {
         return [
             ShipmentResource\Widgets\SupplierShipmentStats::class,
+            ShipmentResource\Widgets\SupplierShipmentPaymentProgress::class,
         ];
     }
 }

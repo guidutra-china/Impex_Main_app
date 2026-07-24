@@ -193,6 +193,7 @@ return [
     // Portal Upcoming Arrivals Widget
     'arrivals' => [
         'upcoming_arrivals' => 'Chegadas Previstas',
+        'expected_payments' => 'Pagamentos previstos',
         'this_week' => 'Esta Semana',
         'week_2' => 'Semana 2',
         'week_3' => 'Semana 3',

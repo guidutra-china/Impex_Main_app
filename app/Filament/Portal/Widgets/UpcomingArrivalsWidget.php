@@ -2,11 +2,14 @@
 
 namespace App\Filament\Portal\Widgets;
 
+use App\Domain\Financial\Services\ShipmentPaymentSummaryService;
+use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\Shipment;
 use Carbon\Carbon;
 use Filament\Facades\Filament;
 use Filament\Widgets\Widget;
+use Illuminate\Support\Collection;
 
 class UpcomingArrivalsWidget extends Widget
 {
@@ -50,9 +53,38 @@ class UpcomingArrivalsWidget extends Widget
             ];
         }
 
+        $remainders = app(ShipmentPaymentSummaryService::class)->openClientRemainderByShipment(
+            collect($weeks)->flatMap(fn (array $week) => $week['shipments']->pluck('id')),
+        );
+
+        $shipmentPayments = $remainders->map(fn (Collection $byCurrency) => $this->formatByCurrency($byCurrency));
+
+        foreach ($weeks as &$week) {
+            $weekTotals = collect();
+
+            foreach ($week['shipments'] as $shipment) {
+                foreach ($remainders->get($shipment->id, collect()) as $currency => $remaining) {
+                    $weekTotals[$currency] = ($weekTotals[$currency] ?? 0) + $remaining;
+                }
+            }
+
+            $week['payments_label'] = $weekTotals->isNotEmpty() ? $this->formatByCurrency($weekTotals) : null;
+        }
+
         return [
             'weeks' => $weeks,
+            'shipment_payments' => $shipmentPayments,
         ];
+    }
+
+    /**
+     * @param  Collection<string, int>  $byCurrency
+     */
+    private function formatByCurrency(Collection $byCurrency): string
+    {
+        return $byCurrency
+            ->map(fn (int $amount, string $currency) => $currency.' '.Money::format($amount))
+            ->implode(' · ');
     }
 
     protected function getWeekLabel(int $index, Carbon $start, Carbon $end): string

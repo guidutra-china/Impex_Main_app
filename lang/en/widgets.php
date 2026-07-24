@@ -193,6 +193,7 @@ return [
     // Portal Upcoming Arrivals Widget
     'arrivals' => [
         'upcoming_arrivals' => 'Upcoming Arrivals',
+        'expected_payments' => 'Expected payments',
         'this_week' => 'This Week',
         'week_2' => 'Week 2',
         'week_3' => 'Week 3',

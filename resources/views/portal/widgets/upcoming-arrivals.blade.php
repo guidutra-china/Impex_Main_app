@@ -28,6 +28,11 @@
                                 {{ $hasShipments ? $week['count'] : '—' }}
                             </p>
                             <p class="text-[0.65rem] text-gray-400 dark:text-gray-500">{{ $week['range'] }}</p>
+                            @if (! empty($week['payments_label']))
+                                <p class="mt-0.5 text-[0.65rem] font-semibold text-warning-600 dark:text-warning-400">
+                                    {{ __('widgets.arrivals.expected_payments') }}: {{ $week['payments_label'] }}
+                                </p>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -53,6 +58,7 @@
                             <th class="px-4 py-3 text-center text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.arrivals.eta') }}</th>
                             <th class="px-4 py-3 text-center text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.arrivals.days_until') }}</th>
                             <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.arrivals.destination') }}</th>
+                            <th class="px-4 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.arrivals.expected_payments') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -125,6 +131,15 @@
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-2.5 text-gray-600 dark:text-gray-400">
                                     {{ $shipment->destination_port ?: '—' }}
+                                </td>
+                                <td class="whitespace-nowrap px-4 py-2.5 text-right">
+                                    @if ($shipment_payments->has($shipment->id))
+                                        <span class="font-semibold text-warning-600 dark:text-warning-400">
+                                            {{ $shipment_payments->get($shipment->id) }}
+                                        </span>
+                                    @else
+                                        <span class="text-gray-300 dark:text-gray-600">&mdash;</span>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach

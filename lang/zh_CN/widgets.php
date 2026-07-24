@@ -193,6 +193,7 @@ return [
     // Portal Upcoming Arrivals Widget
     'arrivals' => [
         'upcoming_arrivals' => '即将到达',
+        'expected_payments' => '预计付款',
         'this_week' => '本周',
         'week_2' => '第2周',
         'week_3' => '第3周',
