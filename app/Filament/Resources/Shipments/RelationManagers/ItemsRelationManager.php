@@ -20,9 +20,11 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\Summarizers\Sum;
+use Filament\Tables\Columns\Summarizers\Summarizer;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\DB;
 
 class ItemsRelationManager extends RelationManager
 {
@@ -239,6 +241,16 @@ class ItemsRelationManager extends RelationManager
                     ->formatStateUsing(fn ($state) => Money::format($state))
                     ->alignEnd()
                     ->weight('bold')
+                    // line_total é accessor (qty × unit_price do item da PI), não
+                    // coluna — a soma precisa do join com proforma_invoice_items.
+                    ->summarize(
+                        Summarizer::make()
+                            ->label(__('forms.labels.total'))
+                            ->using(fn ($query): int => (int) $query
+                                ->join('proforma_invoice_items as pii_total', 'pii_total.id', '=', 'shipment_items.proforma_invoice_item_id')
+                                ->sum(DB::raw('pii_total.unit_price * shipment_items.quantity')))
+                            ->formatStateUsing(fn ($state) => Money::format((int) $state))
+                    )
                     ->toggleable(),
                 TextColumn::make('unit_weight')
                     ->label(__('forms.labels.unit_wt_kg'))
