@@ -132,6 +132,12 @@ class SyncProformaInvoiceFromQuotationAction
                     $updates['supplier_company_id'] = $item->selected_supplier_id;
                 }
 
+                // Regenerar reflete renomeações do produto no documento;
+                // itens sem produto vinculado mantêm a descrição atual.
+                if ($item->product !== null) {
+                    $updates['description'] = $item->product->name;
+                }
+
                 $piItem->update($updates);
 
                 continue;

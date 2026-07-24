@@ -110,6 +110,20 @@ class QuotationProformaInvoiceRegenerationTest extends TestCase
         $this->assertSame(12345, $manualItem->fresh()->unit_price, 'Manual PI item must not be touched.');
     }
 
+    public function test_regeneration_refreshes_item_description_after_product_rename(): void
+    {
+        $quotation = $this->makeQuotationWithItems(1);
+
+        ['pi' => $pi] = $this->action()->execute($quotation);
+
+        $item = $quotation->items->first();
+        $item->product->update(['name' => 'Renamed Product XYZ']);
+
+        ['pi' => $piAgain] = $this->action()->execute($quotation->fresh('items'));
+
+        $this->assertSame('Renamed Product XYZ', $piAgain->items()->first()->description);
+    }
+
     public function test_deleting_a_quotation_item_removes_the_linked_draft_pi_item(): void
     {
         $quotation = $this->makeQuotationWithItems(2);
