@@ -174,6 +174,35 @@ class ResolveSupplierQuotationDraftTest extends TestCase
         $this->assertSame('name', $preview['itens'][0]['match_source']);
     }
 
+    public function test_alias_pointing_to_soft_deleted_product_falls_through(): void
+    {
+        $supplier = Company::factory()->create(['name' => 'Hebei Yangrun Sports Equipment Co., Ltd.']);
+        $product = Product::factory()->create(['name' => 'Hexagonal Dumbbell 5kg', 'reference_code' => null, 'model_number' => null]);
+        $product->companies()->attach($supplier->id, ['role' => 'supplier']);
+
+        ProductImportAlias::create([
+            'company_id' => $supplier->id,
+            'product_id' => $product->id,
+            'alias' => 'Halter hexagonal emborrachado — 5kg',
+            'alias_normalized' => NameNormalizer::normalize('Halter hexagonal emborrachado — 5kg'),
+            'source' => 'import_confirm',
+            'last_confirmed_at' => now(),
+        ]);
+
+        $product->delete();
+
+        $preview = (new ResolveSupplierQuotationDraft)->resolve([
+            'fornecedor' => ['nome' => 'Hebei Yangrun', 'currency_code' => 'USD'],
+            'itens' => [
+                ['description' => 'Halter Hexagonal Emborrachado 5kg', 'quantity' => 10, 'unit_price' => 3.5],
+            ],
+        ]);
+
+        $this->assertSame('novo', $preview['itens'][0]['status']);
+        $this->assertNull($preview['itens'][0]['product_id']);
+        $this->assertNull($preview['itens'][0]['match_source']);
+    }
+
     public function test_derives_unit_cost_from_line_total_and_folds_extras_into_notes(): void
     {
         // Dumbbell priced per kg ($0.94) but the line total ($796.65) is the real amount.

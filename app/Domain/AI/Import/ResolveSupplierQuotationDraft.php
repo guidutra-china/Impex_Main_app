@@ -158,10 +158,14 @@ class ResolveSupplierQuotationDraft
             return [];
         }
 
-        return ProductImportAlias::query()
+        $aliases = ProductImportAlias::query()
             ->where('company_id', $supplier->id)
             ->pluck('product_id', 'alias_normalized')
             ->all();
+
+        unset($aliases['']);
+
+        return $aliases;
     }
 
     /**
@@ -186,16 +190,18 @@ class ResolveSupplierQuotationDraft
             $matchSource = 'part_no';
         }
 
+        $descriptionKey = NameNormalizer::normalize($item['description'] ?? null);
+
         // Documento sem coluna de modelo: casa a descrição com o NOME dos
         // produtos deste fornecedor (exato, normalizado, único).
         if ($product === null) {
-            $product = $supplierProductsByName[NameNormalizer::normalize($item['description'] ?? null)] ?? null;
+            $product = $supplierProductsByName[$descriptionKey] ?? null;
             $matchSource = $product !== null ? 'name' : null;
         }
 
         // Camada 3: alias aprendido em imports confirmados anteriores.
         if ($product === null) {
-            $aliasProductId = $aliasesByKey[NameNormalizer::normalize($item['description'] ?? null)] ?? null;
+            $aliasProductId = $aliasesByKey[$descriptionKey] ?? null;
             $product = $aliasProductId !== null ? Product::find($aliasProductId) : null;
             $matchSource = $product !== null ? 'alias' : null;
         }
