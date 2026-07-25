@@ -136,8 +136,8 @@
                                 <span class="rounded bg-green-200 px-1.5 py-0.5 text-[10px] text-green-900" title="{{ __('assistant.existing_product_hint') }}">
                                     {{ __('assistant.status_existing') }}
                                 </span>
-                                @if (($item['match_source'] ?? null) === 'ai' && ($item['status'] ?? '') !== 'novo')
-                                    <span class="ml-1 rounded px-1.5 py-0.5 text-[10px] bg-blue-200 text-blue-900">{{ __('assistant.status_ai_suggested') }}</span>
+                                @if (($item['match_source'] ?? null) === 'ai')
+                                    <span class="ml-1 rounded bg-blue-200 px-1.5 py-0.5 text-[10px] text-blue-900" title="{{ __('assistant.status_ai_suggested_hint') }}">{{ __('assistant.status_ai_suggested') }}</span>
                                 @endif
                                 @if (filled($item['product_name'] ?? null))
                                     <span class="mt-0.5 block max-w-[10rem] truncate text-[10px] text-gray-500 dark:text-gray-400" title="{{ $item['product_name'] }}">{{ $item['product_name'] }}</span>

@@ -155,6 +155,7 @@ class AssistantImportFlowTest extends TestCase
             ->assertSet('form.itens.0.product_id', $existing->id)
             ->assertSet('form.itens.0.status', 'existente')
             ->assertSet('form.itens.0.product_name', 'Dumbbell hexagonal 5kg')
+            ->assertSet('form.itens.0.match_source', 'manual')
             ->assertDispatched('product-linked')
             ->call('confirmImport');
 
@@ -383,6 +384,7 @@ class AssistantImportFlowTest extends TestCase
             ->call('unlinkItemProduct', 0)
             ->assertSet('form.itens.0.product_id', null)
             ->assertSet('form.itens.0.status', 'novo')
+            ->assertSet('form.itens.0.match_source', null)
             ->set('form.itens.0.description', 'Nome corrigido')
             ->set('form.itens.0.part_no', 'P-1-NEW')
             ->call('confirmImport');

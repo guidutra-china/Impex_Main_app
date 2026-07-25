@@ -75,9 +75,9 @@ class ResolveInquiryDraft
      * nomes descritivos), evitando recriar produtos que já existem. Nomes
      * repetidos dentro do cliente são descartados (match precisa ser único).
      *
-     * Vínculo cliente-produto não usa role: um produto ligado ao cliente
-     * (role 'client') é candidato, independentemente de também ser fornecido
-     * por outra empresa.
+     * Sem filtro de role: qualquer produto vinculado a esta empresa é
+     * candidato, independentemente do papel (role) desse vínculo ou de o
+     * produto também ser fornecido por outra empresa.
      *
      * @return array<string, Product>
      */

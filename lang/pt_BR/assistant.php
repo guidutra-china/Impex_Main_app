@@ -29,6 +29,7 @@ return [
     'status_new' => 'novo',
     'status_existing' => 'existente',
     'status_ai_suggested' => 'sugerido por IA',
+    'status_ai_suggested_hint' => 'Correspondência sugerida pela IA — confira o produto antes de importar',
     'summary_counts' => ':total itens — :existing produtos existentes, :new novos.',
     'items_total' => 'Total dos itens',
     'document_total' => 'Total do documento',
