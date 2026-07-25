@@ -190,10 +190,13 @@ class ResolveSupplierQuotationDraft
             return $itens;
         }
 
+        $catalog = [];
+
         try {
+            $catalog = $this->catalogFor($supplier);
             $suggestions = $this->suggester->suggest(
                 array_map(fn ($i) => ['description' => (string) $i['description']], $unmatched),
-                $this->catalogFor($supplier),
+                $catalog,
             );
         } catch (\Throwable $e) {
             report($e);
@@ -201,16 +204,18 @@ class ResolveSupplierQuotationDraft
             return $itens;
         }
 
-        foreach ($suggestions as $index => $productId) {
-            $product = Product::find($productId);
+        $byId = array_column($catalog, null, 'id');
 
-            if ($product === null || ! isset($itens[$index])) {
+        foreach ($suggestions as $index => $productId) {
+            // Defesa em profundidade: nunca sobrescrever match determinístico,
+            // nunca aceitar produto fora do catálogo do fornecedor.
+            if (! isset($itens[$index]) || $itens[$index]['product_id'] !== null || ! isset($byId[$productId])) {
                 continue;
             }
 
             $itens[$index]['status'] = 'existente';
-            $itens[$index]['product_id'] = $product->id;
-            $itens[$index]['product_name'] = $product->name;
+            $itens[$index]['product_id'] = (int) $productId;
+            $itens[$index]['product_name'] = $byId[$productId]['name'];
             $itens[$index]['match_source'] = 'ai';
         }
 

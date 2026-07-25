@@ -376,4 +376,56 @@ class ResolveSupplierQuotationDraftTest extends TestCase
         $this->assertSame(1, $preview['resumo']['produtos_existentes']);
         $this->assertSame(0, $preview['resumo']['produtos_novos']);
     }
+
+    public function test_ai_never_overwrites_deterministic_match(): void
+    {
+        $supplier = Company::factory()->create(['name' => 'Hebei Yangrun Sports Equipment Co., Ltd.']);
+        $exact = Product::factory()->create(['name' => 'Weight plate 5kg', 'reference_code' => null, 'model_number' => null]);
+        $exact->companies()->attach($supplier->id, ['role' => 'supplier']);
+        $other = Product::factory()->create(['name' => 'Some other product']);
+        $other->companies()->attach($supplier->id, ['role' => 'supplier']);
+
+        $preview = $this->resolverWithSuggester([0 => $other->id])->resolve([
+            'fornecedor' => ['nome' => 'Hebei Yangrun', 'currency_code' => 'USD'],
+            'itens' => [
+                ['description' => 'Weight plate 5kg', 'quantity' => 1, 'unit_price' => 1.0],
+            ],
+        ]);
+
+        $this->assertSame($exact->id, $preview['itens'][0]['product_id']);
+        $this->assertSame('name', $preview['itens'][0]['match_source']);
+    }
+
+    public function test_ai_suggestion_outside_supplier_catalog_is_discarded(): void
+    {
+        $supplier = Company::factory()->create(['name' => 'Hebei Yangrun Sports Equipment Co., Ltd.']);
+        $foreignProduct = Product::factory()->create(['name' => 'Not in this supplier catalog']);
+
+        $preview = $this->resolverWithSuggester([0 => $foreignProduct->id])->resolve([
+            'fornecedor' => ['nome' => 'Hebei Yangrun', 'currency_code' => 'USD'],
+            'itens' => [
+                ['description' => 'Coisa desconhecida', 'quantity' => 1, 'unit_price' => 1.0],
+            ],
+        ]);
+
+        $this->assertSame('novo', $preview['itens'][0]['status']);
+        $this->assertNull($preview['itens'][0]['product_id']);
+        $this->assertNull($preview['itens'][0]['match_source']);
+    }
+
+    public function test_suggester_not_called_when_all_items_matched(): void
+    {
+        $supplier = Company::factory()->create(['name' => 'Hebei Yangrun Sports Equipment Co., Ltd.']);
+        $product = Product::factory()->create(['name' => 'Weight plate 5kg', 'reference_code' => null, 'model_number' => null]);
+        $product->companies()->attach($supplier->id, ['role' => 'supplier']);
+
+        $preview = $this->resolverWithSuggester([], throw: true)->resolve([
+            'fornecedor' => ['nome' => 'Hebei Yangrun', 'currency_code' => 'USD'],
+            'itens' => [
+                ['description' => 'Weight plate 5kg', 'quantity' => 1, 'unit_price' => 1.0],
+            ],
+        ]);
+
+        $this->assertSame('name', $preview['itens'][0]['match_source']);
+    }
 }
