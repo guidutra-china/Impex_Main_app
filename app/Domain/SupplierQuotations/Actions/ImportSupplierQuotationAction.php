@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\SupplierQuotations\Actions;
 
+use App\Domain\AI\Import\UpsertProductImportAliasAction;
 use App\Domain\Catalog\Actions\GenerateProductSkuAction;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\ProductImage;
@@ -29,7 +30,10 @@ use Illuminate\Support\Str;
  */
 class ImportSupplierQuotationAction
 {
-    public function __construct(private readonly GenerateProductSkuAction $skuGenerator = new GenerateProductSkuAction) {}
+    public function __construct(
+        private readonly GenerateProductSkuAction $skuGenerator = new GenerateProductSkuAction,
+        private readonly UpsertProductImportAliasAction $aliasUpserter = new UpsertProductImportAliasAction,
+    ) {}
 
     /**
      * @param  array<string,mixed>  $preview  output of ResolveSupplierQuotationDraft
@@ -85,6 +89,10 @@ class ImportSupplierQuotationAction
                         'notes' => $item['notes'] ?? null,
                         'sort_order' => $index,
                     ]);
+
+                    if ($product !== null) {
+                        $this->aliasUpserter->execute($company->id, $product->id, (string) $item['description'], 'import_confirm', $user->id);
+                    }
                 }
 
                 $this->attachSourceFile($sq, $filePath, $user, $storedPath);

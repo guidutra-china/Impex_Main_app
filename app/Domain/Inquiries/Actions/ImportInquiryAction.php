@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Inquiries\Actions;
 
+use App\Domain\AI\Import\UpsertProductImportAliasAction;
 use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\ProductImage;
@@ -30,6 +31,8 @@ use Illuminate\Support\Facades\Storage;
  */
 class ImportInquiryAction
 {
+    public function __construct(private readonly UpsertProductImportAliasAction $aliasUpserter = new UpsertProductImportAliasAction) {}
+
     /**
      * @param  array<string,mixed>  $preview  output of InquiryTarget::formToConfirmPayload()
      * @param  array<string,string>  $images  item key (part_no ou "idx:N") => caminho absoluto temporário
@@ -69,6 +72,10 @@ class ImportInquiryAction
                         'notes' => $item['notes'] ?? null,
                         'sort_order' => $nextOrder + $index,
                     ]);
+
+                    if ($product !== null) {
+                        $this->aliasUpserter->execute($inquiry->company_id, $product->id, (string) ($item['description'] ?? ''), 'import_confirm', $user->id);
+                    }
                 }
 
                 $this->attachSourceFile($inquiry, $filePath, $user, $storedPath);

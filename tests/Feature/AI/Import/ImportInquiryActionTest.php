@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\AI\Import;
 
+use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Models\Document;
@@ -202,6 +203,30 @@ class ImportInquiryActionTest extends TestCase
             $user,
             $this->tempFile,
         );
+    }
+
+    public function test_confirm_learns_alias_scoped_to_client(): void
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo(['create-inquiries', 'create-companies']);
+        $product = Product::factory()->create(['name' => 'Weight plate 10kg']);
+
+        $preview = $this->previewNova();
+        $preview['itens'] = [[
+            'product_id' => $product->id,
+            'part_no' => null,
+            'description' => 'Anilha emborrachada 10kg',
+            'quantity' => 4,
+            'unit' => 'pcs',
+        ]];
+
+        $inquiry = app(ImportInquiryAction::class)($preview, $user, $this->tempFile);
+
+        $this->assertDatabaseHas('product_import_aliases', [
+            'company_id' => $inquiry->company_id,
+            'product_id' => $product->id,
+            'source' => 'import_confirm',
+        ]);
     }
 
     public function test_new_client_whose_name_matches_existing_company_is_reused(): void

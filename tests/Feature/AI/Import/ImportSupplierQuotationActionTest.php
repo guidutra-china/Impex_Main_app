@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\AI\Import;
 
+use App\Domain\AI\Import\Models\ProductImportAlias;
+use App\Domain\AI\Import\Support\NameNormalizer;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Infrastructure\Models\Document;
@@ -276,6 +278,37 @@ class ImportSupplierQuotationActionTest extends TestCase
 
         $this->assertDatabaseCount('supplier_quotations', 0);
         $this->assertSame([], Storage::disk('local')->allFiles());
+    }
+
+    public function test_confirm_learns_aliases_for_items_with_product(): void
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo(['create-supplier-quotations', 'create-companies', 'create-products']);
+        $existing = Product::factory()->create(['name' => 'Hexagonal Dumbbell 5kg']);
+
+        $preview = $this->previewWithNewSupplierAndProduct();
+        $preview['itens'][] = [
+            'status' => 'existente',
+            'product_id' => $existing->id,
+            'part_no' => null,
+            'description' => 'Halter hexagonal — 5kg',
+            'quantity' => 2,
+            'unit' => 'pcs',
+            'unit_cost_minor' => 35000,
+            'category_id' => null,
+        ];
+
+        (new ImportSupplierQuotationAction)($preview, $user, $this->fakeFile());
+
+        $this->assertDatabaseHas('product_import_aliases', [
+            'product_id' => $existing->id,
+            'alias_normalized' => NameNormalizer::normalize('Halter hexagonal — 5kg'),
+            'source' => 'import_confirm',
+        ]);
+
+        // O item "novo" do preview base criou produto draft — o alias dele
+        // também é gravado (aponta para o produto recém-criado):
+        $this->assertSame(count($preview['itens']), ProductImportAlias::count());
     }
 
     public function test_new_supplier_whose_name_matches_existing_company_is_reused(): void
