@@ -138,6 +138,7 @@ class SupplierQuotationTarget implements ImportTarget
                 'lead_time_days' => $it['lead_time_days'] ?? null,
                 'notes' => $it['notes'] ?? null,
                 'photo_index' => $itemPhoto[$i] ?? null,
+                'match_source' => $it['match_source'] ?? null,
             ];
         }
 

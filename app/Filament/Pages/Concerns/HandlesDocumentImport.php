@@ -692,6 +692,7 @@ trait HandlesDocumentImport
         $this->form['itens'][$itemIndex]['product_id'] = null;
         $this->form['itens'][$itemIndex]['product_name'] = null;
         $this->form['itens'][$itemIndex]['status'] = 'novo';
+        $this->form['itens'][$itemIndex]['match_source'] = null;
     }
 
     /** Busca do painel "vincular a produto existente" no review. */
@@ -767,6 +768,7 @@ trait HandlesDocumentImport
         $this->form['itens'][$itemIndex]['product_id'] = $product->id;
         $this->form['itens'][$itemIndex]['product_name'] = $product->name;
         $this->form['itens'][$itemIndex]['status'] = 'existente';
+        $this->form['itens'][$itemIndex]['match_source'] = 'manual';
         $this->dispatch('product-linked');
     }
 

@@ -28,6 +28,7 @@ return [
     'supplier' => 'Fornecedor',
     'status_new' => 'novo',
     'status_existing' => 'existente',
+    'status_ai_suggested' => 'sugerido por IA',
     'summary_counts' => ':total itens — :existing produtos existentes, :new novos.',
     'items_total' => 'Total dos itens',
     'document_total' => 'Total do documento',

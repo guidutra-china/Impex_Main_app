@@ -99,4 +99,21 @@ class InquiryTargetTest extends TestCase
         $payload = $target->formToConfirmPayload($form, []);
         $this->assertNull($payload['preview']['itens'][0]['target_price_minor']);
     }
+
+    public function test_build_form_carries_match_source(): void
+    {
+        $target = new InquiryTarget;
+
+        $form = $target->buildForm([
+            'cliente' => ['status' => 'existente', 'company_id' => 1, 'nome' => 'X', 'contato' => null],
+            'cabecalho' => [],
+            'itens' => [
+                ['description' => 'A', 'quantity' => 1, 'status' => 'existente', 'product_id' => 5, 'match_source' => 'ai'],
+                ['description' => 'B', 'quantity' => 1, 'status' => 'novo', 'product_id' => null],
+            ],
+        ], []);
+
+        $this->assertSame('ai', $form['itens'][0]['match_source']);
+        $this->assertNull($form['itens'][1]['match_source']);
+    }
 }

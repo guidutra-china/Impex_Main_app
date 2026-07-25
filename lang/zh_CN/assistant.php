@@ -28,6 +28,7 @@ return [
     'supplier' => '供应商',
     'status_new' => '新建',
     'status_existing' => '已有',
+    'status_ai_suggested' => 'AI 建议',
     'summary_counts' => '共 :total 项 — :existing 个已有产品，:new 个新产品。',
     'items_total' => '明细合计',
     'document_total' => '单据总额',

@@ -28,6 +28,7 @@ return [
     'supplier' => 'Supplier',
     'status_new' => 'new',
     'status_existing' => 'existing',
+    'status_ai_suggested' => 'AI suggested',
     'summary_counts' => ':total items — :existing existing products, :new new.',
     'items_total' => 'Items total',
     'document_total' => 'Document total',

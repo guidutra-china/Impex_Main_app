@@ -199,4 +199,21 @@ class SupplierQuotationTargetTest extends TestCase
         $this->assertFalse($payload['preview']['criar_inquiry']);
         $this->assertNull($payload['preview']['inquiry_company_id']);
     }
+
+    public function test_build_form_carries_match_source(): void
+    {
+        $target = new SupplierQuotationTarget;
+
+        $form = $target->buildForm([
+            'fornecedor' => ['nome' => 'X', 'status' => 'existente', 'company_id' => 1],
+            'cabecalho' => [],
+            'itens' => [
+                ['description' => 'A', 'quantity' => 1, 'unit_cost_minor' => 100, 'status' => 'existente', 'product_id' => 5, 'match_source' => 'ai'],
+                ['description' => 'B', 'quantity' => 1, 'unit_cost_minor' => 100, 'status' => 'novo', 'product_id' => null],
+            ],
+        ], []);
+
+        $this->assertSame('ai', $form['itens'][0]['match_source']);
+        $this->assertNull($form['itens'][1]['match_source']);
+    }
 }

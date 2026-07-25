@@ -119,6 +119,7 @@ class InquiryTarget implements ImportTarget
                 'product_name' => $it['product_name'] ?? null,
                 'description_inferred' => (bool) ($it['description_inferred'] ?? false),
                 'photo_index' => $itemPhoto[$i] ?? null,
+                'match_source' => $it['match_source'] ?? null,
             ];
         }
 
