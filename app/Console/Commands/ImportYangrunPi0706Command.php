@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Domain\AI\Import\Support\NameNormalizer;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Support\Money;
@@ -147,7 +148,7 @@ class ImportYangrunPi0706Command extends Command
         $missing = [];
 
         foreach ($this->lines() as [$productName, $description, $quantity, $unitCostMinor]) {
-            $product = $productsByName[$this->normalizeName($productName)] ?? null;
+            $product = $productsByName[NameNormalizer::normalize($productName)] ?? null;
 
             if ($product === null) {
                 $missing[] = $productName;
@@ -275,7 +276,7 @@ class ImportYangrunPi0706Command extends Command
                 ->where('company_product.role', 'supplier'))
             ->get(['id', 'name'])
             ->each(function (Product $product) use (&$map, &$duplicated) {
-                $key = $this->normalizeName($product->name);
+                $key = NameNormalizer::normalize($product->name);
                 if ($key === '' || isset($duplicated[$key])) {
                     return;
                 }
@@ -289,10 +290,5 @@ class ImportYangrunPi0706Command extends Command
             });
 
         return $map;
-    }
-
-    private function normalizeName(?string $name): string
-    {
-        return mb_strtoupper(preg_replace('/[^\p{L}\p{N}]+/u', '', (string) $name) ?? '');
     }
 }

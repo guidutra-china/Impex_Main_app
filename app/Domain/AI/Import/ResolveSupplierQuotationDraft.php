@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\AI\Import;
 
+use App\Domain\AI\Import\Support\NameNormalizer;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Models\Company;
@@ -128,7 +129,7 @@ class ResolveSupplierQuotationDraft
                 ->where('company_product.role', 'supplier'))
             ->get(['id', 'name'])
             ->each(function (Product $product) use (&$map, &$duplicated) {
-                $key = $this->normalizeName($product->name);
+                $key = NameNormalizer::normalize($product->name);
                 if ($key === '' || isset($duplicated[$key])) {
                     return;
                 }
@@ -142,16 +143,6 @@ class ResolveSupplierQuotationDraft
             });
 
         return $map;
-    }
-
-    /**
-     * Chave de comparação de nomes: só letras e números, maiúsculas. Ignorar
-     * pontuação/espaços faz "Dumbbell — 5kg" casar com "Dumbbell 5kg" — variações
-     * de formatação entre extrações não podem virar produto duplicado.
-     */
-    private function normalizeName(?string $name): string
-    {
-        return mb_strtoupper(preg_replace('/[^\p{L}\p{N}]+/u', '', (string) $name) ?? '');
     }
 
     /**
@@ -172,7 +163,7 @@ class ResolveSupplierQuotationDraft
         // Documento sem coluna de modelo: casa a descrição com o NOME dos
         // produtos deste fornecedor (exato, normalizado, único).
         if ($product === null) {
-            $product = $supplierProductsByName[$this->normalizeName($item['description'] ?? null)] ?? null;
+            $product = $supplierProductsByName[NameNormalizer::normalize($item['description'] ?? null)] ?? null;
         }
 
         $quantity = (int) ($item['quantity'] ?? 0);
