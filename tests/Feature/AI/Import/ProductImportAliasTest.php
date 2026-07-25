@@ -31,6 +31,17 @@ class ProductImportAliasTest extends TestCase
 
         $this->assertDatabaseCount('product_import_aliases', 1);
 
+        ProductImportAlias::create([
+            'company_id' => Company::factory()->create()->id,
+            'product_id' => $product->id,
+            'alias' => 'Hex rubber dumbbell — 5kg',
+            'alias_normalized' => 'HEXRUBBERDUMBBELL5KG',
+            'source' => 'import_confirm',
+            'last_confirmed_at' => now(),
+        ]);
+
+        $this->assertDatabaseCount('product_import_aliases', 2);
+
         $this->expectException(QueryException::class);
 
         ProductImportAlias::create([
