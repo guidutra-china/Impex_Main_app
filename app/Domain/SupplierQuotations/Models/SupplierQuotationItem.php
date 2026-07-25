@@ -4,11 +4,19 @@ namespace App\Domain\SupplierQuotations\Models;
 
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Inquiries\Models\InquiryItem;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SupplierQuotationItem extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory(): \Database\Factories\SupplierQuotationItemFactory
+    {
+        return \Database\Factories\SupplierQuotationItemFactory::new();
+    }
+
     protected $fillable = [
         'supplier_quotation_id',
         'inquiry_item_id',

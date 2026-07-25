@@ -3,11 +3,19 @@
 namespace App\Domain\Inquiries\Models;
 
 use App\Domain\Catalog\Models\Product;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class InquiryItem extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory(): \Database\Factories\InquiryItemFactory
+    {
+        return \Database\Factories\InquiryItemFactory::new();
+    }
+
     protected $fillable = [
         'inquiry_id',
         'product_id',
