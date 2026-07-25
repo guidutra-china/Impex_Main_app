@@ -25,6 +25,8 @@ use App\Domain\Infrastructure\Support\Money;
  */
 class ResolveSupplierQuotationDraft
 {
+    public function __construct(private readonly ProductMatchSuggester $suggester = new ProductMatchSuggester) {}
+
     /**
      * @param  array<string,mixed>  $draft
      * @return array<string,mixed>
@@ -40,6 +42,7 @@ class ResolveSupplierQuotationDraft
         $supplierProductsByName = $this->supplierProductsByName($supplier);
         $aliasesByKey = $this->aliasesByKey($supplier);
         $itens = array_map(fn (array $item) => $this->resolveItem($item, $supplierProductsByName, $aliasesByKey), $draft['itens'] ?? []);
+        $itens = $this->applyAiSuggestions($itens, $supplier);
 
         $existing = count(array_filter($itens, fn ($i) => $i['status'] === 'existente'));
         $itemsMinor = array_sum(array_map(fn ($i) => $i['line_total_minor'], $itens));
@@ -166,6 +169,82 @@ class ResolveSupplierQuotationDraft
         unset($aliases['']);
 
         return $aliases;
+    }
+
+    /**
+     * Camada 4: sugestão LLM para itens ainda sem match. Erros degradam
+     * silenciosamente — o import nunca trava por causa desta chamada.
+     *
+     * @param  list<array<string,mixed>>  $itens
+     * @return list<array<string,mixed>>
+     */
+    private function applyAiSuggestions(array $itens, ?Company $supplier): array
+    {
+        if ($supplier === null) {
+            return $itens;
+        }
+
+        $unmatched = array_filter($itens, fn ($i) => $i['product_id'] === null);
+
+        if ($unmatched === []) {
+            return $itens;
+        }
+
+        try {
+            $suggestions = $this->suggester->suggest(
+                array_map(fn ($i) => ['description' => (string) $i['description']], $unmatched),
+                $this->catalogFor($supplier),
+            );
+        } catch (\Throwable $e) {
+            report($e);
+
+            return $itens;
+        }
+
+        foreach ($suggestions as $index => $productId) {
+            $product = Product::find($productId);
+
+            if ($product === null || ! isset($itens[$index])) {
+                continue;
+            }
+
+            $itens[$index]['status'] = 'existente';
+            $itens[$index]['product_id'] = $product->id;
+            $itens[$index]['product_name'] = $product->name;
+            $itens[$index]['match_source'] = 'ai';
+        }
+
+        return $itens;
+    }
+
+    /**
+     * Catálogo da empresa para o prompt do matcher: produtos + até 5 aliases
+     * mais recentes por produto.
+     *
+     * @return list<array{id:int,name:string,reference_code:?string,model_number:?string,aliases:list<string>}>
+     */
+    private function catalogFor(Company $supplier): array
+    {
+        $aliases = ProductImportAlias::query()
+            ->where('company_id', $supplier->id)
+            ->orderByDesc('last_confirmed_at')
+            ->get(['product_id', 'alias'])
+            ->groupBy('product_id')
+            ->map(fn ($group) => $group->take(5)->pluck('alias')->all());
+
+        return Product::query()
+            ->whereHas('companies', fn ($q) => $q
+                ->where('companies.id', $supplier->id)
+                ->where('company_product.role', 'supplier'))
+            ->get(['id', 'name', 'reference_code', 'model_number'])
+            ->map(fn (Product $p) => [
+                'id' => (int) $p->id,
+                'name' => $p->name,
+                'reference_code' => $p->reference_code,
+                'model_number' => $p->model_number,
+                'aliases' => $aliases->get($p->id, []),
+            ])
+            ->all();
     }
 
     /**

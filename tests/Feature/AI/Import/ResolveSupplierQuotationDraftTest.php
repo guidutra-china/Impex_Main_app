@@ -298,4 +298,82 @@ class ResolveSupplierQuotationDraftTest extends TestCase
         $this->assertSame('Shenzhen', $d['address_city']);
         $this->assertSame('New Supplier Co Ltd', $d['legal_name']);
     }
+
+    /**
+     * @param  array<int,int>  $suggestions
+     */
+    private function resolverWithSuggester(array $suggestions, bool $throw = false): ResolveSupplierQuotationDraft
+    {
+        $suggester = new class($suggestions, $throw) extends \App\Domain\AI\Import\ProductMatchSuggester
+        {
+            public function __construct(private readonly array $suggestions, private readonly bool $throw)
+            {
+                parent::__construct();
+            }
+
+            public function suggest(array $items, array $catalog): array
+            {
+                if ($this->throw) {
+                    throw new \RuntimeException('API down');
+                }
+
+                return array_intersect_key($this->suggestions, $items);
+            }
+        };
+
+        return new ResolveSupplierQuotationDraft($suggester);
+    }
+
+    public function test_ai_layer_suggests_only_for_unmatched_items(): void
+    {
+        $supplier = Company::factory()->create(['name' => 'Hebei Yangrun Sports Equipment Co., Ltd.']);
+        $exact = Product::factory()->create(['name' => 'Weight plate 5kg', 'reference_code' => null, 'model_number' => null]);
+        $exact->companies()->attach($supplier->id, ['role' => 'supplier']);
+        $suggested = Product::factory()->create(['name' => 'Hexagonal Dumbbell 5kg', 'reference_code' => null, 'model_number' => null]);
+        $suggested->companies()->attach($supplier->id, ['role' => 'supplier']);
+
+        $preview = $this->resolverWithSuggester([1 => $suggested->id])->resolve([
+            'fornecedor' => ['nome' => 'Hebei Yangrun', 'currency_code' => 'USD'],
+            'itens' => [
+                ['description' => 'Weight plate 5kg', 'quantity' => 1, 'unit_price' => 1.0],
+                ['description' => 'Halter hexagonal emborrachado 5kg', 'quantity' => 1, 'unit_price' => 2.0],
+            ],
+        ]);
+
+        $this->assertSame('name', $preview['itens'][0]['match_source']);
+        $this->assertSame($suggested->id, $preview['itens'][1]['product_id']);
+        $this->assertSame('existente', $preview['itens'][1]['status']);
+        $this->assertSame('ai', $preview['itens'][1]['match_source']);
+    }
+
+    public function test_ai_failure_degrades_silently_to_novo(): void
+    {
+        $supplier = Company::factory()->create(['name' => 'Hebei Yangrun Sports Equipment Co., Ltd.']);
+        $product = Product::factory()->create(['name' => 'Weight plate 5kg']);
+        $product->companies()->attach($supplier->id, ['role' => 'supplier']);
+
+        $preview = $this->resolverWithSuggester([], throw: true)->resolve([
+            'fornecedor' => ['nome' => 'Hebei Yangrun', 'currency_code' => 'USD'],
+            'itens' => [['description' => 'Coisa desconhecida', 'quantity' => 1, 'unit_price' => 1.0]],
+        ]);
+
+        $this->assertSame('novo', $preview['itens'][0]['status']);
+        $this->assertNull($preview['itens'][0]['product_id']);
+        $this->assertNull($preview['itens'][0]['match_source']);
+    }
+
+    public function test_ai_matches_count_as_existing_in_summary(): void
+    {
+        $supplier = Company::factory()->create(['name' => 'Hebei Yangrun Sports Equipment Co., Ltd.']);
+        $suggested = Product::factory()->create(['name' => 'Hexagonal Dumbbell 5kg']);
+        $suggested->companies()->attach($supplier->id, ['role' => 'supplier']);
+
+        $preview = $this->resolverWithSuggester([0 => $suggested->id])->resolve([
+            'fornecedor' => ['nome' => 'Hebei Yangrun', 'currency_code' => 'USD'],
+            'itens' => [['description' => 'Halter hexagonal emborrachado 5kg', 'quantity' => 1, 'unit_price' => 2.0]],
+        ]);
+
+        $this->assertSame(1, $preview['resumo']['produtos_existentes']);
+        $this->assertSame(0, $preview['resumo']['produtos_novos']);
+    }
 }
