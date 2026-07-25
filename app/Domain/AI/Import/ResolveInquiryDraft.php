@@ -155,7 +155,7 @@ class ResolveInquiryDraft
         try {
             $catalog = $this->catalogFor($client);
             $suggestions = $this->suggester->suggest(
-                array_map(fn ($i) => ['description' => (string) $i['description']], $unmatched),
+                array_map(fn ($i) => ['description' => (string) $i['description'], 'specs' => $i['specifications'] ?? null], $unmatched),
                 $catalog,
             );
         } catch (\Throwable $e) {

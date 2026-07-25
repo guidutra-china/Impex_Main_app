@@ -21,6 +21,8 @@ Pipeline de matching em camadas por item — para na primeira que acertar; IA nu
 
 Cada item resolvido carrega `match_source` (`part_no` | `name` | `alias` | `ai` | `null`) até a UI e o confirm.
 
+Edições via chat re-executam o resolve completo, incluindo a camada 4 — decisão aceita: custo limitado, resolve() é a fonte única da verdade.
+
 ### Tabela `product_import_aliases`
 
 | Coluna | Tipo | Notas |
@@ -48,7 +50,7 @@ Cada item resolvido carrega `match_source` (`part_no` | `name` | `alias` | `ai` 
 ### Review UI (página Assistant)
 
 - `match_source === 'ai'` → badge "Sugerido por IA" no item (SQ e Inquiry). Demais matches seguem com o visual atual de "existente".
-- `match_source` atravessa `buildForm()` → form → `formToConfirmPayload()`; o status continua derivado do `product_id` (invariante anti-tamper existente).
+- `match_source` atravessa `buildForm()` → form → badge no review; NÃO entra no payload do confirm (proveniência é só de UI — o aprendizado no confirm usa product_id + descrição).
 
 ### Aprendizado no confirm
 
@@ -57,7 +59,7 @@ Cada item resolvido carrega `match_source` (`part_no` | `name` | `alias` | `ai` 
 
 ### Backfill
 
-Comando `imports:backfill-product-aliases` (dry-run default, `--apply`): varre `supplier_quotation_items` (empresa via SQ) e `inquiry_items` (empresa via inquiry) com `product_id` preenchido; upsert com `source=backfill`; em duplicata vence o item mais recente. Relatório: criados, atualizados, conflitos.
+Comando `imports:backfill-product-aliases` (dry-run default, `--apply`): varre `supplier_quotation_items` (empresa via SQ) e `inquiry_items` (empresa via inquiry) com `product_id` preenchido; upsert com `source=backfill`; em duplicata vence o item mais recente. Relatório: processados e ignorados (contagens idênticas entre dry-run e --apply).
 
 ## Testes
 

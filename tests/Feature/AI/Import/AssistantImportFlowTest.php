@@ -7,6 +7,7 @@ namespace Tests\Feature\AI\Import;
 use App\Domain\AI\Import\DocumentClassifier;
 use App\Domain\AI\Import\DraftEditor;
 use App\Domain\AI\Import\DraftExtractor;
+use App\Domain\AI\Import\ProductMatchSuggester;
 use App\Domain\AI\Import\Targets\ImportTarget;
 use App\Domain\SupplierQuotations\Models\SupplierQuotation;
 use App\Filament\Pages\Assistant;
@@ -40,6 +41,14 @@ class AssistantImportFlowTest extends TestCase
             public function classify(array $documentBlocks, array $targets): array
             {
                 return ['tipo' => 'supplier_quotation', 'confianca' => 'alta', 'motivo' => 'teste'];
+            }
+        });
+
+        $this->app->bind(ProductMatchSuggester::class, fn () => new class extends ProductMatchSuggester
+        {
+            public function suggest(array $items, array $catalog): array
+            {
+                return [];
             }
         });
     }

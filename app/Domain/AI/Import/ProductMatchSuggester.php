@@ -25,7 +25,7 @@ class ProductMatchSuggester
     }
 
     /**
-     * @param  array<int, array{description:string}>  $items  índice original => item sem match
+     * @param  array<int, array{description:string, specs?:mixed}>  $items  índice original => item sem match
      * @param  list<array{id:int,name:string,reference_code:?string,model_number:?string,aliases:list<string>}>  $catalog
      * @return array<int,int> índice original => product_id sugerido
      */
@@ -39,7 +39,14 @@ class ProductMatchSuggester
 
         $user = "Itens do documento sem match:\n"
             .json_encode(
-                array_map(fn ($i, $item) => ['index' => $i, 'description' => $item['description']], array_keys($items), $items),
+                array_map(
+                    fn ($i, $item) => array_filter(
+                        ['index' => $i, 'description' => $item['description'], 'specs' => $item['specs'] ?? null],
+                        fn ($v) => $v !== null,
+                    ),
+                    array_keys($items),
+                    $items,
+                ),
                 JSON_UNESCAPED_UNICODE,
             )
             ."\n\nCatálogo da empresa:\n"

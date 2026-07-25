@@ -7,6 +7,7 @@ namespace Tests\Feature\AI\Import;
 use App\Domain\AI\Import\DocumentClassifier;
 use App\Domain\AI\Import\DraftExtractor;
 use App\Domain\AI\Import\Exceptions\ExtractionFailedException;
+use App\Domain\AI\Import\ProductMatchSuggester;
 use App\Domain\AI\Import\Targets\ImportTarget;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Inquiries\Enums\InquiryStatus;
@@ -57,6 +58,14 @@ class AssistantInquiryImportFlowTest extends TestCase
                         ['part_no' => 'DF-1', 'description' => 'Treadmill', 'quantity' => 3, 'target_price' => 250.0],
                     ],
                 ];
+            }
+        });
+
+        $this->app->bind(ProductMatchSuggester::class, fn () => new class extends ProductMatchSuggester
+        {
+            public function suggest(array $items, array $catalog): array
+            {
+                return [];
             }
         });
     }

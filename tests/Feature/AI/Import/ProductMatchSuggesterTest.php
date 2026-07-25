@@ -69,4 +69,38 @@ class ProductMatchSuggesterTest extends TestCase
         $this->assertSame([], $suggester->suggest([], [['id' => 1, 'name' => 'X', 'reference_code' => null, 'model_number' => null, 'aliases' => []]]));
         $this->assertSame([], $suggester->suggest([0 => ['description' => 'Y']], []));
     }
+
+    public function test_payload_includes_specs_when_present_but_omits_when_absent(): void
+    {
+        $capturedUser = null;
+
+        $suggester = new class(function (string $user) use (&$capturedUser): void {
+            $capturedUser = $user;
+        }) extends ProductMatchSuggester
+        {
+
+            public function __construct(private readonly \Closure $capture)
+            {
+                parent::__construct();
+            }
+
+            protected function callModel(string $system, string $user): object
+            {
+                ($this->capture)($user);
+
+                return (object) ['content' => []];
+            }
+        };
+
+        $suggester->suggest(
+            [
+                0 => ['description' => 'Halter hexagonal 5kg', 'specs' => '5kg, ferro fundido'],
+                1 => ['description' => 'Produto desconhecido'],
+            ],
+            [['id' => 10, 'name' => 'X', 'reference_code' => null, 'model_number' => null, 'aliases' => []]],
+        );
+
+        $this->assertStringContainsString('"specs":"5kg, ferro fundido"', $capturedUser);
+        $this->assertStringContainsString('{"index":1,"description":"Produto desconhecido"}', $capturedUser);
+    }
 }
