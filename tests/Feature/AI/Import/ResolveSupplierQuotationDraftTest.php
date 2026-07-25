@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature\AI\Import;
 
+use App\Domain\AI\Import\Models\ProductImportAlias;
 use App\Domain\AI\Import\ResolveSupplierQuotationDraft;
+use App\Domain\AI\Import\Support\NameNormalizer;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Models\Company;
@@ -117,6 +119,59 @@ class ResolveSupplierQuotationDraftTest extends TestCase
 
         $this->assertSame('novo', $preview['itens'][1]['status'], 'homônimo de outro fornecedor não casa');
         $this->assertSame('novo', $preview['itens'][2]['status'], 'nome duplicado no fornecedor não casa');
+    }
+
+    public function test_alias_layer_matches_learned_description(): void
+    {
+        $supplier = Company::factory()->create(['name' => 'Hebei Yangrun Sports Equipment Co., Ltd.']);
+        $product = Product::factory()->create(['name' => 'Hexagonal Dumbbell 5kg', 'reference_code' => null, 'model_number' => null]);
+        $product->companies()->attach($supplier->id, ['role' => 'supplier']);
+
+        ProductImportAlias::create([
+            'company_id' => $supplier->id,
+            'product_id' => $product->id,
+            'alias' => 'Halter hexagonal emborrachado — 5kg',
+            'alias_normalized' => NameNormalizer::normalize('Halter hexagonal emborrachado — 5kg'),
+            'source' => 'import_confirm',
+            'last_confirmed_at' => now(),
+        ]);
+
+        $preview = (new ResolveSupplierQuotationDraft)->resolve([
+            'fornecedor' => ['nome' => 'Hebei Yangrun', 'currency_code' => 'USD'],
+            'itens' => [
+                ['description' => 'Halter Hexagonal Emborrachado 5kg', 'quantity' => 10, 'unit_price' => 3.5],
+            ],
+        ]);
+
+        $this->assertSame('existente', $preview['itens'][0]['status']);
+        $this->assertSame($product->id, $preview['itens'][0]['product_id']);
+        $this->assertSame('alias', $preview['itens'][0]['match_source']);
+    }
+
+    public function test_exact_name_beats_alias(): void
+    {
+        $supplier = Company::factory()->create(['name' => 'Hebei Yangrun Sports Equipment Co., Ltd.']);
+        $byName = Product::factory()->create(['name' => 'Dumbbell 10kg', 'reference_code' => null, 'model_number' => null]);
+        $byName->companies()->attach($supplier->id, ['role' => 'supplier']);
+        $byAlias = Product::factory()->create(['name' => 'Outro produto']);
+
+        // Alias conflitante para a MESMA descrição — o nome exato deve vencer.
+        ProductImportAlias::create([
+            'company_id' => $supplier->id,
+            'product_id' => $byAlias->id,
+            'alias' => 'Dumbbell 10kg',
+            'alias_normalized' => NameNormalizer::normalize('Dumbbell 10kg'),
+            'source' => 'backfill',
+            'last_confirmed_at' => now(),
+        ]);
+
+        $preview = (new ResolveSupplierQuotationDraft)->resolve([
+            'fornecedor' => ['nome' => 'Hebei Yangrun', 'currency_code' => 'USD'],
+            'itens' => [['description' => 'Dumbbell — 10kg', 'quantity' => 1, 'unit_price' => 1.0]],
+        ]);
+
+        $this->assertSame($byName->id, $preview['itens'][0]['product_id']);
+        $this->assertSame('name', $preview['itens'][0]['match_source']);
     }
 
     public function test_derives_unit_cost_from_line_total_and_folds_extras_into_notes(): void

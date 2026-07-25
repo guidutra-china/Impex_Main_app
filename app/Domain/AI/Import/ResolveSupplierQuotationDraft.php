@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\AI\Import;
 
+use App\Domain\AI\Import\Models\ProductImportAlias;
 use App\Domain\AI\Import\Support\NameNormalizer;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
@@ -37,7 +38,8 @@ class ResolveSupplierQuotationDraft
 
         $currency = strtoupper((string) ($draft['fornecedor']['currency_code'] ?? 'USD'));
         $supplierProductsByName = $this->supplierProductsByName($supplier);
-        $itens = array_map(fn (array $item) => $this->resolveItem($item, $supplierProductsByName), $draft['itens'] ?? []);
+        $aliasesByKey = $this->aliasesByKey($supplier);
+        $itens = array_map(fn (array $item) => $this->resolveItem($item, $supplierProductsByName, $aliasesByKey), $draft['itens'] ?? []);
 
         $existing = count(array_filter($itens, fn ($i) => $i['status'] === 'existente'));
         $itemsMinor = array_sum(array_map(fn ($i) => $i['line_total_minor'], $itens));
@@ -146,12 +148,32 @@ class ResolveSupplierQuotationDraft
     }
 
     /**
+     * Aliases aprendidos da empresa, indexados pela descrição normalizada.
+     *
+     * @return array<string, int> alias_normalized => product_id
+     */
+    private function aliasesByKey(?Company $supplier): array
+    {
+        if ($supplier === null) {
+            return [];
+        }
+
+        return ProductImportAlias::query()
+            ->where('company_id', $supplier->id)
+            ->pluck('product_id', 'alias_normalized')
+            ->all();
+    }
+
+    /**
      * @param  array<string,mixed>  $item
      * @param  array<string, Product>  $supplierProductsByName
+     * @param  array<string, int>  $aliasesByKey
      * @return array<string,mixed>
      */
-    private function resolveItem(array $item, array $supplierProductsByName): array
+    private function resolveItem(array $item, array $supplierProductsByName, array $aliasesByKey): array
     {
+        $matchSource = null;
+
         $partNo = trim((string) ($item['part_no'] ?? ''));
         $product = $partNo !== ''
             ? Product::where('reference_code', $partNo)
@@ -160,10 +182,22 @@ class ResolveSupplierQuotationDraft
                 ->first()
             : null;
 
+        if ($product !== null) {
+            $matchSource = 'part_no';
+        }
+
         // Documento sem coluna de modelo: casa a descrição com o NOME dos
         // produtos deste fornecedor (exato, normalizado, único).
         if ($product === null) {
             $product = $supplierProductsByName[NameNormalizer::normalize($item['description'] ?? null)] ?? null;
+            $matchSource = $product !== null ? 'name' : null;
+        }
+
+        // Camada 3: alias aprendido em imports confirmados anteriores.
+        if ($product === null) {
+            $aliasProductId = $aliasesByKey[NameNormalizer::normalize($item['description'] ?? null)] ?? null;
+            $product = $aliasProductId !== null ? Product::find($aliasProductId) : null;
+            $matchSource = $product !== null ? 'alias' : null;
         }
 
         $quantity = (int) ($item['quantity'] ?? 0);
@@ -174,6 +208,7 @@ class ResolveSupplierQuotationDraft
             'status' => $product ? 'existente' : 'novo',
             'product_id' => $product?->id,
             'product_name' => $product?->name,
+            'match_source' => $matchSource,
             'part_no' => $partNo !== '' ? $partNo : null,
             'description' => (string) ($item['description'] ?? ''),
             'description_inferred' => (bool) ($item['descricao_inferida'] ?? false),
