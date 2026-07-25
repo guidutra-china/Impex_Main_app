@@ -27,7 +27,7 @@ class ProductMatchSuggesterTest extends TestCase
             protected function callModel(string $system, string $user): object
             {
                 return (object) ['content' => [
-                    (object) ['type' => 'tool_use', 'name' => 'sugerir_vinculos', 'input' => (object) ['matches' => $this->matches]],
+                    (object) ['type' => 'tool_use', 'name' => 'sugerir_vinculos', 'input' => ['matches' => $this->matches]],
                 ]];
             }
         };
@@ -36,9 +36,9 @@ class ProductMatchSuggesterTest extends TestCase
     public function test_returns_index_to_product_map_ignoring_ids_outside_catalog(): void
     {
         $suggester = $this->fake([
-            (object) ['index' => 0, 'product_id' => 10],
-            (object) ['index' => 1, 'product_id' => null],
-            (object) ['index' => 2, 'product_id' => 999], // fora do catálogo — descartado
+            ['index' => 0, 'product_id' => 10],
+            ['index' => 1, 'product_id' => null],
+            ['index' => 2, 'product_id' => 999], // fora do catálogo — descartado
         ]);
 
         $result = $suggester->suggest(

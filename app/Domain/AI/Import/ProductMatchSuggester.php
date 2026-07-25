@@ -54,9 +54,12 @@ class ProductMatchSuggester
                 continue;
             }
 
-            foreach ((array) ($block->input->matches ?? []) as $match) {
-                $index = (int) ($match->index ?? -1);
-                $productId = $match->product_id ?? null;
+            $input = (array) $block->input;
+
+            foreach ((array) ($input['matches'] ?? []) as $match) {
+                $match = (array) $match;
+                $index = (int) ($match['index'] ?? -1);
+                $productId = $match['product_id'] ?? null;
 
                 if ($productId !== null && isset($items[$index]) && in_array((int) $productId, $validIds, true)) {
                     $matches[$index] = (int) $productId;
