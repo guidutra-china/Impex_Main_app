@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Domain\AI\Import\Support\NameNormalizer;
 use App\Domain\AI\Import\UpsertProductImportAliasAction;
 use App\Domain\Inquiries\Models\InquiryItem;
 use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
@@ -43,7 +44,9 @@ class BackfillProductImportAliasesCommand extends Command
             }
 
             if (! $apply) {
-                $written++;
+                // Mesmo critério do upserter, sem gravar: dry-run e --apply batem linha a linha.
+                $normalized = NameNormalizer::normalize($description);
+                mb_strlen(mb_substr($normalized, 0, 255)) < 3 ? $skipped++ : $written++;
 
                 return;
             }
@@ -52,15 +55,24 @@ class BackfillProductImportAliasesCommand extends Command
             $result !== null ? $written++ : $skipped++;
         };
 
-        SupplierQuotationItem::query()
+        $sqItems = SupplierQuotationItem::query()
             ->whereNotNull('product_id')
             ->join('supplier_quotations', 'supplier_quotations.id', '=', 'supplier_quotation_items.supplier_quotation_id')
             ->orderBy('supplier_quotation_items.created_at')
             ->orderBy('supplier_quotation_items.id')
-            ->get(['supplier_quotation_items.*', 'supplier_quotations.company_id as sq_company_id'])
-            ->each(fn ($item) => $process((int) $item->sq_company_id, $item->product_id, $item->description));
+            ->select([
+                'supplier_quotation_items.id',
+                'supplier_quotation_items.product_id',
+                'supplier_quotation_items.description',
+                'supplier_quotation_items.created_at',
+                'supplier_quotations.company_id as sq_company_id',
+            ]);
 
-        InquiryItem::query()
+        foreach ($sqItems->cursor() as $item) {
+            $process((int) $item->sq_company_id, $item->product_id, $item->description);
+        }
+
+        $inquiryItems = InquiryItem::query()
             ->whereNotNull('product_id')
             // Espelhos do fluxo combinado Inquiry+SQ: descrição é do fornecedor, não do cliente.
             ->whereNotExists(function (QueryBuilder $query): void {
@@ -71,8 +83,17 @@ class BackfillProductImportAliasesCommand extends Command
             ->join('inquiries', 'inquiries.id', '=', 'inquiry_items.inquiry_id')
             ->orderBy('inquiry_items.created_at')
             ->orderBy('inquiry_items.id')
-            ->get(['inquiry_items.*', 'inquiries.company_id as inq_company_id'])
-            ->each(fn ($item) => $process((int) $item->inq_company_id, $item->product_id, $item->description));
+            ->select([
+                'inquiry_items.id',
+                'inquiry_items.product_id',
+                'inquiry_items.description',
+                'inquiry_items.created_at',
+                'inquiries.company_id as inq_company_id',
+            ]);
+
+        foreach ($inquiryItems->cursor() as $item) {
+            $process((int) $item->inq_company_id, $item->product_id, $item->description);
+        }
 
         $this->info(sprintf('%s: %d aliases processados, %d ignorados.', $apply ? 'Gravado' : 'Dry-run', $written, $skipped));
 

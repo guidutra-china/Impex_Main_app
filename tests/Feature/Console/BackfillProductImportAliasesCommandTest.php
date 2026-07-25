@@ -39,18 +39,26 @@ class BackfillProductImportAliasesCommandTest extends TestCase
         SupplierQuotationItem::factory()->create([
             'supplier_quotation_id' => $sq->id, 'product_id' => null, 'description' => 'Orfão',
         ]);
+        // Descrição curta demais (normaliza para 1 char): ignorada, mesmo com produto.
+        SupplierQuotationItem::factory()->create([
+            'supplier_quotation_id' => $sq->id, 'product_id' => $new->id, 'description' => '5',
+        ]);
 
         $inquiry = Inquiry::factory()->create(['company_id' => $client->id]);
         InquiryItem::factory()->create([
             'inquiry_id' => $inquiry->id, 'product_id' => $old->id, 'description' => 'Anilha 10kg',
         ]);
 
-        // Dry-run: nada gravado.
-        $this->artisan('imports:backfill-product-aliases')->assertSuccessful();
+        // Dry-run: nada gravado, mas a contagem de processados/ignorados já bate com o --apply.
+        $this->artisan('imports:backfill-product-aliases')
+            ->expectsOutputToContain('3 aliases processados, 1 ignorados.')
+            ->assertSuccessful();
         $this->assertDatabaseCount('product_import_aliases', 0);
 
         // Apply.
-        $this->artisan('imports:backfill-product-aliases', ['--apply' => true])->assertSuccessful();
+        $this->artisan('imports:backfill-product-aliases', ['--apply' => true])
+            ->expectsOutputToContain('3 aliases processados, 1 ignorados.')
+            ->assertSuccessful();
 
         $this->assertDatabaseCount('product_import_aliases', 2);
         $this->assertSame($new->id, ProductImportAlias::where('company_id', $supplier->id)->sole()->product_id);
