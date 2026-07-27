@@ -186,12 +186,12 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
     private function buildShippingDetails(Shipment $shipment, $incoterm): array
     {
         $incotermStr = $incoterm instanceof \BackedEnum ? $incoterm->value : ($incoterm ?? '');
-        $destination = $shipment->destination_port ?? '';
 
         return array_filter([
-            'delivery_term' => $incotermStr && $destination
-                ? "{$incotermStr} {$destination}"
-                : ($incotermStr ?: null),
+            // Só o incoterm: anexar o porto de DESTINO estava errado (FOB é
+            // nomeado pelo porto de embarque), e o porto certo já aparece nas
+            // linhas port_of_loading/port_of_destination logo abaixo.
+            'delivery_term' => $incotermStr ?: null,
             'port_of_loading' => $shipment->origin_port,
             'port_of_destination' => $shipment->destination_port,
             'country_of_origin' => 'China',
