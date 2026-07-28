@@ -268,9 +268,21 @@ class ProductImportService
                     'already_linked' => $alreadyLinked,
                 ];
             } else {
+                // Mesma regra do import: fallback de nome é só o Model Number.
+                $fallbackName = $productName ?: trim((string) ($row['model_number'] ?? ''));
+
+                if ($fallbackName === '') {
+                    $preview['would_skip'][] = [
+                        'row' => $rowNum,
+                        'reason' => 'Sem nome e sem número de modelo',
+                    ];
+
+                    continue;
+                }
+
                 $preview['would_create'][] = [
                     'row' => $rowNum,
-                    'name' => $productName ?: ($category->name.' '.($row['model_number'] ?? '')),
+                    'name' => $fallbackName,
                     'reference_code' => $refCode,
                 ];
             }
@@ -424,13 +436,15 @@ class ProductImportService
             return ['action' => 'updated', 'product' => $existing];
         }
 
-        // Auto-generate name: Category + Model Number (same as product form)
-        $productName = $row['name'] ?? '';
-        if (empty($productName)) {
-            $modelNumber = $row['model_number'] ?? '';
-            $productName = $modelNumber
-                ? $category->name.' '.$modelNumber
-                : $category->name;
+        // Fallback de nome: só o Model Number (mesma regra do form de produto) —
+        // o nome nunca inclui a categoria. Sem nome e sem modelo, a linha é pulada.
+        $productName = trim((string) ($row['name'] ?? ''));
+        if ($productName === '') {
+            $productName = trim((string) ($row['model_number'] ?? ''));
+        }
+
+        if ($productName === '') {
+            return ['action' => 'skipped'];
         }
 
         $product = Product::create([

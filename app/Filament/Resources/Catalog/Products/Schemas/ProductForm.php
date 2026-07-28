@@ -79,7 +79,7 @@ class ProductForm
                                 ->label(__('forms.labels.parent_category'))
                                 ->options(fn () => Category::active()->orderBy('name')->get()->pluck('full_path', 'id'))
                                 ->searchable()
-                                ->placeholder(__('forms.placeholders.none_top_level')),
+                                ->placeholder(__('forms.placeholders.none_root_category')),
                             TextInput::make('sku_prefix')
                                 ->label(__('forms.labels.sku_prefix'))
                                 ->maxLength(10),
@@ -109,19 +109,10 @@ class ProductForm
                                 ->icon('heroicon-m-arrow-path')
                                 ->tooltip(__('forms.tooltips.generate_name_from_category_model'))
                                 ->action(function (Set $set, Get $get) {
-                                    $categoryId = $get('category_id');
-                                    $modelNumber = $get('model_number');
+                                    $modelNumber = trim((string) $get('model_number'));
 
-                                    if (! $categoryId) {
-                                        return;
-                                    }
-
-                                    $category = Category::find((int) $categoryId);
-
-                                    if ($category) {
-                                        $set('name', $modelNumber
-                                            ? $category->name.' '.$modelNumber
-                                            : $category->name);
+                                    if ($modelNumber !== '') {
+                                        $set('name', $modelNumber);
                                     }
                                 })
                         ),

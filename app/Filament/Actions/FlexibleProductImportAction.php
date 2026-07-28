@@ -698,13 +698,11 @@ class FlexibleProductImportAction
                             $totalItems += count($items);
 
                             foreach ($items as $item) {
-                                // Auto-generate name: Category + Model Number (same as product form)
+                                // Fallback de nome: só o Model Number (mesma regra do form
+                                // de produto) — o nome nunca inclui a categoria.
                                 $productName = $item['product_name'] ?? '';
                                 if (empty($productName)) {
-                                    $modelNumber = $item['model_number'] ?? '';
-                                    $productName = $modelNumber
-                                        ? $category->name.' '.$modelNumber
-                                        : $category->name;
+                                    $productName = trim((string) ($item['model_number'] ?? ''));
                                 }
 
                                 if (empty(trim($productName))) {
