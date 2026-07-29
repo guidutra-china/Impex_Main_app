@@ -3,14 +3,18 @@
 namespace App\Domain\Infrastructure\Pdf\Templates;
 
 use App\Domain\Infrastructure\Pdf\DocumentLabels;
+use App\Domain\Infrastructure\Pdf\Support\PdfText;
 use App\Domain\Settings\DataTransferObjects\CompanySettings;
 use Illuminate\Database\Eloquent\Model;
 
 abstract class AbstractPdfTemplate
 {
     protected Model $model;
+
     protected string $locale;
+
     protected CompanySettings $companySettings;
+
     protected array $options = [];
 
     public function __construct(Model $model, string $locale = 'en', array $options = [])
@@ -34,7 +38,7 @@ abstract class AbstractPdfTemplate
 
     public function getData(): array
     {
-        return array_merge(
+        return $this->normalizeStrings(array_merge(
             [
                 'labels' => DocumentLabels::all($this->locale),
                 'company' => $this->getCompanyData(),
@@ -43,7 +47,24 @@ abstract class AbstractPdfTemplate
                 'document_version' => $this->getNextVersion(),
             ],
             $this->getDocumentData(),
-        );
+        ));
+    }
+
+    /**
+     * Translitera pontuação CJK/fullwidth (PdfText) em todas as strings do
+     * payload — a DejaVu Sans do dompdf não tem esses glifos e cada um viraria
+     * um quadrado "tofu" no documento. Data URIs (imagens embutidas) são
+     * puladas por eficiência; o mapa é todo não-ASCII e não as afetaria.
+     */
+    private function normalizeStrings(array $data): array
+    {
+        array_walk_recursive($data, function (&$value): void {
+            if (is_string($value) && ! str_starts_with($value, 'data:')) {
+                $value = PdfText::normalize($value);
+            }
+        });
+
+        return $data;
     }
 
     public function getNextVersion(): int
@@ -59,7 +80,7 @@ abstract class AbstractPdfTemplate
     {
         $reference = $this->model->reference ?? $this->model->getKey();
 
-        return $reference . '-v' . $this->getNextVersion() . '.pdf';
+        return $reference.'-v'.$this->getNextVersion().'.pdf';
     }
 
     abstract public function getDocumentType(): string;
@@ -112,9 +133,9 @@ abstract class AbstractPdfTemplate
         }
 
         $candidates = [
-            storage_path('app/public/' . $imagePath),
-            storage_path('app/' . $imagePath),
-            public_path('storage/' . $imagePath),
+            storage_path('app/public/'.$imagePath),
+            storage_path('app/'.$imagePath),
+            public_path('storage/'.$imagePath),
             public_path($imagePath),
         ];
 
