@@ -71,4 +71,5 @@ return [
         'no_items' => '尚未添加任何项目',
         'no_records' => '未找到记录',
     ],
+    'records_per_page' => '每页条数',
 ];

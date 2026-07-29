@@ -7,6 +7,7 @@ return [
         'logistics' => '物流',
         'finance' => '财务',
         'catalog' => '目录',
+        'projects' => '项目',
         'settings' => '设置',
         'trade' => '贸易',
     ],

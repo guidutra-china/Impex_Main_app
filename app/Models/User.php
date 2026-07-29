@@ -35,6 +35,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants
         'is_admin',
         'status',
         'locale',
+        'records_per_page',
     ];
 
     protected $hidden = [
@@ -49,6 +50,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants
             'password' => 'hashed',
             'is_admin' => 'boolean',
             'type' => UserType::class,
+            'records_per_page' => 'integer',
         ];
     }
 

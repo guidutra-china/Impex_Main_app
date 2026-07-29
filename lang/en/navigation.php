@@ -8,6 +8,7 @@ return [
         'logistics' => 'Logistics',
         'finance' => 'Finance',
         'catalog' => 'Catalog',
+        'projects' => 'Projects',
         'settings' => 'Settings',
         'trade' => 'Trade',
     ],

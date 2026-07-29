@@ -71,4 +71,5 @@ return [
         'no_items' => 'No items added yet',
         'no_records' => 'No records found',
     ],
+    'records_per_page' => 'Items per page',
 ];

@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Domain\Settings\DataTransferObjects\CompanySettings;
+use App\Filament\Auth\EditProfile;
 use App\Http\Middleware\SetLocale;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -10,15 +11,17 @@ use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
 use Filament\Pages\Dashboard;
-use App\Filament\Auth\EditProfile;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Enums\Width;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
@@ -33,8 +36,12 @@ class AdminPanelProvider extends PanelProvider
             ->passwordReset()
             ->emailVerification()
             ->profile(EditProfile::class)
-            ->sidebarCollapsibleOnDesktop()
-            ->sidebarFullyCollapsibleOnDesktop()
+            ->topNavigation()
+            ->maxContentWidth(Width::Full)
+            ->renderHook(
+                PanelsRenderHook::USER_MENU_PROFILE_AFTER,
+                fn (): string => Blade::render("@livewire('admin.records-per-page-selector')"),
+            )
             ->brandName('Impex')
             ->brandLogo(fn () => view('filament.components.brand-logo'))
             ->brandLogoHeight('3rem')
@@ -52,6 +59,7 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make(fn () => __('navigation.groups.trade')),
                 NavigationGroup::make(fn () => __('navigation.groups.crm')),
                 NavigationGroup::make(fn () => __('navigation.groups.operations')),
+                NavigationGroup::make(fn () => __('navigation.groups.projects')),
                 NavigationGroup::make(fn () => __('navigation.groups.catalog')),
                 NavigationGroup::make(fn () => __('navigation.groups.finance')),
                 NavigationGroup::make(fn () => __('navigation.groups.settings')),
@@ -96,6 +104,6 @@ class AdminPanelProvider extends PanelProvider
     {
         $logoPath = app(CompanySettings::class)->logo_path;
 
-        return $logoPath ? asset('storage/' . $logoPath) : null;
+        return $logoPath ? asset('storage/'.$logoPath) : null;
     }
 }

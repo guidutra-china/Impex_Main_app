@@ -18,6 +18,7 @@ use App\Events\ShipmentEtaChangedByForwarder;
 use App\Listeners\HandleForwarderEtaChange;
 use App\Policies\ConversationPolicy;
 use App\Policies\MessagePolicy;
+use Filament\Tables\Table;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -48,5 +49,20 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Message::class, MessagePolicy::class);
 
         Event::listen(ShipmentEtaChangedByForwarder::class, HandleForwarderEtaChange::class);
+
+        // Regra de negócio: cada usuário escolhe quantos itens por página quer ver
+        // nas tabelas (menu do usuário no topo). Só aplica quando a opção existe
+        // nas opções de paginação da tabela; caso contrário mantém o padrão dela.
+        Table::configureUsing(function (Table $table): void {
+            $table->defaultPaginationPageOption(function () use ($table): ?int {
+                $perPage = auth()->user()?->records_per_page;
+
+                if ($perPage && in_array($perPage, $table->getPaginationPageOptions(), true)) {
+                    return $perPage;
+                }
+
+                return null;
+            });
+        });
     }
 }

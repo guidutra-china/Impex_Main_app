@@ -7,6 +7,7 @@ return [
         'logistics' => 'Logística',
         'finance' => 'Financeiro',
         'catalog' => 'Catálogo',
+        'projects' => 'Projetos',
         'settings' => 'Configurações',
         'trade' => 'Comércio',
     ],
