@@ -25,6 +25,7 @@ use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Str;
 
 class SupplierQuotationForm
 {
@@ -76,11 +77,14 @@ class SupplierQuotationForm
                         ->label(__('forms.labels.inquiry'))
                         ->options(
                             fn () => Inquiry::query()
+                                ->with('company')
                                 ->orderByDesc('id')
                                 ->limit(100)
                                 ->get()
                                 ->mapWithKeys(fn ($i) => [
-                                    $i->id => $i->reference.' — '.($i->company?->name ?? 'N/A'),
+                                    $i->id => $i->reference
+                                        .' — '.($i->company?->name ?? 'N/A')
+                                        .(filled($i->description) ? ' — '.Str::limit($i->description, 60) : ''),
                                 ])
                         )
                         ->searchable()

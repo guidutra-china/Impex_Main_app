@@ -348,6 +348,24 @@ trait InquiryHeaderActions
             ->form(function () use ($inquiry, $hasSupplierQuotations) {
                 $fields = [];
 
+                // SQs ainda "Solicitadas" mas já com custos preenchidos não são
+                // elegíveis como fonte de preço — avisar em vez de o seletor
+                // simplesmente não aparecer e a quotation nascer com custo zero.
+                $requestedWithCosts = $inquiry->supplierQuotations()
+                    ->where('status', SupplierQuotationStatus::REQUESTED)
+                    ->whereHas('items', fn ($q) => $q->where('unit_cost', '>', 0))
+                    ->get()
+                    ->map(fn ($sq) => $sq->reference);
+
+                if ($requestedWithCosts->isNotEmpty()) {
+                    $fields[] = Placeholder::make('requested_sqs_warning')
+                        ->hiddenLabel()
+                        ->content('⚠️ '.__('messages.requested_sqs_with_costs_warning', [
+                            'refs' => $requestedWithCosts->join(', '),
+                        ]))
+                        ->columnSpanFull();
+                }
+
                 if ($hasSupplierQuotations) {
                     $sqOptions = $inquiry->supplierQuotations()
                         ->whereIn('status', [
