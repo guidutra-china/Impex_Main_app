@@ -3,11 +3,11 @@
 namespace App\Filament\Resources\SupplierQuotations;
 
 use App\Domain\SupplierQuotations\Models\SupplierQuotation;
+use App\Filament\RelationManagers\DocumentsRelationManager;
 use App\Filament\Resources\SupplierQuotations\Pages\CreateSupplierQuotation;
 use App\Filament\Resources\SupplierQuotations\Pages\EditSupplierQuotation;
 use App\Filament\Resources\SupplierQuotations\Pages\ListSupplierQuotations;
 use App\Filament\Resources\SupplierQuotations\Pages\ViewSupplierQuotation;
-use App\Filament\RelationManagers\DocumentsRelationManager;
 use App\Filament\Resources\SupplierQuotations\RelationManagers\ItemsRelationManager;
 use App\Filament\Resources\SupplierQuotations\Schemas\SupplierQuotationForm;
 use App\Filament\Resources\SupplierQuotations\Schemas\SupplierQuotationInfolist;
@@ -16,11 +16,12 @@ use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
-use UnitEnum;
 
 class SupplierQuotationResource extends Resource
 {
     protected static ?string $model = SupplierQuotation::class;
+
+    protected static ?string $recordTitleAttribute = 'reference';
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-check';
 
