@@ -51,7 +51,7 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
             'contact',
             'inquiry',
             'paymentTerm',
-            'items.product',
+            'items.product.specification',
             'items.selectedSupplier',
             'items.suppliers.company',
             'creator',
@@ -120,6 +120,9 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
                 'index' => $index + 1,
                 'product_code' => $item->product?->sku ?? '—',
                 'description' => $item->product?->name ?? $item->notes ?? '—',
+                // Só na cotação ao cliente: as notas de especificação do produto
+                // ajudam a vender; documentos formais (PI/CI) não as carregam.
+                'spec_notes' => $item->product?->specification?->notes,
                 'quantity' => $item->quantity,
                 'unit' => $item->product?->unit ?? 'pcs',
                 'unit_price' => $unitPriceDisplay,

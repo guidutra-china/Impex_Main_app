@@ -90,6 +90,9 @@
                     <td>{{ $item['product_code'] }}</td>
                     <td>
                         {{ $item['description'] }}
+                        @if(! empty($item['spec_notes']))
+                            <br><span style="font-size: 7.5pt; color: #6b7280;">{{ $item['spec_notes'] }}</span>
+                        @endif
                         @if($item['incoterm'])
                             <br><span style="font-size: 7.5pt; color: #6b7280;">{{ $labels['incoterm'] }}: {{ $item['incoterm'] }}</span>
                         @endif
