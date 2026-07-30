@@ -40,7 +40,7 @@ class Carton extends Model
             'length' => 'decimal:2',
             'width' => 'decimal:2',
             'height' => 'decimal:2',
-            'volume' => 'decimal:4',
+            'volume' => 'decimal:6',
             'sort_order' => 'integer',
         ];
     }

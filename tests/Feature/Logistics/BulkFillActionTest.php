@@ -10,7 +10,6 @@ use App\Domain\Logistics\Actions\BulkFillAction;
 use App\Domain\Logistics\Actions\CreateContainerAction;
 use App\Domain\Logistics\Actions\CreatePalletAction;
 use App\Domain\Logistics\Models\Carton;
-use App\Domain\Logistics\Models\CartonContent;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Logistics\Models\ShipmentItem;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
@@ -190,7 +189,27 @@ class BulkFillActionTest extends TestCase
         $this->assertEquals('40.00', $carton->length);
         $this->assertEquals('30.00', $carton->width);
         $this->assertEquals('20.00', $carton->height);
-        $this->assertEquals('0.0240', $carton->volume); // 40*30*20 / 1e6
+        $this->assertEquals('0.024000', $carton->volume); // 40*30*20 / 1e6
+    }
+
+    public function test_carton_volume_keeps_six_decimal_precision(): void
+    {
+        [$shipment, $item] = $this->makeShipmentWithProduct(qty: 10, pcsPerCarton: 5);
+
+        // 60×29×21 = 0,036540 m³ — com 4 casas virava 0,0365 e, somado sobre
+        // milhares de caixas, o total divergia do real (SH-2026-00029: 35,77 vs 35,81).
+        ProductPackaging::sole()->update([
+            'carton_length' => 60,
+            'carton_width' => 29,
+            'carton_height' => 21,
+        ]);
+
+        $container = $this->createContainer->execute($shipment);
+        $this->fill->execute($item, 10, container: $container);
+
+        $this->assertEquals('0.036540', $shipment->cartons()->first()->volume);
+        // O hook saving do ProductPackaging também recalcula o carton_cbm a 6 casas.
+        $this->assertEquals('0.036540', ProductPackaging::sole()->carton_cbm);
     }
 
     public function test_fill_respects_remaining_after_previous_fills(): void

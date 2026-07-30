@@ -101,7 +101,7 @@ class GeneratePackingListAction
             : (PackagingType::tryFrom((string) ($rawType ?? '')) ?? PackagingType::CARTON);
 
         if (! $boxVolume && $boxLength && $boxWidth && $boxHeight) {
-            $boxVolume = round(($boxLength * $boxWidth * $boxHeight) / 1_000_000, 4);
+            $boxVolume = round(($boxLength * $boxWidth * $boxHeight) / 1_000_000, 6);
         }
 
         if (! $boxNetWeight && $boxGrossWeight) {
@@ -184,7 +184,7 @@ class GeneratePackingListAction
         $cartonCbm = (float) ($packaging->carton_cbm ?? 0);
 
         if ($cartonCbm <= 0 && $cartonLength > 0 && $cartonWidth > 0 && $cartonHeight > 0) {
-            $cartonCbm = round(($cartonLength * $cartonWidth * $cartonHeight) / 1_000_000, 4);
+            $cartonCbm = round(($cartonLength * $cartonWidth * $cartonHeight) / 1_000_000, 6);
         }
         $cartonNetWeight = (float) ($packaging->carton_net_weight ?? 0);
 
@@ -284,7 +284,6 @@ class GeneratePackingListAction
 
         return 1;
     }
-
 
     protected function updateShipmentTotals(Shipment $shipment): void
     {

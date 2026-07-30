@@ -251,7 +251,7 @@ class BulkFillAction
         $cbm = (float) ($packaging->carton_cbm ?? 0);
 
         if ($cbm <= 0 && $length > 0 && $width > 0 && $height > 0) {
-            $cbm = round(($length * $width * $height) / 1_000_000, 4);
+            $cbm = round(($length * $width * $height) / 1_000_000, 6);
         }
 
         $gross = (float) ($packaging->carton_weight ?? 0);

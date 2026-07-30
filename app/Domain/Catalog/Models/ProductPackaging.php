@@ -48,7 +48,7 @@ class ProductPackaging extends Model
             'carton_height' => 'decimal:2',
             'carton_weight' => 'decimal:3',
             'carton_net_weight' => 'decimal:3',
-            'carton_cbm' => 'decimal:4',
+            'carton_cbm' => 'decimal:6',
             'cartons_per_20ft' => 'integer',
             'cartons_per_40ft' => 'integer',
             'cartons_per_40hq' => 'integer',
@@ -61,7 +61,7 @@ class ProductPackaging extends Model
             if ($packaging->carton_length > 0 && $packaging->carton_width > 0 && $packaging->carton_height > 0) {
                 $packaging->carton_cbm = round(
                     ($packaging->carton_length * $packaging->carton_width * $packaging->carton_height) / 1_000_000,
-                    4
+                    6
                 );
             }
         });

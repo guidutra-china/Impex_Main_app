@@ -216,7 +216,7 @@ class GeneratePackingListV2ActionTest extends TestCase
         $this->assertEquals('15.000', $carton->gross_weight);
         $this->assertEquals('13.500', $carton->net_weight); // 90% of gross
         $this->assertEquals('50.00', $carton->length);
-        $this->assertEquals('0.0600', $carton->volume); // 50*40*30 / 1e6
+        $this->assertEquals('0.060000', $carton->volume); // 50*40*30 / 1e6
     }
 
     public function test_running_twice_wipes_existing_cartons(): void

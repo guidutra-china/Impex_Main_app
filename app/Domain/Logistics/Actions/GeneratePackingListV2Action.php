@@ -196,7 +196,7 @@ class GeneratePackingListV2Action
         $cbm = (float) ($packaging->carton_cbm ?? 0);
 
         if ($cbm <= 0 && $length > 0 && $width > 0 && $height > 0) {
-            $cbm = round(($length * $width * $height) / 1_000_000, 4);
+            $cbm = round(($length * $width * $height) / 1_000_000, 6);
         }
 
         $gross = (float) ($packaging->carton_weight ?? 0);
@@ -241,7 +241,7 @@ class GeneratePackingListV2Action
         $volume = ! empty($config['volume']) ? (float) $config['volume'] : null;
 
         if ($volume === null && $length && $width && $height) {
-            $volume = round(($length * $width * $height) / 1_000_000, 4);
+            $volume = round(($length * $width * $height) / 1_000_000, 6);
         }
         if ($net === null && $gross !== null) {
             $net = round($gross * 0.9, 3);
