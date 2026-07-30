@@ -235,6 +235,30 @@ class PackingListBuilder extends Component
     }
 
     /**
+     * Totais gerais do embarque (todas as caixas, independente de container/
+     * pallet) — agregado em SQL para não hidratar milhares de cartons.
+     *
+     * @return array{boxes: int, gross: float, net: float, cbm: float}
+     */
+    #[Computed]
+    public function shipmentTotals(): array
+    {
+        $row = $this->shipment->cartons()
+            ->selectRaw('COUNT(*) AS boxes')
+            ->selectRaw('COALESCE(SUM(gross_weight), 0) AS gross')
+            ->selectRaw('COALESCE(SUM(net_weight), 0) AS net')
+            ->selectRaw('COALESCE(SUM(volume), 0) AS cbm')
+            ->first();
+
+        return [
+            'boxes' => (int) $row->boxes,
+            'gross' => (float) $row->gross,
+            'net' => (float) $row->net,
+            'cbm' => (float) $row->cbm,
+        ];
+    }
+
+    /**
      * Existing cartons as pack destinations, labelled with their parent and
      * current piece count so the operator can pick a specific box.
      *
@@ -620,7 +644,7 @@ class PackingListBuilder extends Component
         if (empty($attrs['volume']) && ! empty($attrs['length']) && ! empty($attrs['width']) && ! empty($attrs['height'])) {
             $attrs['volume'] = round(
                 ((float) $attrs['length'] * (float) $attrs['width'] * (float) $attrs['height']) / 1_000_000,
-                4,
+                6,
             );
         }
 
@@ -702,7 +726,7 @@ class PackingListBuilder extends Component
         if (isset($attrs['length'], $attrs['width'], $attrs['height'])) {
             $attrs['volume'] = round(
                 ((float) $attrs['length'] * (float) $attrs['width'] * (float) $attrs['height']) / 1_000_000,
-                4,
+                6,
             );
         }
 

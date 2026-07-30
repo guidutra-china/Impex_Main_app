@@ -80,6 +80,27 @@ class PackingListBuilderTest extends TestCase
             ->assertSet('shipment.id', $shipment->id);
     }
 
+    public function test_shipment_totals_aggregates_all_cartons(): void
+    {
+        [$shipment] = $this->makeShipment();
+
+        $shipment->cartons()->createMany([
+            ['label' => 'BOX-001', 'gross_weight' => 10.5, 'net_weight' => 9.0, 'volume' => 0.036540],
+            ['label' => 'BOX-002', 'gross_weight' => 4.5, 'net_weight' => 4.0, 'volume' => 0.036540],
+        ]);
+
+        $component = Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->assertOk()
+            ->assertSee('Totais gerais')
+            ->assertSee('15.00 kg')
+            ->assertSee('13.00 kg')
+            ->assertSee('0.07 m³');
+
+        $totals = $component->instance()->shipmentTotals;
+        $this->assertSame(2, $totals['boxes']);
+        $this->assertEqualsWithDelta(0.07308, $totals['cbm'], 0.000001);
+    }
+
     public function test_create_carton_creates_row(): void
     {
         [$shipment] = $this->makeShipment();
@@ -421,7 +442,7 @@ class PackingListBuilderTest extends TestCase
         $carton->refresh();
         $this->assertEquals('20.000', $carton->gross_weight);
         $this->assertEquals('18.000', $carton->net_weight); // auto: 90% of gross
-        $this->assertEquals('0.0720', $carton->volume); // auto: 60*40*30 / 1e6
+        $this->assertEquals('0.072000', $carton->volume); // auto: 60*40*30 / 1e6
         $this->assertEquals('CCLU1234567', $carton->container_number);
         $this->assertEquals(3, $carton->pallet_number);
     }
@@ -974,7 +995,7 @@ class PackingListBuilderTest extends TestCase
             $carton->refresh();
             $this->assertEquals('12.000', $carton->gross_weight);
             $this->assertEquals('10.800', $carton->net_weight); // auto: 90% of gross
-            $this->assertEquals('0.0720', $carton->volume); // 60*40*30 / 1e6
+            $this->assertEquals('0.072000', $carton->volume); // 60*40*30 / 1e6
         }
     }
 
