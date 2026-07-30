@@ -39,6 +39,12 @@ class ShipmentsTable
                     ->searchable()
                     ->sortable()
                     ->limit(30),
+                TextColumn::make('client_reference')
+                    ->label(__('forms.labels.client_reference'))
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('status')
                     ->badge(),
                 TextColumn::make('transport_mode')
