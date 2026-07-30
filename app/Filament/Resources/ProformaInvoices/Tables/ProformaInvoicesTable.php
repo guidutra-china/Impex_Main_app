@@ -6,7 +6,9 @@ use App\Domain\Infrastructure\Support\Money;
 use App\Domain\ProformaInvoices\Actions\CancelProformaInvoiceAction;
 use App\Domain\ProformaInvoices\Actions\SyncClientProductPricesAction;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
+use App\Filament\Actions\QuickViewAction;
 use App\Filament\Actions\StatusTransitionActions;
+use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -191,6 +193,7 @@ class ProformaInvoicesTable
                             'sideEffects' => fn ($record) => app(CancelProformaInvoiceAction::class)->cancelRelatedRecords($record),
                         ],
                     ]),
+                    QuickViewAction::make(ProformaInvoiceResource::class),
                     ViewAction::make(),
                     EditAction::make(),
                     DeleteAction::make(),

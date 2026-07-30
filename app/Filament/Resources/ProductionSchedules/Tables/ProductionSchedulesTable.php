@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\ProductionSchedules\Tables;
 
+use App\Filament\Actions\QuickViewAction;
+use App\Filament\Resources\ProductionSchedules\ProductionScheduleResource;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -60,6 +62,7 @@ class ProductionSchedulesTable
             ])
             ->recordActions([
                 ActionGroup::make([
+                    QuickViewAction::make(ProductionScheduleResource::class),
                     ViewAction::make(),
                     EditAction::make(),
                     DeleteAction::make(),

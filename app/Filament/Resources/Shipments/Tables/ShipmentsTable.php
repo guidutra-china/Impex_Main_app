@@ -7,7 +7,9 @@ use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Enums\TransportMode;
+use App\Filament\Actions\QuickViewAction;
 use App\Filament\Actions\StatusTransitionActions;
+use App\Filament\Resources\Shipments\ShipmentResource;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -119,6 +121,7 @@ class ShipmentsTable
             ->recordActions([
                 ActionGroup::make([
                     StatusTransitionActions::make(ShipmentStatus::class),
+                    QuickViewAction::make(ShipmentResource::class),
                     ViewAction::make(),
                     EditAction::make(),
                     DeleteAction::make(),

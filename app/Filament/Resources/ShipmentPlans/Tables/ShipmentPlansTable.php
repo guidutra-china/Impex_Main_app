@@ -4,6 +4,8 @@ namespace App\Filament\Resources\ShipmentPlans\Tables;
 
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Planning\Enums\ShipmentPlanStatus;
+use App\Filament\Actions\QuickViewAction;
+use App\Filament\Resources\ShipmentPlans\ShipmentPlanResource;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -48,7 +50,7 @@ class ShipmentPlansTable
                     ->alignCenter(),
                 TextColumn::make('total')
                     ->label(__('forms.labels.total_value'))
-                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state))
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '').' '.Money::format($state))
                     ->alignEnd()
                     ->sortable(),
                 TextColumn::make('shipment.reference')
@@ -71,6 +73,7 @@ class ShipmentPlansTable
             ])
             ->recordActions([
                 ActionGroup::make([
+                    QuickViewAction::make(ShipmentPlanResource::class),
                     ViewAction::make(),
                     EditAction::make(),
                     DeleteAction::make(),

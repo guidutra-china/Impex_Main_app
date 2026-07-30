@@ -4,7 +4,9 @@ namespace App\Filament\Resources\Inquiries\Tables;
 
 use App\Domain\Inquiries\Enums\InquirySource;
 use App\Domain\Inquiries\Enums\InquiryStatus;
+use App\Filament\Actions\QuickViewAction;
 use App\Filament\Actions\StatusTransitionActions;
+use App\Filament\Resources\Inquiries\InquiryResource;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -114,6 +116,7 @@ class InquiriesTable
             ->recordActions([
                 ActionGroup::make([
                     StatusTransitionActions::make(InquiryStatus::class),
+                    QuickViewAction::make(InquiryResource::class),
                     ViewAction::make(),
                     EditAction::make(),
                     DeleteAction::make(),

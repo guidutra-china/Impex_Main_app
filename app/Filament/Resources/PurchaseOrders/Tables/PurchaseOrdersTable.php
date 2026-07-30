@@ -5,7 +5,9 @@ namespace App\Filament\Resources\PurchaseOrders\Tables;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\PurchaseOrders\Actions\SyncSupplierProductPricesAction;
 use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
+use App\Filament\Actions\QuickViewAction;
 use App\Filament\Actions\StatusTransitionActions;
+use App\Filament\Resources\PurchaseOrders\PurchaseOrderResource;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -182,6 +184,7 @@ class PurchaseOrdersTable
                             'sideEffects' => fn ($record) => app(SyncSupplierProductPricesAction::class)->execute($record),
                         ],
                     ]),
+                    QuickViewAction::make(PurchaseOrderResource::class),
                     ViewAction::make(),
                     EditAction::make(),
                     DeleteAction::make(),

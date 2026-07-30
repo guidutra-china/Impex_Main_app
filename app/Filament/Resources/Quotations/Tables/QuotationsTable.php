@@ -4,7 +4,9 @@ namespace App\Filament\Resources\Quotations\Tables;
 
 use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\QuotationStatus;
+use App\Filament\Actions\QuickViewAction;
 use App\Filament\Actions\StatusTransitionActions;
+use App\Filament\Resources\Quotations\QuotationResource;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -134,6 +136,7 @@ class QuotationsTable
             ->recordActions([
                 ActionGroup::make([
                     StatusTransitionActions::make(QuotationStatus::class),
+                    QuickViewAction::make(QuotationResource::class),
                     ViewAction::make(),
                     EditAction::make(),
                     DeleteAction::make(),

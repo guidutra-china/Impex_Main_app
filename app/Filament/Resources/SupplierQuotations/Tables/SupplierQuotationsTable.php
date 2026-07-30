@@ -3,8 +3,10 @@
 namespace App\Filament\Resources\SupplierQuotations\Tables;
 
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
+use App\Filament\Actions\QuickViewAction;
 use App\Filament\Actions\StatusTransitionActions;
 use App\Filament\Resources\Inquiries\InquiryResource;
+use App\Filament\Resources\SupplierQuotations\SupplierQuotationResource;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
@@ -114,6 +116,7 @@ class SupplierQuotationsTable
             ->recordActions([
                 ActionGroup::make([
                     StatusTransitionActions::make(SupplierQuotationStatus::class),
+                    QuickViewAction::make(SupplierQuotationResource::class),
                     ViewAction::make(),
                     EditAction::make(),
                 ])

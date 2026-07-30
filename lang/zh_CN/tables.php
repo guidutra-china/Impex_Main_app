@@ -72,4 +72,6 @@ return [
         'no_records' => '未找到记录',
     ],
     'records_per_page' => '每页条数',
+    'quick_view' => '快速查看',
+    'open_full_page' => '打开完整页面',
 ];

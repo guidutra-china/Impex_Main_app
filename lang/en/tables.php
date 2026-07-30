@@ -72,4 +72,6 @@ return [
         'no_records' => 'No records found',
     ],
     'records_per_page' => 'Items per page',
+    'quick_view' => 'Quick view',
+    'open_full_page' => 'Open full page',
 ];

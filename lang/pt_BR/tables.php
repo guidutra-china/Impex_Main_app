@@ -72,4 +72,6 @@ return [
         'no_records' => 'Nenhum registro encontrado',
     ],
     'records_per_page' => 'Itens por página',
+    'quick_view' => 'Visualização rápida',
+    'open_full_page' => 'Abrir página completa',
 ];
