@@ -153,6 +153,27 @@
                         </tr>
                     @endforeach
                 </tbody>
+                @php($moneyCols = array_values(array_intersect($section->columns, ['total', 'paid', 'balance', 'amount', 'goods', 'freight'])))
+                @if(count($moneyCols) > 0)
+                    {{-- Totais da seção, por moeda (linhas podem misturar USD/BRL/CNY) --}}
+                    <tfoot>
+                        @foreach(collect($section->rows)->groupBy(fn ($r) => (string) ($r['currency'] ?? '')) as $cur => $curRows)
+                            <tr style="font-weight: bold; background: #f3f4f6; border-top: 1.5px solid #9ca3af;">
+                                @foreach($section->columns as $col)
+                                    @if($loop->first)
+                                        <td>{{ __('statements.columns.total', [], $locale) }} {{ $cur }}</td>
+                                    @elseif(in_array($col, $moneyCols))
+                                        <td style="text-align: right;">{{ number_format($curRows->sum(fn ($r) => (float) ($r[$col] ?? 0)), 2) }}</td>
+                                    @elseif($col === 'currency')
+                                        <td>{{ $cur }}</td>
+                                    @else
+                                        <td></td>
+                                    @endif
+                                @endforeach
+                            </tr>
+                        @endforeach
+                    </tfoot>
+                @endif
             </table>
         </div>
     @empty
