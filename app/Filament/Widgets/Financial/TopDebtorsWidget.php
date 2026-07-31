@@ -53,7 +53,7 @@ class TopDebtorsWidget extends Widget
             'debtors' => $debtors->map(fn (int $total, string $name) => [
                 'name' => $name,
                 'formatted' => Money::formatDisplay($total),
-                'percent' => (int) round($total / $max * 100),
+                'percent' => max(1, (int) round($total / $max * 100)),
             ])->values()->all(),
             'unconverted' => array_values(array_unique($unconverted)),
         ];

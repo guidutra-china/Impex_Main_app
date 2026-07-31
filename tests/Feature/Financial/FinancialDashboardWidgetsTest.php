@@ -204,6 +204,24 @@ class FinancialDashboardWidgetsTest extends TestCase
             ->assertSee('100.00');
     }
 
+    public function test_top_debtors_shows_conversion_warning_even_when_all_debtors_unconvertible(): void
+    {
+        $this->adminActing();
+
+        Currency::create(['code' => 'USD', 'name' => 'US Dollar', 'name_plural' => 'US Dollars', 'symbol' => '$', 'decimal_places' => 2, 'is_base' => true, 'is_active' => true]);
+
+        $client = Company::factory()->create(['name' => 'Yuan Only Co']);
+        $pi = ProformaInvoice::factory()->create(['company_id' => $client->id, 'currency_code' => 'CNY']);
+
+        // CNY has no Currency row, so the whole balance is unconvertible and
+        // the debtor list ends up empty — the warning must still render.
+        $this->openItem(ProformaInvoice::class, $pi->id, 2_000_000, 'CNY', now()->addDays(5)->toDateString());
+
+        Livewire::test(\App\Filament\Widgets\Financial\TopDebtorsWidget::class)
+            ->assertSee(__('widgets.financial_dashboard.top_debtors_empty'))
+            ->assertSee('CNY');
+    }
+
     public function test_widget_is_hidden_without_permission(): void
     {
         $user = User::factory()->create([

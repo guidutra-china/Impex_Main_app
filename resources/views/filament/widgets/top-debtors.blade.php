@@ -13,7 +13,7 @@
                         </span>
                         <div class="h-2 flex-1 rounded-full bg-gray-100 dark:bg-gray-800">
                             <div
-                                class="h-2 rounded-full bg-indigo-500"
+                                class="h-2 rounded-full bg-primary-500"
                                 style="width: {{ $debtor['percent'] }}%"
                             ></div>
                         </div>
@@ -23,12 +23,12 @@
                     </div>
                 @endforeach
             </div>
+        @endif
 
-            @if (count($unconverted))
-                <p class="mt-3 text-xs text-amber-600 dark:text-amber-400">
-                    {{ __('widgets.financial_dashboard.conversion_warning', ['codes' => implode(', ', $unconverted)]) }}
-                </p>
-            @endif
+        @if (count($unconverted))
+            <p class="mt-3 text-xs text-warning-600 dark:text-warning-400">
+                {{ __('widgets.financial_dashboard.conversion_warning', ['codes' => implode(', ', $unconverted)]) }}
+            </p>
         @endif
     </x-filament::section>
 </x-filament-widgets::widget>
