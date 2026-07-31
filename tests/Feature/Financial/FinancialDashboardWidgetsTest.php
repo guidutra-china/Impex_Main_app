@@ -116,6 +116,14 @@ class FinancialDashboardWidgetsTest extends TestCase
             ->assertSee('USD 200.00'); // 300 open - 100 allocated
     }
 
+    public function test_cash_flow_chart_renders(): void
+    {
+        $this->adminActing();
+
+        Livewire::test(\App\Filament\Widgets\Financial\CashFlowChart::class)
+            ->assertOk();
+    }
+
     public function test_widget_is_hidden_without_permission(): void
     {
         $user = User::factory()->create([
