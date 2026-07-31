@@ -36,4 +36,21 @@ final class CurrencyTotals
             ->map(fn (int $total, string $currency) => $currency.' '.Money::formatDisplay($total))
             ->implode('  ·  ');
     }
+
+    /**
+     * Like format(), but keeps negative totals visible with a sign prefix
+     * (e.g. '-CNY 200.00') instead of assuming all totals are positive.
+     *
+     * @param  Collection<string, int>  $byCurrency
+     */
+    public static function formatSigned(Collection $byCurrency): string
+    {
+        if ($byCurrency->isEmpty()) {
+            return '—';
+        }
+
+        return $byCurrency
+            ->map(fn (int $total, string $currency) => ($total < 0 ? '-' : '').$currency.' '.Money::formatDisplay(abs($total)))
+            ->implode('  ·  ');
+    }
 }

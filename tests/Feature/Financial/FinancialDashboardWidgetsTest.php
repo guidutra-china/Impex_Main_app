@@ -3,7 +3,11 @@
 namespace Tests\Feature\Financial;
 
 use App\Domain\CRM\Models\Company;
+use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
+use App\Domain\Financial\Enums\PaymentStatus;
+use App\Domain\Financial\Models\Payment;
+use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
@@ -65,5 +69,62 @@ class FinancialDashboardWidgetsTest extends TestCase
             ->assertSee('USD 100.00')   // payables
             ->assertSee('USD 50.00')    // overdue (the AR item past due)
             ->assertSee('USD 250.00');  // net: 350 - 100
+    }
+
+    public function test_net_is_per_currency_with_signed_negatives(): void
+    {
+        $this->adminActing();
+
+        $client = Company::factory()->create();
+        $pi = ProformaInvoice::factory()->create(['company_id' => $client->id, 'currency_code' => 'USD']);
+        $po = PurchaseOrder::factory()->create(['currency_code' => 'CNY']);
+
+        $this->openItem(ProformaInvoice::class, $pi->id, 3_000_000, 'USD', now()->addDays(10)->toDateString());
+        $this->openItem(PurchaseOrder::class, $po->id, 2_000_000, 'CNY', now()->addDays(20)->toDateString());
+
+        Livewire::test(FinancialKpisWidget::class)
+            ->assertSee('USD 300.00')   // net USD: only receivables
+            ->assertSee('-CNY 200.00'); // net CNY: only payables, negative
+    }
+
+    public function test_approved_allocation_reduces_remaining_in_kpis(): void
+    {
+        $this->adminActing();
+
+        $client = Company::factory()->create();
+        $pi = ProformaInvoice::factory()->create(['company_id' => $client->id, 'currency_code' => 'USD']);
+
+        $item = $this->openItem(ProformaInvoice::class, $pi->id, 3_000_000, 'USD', now()->addDays(10)->toDateString());
+
+        $payment = Payment::create([
+            'direction' => PaymentDirection::INBOUND,
+            'company_id' => $client->id,
+            'amount' => 1_000_000,
+            'currency_code' => 'USD',
+            'payment_date' => now()->toDateString(),
+            'status' => PaymentStatus::APPROVED,
+        ]);
+        PaymentAllocation::create([
+            'payment_id' => $payment->id,
+            'payment_schedule_item_id' => $item->id,
+            'allocated_amount' => 1_000_000,
+            'exchange_rate' => 1,
+            'allocated_amount_in_document_currency' => 1_000_000,
+        ]);
+
+        Livewire::test(FinancialKpisWidget::class)
+            ->assertSee('USD 200.00'); // 300 open - 100 allocated
+    }
+
+    public function test_widget_is_hidden_without_permission(): void
+    {
+        $user = User::factory()->create([
+            'type' => UserType::INTERNAL,
+            'status' => 'active',
+        ]);
+        $this->actingAs($user);
+        Filament::setCurrentPanel('admin');
+
+        $this->assertFalse(FinancialKpisWidget::canView());
     }
 }

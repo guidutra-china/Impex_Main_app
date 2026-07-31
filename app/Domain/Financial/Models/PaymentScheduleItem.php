@@ -12,6 +12,7 @@ use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\Settings\Enums\CalculationBase;
 use App\Domain\Settings\Models\PaymentTermStage;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -373,6 +374,17 @@ class PaymentScheduleItem extends Model
     public function isFromAdditionalCost(): bool
     {
         return $this->source_type === AdditionalCost::class;
+    }
+
+    /**
+     * Whether this item's due date has passed relative to the given day
+     * (typically today at start of day). Items without a due date are
+     * never considered overdue.
+     */
+    public function isOverdueAsOf(CarbonImmutable $day): bool
+    {
+        return $this->due_date !== null
+            && $this->due_date->startOfDay()->lt($day);
     }
 
     /**

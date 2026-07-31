@@ -5,17 +5,17 @@ namespace App\Filament\Widgets\Financial;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Financial\Queries\OpenScheduleItemsQuery;
 use App\Domain\Financial\Support\CurrencyTotals;
-use App\Domain\Infrastructure\Support\Money;
 use Carbon\CarbonImmutable;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Illuminate\Support\Collection;
 
 class FinancialKpisWidget extends StatsOverviewWidget
 {
     protected static ?int $sort = 1;
 
     protected static bool $isLazy = false;
+
+    protected ?string $pollingInterval = null;
 
     protected int|string|array $columnSpan = 'full';
 
@@ -26,17 +26,20 @@ class FinancialKpisWidget extends StatsOverviewWidget
 
     protected function getStats(): array
     {
-        $receivables = OpenScheduleItemsQuery::receivables()->get();
-        $payables = OpenScheduleItemsQuery::payables()->get();
+        $receivables = OpenScheduleItemsQuery::receivables()
+            ->without(['payable', 'source', 'shipment'])
+            ->get();
+        $payables = OpenScheduleItemsQuery::payables()
+            ->without(['payable', 'source', 'shipment'])
+            ->get();
 
         $today = CarbonImmutable::now()->startOfDay();
-        $isOverdue = fn (PaymentScheduleItem $item): bool => $item->due_date !== null
-            && CarbonImmutable::parse($item->due_date)->startOfDay()->lt($today);
 
         $arTotals = CurrencyTotals::byCurrency($receivables);
         $apTotals = CurrencyTotals::byCurrency($payables);
         $overdueTotals = CurrencyTotals::byCurrency(
-            $receivables->filter($isOverdue)->concat($payables->filter($isOverdue))
+            $receivables->filter(fn (PaymentScheduleItem $i) => $i->isOverdueAsOf($today))
+                ->concat($payables->filter(fn (PaymentScheduleItem $i) => $i->isOverdueAsOf($today)))
         );
 
         $netTotals = $arTotals->keys()->concat($apTotals->keys())->unique()
@@ -54,22 +57,8 @@ class FinancialKpisWidget extends StatsOverviewWidget
                 ->color('info'),
             Stat::make(__('widgets.financial_dashboard.overdue'), CurrencyTotals::format($overdueTotals))
                 ->color($overdueTotals->isEmpty() ? 'gray' : 'danger'),
-            Stat::make(__('widgets.financial_dashboard.net_open'), $this->formatNet($netTotals))
+            Stat::make(__('widgets.financial_dashboard.net_open'), CurrencyTotals::formatSigned($netTotals))
                 ->color('primary'),
         ];
-    }
-
-    /**
-     * @param  Collection<string, int>  $netTotals
-     */
-    private function formatNet(Collection $netTotals): string
-    {
-        if ($netTotals->isEmpty()) {
-            return '—';
-        }
-
-        return $netTotals
-            ->map(fn (int $total, string $currency) => ($total < 0 ? '-' : '').$currency.' '.Money::formatDisplay(abs($total)))
-            ->implode('  ·  ');
     }
 }

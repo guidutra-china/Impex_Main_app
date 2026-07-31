@@ -16,6 +16,8 @@ use Illuminate\Support\Collection;
  */
 abstract class OpenItemsTotalsWidget extends StatsOverviewWidget
 {
+    protected ?string $pollingInterval = null;
+
     abstract protected function openItemsQuery(): Builder;
 
     protected function getStats(): array
@@ -27,8 +29,7 @@ abstract class OpenItemsTotalsWidget extends StatsOverviewWidget
 
         $open = CurrencyTotals::byCurrency($items);
         $overdue = CurrencyTotals::byCurrency(
-            $items->filter(fn (PaymentScheduleItem $i) => $i->due_date !== null
-                && CarbonImmutable::parse($i->due_date)->startOfDay()->lt($today))
+            $items->filter(fn (PaymentScheduleItem $i) => $i->isOverdueAsOf($today))
         );
 
         return [

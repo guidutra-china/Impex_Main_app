@@ -30,4 +30,13 @@ class CurrencyTotalsTest extends TestCase
             CurrencyTotals::format(new Collection(['USD' => 1_500_000, 'CNY' => 2_000_000])),
         );
     }
+
+    public function test_format_signed_prefixes_negatives_and_handles_empty(): void
+    {
+        $this->assertSame('—', CurrencyTotals::formatSigned(new Collection));
+        $this->assertSame(
+            'USD 150.00  ·  -CNY 200.00',
+            CurrencyTotals::formatSigned(new Collection(['USD' => 1_500_000, 'CNY' => -2_000_000])),
+        );
+    }
 }
