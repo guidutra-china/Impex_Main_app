@@ -49,6 +49,7 @@ abstract class UpcomingScheduleItemsTable extends TableWidget
                     ->whereNotNull('due_date')
                     ->whereDate('due_date', '>=', now()->startOfDay())
                     ->orderBy('due_date')
+                    ->orderBy('id')
             )
             ->paginated([5])
             ->defaultPaginationPageOption(5)

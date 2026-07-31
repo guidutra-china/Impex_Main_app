@@ -138,11 +138,36 @@ class FinancialDashboardWidgetsTest extends TestCase
 
         $client = Company::factory()->create(['name' => 'DeepFitness Ltda']);
         $pi = ProformaInvoice::factory()->create(['company_id' => $client->id, 'currency_code' => 'USD']);
-        $this->openItem(ProformaInvoice::class, $pi->id, 1_000_000, 'USD', now()->addDays(3)->toDateString());
+        $later = $this->openItem(ProformaInvoice::class, $pi->id, 1_000_000, 'USD', now()->addDays(7)->toDateString());
+        $sooner = $this->openItem(ProformaInvoice::class, $pi->id, 2_000_000, 'USD', now()->addDays(2)->toDateString());
 
         Livewire::test(\App\Filament\Widgets\Financial\UpcomingReceivablesTable::class)
-            ->assertCanSeeTableRecords([PaymentScheduleItem::first()])
+            ->assertCanSeeTableRecords([$sooner, $later], inOrder: true)
             ->assertSee('DeepFitness Ltda');
+    }
+
+    public function test_upcoming_receivables_table_excludes_items_without_due_date(): void
+    {
+        $this->adminActing();
+
+        $client = Company::factory()->create();
+        $pi = ProformaInvoice::factory()->create(['company_id' => $client->id, 'currency_code' => 'USD']);
+        $dated = $this->openItem(ProformaInvoice::class, $pi->id, 1_000_000, 'USD', now()->addDays(3)->toDateString());
+        $undated = PaymentScheduleItem::create([
+            'payable_type' => ProformaInvoice::class,
+            'payable_id' => $pi->id,
+            'label' => 'Installment',
+            'percentage' => 100,
+            'amount' => 500_000,
+            'currency_code' => 'USD',
+            'due_date' => null,
+            'status' => PaymentScheduleStatus::PENDING,
+            'is_credit' => false,
+        ]);
+
+        Livewire::test(\App\Filament\Widgets\Financial\UpcomingReceivablesTable::class)
+            ->assertCanSeeTableRecords([$dated])
+            ->assertCanNotSeeTableRecords([$undated]);
     }
 
     public function test_upcoming_payables_table_excludes_past_due_items(): void
@@ -168,5 +193,7 @@ class FinancialDashboardWidgetsTest extends TestCase
         Filament::setCurrentPanel('admin');
 
         $this->assertFalse(FinancialKpisWidget::canView());
+        $this->assertFalse(\App\Filament\Widgets\Financial\UpcomingReceivablesTable::canView());
+        $this->assertFalse(\App\Filament\Widgets\Financial\UpcomingPayablesTable::canView());
     }
 }
