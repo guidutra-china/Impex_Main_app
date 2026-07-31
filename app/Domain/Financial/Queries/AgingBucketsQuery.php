@@ -52,17 +52,11 @@ final class AgingBucketsQuery
 
     private static function bucketFor(PaymentScheduleItem $item, CarbonImmutable $today): string
     {
-        if ($item->due_date === null) {
+        if (! $item->isOverdueAsOf($today)) {
             return 'current';
         }
 
-        $due = $item->due_date->toImmutable()->startOfDay();
-
-        if ($due->gte($today)) {
-            return 'current';
-        }
-
-        $daysOverdue = $due->diffInDays($today);
+        $daysOverdue = $item->due_date->toImmutable()->startOfDay()->diffInDays($today);
 
         return match (true) {
             $daysOverdue <= 30 => 'd1_30',
