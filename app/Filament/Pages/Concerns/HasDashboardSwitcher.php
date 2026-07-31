@@ -8,8 +8,9 @@ use Illuminate\Contracts\View\View;
 
 /**
  * Shared header for the two dashboards: page heading on the left, a tab
- * switcher on the right. The switcher only renders when the user can access
- * BOTH dashboards; otherwise the plain heading shows.
+ * switcher on the right. The switcher renders only for users who can access
+ * the financial dashboard — operational access is implied for any
+ * authenticated panel user; otherwise the plain heading shows.
  */
 trait HasDashboardSwitcher
 {

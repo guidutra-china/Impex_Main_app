@@ -46,6 +46,37 @@ class DashboardSwitchTest extends TestCase
         $this->assertContains(\App\Filament\Widgets\SupplierAuditStatsWidget::class, $widgets);
     }
 
+    public function test_financial_dashboard_lists_financial_widgets(): void
+    {
+        $widgets = (new FinancialDashboard)->getWidgets();
+
+        $this->assertSame([
+            \App\Filament\Widgets\Financial\FinancialKpisWidget::class,
+            \App\Filament\Widgets\Financial\CashFlowChart::class,
+            \App\Filament\Widgets\Financial\ReceivablesAgingChart::class,
+            \App\Filament\Widgets\Financial\PayablesAgingChart::class,
+            \App\Filament\Widgets\Financial\UpcomingReceivablesTable::class,
+            \App\Filament\Widgets\Financial\UpcomingPayablesTable::class,
+            \App\Filament\Widgets\Financial\TopDebtorsWidget::class,
+            \App\Filament\Widgets\Financial\CurrencyExposureChart::class,
+        ], $widgets);
+    }
+
+    public function test_financial_preference_without_permission_stays_on_operational(): void
+    {
+        $user = User::factory()->create([
+            'type' => UserType::INTERNAL,
+            'status' => 'active',
+            'default_dashboard' => 'financial',
+        ]);
+        $this->actingAs($user);
+        Filament::setCurrentPanel('admin');
+
+        // No financial-dashboard permission: preference must be ignored,
+        // operational renders directly (canAccess guard leg of the redirect).
+        $this->get(OperationalDashboard::getUrl())->assertOk();
+    }
+
     public function test_financial_dashboard_is_forbidden_without_permission(): void
     {
         $user = User::factory()->create([

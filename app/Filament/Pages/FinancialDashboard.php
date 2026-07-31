@@ -3,6 +3,14 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Pages\Concerns\HasDashboardSwitcher;
+use App\Filament\Widgets\Financial\CashFlowChart;
+use App\Filament\Widgets\Financial\CurrencyExposureChart;
+use App\Filament\Widgets\Financial\FinancialKpisWidget;
+use App\Filament\Widgets\Financial\PayablesAgingChart;
+use App\Filament\Widgets\Financial\ReceivablesAgingChart;
+use App\Filament\Widgets\Financial\TopDebtorsWidget;
+use App\Filament\Widgets\Financial\UpcomingPayablesTable;
+use App\Filament\Widgets\Financial\UpcomingReceivablesTable;
 use BackedEnum;
 use Filament\Pages\Dashboard;
 
@@ -39,6 +47,20 @@ class FinancialDashboard extends Dashboard
 
     public function getWidgets(): array
     {
-        return [];
+        return [
+            FinancialKpisWidget::class,
+            CashFlowChart::class,
+            ReceivablesAgingChart::class,
+            PayablesAgingChart::class,
+            UpcomingReceivablesTable::class,
+            UpcomingPayablesTable::class,
+            TopDebtorsWidget::class,
+            CurrencyExposureChart::class,
+        ];
+    }
+
+    public function getColumns(): int|array
+    {
+        return 12;
     }
 }
