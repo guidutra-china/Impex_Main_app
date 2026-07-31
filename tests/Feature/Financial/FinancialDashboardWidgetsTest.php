@@ -124,6 +124,14 @@ class FinancialDashboardWidgetsTest extends TestCase
             ->assertOk();
     }
 
+    public function test_aging_charts_render(): void
+    {
+        $this->adminActing();
+
+        Livewire::test(\App\Filament\Widgets\Financial\ReceivablesAgingChart::class)->assertOk();
+        Livewire::test(\App\Filament\Widgets\Financial\PayablesAgingChart::class)->assertOk();
+    }
+
     public function test_widget_is_hidden_without_permission(): void
     {
         $user = User::factory()->create([
