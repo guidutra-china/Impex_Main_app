@@ -23,8 +23,8 @@ class ClientProductsReportImporterTest extends TestCase
     {
         $client = Company::factory()->create(['name' => 'Eletro Brasil']);
 
-        $productA = Product::factory()->create(['name' => 'AAA LED Panel', 'sku' => 'SKU-A']);
-        $productB = Product::factory()->create(['name' => 'BBB Solar Cable', 'sku' => 'SKU-B']);
+        $productA = Product::factory()->create(['name' => 'AAA LED Panel', 'sku' => 'SKU-A', 'hs_code' => '9405.10.99']);
+        $productB = Product::factory()->create(['name' => 'BBB Solar Cable', 'sku' => 'SKU-B', 'hs_code' => '8544.49.00']);
 
         $linkA = CompanyProduct::create([
             'company_id' => $client->id,
@@ -56,10 +56,12 @@ class ClientProductsReportImporterTest extends TestCase
         $sheet->setCellValue('J5', 15.5);
         $sheet->setCellValue('K5', 14.25);
         $sheet->setCellValue('L5', 'BRL');
+        $sheet->setCellValue('M5', '8501.31.20'); // NCM editado atualiza o produto
 
         // Row 6 = product B: blank cells must clear the stored values.
         $sheet->setCellValue('G6', '');
         $sheet->setCellValue('J6', '');
+        $sheet->setCellValue('M6', ''); // NCM em branco NÃO limpa o produto
 
         // Extra row with unknown SKU must be skipped.
         $sheet->setCellValue('B7', 'SKU-UNKNOWN');
@@ -85,6 +87,9 @@ class ClientProductsReportImporterTest extends TestCase
         $this->assertNull($linkB->external_code);
         $this->assertSame(0, $linkB->unit_price);
         $this->assertNull($linkB->custom_price);
+
+        $this->assertSame('8501.31.20', $productA->refresh()->hs_code);
+        $this->assertSame('8544.49.00', $productB->refresh()->hs_code);
 
         unlink($path);
     }

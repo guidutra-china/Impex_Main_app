@@ -25,6 +25,7 @@ class ClientProductsExcelExporterTest extends TestCase
             'sku' => 'SKU-A',
             'model_number' => 'MOD-A',
             'description' => 'Original description A',
+            'hs_code' => '9405.10.99',
         ]);
         $productB = Product::factory()->create([
             'name' => 'BBB Solar Cable 6mm',
@@ -61,6 +62,12 @@ class ClientProductsExcelExporterTest extends TestCase
             'unit_price' => 0,
         ]);
 
+        // Fabricante: fornecedor preferencial vence o não-preferencial.
+        $factoryA = Company::factory()->create(['name' => 'Shenzhen Factory A']);
+        $factoryB = Company::factory()->create(['name' => 'Ningbo Factory B']);
+        $productA->companies()->attach($factoryA->id, ['role' => 'supplier', 'is_preferred' => false]);
+        $productA->companies()->attach($factoryB->id, ['role' => 'supplier', 'is_preferred' => true]);
+
         $path = (new ClientProductsExcelExporter)->export($client);
 
         $this->assertFileExists($path);
@@ -84,6 +91,11 @@ class ClientProductsExcelExporterTest extends TestCase
         $this->assertEqualsWithDelta(12.5, $sheet->getCell('J5')->getValue(), 0.0001);
         $this->assertEqualsWithDelta(11.99, $sheet->getCell('K5')->getValue(), 0.0001);
         $this->assertSame('USD', $sheet->getCell('L5')->getValue());
+
+        $this->assertSame('NCM', $sheet->getCell('M4')->getValue());
+        $this->assertSame('Fabricante', $sheet->getCell('N4')->getValue());
+        $this->assertSame('9405.10.99', $sheet->getCell('M5')->getValue());
+        $this->assertSame('Ningbo Factory B', $sheet->getCell('N5')->getValue());
 
         // Second product: null client fields stay empty, no CI price.
         $this->assertSame('SKU-B', $sheet->getCell('B6')->getValue());
