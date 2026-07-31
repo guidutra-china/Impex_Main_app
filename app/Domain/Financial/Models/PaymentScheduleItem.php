@@ -186,10 +186,15 @@ class PaymentScheduleItem extends Model
      * Batch-computed paid amount injected by OpenItemsSnapshot so dashboard
      * renders don't fire two allocation queries per item. Null = not set,
      * accessor falls through to the live queries.
+     *
+     * The value lives on the PHP object, NOT in the database — it survives
+     * refresh(). Callers that write allocations and then re-read a snapshot
+     * item must clear it (setPrecomputedPaidAmount(null)) or fetch a fresh
+     * model to see live numbers.
      */
     private ?int $precomputedPaidAmount = null;
 
-    public function setPrecomputedPaidAmount(int $amount): void
+    public function setPrecomputedPaidAmount(?int $amount): void
     {
         $this->precomputedPaidAmount = $amount;
     }

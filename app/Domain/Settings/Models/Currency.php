@@ -40,16 +40,17 @@ class Currency extends Model
     }
 
     /**
-     * Memoized per request via once() — currencies don't change mid-request
-     * and dashboard widgets call this dozens of times per render. The test
-     * framework flushes the once() cache between tests automatically.
+     * Memoized per request/job via once() — currencies don't change
+     * mid-request and dashboard widgets call this dozens of times per
+     * render. The cache is flushed before each queued job (Queue::before
+     * in AppServiceProvider) and between tests by the framework.
      */
     public static function base(): ?self
     {
         return once(fn (): ?self => static::where('is_base', true)->first());
     }
 
-    /** Memoized per request per code via once(). */
+    /** Memoized per request/job per code via once(); same lifetime as base(). */
     public static function findByCode(string $code): ?self
     {
         return once(fn (): ?self => static::where('code', $code)->first());

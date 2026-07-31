@@ -22,6 +22,8 @@ use App\Policies\MessagePolicy;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Once;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -52,6 +54,11 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Message::class, MessagePolicy::class);
 
         Event::listen(ShipmentEtaChangedByForwarder::class, HandleForwarderEtaChange::class);
+
+        // once() memoiza pelo tempo de vida do processo — em workers de fila
+        // de longa duração isso vazaria cache (ex.: Currency::base()) entre
+        // jobs. Cada job começa com o cache limpo.
+        Queue::before(fn () => Once::flush());
 
         // Regra de negócio: cada usuário escolhe quantos itens por página quer ver
         // nas tabelas (menu do usuário no topo). Só aplica quando a opção existe

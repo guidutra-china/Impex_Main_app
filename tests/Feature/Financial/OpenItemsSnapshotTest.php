@@ -3,13 +3,17 @@
 namespace Tests\Feature\Financial;
 
 use App\Domain\CRM\Models\Company;
+use App\Domain\Financial\Enums\AdditionalCostType;
+use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
+use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\Payment;
 use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Financial\Support\OpenItemsSnapshot;
+use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\Users\Enums\UserType;
 use App\Filament\Widgets\Financial\FinancialKpisWidget;
@@ -90,6 +94,136 @@ class OpenItemsSnapshotTest extends TestCase
         $freshItem = PaymentScheduleItem::findOrFail($item->id);
 
         $this->assertSame(3_000_000, $snapshotItem->remaining_amount);
+        $this->assertSame($freshItem->remaining_amount, $snapshotItem->remaining_amount);
+    }
+
+    public function test_credit_application_allocations_count_toward_paid_in_batch(): void
+    {
+        $client = Company::factory()->create();
+        $pi = ProformaInvoice::factory()->create(['company_id' => $client->id, 'currency_code' => 'USD']);
+
+        $item = $this->openItem($pi, 3_000_000);
+        $this->allocate($item, 1_000_000, PaymentStatus::APPROVED);
+
+        // Credit application: an allocation against the item that consumes a
+        // credit line (credit_schedule_item_id set) — the accessor counts it
+        // the same as cash, so the batch must too.
+        $creditItem = PaymentScheduleItem::create([
+            'payable_type' => ProformaInvoice::class,
+            'payable_id' => $pi->id,
+            'label' => 'Credit line',
+            'percentage' => 0,
+            'amount' => 200_000,
+            'currency_code' => 'USD',
+            'status' => PaymentScheduleStatus::PAID,
+            'is_credit' => true,
+        ]);
+        $creditPayment = Payment::create([
+            'direction' => PaymentDirection::INBOUND,
+            'company_id' => $client->id,
+            'amount' => 200_000,
+            'currency_code' => 'USD',
+            'payment_date' => now()->toDateString(),
+            'status' => PaymentStatus::APPROVED,
+        ]);
+        PaymentAllocation::create([
+            'payment_id' => $creditPayment->id,
+            'payment_schedule_item_id' => $item->id,
+            'credit_schedule_item_id' => $creditItem->id,
+            'allocated_amount' => 200_000,
+            'exchange_rate' => 1,
+            'allocated_amount_in_document_currency' => 200_000,
+        ]);
+
+        $snapshotItem = app(OpenItemsSnapshot::class)->receivables()->firstWhere('id', $item->id);
+        $freshItem = PaymentScheduleItem::findOrFail($item->id);
+
+        $this->assertSame(1_800_000, $freshItem->remaining_amount, 'accessor must count cash + credit application');
+        $this->assertSame($freshItem->remaining_amount, $snapshotItem->remaining_amount);
+    }
+
+    public function test_shipment_payable_items_keep_mirror_paid_parity(): void
+    {
+        $client = Company::factory()->create();
+        $pi = ProformaInvoice::factory()->create([
+            'company_id' => $client->id,
+            'currency_code' => 'USD',
+            'reference' => 'PI-MIR-1',
+        ]);
+        $shipment = Shipment::factory()->create(['company_id' => $client->id, 'currency_code' => 'USD']);
+
+        // Client-billable cost puts the Shipment-owned item into the
+        // receivables universe via source_type/source_id.
+        $cost = AdditionalCost::create([
+            'costable_type' => Shipment::class,
+            'costable_id' => $shipment->id,
+            'cost_type' => AdditionalCostType::FREIGHT,
+            'description' => 'Sea freight',
+            'amount' => 1_000_000,
+            'currency_code' => 'USD',
+            'amount_in_document_currency' => 1_000_000,
+            'billable_to' => BillableTo::CLIENT,
+            'cost_date' => now()->toDateString(),
+        ]);
+
+        // Shipment-owned item whose label carries the "[SH / PI]" marker that
+        // activates getMirrorPaidAmount().
+        $shipmentItem = PaymentScheduleItem::create([
+            'payable_type' => Shipment::class,
+            'payable_id' => $shipment->id,
+            'label' => "Deposit — [{$shipment->reference} / PI-MIR-1]",
+            'percentage' => 0,
+            'amount' => 1_000_000,
+            'currency_code' => 'USD',
+            'due_date' => now()->addDays(10)->toDateString(),
+            'status' => PaymentScheduleStatus::DUE,
+            'is_credit' => false,
+            'source_type' => AdditionalCost::class,
+            'source_id' => $cost->id,
+        ]);
+
+        // Mirror item on the PI (same shipment, matching label prefix) paid
+        // via an approved allocation — the Shipment item's accessor folds
+        // this in through the mirror path.
+        $mirrorItem = PaymentScheduleItem::create([
+            'payable_type' => ProformaInvoice::class,
+            'payable_id' => $pi->id,
+            'shipment_id' => $shipment->id,
+            'label' => 'Deposit',
+            'percentage' => 0,
+            'amount' => 1_000_000,
+            'currency_code' => 'USD',
+            'status' => PaymentScheduleStatus::PAID,
+            'is_credit' => false,
+        ]);
+        $payment = Payment::create([
+            'direction' => PaymentDirection::INBOUND,
+            'company_id' => $client->id,
+            'amount' => 400_000,
+            'currency_code' => 'USD',
+            'payment_date' => now()->toDateString(),
+            'status' => PaymentStatus::APPROVED,
+        ]);
+        PaymentAllocation::create([
+            'payment_id' => $payment->id,
+            'payment_schedule_item_id' => $mirrorItem->id,
+            'allocated_amount' => 400_000,
+            'exchange_rate' => 1,
+            'allocated_amount_in_document_currency' => 400_000,
+        ]);
+
+        $freshItem = PaymentScheduleItem::findOrFail($shipmentItem->id);
+        $this->assertSame(
+            600_000,
+            $freshItem->remaining_amount,
+            'fixture must exercise the mirror path: 1,000,000 scheduled - 400,000 mirror-paid'
+        );
+
+        // The guard under test: were Shipment-owned items batch-prefilled
+        // (skipping the mirror math), the snapshot would report 1,000,000.
+        $snapshotItem = app(OpenItemsSnapshot::class)->receivables()->firstWhere('id', $shipmentItem->id);
+
+        $this->assertNotNull($snapshotItem, 'Shipment-owned client-cost item must be in the receivables universe');
         $this->assertSame($freshItem->remaining_amount, $snapshotItem->remaining_amount);
     }
 
