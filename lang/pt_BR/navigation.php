@@ -113,6 +113,8 @@ return [
         'trade_fairs' => 'Feiras',
     ],
     'pages' => [
+        'operational_dashboard' => 'Dashboard Operacional',
+        'financial_dashboard' => 'Dashboard Financeiro',
         'financial_overview' => 'Visão Financeira',
         'financial_reports' => 'Relatórios Financeiros',
         'accounts_receivable_open' => 'Contas a Receber',

@@ -7,6 +7,7 @@ return [
     ],
 
     'labels' => [
+        'default_dashboard' => 'Dashboard padrão',
         'export_excel' => 'Exportar Excel',
         'trip_title' => 'Título da Viagem',
         'fx_rate' => 'Câmbio :from → cobrança',

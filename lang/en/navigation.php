@@ -120,6 +120,8 @@ return [
 
     // Page Titles
     'pages' => [
+        'operational_dashboard' => 'Operational dashboard',
+        'financial_dashboard' => 'Financial dashboard',
         'financial_overview' => 'Financial Overview',
         'financial_reports' => 'Financial Reports',
         'accounts_receivable_open' => 'Accounts Receivable',

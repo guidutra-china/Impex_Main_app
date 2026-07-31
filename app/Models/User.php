@@ -36,6 +36,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants
         'status',
         'locale',
         'records_per_page',
+        'default_dashboard',
     ];
 
     protected $hidden = [

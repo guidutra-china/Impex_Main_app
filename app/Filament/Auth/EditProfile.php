@@ -16,6 +16,7 @@ class EditProfile extends BaseEditProfile
                 $this->getNameFormComponent(),
                 $this->getEmailFormComponent(),
                 $this->getLocaleFormComponent(),
+                $this->getDefaultDashboardFormComponent(),
                 $this->getPasswordFormComponent(),
                 $this->getPasswordConfirmationFormComponent(),
                 $this->getCurrentPasswordFormComponent(),
@@ -34,5 +35,19 @@ class EditProfile extends BaseEditProfile
             ->default('en')
             ->required()
             ->native(false);
+    }
+
+    protected function getDefaultDashboardFormComponent(): Component
+    {
+        return Select::make('default_dashboard')
+            ->label(__('forms.labels.default_dashboard'))
+            ->options([
+                'operational' => __('navigation.pages.operational_dashboard'),
+                'financial' => __('navigation.pages.financial_dashboard'),
+            ])
+            ->default('operational')
+            ->required()
+            ->native(false)
+            ->visible(fn (): bool => auth()->user()?->can('view-financial-dashboard') ?? false);
     }
 }

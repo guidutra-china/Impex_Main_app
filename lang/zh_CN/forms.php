@@ -7,6 +7,7 @@ return [
     ],
 
     'labels' => [
+        'default_dashboard' => '默认仪表盘',
         'export_excel' => '导出 Excel',
         'trip_title' => '出差标题 / 事由',
         'fx_rate' => '汇率 :from → 计费',

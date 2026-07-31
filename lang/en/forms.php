@@ -7,6 +7,7 @@ return [
     ],
 
     'labels' => [
+        'default_dashboard' => 'Default dashboard',
         'export_excel' => 'Export Excel',
         'trip_title' => 'Trip Title / Purpose',
         'fx_rate' => 'FX rate :from → billing',

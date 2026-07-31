@@ -110,6 +110,8 @@ return [
         'trip_expenses' => '出差费用',
     ],
     'pages' => [
+        'operational_dashboard' => '运营仪表盘',
+        'financial_dashboard' => '财务仪表盘',
         'financial_overview' => '财务概览',
         'financial_reports' => '财务报表',
         'accounts_receivable_open' => '应收账款',
