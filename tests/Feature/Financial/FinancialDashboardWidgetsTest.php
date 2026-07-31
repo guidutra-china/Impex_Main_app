@@ -222,6 +222,13 @@ class FinancialDashboardWidgetsTest extends TestCase
             ->assertSee('CNY');
     }
 
+    public function test_currency_exposure_chart_renders(): void
+    {
+        $this->adminActing();
+
+        Livewire::test(\App\Filament\Widgets\Financial\CurrencyExposureChart::class)->assertOk();
+    }
+
     public function test_widget_is_hidden_without_permission(): void
     {
         $user = User::factory()->create([
@@ -234,5 +241,6 @@ class FinancialDashboardWidgetsTest extends TestCase
         $this->assertFalse(FinancialKpisWidget::canView());
         $this->assertFalse(\App\Filament\Widgets\Financial\UpcomingReceivablesTable::canView());
         $this->assertFalse(\App\Filament\Widgets\Financial\UpcomingPayablesTable::canView());
+        $this->assertFalse(\App\Filament\Widgets\Financial\CurrencyExposureChart::canView());
     }
 }
