@@ -11,6 +11,7 @@ use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
+use App\Domain\Settings\Models\Currency;
 use App\Domain\Users\Enums\UserType;
 use App\Filament\Widgets\Financial\FinancialKpisWidget;
 use App\Models\User;
@@ -181,6 +182,26 @@ class FinancialDashboardWidgetsTest extends TestCase
         Livewire::test(\App\Filament\Widgets\Financial\UpcomingPayablesTable::class)
             ->assertCanSeeTableRecords([$upcoming])
             ->assertCanNotSeeTableRecords([$overdue]);
+    }
+
+    public function test_top_debtors_ranks_clients_by_open_balance(): void
+    {
+        $this->adminActing();
+
+        Currency::create(['code' => 'USD', 'name' => 'US Dollar', 'name_plural' => 'US Dollars', 'symbol' => '$', 'decimal_places' => 2, 'is_base' => true, 'is_active' => true]);
+
+        $big = Company::factory()->create(['name' => 'Big Debtor Co']);
+        $small = Company::factory()->create(['name' => 'Small Debtor Co']);
+        $piBig = ProformaInvoice::factory()->create(['company_id' => $big->id, 'currency_code' => 'USD']);
+        $piSmall = ProformaInvoice::factory()->create(['company_id' => $small->id, 'currency_code' => 'USD']);
+
+        $this->openItem(ProformaInvoice::class, $piBig->id, 5_000_000, 'USD', now()->addDays(5)->toDateString());
+        $this->openItem(ProformaInvoice::class, $piSmall->id, 1_000_000, 'USD', now()->addDays(5)->toDateString());
+
+        Livewire::test(\App\Filament\Widgets\Financial\TopDebtorsWidget::class)
+            ->assertSeeInOrder(['Big Debtor Co', 'Small Debtor Co'])
+            ->assertSee('500.00')
+            ->assertSee('100.00');
     }
 
     public function test_widget_is_hidden_without_permission(): void
