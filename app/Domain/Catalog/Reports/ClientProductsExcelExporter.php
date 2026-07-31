@@ -7,6 +7,7 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Support\Money;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
@@ -46,11 +47,14 @@ class ClientProductsExcelExporter
         'J' => 'Selling Price',
         'K' => 'Custom Price (CI)',
         'L' => 'Currency',
+        'M' => 'NCM',
+        'N' => 'Fabricante',
     ];
 
     private const COLUMN_WIDTHS = [
         'A' => 12, 'B' => 18, 'C' => 35, 'D' => 16, 'E' => 45, 'F' => 18,
         'G' => 18, 'H' => 35, 'I' => 45, 'J' => 14, 'K' => 14, 'L' => 8,
+        'M' => 14, 'N' => 30,
     ];
 
     /**
@@ -63,7 +67,7 @@ class ClientProductsExcelExporter
     public function export(Company $client, bool $includePrices = true): string
     {
         $products = $client->clientProducts()
-            ->with('category')
+            ->with(['category', 'suppliers'])
             ->orderBy('name')
             ->get();
 
@@ -80,7 +84,7 @@ class ClientProductsExcelExporter
         }
 
         if ($row > 5) {
-            $sheet->getStyle('A5:L'.($row - 1))
+            $sheet->getStyle('A5:N'.($row - 1))
                 ->getBorders()->getAllBorders()
                 ->setBorderStyle(Border::BORDER_THIN);
         }
@@ -101,11 +105,11 @@ class ClientProductsExcelExporter
     private function writeHeader(Worksheet $sheet, Company $client): void
     {
         $sheet->setCellValue('A1', 'Produtos — '.$client->name);
-        $sheet->mergeCells('A1:L1');
+        $sheet->mergeCells('A1:N1');
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
 
         $sheet->setCellValue('A2', 'Gerado em '.now()->format('d/m/Y H:i'));
-        $sheet->mergeCells('A2:L2');
+        $sheet->mergeCells('A2:N2');
         $sheet->getStyle('A2')->getFont()->setSize(10)->getColor()->setRGB('808080');
 
         $sheet->setCellValue('B3', 'Produto (Original)');
@@ -114,15 +118,17 @@ class ClientProductsExcelExporter
         $sheet->mergeCells('G3:I3');
         $sheet->setCellValue('J3', 'Preços');
         $sheet->mergeCells('J3:L3');
-        $sheet->getStyle('A3:L3')->getFont()->setBold(true);
-        $sheet->getStyle('A3:L3')->getAlignment()
+        $sheet->setCellValue('M3', 'Origem');
+        $sheet->mergeCells('M3:N3');
+        $sheet->getStyle('A3:N3')->getFont()->setBold(true);
+        $sheet->getStyle('A3:N3')->getAlignment()
             ->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         foreach (self::HEADERS as $column => $label) {
             $sheet->setCellValue($column.'4', $label);
         }
 
-        $headerStyle = $sheet->getStyle('A4:L4');
+        $headerStyle = $sheet->getStyle('A4:N4');
         $headerStyle->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
         $headerStyle->getFill()
             ->setFillType(Fill::FILL_SOLID)
@@ -155,6 +161,14 @@ class ClientProductsExcelExporter
 
             $sheet->setCellValue('L'.$row, $pivot->currency_code);
         }
+
+        // NCM (hs_code) e fabricante — o fornecedor preferencial vinculado ao
+        // produto, ou o primeiro quando nenhum está marcado como preferencial.
+        $sheet->setCellValueExplicit('M'.$row, (string) ($product->hs_code ?? ''), DataType::TYPE_STRING);
+        $manufacturer = $product->suppliers
+            ->sortByDesc(fn ($s) => (int) $s->pivot->is_preferred)
+            ->first();
+        $sheet->setCellValue('N'.$row, $manufacturer?->name);
 
         $sheet->getStyle('J'.$row.':K'.$row)
             ->getNumberFormat()->setFormatCode('#,##0.0000');
