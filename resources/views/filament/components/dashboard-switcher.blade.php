@@ -1,4 +1,4 @@
-<header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+<header class="fi-header flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
     <h1 class="fi-header-heading text-2xl font-bold tracking-tight text-gray-950 dark:text-white">
         {{ $heading }}
     </h1>

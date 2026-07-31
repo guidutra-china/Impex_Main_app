@@ -31,6 +31,12 @@ class FinancialDashboard extends Dashboard
         return auth()->user()?->can('view-financial-dashboard') ?? false;
     }
 
+    public function mount(): void
+    {
+        // Chegou direto no financeiro: preferência atendida, não redirecionar depois.
+        session()->put('dashboard_preference_applied', true);
+    }
+
     public function getWidgets(): array
     {
         return [];

@@ -43,8 +43,6 @@ class OperationalDashboard extends Dashboard
             && FinancialDashboard::canAccess()
             && session()->missing('dashboard_preference_applied')
         ) {
-            session()->put('dashboard_preference_applied', true);
-
             $this->redirect(FinancialDashboard::getUrl());
         }
 

@@ -17,18 +17,18 @@ trait HasDashboardSwitcher
     {
         $dashboards = [];
 
-        if (OperationalDashboard::canAccess() && FinancialDashboard::canAccess()) {
+        if (FinancialDashboard::canAccess()) {
             $dashboards = [
                 [
-                    'label' => __('navigation.pages.operational_dashboard'),
+                    'label' => OperationalDashboard::getNavigationLabel(),
                     'url' => OperationalDashboard::getUrl(),
-                    'icon' => 'heroicon-o-truck',
+                    'icon' => OperationalDashboard::getNavigationIcon(),
                     'active' => static::class === OperationalDashboard::class,
                 ],
                 [
-                    'label' => __('navigation.pages.financial_dashboard'),
+                    'label' => FinancialDashboard::getNavigationLabel(),
                     'url' => FinancialDashboard::getUrl(),
-                    'icon' => 'heroicon-o-banknotes',
+                    'icon' => FinancialDashboard::getNavigationIcon(),
                     'active' => static::class === FinancialDashboard::class,
                 ],
             ];
