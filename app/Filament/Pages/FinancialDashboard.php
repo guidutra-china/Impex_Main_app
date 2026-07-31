@@ -24,6 +24,12 @@ class FinancialDashboard extends Dashboard
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-banknotes';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Fora do menu: o acesso é pelo switcher no topo dos dashboards.
+        return false;
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('navigation.pages.financial_dashboard');

@@ -22,7 +22,8 @@ class OperationalDashboard extends Dashboard
 
     public static function getNavigationLabel(): string
     {
-        return __('navigation.pages.operational_dashboard');
+        // Único item de dashboard no menu; a distinção fica no switcher.
+        return __('navigation.pages.dashboard');
     }
 
     public function getTitle(): string

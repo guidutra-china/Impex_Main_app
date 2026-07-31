@@ -21,13 +21,14 @@ trait HasDashboardSwitcher
         if (FinancialDashboard::canAccess()) {
             $dashboards = [
                 [
-                    'label' => OperationalDashboard::getNavigationLabel(),
+                    // Nomes específicos ficam no switcher; o menu mostra só "Dashboard".
+                    'label' => __('navigation.pages.operational_dashboard'),
                     'url' => OperationalDashboard::getUrl(),
                     'icon' => OperationalDashboard::getNavigationIcon(),
                     'active' => static::class === OperationalDashboard::class,
                 ],
                 [
-                    'label' => FinancialDashboard::getNavigationLabel(),
+                    'label' => __('navigation.pages.financial_dashboard'),
                     'url' => FinancialDashboard::getUrl(),
                     'icon' => FinancialDashboard::getNavigationIcon(),
                     'active' => static::class === FinancialDashboard::class,
