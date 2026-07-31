@@ -4,6 +4,7 @@ namespace App\Filament\Widgets\Financial;
 
 use App\Domain\Financial\Queries\AgingBucketsQuery;
 use App\Domain\Infrastructure\Support\Money;
+use App\Filament\Widgets\Financial\Concerns\HasFinancialDashboardGate;
 use Filament\Widgets\ChartWidget;
 
 /**
@@ -12,6 +13,8 @@ use Filament\Widgets\ChartWidget;
  */
 abstract class AgingChart extends ChartWidget
 {
+    use HasFinancialDashboardGate;
+
     protected static bool $isLazy = true;
 
     protected int|string|array $columnSpan = [
@@ -23,11 +26,6 @@ abstract class AgingChart extends ChartWidget
 
     /** @return array<string, array<string, int>> */
     abstract protected function buckets(): array;
-
-    public static function canView(): bool
-    {
-        return auth()->user()?->can('view-financial-dashboard') ?? false;
-    }
 
     protected function getData(): array
     {

@@ -3,16 +3,10 @@
 namespace App\Filament\Widgets\Financial;
 
 use App\Domain\Financial\Enums\PaymentDirection;
-use App\Domain\Financial\Models\DebitNote;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
-use App\Domain\Logistics\Models\Shipment;
-use App\Domain\ProformaInvoices\Models\ProformaInvoice;
-use App\Domain\PurchaseOrders\Models\PurchaseOrder;
-use App\Filament\Resources\Finance\DebitNotes\DebitNoteResource;
-use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
-use App\Filament\Resources\PurchaseOrders\PurchaseOrderResource;
-use App\Filament\Resources\Shipments\ShipmentResource;
+use App\Filament\Support\PayableResourceUrl;
+use App\Filament\Widgets\Financial\Concerns\HasFinancialDashboardGate;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
@@ -24,6 +18,8 @@ use Illuminate\Database\Eloquent\Builder;
  */
 abstract class UpcomingScheduleItemsTable extends TableWidget
 {
+    use HasFinancialDashboardGate;
+
     protected int|string|array $columnSpan = [
         'default' => 12,
         'xl' => 6,
@@ -34,11 +30,6 @@ abstract class UpcomingScheduleItemsTable extends TableWidget
     abstract protected function openItemsQuery(): Builder;
 
     abstract protected function tableHeading(): string;
-
-    public static function canView(): bool
-    {
-        return auth()->user()?->can('view-financial-dashboard') ?? false;
-    }
 
     public function table(Table $table): Table
     {
@@ -60,17 +51,7 @@ abstract class UpcomingScheduleItemsTable extends TableWidget
                 TextColumn::make('payable_ref')
                     ->label(__('forms.labels.document'))
                     ->state(fn (PaymentScheduleItem $record) => $record->payable?->reference ?? '—')
-                    ->url(function (PaymentScheduleItem $record) {
-                        $payable = $record->payable;
-
-                        return match (true) {
-                            $payable instanceof ProformaInvoice => ProformaInvoiceResource::getUrl('view', ['record' => $payable]),
-                            $payable instanceof PurchaseOrder => PurchaseOrderResource::getUrl('view', ['record' => $payable]),
-                            $payable instanceof Shipment => ShipmentResource::getUrl('view', ['record' => $payable]),
-                            $payable instanceof DebitNote => DebitNoteResource::getUrl('view', ['record' => $payable]),
-                            default => null,
-                        };
-                    })
+                    ->url(fn (PaymentScheduleItem $record) => PayableResourceUrl::for($record->payable))
                     ->color('primary'),
                 TextColumn::make('due_date')
                     ->label(__('forms.labels.due_date'))

@@ -3,14 +3,17 @@
 namespace App\Filament\Widgets\Financial;
 
 use App\Domain\Financial\Models\PaymentScheduleItem;
-use App\Domain\Financial\Queries\OpenScheduleItemsQuery;
 use App\Domain\Financial\Support\CurrencyTotals;
+use App\Domain\Financial\Support\OpenItemsSnapshot;
+use App\Filament\Widgets\Financial\Concerns\HasFinancialDashboardGate;
 use Carbon\CarbonImmutable;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class FinancialKpisWidget extends StatsOverviewWidget
 {
+    use HasFinancialDashboardGate;
+
     protected static ?int $sort = 1;
 
     protected static bool $isLazy = false;
@@ -19,19 +22,11 @@ class FinancialKpisWidget extends StatsOverviewWidget
 
     protected int|string|array $columnSpan = 'full';
 
-    public static function canView(): bool
-    {
-        return auth()->user()?->can('view-financial-dashboard') ?? false;
-    }
-
     protected function getStats(): array
     {
-        $receivables = OpenScheduleItemsQuery::receivables()
-            ->without(['payable', 'source', 'shipment'])
-            ->get();
-        $payables = OpenScheduleItemsQuery::payables()
-            ->without(['payable', 'source', 'shipment'])
-            ->get();
+        $snapshot = app(OpenItemsSnapshot::class);
+        $receivables = $snapshot->receivables();
+        $payables = $snapshot->payables();
 
         $today = CarbonImmutable::now()->startOfDay();
 

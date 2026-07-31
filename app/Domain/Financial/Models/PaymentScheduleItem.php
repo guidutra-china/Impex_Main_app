@@ -182,8 +182,24 @@ class PaymentScheduleItem extends Model
 
     // --- Accessors ---
 
+    /**
+     * Batch-computed paid amount injected by OpenItemsSnapshot so dashboard
+     * renders don't fire two allocation queries per item. Null = not set,
+     * accessor falls through to the live queries.
+     */
+    private ?int $precomputedPaidAmount = null;
+
+    public function setPrecomputedPaidAmount(int $amount): void
+    {
+        $this->precomputedPaidAmount = $amount;
+    }
+
     public function getPaidAmountAttribute(): int
     {
+        if ($this->precomputedPaidAmount !== null) {
+            return $this->precomputedPaidAmount;
+        }
+
         $paymentAmount = (int) $this->allocations()
             ->whereNull('credit_schedule_item_id')
             ->whereHas('payment', fn ($q) => $q->where('status', PaymentStatus::APPROVED))

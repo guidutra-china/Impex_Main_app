@@ -39,13 +39,19 @@ class Currency extends Model
         return $this->hasMany(ExchangeRate::class, 'target_currency_id');
     }
 
+    /**
+     * Memoized per request via once() — currencies don't change mid-request
+     * and dashboard widgets call this dozens of times per render. The test
+     * framework flushes the once() cache between tests automatically.
+     */
     public static function base(): ?self
     {
-        return static::where('is_base', true)->first();
+        return once(fn (): ?self => static::where('is_base', true)->first());
     }
 
+    /** Memoized per request per code via once(). */
     public static function findByCode(string $code): ?self
     {
-        return static::where('code', $code)->first();
+        return once(fn (): ?self => static::where('code', $code)->first());
     }
 }

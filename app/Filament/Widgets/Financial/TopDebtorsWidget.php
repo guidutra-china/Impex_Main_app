@@ -3,15 +3,18 @@
 namespace App\Filament\Widgets\Financial;
 
 use App\Domain\Financial\Enums\PaymentDirection;
-use App\Domain\Financial\Queries\OpenScheduleItemsQuery;
 use App\Domain\Financial\Support\BaseCurrency;
 use App\Domain\Financial\Support\CurrencyTotals;
+use App\Domain\Financial\Support\OpenItemsSnapshot;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Settings\Models\Currency;
+use App\Filament\Widgets\Financial\Concerns\HasFinancialDashboardGate;
 use Filament\Widgets\Widget;
 
 class TopDebtorsWidget extends Widget
 {
+    use HasFinancialDashboardGate;
+
     protected static ?int $sort = 7;
 
     protected static bool $isLazy = true;
@@ -23,14 +26,9 @@ class TopDebtorsWidget extends Widget
         'xl' => 6,
     ];
 
-    public static function canView(): bool
-    {
-        return auth()->user()?->can('view-financial-dashboard') ?? false;
-    }
-
     protected function getViewData(): array
     {
-        $items = OpenScheduleItemsQuery::receivables()->get();
+        $items = app(OpenItemsSnapshot::class)->receivables();
 
         $unconverted = [];
 

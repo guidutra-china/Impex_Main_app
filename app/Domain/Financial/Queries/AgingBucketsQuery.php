@@ -3,8 +3,9 @@
 namespace App\Domain\Financial\Queries;
 
 use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\Financial\Support\OpenItemsSnapshot;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 /**
  * Classic AR/AP aging over the open-item universe: not-yet-due, then overdue
@@ -19,22 +20,25 @@ final class AgingBucketsQuery
     /** @return array<string, array<string, int>> bucket => currency => minor units */
     public static function receivables(): array
     {
-        return self::buckets(OpenScheduleItemsQuery::receivables());
+        return self::buckets(app(OpenItemsSnapshot::class)->receivables());
     }
 
     /** @return array<string, array<string, int>> bucket => currency => minor units */
     public static function payables(): array
     {
-        return self::buckets(OpenScheduleItemsQuery::payables());
+        return self::buckets(app(OpenItemsSnapshot::class)->payables());
     }
 
-    /** @return array<string, array<string, int>> */
-    private static function buckets(Builder $query): array
+    /**
+     * @param  Collection<int, PaymentScheduleItem>  $items
+     * @return array<string, array<string, int>>
+     */
+    private static function buckets(Collection $items): array
     {
         $today = CarbonImmutable::now()->startOfDay();
         $result = array_fill_keys(self::BUCKETS, []);
 
-        foreach ($query->without(['payable', 'source', 'shipment'])->get() as $item) {
+        foreach ($items as $item) {
             /** @var PaymentScheduleItem $item */
             $remaining = $item->remaining_amount;
 

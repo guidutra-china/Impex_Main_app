@@ -2,9 +2,10 @@
 
 namespace App\Filament\Widgets\Financial;
 
-use App\Domain\Financial\Queries\OpenScheduleItemsQuery;
 use App\Domain\Financial\Support\CurrencyTotals;
+use App\Domain\Financial\Support\OpenItemsSnapshot;
 use App\Domain\Infrastructure\Support\Money;
+use App\Filament\Widgets\Financial\Concerns\HasFinancialDashboardGate;
 use Filament\Widgets\ChartWidget;
 
 /**
@@ -13,6 +14,8 @@ use Filament\Widgets\ChartWidget;
  */
 class CurrencyExposureChart extends ChartWidget
 {
+    use HasFinancialDashboardGate;
+
     protected static ?int $sort = 8;
 
     protected static bool $isLazy = true;
@@ -24,11 +27,6 @@ class CurrencyExposureChart extends ChartWidget
 
     protected ?string $pollingInterval = null;
 
-    public static function canView(): bool
-    {
-        return auth()->user()?->can('view-financial-dashboard') ?? false;
-    }
-
     public function getHeading(): string
     {
         return __('widgets.financial_dashboard.currency_exposure_heading');
@@ -36,12 +34,9 @@ class CurrencyExposureChart extends ChartWidget
 
     protected function getData(): array
     {
-        $ar = CurrencyTotals::byCurrency(
-            OpenScheduleItemsQuery::receivables()->without(['payable', 'source', 'shipment'])->get()
-        );
-        $ap = CurrencyTotals::byCurrency(
-            OpenScheduleItemsQuery::payables()->without(['payable', 'source', 'shipment'])->get()
-        );
+        $snapshot = app(OpenItemsSnapshot::class);
+        $ar = CurrencyTotals::byCurrency($snapshot->receivables());
+        $ap = CurrencyTotals::byCurrency($snapshot->payables());
 
         $currencies = $ar->keys()->concat($ap->keys())->unique()->sort()->values();
 

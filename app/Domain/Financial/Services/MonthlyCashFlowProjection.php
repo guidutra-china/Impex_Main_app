@@ -2,9 +2,9 @@
 
 namespace App\Domain\Financial\Services;
 
-use App\Domain\Financial\Queries\OpenScheduleItemsQuery;
 use App\Domain\Financial\Support\BaseCurrency;
 use App\Domain\Financial\Support\CurrencyTotals;
+use App\Domain\Financial\Support\OpenItemsSnapshot;
 use App\Domain\Infrastructure\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -32,14 +32,9 @@ class MonthlyCashFlowProjection
     {
         $start = CarbonImmutable::now()->startOfMonth();
 
-        $receivables = OpenScheduleItemsQuery::receivables()
-            ->without(['payable', 'source', 'shipment'])
-            ->whereNotNull('due_date')
-            ->get();
-        $payables = OpenScheduleItemsQuery::payables()
-            ->without(['payable', 'source', 'shipment'])
-            ->whereNotNull('due_date')
-            ->get();
+        $snapshot = app(OpenItemsSnapshot::class);
+        $receivables = $snapshot->receivables()->filter(fn ($item) => $item->due_date !== null);
+        $payables = $snapshot->payables()->filter(fn ($item) => $item->due_date !== null);
 
         $labels = [];
         $inflow = [];

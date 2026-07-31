@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Observers\PaymentAllocationObserver;
+use App\Domain\Financial\Support\OpenItemsSnapshot;
 use App\Domain\Inquiries\Models\ProjectTeamMember;
 use App\Domain\Inquiries\Observers\ProjectTeamMemberObserver;
 use App\Domain\Logistics\Models\PackingListItem;
@@ -30,7 +31,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Snapshot compartilhado dos itens em aberto: os widgets do dashboard
+        // financeiro renderizados na mesma request dividem uma única carga.
+        $this->app->scoped(OpenItemsSnapshot::class);
     }
 
     /**

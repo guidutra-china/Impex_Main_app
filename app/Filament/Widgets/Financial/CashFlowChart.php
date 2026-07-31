@@ -4,10 +4,13 @@ namespace App\Filament\Widgets\Financial;
 
 use App\Domain\Financial\Services\MonthlyCashFlowProjection;
 use App\Domain\Settings\Models\Currency;
+use App\Filament\Widgets\Financial\Concerns\HasFinancialDashboardGate;
 use Filament\Widgets\ChartWidget;
 
 class CashFlowChart extends ChartWidget
 {
+    use HasFinancialDashboardGate;
+
     protected static ?int $sort = 2;
 
     protected static bool $isLazy = false;
@@ -18,11 +21,6 @@ class CashFlowChart extends ChartWidget
 
     /** @var array{labels: array, inflow: array, outflow: array, net: array, has_warning: bool, unconverted: array}|null */
     private ?array $projection = null;
-
-    public static function canView(): bool
-    {
-        return auth()->user()?->can('view-financial-dashboard') ?? false;
-    }
 
     public function getHeading(): string
     {
