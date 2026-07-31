@@ -132,6 +132,32 @@ class FinancialDashboardWidgetsTest extends TestCase
         Livewire::test(\App\Filament\Widgets\Financial\PayablesAgingChart::class)->assertOk();
     }
 
+    public function test_upcoming_receivables_table_shows_soonest_open_items(): void
+    {
+        $this->adminActing();
+
+        $client = Company::factory()->create(['name' => 'DeepFitness Ltda']);
+        $pi = ProformaInvoice::factory()->create(['company_id' => $client->id, 'currency_code' => 'USD']);
+        $this->openItem(ProformaInvoice::class, $pi->id, 1_000_000, 'USD', now()->addDays(3)->toDateString());
+
+        Livewire::test(\App\Filament\Widgets\Financial\UpcomingReceivablesTable::class)
+            ->assertCanSeeTableRecords([PaymentScheduleItem::first()])
+            ->assertSee('DeepFitness Ltda');
+    }
+
+    public function test_upcoming_payables_table_excludes_past_due_items(): void
+    {
+        $this->adminActing();
+
+        $po = PurchaseOrder::factory()->create();
+        $overdue = $this->openItem(PurchaseOrder::class, $po->id, 1_000_000, 'USD', now()->subDays(5)->toDateString(), PaymentScheduleStatus::OVERDUE);
+        $upcoming = $this->openItem(PurchaseOrder::class, $po->id, 2_000_000, 'USD', now()->addDays(5)->toDateString());
+
+        Livewire::test(\App\Filament\Widgets\Financial\UpcomingPayablesTable::class)
+            ->assertCanSeeTableRecords([$upcoming])
+            ->assertCanNotSeeTableRecords([$overdue]);
+    }
+
     public function test_widget_is_hidden_without_permission(): void
     {
         $user = User::factory()->create([
