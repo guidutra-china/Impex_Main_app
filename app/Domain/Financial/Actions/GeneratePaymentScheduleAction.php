@@ -891,10 +891,7 @@ class GeneratePaymentScheduleAction
                 // Remove client schedule items (company absorbs the cost)
                 PaymentScheduleItem::where('source_type', AdditionalCost::class)
                     ->where('source_id', $cost->id)
-                    ->where(function ($q) {
-                        $q->whereNull('notes')
-                            ->orWhere('notes', 'NOT LIKE', '%[forwarder-payable]%');
-                    })
+                    ->withoutSideTags()
                     ->whereDoesntHave('allocations')
                     ->delete();
 
@@ -939,6 +936,8 @@ class GeneratePaymentScheduleAction
                     }
                 }
 
+                app(SyncSupplierPayableScheduleItemAction::class)->execute($cost, $payable);
+
                 continue;
             }
 
@@ -959,10 +958,7 @@ class GeneratePaymentScheduleAction
             // --- Client receivable item ---
             $existingClient = PaymentScheduleItem::where('source_type', AdditionalCost::class)
                 ->where('source_id', $cost->id)
-                ->where(function ($q) {
-                    $q->whereNull('notes')
-                        ->orWhere('notes', 'NOT LIKE', '%[forwarder-payable]%');
-                })
+                ->withoutSideTags()
                 ->first();
 
             if (! $existingClient) {
@@ -1028,6 +1024,9 @@ class GeneratePaymentScheduleAction
                     ]);
                 }
             }
+
+            // --- Supplier payable item ---
+            app(SyncSupplierPayableScheduleItemAction::class)->execute($cost, $payable);
         }
     }
 

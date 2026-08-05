@@ -3,6 +3,7 @@
 namespace Tests\Feature\Financial;
 
 use App\Domain\CRM\Models\Company;
+use App\Domain\Financial\Actions\GeneratePaymentScheduleAction;
 use App\Domain\Financial\Actions\SyncSupplierPayableScheduleItemAction;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\AdditionalCostType;
@@ -333,6 +334,43 @@ class SupplierPayableCostSideTest extends TestCase
 
         // Cancelar o pagamento reverte o lado fornecedor.
         app(\App\Domain\Financial\Actions\ApprovePaymentAction::class)->cancel($payment);
-        $this->assertNotSame(AdditionalCostStatus::PAID, $cost->refresh()->supplier_payable_status);
+        $cost->refresh();
+        $this->assertSame(AdditionalCostStatus::INVOICED, $cost->supplier_payable_status, 'Cancel derruba o PSI p/ DUE → INVOICED.');
+        $this->assertSame(AdditionalCostStatus::PENDING, $cost->status, 'Lado cliente segue intocado após cancel.');
+    }
+
+    public function test_schedule_regeneration_upserts_supplier_psi_without_duplicating(): void
+    {
+        $cost = $this->makePayableCost();
+        $sync = new GeneratePaymentScheduleAction;
+
+        // Duas passadas do sync de custos = 1 linha só.
+        $syncMethod = new \ReflectionMethod($sync, 'syncAdditionalCosts');
+        $syncMethod->invoke($sync, $this->pi);
+        $syncMethod->invoke($sync, $this->pi);
+
+        $rows = PaymentScheduleItem::where('source_type', AdditionalCost::class)
+            ->where('source_id', $cost->id)
+            ->withSideTag(PaymentScheduleItem::SUPPLIER_PAYABLE_TAG)
+            ->get();
+
+        $this->assertCount(1, $rows);
+        $this->assertSame(3_500_000, $rows->first()->amount);
+    }
+
+    public function test_company_absorbed_cost_keeps_supplier_psi_but_no_client_psi(): void
+    {
+        $cost = $this->makePayableCost(['billable_to' => BillableTo::COMPANY->value]);
+        $sync = new GeneratePaymentScheduleAction;
+        $syncMethod = new \ReflectionMethod($sync, 'syncAdditionalCosts');
+        $syncMethod->invoke($sync, $this->pi);
+
+        $this->assertNotNull($this->supplierPsiFor($cost));
+
+        $clientRow = PaymentScheduleItem::where('source_type', AdditionalCost::class)
+            ->where('source_id', $cost->id)
+            ->withoutSideTags()
+            ->first();
+        $this->assertNull($clientRow, 'COMPANY absorve: sem linha de cliente.');
     }
 }
