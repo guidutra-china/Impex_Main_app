@@ -15,9 +15,11 @@ use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\Payment;
 use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\Financial\Queries\OpenScheduleItemsQuery;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Filament\Resources\Finance\Concerns\HasPaymentFormSections;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -372,5 +374,51 @@ class SupplierPayableCostSideTest extends TestCase
             ->withoutSideTags()
             ->first();
         $this->assertNull($clientRow, 'COMPANY absorve: sem linha de cliente.');
+    }
+
+    public function test_supplier_psi_appears_in_payables_and_not_in_receivables(): void
+    {
+        $cost = $this->makePayableCost();
+        app(SyncSupplierPayableScheduleItemAction::class)->execute($cost, $this->pi);
+        $psi = $this->supplierPsiFor($cost);
+
+        $this->assertTrue(OpenScheduleItemsQuery::payables()->pluck('id')->contains($psi->id));
+        $this->assertFalse(OpenScheduleItemsQuery::receivables()->pluck('id')->contains($psi->id));
+    }
+
+    public function test_leak_regression_client_cost_with_supplier_filled_stays_out_of_payables(): void
+    {
+        // Custo CLIENT com "Supplier (if applicable)" preenchido mas SEM lado pagável:
+        // a linha recebível não pode vazar para o AP (bug pré-existente).
+        $cost = $this->makeCost(['supplier_company_id' => $this->supplier->id]);
+        $receivable = $this->makeScheduleItem([
+            'label' => 'Other: Logo development',
+            'source_type' => AdditionalCost::class,
+            'source_id' => $cost->id,
+        ]);
+
+        $this->assertFalse(OpenScheduleItemsQuery::payables()->pluck('id')->contains($receivable->id));
+        $this->assertTrue(OpenScheduleItemsQuery::receivables()->pluck('id')->contains($receivable->id));
+    }
+
+    public function test_payment_form_lists_supplier_psi_outbound_only(): void
+    {
+        $this->supplier->companyRoles()->create(['role' => 'supplier']);
+        $this->client->companyRoles()->create(['role' => 'client']);
+
+        $cost = $this->makePayableCost();
+        app(SyncSupplierPayableScheduleItemAction::class)->execute($cost, $this->pi);
+        $psi = $this->supplierPsiFor($cost);
+
+        $helper = new class
+        {
+            use HasPaymentFormSections;
+        };
+
+        $outbound = $helper::getCompanyScheduleItems($this->supplier->id, 'outbound')->pluck('id');
+        $this->assertTrue($outbound->contains($psi->id));
+
+        $inbound = $helper::getCompanyScheduleItems($this->client->id, 'inbound')->pluck('id');
+        $this->assertFalse($inbound->contains($psi->id));
     }
 }

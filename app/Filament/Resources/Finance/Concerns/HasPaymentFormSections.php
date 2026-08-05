@@ -286,14 +286,9 @@ trait HasPaymentFormSections
                 PaymentScheduleStatus::WAIVED->value,
             ]);
 
-        if (! $isForwarder) {
-            $query->where(function ($q) {
-                $q->whereNull('notes')
-                    ->orWhere('notes', 'NOT LIKE', '%[forwarder-payable]%');
-            });
-        }
-
         if ($directionValue === PaymentDirection::INBOUND->value || $directionValue === 'inbound') {
+            // Receivables never include payable-side rows (forwarder/supplier).
+            $query->withoutSideTags();
             // Client-side allocations (AR) target two distinct kinds of items:
             //
             //   (a) PI installments — payable_type=PI, payable_id ∈ piIds.
@@ -372,6 +367,12 @@ trait HasPaymentFormSections
                     $q->where('notes', 'LIKE', '%[forwarder-payable]%');
                 });
             } else {
+                // Forwarder-payable rows belong to the forwarder branch above.
+                $query->where(function ($q) {
+                    $q->whereNull('notes')
+                        ->orWhere('notes', 'NOT LIKE', '%'.PaymentScheduleItem::FORWARDER_PAYABLE_TAG.'%');
+                });
+
                 $poIds = PurchaseOrder::where('supplier_company_id', $companyId)->pluck('id');
 
                 // Shipment-level items only surface if they are additional costs
@@ -398,7 +399,8 @@ trait HasPaymentFormSections
                     if ($supplierAdditionalCostIds->isNotEmpty()) {
                         $q->orWhere(function ($q2) use ($supplierAdditionalCostIds) {
                             $q2->where('source_type', \App\Domain\Financial\Models\AdditionalCost::class)
-                                ->whereIn('source_id', $supplierAdditionalCostIds);
+                                ->whereIn('source_id', $supplierAdditionalCostIds)
+                                ->where('notes', 'LIKE', '%'.PaymentScheduleItem::SUPPLIER_PAYABLE_TAG.'%');
                         });
                     }
                     if ($supplierDnIds->isNotEmpty()) {

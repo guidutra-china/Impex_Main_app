@@ -23,7 +23,8 @@ use Illuminate\Database\Eloquent\Builder;
  *
  * "Open" = PENDING/DUE/OVERDUE and not a credit line. Shipment mirror rows are
  * excluded naturally because they never enter through these payable/source
- * types; forwarder-payable rows are excluded on the receivable side via notes.
+ * types; forwarder- and supplier-payable rows are excluded on the receivable
+ * side via the side-tag scopes.
  */
 final class OpenScheduleItemsQuery
 {
@@ -53,10 +54,7 @@ final class OpenScheduleItemsQuery
             ->pluck('id');
 
         return self::base()
-            ->where(function ($q) {
-                $q->where('notes', 'NOT LIKE', '%[forwarder-payable]%')
-                    ->orWhereNull('notes');
-            })
+            ->withoutSideTags()
             ->where(function ($q) use ($clientDnIds, $clientCostIds) {
                 $q->where('payable_type', ProformaInvoice::class);
 
@@ -78,7 +76,7 @@ final class OpenScheduleItemsQuery
 
     /**
      * What Impex owes suppliers (payables): PO installments, supplier Debit
-     * Notes, and supplier-billable additional costs.
+     * Notes, and supplier-payable cost rows (tag [supplier-payable]).
      */
     public static function payables(): Builder
     {
@@ -87,12 +85,8 @@ final class OpenScheduleItemsQuery
             ->where('status', DebitNoteStatus::ISSUED->value)
             ->pluck('id');
 
-        $supplierCostIds = AdditionalCost::query()
-            ->whereNotNull('supplier_company_id')
-            ->pluck('id');
-
         return self::base()
-            ->where(function ($q) use ($supplierDnIds, $supplierCostIds) {
+            ->where(function ($q) use ($supplierDnIds) {
                 $q->where('payable_type', PurchaseOrder::class);
 
                 if ($supplierDnIds->isNotEmpty()) {
@@ -102,12 +96,10 @@ final class OpenScheduleItemsQuery
                     });
                 }
 
-                if ($supplierCostIds->isNotEmpty()) {
-                    $q->orWhere(function ($q2) use ($supplierCostIds) {
-                        $q2->where('source_type', AdditionalCost::class)
-                            ->whereIn('source_id', $supplierCostIds);
-                    });
-                }
+                $q->orWhere(function ($q2) {
+                    $q2->where('source_type', AdditionalCost::class)
+                        ->where('notes', 'LIKE', '%'.PaymentScheduleItem::SUPPLIER_PAYABLE_TAG.'%');
+                });
             });
     }
 
