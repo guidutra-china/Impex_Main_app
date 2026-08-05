@@ -403,6 +403,7 @@ return [
         'payment_currency' => 'Payment Currency',
         'payment_date' => 'Payment Date',
         'payment_method' => 'Payment Method',
+        'payment_statement' => 'Payment Statement',
         'payment_terms' => 'Payment Terms',
         'pcs_carton' => 'Pcs / Carton',
         'pcs_inner_box' => 'Pcs / Inner Box',

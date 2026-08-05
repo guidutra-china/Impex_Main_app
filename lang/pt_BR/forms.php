@@ -403,6 +403,7 @@ return [
         'payment_currency' => 'Moeda de Pagamento',
         'payment_date' => 'Data de Pagamento',
         'payment_method' => 'Método de Pagamento',
+        'payment_statement' => 'Extrato de Pagamentos',
         'payment_terms' => 'Condições de Pagamento',
         'pcs_carton' => 'Peças / Caixa',
         'pcs_inner_box' => 'Peças / Caixa Interna',
