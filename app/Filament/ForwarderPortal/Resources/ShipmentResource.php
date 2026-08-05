@@ -6,17 +6,17 @@ use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\Shipment;
 use App\Events\ShipmentEtaChangedByForwarder;
-use Filament\Actions\Action;
-use Filament\Notifications\Notification;
 use App\Filament\ForwarderPortal\Resources\ShipmentResource\Pages;
 use App\Filament\ForwarderPortal\Resources\ShipmentResource\RelationManagers\ForwarderAdditionalCostsRelationManager;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Section as FormSection;
@@ -119,15 +119,16 @@ class ShipmentResource extends Resource
     /**
      * Quick ETD / ETA editor — opens a modal with two date pickers.
      * Replaces the full Edit page on the list because forwarders only
-     * need to revise the shipping window from here. Status changes
-     * still happen on the View page's full edit. Fires the
+     * need to revise the shipping window from here. Also attached to the
+     * ETD/ETA columns (under distinct names) so clicking a date cell opens
+     * the same modal. Fires the
      * ShipmentEtaChangedByForwarder event when the ETA actually
      * differs so the responsible admin and client portal users get
      * notified through the existing pipeline.
      */
-    protected static function updateScheduleAction(): Action
+    protected static function updateScheduleAction(string $name = 'updateSchedule'): Action
     {
-        return Action::make('updateSchedule')
+        return Action::make($name)
             ->label(__('forwarder_portal.shipment.update_schedule'))
             ->icon('heroicon-o-calendar-days')
             ->color('primary')
@@ -182,6 +183,189 @@ class ShipmentResource extends Resource
                     ->title(__('forwarder_portal.shipment.update_schedule_done'))
                     ->send();
             });
+    }
+
+    /**
+     * Quick status changer — clicking the status badge on the list opens a
+     * modal showing the flow previous → current → next, and submitting
+     * advances the shipment to the next forwarder-allowed status. Mirrors
+     * the guards on EditShipment: only IN_TRANSIT/ARRIVED, only when the
+     * state machine permits it, and ARRIVED is blocked while today is
+     * earlier than the planned ETA.
+     */
+    protected static function changeStatusAction(): Action
+    {
+        return Action::make('changeStatus')
+            ->label(__('forwarder_portal.shipment.change_status'))
+            ->icon('heroicon-o-arrows-right-left')
+            ->modalHeading(fn (Shipment $record) => __('forwarder_portal.shipment.change_status_heading', [
+                'ref' => $record->reference,
+            ]))
+            ->modalWidth('md')
+            ->modalSubmitActionLabel(function (Shipment $record) {
+                $next = static::nextForwarderStatus($record);
+
+                return $next
+                    ? __('forwarder_portal.shipment.change_status_submit', ['status' => $next->getLabel()])
+                    : __('forwarder_portal.shipment.change_status');
+            })
+            ->modalSubmitAction(fn ($action, Shipment $record) => static::nextForwarderStatus($record) ? $action : false)
+            ->visible(fn () => auth()->user()?->can('forwarder-portal:update-shipment-logistics') ?? false)
+            ->registerModalActions([
+                Action::make('revertToInTransit')
+                    ->label(__('forwarder_portal.shipment.revert_to_in_transit'))
+                    ->icon('heroicon-o-arrow-uturn-left')
+                    ->color('gray')
+                    ->outlined()
+                    ->size('sm')
+                    ->requiresConfirmation()
+                    ->modalHeading(__('forwarder_portal.shipment.revert_to_in_transit'))
+                    ->modalDescription(__('forwarder_portal.shipment.revert_confirm'))
+                    ->cancelParentActions()
+                    ->visible(fn (Shipment $record) => static::canRevertToInTransit($record))
+                    ->action(function (Shipment $record) {
+                        if (! static::canRevertToInTransit($record)) {
+                            Notification::make()
+                                ->danger()
+                                ->title(__('forwarder_portal.shipment.invalid_transition'))
+                                ->send();
+
+                            return;
+                        }
+
+                        // Reverting means the cargo did not actually arrive, so
+                        // the actual arrival date is cleared — leaving it set
+                        // would also block the "arrival = today" auto-fill on
+                        // the next real arrival.
+                        $record->update([
+                            'status' => ShipmentStatus::IN_TRANSIT->value,
+                            'actual_arrival' => null,
+                        ]);
+
+                        Notification::make()
+                            ->success()
+                            ->title(__('forwarder_portal.shipment.revert_done'))
+                            ->send();
+                    }),
+            ])
+            ->modalContent(fn (Shipment $record, Action $action) => view('filament.forwarder-portal.status-flow', [
+                'previous' => static::previousStatusInFlow($record),
+                'current' => $record->status,
+                'next' => static::nextForwarderStatus($record),
+                'canRevert' => static::canRevertToInTransit($record),
+                'action' => $action,
+            ]))
+            ->form(fn (Shipment $record) => static::nextForwarderStatus($record) === ShipmentStatus::ARRIVED
+                ? [
+                    Toggle::make('set_actual_arrival_today')
+                        ->label(__('forwarder_portal.shipment.set_actual_arrival_today'))
+                        ->helperText(__('forwarder_portal.shipment.set_actual_arrival_today_helper'))
+                        ->default(true),
+                ]
+                : [])
+            ->action(function (Shipment $record, array $data) {
+                $next = static::nextForwarderStatus($record);
+
+                if (! $next || ! $record->canTransitionTo($next->value)) {
+                    Notification::make()
+                        ->danger()
+                        ->title(__('forwarder_portal.shipment.invalid_transition'))
+                        ->send();
+
+                    return;
+                }
+
+                if ($next === ShipmentStatus::ARRIVED) {
+                    $eta = $record->eta;
+                    if ($eta && now()->startOfDay()->lt($eta->copy()->startOfDay())) {
+                        Notification::make()
+                            ->danger()
+                            ->title(__('forwarder_portal.shipment.cannot_arrive_before_eta_title'))
+                            ->body(__('forwarder_portal.shipment.cannot_arrive_before_eta_body', [
+                                'eta' => $eta->format('d/m/Y'),
+                            ]))
+                            ->send();
+
+                        return;
+                    }
+                }
+
+                $payload = ['status' => $next->value];
+
+                // Same auto-fill rule as EditShipment: only when arriving now
+                // and no actual arrival was recorded yet.
+                if ($next === ShipmentStatus::ARRIVED
+                    && (bool) ($data['set_actual_arrival_today'] ?? false)
+                    && empty($record->actual_arrival)
+                ) {
+                    $payload['actual_arrival'] = now()->toDateString();
+                }
+
+                $record->update($payload);
+
+                Notification::make()
+                    ->success()
+                    ->title(__('forwarder_portal.shipment.change_status_done', ['status' => $next->getLabel()]))
+                    ->send();
+            });
+    }
+
+    /**
+     * Next status the forwarder may move this shipment FORWARD to, or null
+     * when there is no forward progression (draft, booked, cancelled — and
+     * ARRIVED, which is the end of the flow; the ARRIVED → IN_TRANSIT
+     * transition is an undo, exposed separately via canRevertToInTransit()).
+     */
+    public static function nextForwarderStatus(Shipment $record): ?ShipmentStatus
+    {
+        if ($record->status === ShipmentStatus::ARRIVED) {
+            return null;
+        }
+
+        $allowedForForwarder = [
+            ShipmentStatus::IN_TRANSIT->value,
+            ShipmentStatus::ARRIVED->value,
+        ];
+
+        $current = $record->status?->value;
+
+        foreach (Shipment::allowedTransitions()[$current] ?? [] as $candidate) {
+            if (in_array($candidate, $allowedForForwarder, true)) {
+                return ShipmentStatus::from($candidate);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The state machine allows ARRIVED → IN_TRANSIT as a correction path for
+     * shipments marked as arrived by mistake. The modal presents it as an
+     * explicit undo button rather than the "next" status.
+     */
+    public static function canRevertToInTransit(Shipment $record): bool
+    {
+        return $record->status === ShipmentStatus::ARRIVED
+            && $record->canTransitionTo(ShipmentStatus::IN_TRANSIT->value);
+    }
+
+    /**
+     * Predecessor of the current status in the happy-path flow, shown in the
+     * modal purely for orientation. CANCELLED sits outside the flow.
+     */
+    public static function previousStatusInFlow(Shipment $record): ?ShipmentStatus
+    {
+        $flow = [
+            ShipmentStatus::DRAFT,
+            ShipmentStatus::BOOKED,
+            ShipmentStatus::CUSTOMS,
+            ShipmentStatus::IN_TRANSIT,
+            ShipmentStatus::ARRIVED,
+        ];
+
+        $index = array_search($record->status, $flow, true);
+
+        return $index !== false && $index > 0 ? $flow[$index - 1] : null;
     }
 
     /**
@@ -246,11 +430,14 @@ class ShipmentResource extends Resource
                     ->searchable()
                     ->placeholder('—'),
                 TextColumn::make('status')
-                    ->badge(),
+                    ->badge()
+                    ->action(static::changeStatusAction()),
                 TextColumn::make('origin_port')->label(__('forwarder_portal.shipment.origin'))->placeholder('—'),
                 TextColumn::make('destination_port')->label(__('forwarder_portal.shipment.destination'))->placeholder('—'),
-                TextColumn::make('etd')->label('ETD')->date('d/m/Y')->sortable()->placeholder('—'),
-                TextColumn::make('eta')->label('ETA')->date('d/m/Y')->sortable()->placeholder('—'),
+                TextColumn::make('etd')->label('ETD')->date('d/m/Y')->sortable()->placeholder('—')
+                    ->action(static::updateScheduleAction('updateScheduleFromEtd')),
+                TextColumn::make('eta')->label('ETA')->date('d/m/Y')->sortable()->placeholder('—')
+                    ->action(static::updateScheduleAction('updateScheduleFromEta')),
                 TextColumn::make('forwarder_total_due')
                     ->label(__('forwarder_portal.shipment.total_due'))
                     ->visible(fn () => auth()->user()?->can('forwarder-portal:view-financial-summary') ?? false)
