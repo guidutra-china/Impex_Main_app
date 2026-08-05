@@ -98,9 +98,12 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
             // - CLIENT report: exclude forwarder-payable items (those are outbound payments)
             // - SUPPLIER/forwarder report: include only forwarder-payable items
             $relevantScheduleItems = $s->paymentScheduleItems->filter(function ($item) use ($isClientReport) {
-                $isForwarderPayable = str_contains((string) $item->notes, '[forwarder-payable]');
+                $isForwarderPayable = str_contains((string) $item->notes, PaymentScheduleItem::FORWARDER_PAYABLE_TAG);
+                $isSupplierPayable = str_contains((string) $item->notes, PaymentScheduleItem::SUPPLIER_PAYABLE_TAG);
 
-                return $isClientReport ? ! $isForwarderPayable : $isForwarderPayable;
+                // CLIENT report: skip both payable sides (Impex outbound cash).
+                // Forwarder report: only forwarder-payable rows (unchanged).
+                return $isClientReport ? ! ($isForwarderPayable || $isSupplierPayable) : $isForwarderPayable;
             });
 
             // Supplier-summary mode: precompute the PO-by-PO shipment slice

@@ -52,10 +52,7 @@ class FinancialSummaryWidget extends BaseWidget
                 });
             })
             ->where('is_credit', false)
-            ->where(function ($q) {
-                $q->whereNull('notes')
-                    ->orWhere('notes', 'NOT LIKE', '%[forwarder-payable]%');
-            })
+            ->withoutSideTags()
             ->with('allocations.payment')
             ->get();
 

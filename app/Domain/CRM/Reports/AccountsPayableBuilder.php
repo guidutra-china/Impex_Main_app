@@ -24,12 +24,10 @@ final class AccountsPayableBuilder
         $query = PaymentScheduleItem::query()
             ->whereIn('payable_type', [ProformaInvoice::class, Shipment::class])
             ->where('is_credit', false)
-            // Shipment schedule items tagged [forwarder-payable] are our outbound
-            // debts to the forwarder — not the client's accounts payable.
-            ->where(function ($q) {
-                $q->whereNull('notes')
-                    ->orWhere('notes', 'NOT LIKE', '%[forwarder-payable]%');
-            })
+            // Shipment schedule items tagged [forwarder-payable] or [supplier-payable]
+            // are our outbound debts to the forwarder/supplier — not the client's
+            // accounts payable.
+            ->withoutSideTags()
             ->where(function ($outer) use ($company) {
                 $outer->where(function ($q) use ($company) {
                     $q->where('payable_type', ProformaInvoice::class)

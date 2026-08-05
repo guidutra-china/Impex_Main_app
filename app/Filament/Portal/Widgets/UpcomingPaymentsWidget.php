@@ -57,10 +57,7 @@ class UpcomingPaymentsWidget extends Widget
                     $q->where('company_id', $tenant->id);
                 });
             })
-            ->where(function ($query) {
-                $query->whereNull('notes')
-                    ->orWhere('notes', 'not like', '%[forwarder-payable]%');
-            });
+            ->withoutSideTags();
 
         // Overdue: explicit OVERDUE status OR past due_date with PENDING/DUE status
         $overdueItems = (clone $baseQuery)
