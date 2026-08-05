@@ -35,6 +35,12 @@ class AdditionalCost extends Model
         'forwarder_currency_code',
         'forwarder_exchange_rate',
         'forwarder_amount_in_document_currency',
+        'supplier_payable_amount',
+        'supplier_payable_currency_code',
+        'supplier_payable_exchange_rate',
+        'supplier_payable_amount_in_document_currency',
+        'supplier_payable_due_date',
+        'supplier_payable_status',
         'cost_date',
         'status',
         'forwarder_status',
@@ -56,6 +62,11 @@ class AdditionalCost extends Model
             'forwarder_amount' => 'integer',
             'forwarder_exchange_rate' => 'decimal:8',
             'forwarder_amount_in_document_currency' => 'integer',
+            'supplier_payable_amount' => 'integer',
+            'supplier_payable_exchange_rate' => 'decimal:8',
+            'supplier_payable_amount_in_document_currency' => 'integer',
+            'supplier_payable_due_date' => 'date',
+            'supplier_payable_status' => AdditionalCostStatus::class,
             'cost_date' => 'date',
             'status' => AdditionalCostStatus::class,
             'forwarder_status' => AdditionalCostStatus::class,
@@ -123,5 +134,21 @@ class AdditionalCost extends Model
     public function scopeOfType($query, AdditionalCostType $type)
     {
         return $query->where('cost_type', $type);
+    }
+
+    // --- Supplier payable side ---
+
+    /**
+     * True when this cost carries a "payable to supplier" side: an amount
+     * Impex owes a supplier for this cost (e.g. logo development billed by
+     * the factory). Mutually exclusive with billable_to=SUPPLIER, which
+     * reuses supplier_company_id with the opposite meaning (a credit
+     * charged TO the supplier).
+     */
+    public function hasSupplierPayableSide(): bool
+    {
+        return $this->billable_to !== BillableTo::SUPPLIER
+            && $this->supplier_company_id !== null
+            && (int) $this->supplier_payable_amount > 0;
     }
 }
