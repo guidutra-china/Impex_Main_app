@@ -317,4 +317,22 @@ class SupplierPayableCostSideTest extends TestCase
 
         $this->assertTrue(true); // nenhuma exceção lançada
     }
+
+    public function test_paying_supplier_psi_sets_supplier_payable_status_without_touching_client_status(): void
+    {
+        $cost = $this->makePayableCost();
+        app(SyncSupplierPayableScheduleItemAction::class)->execute($cost, $this->pi);
+        $psi = $this->supplierPsiFor($cost);
+
+        $payment = $this->payScheduleItem($psi, 3_500_000);
+
+        $cost->refresh();
+        $this->assertSame(PaymentScheduleStatus::PAID, $psi->refresh()->status);
+        $this->assertSame(AdditionalCostStatus::PAID, $cost->supplier_payable_status);
+        $this->assertSame(AdditionalCostStatus::PENDING, $cost->status, 'Lado cliente não pode ser tocado.');
+
+        // Cancelar o pagamento reverte o lado fornecedor.
+        app(\App\Domain\Financial\Actions\ApprovePaymentAction::class)->cancel($payment);
+        $this->assertNotSame(AdditionalCostStatus::PAID, $cost->refresh()->supplier_payable_status);
+    }
 }

@@ -166,13 +166,14 @@ class ReconcileSettlementStateAction
     }
 
     /**
-     * Reflect the live PSI status onto the parent AdditionalCost. A freight
-     * cost can have two PSIs (client-billable and forwarder-payable); each
-     * is mapped to its own column on the AdditionalCost row so the user can
-     * see which side has been settled.
+     * Reflect the live PSI status onto the parent AdditionalCost. A cost can
+     * have up to three PSIs — client-billable, forwarder-payable, and
+     * supplier-payable — each mapped to its own column on the AdditionalCost
+     * row so the user can see which side has been settled.
      *
-     * The forwarder-side PSI is identified by the [forwarder-payable] tag
-     * stitched into PSI.notes by GeneratePaymentScheduleAction.
+     * The forwarder-side PSI is identified by the [forwarder-payable] tag and
+     * the supplier-side PSI by the [supplier-payable] tag, both stitched into
+     * PSI.notes by GeneratePaymentScheduleAction / SyncSupplierPayableScheduleItemAction.
      */
     protected function syncAdditionalCostStatus(PaymentAllocation $allocation): void
     {
@@ -187,10 +188,14 @@ class ReconcileSettlementStateAction
                 continue;
             }
 
-            $isForwarderSide = str_contains($scheduleItem->notes ?? '', '[forwarder-payable]');
+            $notes = $scheduleItem->notes ?? '';
             $newStatus = $this->mapScheduleItemStatusToCostStatus($scheduleItem->status);
 
-            $column = $isForwarderSide ? 'forwarder_status' : 'status';
+            $column = match (true) {
+                str_contains($notes, PaymentScheduleItem::FORWARDER_PAYABLE_TAG) => 'forwarder_status',
+                str_contains($notes, PaymentScheduleItem::SUPPLIER_PAYABLE_TAG) => 'supplier_payable_status',
+                default => 'status',
+            };
             if ($cost->{$column} !== $newStatus) {
                 $cost->{$column} = $newStatus;
                 $cost->save();
