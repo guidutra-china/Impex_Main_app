@@ -112,15 +112,22 @@ class SupplierPayableCostSideTest extends TestCase
             'label' => 'sup',
             'notes' => PaymentScheduleItem::SUPPLIER_PAYABLE_TAG.' logo',
         ]);
+        $untagged = $this->makeScheduleItem(['label' => 'untagged', 'notes' => 'balance note']);
 
         $without = PaymentScheduleItem::query()->withoutSideTags()->pluck('id');
         $this->assertTrue($without->contains($plain->id));
         $this->assertFalse($without->contains($forwarder->id));
         $this->assertFalse($without->contains($supplier->id));
+        $this->assertTrue($without->contains($untagged->id));
 
         $tagged = PaymentScheduleItem::query()
             ->withSideTag(PaymentScheduleItem::SUPPLIER_PAYABLE_TAG)
             ->pluck('id');
         $this->assertSame([$supplier->id], $tagged->all());
+
+        $fwdTagged = PaymentScheduleItem::query()
+            ->withSideTag(PaymentScheduleItem::FORWARDER_PAYABLE_TAG)
+            ->pluck('id');
+        $this->assertSame([$forwarder->id], $fwdTagged->all());
     }
 }

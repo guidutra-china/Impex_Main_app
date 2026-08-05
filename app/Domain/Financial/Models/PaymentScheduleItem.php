@@ -91,12 +91,19 @@ class PaymentScheduleItem extends Model
         return $query->whereHasMorph('payable', '*', fn ($q) => $q->where('status', '!=', 'cancelled'));
     }
 
-    public function scopeWithSideTag($query, string $tag)
+    /**
+     * Filters to items tagged with the given side; pass one of the
+     * *_PAYABLE_TAG constants.
+     */
+    public function scopeWithSideTag(\Illuminate\Database\Eloquent\Builder $query, string $tag): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('notes', 'LIKE', "%{$tag}%");
     }
 
-    public function scopeWithoutSideTags($query)
+    /**
+     * Filters out both payable-side rows; NULL notes counts as untagged.
+     */
+    public function scopeWithoutSideTags(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where(function ($q) {
             $q->whereNull('notes')
