@@ -5,8 +5,14 @@ namespace App\Filament\RelationManagers;
 use App\Domain\Financial\Actions\GeneratePaymentScheduleAction;
 use App\Domain\Financial\Actions\WaivePaymentScheduleItemAction;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
+use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\Infrastructure\Pdf\PdfGeneratorService;
+use App\Domain\Infrastructure\Pdf\PdfRenderer;
+use App\Domain\Infrastructure\Pdf\Templates\PaymentStatementPdfTemplate;
+use App\Domain\Infrastructure\Services\DocumentService;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Models\Shipment;
+use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\Settings\Models\Currency;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -41,7 +47,9 @@ class PaymentScheduleRelationManager extends RelationManager
                         $label = preg_replace('/\s*\x{2014}\s*\[.*\]\s*$/u', '', $state ?? '');
                         $label = e($label);
 
-                        $isForwarderPayable = str_contains($record->notes ?? '', '[forwarder-payable]');
+                        // Payable-side rows (forwarder OR supplier) render as outbound (red/OUT).
+                        $isForwarderPayable = str_contains($record->notes ?? '', PaymentScheduleItem::FORWARDER_PAYABLE_TAG)
+                            || str_contains($record->notes ?? '', PaymentScheduleItem::SUPPLIER_PAYABLE_TAG);
 
                         if ($isForwarderPayable) {
                             $badgeClass = 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20 dark:bg-red-400/10 dark:text-red-400 dark:ring-red-400/30';
@@ -170,6 +178,7 @@ class PaymentScheduleRelationManager extends RelationManager
             ->headerActions([
                 $this->generateScheduleAction(),
                 $this->regenerateScheduleAction(),
+                $this->paymentStatementAction(),
             ])
             ->recordActions([
                 $this->setDueDateAction(),
@@ -259,6 +268,49 @@ class PaymentScheduleRelationManager extends RelationManager
         }
 
         return $cache[$currencyCode];
+    }
+
+    protected function paymentStatementAction(): Action
+    {
+        return Action::make('paymentStatement')
+            ->label(__('forms.labels.payment_statement'))
+            ->icon('heroicon-o-banknotes')
+            ->color('info')
+            ->visible(fn () => $this->getOwnerRecord() instanceof ProformaInvoice
+                && $this->getOwnerRecord()
+                    ->paymentScheduleItems()
+                    ->withoutSideTags()
+                    ->exists())
+            ->action(function () {
+                try {
+                    $template = new PaymentStatementPdfTemplate($this->getOwnerRecord());
+                    $service = new PdfGeneratorService(
+                        new PdfRenderer,
+                        new DocumentService,
+                    );
+
+                    $content = $service->preview($template);
+
+                    return response()->streamDownload(
+                        function () use ($content) {
+                            echo $content;
+                        },
+                        $template->getFilename(),
+                        [
+                            'Content-Type' => 'application/pdf',
+                            'Content-Disposition' => 'inline; filename="'.$template->getFilename().'"',
+                        ],
+                    );
+                } catch (\Throwable $e) {
+                    report($e);
+
+                    Notification::make()
+                        ->title('Payment Statement Generation Failed')
+                        ->body($e->getMessage())
+                        ->danger()
+                        ->send();
+                }
+            });
     }
 
     protected function generateScheduleAction(): Action

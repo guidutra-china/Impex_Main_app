@@ -374,6 +374,7 @@ return [
         'payment_currency' => '付款货币',
         'payment_date' => '付款日期',
         'payment_method' => '付款方式',
+        'payment_statement' => '付款对账单',
         'payment_terms' => '付款条款',
         'pcs_carton' => '件数 / 箱',
         'pcs_inner_box' => '件数 / 内盒',
