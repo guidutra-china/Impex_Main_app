@@ -23,6 +23,15 @@ class PaymentScheduleItem extends Model
 {
     use HasFactory;
 
+    /**
+     * Side tags stitched into `notes` to mark a PSI as belonging to a payable
+     * side of an AdditionalCost (amounts Impex pays out), as opposed to the
+     * untagged client-receivable row of the same cost.
+     */
+    public const FORWARDER_PAYABLE_TAG = '[forwarder-payable]';
+
+    public const SUPPLIER_PAYABLE_TAG = '[supplier-payable]';
+
     protected static function newFactory(): \Database\Factories\PaymentScheduleItemFactory
     {
         return \Database\Factories\PaymentScheduleItemFactory::new();
@@ -80,6 +89,22 @@ class PaymentScheduleItem extends Model
     public function scopePayableNotCancelled(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->whereHasMorph('payable', '*', fn ($q) => $q->where('status', '!=', 'cancelled'));
+    }
+
+    public function scopeWithSideTag($query, string $tag)
+    {
+        return $query->where('notes', 'LIKE', "%{$tag}%");
+    }
+
+    public function scopeWithoutSideTags($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('notes')
+                ->orWhere(function ($q2) {
+                    $q2->where('notes', 'NOT LIKE', '%'.self::FORWARDER_PAYABLE_TAG.'%')
+                        ->where('notes', 'NOT LIKE', '%'.self::SUPPLIER_PAYABLE_TAG.'%');
+                });
+        });
     }
 
     // --- Relationships ---

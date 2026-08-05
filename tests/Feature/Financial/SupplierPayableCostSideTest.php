@@ -6,7 +6,9 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
+use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\AdditionalCost;
+use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -80,5 +82,45 @@ class SupplierPayableCostSideTest extends TestCase
             'supplier_payable_amount' => 1_000_000,
         ]);
         $this->assertFalse($supplierBillable->hasSupplierPayableSide());
+    }
+
+    /** @param array<string, mixed> $overrides */
+    private function makeScheduleItem(array $overrides = []): PaymentScheduleItem
+    {
+        return PaymentScheduleItem::create(array_merge([
+            'payable_type' => ProformaInvoice::class,
+            'payable_id' => $this->pi->id,
+            'label' => 'Test item',
+            'percentage' => 0,
+            'amount' => 1_000_000,
+            'currency_code' => 'USD',
+            'status' => PaymentScheduleStatus::DUE->value,
+            'is_blocking' => false,
+            'is_credit' => false,
+            'sort_order' => 1,
+        ], $overrides));
+    }
+
+    public function test_side_tag_scopes_filter_by_notes(): void
+    {
+        $plain = $this->makeScheduleItem(['label' => 'plain', 'notes' => null]);
+        $forwarder = $this->makeScheduleItem([
+            'label' => 'fwd',
+            'notes' => PaymentScheduleItem::FORWARDER_PAYABLE_TAG.' freight',
+        ]);
+        $supplier = $this->makeScheduleItem([
+            'label' => 'sup',
+            'notes' => PaymentScheduleItem::SUPPLIER_PAYABLE_TAG.' logo',
+        ]);
+
+        $without = PaymentScheduleItem::query()->withoutSideTags()->pluck('id');
+        $this->assertTrue($without->contains($plain->id));
+        $this->assertFalse($without->contains($forwarder->id));
+        $this->assertFalse($without->contains($supplier->id));
+
+        $tagged = PaymentScheduleItem::query()
+            ->withSideTag(PaymentScheduleItem::SUPPLIER_PAYABLE_TAG)
+            ->pluck('id');
+        $this->assertSame([$supplier->id], $tagged->all());
     }
 }
