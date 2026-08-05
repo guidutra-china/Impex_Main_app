@@ -63,6 +63,11 @@
         border-top: 1px solid #d1d5db;
     }
     .summary-table .paid-row td { color: #166534; }
+    .subtotal-row td {
+        font-weight: bold;
+        border-top: 1px solid #d1d5db;
+        padding-top: 4px;
+    }
     .generated-at {
         margin-top: 20px;
         font-size: 7pt;
@@ -98,6 +103,41 @@
 @endsection
 
 @section('content')
+    {{-- === PI ITEMS === --}}
+    @if(count($pi_items) > 0)
+        <div class="section-heading">Proforma Invoice Items</div>
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th style="width: 25px;">#</th>
+                    <th style="width: 80px;">{{ $labels['product_code'] }}</th>
+                    <th>{{ $labels['description'] }}</th>
+                    <th class="text-center" style="width: 55px;">{{ $labels['quantity'] }}</th>
+                    <th class="text-center" style="width: 40px;">{{ $labels['unit'] }}</th>
+                    <th class="text-right" style="width: 85px;">{{ $labels['unit_price'] }}</th>
+                    <th class="text-right" style="width: 90px;">{{ $labels['line_total'] }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($pi_items as $piItem)
+                    <tr>
+                        <td class="text-center">{{ $piItem['index'] }}</td>
+                        <td>{{ $piItem['product_code'] }}</td>
+                        <td>{{ $piItem['description'] }}</td>
+                        <td class="text-center">{{ number_format($piItem['quantity']) }}</td>
+                        <td class="text-center">{{ $piItem['unit'] }}</td>
+                        <td class="text-right">{{ $piItem['unit_price'] }}</td>
+                        <td class="text-right">{{ $piItem['line_total'] }}</td>
+                    </tr>
+                @endforeach
+                <tr class="subtotal-row">
+                    <td colspan="6" class="text-right">PI Items Total</td>
+                    <td class="text-right">{{ $pi['currency_code'] }} {{ $pi_items_total }}</td>
+                </tr>
+            </tbody>
+        </table>
+    @endif
+
     {{-- === PAYMENT SCHEDULE === --}}
     @if(count($schedule) > 0)
         <div class="section-heading">Payment Schedule</div>

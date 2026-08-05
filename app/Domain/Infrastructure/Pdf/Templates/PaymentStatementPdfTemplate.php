@@ -39,9 +39,21 @@ class PaymentStatementPdfTemplate extends AbstractPdfTemplate
     {
         /** @var ProformaInvoice $pi */
         $pi = $this->model;
-        $pi->loadMissing(['company', 'items', 'additionalCosts']);
+        $pi->loadMissing(['company', 'items.product', 'additionalCosts']);
 
         $currencyCode = $pi->currency_code ?? 'USD';
+
+        $piItems = $pi->items->sortBy('sort_order')->values()->map(function ($item, int $index) use ($currencyCode) {
+            return [
+                'index' => $index + 1,
+                'product_code' => $item->product?->sku ?? '—',
+                'description' => $item->description ?? $item->product?->name ?? '—',
+                'quantity' => $item->quantity,
+                'unit' => $item->unit ?? 'pcs',
+                'unit_price' => $this->formatMoney($item->unit_price, $currencyCode),
+                'line_total' => $this->formatMoney($item->line_total, $currencyCode, 2),
+            ];
+        });
 
         $scheduleItems = $pi->paymentScheduleItems()
             ->withoutSideTags()
@@ -163,6 +175,9 @@ class PaymentStatementPdfTemplate extends AbstractPdfTemplate
             'client' => [
                 'name' => $pi->company?->name ?? '—',
             ],
+            'pi_items' => $piItems->toArray(),
+            'pi_items_total' => $this->formatMoney($piItemsTotal, $currencyCode, 2),
+            'raw_pi_items_total' => $piItemsTotal,
             'schedule' => $scheduleRows->toArray(),
             'payments' => $paymentRows->toArray(),
             'credits' => $creditRows->toArray(),

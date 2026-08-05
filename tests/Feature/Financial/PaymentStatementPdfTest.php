@@ -79,6 +79,32 @@ class PaymentStatementPdfTest extends TestCase
         return $method->invoke($template);
     }
 
+    public function test_pi_items_listed_with_qty_unit_price_and_total(): void
+    {
+        $pi = $this->makePi();
+
+        \Database\Factories\ProformaInvoiceItemFactory::new()->create([
+            'proforma_invoice_id' => $pi->id,
+            'product_id' => \App\Domain\Catalog\Models\Product::factory(),
+            'quantity' => 100,
+            'unit_price' => 2500, // USD 0.25 (minor units)
+            'sort_order' => 1,
+        ]);
+        \Database\Factories\ProformaInvoiceItemFactory::new()->create([
+            'proforma_invoice_id' => $pi->id,
+            'product_id' => \App\Domain\Catalog\Models\Product::factory(),
+            'quantity' => 10,
+            'unit_price' => 100000, // USD 10.00
+            'sort_order' => 2,
+        ]);
+
+        $data = $this->data($pi);
+
+        $this->assertCount(2, $data['pi_items']);
+        $this->assertSame(100, $data['pi_items'][0]['quantity']);
+        $this->assertSame(1250000, $data['raw_pi_items_total']);
+    }
+
     public function test_schedule_payments_and_summary(): void
     {
         $pi = $this->makePi();
