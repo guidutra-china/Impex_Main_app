@@ -3,13 +3,11 @@
 namespace App\Filament\Portal\Resources\PaymentResource\Pages;
 
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
-use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Filament\Portal\Resources\PaymentResource;
-use App\Filament\Portal\Widgets\PaymentsListStats;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Tables\Columns\TextColumn;
@@ -64,7 +62,10 @@ class ListPayments extends ListRecords
                     })
                     ->where(function ($query) {
                         $query->whereNull('payment_schedule_items.notes')
-                            ->orWhere('payment_schedule_items.notes', 'not like', '%[forwarder-payable]%');
+                            ->orWhere(function ($q) {
+                                $q->where('payment_schedule_items.notes', 'not like', '%'.PaymentScheduleItem::FORWARDER_PAYABLE_TAG.'%')
+                                    ->where('payment_schedule_items.notes', 'not like', '%'.PaymentScheduleItem::SUPPLIER_PAYABLE_TAG.'%');
+                            });
                     })
             )
             ->columns([
@@ -144,12 +145,12 @@ class ListPayments extends ListRecords
                     ->sortable(),
                 TextColumn::make('percentage')
                     ->label(__('forms.labels.percent'))
-                    ->formatStateUsing(fn ($state) => ($state == 0 ? 100 : $state) . '%')
+                    ->formatStateUsing(fn ($state) => ($state == 0 ? 100 : $state).'%')
                     ->alignCenter()
                     ->sortable(),
                 TextColumn::make('amount')
                     ->label(__('forms.labels.amount'))
-                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 2))
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '').' '.Money::format($state, 2))
                     ->alignEnd()
                     ->sortable(),
                 TextColumn::make('due_condition')
