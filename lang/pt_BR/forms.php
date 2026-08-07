@@ -535,6 +535,12 @@ return [
         'supplier_invoice' => 'Fatura do Fornecedor',
         'supplier_name_for_product' => 'Nome do Fornecedor para Produto',
         'supplier_notes' => 'Notas do Fornecedor',
+        'supplier_payable' => 'Pagável a fornecedor',
+        'supplier_to_pay' => 'Fornecedor a pagar',
+        'supplier_payable_amount' => 'Valor (fornecedor)',
+        'supplier_payable_currency' => 'Moeda (fornecedor)',
+        'supplier_payable_due_date' => 'Vencimento (fornecedor)',
+        'side_supplier' => 'Fornecedor',
         'supplier_product_description' => 'Descrição do Produto pelo Fornecedor',
         'supplier_product_name' => 'Nome do Produto pelo Fornecedor',
         'supplier_quotation_number' => 'Número da Cotação do Fornecedor',
@@ -946,6 +952,7 @@ return [
         'shippingdelivery_instructions_for_the_supplier' => 'Instruções de envio/entrega para o fornecedor.',
         'sum_of_bom_labor_overhead' => 'Soma de BOM + Mão de obra + Despesas gerais.',
         'supplier_contact_person' => 'Pessoa de contato do fornecedor.',
+        'supplier_payable' => 'Registra um valor que a Impex paga a um fornecedor por este custo. Não aparece nos documentos do cliente.',
         'supplier_quotation_expiration_date' => 'Data de validade da cotação do fornecedor.',
         'supplierprovided_specs_certifications_materials_etc' => 'Especificações, certificações, materiais, etc. fornecidos pelo fornecedor.',
         'the_client_inquiry_this_proforma_invoice_is_for' => 'A consulta do cliente para a qual esta fatura proforma é destinada.',
@@ -1140,5 +1147,7 @@ return [
     ],
     'validation' => [
         'line_has_allocations_cannot_remove' => 'Esta linha não pode ser removida: o item de cronograma dela já possui pagamentos alocados. Cancele as alocações primeiro.',
+        'supplier_payable_has_allocations' => 'O lado pagável a fornecedor já tem alocações de pagamento e não pode ser removido ou trocado.',
+        'cost_has_allocations_cannot_delete' => 'Este custo tem alocações de pagamento e não pode ser excluído.',
     ],
 ];

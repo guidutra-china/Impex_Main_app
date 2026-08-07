@@ -536,6 +536,12 @@ return [
         'supplier_invoice' => 'Supplier Invoice',
         'supplier_name_for_product' => 'Supplier Name for Product',
         'supplier_notes' => 'Supplier Notes',
+        'supplier_payable' => 'Payable to supplier',
+        'supplier_to_pay' => 'Supplier to pay',
+        'supplier_payable_amount' => 'Supplier amount',
+        'supplier_payable_currency' => 'Supplier currency',
+        'supplier_payable_due_date' => 'Supplier due date',
+        'side_supplier' => 'Supplier',
         'supplier_product_description' => 'Supplier Product Description',
         'supplier_product_name' => 'Supplier Product Name',
         'supplier_quotation_number' => 'Supplier Quotation Number',
@@ -947,6 +953,7 @@ return [
         'shippingdelivery_instructions_for_the_supplier' => 'Shipping/delivery instructions for the supplier.',
         'sum_of_bom_labor_overhead' => 'Sum of BOM + Labor + Overhead.',
         'supplier_contact_person' => 'Supplier contact person.',
+        'supplier_payable' => 'Registers an amount Impex pays a supplier for this cost. Not shown on client documents.',
         'supplier_quotation_expiration_date' => 'Supplier quotation expiration date.',
         'supplierprovided_specs_certifications_materials_etc' => 'Supplier-provided specs, certifications, materials, etc.',
         'the_client_inquiry_this_proforma_invoice_is_for' => 'The client inquiry this proforma invoice is for.',
@@ -1135,5 +1142,7 @@ return [
     ],
     'validation' => [
         'line_has_allocations_cannot_remove' => 'This line cannot be removed: its schedule item already has payment allocations. Remove the allocations first.',
+        'supplier_payable_has_allocations' => 'The supplier payable side has payment allocations and cannot be removed or reassigned.',
+        'cost_has_allocations_cannot_delete' => 'This cost has payment allocations and cannot be deleted.',
     ],
 ];

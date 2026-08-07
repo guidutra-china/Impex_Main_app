@@ -504,6 +504,12 @@ return [
         'supplier_invoice' => '供应商发票',
         'supplier_name_for_product' => '产品供应商名称',
         'supplier_notes' => '供应商备注',
+        'supplier_payable' => '应付供应商',
+        'supplier_to_pay' => '付款供应商',
+        'supplier_payable_amount' => '供应商金额',
+        'supplier_payable_currency' => '供应商货币',
+        'supplier_payable_due_date' => '供应商到期日',
+        'side_supplier' => '供应商',
         'supplier_product_description' => '供应商产品描述',
         'supplier_product_name' => '供应商产品名称',
         'supplier_quotation_number' => '供应商报价单号',
@@ -907,6 +913,7 @@ return [
         'shippingdelivery_instructions_for_the_supplier' => '供应商的运输/交付说明。',
         'sum_of_bom_labor_overhead' => 'BOM + 人工 + 间接费用之和。',
         'supplier_contact_person' => '供应商联系人。',
+        'supplier_payable' => '登记 Impex 为此费用支付给供应商的金额。不会出现在客户文件中。',
         'supplier_quotation_expiration_date' => '供应商报价截止日期。',
         'supplierprovided_specs_certifications_materials_etc' => '供应商提供的规格、认证、材料等。',
         'the_client_inquiry_this_proforma_invoice_is_for' => '此形式发票对应的客户询价。',
@@ -1094,5 +1101,7 @@ return [
     ],
     'validation' => [
         'line_has_allocations_cannot_remove' => '无法删除此行：其付款计划项已存在付款分配。请先取消相关分配。',
+        'supplier_payable_has_allocations' => '应付供应商部分已有付款分配，无法移除或更换供应商。',
+        'cost_has_allocations_cannot_delete' => '此费用已有付款分配，无法删除。',
     ],
 ];

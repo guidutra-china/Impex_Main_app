@@ -524,13 +524,13 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->visible(fn ($get) => ! $this->isSupplierBillable($get) && ! $this->isCommissionType($get))
                     ->columnSpanFull(),
                 Select::make('supplier_company_id')
-                    ->label(fn ($get) => $get('has_supplier_payable')
+                    ->label(fn ($get) => $get('has_supplier_payable') && ! $this->isSupplierBillable($get) && ! $this->isCommissionType($get)
                         ? __('forms.labels.supplier_to_pay')
                         : __('forms.labels.supplier_if_applicable'))
                     ->relationship('supplierCompany', 'name')
                     ->searchable()
                     ->preload()
-                    ->required(fn ($get) => (bool) $get('has_supplier_payable'))
+                    ->required(fn ($get) => (bool) $get('has_supplier_payable') && ! $this->isSupplierBillable($get) && ! $this->isCommissionType($get))
                     ->placeholder('—'),
                 TextInput::make('supplier_payable_amount')
                     ->label(__('forms.labels.supplier_payable_amount'))

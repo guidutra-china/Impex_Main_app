@@ -35,7 +35,7 @@ class FinancialSummaryWidget extends BaseWidget
 
         // Mesma família de predicados do Contas a Pagar do portal: parcelas de
         // PI não cancelada + custos adicionais por shipment (frete, comissão),
-        // sem linhas de crédito nem espelhos forwarder-payable.
+        // sem linhas de crédito nem espelhos forwarder/supplier-payable.
         $scheduleItems = PaymentScheduleItem::query()
             ->where(function ($outer) use ($companyId) {
                 $outer->where(function ($q) use ($companyId) {

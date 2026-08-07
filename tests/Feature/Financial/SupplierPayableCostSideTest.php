@@ -461,4 +461,36 @@ class SupplierPayableCostSideTest extends TestCase
         $this->assertSame(AdditionalCostStatus::PAID, $cost->supplier_payable_status, 'Lado pago não pode ser sobrescrito pelo waive.');
         $this->assertSame(PaymentScheduleStatus::PAID, $this->supplierPsiFor($cost)->status, 'PSI liquidado não pode ser tocado pelo waive.');
     }
+
+    public function test_audit_command_lists_untagged_cost_rows_that_left_ap(): void
+    {
+        $cost = $this->makeCost(['supplier_company_id' => $this->supplier->id]);
+        $this->makeScheduleItem([
+            'label' => 'Other: Logo development',
+            'source_type' => AdditionalCost::class,
+            'source_id' => $cost->id,
+        ]);
+
+        $this->artisan('financial:audit-supplier-cost-leak')
+            ->expectsOutputToContain('Other: Logo development')
+            ->assertSuccessful();
+    }
+
+    public function test_full_regenerate_preserves_supplier_psi_and_statuses(): void
+    {
+        $cost = $this->makePayableCost();
+        $action = new GeneratePaymentScheduleAction;
+        $syncMethod = new \ReflectionMethod($action, 'syncAdditionalCosts');
+        $syncMethod->invoke($action, $this->pi);
+
+        $action->regenerate($this->pi->refresh());
+
+        $rows = PaymentScheduleItem::where('source_type', AdditionalCost::class)
+            ->where('source_id', $cost->id)
+            ->withSideTag(PaymentScheduleItem::SUPPLIER_PAYABLE_TAG)
+            ->get();
+
+        $this->assertCount(1, $rows);
+        $this->assertSame(3_500_000, $rows->first()->amount);
+    }
 }

@@ -304,9 +304,9 @@ trait HasPaymentFormSections
             // PI→Shipment mirrors stay excluded because they have payable_type=
             // Shipment but source_type ≠ AdditionalCost (mirror sync is one-way
             // PI → Shipment, never Shipment → PI; allocating against the mirror
-            // would leave the PI installment stuck PENDING). Forwarder-payable
-            // costs are also excluded by the [forwarder-payable] notes filter
-            // applied earlier in the query.
+            // would leave the PI installment stuck PENDING). Forwarder- and
+            // supplier-payable costs are also excluded by the withoutSideTags()
+            // scope applied earlier in the query.
             $piIds = ProformaInvoice::where('company_id', $companyId)->pluck('id');
             $shipmentIds = Shipment::where('company_id', $companyId)->pluck('id');
 

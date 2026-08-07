@@ -95,7 +95,7 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
             $totalCosts = $freight + $otherCosts;
 
             // Filter schedule items by direction:
-            // - CLIENT report: exclude forwarder-payable items (those are outbound payments)
+            // - CLIENT report: exclude forwarder- and supplier-payable items (those are outbound payments)
             // - SUPPLIER/forwarder report: include only forwarder-payable items
             $relevantScheduleItems = $s->paymentScheduleItems->filter(function ($item) use ($isClientReport) {
                 $isForwarderPayable = str_contains((string) $item->notes, PaymentScheduleItem::FORWARDER_PAYABLE_TAG);

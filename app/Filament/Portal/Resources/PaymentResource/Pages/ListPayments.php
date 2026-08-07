@@ -60,13 +60,7 @@ class ListPayments extends ListRecords
                             $q->where('company_id', $tenant->id);
                         });
                     })
-                    ->where(function ($query) {
-                        $query->whereNull('payment_schedule_items.notes')
-                            ->orWhere(function ($q) {
-                                $q->where('payment_schedule_items.notes', 'not like', '%'.PaymentScheduleItem::FORWARDER_PAYABLE_TAG.'%')
-                                    ->where('payment_schedule_items.notes', 'not like', '%'.PaymentScheduleItem::SUPPLIER_PAYABLE_TAG.'%');
-                            });
-                    })
+                    ->withoutSideTags()
             )
             ->columns([
                 TextColumn::make('payable_type_label')
