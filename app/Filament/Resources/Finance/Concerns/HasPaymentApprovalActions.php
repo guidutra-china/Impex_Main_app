@@ -85,4 +85,22 @@ trait HasPaymentApprovalActions
             EditAction::make(),
         ];
     }
+
+    /**
+     * Row shortcut that deep-links to the View page with the
+     * "manageAllocations" modal already open (?action=manageAllocations).
+     */
+    public static function allocationsRecordAction(string $resource): Action
+    {
+        return Action::make('allocations')
+            ->label(__('forms.labels.allocations'))
+            ->icon('heroicon-o-banknotes')
+            ->color('warning')
+            ->size('sm')
+            ->visible(fn ($record) => $record->status === PaymentStatus::APPROVED)
+            ->url(fn ($record) => $resource::getUrl('view', [
+                'record' => $record,
+                'action' => 'manageAllocations',
+            ]));
+    }
 }
