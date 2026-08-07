@@ -480,14 +480,7 @@ class AdditionalCostsRelationManager extends RelationManager
             return;
         }
 
-        $hasAllocations = PaymentScheduleItem::where('source_type', AdditionalCost::class)
-            ->where('source_id', $cost->id)
-            ->where(function ($q) {
-                $q->whereHas('allocations')->orWhereHas('creditAllocations');
-            })
-            ->exists();
-
-        if ($hasAllocations) {
+        if ($cost->hasSettlementHistory()) {
             throw ValidationException::withMessages([
                 'cost_type' => __('forms.validation.cost_type_locked_by_allocations'),
             ]);
@@ -668,6 +661,12 @@ class AdditionalCostsRelationManager extends RelationManager
                         }
 
                         $po = SyncSupplierPayableScheduleItemAction::resolveSupplierPo($this->getOwnerRecord(), (int) $supplierId);
+
+                        if ($this->isDiscountType($get)) {
+                            return $po
+                                ? __('forms.helpers.discount_supplier_will_link_po', ['po' => $po->reference])
+                                : __('forms.helpers.supplier_payable_no_po');
+                        }
 
                         return $po
                             ? __('forms.helpers.supplier_payable_will_link_po', ['po' => $po->reference])

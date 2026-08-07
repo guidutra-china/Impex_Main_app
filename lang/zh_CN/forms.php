@@ -920,6 +920,7 @@ return [
         'discount_supplier_side' => '供应商同时给予此折扣：将生成针对其PO的抵扣额，付款时扣减。',
         'supplier_payable' => '登记 Impex 为此费用支付给供应商的金额。不会出现在客户文件中。',
         'supplier_payable_will_link_po' => '应付款将关联到 :po。',
+        'discount_supplier_will_link_po' => '折扣抵扣额将关联到 :po。',
         'supplier_payable_no_po' => '该供应商在此PI下暂无PO — 应付款先挂在PI上，PO创建后自动转移。',
         'supplier_quotation_expiration_date' => '供应商报价截止日期。',
         'supplierprovided_specs_certifications_materials_etc' => '供应商提供的规格、认证、材料等。',

@@ -960,6 +960,7 @@ return [
         'discount_supplier_side' => 'The supplier grants this discount too: creates a credit against their PO, deducted when paying them.',
         'supplier_payable' => 'Registers an amount Impex pays a supplier for this cost. Not shown on client documents.',
         'supplier_payable_will_link_po' => 'The payable will be linked to :po.',
+        'discount_supplier_will_link_po' => 'The discount credit will be linked to :po.',
         'supplier_payable_no_po' => 'This supplier has no PO on this PI — the payable stays on the PI and moves automatically once the PO is created.',
         'supplier_quotation_expiration_date' => 'Supplier quotation expiration date.',
         'supplierprovided_specs_certifications_materials_etc' => 'Supplier-provided specs, certifications, materials, etc.',

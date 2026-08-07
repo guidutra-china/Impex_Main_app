@@ -959,6 +959,7 @@ return [
         'discount_supplier_side' => 'O fornecedor também concede este desconto: cria um crédito contra a PO dele, abatido na hora de pagá-lo.',
         'supplier_payable' => 'Registra um valor que a Impex paga a um fornecedor por este custo. Não aparece nos documentos do cliente.',
         'supplier_payable_will_link_po' => 'O pagável será vinculado à :po.',
+        'discount_supplier_will_link_po' => 'O crédito do desconto será vinculado à :po.',
         'supplier_payable_no_po' => 'Fornecedor sem PO nesta PI — o pagável fica na PI e migra automaticamente quando a PO for criada.',
         'supplier_quotation_expiration_date' => 'Data de validade da cotação do fornecedor.',
         'supplierprovided_specs_certifications_materials_etc' => 'Especificações, certificações, materiais, etc. fornecidos pelo fornecedor.',
