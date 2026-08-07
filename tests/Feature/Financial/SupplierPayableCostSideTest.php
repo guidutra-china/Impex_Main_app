@@ -421,4 +421,17 @@ class SupplierPayableCostSideTest extends TestCase
         $inbound = $helper::getCompanyScheduleItems($this->client->id, 'inbound')->pluck('id');
         $this->assertFalse($inbound->contains($psi->id));
     }
+
+    public function test_waiving_cost_waives_supplier_side_too(): void
+    {
+        $cost = $this->makePayableCost();
+        app(SyncSupplierPayableScheduleItemAction::class)->execute($cost, $this->pi);
+
+        app(\App\Domain\Financial\Actions\WaiveAdditionalCostAction::class)->execute($cost, null);
+
+        $cost->refresh();
+        $this->assertSame(AdditionalCostStatus::WAIVED, $cost->status);
+        $this->assertSame(AdditionalCostStatus::WAIVED, $cost->supplier_payable_status);
+        $this->assertSame(PaymentScheduleStatus::WAIVED, $this->supplierPsiFor($cost)->status);
+    }
 }

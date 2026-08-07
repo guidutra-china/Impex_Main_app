@@ -4,6 +4,7 @@ namespace App\Filament\RelationManagers;
 
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
+use App\Domain\Financial\Actions\WaiveAdditionalCostAction;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
@@ -319,18 +320,7 @@ class AdditionalCostsRelationManager extends RelationManager
                     $this->revertEmbeddedCommission($record);
                 }
 
-                $record->update(['status' => AdditionalCostStatus::WAIVED]);
-
-                PaymentScheduleItem::where('source_type', AdditionalCost::class)
-                    ->where('source_id', $record->id)
-                    ->get()
-                    ->each(function ($scheduleItem) {
-                        $scheduleItem->update([
-                            'status' => PaymentScheduleStatus::WAIVED,
-                            'waived_by' => auth()->id(),
-                            'waived_at' => now(),
-                        ]);
-                    });
+                app(WaiveAdditionalCostAction::class)->execute($record, auth()->id());
 
                 Notification::make()->title('Cost waived')->success()->send();
             });
