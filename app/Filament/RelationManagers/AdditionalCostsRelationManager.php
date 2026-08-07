@@ -4,6 +4,7 @@ namespace App\Filament\RelationManagers;
 
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
+use App\Domain\Financial\Actions\SyncSupplierPayableScheduleItemAction;
 use App\Domain\Financial\Actions\WaiveAdditionalCostAction;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\AdditionalCostType;
@@ -30,6 +31,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Section;
@@ -52,7 +54,7 @@ class AdditionalCostsRelationManager extends RelationManager
     /**
      * Detect if the given (possibly virtual-cloned) record represents the
      * forwarder side of a freight cost. The clone created in
-     * expandForwarderRows() carries an `_is_forwarder_row` flag.
+     * expandSideRows() carries an `_is_forwarder_row` flag.
      */
     public function isForwarderRow(Model $record): bool
     {
@@ -60,23 +62,33 @@ class AdditionalCostsRelationManager extends RelationManager
     }
 
     /**
-     * Override Filament's record fetch so a single freight AdditionalCost
-     * with a forwarder portion renders as TWO virtual rows — one for the
-     * client-billable side, one for the forwarder-payable side. The
-     * underlying DB row is unchanged; both clones reuse the same id but
-     * carry an `_is_forwarder_row` flag and a side-specific record key
-     * so Filament can tell them apart for actions and selection.
+     * Detect if the given (possibly virtual-cloned) record represents the
+     * supplier-payable side of a cost. The clone created in
+     * expandSideRows() carries an `_is_supplier_payable_row` flag.
+     */
+    public function isSupplierPayableRow(Model $record): bool
+    {
+        return (bool) ($record->_is_supplier_payable_row ?? false);
+    }
+
+    /**
+     * Override Filament's record fetch so a single AdditionalCost with extra
+     * payable sides renders as multiple virtual rows — the client-billable
+     * side, plus a forwarder-payable side (freight on Shipments) and/or a
+     * supplier-payable side (any owner). The underlying DB row is unchanged;
+     * clones reuse the same id but carry a side flag and a side-specific
+     * record key so Filament can tell them apart for actions and selection.
      */
     public function getTableRecords(): Paginator|CursorPaginator|EloquentCollection
     {
         $records = parent::getTableRecords();
 
         if ($records instanceof EloquentCollection) {
-            return new EloquentCollection($this->expandForwarderRows($records));
+            return new EloquentCollection($this->expandSideRows($records));
         }
 
         $records->setCollection(
-            collect($this->expandForwarderRows($records->getCollection()))
+            collect($this->expandSideRows($records->getCollection()))
         );
 
         return $records;
@@ -88,37 +100,40 @@ class AdditionalCostsRelationManager extends RelationManager
             return parent::getTableRecordKey($record);
         }
 
-        return $record->getKey().($this->isForwarderRow($record) ? '-forwarder' : '-client');
+        return $record->getKey().match (true) {
+            $this->isForwarderRow($record) => '-forwarder',
+            $this->isSupplierPayableRow($record) => '-supplier',
+            default => '-client',
+        };
     }
 
     /**
      * @param  iterable<int, Model>  $records
      * @return array<int, Model>
      */
-    protected function expandForwarderRows(iterable $records): array
+    protected function expandSideRows(iterable $records): array
     {
         $expanded = [];
 
         foreach ($records as $record) {
             $expanded[] = $record;
 
-            // Only freight costs on Shipments carry a forwarder portion.
-            if (! ($this->getOwnerRecord() instanceof Shipment)) {
-                continue;
+            // Freight forwarder side — Shipment-owned costs only (unchanged).
+            if ($this->getOwnerRecord() instanceof Shipment
+                && ($record->forwarder_amount_in_document_currency || $record->forwarder_amount)) {
+                $clone = clone $record;
+                $clone->setAttribute('_is_forwarder_row', true);
+                $clone->setRelations($record->getRelations());
+                $expanded[] = $clone;
             }
 
-            $hasForwarderSide = $record->forwarder_amount_in_document_currency
-                || $record->forwarder_amount;
-
-            if (! $hasForwarderSide) {
-                continue;
+            // Supplier payable side — any owner (PI or Shipment).
+            if ($record->hasSupplierPayableSide()) {
+                $clone = clone $record;
+                $clone->setAttribute('_is_supplier_payable_row', true);
+                $clone->setRelations($record->getRelations());
+                $expanded[] = $clone;
             }
-
-            $clone = clone $record;
-            $clone->setAttribute('_is_forwarder_row', true);
-            // Inherit relations so the forwarderCompany.name accessor works.
-            $clone->setRelations($record->getRelations());
-            $expanded[] = $clone;
         }
 
         return $expanded;
@@ -149,37 +164,52 @@ class AdditionalCostsRelationManager extends RelationManager
                 TextColumn::make('display_side')
                     ->label(__('forms.labels.side'))
                     ->badge()
-                    ->state(fn ($record) => $this->isForwarderRow($record) ? 'forwarder' : 'client')
-                    ->formatStateUsing(fn ($state) => $state === 'forwarder'
-                        ? __('forms.labels.side_forwarder')
-                        : __('forms.labels.side_client'))
-                    ->color(fn ($state) => $state === 'forwarder' ? 'info' : 'success')
-                    ->visible(fn () => $this->getOwnerRecord() instanceof Shipment),
+                    ->state(fn ($record) => match (true) {
+                        $this->isForwarderRow($record) => 'forwarder',
+                        $this->isSupplierPayableRow($record) => 'supplier',
+                        default => 'client',
+                    })
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'forwarder' => __('forms.labels.side_forwarder'),
+                        'supplier' => __('forms.labels.side_supplier'),
+                        default => __('forms.labels.side_client'),
+                    })
+                    ->color(fn ($state) => match ($state) {
+                        'forwarder' => 'info',
+                        'supplier' => 'warning',
+                        default => 'success',
+                    }),
                 TextColumn::make('display_amount')
                     ->label(__('forms.labels.amount'))
-                    ->state(fn ($record) => $this->isForwarderRow($record) ? $record->forwarder_amount : $record->amount)
+                    ->state(fn ($record) => match (true) {
+                        $this->isForwarderRow($record) => $record->forwarder_amount,
+                        $this->isSupplierPayableRow($record) => $record->supplier_payable_amount,
+                        default => $record->amount,
+                    })
                     ->formatStateUsing(fn ($state) => Money::format((int) $state))
                     ->alignEnd(),
                 TextColumn::make('display_currency')
                     ->label(__('forms.labels.currency'))
-                    ->state(fn ($record) => $this->isForwarderRow($record)
-                        ? $record->forwarder_currency_code
-                        : $record->currency_code),
+                    ->state(fn ($record) => match (true) {
+                        $this->isForwarderRow($record) => $record->forwarder_currency_code,
+                        $this->isSupplierPayableRow($record) => $record->supplier_payable_currency_code,
+                        default => $record->currency_code,
+                    }),
                 TextColumn::make('display_doc_amount')
                     ->label(__('forms.labels.doc_amount'))
-                    ->state(fn ($record) => $this->isForwarderRow($record)
-                        ? $record->forwarder_amount_in_document_currency
-                        : $record->amount_in_document_currency)
+                    ->state(fn ($record) => match (true) {
+                        $this->isForwarderRow($record) => $record->forwarder_amount_in_document_currency,
+                        $this->isSupplierPayableRow($record) => $record->supplier_payable_amount_in_document_currency,
+                        default => $record->amount_in_document_currency,
+                    })
                     ->formatStateUsing(fn ($state) => Money::format((int) $state))
                     ->alignEnd(),
                 TextColumn::make('display_party')
                     ->label(__('forms.labels.billable_to'))
-                    ->state(function ($record) {
-                        if ($this->isForwarderRow($record)) {
-                            return $record->forwarderCompany?->name ?? '—';
-                        }
-
-                        return $record->billable_to?->getLabel() ?? '—';
+                    ->state(fn ($record) => match (true) {
+                        $this->isForwarderRow($record) => $record->forwarderCompany?->name ?? '—',
+                        $this->isSupplierPayableRow($record) => $record->supplierCompany?->name ?? '—',
+                        default => $record->billable_to?->getLabel() ?? '—',
                     })
                     ->badge(),
                 TextColumn::make('supplierCompany.name')
@@ -192,9 +222,11 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->sortable(),
                 TextColumn::make('display_status')
                     ->label(__('forms.labels.status'))
-                    ->state(fn ($record) => $this->isForwarderRow($record)
-                        ? $record->forwarder_status
-                        : $record->status)
+                    ->state(fn ($record) => match (true) {
+                        $this->isForwarderRow($record) => $record->forwarder_status,
+                        $this->isSupplierPayableRow($record) => $record->supplier_payable_status,
+                        default => $record->status,
+                    })
                     ->badge(),
                 TextColumn::make('creator.name')
                     ->label(__('forms.labels.created_by'))
@@ -254,6 +286,7 @@ class AdditionalCostsRelationManager extends RelationManager
             ->icon('heroicon-o-pencil-square')
             ->color('gray')
             ->visible(fn ($record) => ! $this->isForwarderRow($record)
+                && ! $this->isSupplierPayableRow($record)
                 && $record->status !== AdditionalCostStatus::WAIVED
                 && auth()->user()?->can('create-payments'))
             ->fillForm(fn ($record) => [
@@ -270,6 +303,11 @@ class AdditionalCostsRelationManager extends RelationManager
                 'forwarder_amount' => $record->forwarder_amount ? Money::toMajor($record->forwarder_amount) : null,
                 'forwarder_currency_code' => $record->forwarder_currency_code,
                 'forwarder_exchange_rate' => $record->forwarder_exchange_rate,
+                'has_supplier_payable' => $record->hasSupplierPayableSide(),
+                'supplier_payable_amount' => $record->supplier_payable_amount ? Money::toMajor($record->supplier_payable_amount) : null,
+                'supplier_payable_currency_code' => $record->supplier_payable_currency_code,
+                'supplier_payable_exchange_rate' => $record->supplier_payable_exchange_rate,
+                'supplier_payable_due_date' => $record->supplier_payable_due_date,
                 'cost_date' => $record->cost_date,
                 'notes' => $record->notes,
                 'attachment_path' => $record->attachment_path,
@@ -312,6 +350,7 @@ class AdditionalCostsRelationManager extends RelationManager
             ->requiresConfirmation()
             ->modalDescription('This will waive the cost and its linked schedule items. The amounts will no longer be collectible/deductible.')
             ->visible(fn ($record) => ! $this->isForwarderRow($record)
+                && ! $this->isSupplierPayableRow($record)
                 && in_array($record->status, [AdditionalCostStatus::PENDING, AdditionalCostStatus::INVOICED])
                 && auth()->user()?->can('approve-payments'))
             ->action(function ($record) {
@@ -335,9 +374,24 @@ class AdditionalCostsRelationManager extends RelationManager
             ->requiresConfirmation()
             ->modalDescription('This will delete the cost and its linked schedule items.')
             ->visible(fn ($record) => ! $this->isForwarderRow($record)
+                && ! $this->isSupplierPayableRow($record)
                 && $record->status === AdditionalCostStatus::PENDING
                 && auth()->user()?->can('create-payments'))
             ->action(function ($record) {
+                $hasAllocations = PaymentScheduleItem::where('source_type', AdditionalCost::class)
+                    ->where('source_id', $record->id)
+                    ->whereHas('allocations')
+                    ->exists();
+
+                if ($hasAllocations) {
+                    Notification::make()
+                        ->title(__('forms.validation.cost_has_allocations_cannot_delete'))
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+
                 // Revert embedded commission before deleting
                 if ($this->isEmbeddedCommission($record)) {
                     $this->revertEmbeddedCommission($record);
@@ -364,6 +418,26 @@ class AdditionalCostsRelationManager extends RelationManager
 
         return $val === AdditionalCostType::COMMISSION->value
             || $val === 'commission';
+    }
+
+    protected function isSupplierBillable($get): bool
+    {
+        $val = $get('billable_to');
+
+        if ($val instanceof BillableTo) {
+            return $val === BillableTo::SUPPLIER;
+        }
+
+        return $val === BillableTo::SUPPLIER->value || $val === 'supplier';
+    }
+
+    protected function isSupplierBillableValue(mixed $val): bool
+    {
+        if ($val instanceof BillableTo) {
+            return $val === BillableTo::SUPPLIER;
+        }
+
+        return $val === BillableTo::SUPPLIER->value || $val === 'supplier';
     }
 
     protected function costFormSchema(): array
@@ -447,12 +521,46 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->options(BillableTo::class)
                     ->default(BillableTo::CLIENT->value)
                     ->required(),
+                Toggle::make('has_supplier_payable')
+                    ->label(__('forms.labels.supplier_payable'))
+                    ->helperText(__('forms.helpers.supplier_payable'))
+                    ->live()
+                    ->default(false)
+                    ->visible(fn ($get) => ! $this->isSupplierBillable($get))
+                    ->columnSpanFull(),
                 Select::make('supplier_company_id')
-                    ->label(__('forms.labels.supplier_if_applicable'))
+                    ->label(fn ($get) => $get('has_supplier_payable')
+                        ? __('forms.labels.supplier_to_pay')
+                        : __('forms.labels.supplier_if_applicable'))
                     ->relationship('supplierCompany', 'name')
                     ->searchable()
                     ->preload()
+                    ->required(fn ($get) => (bool) $get('has_supplier_payable'))
                     ->placeholder('—'),
+                TextInput::make('supplier_payable_amount')
+                    ->label(__('forms.labels.supplier_payable_amount'))
+                    ->numeric()
+                    ->step('0.01')
+                    ->minValue(0.01)
+                    ->required(fn ($get) => (bool) $get('has_supplier_payable'))
+                    ->visible(fn ($get) => (bool) $get('has_supplier_payable')),
+                Select::make('supplier_payable_currency_code')
+                    ->label(__('forms.labels.supplier_payable_currency'))
+                    ->options(fn () => Currency::pluck('code', 'code'))
+                    ->default(fn () => $this->getOwnerRecord()->currency_code)
+                    ->live()
+                    ->visible(fn ($get) => (bool) $get('has_supplier_payable')),
+                TextInput::make('supplier_payable_exchange_rate')
+                    ->label(__('forms.labels.exchange_rate'))
+                    ->numeric()
+                    ->step('0.00000001')
+                    ->helperText(__('forms.helpers.rate_to_convert_to_document_currency_leave_empty_if_same'))
+                    ->visible(fn ($get) => (bool) $get('has_supplier_payable')
+                        && $get('supplier_payable_currency_code')
+                        && $get('supplier_payable_currency_code') !== $this->getOwnerRecord()->currency_code),
+                DatePicker::make('supplier_payable_due_date')
+                    ->label(__('forms.labels.supplier_payable_due_date'))
+                    ->visible(fn ($get) => (bool) $get('has_supplier_payable')),
                 DatePicker::make('cost_date')
                     ->label(__('forms.labels.date'))
                     ->default(now()),
@@ -516,6 +624,19 @@ class AdditionalCostsRelationManager extends RelationManager
 
         $documentCurrencyCode = $owner->currency_code;
         $costCurrencyCode = $data['currency_code'];
+
+        $hasSupplierPayable = (bool) ($data['has_supplier_payable'] ?? false)
+            && ! $this->isSupplierBillableValue($data['billable_to'] ?? null)
+            && ! empty($data['supplier_payable_amount'])
+            && ! empty($data['supplier_company_id']);
+
+        if ($record) {
+            SyncSupplierPayableScheduleItemAction::assertSideRemovable(
+                $record,
+                $hasSupplierPayable,
+                isset($data['supplier_company_id']) ? (int) $data['supplier_company_id'] : null,
+            );
+        }
 
         $exchangeRate = null;
         $amountInDocCurrency = $amountMinor;
@@ -587,6 +708,44 @@ class AdditionalCostsRelationManager extends RelationManager
             $payload['forwarder_amount_in_document_currency'] = null;
         }
 
+        // Supplier payable side — Impex pays the supplier for this cost.
+        if ($hasSupplierPayable) {
+            $spAmountMinor = Money::toMinor((float) $data['supplier_payable_amount']);
+            $spCurrency = $data['supplier_payable_currency_code'] ?? $documentCurrencyCode;
+            $spRate = null;
+            $spInDoc = $spAmountMinor;
+
+            if ($spCurrency !== $documentCurrencyCode) {
+                $spRate = $data['supplier_payable_exchange_rate'] ?? null;
+
+                if ($spRate) {
+                    $spInDoc = (int) round($spAmountMinor * (float) $spRate);
+                } else {
+                    $spInDoc = $this->convertCurrency($spCurrency, $documentCurrencyCode, $spAmountMinor);
+                    if ($spInDoc !== $spAmountMinor) {
+                        $spRate = $spInDoc / max($spAmountMinor, 1);
+                    }
+                }
+            }
+
+            $payload += [
+                'supplier_payable_amount' => $spAmountMinor,
+                'supplier_payable_currency_code' => $spCurrency,
+                'supplier_payable_exchange_rate' => $spRate,
+                'supplier_payable_amount_in_document_currency' => $spInDoc,
+                'supplier_payable_due_date' => $data['supplier_payable_due_date'] ?? null,
+            ];
+        } else {
+            $payload += [
+                'supplier_payable_amount' => null,
+                'supplier_payable_currency_code' => null,
+                'supplier_payable_exchange_rate' => null,
+                'supplier_payable_amount_in_document_currency' => null,
+                'supplier_payable_due_date' => null,
+                'supplier_payable_status' => null,
+            ];
+        }
+
         if ($record) {
             $record->update($payload);
 
@@ -627,15 +786,14 @@ class AdditionalCostsRelationManager extends RelationManager
             // Remove client schedule items (company absorbs the cost, not billed to client)
             PaymentScheduleItem::where('source_type', AdditionalCost::class)
                 ->where('source_id', $cost->id)
-                ->where(function ($q) {
-                    $q->whereNull('notes')
-                        ->orWhere('notes', 'NOT LIKE', '%[forwarder-payable]%');
-                })
+                ->withoutSideTags()
                 ->whereDoesntHave('allocations')
                 ->delete();
 
             // Still create forwarder payable if forwarder data exists
             $this->syncForwarderScheduleItem($cost, $owner);
+
+            app(SyncSupplierPayableScheduleItemAction::class)->execute($cost, $owner);
 
             return;
         }
@@ -666,6 +824,9 @@ class AdditionalCostsRelationManager extends RelationManager
 
         // --- Forwarder payable schedule item (new) ---
         $this->syncForwarderScheduleItem($cost, $owner);
+
+        // --- Supplier payable schedule item ---
+        app(SyncSupplierPayableScheduleItemAction::class)->execute($cost, $owner);
     }
 
     protected function upsertScheduleItem(AdditionalCost $cost, $payable, array $data, string $tag): void
@@ -676,10 +837,7 @@ class AdditionalCostsRelationManager extends RelationManager
         if ($tag === 'forwarder') {
             $query->where('notes', 'LIKE', '%[forwarder-payable]%');
         } else {
-            $query->where(function ($q) {
-                $q->whereNull('notes')
-                    ->orWhere('notes', 'NOT LIKE', '%[forwarder-payable]%');
-            });
+            $query->withoutSideTags();
         }
 
         $existing = $query->first();

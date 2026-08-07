@@ -99,9 +99,15 @@ class SyncSupplierPayableScheduleItemAction
 
         $supplierChanged = $willHaveSide && (int) $newSupplierId !== (int) $cost->supplier_company_id;
 
-        if (! $willHaveSide || $supplierChanged) {
+        if (! $willHaveSide) {
             throw ValidationException::withMessages([
                 'has_supplier_payable' => __('forms.validation.supplier_payable_has_allocations'),
+            ]);
+        }
+
+        if ($supplierChanged) {
+            throw ValidationException::withMessages([
+                'supplier_company_id' => __('forms.validation.supplier_payable_has_allocations'),
             ]);
         }
     }
