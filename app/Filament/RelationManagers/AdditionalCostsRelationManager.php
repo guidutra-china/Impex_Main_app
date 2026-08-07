@@ -294,7 +294,7 @@ class AdditionalCostsRelationManager extends RelationManager
                 'commission_rate' => $record->commission_rate,
                 'commission_mode' => $record->commission_mode?->value,
                 'description' => $record->description,
-                'amount' => Money::toMajor($record->amount),
+                'amount' => Money::toMajor(abs($record->amount)),
                 'currency_code' => $record->currency_code,
                 'exchange_rate' => $record->exchange_rate,
                 'billable_to' => $record->billable_to->value,
@@ -420,6 +420,17 @@ class AdditionalCostsRelationManager extends RelationManager
             || $val === 'commission';
     }
 
+    protected function isDiscountType($get): bool
+    {
+        $val = $get('cost_type');
+
+        if ($val instanceof AdditionalCostType) {
+            return $val === AdditionalCostType::DISCOUNT;
+        }
+
+        return $val === AdditionalCostType::DISCOUNT->value || $val === 'discount';
+    }
+
     /**
      * IDs (int, únicos) dos fornecedores "do processo": itens da PI, ou POs
      * dos itens do Shipment. Usado para priorizar o select de fornecedor.
@@ -524,12 +535,19 @@ class AdditionalCostsRelationManager extends RelationManager
                         }
                     }),
                 TextInput::make('amount')
-                    ->label(__('forms.labels.amount'))
+                    ->label(fn ($get) => $this->isDiscountType($get)
+                        ? __('forms.labels.discount_amount')
+                        : __('forms.labels.amount'))
                     ->numeric()
                     ->step('0.01')
                     ->minValue(0.01)
                     ->required()
-                    ->helperText(fn ($get) => $isFreight($get) ? __('forms.helpers.amount_charged_to_client') : ($isCommission($get) ? __('forms.helpers.auto_calculated_from_commission_rate_editable') : null)),
+                    ->helperText(fn ($get) => match (true) {
+                        $this->isDiscountType($get) => __('forms.helpers.discount_amount'),
+                        $isFreight($get) => __('forms.helpers.amount_charged_to_client'),
+                        $isCommission($get) => __('forms.helpers.auto_calculated_from_commission_rate_editable'),
+                        default => null,
+                    }),
                 Select::make('currency_code')
                     ->label(__('forms.labels.currency'))
                     ->options(fn () => Currency::pluck('code', 'code'))
@@ -544,7 +562,16 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->visible(fn ($get) => $get('currency_code') && $get('currency_code') !== $this->getOwnerRecord()->currency_code),
                 Select::make('billable_to')
                     ->label(__('forms.labels.billable_to'))
-                    ->options(BillableTo::class)
+                    ->options(function ($get) {
+                        $options = collect(BillableTo::cases());
+
+                        if ($this->isDiscountType($get)) {
+                            // Desconto absorvido = simplesmente não lançar.
+                            $options = $options->reject(fn (BillableTo $c) => $c === BillableTo::COMPANY);
+                        }
+
+                        return $options->mapWithKeys(fn (BillableTo $c) => [$c->value => $c->getLabel()])->all();
+                    })
                     ->default(BillableTo::CLIENT->value)
                     ->required()
                     ->live(),
@@ -553,10 +580,10 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->helperText(__('forms.helpers.supplier_payable'))
                     ->live()
                     ->default(false)
-                    ->visible(fn ($get) => ! $this->isSupplierBillable($get) && ! $this->isCommissionType($get))
+                    ->visible(fn ($get) => ! $this->isSupplierBillable($get) && ! $this->isCommissionType($get) && ! $this->isDiscountType($get))
                     ->columnSpanFull(),
                 Select::make('supplier_company_id')
-                    ->label(fn ($get) => $get('has_supplier_payable') && ! $this->isSupplierBillable($get) && ! $this->isCommissionType($get)
+                    ->label(fn ($get) => $get('has_supplier_payable') && ! $this->isSupplierBillable($get) && ! $this->isCommissionType($get) && ! $this->isDiscountType($get)
                         ? __('forms.labels.supplier_to_pay')
                         : __('forms.labels.supplier_if_applicable'))
                     ->relationship(
@@ -579,10 +606,11 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->searchable()
                     ->preload()
                     ->live()
-                    ->required(fn ($get) => (bool) $get('has_supplier_payable') && ! $this->isSupplierBillable($get) && ! $this->isCommissionType($get))
+                    ->required(fn ($get) => ((bool) $get('has_supplier_payable') && ! $this->isSupplierBillable($get) && ! $this->isCommissionType($get) && ! $this->isDiscountType($get))
+                        || ($this->isDiscountType($get) && $this->isSupplierBillable($get)))
                     ->helperText(function ($get) {
                         // Aviso dinâmico: a qual documento o pagável vai ancorar.
-                        if (! $get('has_supplier_payable') || $this->isSupplierBillable($get) || $this->isCommissionType($get)) {
+                        if (! $get('has_supplier_payable') || $this->isSupplierBillable($get) || $this->isCommissionType($get) || $this->isDiscountType($get)) {
                             return null;
                         }
 
@@ -606,7 +634,8 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->required(fn ($get) => (bool) $get('has_supplier_payable'))
                     ->visible(fn ($get) => (bool) $get('has_supplier_payable')
                         && ! $this->isSupplierBillable($get)
-                        && ! $this->isCommissionType($get)),
+                        && ! $this->isCommissionType($get)
+                        && ! $this->isDiscountType($get)),
                 Select::make('supplier_payable_currency_code')
                     ->label(__('forms.labels.supplier_payable_currency'))
                     ->options(fn () => Currency::pluck('code', 'code'))
@@ -614,7 +643,8 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->live()
                     ->visible(fn ($get) => (bool) $get('has_supplier_payable')
                         && ! $this->isSupplierBillable($get)
-                        && ! $this->isCommissionType($get)),
+                        && ! $this->isCommissionType($get)
+                        && ! $this->isDiscountType($get)),
                 TextInput::make('supplier_payable_exchange_rate')
                     ->label(__('forms.labels.exchange_rate'))
                     ->numeric()
@@ -623,13 +653,15 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->visible(fn ($get) => (bool) $get('has_supplier_payable')
                         && ! $this->isSupplierBillable($get)
                         && ! $this->isCommissionType($get)
+                        && ! $this->isDiscountType($get)
                         && $get('supplier_payable_currency_code')
                         && $get('supplier_payable_currency_code') !== $this->getOwnerRecord()->currency_code),
                 DatePicker::make('supplier_payable_due_date')
                     ->label(__('forms.labels.supplier_payable_due_date'))
                     ->visible(fn ($get) => (bool) $get('has_supplier_payable')
                         && ! $this->isSupplierBillable($get)
-                        && ! $this->isCommissionType($get)),
+                        && ! $this->isCommissionType($get)
+                        && ! $this->isDiscountType($get)),
                 DatePicker::make('cost_date')
                     ->label(__('forms.labels.date'))
                     ->default(now()),
@@ -689,6 +721,10 @@ class AdditionalCostsRelationManager extends RelationManager
             || ($data['cost_type'] ?? null) === AdditionalCostType::COMMISSION
             || ($data['cost_type'] ?? null) === 'commission';
 
+        $isDiscount = ($data['cost_type'] ?? null) === AdditionalCostType::DISCOUNT->value
+            || ($data['cost_type'] ?? null) === AdditionalCostType::DISCOUNT
+            || ($data['cost_type'] ?? null) === 'discount';
+
         $amountMinor = Money::toMinor((float) $data['amount']);
 
         $documentCurrencyCode = $owner->currency_code;
@@ -696,6 +732,7 @@ class AdditionalCostsRelationManager extends RelationManager
 
         $hasSupplierPayable = (bool) ($data['has_supplier_payable'] ?? false)
             && ! $isCommission
+            && ! $isDiscount
             && ! $this->isSupplierBillableValue($data['billable_to'] ?? null)
             && ! empty($data['supplier_payable_amount'])
             && ! empty($data['supplier_company_id']);

@@ -80,6 +80,19 @@ class AdditionalCost extends Model
                 $cost->created_by = auth()->id();
             }
         });
+
+        static::saving(function (AdditionalCost $cost) {
+            // Invariante do tipo DISCOUNT: colunas do custo sempre negativas
+            // (documentos somam naturalmente); PSIs derivados usam abs().
+            if ($cost->cost_type === AdditionalCostType::DISCOUNT) {
+                if ($cost->amount !== null) {
+                    $cost->amount = -abs((int) $cost->amount);
+                }
+                if ($cost->amount_in_document_currency !== null) {
+                    $cost->amount_in_document_currency = -abs((int) $cost->amount_in_document_currency);
+                }
+            }
+        });
     }
 
     // --- Relationships ---
@@ -150,5 +163,10 @@ class AdditionalCost extends Model
         return $this->billable_to !== BillableTo::SUPPLIER
             && $this->supplier_company_id !== null
             && (int) $this->supplier_payable_amount > 0;
+    }
+
+    public function isDiscount(): bool
+    {
+        return $this->cost_type === AdditionalCostType::DISCOUNT;
     }
 }
