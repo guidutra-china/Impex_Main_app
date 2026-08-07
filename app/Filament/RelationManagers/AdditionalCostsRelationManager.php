@@ -463,28 +463,12 @@ class AdditionalCostsRelationManager extends RelationManager
     }
 
     /**
-     * Trocar o tipo entre desconto (crédito) e custo comum inverte a natureza
-     * do PSI; com alocações registradas isso corromperia o histórico.
+     * Validação prévia do form; a regra vive no model (que também a aplica
+     * num hook updating, cobrindo qualquer caminho de escrita).
      */
     public static function assertCostTypeSwitchable(AdditionalCost $cost, AdditionalCostType|string|null $newType): void
     {
-        if ($newType === null) {
-            return;
-        }
-
-        $newValue = $newType instanceof AdditionalCostType ? $newType->value : $newType;
-        $wasDiscount = $cost->cost_type === AdditionalCostType::DISCOUNT;
-        $willBeDiscount = $newValue === AdditionalCostType::DISCOUNT->value;
-
-        if ($wasDiscount === $willBeDiscount) {
-            return;
-        }
-
-        if ($cost->hasSettlementHistory()) {
-            throw ValidationException::withMessages([
-                'cost_type' => __('forms.validation.cost_type_locked_by_allocations'),
-            ]);
-        }
+        $cost->assertCostTypeSwitchable($newType);
     }
 
     protected function isSupplierBillable($get): bool

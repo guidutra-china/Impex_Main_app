@@ -258,9 +258,9 @@ trait HasPaymentFormSections
                             if (! $creditItem) {
                                 return;
                             }
-                            $maxAmount = Money::toMajor($creditItem->credit_remaining_amount);
+                            $maxAmount = static::maxApplicableCreditMajor($creditItem);
                             if ((float) $value > $maxAmount) {
-                                $fail("Amount cannot exceed the remaining credit of {$creditItem->currency_code} ".number_format($maxAmount, 2).'.');
+                                $fail("Amount cannot exceed the available credit of {$creditItem->currency_code} ".number_format($maxAmount, 2).'.');
                             }
                         },
                     ])
@@ -639,12 +639,12 @@ trait HasPaymentFormSections
             $html .= '<tr class="border-b border-gray-100 dark:border-gray-800">';
             $html .= '<td class="py-1.5 px-2 font-medium">'.e($docRef).'</td>';
             $html .= '<td class="py-1.5 px-2">'.$descBadge.'</td>';
-            $html .= '<td class="py-1.5 px-2 text-right font-semibold text-green-600">'.Money::format($credit->credit_remaining_amount).'</td>';
+            $html .= '<td class="py-1.5 px-2 text-right font-semibold text-green-600">'.Money::format($credit->credit_available_amount).'</td>';
             $html .= '<td class="py-1.5 px-2">'.e($credit->currency_code).'</td>';
             $html .= '</tr>';
         }
 
-        $totalCredit = $credits->sum(fn ($credit) => $credit->credit_remaining_amount);
+        $totalCredit = $credits->sum(fn ($credit) => $credit->credit_available_amount);
         $html .= '</tbody>';
         $html .= '<tfoot><tr class="border-t-2 border-gray-300 dark:border-gray-600">';
         $html .= '<td colspan="2" class="py-1.5 px-2 font-bold text-right">Total Credit:</td>';
@@ -1052,18 +1052,27 @@ trait HasPaymentFormSections
         return null;
     }
 
+    /**
+     * Teto (em unidades maiores) que uma NOVA aplicação de crédito pode
+     * reservar no form — saldo disponível contando pagamentos pendentes.
+     */
+    public static function maxApplicableCreditMajor(PaymentScheduleItem $creditItem): float
+    {
+        return Money::toMajor($creditItem->credit_available_amount);
+    }
+
     public static function formatCreditItemLabel(PaymentScheduleItem $item): string
     {
         $docRef = static::formatDocRef($item);
         $label = static::cleanLabel($item);
 
-        $remaining = $item->credit_remaining_amount;
+        $available = $item->credit_available_amount;
 
-        if ($remaining < $item->amount) {
-            $remainingFormatted = Money::format($remaining);
+        if ($available < $item->amount) {
+            $availableFormatted = Money::format($available);
             $totalFormatted = Money::format($item->amount);
 
-            return "[{$docRef}] {$label} — {$item->currency_code} {$remainingFormatted} remaining of {$totalFormatted} credit";
+            return "[{$docRef}] {$label} — {$item->currency_code} {$availableFormatted} available of {$totalFormatted} credit";
         }
 
         $amount = Money::format($item->amount);

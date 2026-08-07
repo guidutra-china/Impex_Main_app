@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Validation\ValidationException;
 
 class AdditionalCost extends Model
 {
@@ -78,6 +79,12 @@ class AdditionalCost extends Model
         static::creating(function (AdditionalCost $cost) {
             if (empty($cost->created_by)) {
                 $cost->created_by = auth()->id();
+            }
+        });
+
+        static::updating(function (AdditionalCost $cost) {
+            if ($cost->isDirty('cost_type')) {
+                $cost->assertCostTypeSwitchable($cost->cost_type);
             }
         });
 
@@ -174,6 +181,34 @@ class AdditionalCost extends Model
     public function isDiscount(): bool
     {
         return $this->cost_type === AdditionalCostType::DISCOUNT;
+    }
+
+    /**
+     * Trocar o tipo entre desconto (crédito) e custo comum inverte a natureza
+     * do PSI; com alocações registradas isso corromperia o histórico. Compara
+     * o tipo persistido (original) com o proposto, então funciona tanto na
+     * validação prévia do form quanto no hook updating (model já dirty).
+     */
+    public function assertCostTypeSwitchable(AdditionalCostType|string|null $newType): void
+    {
+        if ($newType === null) {
+            return;
+        }
+
+        $originalType = $this->exists ? $this->getOriginal('cost_type') : $this->cost_type;
+        $newValue = $newType instanceof AdditionalCostType ? $newType->value : $newType;
+        $wasDiscount = $originalType === AdditionalCostType::DISCOUNT;
+        $willBeDiscount = $newValue === AdditionalCostType::DISCOUNT->value;
+
+        if ($wasDiscount === $willBeDiscount) {
+            return;
+        }
+
+        if ($this->hasSettlementHistory()) {
+            throw ValidationException::withMessages([
+                'cost_type' => __('forms.validation.cost_type_locked_by_allocations'),
+            ]);
+        }
     }
 
     /**

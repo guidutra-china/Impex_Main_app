@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Finance\Concerns;
 
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
+use App\Domain\Financial\Models\CreditNote;
 use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Financial\Support\AllocationCalculator;
@@ -112,9 +113,19 @@ trait HasPaymentAllocationPersistence
                 'allocated_amount_in_document_currency' => $creditMinor,
             ]);
 
-            $creditItem->update([
-                'status' => PaymentScheduleStatus::PAID->value,
-            ]);
+            // Reserva o crédito (PAID = fora da lista de disponíveis) apenas
+            // quando totalmente comprometido, contando também aplicações de
+            // pagamentos ainda pendentes de aprovação — mesma matemática
+            // consumido/restante/tolerância do ReconcileSettlementStateAction,
+            // que reavalia com só os APPROVED quando o pagamento é decidido.
+            // Aplicação parcial mantém PENDING: o saldo segue aplicável.
+            $reserved = $creditItem->refresh()->credit_reserved_amount;
+
+            if ($creditItem->amount - $reserved <= CreditNote::SETTLEMENT_TOLERANCE) {
+                $creditItem->update([
+                    'status' => PaymentScheduleStatus::PAID->value,
+                ]);
+            }
         }
     }
 }

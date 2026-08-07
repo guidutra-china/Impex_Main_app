@@ -375,6 +375,31 @@ class PaymentScheduleItem extends Model
         return $applied + $refunded;
     }
 
+    /**
+     * Like credit_consumed_amount, but also counts applications whose payment
+     * still awaits approval — the reservation the payment form needs so the
+     * same credit can't be applied twice while a payment is pending.
+     */
+    public function getCreditReservedAmountAttribute(): int
+    {
+        if (! $this->is_credit) {
+            return 0;
+        }
+
+        $liveStatuses = [PaymentStatus::PENDING_APPROVAL, PaymentStatus::APPROVED];
+
+        $applied = (int) $this->creditAllocations()
+            ->whereHas('payment', fn ($q) => $q->whereIn('status', $liveStatuses))
+            ->sum('allocated_amount_in_document_currency');
+
+        $refunded = (int) $this->allocations()
+            ->whereNull('credit_schedule_item_id')
+            ->whereHas('payment', fn ($q) => $q->whereIn('status', $liveStatuses))
+            ->sum('allocated_amount_in_document_currency');
+
+        return $applied + $refunded;
+    }
+
     public function getCreditRemainingAmountAttribute(): int
     {
         if (! $this->is_credit) {
@@ -382,6 +407,22 @@ class PaymentScheduleItem extends Model
         }
 
         return max(0, $this->amount - $this->credit_consumed_amount);
+    }
+
+    /**
+     * Balance a NEW application may book: total minus reservations, counting
+     * payments still awaiting approval. The form layer must use this (not
+     * credit_remaining_amount, which is reconciler semantics — APPROVED only)
+     * or the same slice of a credit could be applied twice while the first
+     * payment is pending.
+     */
+    public function getCreditAvailableAmountAttribute(): int
+    {
+        if (! $this->is_credit) {
+            return 0;
+        }
+
+        return max(0, $this->amount - $this->credit_reserved_amount);
     }
 
     public function getRemainingAmountAttribute(): int

@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Domain\Financial\Actions\ReconcileSettlementStateAction;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
+use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\CreditNote;
 use App\Domain\Financial\Models\CreditNoteLineItem;
 use App\Domain\Financial\Models\PaymentAllocation;
@@ -15,7 +16,7 @@ class ReleasePartiallyConsumedCreditsCommand extends Command
     protected $signature = 'financial:release-partially-consumed-credits
         {--dry-run : Apenas lista o que seria alterado, sem gravar}';
 
-    protected $description = 'Libera itens de crédito (Credit Notes) travados em PAID por consumo parcial: antes do fix de 2026-07-23, qualquer aplicação parcial marcava o item inteiro como consumido e o saldo sumia da lista de créditos disponíveis. Re-executa o ReconcileSettlementStateAction sobre uma alocação de cada item afetado.';
+    protected $description = 'Libera itens de crédito (Credit Notes e AdditionalCosts — deduções de fornecedor e descontos) travados em PAID por consumo parcial: antes do fix de 2026-07-23, qualquer aplicação parcial marcava o item inteiro como consumido e o saldo sumia da lista de créditos disponíveis. Re-executa o ReconcileSettlementStateAction sobre uma alocação de cada item afetado.';
 
     public function handle(ReconcileSettlementStateAction $reconcile): int
     {
@@ -23,7 +24,7 @@ class ReleasePartiallyConsumedCreditsCommand extends Command
 
         $candidates = PaymentScheduleItem::query()
             ->where('is_credit', true)
-            ->where('source_type', CreditNoteLineItem::class)
+            ->whereIn('source_type', [CreditNoteLineItem::class, AdditionalCost::class])
             ->where('status', PaymentScheduleStatus::PAID->value)
             ->get()
             ->filter(fn (PaymentScheduleItem $item) => $item->credit_consumed_amount > 0

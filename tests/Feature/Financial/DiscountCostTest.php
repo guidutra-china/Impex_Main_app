@@ -304,6 +304,179 @@ class DiscountCostTest extends TestCase
         \App\Filament\RelationManagers\AdditionalCostsRelationManager::assertCostTypeSwitchable($cost->refresh(), AdditionalCostType::OTHER->value);
     }
 
+    public function test_model_updating_hook_blocks_type_switch_with_settlement_history(): void
+    {
+        $cost = $this->makeDiscount();
+        $this->syncCosts();
+        $this->consumeCredit($this->creditPsiFor($cost), 2_000_000);
+
+        // Direto no model, sem passar pelo form do RelationManager.
+        $this->expectException(ValidationException::class);
+        $cost->refresh()->update(['cost_type' => AdditionalCostType::OTHER->value]);
+    }
+
+    public function test_model_updating_hook_allows_type_switch_without_settlement_history(): void
+    {
+        $cost = $this->makeDiscount();
+        $this->syncCosts(); // PSI existe, mas sem alocações
+
+        $cost->refresh()->update(['cost_type' => AdditionalCostType::OTHER->value]);
+
+        $this->assertSame(AdditionalCostType::OTHER, $cost->refresh()->cost_type);
+    }
+
+    public function test_model_updating_hook_ignores_edits_that_keep_the_type(): void
+    {
+        $cost = $this->makeDiscount();
+        $this->syncCosts();
+        $this->consumeCredit($this->creditPsiFor($cost), 2_000_000);
+
+        $cost->refresh()->update(['description' => 'edited after consumption']);
+
+        $this->assertSame('edited after consumption', $cost->refresh()->description);
+    }
+
+    // --- Semântica de reserva na aplicação de crédito pelo form ---
+
+    /** @param array<int, array<string, mixed>> $applications */
+    private function applyCreditsViaForm(array $applications): void
+    {
+        $payment = \App\Domain\Financial\Models\Payment::create([
+            'direction' => \App\Domain\Financial\Enums\PaymentDirection::INBOUND,
+            'company_id' => $this->client->id,
+            'amount' => 0,
+            'currency_code' => 'USD',
+            'payment_date' => '2026-08-10',
+            'status' => \App\Domain\Financial\Enums\PaymentStatus::PENDING_APPROVAL,
+        ]);
+
+        $form = new class
+        {
+            use \App\Filament\Resources\Finance\Concerns\HasPaymentAllocationPersistence;
+
+            /** @param array<int, array<string, mixed>> $applications */
+            public function apply($payment, array $applications): void
+            {
+                $this->pendingCreditApplications = $applications;
+                $this->persistCreditApplications($payment);
+            }
+        };
+
+        $form->apply($payment, $applications);
+    }
+
+    private function makeInvoiceTargetPsi(): PaymentScheduleItem
+    {
+        return PaymentScheduleItem::create([
+            'payable_type' => ProformaInvoice::class,
+            'payable_id' => $this->pi->id,
+            'label' => '100% — Invoice',
+            'percentage' => 100,
+            'amount' => 10_000_000,
+            'currency_code' => 'USD',
+            'status' => PaymentScheduleStatus::DUE->value,
+            'is_blocking' => false,
+            'is_credit' => false,
+            'sort_order' => 97,
+        ]);
+    }
+
+    public function test_form_partial_credit_application_keeps_credit_pending(): void
+    {
+        $cost = $this->makeDiscount();
+        $this->syncCosts();
+        $creditPsi = $this->creditPsiFor($cost);
+
+        $this->applyCreditsViaForm([[
+            'credit_schedule_item_id' => $creditPsi->id,
+            'payment_schedule_item_id' => $this->makeInvoiceTargetPsi()->id,
+            'credit_amount' => 50.00, // 50.00 de 200.00
+        ]]);
+
+        $this->assertSame(
+            PaymentScheduleStatus::PENDING,
+            $creditPsi->refresh()->status,
+            'Aplicação parcial não pode travar o crédito inteiro em PAID — o saldo segue disponível.'
+        );
+    }
+
+    public function test_form_full_credit_application_reserves_the_credit_while_payment_is_pending(): void
+    {
+        $cost = $this->makeDiscount();
+        $this->syncCosts();
+        $creditPsi = $this->creditPsiFor($cost);
+
+        $this->applyCreditsViaForm([[
+            'credit_schedule_item_id' => $creditPsi->id,
+            'payment_schedule_item_id' => $this->makeInvoiceTargetPsi()->id,
+            'credit_amount' => 200.00,
+        ]]);
+
+        // Pagamento ainda PENDING_APPROVAL: o crédito fica reservado (PAID)
+        // para não ser aplicado duas vezes enquanto aguarda aprovação.
+        $this->assertSame(PaymentScheduleStatus::PAID, $creditPsi->refresh()->status);
+    }
+
+    public function test_form_credit_reservation_uses_settlement_tolerance(): void
+    {
+        $cost = $this->makeDiscount();
+        $this->syncCosts();
+        $creditPsi = $this->creditPsiFor($cost);
+
+        // 199.9950 de 200.00 — resto (50 minor) dentro da tolerância (100).
+        $this->applyCreditsViaForm([[
+            'credit_schedule_item_id' => $creditPsi->id,
+            'payment_schedule_item_id' => $this->makeInvoiceTargetPsi()->id,
+            'credit_amount' => 199.995,
+        ]]);
+
+        $this->assertSame(PaymentScheduleStatus::PAID, $creditPsi->refresh()->status);
+    }
+
+    public function test_credit_available_amount_discounts_pending_reservations(): void
+    {
+        $cost = $this->makeDiscount();
+        $this->syncCosts();
+        $creditPsi = $this->creditPsiFor($cost);
+
+        // 50.00 de 200.00 aplicados num pagamento ainda PENDING_APPROVAL.
+        $this->applyCreditsViaForm([[
+            'credit_schedule_item_id' => $creditPsi->id,
+            'payment_schedule_item_id' => $this->makeInvoiceTargetPsi()->id,
+            'credit_amount' => 50.00,
+        ]]);
+
+        $creditPsi->refresh();
+        $this->assertSame(0, $creditPsi->credit_consumed_amount, 'Consumido conta só APPROVED.');
+        $this->assertSame(2_000_000, $creditPsi->credit_remaining_amount, 'Restante (reconciler) segue cheio.');
+        $this->assertSame(1_500_000, $creditPsi->credit_available_amount, 'Disponível desconta a reserva pendente.');
+    }
+
+    public function test_form_max_and_label_use_available_amount_not_approved_remaining(): void
+    {
+        $cost = $this->makeDiscount();
+        $this->syncCosts();
+        $creditPsi = $this->creditPsiFor($cost);
+
+        $this->applyCreditsViaForm([[
+            'credit_schedule_item_id' => $creditPsi->id,
+            'payment_schedule_item_id' => $this->makeInvoiceTargetPsi()->id,
+            'credit_amount' => 50.00,
+        ]]);
+
+        $helper = new class
+        {
+            use \App\Filament\Resources\Finance\Concerns\HasPaymentFormSections;
+        };
+
+        // Teto de nova aplicação: 150.00, não os 200.00 "remaining" do reconciler.
+        $this->assertSame(150.0, $helper::maxApplicableCreditMajor($creditPsi->refresh()));
+
+        $label = $helper::formatCreditItemLabel($creditPsi);
+        $this->assertStringContainsString('150.00', $label);
+        $this->assertStringContainsString('200.00', $label, 'Label mostra saldo disponível sobre o total do crédito.');
+    }
+
     public function test_company_billable_discount_is_rejected_by_the_model(): void
     {
         $this->expectException(\InvalidArgumentException::class);
