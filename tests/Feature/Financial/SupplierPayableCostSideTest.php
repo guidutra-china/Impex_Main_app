@@ -492,5 +492,6 @@ class SupplierPayableCostSideTest extends TestCase
 
         $this->assertCount(1, $rows);
         $this->assertSame(3_500_000, $rows->first()->amount);
+        $this->assertSame(PaymentScheduleStatus::DUE, $rows->first()->status);
     }
 }
