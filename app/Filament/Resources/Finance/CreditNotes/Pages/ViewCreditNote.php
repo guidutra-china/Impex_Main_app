@@ -2,16 +2,11 @@
 
 namespace App\Filament\Resources\Finance\CreditNotes\Pages;
 
+use App\Domain\Financial\Actions\GenerateCreditNoteFromCostsAction;
 use App\Domain\Financial\Actions\IssueCreditNoteAction;
-use App\Domain\Financial\Enums\AdditionalCostStatus;
-use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\CreditNoteStatus;
 use App\Domain\Financial\Enums\PartyType;
-use App\Domain\Financial\Models\AdditionalCost;
-use App\Domain\Financial\Models\CreditNoteLineItem;
 use App\Domain\Infrastructure\Support\Money;
-use App\Domain\Logistics\Models\Shipment;
-use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Filament\Resources\Finance\CreditNotes\CreditNoteResource;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -86,9 +81,17 @@ class ViewCreditNote extends ViewRecord
     }
 
     /**
-     * Pull unbilled supplier-billable costs (quality deductions, claims)
-     * into this DRAFT credit note as line items. Only meaningful for
-     * supplier credit notes — client credits are typed manually.
+     * Pull unbilled supplier-billable costs (quality deductions, claims,
+     * supplier discounts) into this DRAFT credit note as line items. Only
+     * meaningful for supplier credit notes — client credits are typed
+     * manually.
+     *
+     * Delegates cost selection AND line-item construction to
+     * GenerateCreditNoteFromCostsAction — same rule (supplier-billable,
+     * INCLUDES discount, always abs() amount) used to generate a CN from
+     * scratch elsewhere. Single source of truth prevents this page from
+     * drifting from that rule (it previously duplicated the query and
+     * lacked the abs()).
      */
     protected function autoPopulateAction(): Action
     {
@@ -102,13 +105,8 @@ class ViewCreditNote extends ViewRecord
             ->visible(fn () => $this->record->status === CreditNoteStatus::DRAFT
                 && $this->record->party_type === PartyType::SUPPLIER)
             ->action(function () {
-                $costs = AdditionalCost::query()
-                    ->where('billable_to', BillableTo::SUPPLIER)
-                    ->where('supplier_company_id', $this->record->company_id)
-                    ->whereNot('status', AdditionalCostStatus::WAIVED->value)
-                    ->whereDoesntHave('creditNoteLineItems')
-                    ->with('costable')
-                    ->get();
+                $action = app(GenerateCreditNoteFromCostsAction::class);
+                $costs = $action->getUnbilledCosts($this->record->company, null, null);
 
                 if ($costs->isEmpty()) {
                     Notification::make()
@@ -119,33 +117,14 @@ class ViewCreditNote extends ViewRecord
                     return;
                 }
 
-                $added = 0;
                 foreach ($costs as $cost) {
-                    $costable = $cost->costable;
-                    $piId = $costable instanceof ProformaInvoice ? $costable->id : null;
-                    $shipmentId = $costable instanceof Shipment ? $costable->id : null;
-
-                    $lineAmount = $cost->amount_in_document_currency ?: $cost->amount;
-                    $lineCurrency = $cost->amount_in_document_currency
-                        ? ($costable?->currency_code ?? $cost->currency_code)
-                        : $cost->currency_code;
-
-                    CreditNoteLineItem::create([
-                        'credit_note_id' => $this->record->id,
-                        'additional_cost_id' => $cost->id,
-                        'proforma_invoice_id' => $piId,
-                        'shipment_id' => $shipmentId,
-                        'description' => $cost->cost_type->getLabel().' — '.($cost->description ?: ($costable?->reference ?? '')),
-                        'amount' => $lineAmount,
-                        'currency_code' => $lineCurrency,
-                    ]);
-                    $added++;
+                    $action->createLineItem($this->record, $cost);
                 }
 
                 $this->record->recalculateTotal();
 
                 Notification::make()
-                    ->title(__('messages.costs_added_as_line_items', ['count' => $added]))
+                    ->title(__('messages.costs_added_as_line_items', ['count' => $costs->count()]))
                     ->success()
                     ->send();
 

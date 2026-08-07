@@ -2,15 +2,10 @@
 
 namespace App\Filament\Resources\Finance\DebitNotes\Pages;
 
+use App\Domain\Financial\Actions\GenerateDebitNoteFromCostsAction;
 use App\Domain\Financial\Actions\IssueDebitNoteAction;
-use App\Domain\Financial\Enums\AdditionalCostStatus;
-use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\DebitNoteStatus;
-use App\Domain\Financial\Models\AdditionalCost;
-use App\Domain\Financial\Models\DebitNoteLineItem;
 use App\Domain\Infrastructure\Support\Money;
-use App\Domain\Logistics\Models\Shipment;
-use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Filament\Resources\Finance\DebitNotes\DebitNoteResource;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -84,6 +79,14 @@ class ViewDebitNote extends ViewRecord
             });
     }
 
+    /**
+     * Delegates cost selection AND line-item construction to
+     * GenerateDebitNoteFromCostsAction — the same rule (client-billable,
+     * excludes DISCOUNT, abs() amounts) that generates a DN from scratch
+     * elsewhere. Keeping a single source of truth here prevents this page
+     * from silently drifting from that rule (it previously duplicated the
+     * query and lacked the DISCOUNT exclusion).
+     */
     protected function autoPopulateAction(): Action
     {
         return Action::make('autoPopulate')
@@ -96,29 +99,8 @@ class ViewDebitNote extends ViewRecord
             ->visible(fn () => $this->record->status === DebitNoteStatus::DRAFT
                 && $this->record->party_type === \App\Domain\Financial\Enums\PartyType::CLIENT)
             ->action(function () {
-                $companyId = $this->record->company_id;
-
-                $piIds = ProformaInvoice::where('company_id', $companyId)->pluck('id');
-                $shipmentIds = Shipment::where('company_id', $companyId)->pluck('id');
-
-                $costs = AdditionalCost::query()
-                    ->where('billable_to', BillableTo::CLIENT)
-                    ->whereNot('status', AdditionalCostStatus::WAIVED->value)
-                    ->whereDoesntHave('debitNoteLineItems')
-                    ->where(function ($q) use ($piIds, $shipmentIds) {
-                        $q->where(function ($q2) use ($piIds) {
-                            $q2->where('costable_type', ProformaInvoice::class)
-                                ->whereIn('costable_id', $piIds);
-                        });
-                        if ($shipmentIds->isNotEmpty()) {
-                            $q->orWhere(function ($q2) use ($shipmentIds) {
-                                $q2->where('costable_type', Shipment::class)
-                                    ->whereIn('costable_id', $shipmentIds);
-                            });
-                        }
-                    })
-                    ->with('costable')
-                    ->get();
+                $action = app(GenerateDebitNoteFromCostsAction::class);
+                $costs = $action->getUnbilledCosts($this->record->company, null, null);
 
                 if ($costs->isEmpty()) {
                     Notification::make()
@@ -129,34 +111,14 @@ class ViewDebitNote extends ViewRecord
                     return;
                 }
 
-                $added = 0;
                 foreach ($costs as $cost) {
-                    $costable = $cost->costable;
-                    $piId = $costable instanceof ProformaInvoice ? $costable->id : null;
-                    $shipmentId = $costable instanceof Shipment ? $costable->id : null;
-
-                    // Use document currency amount when available (converted to PI currency)
-                    $lineAmount = $cost->amount_in_document_currency ?: $cost->amount;
-                    $lineCurrency = $cost->amount_in_document_currency
-                        ? ($costable?->currency_code ?? $cost->currency_code)
-                        : $cost->currency_code;
-
-                    DebitNoteLineItem::create([
-                        'debit_note_id' => $this->record->id,
-                        'additional_cost_id' => $cost->id,
-                        'proforma_invoice_id' => $piId,
-                        'shipment_id' => $shipmentId,
-                        'description' => $cost->cost_type->getLabel().' — '.($cost->description ?: ($costable?->reference ?? '')),
-                        'amount' => $lineAmount,
-                        'currency_code' => $lineCurrency,
-                    ]);
-                    $added++;
+                    $action->createLineItem($this->record, $cost);
                 }
 
                 $this->record->recalculateTotal();
 
                 Notification::make()
-                    ->title(__('messages.costs_added_as_line_items', ['count' => $added]))
+                    ->title(__('messages.costs_added_as_line_items', ['count' => $costs->count()]))
                     ->success()
                     ->send();
 

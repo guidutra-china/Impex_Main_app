@@ -375,4 +375,60 @@ class DiscountCostTest extends TestCase
         $this->assertNotNull($line);
         $this->assertSame(2_000_000, $line->amount, 'Linha da CN sempre positiva (abs).');
     }
+
+    /**
+     * ViewDebitNote::autoPopulateAction (and ViewCreditNote's equivalent)
+     * dedupe onto these now-public action methods instead of duplicating
+     * the cost-selection query. Proving the seam here covers the page path
+     * too, since the page calls exactly these methods with a
+     * company-only scope (no PI/shipment), matching what these tests set up.
+     */
+    public function test_debit_note_page_seam_excludes_discount_via_shared_action_method(): void
+    {
+        $clientDiscount = $this->makeDiscount();
+        $otherCost = $this->pi->additionalCosts()->create([
+            'cost_type' => AdditionalCostType::TESTING->value,
+            'description' => 'Lab test fee',
+            'amount' => 500_000,
+            'currency_code' => 'USD',
+            'exchange_rate' => 1,
+            'amount_in_document_currency' => 500_000,
+            'billable_to' => BillableTo::CLIENT->value,
+            'status' => AdditionalCostStatus::PENDING->value,
+        ]);
+
+        $action = app(\App\Domain\Financial\Actions\GenerateDebitNoteFromCostsAction::class);
+        // Page-shaped scope: client company, no PI/shipment narrowing.
+        $costs = $action->getUnbilledCosts($this->client, null, null);
+
+        $costIds = $costs->pluck('id');
+        $this->assertFalse($costIds->contains($clientDiscount->id), 'DN page seam não pode incluir desconto.');
+        $this->assertTrue($costIds->contains($otherCost->id));
+    }
+
+    public function test_credit_note_page_seam_includes_discount_with_positive_line_via_shared_action_method(): void
+    {
+        $supplierDiscount = $this->makeDiscount([
+            'billable_to' => BillableTo::SUPPLIER->value,
+            'supplier_company_id' => $this->supplier->id,
+        ]);
+
+        $action = app(\App\Domain\Financial\Actions\GenerateCreditNoteFromCostsAction::class);
+        // Page-shaped scope: supplier company, no PO/shipment narrowing.
+        $costs = $action->getUnbilledCosts($this->supplier, null, null);
+
+        $this->assertTrue($costs->pluck('id')->contains($supplierDiscount->id), 'CN page seam deve incluir desconto de fornecedor.');
+
+        $cn = \App\Domain\Financial\Models\CreditNote::create([
+            'company_id' => $this->supplier->id,
+            'party_type' => \App\Domain\Financial\Enums\PartyType::SUPPLIER,
+            'currency_code' => 'USD',
+            'status' => \App\Domain\Financial\Enums\CreditNoteStatus::DRAFT,
+        ]);
+        $action->createLineItem($cn, $costs->firstWhere('id', $supplierDiscount->id));
+
+        $line = $cn->lineItems()->where('additional_cost_id', $supplierDiscount->id)->first();
+        $this->assertNotNull($line);
+        $this->assertSame(2_000_000, $line->amount, 'Linha da CN via seam da página sempre positiva (abs).');
+    }
 }

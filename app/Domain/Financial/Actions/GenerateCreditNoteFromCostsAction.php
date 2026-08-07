@@ -49,8 +49,13 @@ class GenerateCreditNoteFromCostsAction
 
     /**
      * Additional costs billable to supplier not yet included in a credit note.
+     *
+     * Public: single source of truth for "which costs belong on a supplier
+     * credit note" — unlike the debit note side, DISCOUNT is intentionally
+     * included here (a supplier discount is a credit owed by the supplier).
+     * Reused as-is by ViewCreditNote's autoPopulate action.
      */
-    protected function getUnbilledCosts(Company $supplier, ?PurchaseOrder $po, ?Shipment $shipment): \Illuminate\Support\Collection
+    public function getUnbilledCosts(Company $supplier, ?PurchaseOrder $po, ?Shipment $shipment): \Illuminate\Support\Collection
     {
         $query = AdditionalCost::query()
             ->where('billable_to', BillableTo::SUPPLIER)
@@ -86,7 +91,12 @@ class GenerateCreditNoteFromCostsAction
         return $query->with('costable')->get();
     }
 
-    protected function createLineItem(CreditNote $creditNote, AdditionalCost $cost): void
+    /**
+     * Public for the same reason as getUnbilledCosts(): ViewCreditNote's
+     * autoPopulate action reuses this instead of duplicating line-item
+     * construction (and re-introducing the missing abs()).
+     */
+    public function createLineItem(CreditNote $creditNote, AdditionalCost $cost): void
     {
         $costable = $cost->costable;
 

@@ -47,8 +47,14 @@ class GenerateDebitNoteFromCostsAction
 
     /**
      * Get additional costs billable to client that haven't been included in a debit note yet.
+     *
+     * Public: this is the single source of truth for "which costs belong on
+     * a client debit note" (notably, it excludes DISCOUNT — a discount is a
+     * credit to the client, never something to bill). Reused as-is by
+     * ViewDebitNote's autoPopulate action so the page never re-derives this
+     * selection with its own (potentially drifting) query.
      */
-    protected function getUnbilledCosts(Company $company, ?ProformaInvoice $pi, ?Shipment $shipment): \Illuminate\Support\Collection
+    public function getUnbilledCosts(Company $company, ?ProformaInvoice $pi, ?Shipment $shipment): \Illuminate\Support\Collection
     {
         $query = AdditionalCost::query()
             ->where('billable_to', BillableTo::CLIENT)
@@ -98,7 +104,12 @@ class GenerateDebitNoteFromCostsAction
         return $query->with('costable')->get();
     }
 
-    protected function createLineItem(DebitNote $debitNote, AdditionalCost $cost): void
+    /**
+     * Public for the same reason as getUnbilledCosts(): ViewDebitNote's
+     * autoPopulate action reuses this instead of duplicating line-item
+     * construction.
+     */
+    public function createLineItem(DebitNote $debitNote, AdditionalCost $cost): void
     {
         $costable = $cost->costable;
 
@@ -112,8 +123,12 @@ class GenerateDebitNoteFromCostsAction
             $shipmentId = $costable->id;
         }
 
-        // Use document currency amount when available (converted to PI/document currency)
-        $lineAmount = $cost->amount_in_document_currency ?: $cost->amount;
+        // Use document currency amount when available (converted to PI/document currency).
+        // abs() is defensive: DISCOUNT costs are excluded by getUnbilledCosts()
+        // above, so non-discount costs are already positive — this guards
+        // against the underlying AdditionalCost.amount sign convention ever
+        // changing without a matching review of every consumer.
+        $lineAmount = abs($cost->amount_in_document_currency ?: $cost->amount);
         $lineCurrency = $cost->amount_in_document_currency
             ? ($costable?->currency_code ?? $cost->currency_code)
             : $cost->currency_code;
