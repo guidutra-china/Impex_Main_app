@@ -39,7 +39,7 @@ class SyncSupplierPayableScheduleItemAction
             ->first();
 
         if (! $cost->hasSupplierPayableSide()) {
-            if ($existing && ! $existing->allocations()->exists()) {
+            if ($existing && ! $existing->isPinnedByAllocations()) {
                 $existing->delete();
             }
 
@@ -53,7 +53,13 @@ class SyncSupplierPayableScheduleItemAction
             : $cost->cost_type;
 
         $supplierName = $cost->supplierCompany?->name ?? 'Supplier';
-        $label = mb_substr("{$costTypeLabel} payable: {$supplierName} - {$cost->description}", 0, 100);
+
+        // Perna de DESCONTO do fornecedor é um CRÉDITO (abate do que a Impex
+        // paga na PO); as demais são pagáveis (Impex paga ao fornecedor).
+        $isDiscountLeg = $cost->isDiscount();
+        $label = $isDiscountLeg
+            ? mb_substr("Discount: {$supplierName} - {$cost->description}", 0, 100)
+            : mb_substr("{$costTypeLabel} payable: {$supplierName} - {$cost->description}", 0, 100);
 
         $maxSortOrder = PaymentScheduleItem::where('payable_type', get_class($anchor))
             ->where('payable_id', $anchor->getKey())
@@ -64,12 +70,12 @@ class SyncSupplierPayableScheduleItemAction
             'payable_id' => $anchor->getKey(),
             'label' => $label,
             'percentage' => 0,
-            'amount' => $cost->supplier_payable_amount,
+            'amount' => abs((int) $cost->supplier_payable_amount),
             'currency_code' => $cost->supplier_payable_currency_code ?? $anchor->currency_code ?? 'USD',
             'due_date' => $cost->supplier_payable_due_date,
             'status' => PaymentScheduleStatus::DUE->value,
             'is_blocking' => false,
-            'is_credit' => false,
+            'is_credit' => $isDiscountLeg,
             'source_type' => AdditionalCost::class,
             'source_id' => $cost->id,
             'sort_order' => $maxSortOrder + 1,
@@ -77,7 +83,7 @@ class SyncSupplierPayableScheduleItemAction
         ];
 
         if ($existing) {
-            if ($existing->allocations()->exists()) {
+            if ($existing->isPinnedByAllocations()) {
                 // Payable stays put: the allocation was made against that document.
                 $existing->update([
                     'label' => $scheduleData['label'],
@@ -135,7 +141,7 @@ class SyncSupplierPayableScheduleItemAction
             ->withSideTag(PaymentScheduleItem::SUPPLIER_PAYABLE_TAG)
             ->first();
 
-        if (! $existing || ! $existing->allocations()->exists()) {
+        if (! $existing || ! $existing->isPinnedByAllocations()) {
             return;
         }
 

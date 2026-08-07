@@ -117,9 +117,12 @@ class DiscountCostTest extends TestCase
 
     private function creditPsiFor(AdditionalCost $cost): ?PaymentScheduleItem
     {
+        // Perna principal do crédito (sem tag de lado) — a perna do fornecedor
+        // ([supplier-payable]) tem helper próprio, supplierLegPsiFor().
         return PaymentScheduleItem::where('source_type', AdditionalCost::class)
             ->where('source_id', $cost->id)
             ->where('is_credit', true)
+            ->withoutSideTags()
             ->first();
     }
 
@@ -430,5 +433,174 @@ class DiscountCostTest extends TestCase
         $line = $cn->lineItems()->where('additional_cost_id', $supplierDiscount->id)->first();
         $this->assertNotNull($line);
         $this->assertSame(2_000_000, $line->amount, 'Linha da CN via seam da página sempre positiva (abs).');
+    }
+
+    // --- Perna do fornecedor no desconto (espelho do supplier payable) ---
+
+    /** @param array<string, mixed> $overrides */
+    private function makeDiscountWithSupplierLeg(array $overrides = []): AdditionalCost
+    {
+        return $this->makeDiscount(array_merge([
+            'supplier_company_id' => $this->supplier->id,
+            'supplier_payable_amount' => 1_500_000, // USD 150.00 de desconto no custo
+            'supplier_payable_currency_code' => 'USD',
+            'supplier_payable_amount_in_document_currency' => 1_500_000,
+        ], $overrides));
+    }
+
+    private function supplierLegPsiFor(AdditionalCost $cost): ?PaymentScheduleItem
+    {
+        return PaymentScheduleItem::where('source_type', AdditionalCost::class)
+            ->where('source_id', $cost->id)
+            ->withSideTag(PaymentScheduleItem::SUPPLIER_PAYABLE_TAG)
+            ->first();
+    }
+
+    public function test_discount_supplier_leg_is_a_credit_anchored_on_supplier_po(): void
+    {
+        $po = PurchaseOrder::create([
+            'proforma_invoice_id' => $this->pi->id,
+            'supplier_company_id' => $this->supplier->id,
+            'currency_code' => 'USD',
+            'issue_date' => '2026-08-01',
+        ]);
+        $cost = $this->makeDiscountWithSupplierLeg();
+
+        app(\App\Domain\Financial\Actions\SyncSupplierPayableScheduleItemAction::class)->execute($cost, $this->pi);
+        $this->syncCosts();
+
+        $leg = $this->supplierLegPsiFor($cost);
+        $this->assertNotNull($leg);
+        $this->assertTrue($leg->is_credit, 'Perna de desconto do fornecedor é CRÉDITO, não pagável.');
+        $this->assertSame(1_500_000, $leg->amount);
+        $this->assertSame(PurchaseOrder::class, $leg->payable_type);
+        $this->assertSame($po->id, $leg->payable_id);
+        $this->assertStringStartsWith('Discount:', $leg->label);
+
+        // Perna do cliente intocada: crédito próprio, na PI, sem tag.
+        $clientLeg = $this->creditPsiFor($cost);
+        $this->assertNotSame($leg->id, $clientLeg->id);
+        $this->assertSame(ProformaInvoice::class, $clientLeg->payable_type);
+        $this->assertSame(2_000_000, $clientLeg->amount);
+    }
+
+    public function test_discount_supplier_leg_reanchors_to_po_created_later(): void
+    {
+        $cost = $this->makeDiscountWithSupplierLeg();
+        $action = app(\App\Domain\Financial\Actions\SyncSupplierPayableScheduleItemAction::class);
+
+        $action->execute($cost, $this->pi);
+        $this->assertSame(ProformaInvoice::class, $this->supplierLegPsiFor($cost)->payable_type);
+
+        $po = PurchaseOrder::create([
+            'proforma_invoice_id' => $this->pi->id,
+            'supplier_company_id' => $this->supplier->id,
+            'currency_code' => 'USD',
+            'issue_date' => '2026-08-01',
+        ]);
+        $action->execute($cost->refresh(), $this->pi);
+
+        $leg = $this->supplierLegPsiFor($cost);
+        $this->assertSame(PurchaseOrder::class, $leg->payable_type);
+        $this->assertSame($po->id, $leg->payable_id);
+    }
+
+    public function test_discount_legs_split_by_direction_in_credit_forms(): void
+    {
+        $this->client->companyRoles()->create(['role' => 'client']);
+        $this->supplier->companyRoles()->create(['role' => 'supplier']);
+
+        // Sem PO: as DUAS pernas ancoram na PI — só a tag separa as direções.
+        $cost = $this->makeDiscountWithSupplierLeg();
+        app(\App\Domain\Financial\Actions\SyncSupplierPayableScheduleItemAction::class)->execute($cost, $this->pi);
+        $this->syncCosts();
+
+        $clientLeg = $this->creditPsiFor($cost);
+        $supplierLeg = $this->supplierLegPsiFor($cost);
+
+        $helper = new class
+        {
+            use \App\Filament\Resources\Finance\Concerns\HasPaymentFormSections;
+        };
+
+        $inbound = $helper::getCompanyCreditItems($this->client->id, 'inbound')->pluck('id');
+        $this->assertTrue($inbound->contains($clientLeg->id), 'Perna do cliente no INBOUND.');
+        $this->assertFalse($inbound->contains($supplierLeg->id), 'Perna do fornecedor NÃO vaza p/ INBOUND.');
+
+        $outbound = $helper::getCompanyCreditItems($this->supplier->id, 'outbound')->pluck('id');
+        $this->assertTrue($outbound->contains($supplierLeg->id), 'Perna do fornecedor no OUTBOUND.');
+        $this->assertFalse($outbound->contains($clientLeg->id), 'Perna do cliente NÃO vaza p/ OUTBOUND.');
+    }
+
+    public function test_consuming_supplier_leg_sets_supplier_payable_status_only(): void
+    {
+        $po = PurchaseOrder::create([
+            'proforma_invoice_id' => $this->pi->id,
+            'supplier_company_id' => $this->supplier->id,
+            'currency_code' => 'USD',
+            'issue_date' => '2026-08-01',
+        ]);
+        $cost = $this->makeDiscountWithSupplierLeg();
+        app(\App\Domain\Financial\Actions\SyncSupplierPayableScheduleItemAction::class)->execute($cost, $this->pi);
+        $leg = $this->supplierLegPsiFor($cost);
+
+        // Consumo OUTBOUND: aplica o crédito contra uma parcela da PO.
+        $target = PaymentScheduleItem::create([
+            'payable_type' => PurchaseOrder::class,
+            'payable_id' => $po->id,
+            'label' => '100% — PO',
+            'percentage' => 100,
+            'amount' => 5_000_000,
+            'currency_code' => 'USD',
+            'status' => PaymentScheduleStatus::DUE->value,
+            'is_blocking' => false,
+            'is_credit' => false,
+            'sort_order' => 99,
+        ]);
+
+        $payment = \App\Domain\Financial\Models\Payment::create([
+            'direction' => \App\Domain\Financial\Enums\PaymentDirection::OUTBOUND,
+            'company_id' => $this->supplier->id,
+            'amount' => 3_500_000,
+            'currency_code' => 'USD',
+            'payment_date' => '2026-08-10',
+            'status' => \App\Domain\Financial\Enums\PaymentStatus::PENDING_APPROVAL,
+        ]);
+
+        \App\Domain\Financial\Models\PaymentAllocation::create([
+            'payment_id' => $payment->id,
+            'payment_schedule_item_id' => $target->id,
+            'allocated_amount' => 3_500_000,
+            'exchange_rate' => 1,
+            'allocated_amount_in_document_currency' => 3_500_000,
+        ]);
+
+        \App\Domain\Financial\Models\PaymentAllocation::create([
+            'payment_id' => $payment->id,
+            'payment_schedule_item_id' => $target->id,
+            'credit_schedule_item_id' => $leg->id,
+            'allocated_amount' => 0,
+            'exchange_rate' => 1,
+            'allocated_amount_in_document_currency' => 1_500_000,
+        ]);
+
+        app(\App\Domain\Financial\Actions\ApprovePaymentAction::class)->approve($payment);
+
+        $cost->refresh();
+        $this->assertSame(PaymentScheduleStatus::PAID, $leg->refresh()->status);
+        $this->assertSame(AdditionalCostStatus::PAID, $cost->supplier_payable_status);
+        $this->assertNotSame(AdditionalCostStatus::PAID, $cost->status, 'Perna do cliente segue aberta.');
+    }
+
+    public function test_waive_covers_discount_supplier_leg(): void
+    {
+        $cost = $this->makeDiscountWithSupplierLeg();
+        app(\App\Domain\Financial\Actions\SyncSupplierPayableScheduleItemAction::class)->execute($cost, $this->pi);
+
+        app(\App\Domain\Financial\Actions\WaiveAdditionalCostAction::class)->execute($cost, null);
+
+        $cost->refresh();
+        $this->assertSame(AdditionalCostStatus::WAIVED, $cost->supplier_payable_status);
+        $this->assertSame(PaymentScheduleStatus::WAIVED, $this->supplierLegPsiFor($cost)->status);
     }
 }

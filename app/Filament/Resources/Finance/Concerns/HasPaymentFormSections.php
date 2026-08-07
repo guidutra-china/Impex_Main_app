@@ -441,6 +441,11 @@ trait HasPaymentFormSections
         if ($directionValue === PaymentDirection::INBOUND->value || $directionValue === 'inbound') {
             // Same rule as getCompanyScheduleItems: client AR credits attach
             // to the PI canonical item, never to a shipment mirror.
+            // Supplier-leg credits (tag [supplier-payable], e.g. the supplier
+            // side of a discount) belong to the OUTBOUND direction even when
+            // they fall back to PI anchoring while the PO doesn't exist yet.
+            $query->withoutSideTags();
+
             $piIds = ProformaInvoice::where('company_id', $companyId)->pluck('id');
 
             $query->where(function ($q) use ($piIds, $creditNoteIds) {
@@ -503,14 +508,32 @@ trait HasPaymentFormSections
                     ->where('supplier_company_id', $companyId)
                     ->pluck('id');
 
-                $query->where(function ($q) use ($poIds, $supplierAdditionalCostIds, $creditNoteIds) {
+                // Untagged cost credits only belong to the supplier when the
+                // cost is billed TO the supplier; a CLIENT-billable cost with
+                // the informational supplier field filled must not leak its
+                // client-leg credit into this supplier's list. Tagged rows
+                // ([supplier-payable]) are the supplier leg by construction.
+                $supplierBilledCostIds = \App\Domain\Financial\Models\AdditionalCost::query()
+                    ->where('supplier_company_id', $companyId)
+                    ->where('billable_to', BillableTo::SUPPLIER->value)
+                    ->pluck('id');
+
+                $query->where(function ($q) use ($poIds, $supplierAdditionalCostIds, $supplierBilledCostIds, $creditNoteIds) {
                     $q->where(function ($q2) use ($poIds) {
-                        $q2->where('payable_type', PurchaseOrder::class)->whereIn('payable_id', $poIds);
+                        $q2->where('payable_type', PurchaseOrder::class)->whereIn('payable_id', $poIds)->withoutSideTags();
                     });
                     if ($supplierAdditionalCostIds->isNotEmpty()) {
                         $q->orWhere(function ($q2) use ($supplierAdditionalCostIds) {
                             $q2->where('source_type', \App\Domain\Financial\Models\AdditionalCost::class)
-                                ->whereIn('source_id', $supplierAdditionalCostIds);
+                                ->whereIn('source_id', $supplierAdditionalCostIds)
+                                ->withSideTag(PaymentScheduleItem::SUPPLIER_PAYABLE_TAG);
+                        });
+                    }
+                    if ($supplierBilledCostIds->isNotEmpty()) {
+                        $q->orWhere(function ($q2) use ($supplierBilledCostIds) {
+                            $q2->where('source_type', \App\Domain\Financial\Models\AdditionalCost::class)
+                                ->whereIn('source_id', $supplierBilledCostIds)
+                                ->withoutSideTags();
                         });
                     }
                     if ($creditNoteIds->isNotEmpty()) {

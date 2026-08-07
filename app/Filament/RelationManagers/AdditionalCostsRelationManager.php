@@ -616,19 +616,23 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->required()
                     ->live(),
                 Toggle::make('has_supplier_payable')
-                    ->label(__('forms.labels.supplier_payable'))
-                    ->helperText(__('forms.helpers.supplier_payable'))
+                    ->label(fn ($get) => $this->isDiscountType($get)
+                        ? __('forms.labels.discount_supplier_side')
+                        : __('forms.labels.supplier_payable'))
+                    ->helperText(fn ($get) => $this->isDiscountType($get)
+                        ? __('forms.helpers.discount_supplier_side')
+                        : __('forms.helpers.supplier_payable'))
                     ->live()
                     ->default(false)
-                    ->visible(fn ($get) => ! $this->isSupplierBillable($get) && ! $this->isCommissionType($get) && ! $this->isDiscountType($get))
+                    ->visible(fn ($get) => ! $this->isSupplierBillable($get) && ! $this->isCommissionType($get))
                     ->columnSpanFull(),
                 Select::make('supplier_company_id')
                     ->label(function ($get) {
-                        if ($this->isDiscountType($get) && $this->isSupplierBillable($get)) {
+                        if ($this->isDiscountType($get) && ($this->isSupplierBillable($get) || $get('has_supplier_payable'))) {
                             return __('forms.labels.supplier');
                         }
 
-                        return $get('has_supplier_payable') && ! $this->isSupplierBillable($get) && ! $this->isCommissionType($get) && ! $this->isDiscountType($get)
+                        return $get('has_supplier_payable') && ! $this->isSupplierBillable($get) && ! $this->isCommissionType($get)
                             ? __('forms.labels.supplier_to_pay')
                             : __('forms.labels.supplier_if_applicable');
                     })
@@ -652,11 +656,11 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->searchable()
                     ->preload()
                     ->live()
-                    ->required(fn ($get) => ((bool) $get('has_supplier_payable') && ! $this->isSupplierBillable($get) && ! $this->isCommissionType($get) && ! $this->isDiscountType($get))
+                    ->required(fn ($get) => ((bool) $get('has_supplier_payable') && ! $this->isSupplierBillable($get) && ! $this->isCommissionType($get))
                         || ($this->isDiscountType($get) && $this->isSupplierBillable($get)))
                     ->helperText(function ($get) {
                         // Aviso dinâmico: a qual documento o pagável vai ancorar.
-                        if (! $get('has_supplier_payable') || $this->isSupplierBillable($get) || $this->isCommissionType($get) || $this->isDiscountType($get)) {
+                        if (! $get('has_supplier_payable') || $this->isSupplierBillable($get) || $this->isCommissionType($get)) {
                             return null;
                         }
 
@@ -673,15 +677,16 @@ class AdditionalCostsRelationManager extends RelationManager
                     })
                     ->placeholder('—'),
                 TextInput::make('supplier_payable_amount')
-                    ->label(__('forms.labels.supplier_payable_amount'))
+                    ->label(fn ($get) => $this->isDiscountType($get)
+                        ? __('forms.labels.discount_supplier_amount')
+                        : __('forms.labels.supplier_payable_amount'))
                     ->numeric()
                     ->step('0.01')
                     ->minValue(0.01)
                     ->required(fn ($get) => (bool) $get('has_supplier_payable'))
                     ->visible(fn ($get) => (bool) $get('has_supplier_payable')
                         && ! $this->isSupplierBillable($get)
-                        && ! $this->isCommissionType($get)
-                        && ! $this->isDiscountType($get)),
+                        && ! $this->isCommissionType($get)),
                 Select::make('supplier_payable_currency_code')
                     ->label(__('forms.labels.supplier_payable_currency'))
                     ->options(fn () => Currency::pluck('code', 'code'))
@@ -689,8 +694,7 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->live()
                     ->visible(fn ($get) => (bool) $get('has_supplier_payable')
                         && ! $this->isSupplierBillable($get)
-                        && ! $this->isCommissionType($get)
-                        && ! $this->isDiscountType($get)),
+                        && ! $this->isCommissionType($get)),
                 TextInput::make('supplier_payable_exchange_rate')
                     ->label(__('forms.labels.exchange_rate'))
                     ->numeric()
@@ -699,15 +703,13 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->visible(fn ($get) => (bool) $get('has_supplier_payable')
                         && ! $this->isSupplierBillable($get)
                         && ! $this->isCommissionType($get)
-                        && ! $this->isDiscountType($get)
                         && $get('supplier_payable_currency_code')
                         && $get('supplier_payable_currency_code') !== $this->getOwnerRecord()->currency_code),
                 DatePicker::make('supplier_payable_due_date')
                     ->label(__('forms.labels.supplier_payable_due_date'))
                     ->visible(fn ($get) => (bool) $get('has_supplier_payable')
                         && ! $this->isSupplierBillable($get)
-                        && ! $this->isCommissionType($get)
-                        && ! $this->isDiscountType($get)),
+                        && ! $this->isCommissionType($get)),
                 DatePicker::make('cost_date')
                     ->label(__('forms.labels.date'))
                     ->default(now()),
@@ -778,7 +780,6 @@ class AdditionalCostsRelationManager extends RelationManager
 
         $hasSupplierPayable = (bool) ($data['has_supplier_payable'] ?? false)
             && ! $isCommission
-            && ! $isDiscount
             && ! $this->isSupplierBillableValue($data['billable_to'] ?? null)
             && ! empty($data['supplier_payable_amount'])
             && ! empty($data['supplier_company_id']);
