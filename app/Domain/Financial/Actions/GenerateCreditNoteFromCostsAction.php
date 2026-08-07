@@ -99,7 +99,7 @@ class GenerateCreditNoteFromCostsAction
             $shipmentId = $costable->id;
         }
 
-        $lineAmount = $cost->amount_in_document_currency ?: $cost->amount;
+        $lineAmount = abs($cost->amount_in_document_currency ?: $cost->amount);
         $lineCurrency = $cost->amount_in_document_currency
             ? ($costable?->currency_code ?? $cost->currency_code)
             : $cost->currency_code;

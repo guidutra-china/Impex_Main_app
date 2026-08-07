@@ -455,6 +455,24 @@ trait HasPaymentFormSections
                     });
                 }
             });
+
+            // A supplier-billable discount/credit can fall back to anchoring
+            // on the PI when it has no PO yet (see
+            // SyncSupplierPayableScheduleItemAction). The predicate above
+            // matches any PI-anchored credit regardless of whose credit it
+            // is, so exclude credits sourced from a non-CLIENT additional
+            // cost — they belong to the OUTBOUND (supplier) side only.
+            $nonClientCostIds = AdditionalCost::query()
+                ->where('billable_to', '!=', BillableTo::CLIENT->value)
+                ->pluck('id');
+
+            if ($nonClientCostIds->isNotEmpty()) {
+                $query->where(function ($q) use ($nonClientCostIds) {
+                    $q->where('source_type', '!=', AdditionalCost::class)
+                        ->orWhereNull('source_type')
+                        ->orWhereNotIn('source_id', $nonClientCostIds);
+                });
+            }
         } else {
             if ($isForwarder) {
                 $costableIds = \App\Domain\Financial\Models\AdditionalCost::where('forwarder_company_id', $companyId)

@@ -468,9 +468,13 @@ class AdditionalCostsRelationManager extends RelationManager
      * Trocar o tipo entre desconto (crédito) e custo comum inverte a natureza
      * do PSI; com alocações registradas isso corromperia o histórico.
      */
-    public static function assertCostTypeSwitchable(AdditionalCost $cost, mixed $newType): void
+    public static function assertCostTypeSwitchable(AdditionalCost $cost, AdditionalCostType|string|null $newType): void
     {
-        $newValue = $newType instanceof AdditionalCostType ? $newType->value : (string) $newType;
+        if ($newType === null) {
+            return;
+        }
+
+        $newValue = $newType instanceof AdditionalCostType ? $newType->value : $newType;
         $wasDiscount = $cost->cost_type === AdditionalCostType::DISCOUNT;
         $willBeDiscount = $newValue === AdditionalCostType::DISCOUNT->value;
 
@@ -907,15 +911,21 @@ class AdditionalCostsRelationManager extends RelationManager
             ];
         }
 
-        if ($record) {
-            $record->update($payload);
+        try {
+            if ($record) {
+                $record->update($payload);
 
-            return $record->fresh();
+                return $record->fresh();
+            }
+
+            $payload['status'] = AdditionalCostStatus::PENDING->value;
+
+            return $owner->additionalCosts()->create($payload);
+        } catch (\InvalidArgumentException $e) {
+            Notification::make()->title($e->getMessage())->danger()->send();
+
+            throw $e;
         }
-
-        $payload['status'] = AdditionalCostStatus::PENDING->value;
-
-        return $owner->additionalCosts()->create($payload);
     }
 
     protected function convertCurrency(string $fromCode, string $toCode, int $amountMinor): int

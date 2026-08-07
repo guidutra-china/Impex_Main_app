@@ -306,4 +306,73 @@ class DiscountCostTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->makeDiscount(['billable_to' => BillableTo::COMPANY->value]);
     }
+
+    public function test_pi_pdf_shows_negative_discount_line_and_reduced_grand_total(): void
+    {
+        \Database\Factories\ProformaInvoiceItemFactory::new()->create([
+            'proforma_invoice_id' => $this->pi->id,
+            'quantity' => 10,
+            'unit_price' => 1_000_000,
+        ]);
+        $this->makeDiscount();
+
+        $data = (new \App\Domain\Infrastructure\Pdf\Templates\ProformaInvoicePdfTemplate($this->pi->fresh(['items', 'additionalCosts'])))->getData();
+
+        $discountLine = collect($data['service_fees'])->first(fn ($fee) => $fee['raw_amount'] < 0);
+        $this->assertNotNull($discountLine, 'Linha de desconto negativa deve aparecer nos service fees.');
+        $this->assertSame(-2_000_000, $discountLine['raw_amount']);
+        // totals são strings formatadas (formatMoney, Money::SCALE=10000):
+        // subtotal 10_000_000 minor = 1,000.00; grand_total 8_000_000 minor = 800.00.
+        $this->assertStringContainsString('800.00', $data['totals']['grand_total']);
+        $this->assertStringContainsString('1,000.00', $data['totals']['subtotal']);
+    }
+
+    public function test_payment_form_lists_discount_credit_in_the_right_direction(): void
+    {
+        $this->client->companyRoles()->create(['role' => 'client']);
+        $this->supplier->companyRoles()->create(['role' => 'supplier']);
+
+        $clientDiscount = $this->makeDiscount();
+        $supplierDiscount = $this->makeDiscount([
+            'billable_to' => BillableTo::SUPPLIER->value,
+            'supplier_company_id' => $this->supplier->id,
+        ]);
+        $this->syncCosts();
+
+        $helper = new class
+        {
+            use \App\Filament\Resources\Finance\Concerns\HasPaymentFormSections;
+        };
+
+        $inbound = $helper::getCompanyCreditItems($this->client->id, 'inbound')->pluck('id');
+        $this->assertTrue($inbound->contains($this->creditPsiFor($clientDiscount)->id));
+        $this->assertFalse($inbound->contains($this->creditPsiFor($supplierDiscount)->id));
+
+        $outbound = $helper::getCompanyCreditItems($this->supplier->id, 'outbound')->pluck('id');
+        $this->assertTrue($outbound->contains($this->creditPsiFor($supplierDiscount)->id));
+        $this->assertFalse($outbound->contains($this->creditPsiFor($clientDiscount)->id));
+    }
+
+    public function test_client_dn_generation_skips_discounts_and_supplier_cn_uses_abs(): void
+    {
+        $clientDiscount = $this->makeDiscount();
+        $supplierDiscount = $this->makeDiscount([
+            'billable_to' => BillableTo::SUPPLIER->value,
+            'supplier_company_id' => $this->supplier->id,
+        ]);
+
+        $dn = app(\App\Domain\Financial\Actions\GenerateDebitNoteFromCostsAction::class)
+            ->execute($this->client, 'USD', $this->pi->fresh());
+        $this->assertTrue(
+            $dn === null || ! $dn->lineItems()->where('additional_cost_id', $clientDiscount->id)->exists(),
+            'DN de cliente não pode faturar desconto.'
+        );
+
+        $cn = app(\App\Domain\Financial\Actions\GenerateCreditNoteFromCostsAction::class)
+            ->execute($this->supplier, 'USD');
+        $this->assertNotNull($cn);
+        $line = $cn->lineItems()->where('additional_cost_id', $supplierDiscount->id)->first();
+        $this->assertNotNull($line);
+        $this->assertSame(2_000_000, $line->amount, 'Linha da CN sempre positiva (abs).');
+    }
 }

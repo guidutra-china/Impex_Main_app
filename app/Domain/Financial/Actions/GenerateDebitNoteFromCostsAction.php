@@ -4,6 +4,7 @@ namespace App\Domain\Financial\Actions;
 
 use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
+use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\DebitNoteStatus;
 use App\Domain\Financial\Models\AdditionalCost;
@@ -51,6 +52,7 @@ class GenerateDebitNoteFromCostsAction
     {
         $query = AdditionalCost::query()
             ->where('billable_to', BillableTo::CLIENT)
+            ->where('cost_type', '!=', AdditionalCostType::DISCOUNT->value)
             ->whereNotIn('status', [AdditionalCostStatus::WAIVED->value])
             ->whereDoesntHave('debitNoteLineItems');
 
@@ -121,7 +123,7 @@ class GenerateDebitNoteFromCostsAction
             'additional_cost_id' => $cost->id,
             'proforma_invoice_id' => $piId,
             'shipment_id' => $shipmentId,
-            'description' => $cost->cost_type->getLabel() . ' — ' . ($cost->description ?: ($costable?->reference ?? '')),
+            'description' => $cost->cost_type->getLabel().' — '.($cost->description ?: ($costable?->reference ?? '')),
             'amount' => $lineAmount,
             'currency_code' => $lineCurrency,
         ]);
