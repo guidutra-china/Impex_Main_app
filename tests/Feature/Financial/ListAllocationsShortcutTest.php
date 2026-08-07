@@ -8,6 +8,8 @@ use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\Payment;
 use App\Filament\Resources\Finance\AccountsPayable\AccountsPayableResource;
 use App\Filament\Resources\Finance\AccountsPayable\Pages\ListAccountsPayable;
+use App\Filament\Resources\Finance\AccountsReceivable\AccountsReceivableResource;
+use App\Filament\Resources\Finance\AccountsReceivable\Pages\ListAccountsReceivable;
 use App\Models\User;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
@@ -85,5 +87,20 @@ class ListAllocationsShortcutTest extends TestCase
         )
             ->call('mountAction', 'manageAllocations')
             ->assertActionMounted('manageAllocations');
+    }
+
+    public function test_receivables_list_shows_allocations_shortcut_linking_to_view_modal(): void
+    {
+        $payment = $this->payment(PaymentDirection::INBOUND, PaymentStatus::APPROVED);
+
+        Livewire::test(ListAccountsReceivable::class)
+            ->assertActionVisible(TestAction::make('allocations')->table($payment))
+            ->assertActionHasUrl(
+                TestAction::make('allocations')->table($payment),
+                AccountsReceivableResource::getUrl('view', [
+                    'record' => $payment,
+                    'action' => 'manageAllocations',
+                ]),
+            );
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Finance\AccountsReceivable\Tables;
 
 use App\Domain\Financial\Enums\PaymentDirection;
+use App\Filament\Resources\Finance\AccountsReceivable\AccountsReceivableResource;
 use App\Filament\Resources\Finance\Concerns\HasPaymentApprovalActions;
 use App\Filament\Resources\Finance\Concerns\HasPaymentColumns;
 use Filament\Tables\Table;
@@ -22,6 +23,7 @@ class ReceivablesTable
             ->filters(static::tableFilters(PaymentDirection::INBOUND))
             ->deferFilters(false)
             ->recordActions([
+                static::allocationsRecordAction(AccountsReceivableResource::class),
                 ...static::approvalRecordActions(),
                 ...static::viewAndEditActions(),
             ]);
