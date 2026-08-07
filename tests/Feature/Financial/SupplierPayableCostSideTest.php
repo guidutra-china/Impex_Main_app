@@ -20,6 +20,7 @@ use App\Domain\Financial\Queries\OpenScheduleItemsQuery;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Filament\Resources\Finance\Concerns\HasPaymentFormSections;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -493,5 +494,100 @@ class SupplierPayableCostSideTest extends TestCase
         $this->assertCount(1, $rows);
         $this->assertSame(3_500_000, $rows->first()->amount);
         $this->assertSame(PaymentScheduleStatus::DUE, $rows->first()->status);
+    }
+
+    // --- PO anchoring (recebe pela PI, repassa pela PO) ---
+
+    private function makeSupplierPo(): PurchaseOrder
+    {
+        return PurchaseOrder::create([
+            'proforma_invoice_id' => $this->pi->id,
+            'supplier_company_id' => $this->supplier->id,
+            'currency_code' => 'USD',
+            'issue_date' => '2026-08-01',
+        ]);
+    }
+
+    public function test_supplier_psi_anchors_on_supplier_po_when_it_exists(): void
+    {
+        $po = $this->makeSupplierPo();
+        $cost = $this->makePayableCost();
+
+        app(SyncSupplierPayableScheduleItemAction::class)->execute($cost, $this->pi);
+
+        $psi = $this->supplierPsiFor($cost);
+        $this->assertSame(PurchaseOrder::class, $psi->payable_type);
+        $this->assertSame($po->id, $psi->payable_id);
+    }
+
+    public function test_supplier_psi_reanchors_to_po_created_later(): void
+    {
+        $cost = $this->makePayableCost();
+        $action = app(SyncSupplierPayableScheduleItemAction::class);
+
+        $action->execute($cost, $this->pi);
+        $original = $this->supplierPsiFor($cost);
+        $this->assertSame(ProformaInvoice::class, $original->payable_type);
+
+        $po = $this->makeSupplierPo();
+        $action->execute($cost->refresh(), $this->pi);
+
+        $rows = PaymentScheduleItem::where('source_type', AdditionalCost::class)
+            ->where('source_id', $cost->id)
+            ->withSideTag(PaymentScheduleItem::SUPPLIER_PAYABLE_TAG)
+            ->get();
+
+        $this->assertCount(1, $rows);
+        $this->assertSame($original->id, $rows->first()->id, 'Re-ancora a MESMA linha, não cria outra.');
+        $this->assertSame(PurchaseOrder::class, $rows->first()->payable_type);
+        $this->assertSame($po->id, $rows->first()->payable_id);
+    }
+
+    public function test_allocated_supplier_psi_stays_put_when_po_appears(): void
+    {
+        $cost = $this->makePayableCost();
+        $action = app(SyncSupplierPayableScheduleItemAction::class);
+        $action->execute($cost, $this->pi);
+        $this->payScheduleItem($this->supplierPsiFor($cost), 3_500_000);
+
+        $this->makeSupplierPo();
+        $action->execute($cost->refresh(), $this->pi);
+
+        $psi = $this->supplierPsiFor($cost);
+        $this->assertSame(ProformaInvoice::class, $psi->payable_type, 'Linha alocada não muda de payable.');
+    }
+
+    public function test_cancelled_po_is_skipped_as_anchor(): void
+    {
+        $po = $this->makeSupplierPo();
+        $po->update(['status' => 'cancelled']);
+
+        $cost = $this->makePayableCost();
+        app(SyncSupplierPayableScheduleItemAction::class)->execute($cost, $this->pi);
+
+        $this->assertSame(ProformaInvoice::class, $this->supplierPsiFor($cost)->payable_type);
+    }
+
+    public function test_generating_pos_reanchors_supplier_psi_automatically(): void
+    {
+        $cost = $this->makePayableCost();
+        app(SyncSupplierPayableScheduleItemAction::class)->execute($cost, $this->pi);
+        $this->assertSame(ProformaInvoice::class, $this->supplierPsiFor($cost)->payable_type);
+
+        \Database\Factories\ProformaInvoiceItemFactory::new()->create([
+            'proforma_invoice_id' => $this->pi->id,
+            'supplier_company_id' => $this->supplier->id,
+            'product_id' => \App\Domain\Catalog\Models\Product::factory(),
+        ]);
+
+        (new \App\Domain\PurchaseOrders\Actions\GeneratePurchaseOrdersAction)->execute($this->pi->fresh('items'));
+
+        $po = PurchaseOrder::where('proforma_invoice_id', $this->pi->id)
+            ->where('supplier_company_id', $this->supplier->id)
+            ->firstOrFail();
+
+        $psi = $this->supplierPsiFor($cost);
+        $this->assertSame(PurchaseOrder::class, $psi->payable_type);
+        $this->assertSame($po->id, $psi->payable_id);
     }
 }

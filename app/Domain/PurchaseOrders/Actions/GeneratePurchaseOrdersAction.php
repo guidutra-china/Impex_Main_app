@@ -2,6 +2,7 @@
 
 namespace App\Domain\PurchaseOrders\Actions;
 
+use App\Domain\Financial\Actions\SyncSupplierPayableScheduleItemAction;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
@@ -112,6 +113,18 @@ class GeneratePurchaseOrdersAction
             }
 
             $result->push($po);
+        }
+
+        // Custos com lado pagável a fornecedor ancoram na PO do fornecedor;
+        // re-sincroniza para mover linhas criadas antes da PO existir.
+        if ($result->isNotEmpty()) {
+            $syncSupplierPayable = app(SyncSupplierPayableScheduleItemAction::class);
+
+            $pi->additionalCosts()
+                ->whereNotIn('status', ['waived'])
+                ->get()
+                ->filter(fn ($cost) => $cost->hasSupplierPayableSide())
+                ->each(fn ($cost) => $syncSupplierPayable->execute($cost, $pi));
         }
 
         return $result;

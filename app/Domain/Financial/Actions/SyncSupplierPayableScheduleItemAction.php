@@ -6,16 +6,25 @@ use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 
 /**
  * Upserts/removes the [supplier-payable] PaymentScheduleItem of an
- * AdditionalCost: the amount Impex owes a supplier for this cost. Anchored on
- * the cost's owner document (PI or Shipment), mirroring the forwarder-payable
- * pattern used by FREIGHT costs. Called from both sync paths
- * (AdditionalCostsRelationManager and GeneratePaymentScheduleAction) so the
- * row survives schedule regeneration.
+ * AdditionalCost: the amount Impex owes a supplier for this cost, mirroring
+ * the forwarder-payable pattern used by FREIGHT costs.
+ *
+ * Ancoragem por processo: recebe-se do cliente pela PI e repassa-se ao
+ * fornecedor pela PO — então a linha ancora na PO do fornecedor vinculada à
+ * PI quando ela existe; enquanto a PO não foi criada, cai para o documento
+ * dono (PI/Shipment) e re-ancora automaticamente no próximo sync (rodado
+ * também pelo GeneratePurchaseOrdersAction). Linhas com alocações nunca
+ * mudam de payable.
+ *
+ * Called from both sync paths (AdditionalCostsRelationManager and
+ * GeneratePaymentScheduleAction) so the row survives schedule regeneration.
  */
 class SyncSupplierPayableScheduleItemAction
 {
@@ -36,6 +45,8 @@ class SyncSupplierPayableScheduleItemAction
             return;
         }
 
+        $anchor = $this->resolveAnchor($cost, $owner);
+
         $costTypeLabel = $cost->cost_type instanceof AdditionalCostType
             ? $cost->cost_type->getEnglishLabel()
             : $cost->cost_type;
@@ -43,17 +54,17 @@ class SyncSupplierPayableScheduleItemAction
         $supplierName = $cost->supplierCompany?->name ?? 'Supplier';
         $label = mb_substr("{$costTypeLabel} payable: {$supplierName} - {$cost->description}", 0, 100);
 
-        $maxSortOrder = PaymentScheduleItem::where('payable_type', get_class($owner))
-            ->where('payable_id', $owner->getKey())
+        $maxSortOrder = PaymentScheduleItem::where('payable_type', get_class($anchor))
+            ->where('payable_id', $anchor->getKey())
             ->max('sort_order') ?? 0;
 
         $scheduleData = [
-            'payable_type' => get_class($owner),
-            'payable_id' => $owner->getKey(),
+            'payable_type' => get_class($anchor),
+            'payable_id' => $anchor->getKey(),
             'label' => $label,
             'percentage' => 0,
             'amount' => $cost->supplier_payable_amount,
-            'currency_code' => $cost->supplier_payable_currency_code ?? $owner->currency_code ?? 'USD',
+            'currency_code' => $cost->supplier_payable_currency_code ?? $anchor->currency_code ?? 'USD',
             'due_date' => $cost->supplier_payable_due_date,
             'status' => PaymentScheduleStatus::DUE->value,
             'is_blocking' => false,
@@ -66,6 +77,7 @@ class SyncSupplierPayableScheduleItemAction
 
         if ($existing) {
             if ($existing->allocations()->exists()) {
+                // Payable stays put: the allocation was made against that document.
                 $existing->update([
                     'label' => $scheduleData['label'],
                     'amount' => $scheduleData['amount'],
@@ -74,11 +86,34 @@ class SyncSupplierPayableScheduleItemAction
                     'notes' => $scheduleData['notes'],
                 ]);
             } else {
+                // Full update re-anchors unallocated rows (e.g. onto a PO created
+                // after the cost, or back off a cancelled PO).
                 $existing->update($scheduleData);
             }
         } else {
             PaymentScheduleItem::create($scheduleData);
         }
+    }
+
+    /**
+     * PO do fornecedor vinculada à PI, quando existir e não estiver cancelada;
+     * senão o documento dono do custo.
+     */
+    protected function resolveAnchor(AdditionalCost $cost, Model $owner): Model
+    {
+        if ($owner instanceof ProformaInvoice && $cost->supplier_company_id) {
+            $po = $owner->purchaseOrders()
+                ->where('supplier_company_id', $cost->supplier_company_id)
+                ->where('status', '!=', PurchaseOrderStatus::CANCELLED->value)
+                ->orderBy('id')
+                ->first();
+
+            if ($po) {
+                return $po;
+            }
+        }
+
+        return $owner;
     }
 
     /**
