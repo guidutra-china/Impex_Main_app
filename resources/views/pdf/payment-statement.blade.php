@@ -138,6 +138,30 @@
         </table>
     @endif
 
+    @if(count($additional_costs) > 0)
+        <div class="section-heading">Additional Costs</div>
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th style="width: 24px;">#</th>
+                    <th style="width: 110px;">Type</th>
+                    <th>Description</th>
+                    <th class="text-right" style="width: 110px;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($additional_costs as $costRow)
+                    <tr>
+                        <td class="text-center">{{ $costRow['index'] }}</td>
+                        <td>{{ $costRow['type'] }}</td>
+                        <td>{{ $costRow['description'] }}</td>
+                        <td class="text-right">{{ $pi['currency_code'] }} {{ $costRow['amount'] }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
     {{-- === PAYMENT SCHEDULE === --}}
     @if(count($schedule) > 0)
         <div class="section-heading">Payment Schedule</div>

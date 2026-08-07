@@ -2,6 +2,8 @@
 
 namespace App\Domain\Infrastructure\Pdf\Templates;
 
+use App\Domain\Financial\Enums\AdditionalCostStatus;
+use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\DebitNoteStatus;
 use App\Domain\Financial\Enums\PartyType;
@@ -10,6 +12,7 @@ use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\Quotations\Enums\CommissionType;
 
 class PaymentStatementPdfTemplate extends AbstractPdfTemplate
 {
@@ -143,11 +146,37 @@ class PaymentStatementPdfTemplate extends AbstractPdfTemplate
             ];
         });
 
+        // --- Additional costs as visible lines (discounts as negatives) ---
+        // Mesma regra dos service fees do PDF da PI: só client-billable, sem
+        // WAIVED e sem comissão EMBEDDED (já embutida nos preços unitários).
+        // O grand total soma exatamente as linhas exibidas — nada invisível.
+        $visibleCosts = $pi->additionalCosts
+            ->filter(function ($cost) {
+                if ($cost->billable_to !== BillableTo::CLIENT) {
+                    return false;
+                }
+                if ($cost->status === AdditionalCostStatus::WAIVED) {
+                    return false;
+                }
+
+                return ! ($cost->cost_type === AdditionalCostType::COMMISSION
+                    && $cost->commission_mode === CommissionType::EMBEDDED);
+            })
+            ->values();
+
+        $additionalCostRows = $visibleCosts->map(function ($cost, int $index) use ($currencyCode) {
+            return [
+                'index' => $index + 1,
+                'type' => $cost->cost_type->getEnglishLabel(),
+                'description' => $cost->description ?? '—',
+                'amount' => $this->formatMoney($cost->amount_in_document_currency, $currencyCode, 2),
+                'raw_amount' => (int) $cost->amount_in_document_currency,
+            ];
+        });
+
         // --- Totals (minor units, PI currency) ---
         $piItemsTotal = (int) $pi->items->sum('line_total');
-        $clientCostsTotal = (int) $pi->additionalCosts
-            ->where('billable_to', BillableTo::CLIENT)
-            ->sum('amount_in_document_currency');
+        $clientCostsTotal = (int) $visibleCosts->sum('amount_in_document_currency');
         $piGrandTotal = $piItemsTotal + $clientCostsTotal;
 
         $sameCurrencyDns = $debitNotes->where('currency_code', $currencyCode);
@@ -176,6 +205,7 @@ class PaymentStatementPdfTemplate extends AbstractPdfTemplate
                 'name' => $pi->company?->name ?? '—',
             ],
             'pi_items' => $piItems->toArray(),
+            'additional_costs' => $additionalCostRows->toArray(),
             'pi_items_total' => $this->formatMoney($piItemsTotal, $currencyCode, 2),
             'raw_pi_items_total' => $piItemsTotal,
             'schedule' => $scheduleRows->toArray(),
