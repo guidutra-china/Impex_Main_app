@@ -39,7 +39,7 @@ trait HasManageAllocationsAction
                     || static::getCompanyCreditItems((int) $this->record->company_id, $this->record->direction)->isNotEmpty()))
             ->modalHeading(__('forms.labels.manage_allocations'))
             ->modalDescription(fn () => new HtmlString(
-                '<div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">'
+                '<div class="text-sm" style="display:flex;flex-wrap:wrap;column-gap:1.5rem;row-gap:0.25rem;">'
                 .'<span class="text-gray-500">'.__('forms.labels.total_amount').': <span class="font-semibold text-gray-900 dark:text-white">'
                 .$this->record->currency_code.' '.Money::format($this->record->amount).'</span></span>'
                 .'<span class="text-gray-500">'.__('forms.labels.already_allocated').': <span class="font-semibold text-blue-600">'
@@ -62,23 +62,26 @@ trait HasManageAllocationsAction
                 Hidden::make('payment_date')
                     ->default($this->record->payment_date?->toDateString()),
 
-                Repeater::make('new_allocations')
-                    ->label('')
-                    ->schema(static::allocationRepeaterSchema($this->record->direction))
-                    ->columns(12)
-                    ->defaultItems(0)
-                    ->live()
-                    ->addActionLabel('+ '.__('forms.labels.add_allocation')),
+                Section::make(__('forms.sections.allocations'))
+                    ->schema([
+                        Repeater::make('new_allocations')
+                            ->hiddenLabel()
+                            ->schema(static::allocationRepeaterSchema($this->record->direction))
+                            ->columns(12)
+                            ->defaultItems(0)
+                            ->live()
+                            ->addActionLabel('+ '.__('forms.labels.add_allocation')),
 
-                Placeholder::make('modal_allocation_summary')
-                    ->label('')
-                    ->content(function (Get $get) {
-                        return new HtmlString(static::buildAllocationSummary(
-                            $get('new_allocations') ?? [],
-                            Money::toMajor($this->record->unallocated_amount),
-                            $this->record->currency_code,
-                        ));
-                    }),
+                        Placeholder::make('modal_allocation_summary')
+                            ->hiddenLabel()
+                            ->content(function (Get $get) {
+                                return new HtmlString(static::buildAllocationSummary(
+                                    $get('new_allocations') ?? [],
+                                    Money::toMajor($this->record->unallocated_amount),
+                                    $this->record->currency_code,
+                                ));
+                            }),
+                    ]),
 
                 // Apply available credits (Credit Notes, supplier deductions)
                 // against open items, independent of the wire amount.

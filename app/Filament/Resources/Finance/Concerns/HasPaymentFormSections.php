@@ -197,7 +197,7 @@ trait HasPaymentFormSections
     public static function creditApplicationsRepeater(PaymentDirection $direction): Repeater
     {
         return Repeater::make('credit_applications')
-            ->label('')
+            ->hiddenLabel()
             ->schema([
                 Select::make('credit_schedule_item_id')
                     ->label(__('forms.labels.credit'))
@@ -956,7 +956,9 @@ trait HasPaymentFormSections
 
         $remaining = $wireAmount - $totalAllocated;
 
-        $html = '<div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">';
+        // Inline styles: the panel's precompiled CSS may not include these
+        // utility classes, which renders the segments glued together.
+        $html = '<div class="text-sm" style="display:flex;flex-wrap:wrap;column-gap:1.5rem;row-gap:0.25rem;">';
         $html .= '<span class="text-gray-500">Wire Transfer: <span class="font-semibold text-gray-900 dark:text-white">'
             .e($currency).' '.number_format($wireAmount, 2).'</span></span>';
         $html .= '<span class="text-gray-500">Allocated: <span class="font-semibold text-blue-600">'
