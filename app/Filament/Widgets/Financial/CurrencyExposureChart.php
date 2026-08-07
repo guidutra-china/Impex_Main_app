@@ -25,6 +25,8 @@ class CurrencyExposureChart extends ChartWidget
         'xl' => 6,
     ];
 
+    protected ?string $maxHeight = '200px';
+
     protected ?string $pollingInterval = null;
 
     public function getHeading(): string

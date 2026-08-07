@@ -22,6 +22,8 @@ abstract class AgingChart extends ChartWidget
         'xl' => 6,
     ];
 
+    protected ?string $maxHeight = '200px';
+
     protected ?string $pollingInterval = null;
 
     /** @return array<string, array<string, int>> */

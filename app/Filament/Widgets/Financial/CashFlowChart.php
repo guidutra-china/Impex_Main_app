@@ -17,6 +17,8 @@ class CashFlowChart extends ChartWidget
 
     protected int|string|array $columnSpan = 'full';
 
+    protected ?string $maxHeight = '200px';
+
     protected ?string $pollingInterval = null;
 
     /** @var array{labels: array, inflow: array, outflow: array, net: array, has_warning: bool, unconverted: array}|null */
