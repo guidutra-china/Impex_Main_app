@@ -420,6 +420,38 @@ class AdditionalCostsRelationManager extends RelationManager
             || $val === 'commission';
     }
 
+    /**
+     * IDs (int, únicos) dos fornecedores "do processo": itens da PI, ou POs
+     * dos itens do Shipment. Usado para priorizar o select de fornecedor.
+     *
+     * @return \Illuminate\Support\Collection<int, int>
+     */
+    public static function ownerSupplierIds(?Model $owner): \Illuminate\Support\Collection
+    {
+        if ($owner instanceof ProformaInvoice) {
+            return $owner->items()
+                ->whereNotNull('supplier_company_id')
+                ->pluck('supplier_company_id')
+                ->unique()
+                ->map(fn ($id) => (int) $id)
+                ->values();
+        }
+
+        if ($owner instanceof Shipment) {
+            return PurchaseOrder::query()
+                ->whereHas('items', function ($q) use ($owner) {
+                    $q->whereIn('id', $owner->items()->whereNotNull('purchase_order_item_id')->select('purchase_order_item_id'));
+                })
+                ->pluck('supplier_company_id')
+                ->filter()
+                ->unique()
+                ->map(fn ($id) => (int) $id)
+                ->values();
+        }
+
+        return collect();
+    }
+
     protected function isSupplierBillable($get): bool
     {
         return $this->isSupplierBillableValue($get('billable_to'));
@@ -527,7 +559,23 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->label(fn ($get) => $get('has_supplier_payable') && ! $this->isSupplierBillable($get) && ! $this->isCommissionType($get)
                         ? __('forms.labels.supplier_to_pay')
                         : __('forms.labels.supplier_if_applicable'))
-                    ->relationship('supplierCompany', 'name')
+                    ->relationship(
+                        'supplierCompany',
+                        'name',
+                        // Fornecedores dos itens/POs deste documento primeiro,
+                        // para minimizar lançamento no fornecedor errado.
+                        modifyQueryUsing: function ($query) {
+                            $ids = self::ownerSupplierIds($this->getOwnerRecord());
+
+                            if ($ids->isEmpty()) {
+                                return $query->orderBy('name');
+                            }
+
+                            return $query
+                                ->orderByRaw('CASE WHEN companies.id IN ('.$ids->implode(',').') THEN 0 ELSE 1 END')
+                                ->orderBy('name');
+                        },
+                    )
                     ->searchable()
                     ->preload()
                     ->live()

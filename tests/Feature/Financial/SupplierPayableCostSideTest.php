@@ -582,6 +582,22 @@ class SupplierPayableCostSideTest extends TestCase
         $this->assertNull(SyncSupplierPayableScheduleItemAction::resolveSupplierPo($this->pi, $this->supplier->id));
     }
 
+    public function test_owner_supplier_ids_lists_pi_item_suppliers(): void
+    {
+        $this->assertTrue(\App\Filament\RelationManagers\AdditionalCostsRelationManager::ownerSupplierIds($this->pi)->isEmpty());
+
+        \Database\Factories\ProformaInvoiceItemFactory::new()->create([
+            'proforma_invoice_id' => $this->pi->id,
+            'supplier_company_id' => $this->supplier->id,
+            'product_id' => \App\Domain\Catalog\Models\Product::factory(),
+        ]);
+
+        $ids = \App\Filament\RelationManagers\AdditionalCostsRelationManager::ownerSupplierIds($this->pi->fresh());
+        $this->assertSame([$this->supplier->id], $ids->all());
+
+        $this->assertTrue(\App\Filament\RelationManagers\AdditionalCostsRelationManager::ownerSupplierIds(null)->isEmpty());
+    }
+
     public function test_generating_pos_reanchors_supplier_psi_automatically(): void
     {
         $cost = $this->makePayableCost();
