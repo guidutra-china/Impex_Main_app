@@ -5,6 +5,7 @@ namespace Tests\Feature\Financial;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Actions\GeneratePaymentScheduleAction;
 use App\Domain\Financial\Actions\SyncSupplierPayableScheduleItemAction;
+use App\Domain\Financial\Actions\WaiveAdditionalCostAction;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
@@ -427,11 +428,27 @@ class SupplierPayableCostSideTest extends TestCase
         $cost = $this->makePayableCost();
         app(SyncSupplierPayableScheduleItemAction::class)->execute($cost, $this->pi);
 
-        app(\App\Domain\Financial\Actions\WaiveAdditionalCostAction::class)->execute($cost, null);
+        app(WaiveAdditionalCostAction::class)->execute($cost, null);
 
         $cost->refresh();
         $this->assertSame(AdditionalCostStatus::WAIVED, $cost->status);
         $this->assertSame(AdditionalCostStatus::WAIVED, $cost->supplier_payable_status);
         $this->assertSame(PaymentScheduleStatus::WAIVED, $this->supplierPsiFor($cost)->status);
+    }
+
+    public function test_waiving_cost_does_not_clobber_paid_supplier_side(): void
+    {
+        $cost = $this->makePayableCost();
+        app(SyncSupplierPayableScheduleItemAction::class)->execute($cost, $this->pi);
+        $psi = $this->supplierPsiFor($cost);
+        $this->payScheduleItem($psi, 3_500_000);
+
+        $cost->refresh();
+        app(WaiveAdditionalCostAction::class)->execute($cost, null);
+
+        $cost->refresh();
+        $this->assertSame(AdditionalCostStatus::WAIVED, $cost->status);
+        $this->assertSame(AdditionalCostStatus::PAID, $cost->supplier_payable_status, 'Lado pago não pode ser sobrescrito pelo waive.');
+        $this->assertSame(PaymentScheduleStatus::PAID, $this->supplierPsiFor($cost)->status, 'PSI liquidado não pode ser tocado pelo waive.');
     }
 }
