@@ -530,7 +530,25 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->relationship('supplierCompany', 'name')
                     ->searchable()
                     ->preload()
+                    ->live()
                     ->required(fn ($get) => (bool) $get('has_supplier_payable') && ! $this->isSupplierBillable($get) && ! $this->isCommissionType($get))
+                    ->helperText(function ($get) {
+                        // Aviso dinâmico: a qual documento o pagável vai ancorar.
+                        if (! $get('has_supplier_payable') || $this->isSupplierBillable($get) || $this->isCommissionType($get)) {
+                            return null;
+                        }
+
+                        $supplierId = $get('supplier_company_id');
+                        if (! $supplierId || ! ($this->getOwnerRecord() instanceof ProformaInvoice)) {
+                            return null;
+                        }
+
+                        $po = SyncSupplierPayableScheduleItemAction::resolveSupplierPo($this->getOwnerRecord(), (int) $supplierId);
+
+                        return $po
+                            ? __('forms.helpers.supplier_payable_will_link_po', ['po' => $po->reference])
+                            : __('forms.helpers.supplier_payable_no_po');
+                    })
                     ->placeholder('—'),
                 TextInput::make('supplier_payable_amount')
                     ->label(__('forms.labels.supplier_payable_amount'))

@@ -914,6 +914,8 @@ return [
         'sum_of_bom_labor_overhead' => 'BOM + 人工 + 间接费用之和。',
         'supplier_contact_person' => '供应商联系人。',
         'supplier_payable' => '登记 Impex 为此费用支付给供应商的金额。不会出现在客户文件中。',
+        'supplier_payable_will_link_po' => '应付款将关联到 :po。',
+        'supplier_payable_no_po' => '该供应商在此PI下暂无PO — 应付款先挂在PI上，PO创建后自动转移。',
         'supplier_quotation_expiration_date' => '供应商报价截止日期。',
         'supplierprovided_specs_certifications_materials_etc' => '供应商提供的规格、认证、材料等。',
         'the_client_inquiry_this_proforma_invoice_is_for' => '此形式发票对应的客户询价。',

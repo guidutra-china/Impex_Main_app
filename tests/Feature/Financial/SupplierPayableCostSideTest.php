@@ -568,6 +568,20 @@ class SupplierPayableCostSideTest extends TestCase
         $this->assertSame(ProformaInvoice::class, $this->supplierPsiFor($cost)->payable_type);
     }
 
+    public function test_resolve_supplier_po_matches_supplier_and_skips_cancelled(): void
+    {
+        $this->assertNull(SyncSupplierPayableScheduleItemAction::resolveSupplierPo($this->pi, $this->supplier->id));
+
+        $po = $this->makeSupplierPo();
+        $this->assertSame($po->id, SyncSupplierPayableScheduleItemAction::resolveSupplierPo($this->pi, $this->supplier->id)?->id);
+
+        $otherSupplier = Company::create(['name' => 'Outro Fornecedor', 'status' => 'active']);
+        $this->assertNull(SyncSupplierPayableScheduleItemAction::resolveSupplierPo($this->pi, $otherSupplier->id));
+
+        $po->update(['status' => 'cancelled']);
+        $this->assertNull(SyncSupplierPayableScheduleItemAction::resolveSupplierPo($this->pi, $this->supplier->id));
+    }
+
     public function test_generating_pos_reanchors_supplier_psi_automatically(): void
     {
         $cost = $this->makePayableCost();

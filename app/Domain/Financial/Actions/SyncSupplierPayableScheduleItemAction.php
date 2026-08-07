@@ -8,6 +8,7 @@ use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
+use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 
@@ -101,19 +102,24 @@ class SyncSupplierPayableScheduleItemAction
      */
     protected function resolveAnchor(AdditionalCost $cost, Model $owner): Model
     {
-        if ($owner instanceof ProformaInvoice && $cost->supplier_company_id) {
-            $po = $owner->purchaseOrders()
-                ->where('supplier_company_id', $cost->supplier_company_id)
-                ->where('status', '!=', PurchaseOrderStatus::CANCELLED->value)
-                ->orderBy('id')
-                ->first();
+        return self::resolveSupplierPo($owner, $cost->supplier_company_id) ?? $owner;
+    }
 
-            if ($po) {
-                return $po;
-            }
+    /**
+     * PO (não cancelada) de um fornecedor dentro da PI — usada pela ancoragem
+     * e pelo aviso dinâmico do formulário de custos.
+     */
+    public static function resolveSupplierPo(?Model $owner, ?int $supplierId): ?PurchaseOrder
+    {
+        if (! $owner instanceof ProformaInvoice || ! $supplierId) {
+            return null;
         }
 
-        return $owner;
+        return $owner->purchaseOrders()
+            ->where('supplier_company_id', $supplierId)
+            ->where('status', '!=', PurchaseOrderStatus::CANCELLED->value)
+            ->orderBy('id')
+            ->first();
     }
 
     /**

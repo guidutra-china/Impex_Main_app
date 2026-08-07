@@ -954,6 +954,8 @@ return [
         'sum_of_bom_labor_overhead' => 'Sum of BOM + Labor + Overhead.',
         'supplier_contact_person' => 'Supplier contact person.',
         'supplier_payable' => 'Registers an amount Impex pays a supplier for this cost. Not shown on client documents.',
+        'supplier_payable_will_link_po' => 'The payable will be linked to :po.',
+        'supplier_payable_no_po' => 'This supplier has no PO on this PI — the payable stays on the PI and moves automatically once the PO is created.',
         'supplier_quotation_expiration_date' => 'Supplier quotation expiration date.',
         'supplierprovided_specs_certifications_materials_etc' => 'Supplier-provided specs, certifications, materials, etc.',
         'the_client_inquiry_this_proforma_invoice_is_for' => 'The client inquiry this proforma invoice is for.',

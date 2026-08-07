@@ -953,6 +953,8 @@ return [
         'sum_of_bom_labor_overhead' => 'Soma de BOM + Mão de obra + Despesas gerais.',
         'supplier_contact_person' => 'Pessoa de contato do fornecedor.',
         'supplier_payable' => 'Registra um valor que a Impex paga a um fornecedor por este custo. Não aparece nos documentos do cliente.',
+        'supplier_payable_will_link_po' => 'O pagável será vinculado à :po.',
+        'supplier_payable_no_po' => 'Fornecedor sem PO nesta PI — o pagável fica na PI e migra automaticamente quando a PO for criada.',
         'supplier_quotation_expiration_date' => 'Data de validade da cotação do fornecedor.',
         'supplierprovided_specs_certifications_materials_etc' => 'Especificações, certificações, materiais, etc. fornecidos pelo fornecedor.',
         'the_client_inquiry_this_proforma_invoice_is_for' => 'A consulta do cliente para a qual esta fatura proforma é destinada.',
