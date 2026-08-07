@@ -322,6 +322,16 @@ class SupplierPayableCostSideTest extends TestCase
         $this->assertTrue(true); // nenhuma exceção lançada
     }
 
+    public function test_assert_side_removable_blocks_currency_switch_when_allocated(): void
+    {
+        $cost = $this->makePayableCost();
+        app(SyncSupplierPayableScheduleItemAction::class)->execute($cost, $this->pi);
+        $this->payScheduleItem($this->supplierPsiFor($cost), 3_500_000);
+
+        $this->expectException(ValidationException::class);
+        SyncSupplierPayableScheduleItemAction::assertSideRemovable($cost->refresh(), true, $this->supplier->id, 'CNY');
+    }
+
     public function test_paying_supplier_psi_sets_supplier_payable_status_without_touching_client_status(): void
     {
         $cost = $this->makePayableCost();

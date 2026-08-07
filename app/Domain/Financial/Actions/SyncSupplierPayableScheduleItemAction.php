@@ -82,11 +82,12 @@ class SyncSupplierPayableScheduleItemAction
     }
 
     /**
-     * Form-side guard: turning the side off (or switching supplier) after a
-     * payment was allocated against the payable row must be blocked — the
-     * allocation was made against that counterparty.
+     * Form-side guard: turning the side off, switching supplier, or switching
+     * currency after a payment was allocated against the payable row must be
+     * blocked — the allocation was made against that counterparty in that
+     * currency. A null $newCurrency skips the currency check.
      */
-    public static function assertSideRemovable(AdditionalCost $cost, bool $willHaveSide, ?int $newSupplierId): void
+    public static function assertSideRemovable(AdditionalCost $cost, bool $willHaveSide, ?int $newSupplierId, ?string $newCurrency = null): void
     {
         $existing = PaymentScheduleItem::where('source_type', AdditionalCost::class)
             ->where('source_id', $cost->id)
@@ -108,6 +109,17 @@ class SyncSupplierPayableScheduleItemAction
         if ($supplierChanged) {
             throw ValidationException::withMessages([
                 'supplier_company_id' => __('forms.validation.supplier_payable_has_allocations'),
+            ]);
+        }
+
+        $currencyChanged = $willHaveSide
+            && $newCurrency !== null
+            && $cost->supplier_payable_currency_code !== null
+            && $newCurrency !== $cost->supplier_payable_currency_code;
+
+        if ($currencyChanged) {
+            throw ValidationException::withMessages([
+                'supplier_payable_currency_code' => __('forms.validation.supplier_payable_has_allocations'),
             ]);
         }
     }

@@ -422,13 +422,7 @@ class AdditionalCostsRelationManager extends RelationManager
 
     protected function isSupplierBillable($get): bool
     {
-        $val = $get('billable_to');
-
-        if ($val instanceof BillableTo) {
-            return $val === BillableTo::SUPPLIER;
-        }
-
-        return $val === BillableTo::SUPPLIER->value || $val === 'supplier';
+        return $this->isSupplierBillableValue($get('billable_to'));
     }
 
     protected function isSupplierBillableValue(mixed $val): bool
@@ -520,13 +514,14 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->label(__('forms.labels.billable_to'))
                     ->options(BillableTo::class)
                     ->default(BillableTo::CLIENT->value)
-                    ->required(),
+                    ->required()
+                    ->live(),
                 Toggle::make('has_supplier_payable')
                     ->label(__('forms.labels.supplier_payable'))
                     ->helperText(__('forms.helpers.supplier_payable'))
                     ->live()
                     ->default(false)
-                    ->visible(fn ($get) => ! $this->isSupplierBillable($get))
+                    ->visible(fn ($get) => ! $this->isSupplierBillable($get) && ! $this->isCommissionType($get))
                     ->columnSpanFull(),
                 Select::make('supplier_company_id')
                     ->label(fn ($get) => $get('has_supplier_payable')
@@ -543,24 +538,32 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->step('0.01')
                     ->minValue(0.01)
                     ->required(fn ($get) => (bool) $get('has_supplier_payable'))
-                    ->visible(fn ($get) => (bool) $get('has_supplier_payable')),
+                    ->visible(fn ($get) => (bool) $get('has_supplier_payable')
+                        && ! $this->isSupplierBillable($get)
+                        && ! $this->isCommissionType($get)),
                 Select::make('supplier_payable_currency_code')
                     ->label(__('forms.labels.supplier_payable_currency'))
                     ->options(fn () => Currency::pluck('code', 'code'))
                     ->default(fn () => $this->getOwnerRecord()->currency_code)
                     ->live()
-                    ->visible(fn ($get) => (bool) $get('has_supplier_payable')),
+                    ->visible(fn ($get) => (bool) $get('has_supplier_payable')
+                        && ! $this->isSupplierBillable($get)
+                        && ! $this->isCommissionType($get)),
                 TextInput::make('supplier_payable_exchange_rate')
                     ->label(__('forms.labels.exchange_rate'))
                     ->numeric()
                     ->step('0.00000001')
                     ->helperText(__('forms.helpers.rate_to_convert_to_document_currency_leave_empty_if_same'))
                     ->visible(fn ($get) => (bool) $get('has_supplier_payable')
+                        && ! $this->isSupplierBillable($get)
+                        && ! $this->isCommissionType($get)
                         && $get('supplier_payable_currency_code')
                         && $get('supplier_payable_currency_code') !== $this->getOwnerRecord()->currency_code),
                 DatePicker::make('supplier_payable_due_date')
                     ->label(__('forms.labels.supplier_payable_due_date'))
-                    ->visible(fn ($get) => (bool) $get('has_supplier_payable')),
+                    ->visible(fn ($get) => (bool) $get('has_supplier_payable')
+                        && ! $this->isSupplierBillable($get)
+                        && ! $this->isCommissionType($get)),
                 DatePicker::make('cost_date')
                     ->label(__('forms.labels.date'))
                     ->default(now()),
@@ -626,16 +629,27 @@ class AdditionalCostsRelationManager extends RelationManager
         $costCurrencyCode = $data['currency_code'];
 
         $hasSupplierPayable = (bool) ($data['has_supplier_payable'] ?? false)
+            && ! $isCommission
             && ! $this->isSupplierBillableValue($data['billable_to'] ?? null)
             && ! empty($data['supplier_payable_amount'])
             && ! empty($data['supplier_company_id']);
 
         if ($record) {
-            SyncSupplierPayableScheduleItemAction::assertSideRemovable(
-                $record,
-                $hasSupplierPayable,
-                isset($data['supplier_company_id']) ? (int) $data['supplier_company_id'] : null,
-            );
+            try {
+                SyncSupplierPayableScheduleItemAction::assertSideRemovable(
+                    $record,
+                    $hasSupplierPayable,
+                    isset($data['supplier_company_id']) ? (int) $data['supplier_company_id'] : null,
+                    $data['supplier_payable_currency_code'] ?? null,
+                );
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                Notification::make()
+                    ->title(collect($e->errors())->flatten()->first())
+                    ->danger()
+                    ->send();
+
+                throw $e;
+            }
         }
 
         $exchangeRate = null;
