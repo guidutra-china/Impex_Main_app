@@ -82,6 +82,12 @@ class AdditionalCost extends Model
         });
 
         static::saving(function (AdditionalCost $cost) {
+            // Desconto absorvido pela empresa = simplesmente não lançar o
+            // custo; COMPANY não faz sentido como parte do desconto.
+            if ($cost->cost_type === AdditionalCostType::DISCOUNT && $cost->billable_to === BillableTo::COMPANY) {
+                throw new \InvalidArgumentException('A DISCOUNT cost cannot be company-billable.');
+            }
+
             // Invariante do tipo DISCOUNT: colunas do custo sempre negativas
             // (documentos somam naturalmente); PSIs derivados usam abs().
             if ($cost->cost_type === AdditionalCostType::DISCOUNT) {

@@ -1106,6 +1106,7 @@ return [
     'validation' => [
         'line_has_allocations_cannot_remove' => '无法删除此行：其付款计划项已存在付款分配。请先取消相关分配。',
         'supplier_payable_has_allocations' => '应付供应商部分已有付款分配，无法移除或更换供应商。',
+        'cost_type_locked_by_allocations' => '此费用已有付款分配，无法在折扣与普通费用之间切换。',
         'cost_has_allocations_cannot_delete' => '此费用已有付款分配，无法删除。',
     ],
 ];

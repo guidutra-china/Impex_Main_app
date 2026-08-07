@@ -1152,6 +1152,7 @@ return [
     'validation' => [
         'line_has_allocations_cannot_remove' => 'Esta linha não pode ser removida: o item de cronograma dela já possui pagamentos alocados. Cancele as alocações primeiro.',
         'supplier_payable_has_allocations' => 'O lado pagável a fornecedor já tem alocações de pagamento e não pode ser removido ou trocado.',
+        'cost_type_locked_by_allocations' => 'Este custo tem alocações de pagamento; trocar entre desconto e custo comum está bloqueado.',
         'cost_has_allocations_cannot_delete' => 'Este custo tem alocações de pagamento e não pode ser excluído.',
     ],
 ];

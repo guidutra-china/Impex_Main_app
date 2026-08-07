@@ -344,6 +344,15 @@ class PaymentScheduleItem extends Model
     }
 
     /**
+     * Pinned rows keep their payable: some payment history (cash allocation or
+     * credit application) already references this row against that document.
+     */
+    public function isPinnedByAllocations(): bool
+    {
+        return $this->allocations()->exists() || $this->creditAllocations()->exists();
+    }
+
+    /**
      * Amount of this credit item consumed by APPROVED payments — via credit
      * applications (allocations pointing at it) or direct cash refunds
      * (allocations paying it). Minor units. Always 0 for non-credit items.

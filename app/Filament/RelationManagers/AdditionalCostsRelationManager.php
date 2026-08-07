@@ -42,6 +42,7 @@ use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Contracts\Pagination\Paginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\ValidationException;
 
 class AdditionalCostsRelationManager extends RelationManager
 {
@@ -294,7 +295,7 @@ class AdditionalCostsRelationManager extends RelationManager
                 'commission_rate' => $record->commission_rate,
                 'commission_mode' => $record->commission_mode?->value,
                 'description' => $record->description,
-                'amount' => Money::toMajor(abs($record->amount)),
+                'amount' => Money::toMajor($record->isDiscount() ? abs($record->amount) : $record->amount),
                 'currency_code' => $record->currency_code,
                 'exchange_rate' => $record->exchange_rate,
                 'billable_to' => $record->billable_to->value,
@@ -463,6 +464,34 @@ class AdditionalCostsRelationManager extends RelationManager
         return collect();
     }
 
+    /**
+     * Trocar o tipo entre desconto (crédito) e custo comum inverte a natureza
+     * do PSI; com alocações registradas isso corromperia o histórico.
+     */
+    public static function assertCostTypeSwitchable(AdditionalCost $cost, mixed $newType): void
+    {
+        $newValue = $newType instanceof AdditionalCostType ? $newType->value : (string) $newType;
+        $wasDiscount = $cost->cost_type === AdditionalCostType::DISCOUNT;
+        $willBeDiscount = $newValue === AdditionalCostType::DISCOUNT->value;
+
+        if ($wasDiscount === $willBeDiscount) {
+            return;
+        }
+
+        $hasAllocations = PaymentScheduleItem::where('source_type', AdditionalCost::class)
+            ->where('source_id', $cost->id)
+            ->where(function ($q) {
+                $q->whereHas('allocations')->orWhereHas('creditAllocations');
+            })
+            ->exists();
+
+        if ($hasAllocations) {
+            throw ValidationException::withMessages([
+                'cost_type' => __('forms.validation.cost_type_locked_by_allocations'),
+            ]);
+        }
+    }
+
     protected function isSupplierBillable($get): bool
     {
         return $this->isSupplierBillableValue($get('billable_to'));
@@ -499,7 +528,14 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->options(AdditionalCostType::class)
                     ->required()
                     ->searchable()
-                    ->live(),
+                    ->live()
+                    ->afterStateUpdated(function ($get, $set) {
+                        // COMPANY não é opção válida para desconto; limpa o
+                        // valor obsoleto ao trocar o tipo para desconto.
+                        if ($this->isDiscountType($get) && $get('billable_to') === BillableTo::COMPANY->value) {
+                            $set('billable_to', BillableTo::CLIENT->value);
+                        }
+                    }),
                 TextInput::make('description')
                     ->label(__('forms.labels.description'))
                     ->required()
@@ -583,9 +619,15 @@ class AdditionalCostsRelationManager extends RelationManager
                     ->visible(fn ($get) => ! $this->isSupplierBillable($get) && ! $this->isCommissionType($get) && ! $this->isDiscountType($get))
                     ->columnSpanFull(),
                 Select::make('supplier_company_id')
-                    ->label(fn ($get) => $get('has_supplier_payable') && ! $this->isSupplierBillable($get) && ! $this->isCommissionType($get) && ! $this->isDiscountType($get)
-                        ? __('forms.labels.supplier_to_pay')
-                        : __('forms.labels.supplier_if_applicable'))
+                    ->label(function ($get) {
+                        if ($this->isDiscountType($get) && $this->isSupplierBillable($get)) {
+                            return __('forms.labels.supplier');
+                        }
+
+                        return $get('has_supplier_payable') && ! $this->isSupplierBillable($get) && ! $this->isCommissionType($get) && ! $this->isDiscountType($get)
+                            ? __('forms.labels.supplier_to_pay')
+                            : __('forms.labels.supplier_if_applicable');
+                    })
                     ->relationship(
                         'supplierCompany',
                         'name',
@@ -745,7 +787,9 @@ class AdditionalCostsRelationManager extends RelationManager
                     isset($data['supplier_company_id']) ? (int) $data['supplier_company_id'] : null,
                     $data['supplier_payable_currency_code'] ?? null,
                 );
-            } catch (\Illuminate\Validation\ValidationException $e) {
+
+                self::assertCostTypeSwitchable($record, $data['cost_type'] ?? $record->cost_type->value);
+            } catch (ValidationException $e) {
                 Notification::make()
                     ->title(collect($e->errors())->flatten()->first())
                     ->danger()
@@ -981,8 +1025,7 @@ class AdditionalCostsRelationManager extends RelationManager
         ];
 
         if ($existing) {
-            $isPinned = $existing->allocations()->exists()
-                || $existing->creditAllocations()->exists();
+            $isPinned = $existing->isPinnedByAllocations();
 
             if ($isPinned) {
                 $existing->update([

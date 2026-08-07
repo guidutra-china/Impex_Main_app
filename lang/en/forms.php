@@ -1147,6 +1147,7 @@ return [
     'validation' => [
         'line_has_allocations_cannot_remove' => 'This line cannot be removed: its schedule item already has payment allocations. Remove the allocations first.',
         'supplier_payable_has_allocations' => 'The supplier payable side has payment allocations and cannot be removed or reassigned.',
+        'cost_type_locked_by_allocations' => 'This cost has payment allocations; switching between discount and regular cost is blocked.',
         'cost_has_allocations_cannot_delete' => 'This cost has payment allocations and cannot be deleted.',
     ],
 ];

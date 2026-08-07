@@ -981,8 +981,7 @@ class GeneratePaymentScheduleAction
                     'notes' => $cost->notes,
                 ]);
             } else {
-                $isPinned = $existingClient->allocations()->exists()
-                    || $existingClient->creditAllocations()->exists();
+                $isPinned = $existingClient->isPinnedByAllocations();
 
                 if ($isPinned) {
                     $existingClient->update([

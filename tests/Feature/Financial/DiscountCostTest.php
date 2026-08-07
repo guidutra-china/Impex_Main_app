@@ -7,11 +7,13 @@ use App\Domain\Financial\Actions\GeneratePaymentScheduleAction;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
+use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class DiscountCostTest extends TestCase
@@ -73,6 +75,7 @@ class DiscountCostTest extends TestCase
         // Re-save não dupla-nega.
         $cost->update(['description' => 'edited']);
         $this->assertSame(-2_000_000, $cost->refresh()->amount);
+        $this->assertSame(-2_000_000, $cost->refresh()->amount_in_document_currency);
     }
 
     public function test_non_discount_amounts_are_untouched(): void
@@ -245,5 +248,62 @@ class DiscountCostTest extends TestCase
 
         $psi = $this->creditPsiFor($cost);
         $this->assertSame(ProformaInvoice::class, $psi->payable_type, 'Crédito consumido não muda de documento.');
+    }
+
+    public function test_consuming_discount_credit_marks_cost_paid_and_unblocks_finalization(): void
+    {
+        $cost = $this->makeDiscount();
+        $this->syncCosts();
+        $creditPsi = $this->creditPsiFor($cost);
+
+        // Antes do consumo: custo PENDING bloqueia finalização.
+        $blockers = implode(' | ', $this->pi->fresh()->getFinalizationBlockers());
+        $this->assertStringContainsString('cost', strtolower($blockers));
+
+        $this->consumeCredit($creditPsi, 2_000_000);
+
+        $this->assertSame(PaymentScheduleStatus::PAID, $creditPsi->refresh()->status);
+        $this->assertSame(AdditionalCostStatus::PAID, $cost->refresh()->status);
+    }
+
+    public function test_partial_consumption_keeps_credit_pending(): void
+    {
+        $cost = $this->makeDiscount();
+        $this->syncCosts();
+        $creditPsi = $this->creditPsiFor($cost);
+
+        $this->consumeCredit($creditPsi, 500_000); // 50.00 de 200.00
+
+        $this->assertSame(PaymentScheduleStatus::PENDING, $creditPsi->refresh()->status);
+        $this->assertNotSame(AdditionalCostStatus::PAID, $cost->refresh()->status);
+    }
+
+    public function test_waive_releases_finalization_blocker(): void
+    {
+        $cost = $this->makeDiscount();
+        $this->syncCosts();
+
+        app(\App\Domain\Financial\Actions\WaiveAdditionalCostAction::class)->execute($cost, null);
+
+        $cost->refresh();
+        $this->assertSame(AdditionalCostStatus::WAIVED, $cost->status);
+        $blockers = implode(' | ', $this->pi->fresh()->getFinalizationBlockers());
+        $this->assertStringNotContainsString('additional cost', strtolower($blockers));
+    }
+
+    public function test_switching_type_with_allocated_credit_is_blocked(): void
+    {
+        $cost = $this->makeDiscount();
+        $this->syncCosts();
+        $this->consumeCredit($this->creditPsiFor($cost), 2_000_000);
+
+        $this->expectException(ValidationException::class);
+        \App\Filament\RelationManagers\AdditionalCostsRelationManager::assertCostTypeSwitchable($cost->refresh(), AdditionalCostType::OTHER->value);
+    }
+
+    public function test_company_billable_discount_is_rejected_by_the_model(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->makeDiscount(['billable_to' => BillableTo::COMPANY->value]);
     }
 }

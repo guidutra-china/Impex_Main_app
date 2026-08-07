@@ -125,16 +125,18 @@ class ReconcileSettlementStateAction
     }
 
     /**
-     * Sync the consumption state of credit notes touched by this allocation.
+     * Sync the consumption state of credit items touched by this allocation.
      *
-     * A credit PSI (is_credit=true, sourced from CreditNoteLineItem) is
-     * consumed either as a credit application (this allocation's
-     * credit_schedule_item_id points at it) or as a cash refund (this
-     * allocation pays it directly). recalculateStatus() skips is_credit
-     * items, so their availability status is managed here: PAID only when
-     * fully consumed (hides it from the available-credits list), PENDING
-     * while any balance remains — including after a partial application or
-     * when the consuming payment is cancelled.
+     * A credit PSI (is_credit=true, sourced from CreditNoteLineItem or from
+     * AdditionalCost — supplier deductions and discounts) is consumed either
+     * as a credit application (this allocation's credit_schedule_item_id
+     * points at it) or as a cash refund (this allocation pays it directly).
+     * recalculateStatus() skips is_credit items, so their availability status
+     * is managed here: PAID only when fully consumed (hides it from the
+     * available-credits list), PENDING while any balance remains — including
+     * after a partial application or when the consuming payment is cancelled.
+     * For AdditionalCost-sourced credits, syncAdditionalCostStatus later in
+     * the same reconcile maps the fresh PSI status onto the cost row.
      */
     protected function checkCreditNoteReconciliation(PaymentAllocation $allocation): void
     {
@@ -143,7 +145,10 @@ class ReconcileSettlementStateAction
                 continue;
             }
 
-            if ($scheduleItem->source_type !== CreditNoteLineItem::class) {
+            $isCnCredit = $scheduleItem->source_type === CreditNoteLineItem::class;
+            $isCostCredit = $scheduleItem->source_type === AdditionalCost::class;
+
+            if (! $isCnCredit && ! $isCostCredit) {
                 continue;
             }
 
@@ -160,8 +165,10 @@ class ReconcileSettlementStateAction
                 }
             }
 
-            $lineItem = CreditNoteLineItem::find($scheduleItem->source_id);
-            $lineItem?->creditNote?->recalculateStatus();
+            if ($isCnCredit) {
+                $lineItem = CreditNoteLineItem::find($scheduleItem->source_id);
+                $lineItem?->creditNote?->recalculateStatus();
+            }
         }
     }
 
