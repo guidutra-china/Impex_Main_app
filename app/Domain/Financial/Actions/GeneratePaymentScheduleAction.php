@@ -946,13 +946,14 @@ class GeneratePaymentScheduleAction
                 continue;
             }
 
-            $isCredit = $billableTo === BillableTo::SUPPLIER;
+            $isCredit = $billableTo === BillableTo::SUPPLIER
+                || $cost->cost_type === AdditionalCostType::DISCOUNT;
             $costTypeLabel = $cost->cost_type instanceof AdditionalCostType
                 ? $cost->cost_type->getEnglishLabel()
                 : $cost->cost_type;
 
             $label = $isCredit
-                ? "Credit: {$cost->description}"
+                ? ($cost->cost_type === AdditionalCostType::DISCOUNT ? 'Discount: ' : 'Credit: ').$cost->description
                 : "{$costTypeLabel}: {$cost->description}";
 
             // --- Client receivable item ---
@@ -968,7 +969,7 @@ class GeneratePaymentScheduleAction
                     'payable_id' => $schedulePayable->getKey(),
                     'label' => mb_substr($label, 0, 100),
                     'percentage' => 0,
-                    'amount' => $cost->amount_in_document_currency,
+                    'amount' => abs($cost->amount_in_document_currency),
                     'currency_code' => $schedulePayable->currency_code ?? $cost->currency_code ?? 'USD',
                     'due_date' => $this->resolveAdditionalCostDueDate($cost, $schedulePayable),
                     'status' => PaymentScheduleStatus::DUE->value,
@@ -979,10 +980,18 @@ class GeneratePaymentScheduleAction
                     'sort_order' => $maxSortOrder,
                     'notes' => $cost->notes,
                 ]);
-            } else {
+            } elseif ($existingClient->allocations()->exists()) {
                 $existingClient->update([
                     'label' => mb_substr($label, 0, 100),
-                    'amount' => $cost->amount_in_document_currency,
+                    'amount' => abs($cost->amount_in_document_currency),
+                    'is_credit' => $isCredit,
+                ]);
+            } else {
+                $existingClient->update([
+                    'payable_type' => get_class($schedulePayable),
+                    'payable_id' => $schedulePayable->getKey(),
+                    'label' => mb_substr($label, 0, 100),
+                    'amount' => abs($cost->amount_in_document_currency),
                     'is_credit' => $isCredit,
                 ]);
             }

@@ -3,11 +3,14 @@
 namespace Tests\Feature\Financial;
 
 use App\Domain\CRM\Models\Company;
+use App\Domain\Financial\Actions\GeneratePaymentScheduleAction;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Models\AdditionalCost;
+use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -100,5 +103,81 @@ class DiscountCostTest extends TestCase
         $pi = $this->pi->fresh(['items', 'additionalCosts']);
         $this->assertSame(10_000_000, $pi->subtotal);
         $this->assertSame(8_000_000, $pi->grand_total);
+    }
+
+    private function syncCosts(): void
+    {
+        $action = new GeneratePaymentScheduleAction;
+        $method = new \ReflectionMethod($action, 'syncAdditionalCosts');
+        $method->invoke($action, $this->pi);
+    }
+
+    private function creditPsiFor(AdditionalCost $cost): ?PaymentScheduleItem
+    {
+        return PaymentScheduleItem::where('source_type', AdditionalCost::class)
+            ->where('source_id', $cost->id)
+            ->where('is_credit', true)
+            ->first();
+    }
+
+    public function test_client_discount_creates_positive_credit_psi_on_pi(): void
+    {
+        $cost = $this->makeDiscount();
+        $this->syncCosts();
+
+        $psi = $this->creditPsiFor($cost);
+        $this->assertNotNull($psi);
+        $this->assertSame(2_000_000, $psi->amount, 'PSI sempre positivo (abs).');
+        $this->assertTrue($psi->is_credit);
+        $this->assertSame(ProformaInvoice::class, $psi->payable_type);
+        $this->assertSame($this->pi->id, $psi->payable_id);
+        $this->assertStringStartsWith('Discount:', $psi->label);
+    }
+
+    public function test_supplier_discount_credit_anchors_on_po_with_pi_fallback(): void
+    {
+        $cost = $this->makeDiscount([
+            'billable_to' => BillableTo::SUPPLIER->value,
+            'supplier_company_id' => $this->supplier->id,
+        ]);
+
+        // Sem PO: fallback na PI.
+        $this->syncCosts();
+        $this->assertSame(ProformaInvoice::class, $this->creditPsiFor($cost)->payable_type);
+
+        $po = PurchaseOrder::create([
+            'proforma_invoice_id' => $this->pi->id,
+            'supplier_company_id' => $this->supplier->id,
+            'currency_code' => 'USD',
+            'issue_date' => '2026-08-01',
+        ]);
+
+        $this->syncCosts();
+        $psi = $this->creditPsiFor($cost);
+        $this->assertSame(PurchaseOrder::class, $psi->payable_type);
+        $this->assertSame($po->id, $psi->payable_id);
+        $this->assertSame(2_000_000, $psi->amount);
+    }
+
+    public function test_legacy_supplier_credit_cost_keeps_positive_psi(): void
+    {
+        // Regressão da uniformização abs(): custo supplier-billable legado (positivo).
+        $cost = $this->pi->additionalCosts()->create([
+            'cost_type' => AdditionalCostType::TESTING->value,
+            'description' => 'Quality deduction',
+            'amount' => 1_500_000,
+            'currency_code' => 'USD',
+            'exchange_rate' => 1,
+            'amount_in_document_currency' => 1_500_000,
+            'billable_to' => BillableTo::SUPPLIER->value,
+            'supplier_company_id' => $this->supplier->id,
+            'status' => AdditionalCostStatus::PENDING->value,
+        ]);
+
+        $this->syncCosts();
+
+        $psi = $this->creditPsiFor($cost);
+        $this->assertSame(1_500_000, $psi->amount);
+        $this->assertStringStartsWith('Credit:', $psi->label);
     }
 }

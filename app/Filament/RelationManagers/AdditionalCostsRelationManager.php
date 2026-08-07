@@ -921,20 +921,21 @@ class AdditionalCostsRelationManager extends RelationManager
             return;
         }
 
-        $isCredit = $billableTo === BillableTo::SUPPLIER;
+        $isCredit = $billableTo === BillableTo::SUPPLIER
+            || $cost->cost_type === AdditionalCostType::DISCOUNT;
 
         $costTypeLabel = $cost->cost_type instanceof AdditionalCostType
             ? $cost->cost_type->getEnglishLabel()
             : $cost->cost_type;
 
         $label = $isCredit
-            ? "Credit: {$cost->description}"
+            ? ($cost->cost_type === AdditionalCostType::DISCOUNT ? 'Discount: ' : 'Credit: ').$cost->description
             : "{$costTypeLabel}: {$cost->description}";
 
         // --- Client receivable schedule item (existing logic) ---
         $this->upsertScheduleItem($cost, $payable, [
             'label' => mb_substr($label, 0, 100),
-            'amount' => $cost->amount_in_document_currency,
+            'amount' => abs($cost->amount_in_document_currency),
             'is_credit' => $isCredit,
             'notes' => $cost->notes,
         ], 'client');
