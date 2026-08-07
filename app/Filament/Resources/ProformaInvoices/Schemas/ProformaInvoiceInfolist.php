@@ -181,7 +181,7 @@ class ProformaInvoiceInfolist
                         ->prefix('$ ')
                         ->weight(FontWeight::Bold)
                         ->color('info')
-                        ->visible(fn ($record) => $record->client_billable_costs_total > 0),
+                        ->visible(fn ($record) => $record->client_billable_costs_total !== 0),
                     TextEntry::make('grand_total')
                         ->label('Grand Total')
                         ->getStateUsing(fn ($record) => $record->grand_total)
@@ -189,7 +189,7 @@ class ProformaInvoiceInfolist
                         ->prefix('$ ')
                         ->weight(FontWeight::Bold)
                         ->color('success')
-                        ->visible(fn ($record) => $record->client_billable_costs_total > 0),
+                        ->visible(fn ($record) => $record->client_billable_costs_total !== 0),
                     TextEntry::make('cost_total')
                         ->label(__('forms.labels.total_cost'))
                         ->formatStateUsing(fn ($state) => \App\Domain\Infrastructure\Support\Money::format($state, 2))
