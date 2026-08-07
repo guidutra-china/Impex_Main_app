@@ -65,6 +65,7 @@ return [
         'certification' => 'Certificação',
         'travel' => 'Despesas de Viagem',
         'commission' => 'Comissão',
+        'discount' => 'Desconto',
         'other' => 'Outro',
     ],
     'billable_to' => [

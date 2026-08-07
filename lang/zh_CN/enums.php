@@ -65,6 +65,7 @@ return [
         'certification' => '认证',
         'travel' => '差旅费',
         'commission' => '佣金',
+        'discount' => '折扣',
         'other' => '其他',
     ],
     'billable_to' => [

@@ -6,7 +6,7 @@ use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasLabel;
 
-enum AdditionalCostType: string implements HasLabel, HasColor, HasIcon
+enum AdditionalCostType: string implements HasColor, HasIcon, HasLabel
 {
     case TESTING = 'testing';
     case INSPECTION = 'inspection';
@@ -19,13 +19,13 @@ enum AdditionalCostType: string implements HasLabel, HasColor, HasIcon
     case CERTIFICATION = 'certification';
     case TRAVEL = 'travel';
     case COMMISSION = 'commission';
+    case DISCOUNT = 'discount';
     case OTHER = 'other';
 
     public function getLabel(): ?string
     {
-        return __('enums.additional_cost_type.' . $this->value);
+        return __('enums.additional_cost_type.'.$this->value);
     }
-
 
     public function getColor(): string|array|null
     {
@@ -36,6 +36,7 @@ enum AdditionalCostType: string implements HasLabel, HasColor, HasIcon
             self::TRAVEL => 'gray',
             self::COMMISSION => 'success',
             self::PACKAGING => 'secondary',
+            self::DISCOUNT => 'warning',
             self::OTHER => 'gray',
         };
     }
@@ -54,6 +55,7 @@ enum AdditionalCostType: string implements HasLabel, HasColor, HasIcon
             self::CERTIFICATION => 'heroicon-o-document-check',
             self::TRAVEL => 'heroicon-o-paper-airplane',
             self::COMMISSION => 'heroicon-o-currency-dollar',
+            self::DISCOUNT => 'heroicon-o-receipt-refund',
             self::OTHER => 'heroicon-o-ellipsis-horizontal-circle',
         };
     }
@@ -72,6 +74,7 @@ enum AdditionalCostType: string implements HasLabel, HasColor, HasIcon
             self::CERTIFICATION => 'Certification',
             self::TRAVEL => 'Travel Expenses',
             self::COMMISSION => 'Commission',
+            self::DISCOUNT => 'Discount',
             self::OTHER => 'Other',
         };
     }
