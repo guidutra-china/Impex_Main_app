@@ -980,20 +980,25 @@ class GeneratePaymentScheduleAction
                     'sort_order' => $maxSortOrder,
                     'notes' => $cost->notes,
                 ]);
-            } elseif ($existingClient->allocations()->exists()) {
-                $existingClient->update([
-                    'label' => mb_substr($label, 0, 100),
-                    'amount' => abs($cost->amount_in_document_currency),
-                    'is_credit' => $isCredit,
-                ]);
             } else {
-                $existingClient->update([
-                    'payable_type' => get_class($schedulePayable),
-                    'payable_id' => $schedulePayable->getKey(),
-                    'label' => mb_substr($label, 0, 100),
-                    'amount' => abs($cost->amount_in_document_currency),
-                    'is_credit' => $isCredit,
-                ]);
+                $isPinned = $existingClient->allocations()->exists()
+                    || $existingClient->creditAllocations()->exists();
+
+                if ($isPinned) {
+                    $existingClient->update([
+                        'label' => mb_substr($label, 0, 100),
+                        'amount' => abs($cost->amount_in_document_currency),
+                        'is_credit' => $isCredit,
+                    ]);
+                } else {
+                    $existingClient->update([
+                        'payable_type' => get_class($schedulePayable),
+                        'payable_id' => $schedulePayable->getKey(),
+                        'label' => mb_substr($label, 0, 100),
+                        'amount' => abs($cost->amount_in_document_currency),
+                        'is_credit' => $isCredit,
+                    ]);
+                }
             }
 
             // --- Forwarder payable item ---

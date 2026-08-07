@@ -180,4 +180,70 @@ class DiscountCostTest extends TestCase
         $this->assertSame(1_500_000, $psi->amount);
         $this->assertStringStartsWith('Credit:', $psi->label);
     }
+
+    /** Consome o crédito aplicando-o contra uma parcela regular da PI, com pagamento aprovado. */
+    private function consumeCredit(PaymentScheduleItem $creditPsi, int $amount): void
+    {
+        $target = PaymentScheduleItem::create([
+            'payable_type' => ProformaInvoice::class,
+            'payable_id' => $this->pi->id,
+            'label' => '100% — Invoice',
+            'percentage' => 100,
+            'amount' => 10_000_000,
+            'currency_code' => 'USD',
+            'status' => \App\Domain\Financial\Enums\PaymentScheduleStatus::DUE->value,
+            'is_blocking' => false,
+            'is_credit' => false,
+            'sort_order' => 99,
+        ]);
+
+        $payment = \App\Domain\Financial\Models\Payment::create([
+            'direction' => \App\Domain\Financial\Enums\PaymentDirection::INBOUND,
+            'company_id' => $this->client->id,
+            'amount' => 10_000_000 - $amount,
+            'currency_code' => 'USD',
+            'payment_date' => '2026-08-10',
+            'status' => \App\Domain\Financial\Enums\PaymentStatus::PENDING_APPROVAL,
+        ]);
+
+        \App\Domain\Financial\Models\PaymentAllocation::create([
+            'payment_id' => $payment->id,
+            'payment_schedule_item_id' => $target->id,
+            'allocated_amount' => 10_000_000 - $amount,
+            'exchange_rate' => 1,
+            'allocated_amount_in_document_currency' => 10_000_000 - $amount,
+        ]);
+
+        \App\Domain\Financial\Models\PaymentAllocation::create([
+            'payment_id' => $payment->id,
+            'payment_schedule_item_id' => $target->id,
+            'credit_schedule_item_id' => $creditPsi->id,
+            'allocated_amount' => 0,
+            'exchange_rate' => 1,
+            'allocated_amount_in_document_currency' => $amount,
+        ]);
+
+        app(\App\Domain\Financial\Actions\ApprovePaymentAction::class)->approve($payment);
+    }
+
+    public function test_consumed_credit_stays_anchored_when_po_appears_later(): void
+    {
+        $cost = $this->makeDiscount([
+            'billable_to' => BillableTo::SUPPLIER->value,
+            'supplier_company_id' => $this->supplier->id,
+        ]);
+        $this->syncCosts();
+        $this->consumeCredit($this->creditPsiFor($cost), 2_000_000);
+
+        PurchaseOrder::create([
+            'proforma_invoice_id' => $this->pi->id,
+            'supplier_company_id' => $this->supplier->id,
+            'currency_code' => 'USD',
+            'issue_date' => '2026-08-01',
+        ]);
+        $this->syncCosts();
+
+        $psi = $this->creditPsiFor($cost);
+        $this->assertSame(ProformaInvoice::class, $psi->payable_type, 'Crédito consumido não muda de documento.');
+    }
 }

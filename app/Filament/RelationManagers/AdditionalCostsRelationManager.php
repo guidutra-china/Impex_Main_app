@@ -981,7 +981,10 @@ class AdditionalCostsRelationManager extends RelationManager
         ];
 
         if ($existing) {
-            if ($existing->allocations()->exists()) {
+            $isPinned = $existing->allocations()->exists()
+                || $existing->creditAllocations()->exists();
+
+            if ($isPinned) {
                 $existing->update([
                     'label' => $scheduleData['label'],
                     'amount' => $scheduleData['amount'],
