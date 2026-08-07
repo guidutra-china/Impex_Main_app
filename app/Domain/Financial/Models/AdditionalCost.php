@@ -175,4 +175,19 @@ class AdditionalCost extends Model
     {
         return $this->cost_type === AdditionalCostType::DISCOUNT;
     }
+
+    /**
+     * True when any schedule item derived from this cost carries payment
+     * history — cash allocations OR credit applications (a consumed credit
+     * leg has rows only in creditAllocations). Guards delete/cleanup paths.
+     */
+    public function hasSettlementHistory(): bool
+    {
+        return PaymentScheduleItem::where('source_type', self::class)
+            ->where('source_id', $this->id)
+            ->where(function ($q) {
+                $q->whereHas('allocations')->orWhereHas('creditAllocations');
+            })
+            ->exists();
+    }
 }

@@ -871,13 +871,16 @@ class GeneratePaymentScheduleAction
             ->whereNotIn('status', ['waived'])
             ->get();
 
-        // First, remove orphaned additional cost schedule items (cost was deleted/waived)
+        // First, remove orphaned additional cost schedule items (cost was
+        // deleted/waived). Consumed credit legs are pinned: their history
+        // lives in creditAllocations, not allocations.
         $activeCostIds = $costs->pluck('id')->all();
         PaymentScheduleItem::where('payable_type', get_class($payable))
             ->where('payable_id', $payable->getKey())
             ->where('source_type', AdditionalCost::class)
             ->whereNotIn('source_id', $activeCostIds)
             ->whereDoesntHave('allocations')
+            ->whereDoesntHave('creditAllocations')
             ->delete();
 
         $maxSortOrder = PaymentScheduleItem::where('payable_type', get_class($payable))

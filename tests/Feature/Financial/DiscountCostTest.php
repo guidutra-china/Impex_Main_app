@@ -592,6 +592,99 @@ class DiscountCostTest extends TestCase
         $this->assertNotSame(AdditionalCostStatus::PAID, $cost->status, 'Perna do cliente segue aberta.');
     }
 
+    /** Consome a perna do fornecedor contra uma parcela da PO (pagamento aprovado). */
+    private function consumeSupplierLeg(AdditionalCost $cost, PurchaseOrder $po, int $amount): PaymentScheduleItem
+    {
+        $leg = $this->supplierLegPsiFor($cost);
+
+        $target = PaymentScheduleItem::create([
+            'payable_type' => PurchaseOrder::class,
+            'payable_id' => $po->id,
+            'label' => '100% — PO',
+            'percentage' => 100,
+            'amount' => 5_000_000,
+            'currency_code' => 'USD',
+            'status' => PaymentScheduleStatus::DUE->value,
+            'is_blocking' => false,
+            'is_credit' => false,
+            'sort_order' => 98,
+        ]);
+
+        $payment = \App\Domain\Financial\Models\Payment::create([
+            'direction' => \App\Domain\Financial\Enums\PaymentDirection::OUTBOUND,
+            'company_id' => $this->supplier->id,
+            'amount' => 5_000_000 - $amount,
+            'currency_code' => 'USD',
+            'payment_date' => '2026-08-10',
+            'status' => \App\Domain\Financial\Enums\PaymentStatus::PENDING_APPROVAL,
+        ]);
+
+        \App\Domain\Financial\Models\PaymentAllocation::create([
+            'payment_id' => $payment->id,
+            'payment_schedule_item_id' => $target->id,
+            'allocated_amount' => 5_000_000 - $amount,
+            'exchange_rate' => 1,
+            'allocated_amount_in_document_currency' => 5_000_000 - $amount,
+        ]);
+
+        \App\Domain\Financial\Models\PaymentAllocation::create([
+            'payment_id' => $payment->id,
+            'payment_schedule_item_id' => $target->id,
+            'credit_schedule_item_id' => $leg->id,
+            'allocated_amount' => 0,
+            'exchange_rate' => 1,
+            'allocated_amount_in_document_currency' => $amount,
+        ]);
+
+        app(\App\Domain\Financial\Actions\ApprovePaymentAction::class)->approve($payment);
+
+        return $leg->refresh();
+    }
+
+    public function test_consumed_supplier_leg_survives_waive_and_regeneration(): void
+    {
+        // Sem PO: perna fica na PI — é aqui que o cleanup de órfãos do
+        // regenerate da PI poderia apagá-la após o waive.
+        $cost = $this->makeDiscountWithSupplierLeg();
+        app(\App\Domain\Financial\Actions\SyncSupplierPayableScheduleItemAction::class)->execute($cost, $this->pi);
+
+        $po = PurchaseOrder::create([
+            'proforma_invoice_id' => $this->pi->id,
+            'supplier_company_id' => $this->supplier->id,
+            'currency_code' => 'USD',
+            'issue_date' => '2026-08-01',
+        ]);
+        // Consome ANTES de re-sync: a perna segue ancorada na PI (pinada).
+        $leg = $this->consumeSupplierLeg($cost, $po, 1_500_000);
+        $this->assertSame(ProformaInvoice::class, $leg->payable_type);
+
+        app(\App\Domain\Financial\Actions\WaiveAdditionalCostAction::class)->execute($cost, null);
+        $this->syncCosts(); // cleanup de órfãos roda aqui (custo waived sai dos ativos)
+
+        $this->assertNotNull(
+            PaymentScheduleItem::find($leg->id),
+            'Perna consumida não pode ser apagada pelo cleanup de órfãos — o histórico vive em creditAllocations.'
+        );
+    }
+
+    public function test_has_settlement_history_covers_credit_applications(): void
+    {
+        $cost = $this->makeDiscountWithSupplierLeg();
+        app(\App\Domain\Financial\Actions\SyncSupplierPayableScheduleItemAction::class)->execute($cost, $this->pi);
+
+        $this->assertFalse($cost->hasSettlementHistory(), 'Sem consumo: sem histórico, delete permitido.');
+
+        $po = PurchaseOrder::create([
+            'proforma_invoice_id' => $this->pi->id,
+            'supplier_company_id' => $this->supplier->id,
+            'currency_code' => 'USD',
+            'issue_date' => '2026-08-01',
+        ]);
+        $this->consumeSupplierLeg($cost, $po, 1_500_000);
+
+        $this->assertTrue($cost->refresh()->hasSettlementHistory(), 'Crédito consumido conta como histórico (creditAllocations).');
+    }
+
     public function test_waive_covers_discount_supplier_leg(): void
     {
         $cost = $this->makeDiscountWithSupplierLeg();

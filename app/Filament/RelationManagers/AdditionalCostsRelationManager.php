@@ -379,12 +379,9 @@ class AdditionalCostsRelationManager extends RelationManager
                 && $record->status === AdditionalCostStatus::PENDING
                 && auth()->user()?->can('create-payments'))
             ->action(function ($record) {
-                $hasAllocations = PaymentScheduleItem::where('source_type', AdditionalCost::class)
-                    ->where('source_id', $record->id)
-                    ->whereHas('allocations')
-                    ->exists();
-
-                if ($hasAllocations) {
+                // Cash allocations AND credit applications count as history:
+                // a consumed credit leg has rows only in creditAllocations.
+                if ($record->hasSettlementHistory()) {
                     Notification::make()
                         ->title(__('forms.validation.cost_has_allocations_cannot_delete'))
                         ->danger()
@@ -401,6 +398,7 @@ class AdditionalCostsRelationManager extends RelationManager
                 PaymentScheduleItem::where('source_type', AdditionalCost::class)
                     ->where('source_id', $record->id)
                     ->whereDoesntHave('allocations')
+                    ->whereDoesntHave('creditAllocations')
                     ->delete();
 
                 $record->delete();
