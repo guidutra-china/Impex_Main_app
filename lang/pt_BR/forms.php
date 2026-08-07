@@ -52,6 +52,7 @@ return [
         'address' => 'Endereço',
         'allocated' => 'Alocado',
         'allocated_to' => 'Alocado Para',
+        'allocations' => 'Alocações',
         'already_allocated' => 'Já Alocado',
         'alternative' => 'Alternativa',
         'alternatives' => 'Alternativas',

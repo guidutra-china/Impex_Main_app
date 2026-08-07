@@ -52,6 +52,7 @@ return [
         'address' => 'Address',
         'allocated' => 'Allocated',
         'allocated_to' => 'Allocated To',
+        'allocations' => 'Allocations',
         'already_allocated' => 'Already Allocated',
         'alternative' => 'Alternative',
         'alternatives' => 'Alternatives',

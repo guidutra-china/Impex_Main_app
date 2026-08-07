@@ -51,6 +51,7 @@ return [
         'address' => '地址',
         'allocated' => '已分配',
         'allocated_to' => '分配给',
+        'allocations' => '分配',
         'already_allocated' => '已分配金额',
         'alternative' => '替代项',
         'alternatives' => '替代方案',
