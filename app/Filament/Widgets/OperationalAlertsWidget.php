@@ -128,7 +128,12 @@ class OperationalAlertsWidget extends Widget
                 'icon' => 'heroicon-o-document-text',
                 'title' => $finalizedPIsWithoutPO.' finalized PI'.($finalizedPIsWithoutPO > 1 ? 's' : '').' without PO',
                 'description' => __('widgets.alerts.finalized_pi_desc'),
-                'url' => route('filament.admin.resources.proforma-invoices.index'),
+                'url' => route('filament.admin.resources.proforma-invoices.index', [
+                    'filters' => [
+                        'status' => ['value' => ProformaInvoiceStatus::FINALIZED->value],
+                        'without_po' => ['isActive' => true],
+                    ],
+                ]),
                 'action' => __('widgets.alerts.view_pis'),
             ];
         }
@@ -148,7 +153,9 @@ class OperationalAlertsWidget extends Widget
                 'icon' => 'heroicon-o-pause-circle',
                 'title' => $stalledPOs.' PO'.($stalledPOs > 1 ? 's' : '').' with no updates (15+ days)',
                 'description' => __('widgets.alerts.stalled_po_desc'),
-                'url' => route('filament.admin.resources.purchase-orders.index'),
+                'url' => route('filament.admin.resources.purchase-orders.index', [
+                    'filters' => ['stalled' => ['isActive' => true]],
+                ]),
                 'action' => __('widgets.alerts.view_pos'),
             ];
         }
@@ -164,7 +171,9 @@ class OperationalAlertsWidget extends Widget
                 'icon' => 'heroicon-o-magnifying-glass',
                 'title' => $openInquiries.' inquir'.($openInquiries > 1 ? 'ies' : 'y').' open for 7+ days',
                 'description' => __('widgets.alerts.open_inquiries_desc'),
-                'url' => route('filament.admin.resources.inquiries.index'),
+                'url' => route('filament.admin.resources.inquiries.index', [
+                    'filters' => ['open_aging' => ['isActive' => true]],
+                ]),
                 'action' => __('widgets.alerts.view_inquiries'),
             ];
         }

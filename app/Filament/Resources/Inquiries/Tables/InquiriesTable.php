@@ -111,6 +111,13 @@ class InquiriesTable
                     ->label(__('forms.labels.my_projects'))
                     ->toggle()
                     ->query(fn ($query) => $query->where('responsible_user_id', auth()->id())),
+                Filter::make('open_aging')
+                    ->label(__('forms.labels.open_7_days'))
+                    ->toggle()
+                    // Mirrors the "open inquiries" alert on the Operational Dashboard.
+                    ->query(fn ($query) => $query
+                        ->whereIn('status', [InquiryStatus::RECEIVED, InquiryStatus::QUOTING])
+                        ->where('created_at', '<', now()->subDays(7))),
                 TrashedFilter::make(),
             ])
             ->recordActions([

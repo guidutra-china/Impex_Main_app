@@ -170,6 +170,10 @@ class ProformaInvoicesTable
                     ->label(__('forms.labels.my_projects'))
                     ->toggle()
                     ->query(fn ($query) => $query->where('responsible_user_id', auth()->id())),
+                Filter::make('without_po')
+                    ->label(__('forms.labels.without_po'))
+                    ->toggle()
+                    ->query(fn ($query) => $query->whereDoesntHave('purchaseOrders')),
                 TrashedFilter::make(),
             ])
             ->recordActions([
