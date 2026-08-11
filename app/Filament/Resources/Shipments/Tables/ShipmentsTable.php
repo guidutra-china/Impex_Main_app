@@ -89,6 +89,20 @@ class ShipmentsTable
                     ->sortable()
                     ->placeholder('—')
                     ->action(static::updateScheduleAction('updateScheduleFromEta')),
+                TextColumn::make('actual_departure')
+                    ->label(__('forms.labels.actual_departure'))
+                    ->date('d/m/Y')
+                    ->sortable()
+                    ->placeholder('—')
+                    ->toggleable()
+                    ->action(static::updateScheduleAction('updateScheduleFromActualDeparture')),
+                TextColumn::make('actual_arrival')
+                    ->label(__('forms.labels.actual_arrival'))
+                    ->date('d/m/Y')
+                    ->sortable()
+                    ->placeholder('—')
+                    ->toggleable()
+                    ->action(static::updateScheduleAction('updateScheduleFromActualArrival')),
                 TextColumn::make('total_value')
                     ->label(__('forms.labels.products_total'))
                     ->getStateUsing(fn ($record) => $record->total_value)
@@ -227,6 +241,8 @@ class ShipmentsTable
             ->fillForm(fn (Shipment $record) => [
                 'etd' => $record->etd?->toDateString(),
                 'eta' => $record->eta?->toDateString(),
+                'actual_departure' => $record->actual_departure?->toDateString(),
+                'actual_arrival' => $record->actual_arrival?->toDateString(),
             ])
             ->form([
                 DatePicker::make('etd')
@@ -235,11 +251,19 @@ class ShipmentsTable
                 DatePicker::make('eta')
                     ->label(__('forms.labels.eta'))
                     ->native(false),
+                DatePicker::make('actual_departure')
+                    ->label(__('forms.labels.actual_departure'))
+                    ->native(false),
+                DatePicker::make('actual_arrival')
+                    ->label(__('forms.labels.actual_arrival'))
+                    ->native(false),
             ])
             ->action(function (Shipment $record, array $data) {
                 $record->update([
                     'etd' => $data['etd'],
                     'eta' => $data['eta'],
+                    'actual_departure' => $data['actual_departure'],
+                    'actual_arrival' => $data['actual_arrival'],
                 ]);
 
                 Notification::make()

@@ -65,7 +65,7 @@ class AdminShipmentsListQuickActionsTest extends TestCase
             ->assertActionHidden(TestAction::make('changeStatus')->table($shipment));
     }
 
-    public function test_eta_cell_action_updates_etd_and_eta(): void
+    public function test_eta_cell_action_updates_all_four_dates(): void
     {
         $shipment = $this->shipment();
 
@@ -73,18 +73,24 @@ class AdminShipmentsListQuickActionsTest extends TestCase
             ->callAction(TestAction::make('updateScheduleFromEta')->table($shipment), data: [
                 'etd' => '2026-09-01',
                 'eta' => '2026-09-20',
+                'actual_departure' => '2026-09-02',
+                'actual_arrival' => '2026-09-22',
             ]);
 
         $fresh = $shipment->fresh();
         $this->assertSame('2026-09-01', $fresh->etd?->toDateString());
         $this->assertSame('2026-09-20', $fresh->eta?->toDateString());
+        $this->assertSame('2026-09-02', $fresh->actual_departure?->toDateString());
+        $this->assertSame('2026-09-22', $fresh->actual_arrival?->toDateString());
     }
 
-    public function test_etd_cell_action_exists_independently(): void
+    public function test_each_date_cell_has_its_own_action(): void
     {
         $shipment = $this->shipment();
 
         Livewire::test(ListShipments::class)
-            ->assertActionExists(TestAction::make('updateScheduleFromEtd')->table($shipment));
+            ->assertActionExists(TestAction::make('updateScheduleFromEtd')->table($shipment))
+            ->assertActionExists(TestAction::make('updateScheduleFromActualDeparture')->table($shipment))
+            ->assertActionExists(TestAction::make('updateScheduleFromActualArrival')->table($shipment));
     }
 }
