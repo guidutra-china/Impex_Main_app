@@ -51,12 +51,12 @@ trait HasPaymentColumns
                 ->color(fn ($state) => $state > 0 ? 'warning' : 'gray'),
             TextColumn::make('allocated_to')
                 ->label(__('forms.labels.allocated_to'))
-                ->getStateUsing(fn ($record) => static::resolveAllocatedToLabels($record))
+                ->getStateUsing(fn ($record) => static::resolveAllocatedToHtml($record))
+                ->html()
                 ->placeholder('—')
                 ->wrap()
                 ->searchable(query: fn (Builder $query, string $search) => static::applyAllocatedToSearch($query, $search))
                 ->tooltip(fn ($record) => static::resolveAllocatedToLabels($record) ?: null)
-                ->description(fn ($record) => static::resolveAllocatedToInvoiceNumbers($record) ?: null)
                 ->toggleable(),
             TextColumn::make('paymentMethod.name')
                 ->label(__('forms.labels.method'))
@@ -98,35 +98,64 @@ trait HasPaymentColumns
     }
 
     /**
-     * Lista de referências (PI/PO/Shipment) onde este pagamento foi alocado.
-     * Concatena todas as referências distintas dos payables das alocações.
+     * Payables distintos (PI/PO/Shipment) onde este pagamento foi alocado,
+     * cada um com seu documento auxiliar: invoice number do fornecedor (PO)
+     * ou B/L number (Shipment).
+     *
+     * @return \Illuminate\Support\Collection<int, array{reference: string, extra: string|null}>
      */
-    protected static function resolveAllocatedToLabels($record): string
-    {
-        $record->loadMissing(['allocations.scheduleItem.payable']);
-
-        return $record->allocations
-            ->map(fn ($allocation) => $allocation->scheduleItem?->payable?->reference)
-            ->filter()
-            ->unique()
-            ->implode(', ');
-    }
-
-    /**
-     * Invoice numbers dos fornecedores (POs alocadas), exibidos em letra menor
-     * sob as referências na coluna "Alocado Para". Só POs têm
-     * supplier_invoice_number, então em Recebimentos a linha não aparece.
-     */
-    protected static function resolveAllocatedToInvoiceNumbers($record): string
+    protected static function resolveAllocatedToEntries($record): \Illuminate\Support\Collection
     {
         $record->loadMissing(['allocations.scheduleItem.payable']);
 
         return $record->allocations
             ->map(fn ($allocation) => $allocation->scheduleItem?->payable)
-            ->filter(fn ($payable) => $payable instanceof PurchaseOrder && filled($payable->supplier_invoice_number))
-            ->map(fn (PurchaseOrder $po) => $po->supplier_invoice_number)
-            ->unique()
+            ->filter(fn ($payable) => filled($payable?->reference))
+            ->unique(fn ($payable) => $payable->getMorphClass().':'.$payable->getKey())
+            ->map(fn ($payable) => [
+                'reference' => $payable->reference,
+                'extra' => match (true) {
+                    $payable instanceof PurchaseOrder => $payable->supplier_invoice_number,
+                    $payable instanceof Shipment => $payable->bl_number,
+                    default => null,
+                },
+            ])
+            ->values();
+    }
+
+    /**
+     * Versão em texto puro — "PO-2026-00007 (F0225-12027), SH-2026-00028 (BL123)".
+     * Usada no tooltip e na coluna dos relatórios.
+     */
+    protected static function resolveAllocatedToLabels($record): string
+    {
+        return static::resolveAllocatedToEntries($record)
+            ->map(fn (array $entry) => filled($entry['extra'])
+                ? "{$entry['reference']} ({$entry['extra']})"
+                : $entry['reference'])
             ->implode(', ');
+    }
+
+    /**
+     * Versão HTML da célula: invoice/B/L em letra menor e esmaecida logo após
+     * a referência. Estilos inline porque o CSS pré-compilado do painel não
+     * cobre utilitários arbitrários.
+     */
+    protected static function resolveAllocatedToHtml($record): ?string
+    {
+        $html = static::resolveAllocatedToEntries($record)
+            ->map(function (array $entry) {
+                $label = e($entry['reference']);
+
+                if (filled($entry['extra'])) {
+                    $label .= ' <span style="font-size:0.75rem;opacity:0.65;">('.e($entry['extra']).')</span>';
+                }
+
+                return $label;
+            })
+            ->implode(', ');
+
+        return $html !== '' ? $html : null;
     }
 
     /**

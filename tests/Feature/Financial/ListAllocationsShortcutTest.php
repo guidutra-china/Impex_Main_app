@@ -89,21 +89,14 @@ class ListAllocationsShortcutTest extends TestCase
             ->assertActionMounted('manageAllocations');
     }
 
-    public function test_payables_list_shows_supplier_invoice_number_under_allocated_to(): void
+    private function allocateTo(Payment $payment, string $payableType, int $payableId): void
     {
-        $payment = $this->payment(PaymentDirection::OUTBOUND, PaymentStatus::APPROVED);
-
-        $po = \App\Domain\PurchaseOrders\Models\PurchaseOrder::factory()->create([
-            'supplier_company_id' => $payment->company_id,
-            'supplier_invoice_number' => 'INV-77821',
-        ]);
-
         $scheduleItem = \App\Domain\Financial\Models\PaymentScheduleItem::create([
-            'payable_type' => \App\Domain\PurchaseOrders\Models\PurchaseOrder::class,
-            'payable_id' => $po->id,
+            'payable_type' => $payableType,
+            'payable_id' => $payableId,
             'label' => 'Balance',
             'percentage' => 100,
-            'amount' => 10000000,
+            'amount' => 5000000,
             'currency_code' => 'USD',
             'status' => \App\Domain\Financial\Enums\PaymentScheduleStatus::DUE->value,
             'is_blocking' => false,
@@ -114,14 +107,31 @@ class ListAllocationsShortcutTest extends TestCase
         \App\Domain\Financial\Models\PaymentAllocation::create([
             'payment_id' => $payment->id,
             'payment_schedule_item_id' => $scheduleItem->id,
-            'allocated_amount' => 10000000,
+            'allocated_amount' => 5000000,
             'exchange_rate' => 1,
-            'allocated_amount_in_document_currency' => 10000000,
+            'allocated_amount_in_document_currency' => 5000000,
         ]);
+    }
+
+    public function test_payables_list_shows_invoice_and_bl_numbers_inline_after_references(): void
+    {
+        $payment = $this->payment(PaymentDirection::OUTBOUND, PaymentStatus::APPROVED);
+
+        $po = \App\Domain\PurchaseOrders\Models\PurchaseOrder::factory()->create([
+            'supplier_company_id' => $payment->company_id,
+            'supplier_invoice_number' => 'INV-77821',
+        ]);
+        $this->allocateTo($payment, \App\Domain\PurchaseOrders\Models\PurchaseOrder::class, $po->id);
+
+        $shipment = \App\Domain\Logistics\Models\Shipment::factory()->create([
+            'company_id' => $payment->company_id,
+            'bl_number' => 'BL-99001',
+        ]);
+        $this->allocateTo($payment, \App\Domain\Logistics\Models\Shipment::class, $shipment->id);
 
         Livewire::test(ListAccountsPayable::class)
-            ->assertSee($po->reference)
-            ->assertSee('INV-77821');
+            ->assertSeeHtml(e($po->reference).' <span style="font-size:0.75rem;opacity:0.65;">(INV-77821)</span>')
+            ->assertSeeHtml(e($shipment->reference).' <span style="font-size:0.75rem;opacity:0.65;">(BL-99001)</span>');
     }
 
     public function test_receivables_list_shows_allocations_shortcut_linking_to_view_modal(): void
