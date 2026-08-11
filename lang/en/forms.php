@@ -588,6 +588,7 @@ return [
         'total_volume_cbm' => 'Total Volume (CBM)',
         'total_weight_kg' => 'Total Weight (kg)',
         'transition_notes' => 'Transition Notes',
+        'update_dates' => 'Update Dates',
         'type' => 'Type',
         'unallocated' => 'Unallocated',
         'unallocated_credit' => 'Unallocated (Credit)',

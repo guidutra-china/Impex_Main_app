@@ -4,18 +4,26 @@ namespace App\Filament\Resources\Shipments\Tables;
 
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
+use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Enums\TransportMode;
+use App\Domain\Logistics\Models\Shipment;
 use App\Filament\Actions\QuickViewAction;
 use App\Filament\Actions\StatusTransitionActions;
 use App\Filament\Resources\Shipments\ShipmentResource;
+use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -46,7 +54,8 @@ class ShipmentsTable
                     ->placeholder('—')
                     ->toggleable(),
                 TextColumn::make('status')
-                    ->badge(),
+                    ->badge()
+                    ->action(static::changeStatusAction()),
                 TextColumn::make('transport_mode')
                     ->badge()
                     ->toggleable(),
@@ -72,12 +81,14 @@ class ShipmentsTable
                     ->label(__('forms.labels.etd'))
                     ->date('d/m/Y')
                     ->sortable()
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->action(static::updateScheduleAction('updateScheduleFromEtd')),
                 TextColumn::make('eta')
                     ->label(__('forms.labels.eta'))
                     ->date('d/m/Y')
                     ->sortable()
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->action(static::updateScheduleAction('updateScheduleFromEta')),
                 TextColumn::make('total_value')
                     ->label(__('forms.labels.products_total'))
                     ->getStateUsing(fn ($record) => $record->total_value)
@@ -146,5 +157,95 @@ class ShipmentsTable
             ->emptyStateHeading('No shipments')
             ->emptyStateDescription('Create a shipment to start tracking your exports.')
             ->emptyStateIcon('heroicon-o-truck');
+    }
+
+    /**
+     * Quick status changer — clicking the status badge opens a modal with the
+     * transitions allowed by the state machine. Runs through the same
+     * TransitionStatusAction pipeline as the row "Change Status" menu, so all
+     * guards and side effects apply.
+     */
+    protected static function changeStatusAction(): Action
+    {
+        return Action::make('changeStatus')
+            ->label(__('forms.labels.change_status'))
+            ->icon('heroicon-o-arrows-right-left')
+            ->modalHeading(fn (Shipment $record) => $record->reference.' — '.__('forms.labels.change_status'))
+            ->modalWidth('md')
+            ->visible(fn (Shipment $record) => ! empty($record->getAllowedNextStatuses())
+                && (auth()->user()?->can('update', $record) ?? false))
+            ->form(fn (Shipment $record) => [
+                Select::make('status')
+                    ->label(__('forms.labels.new_status'))
+                    ->options(collect($record->getAllowedNextStatuses())
+                        ->mapWithKeys(fn (string $value) => [$value => ShipmentStatus::from($value)->getLabel()]))
+                    ->required()
+                    ->live()
+                    ->native(false),
+                Textarea::make('notes')
+                    ->label(__('forms.labels.transition_notes'))
+                    ->rows(2)
+                    ->maxLength(1000)
+                    ->visible(fn (Get $get) => $get('status') === ShipmentStatus::CANCELLED->value),
+            ])
+            ->action(function (Shipment $record, array $data) {
+                try {
+                    app(TransitionStatusAction::class)->execute(
+                        $record,
+                        ShipmentStatus::from($data['status']),
+                        $data['notes'] ?? null,
+                    );
+
+                    Notification::make()
+                        ->title(__('messages.status_changed_to').' '.ShipmentStatus::from($data['status'])->getLabel())
+                        ->success()
+                        ->send();
+                } catch (\Throwable $e) {
+                    Notification::make()
+                        ->title(__('messages.status_transition_failed'))
+                        ->body($e->getMessage())
+                        ->danger()
+                        ->send();
+                }
+            });
+    }
+
+    /**
+     * Quick ETD/ETA editor — clicking either date cell opens a modal with the
+     * two date pickers, mirroring the Forwarder Portal quick action. Attached
+     * to each column under a distinct name so both cells work independently.
+     */
+    protected static function updateScheduleAction(string $name): Action
+    {
+        return Action::make($name)
+            ->label(__('forms.labels.update_dates'))
+            ->icon('heroicon-o-calendar-days')
+            ->color('primary')
+            ->modalHeading(fn (Shipment $record) => $record->reference.' — '.__('forms.labels.update_dates'))
+            ->modalWidth('md')
+            ->visible(fn (Shipment $record) => auth()->user()?->can('update', $record) ?? false)
+            ->fillForm(fn (Shipment $record) => [
+                'etd' => $record->etd?->toDateString(),
+                'eta' => $record->eta?->toDateString(),
+            ])
+            ->form([
+                DatePicker::make('etd')
+                    ->label(__('forms.labels.etd'))
+                    ->native(false),
+                DatePicker::make('eta')
+                    ->label(__('forms.labels.eta'))
+                    ->native(false),
+            ])
+            ->action(function (Shipment $record, array $data) {
+                $record->update([
+                    'etd' => $data['etd'],
+                    'eta' => $data['eta'],
+                ]);
+
+                Notification::make()
+                    ->title(__('messages.dates_updated'))
+                    ->success()
+                    ->send();
+            });
     }
 }

@@ -556,6 +556,7 @@ return [
         'total_volume_cbm' => '总体积 (立方米)',
         'total_weight_kg' => '总重量 (kg)',
         'transition_notes' => '过渡备注',
+        'update_dates' => '更新日期',
         'type' => '类型',
         'unallocated' => '未分配',
         'unallocated_credit' => '未分配（信用）',

@@ -68,6 +68,7 @@ return [
     'pi_regeneration_blocked' => 'A Proforma Invoice :reference já foi emitida e não pode mais ser atualizada a partir desta cotação.',
     'pi_update_description' => 'Isto irá atualizar a Proforma Invoice existente :reference com os dados atuais da consulta (empresa, contato, moeda).',
     'status_changed_to' => 'Status alterado para',
+    'dates_updated' => 'Datas atualizadas',
     'requested_sqs_with_costs_warning' => 'Há cotações de fornecedor com custos preenchidos mas ainda em status Solicitada (:refs). Marque-as como Recebida para poder usá-las como fonte de preço.',
     'auto_transitioned_on_shipment_complete' => 'Transição automática: todos os itens foram embarcados.',
     'version_saved' => 'Versão v:version salva',

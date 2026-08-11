@@ -587,6 +587,7 @@ return [
         'total_volume_cbm' => 'Volume Total (CBM)',
         'total_weight_kg' => 'Peso Total (kg)',
         'transition_notes' => 'Notas de Transição',
+        'update_dates' => 'Atualizar Datas',
         'type' => 'Tipo',
         'unallocated' => 'Não Alocado',
         'unallocated_credit' => 'Não Alocado (Crédito)',
