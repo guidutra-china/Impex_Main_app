@@ -172,6 +172,17 @@ class PurchaseOrdersTable
                     ->label(__('forms.labels.my_projects'))
                     ->toggle()
                     ->query(fn ($query) => $query->where('responsible_user_id', auth()->id())),
+                Filter::make('stalled')
+                    ->label(__('forms.labels.stalled_15_days'))
+                    ->toggle()
+                    // Mirrors the "stalled POs" alert on the Operational Dashboard.
+                    ->query(fn ($query) => $query
+                        ->whereIn('status', [
+                            PurchaseOrderStatus::CONFIRMED,
+                            PurchaseOrderStatus::IN_PRODUCTION,
+                            PurchaseOrderStatus::AWAITING_SHIPMENT,
+                        ])
+                        ->where('updated_at', '<', now()->subDays(15))),
                 TrashedFilter::make(),
             ])
             ->recordActions([
