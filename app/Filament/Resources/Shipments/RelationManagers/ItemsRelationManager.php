@@ -233,7 +233,7 @@ class ItemsRelationManager extends RelationManager
                     ->toggleable(),
                 TextColumn::make('unit_price')
                     ->label(__('forms.labels.unit_price'))
-                    ->formatStateUsing(fn ($state) => Money::format($state))
+                    ->formatStateUsing(fn ($state) => Money::format($state, 4))
                     ->alignEnd()
                     ->toggleable(),
                 TextColumn::make('line_total')

@@ -78,4 +78,36 @@ class ShipmentItemsListColumnsTest extends TestCase
             ->assertSee('CLIENT-REF-9')
             ->assertDontSee(__('forms.labels.client_reference').':');
     }
+
+    public function test_unit_price_column_shows_four_decimal_places(): void
+    {
+        $client = Company::factory()->create();
+        $pi = ProformaInvoice::factory()->create(['company_id' => $client->id]);
+        $shipment = Shipment::factory()->create(['company_id' => $client->id]);
+
+        $piItem = ProformaInvoiceItem::create([
+            'proforma_invoice_id' => $pi->id,
+            'product_id' => Product::factory()->create()->id,
+            'description' => 'Precision item',
+            'quantity' => 10,
+            // 12345 minor units at SCALE 10000 = 1.2345 — sub-cent precision
+            // must survive in the Unit Price column.
+            'unit_price' => 12345,
+            'unit' => 'pcs',
+        ]);
+
+        ShipmentItem::create([
+            'shipment_id' => $shipment->id,
+            'proforma_invoice_item_id' => $piItem->id,
+            'quantity' => 10,
+            'sort_order' => 0,
+        ]);
+
+        Livewire::test(ItemsRelationManager::class, [
+            'ownerRecord' => $shipment,
+            'pageClass' => EditShipment::class,
+        ])
+            ->assertSuccessful()
+            ->assertSee('1.2345');
+    }
 }
