@@ -7,9 +7,9 @@ use App\Domain\Quotations\Models\Quotation;
 use App\Filament\Portal\Resources\QuotationResource\Pages;
 use App\Filament\Portal\Resources\QuotationResource\Widgets\PortalQuotationSummary;
 use App\Filament\Portal\Widgets\QuotationsListStats;
+use BackedEnum;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
-use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -20,10 +20,15 @@ use Filament\Tables\Table;
 class QuotationResource extends Resource
 {
     protected static ?string $model = Quotation::class;
+
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-document-text';
+
     protected static ?int $navigationSort = 41;
+
     protected static ?string $slug = 'quotations';
+
     protected static ?string $recordTitleAttribute = 'reference';
+
     protected static ?string $tenantOwnershipRelationshipName = 'company';
 
     public static function canAccess(): bool
@@ -63,7 +68,7 @@ class QuotationResource extends Resource
                     ->color('gray'),
                 TextColumn::make('total_value')
                     ->label('Total')
-                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state))
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '').' '.Money::format($state))
                     ->alignRight()
                     ->visible(fn () => auth()->user()?->can('portal:view-financial-summary')),
                 TextColumn::make('items_count')
@@ -113,7 +118,7 @@ class QuotationResource extends Resource
                         ->placeholder('—'),
                     TextEntry::make('total_value')
                         ->label('Total Value')
-                        ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state))
+                        ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '').' '.Money::format($state))
                         ->weight('bold')
                         ->visible(fn () => auth()->user()?->can('portal:view-financial-summary')),
                 ])
@@ -131,7 +136,7 @@ class QuotationResource extends Resource
                             TextEntry::make('unit')
                                 ->placeholder('pcs'),
                             TextEntry::make('unit_price')
-                                ->formatStateUsing(fn ($state) => Money::format($state))
+                                ->formatStateUsing(fn ($state) => Money::format($state, 4))
                                 ->alignRight()
                                 ->visible(fn () => auth()->user()?->can('portal:view-financial-summary')),
                             TextEntry::make('line_total')

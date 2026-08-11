@@ -150,7 +150,7 @@ class ItemsRelationManager extends RelationManager
                     ->summarize(Sum::make()->label(__('forms.labels.total'))),
                 TextColumn::make('unit_price')
                     ->label(__('forms.labels.unit_price'))
-                    ->formatStateUsing(fn ($state) => Money::format($state))
+                    ->formatStateUsing(fn ($state) => Money::format($state, 4))
                     ->alignEnd(),
                 TextColumn::make('line_total')
                     ->label(__('forms.labels.total'))

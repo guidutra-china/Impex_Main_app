@@ -3,16 +3,12 @@
 namespace App\Filament\Resources\ProformaInvoices\RelationManagers;
 
 use App\Domain\Infrastructure\Support\Money;
-use App\Domain\Planning\Enums\ShipmentPlanStatus;
-use App\Domain\Planning\Models\ShipmentPlanItem;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use UnitEnum;
 
 class ShipmentPlansRelationManager extends RelationManager
 {
@@ -44,7 +40,7 @@ class ShipmentPlansRelationManager extends RelationManager
                     ->weight('bold'),
                 TextColumn::make('unit_price')
                     ->label(__('forms.labels.unit_price'))
-                    ->formatStateUsing(fn ($state) => Money::format($state))
+                    ->formatStateUsing(fn ($state) => Money::format($state, 4))
                     ->alignEnd(),
                 TextColumn::make('line_total')
                     ->label(__('forms.labels.total'))
