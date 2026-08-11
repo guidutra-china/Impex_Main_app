@@ -89,6 +89,41 @@ class ListAllocationsShortcutTest extends TestCase
             ->assertActionMounted('manageAllocations');
     }
 
+    public function test_payables_list_shows_supplier_invoice_number_under_allocated_to(): void
+    {
+        $payment = $this->payment(PaymentDirection::OUTBOUND, PaymentStatus::APPROVED);
+
+        $po = \App\Domain\PurchaseOrders\Models\PurchaseOrder::factory()->create([
+            'supplier_company_id' => $payment->company_id,
+            'supplier_invoice_number' => 'INV-77821',
+        ]);
+
+        $scheduleItem = \App\Domain\Financial\Models\PaymentScheduleItem::create([
+            'payable_type' => \App\Domain\PurchaseOrders\Models\PurchaseOrder::class,
+            'payable_id' => $po->id,
+            'label' => 'Balance',
+            'percentage' => 100,
+            'amount' => 10000000,
+            'currency_code' => 'USD',
+            'status' => \App\Domain\Financial\Enums\PaymentScheduleStatus::DUE->value,
+            'is_blocking' => false,
+            'is_credit' => false,
+            'sort_order' => 1,
+        ]);
+
+        \App\Domain\Financial\Models\PaymentAllocation::create([
+            'payment_id' => $payment->id,
+            'payment_schedule_item_id' => $scheduleItem->id,
+            'allocated_amount' => 10000000,
+            'exchange_rate' => 1,
+            'allocated_amount_in_document_currency' => 10000000,
+        ]);
+
+        Livewire::test(ListAccountsPayable::class)
+            ->assertSee($po->reference)
+            ->assertSee('INV-77821');
+    }
+
     public function test_receivables_list_shows_allocations_shortcut_linking_to_view_modal(): void
     {
         $payment = $this->payment(PaymentDirection::INBOUND, PaymentStatus::APPROVED);

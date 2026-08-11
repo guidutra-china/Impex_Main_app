@@ -56,6 +56,7 @@ trait HasPaymentColumns
                 ->wrap()
                 ->searchable(query: fn (Builder $query, string $search) => static::applyAllocatedToSearch($query, $search))
                 ->tooltip(fn ($record) => static::resolveAllocatedToLabels($record) ?: null)
+                ->description(fn ($record) => static::resolveAllocatedToInvoiceNumbers($record) ?: null)
                 ->toggleable(),
             TextColumn::make('paymentMethod.name')
                 ->label(__('forms.labels.method'))
@@ -107,6 +108,23 @@ trait HasPaymentColumns
         return $record->allocations
             ->map(fn ($allocation) => $allocation->scheduleItem?->payable?->reference)
             ->filter()
+            ->unique()
+            ->implode(', ');
+    }
+
+    /**
+     * Invoice numbers dos fornecedores (POs alocadas), exibidos em letra menor
+     * sob as referências na coluna "Alocado Para". Só POs têm
+     * supplier_invoice_number, então em Recebimentos a linha não aparece.
+     */
+    protected static function resolveAllocatedToInvoiceNumbers($record): string
+    {
+        $record->loadMissing(['allocations.scheduleItem.payable']);
+
+        return $record->allocations
+            ->map(fn ($allocation) => $allocation->scheduleItem?->payable)
+            ->filter(fn ($payable) => $payable instanceof PurchaseOrder && filled($payable->supplier_invoice_number))
+            ->map(fn (PurchaseOrder $po) => $po->supplier_invoice_number)
             ->unique()
             ->implode(', ');
     }
