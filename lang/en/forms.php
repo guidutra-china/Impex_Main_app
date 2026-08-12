@@ -1166,6 +1166,8 @@ return [
         'line_has_allocations_cannot_remove' => 'This line cannot be removed: its schedule item already has payment allocations. Remove the allocations first.',
         'supplier_payable_has_allocations' => 'The supplier payable side has payment allocations and cannot be removed or reassigned.',
         'cost_type_locked_by_allocations' => 'This cost has payment allocations; switching between discount and regular cost is blocked.',
+        'allocations_exceed_payment' => 'Cash allocations (:allocated) exceed the payment amount (:payment).',
+        'allocation_plus_credit_exceeds_item' => 'Installment ":item": cash + credit (:incoming) exceeds its open balance (:capacity). Reduce the cash allocation — the credit covers the remainder.',
         'cost_has_allocations_cannot_delete' => 'This cost has payment allocations and cannot be deleted.',
     ],
 ];

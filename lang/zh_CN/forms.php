@@ -1125,6 +1125,8 @@ return [
         'line_has_allocations_cannot_remove' => '无法删除此行：其付款计划项已存在付款分配。请先取消相关分配。',
         'supplier_payable_has_allocations' => '应付供应商部分已有付款分配，无法移除或更换供应商。',
         'cost_type_locked_by_allocations' => '此费用已有付款分配，无法在折扣与普通费用之间切换。',
+        'allocations_exceed_payment' => '现金分配总额（:allocated）超过付款金额（:payment）。',
+        'allocation_plus_credit_exceeds_item' => '分期“:item”：现金+抵扣额（:incoming）超过其未结余额（:capacity）。请减少现金分配——抵扣额补足余款。',
         'cost_has_allocations_cannot_delete' => '此费用已有付款分配，无法删除。',
     ],
 ];

@@ -162,6 +162,22 @@ trait HasPaymentFormSections
                             static::recalculateTotal($get, $set);
                         }))
                         ->live()
+                        // Guard anti-dupla-contagem: dinheiro alocado não pode
+                        // exceder o valor do pagamento, e dinheiro + crédito da
+                        // MESMA parcela não pode exceder o saldo dela (o prefill
+                        // preenche o valor cheio; o crédito completa o resto).
+                        ->rule(static fn (Get $get, ?\Illuminate\Database\Eloquent\Model $record) => function (string $attribute, mixed $value, \Closure $fail) use ($get, $record) {
+                            $errors = \App\Domain\Financial\Support\AllocationGuards::overpayErrors(
+                                is_array($value) ? array_values($value) : [],
+                                array_values($get('credit_applications') ?? []),
+                                filled($get('amount')) ? (float) $get('amount') : null,
+                                $record?->getKey(),
+                            );
+
+                            foreach ($errors as $error) {
+                                $fail($error);
+                            }
+                        })
                         ->columnSpanFull(),
 
                     Placeholder::make('allocation_summary')
