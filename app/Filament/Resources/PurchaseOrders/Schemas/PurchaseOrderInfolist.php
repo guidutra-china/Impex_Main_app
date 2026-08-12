@@ -96,6 +96,21 @@ class PurchaseOrderInfolist
                         ->placeholder('—'),
                 ])
                 ->columns(2),
+
+            Section::make(__('forms.sections.supplier_invoice'))
+                ->schema([
+                    TextEntry::make('supplier_invoice_number')
+                        ->label(__('forms.labels.invoice_number'))
+                        ->weight(FontWeight::Bold)
+                        ->copyable()
+                        ->placeholder('—'),
+                    TextEntry::make('supplier_invoice_date')
+                        ->label(__('forms.labels.invoice_date'))
+                        ->date('d/m/Y')
+                        ->placeholder('—'),
+                ])
+                ->columns(2)
+                ->description(__('forms.descriptions.invoice_details_files_are_available_in_the_documents_tab')),
         ];
     }
 
@@ -141,21 +156,6 @@ class PurchaseOrderInfolist
                         ->placeholder('—'),
                 ])
                 ->columns(2),
-
-            Section::make(__('forms.sections.supplier_invoice'))
-                ->schema([
-                    TextEntry::make('supplier_invoice_number')
-                        ->label(__('forms.labels.invoice_number'))
-                        ->weight(FontWeight::Bold)
-                        ->copyable()
-                        ->placeholder('—'),
-                    TextEntry::make('supplier_invoice_date')
-                        ->label(__('forms.labels.invoice_date'))
-                        ->date('d/m/Y')
-                        ->placeholder('—'),
-                ])
-                ->columns(2)
-                ->description(__('forms.descriptions.invoice_details_files_are_available_in_the_documents_tab')),
         ];
     }
 

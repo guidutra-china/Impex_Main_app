@@ -161,6 +161,20 @@ class PurchaseOrderForm
                         ->helperText(__('forms.helpers.when_the_supplier_is_expected_to_deliver')),
                 ])
                 ->columns(2),
+
+            Section::make(__('forms.sections.supplier_invoice'))
+                ->schema([
+                    TextInput::make('supplier_invoice_number')
+                        ->label(__('forms.labels.invoice_number'))
+                        ->maxLength(255)
+                        ->helperText('The supplier\'s own invoice/reference number.'),
+                    DatePicker::make('supplier_invoice_date')
+                        ->label(__('forms.labels.invoice_date'))
+                        ->native(false)
+                        ->displayFormat('d/m/Y'),
+                ])
+                ->columns(2)
+                ->description(__('forms.descriptions.invoice_details_upload_invoice_files_packing_lists_and')),
         ];
     }
 
@@ -204,20 +218,6 @@ class PurchaseOrderForm
                 ])
                 ->columns(3)
                 ->description(__('forms.descriptions.record_how_and_when_the_supplier_confirmed_this_purchase')),
-
-            Section::make(__('forms.sections.supplier_invoice'))
-                ->schema([
-                    TextInput::make('supplier_invoice_number')
-                        ->label(__('forms.labels.invoice_number'))
-                        ->maxLength(255)
-                        ->helperText('The supplier\'s own invoice/reference number.'),
-                    DatePicker::make('supplier_invoice_date')
-                        ->label(__('forms.labels.invoice_date'))
-                        ->native(false)
-                        ->displayFormat('d/m/Y'),
-                ])
-                ->columns(2)
-                ->description(__('forms.descriptions.invoice_details_upload_invoice_files_packing_lists_and')),
         ];
     }
 
