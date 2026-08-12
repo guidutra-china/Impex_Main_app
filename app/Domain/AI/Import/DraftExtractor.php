@@ -112,14 +112,22 @@ class DraftExtractor
         return $ranges;
     }
 
-    /** Nº de linhas do texto achatado, ou null quando o payload não é uma planilha achatada (ex.: PDF). */
+    /**
+     * Nº de LINHAS DE PLANILHA do texto achatado (maior rótulo "Linha N:"), ou
+     * null quando o payload não é uma planilha achatada (ex.: PDF). Contar "\n"
+     * cru superestima: células multi-linha ("Weight: X\nFits: ...") criavam
+     * intervalos além da última linha real e o modelo fabricava itens/source_rows
+     * para o intervalo fantasma (caso real IMPEX 5th shipment: 376 vs 276).
+     */
     private function flattenedLineCount(array $documentBlocks): ?int
     {
         if (count($documentBlocks) !== 1 || ! $documentBlocks[0] instanceof TextBlockParam) {
             return null;
         }
 
-        return substr_count($documentBlocks[0]->text, "\n") + 1;
+        preg_match_all('/^Linha (\d+):/m', $documentBlocks[0]->text, $matches);
+
+        return $matches[1] === [] ? 1 : max(array_map('intval', $matches[1]));
     }
 
     /**
@@ -220,16 +228,25 @@ class DraftExtractor
 
     private function chunkInstruction(int $from, int $to, bool $first): string
     {
+        // source_row fabricado quebra o pareamento de fotos (ancorado na linha
+        // real); intervalo sem produto deve voltar vazio — o modelo já inventou
+        // "itens explicativos" para um intervalo sem linhas de produto.
+        $guard = 'Em source_row use EXATAMENTE o número do rótulo "Linha N:" da linha do item — nunca invente. '
+            .'Se não houver itens de produto no intervalo, retorne itens como lista vazia — '
+            .'NUNCA crie itens de observação ou explicação.';
+
         if ($first) {
             return "\n\nATENÇÃO: documento grande — a extração está sendo feita em partes. "
                 ."Nesta parte, extraia os dados completos do fornecedor/cabeçalho e SOMENTE os itens até a Linha {$to} (inclusive), "
-                ."preenchendo source_row. NÃO inclua itens após a Linha {$to}: eles serão extraídos em outra parte.";
+                ."preenchendo source_row. NÃO inclua itens após a Linha {$to}: eles serão extraídos em outra parte. "
+                .$guard;
         }
 
         return "\n\nATENÇÃO: documento grande — a extração está sendo feita em partes. "
             ."Extraia SOMENTE os itens (e extras) da Linha {$from} até a Linha {$to} (inclusive), preenchendo source_row. "
             .'NÃO inclua itens fora desse intervalo: eles já foram extraídos em outra parte. '
-            .'No fornecedor, preencha apenas o nome. Se não houver itens no intervalo, retorne itens vazio.';
+            .'No fornecedor, preencha apenas o nome. '
+            .$guard;
     }
 
     /**

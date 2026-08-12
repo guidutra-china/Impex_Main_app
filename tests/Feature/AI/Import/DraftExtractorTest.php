@@ -306,6 +306,51 @@ class DraftExtractorTest extends TestCase
         $this->assertSame(['A1', 'B1', 'C1'], array_column($draft['itens'], 'part_no'));
     }
 
+    public function test_chunk_ranges_follow_row_labels_not_raw_text_lines(): void
+    {
+        // Caso real (IMPEX 5th shipment): células com quebras de linha internas
+        // ("Weight: X\nFits: ...") inflavam a contagem crua de linhas (376 vs 276
+        // linhas reais) → intervalos além da última "Linha N" → o modelo inventava
+        // itens explicativos ou source_rows fabricados para o intervalo fantasma.
+        $out = ['Cabecalho | | |'];
+        for ($n = 2; $n <= 150; $n++) {
+            $out[] = "Linha {$n}: {$n} | PART-{$n} | Weight: 1KG\nFits: Case 1440 | 10 | 1.50";
+        }
+        $text = implode("\n", $out); // 150 linhas rotuladas, ~299 linhas cruas
+
+        $extractor = $this->extractorWithQueue([
+            [
+                'fornecedor' => ['nome' => 'X'],
+                'itens' => [['part_no' => 'A1', 'description' => 'A', 'quantity' => 1, 'unit_price' => 1.0, 'source_row' => 10]],
+            ],
+            [
+                'fornecedor' => ['nome' => 'X'],
+                'itens' => [['part_no' => 'B1', 'description' => 'B', 'quantity' => 1, 'unit_price' => 1.0, 'source_row' => 100]],
+            ],
+        ]);
+
+        $draft = $extractor->extract(new SupplierQuotationTarget, [TextBlockParam::with($text)]);
+
+        $this->assertCount(2, $extractor->captured);
+        $this->assertStringContainsString('até a Linha 75', $extractor->captured[0][0]->text);
+        $this->assertStringContainsString('da Linha 76 até a Linha 150', $extractor->captured[1][0]->text);
+        $this->assertSame(['A1', 'B1'], array_column($draft['itens'], 'part_no'));
+    }
+
+    public function test_chunk_instruction_forbids_fabricated_items_for_empty_ranges(): void
+    {
+        $extractor = $this->extractorWithQueue([
+            ['fornecedor' => ['nome' => 'X'], 'itens' => [['part_no' => 'A1', 'description' => 'A', 'quantity' => 1, 'unit_price' => 1.0]]],
+            ['fornecedor' => ['nome' => 'X'], 'itens' => []],
+        ]);
+
+        $extractor->extract(new SupplierQuotationTarget, [TextBlockParam::with($this->spreadsheetText(150))]);
+
+        foreach ($extractor->captured as $call) {
+            $this->assertStringContainsString('NUNCA crie itens', $call[0]->text);
+        }
+    }
+
     public function test_truncated_pdf_throws_clear_density_error(): void
     {
         // PDFs vão como bloco único (sem como dividir por linhas): truncou → erro claro.
