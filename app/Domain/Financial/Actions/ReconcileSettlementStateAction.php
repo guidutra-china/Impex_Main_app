@@ -141,34 +141,49 @@ class ReconcileSettlementStateAction
     protected function checkCreditNoteReconciliation(PaymentAllocation $allocation): void
     {
         foreach ($this->collectScheduleItems($allocation) as $scheduleItem) {
-            if (! $scheduleItem || ! $scheduleItem->is_credit) {
+            if (! $scheduleItem) {
                 continue;
             }
 
-            $isCnCredit = $scheduleItem->source_type === CreditNoteLineItem::class;
-            $isCostCredit = $scheduleItem->source_type === AdditionalCost::class;
+            $this->recalculateCreditItemStatus($scheduleItem);
+        }
+    }
 
-            if (! $isCnCredit && ! $isCostCredit) {
-                continue;
+    /**
+     * Recalcula PENDING/PAID de um PSI de crédito pelo consumo real (mesma
+     * regra do reconcile). Público para fluxos que mexem em alocações fora
+     * do observer — ex.: o mass-delete compensado dos Edit de pagamento,
+     * onde recalculateStatus() pularia o crédito e deixaria PAID obsoleto.
+     */
+    public function recalculateCreditItemStatus(PaymentScheduleItem $scheduleItem): void
+    {
+        if (! $scheduleItem->is_credit) {
+            return;
+        }
+
+        $isCnCredit = $scheduleItem->source_type === CreditNoteLineItem::class;
+        $isCostCredit = $scheduleItem->source_type === AdditionalCost::class;
+
+        if (! $isCnCredit && ! $isCostCredit) {
+            return;
+        }
+
+        if ($scheduleItem->status !== PaymentScheduleStatus::WAIVED) {
+            $consumed = $scheduleItem->credit_consumed_amount;
+            $remaining = $scheduleItem->credit_remaining_amount;
+
+            $newStatus = ($consumed > 0 && $remaining <= CreditNote::SETTLEMENT_TOLERANCE)
+                ? PaymentScheduleStatus::PAID
+                : PaymentScheduleStatus::PENDING;
+
+            if ($scheduleItem->status !== $newStatus) {
+                $scheduleItem->update(['status' => $newStatus->value]);
             }
+        }
 
-            if ($scheduleItem->status !== PaymentScheduleStatus::WAIVED) {
-                $consumed = $scheduleItem->credit_consumed_amount;
-                $remaining = $scheduleItem->credit_remaining_amount;
-
-                $newStatus = ($consumed > 0 && $remaining <= CreditNote::SETTLEMENT_TOLERANCE)
-                    ? PaymentScheduleStatus::PAID
-                    : PaymentScheduleStatus::PENDING;
-
-                if ($scheduleItem->status !== $newStatus) {
-                    $scheduleItem->update(['status' => $newStatus->value]);
-                }
-            }
-
-            if ($isCnCredit) {
-                $lineItem = CreditNoteLineItem::find($scheduleItem->source_id);
-                $lineItem?->creditNote?->recalculateStatus();
-            }
+        if ($isCnCredit) {
+            $lineItem = CreditNoteLineItem::find($scheduleItem->source_id);
+            $lineItem?->creditNote?->recalculateStatus();
         }
     }
 

@@ -217,16 +217,31 @@ trait HasPaymentFormSections
             ->schema([
                 Select::make('credit_schedule_item_id')
                     ->label(__('forms.labels.credit'))
-                    ->options(function (Get $get) use ($direction) {
+                    ->options(function (Get $get, ?\Illuminate\Database\Eloquent\Model $record) use ($direction) {
                         $companyId = $get('../../company_id');
                         if (! $companyId) {
                             return [];
                         }
 
-                        return static::getCompanyCreditItems((int) $companyId, $direction)
-                            ->mapWithKeys(fn ($item) => [
-                                $item->id => static::formatCreditItemLabel($item),
-                            ]);
+                        $items = static::getCompanyCreditItems((int) $companyId, $direction);
+
+                        // No Edit, um crédito já consumido POR ESTE pagamento
+                        // está PAID e sumiria das opções — a linha rehidratada
+                        // falharia na validação. Reinclui os créditos do
+                        // próprio pagamento.
+                        if ($record) {
+                            $own = PaymentScheduleItem::query()
+                                ->where('is_credit', true)
+                                ->whereHas('creditAllocations', fn ($q) => $q->where('payment_id', $record->getKey()))
+                                ->with('payable')
+                                ->get();
+
+                            $items = $items->concat($own)->unique('id')->values();
+                        }
+
+                        return $items->mapWithKeys(fn ($item) => [
+                            $item->id => static::formatCreditItemLabel($item),
+                        ]);
                     })
                     ->getOptionLabelUsing(function ($value): ?string {
                         $item = PaymentScheduleItem::with('payable')->find($value);
@@ -265,7 +280,7 @@ trait HasPaymentFormSections
                     ->minValue(0.01)
                     ->required()
                     ->rules([
-                        fn (Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
+                        fn (Get $get, ?\Illuminate\Database\Eloquent\Model $record): \Closure => function (string $attribute, $value, \Closure $fail) use ($get, $record) {
                             $creditItemId = $get('credit_schedule_item_id');
                             if (! $creditItemId) {
                                 return;
@@ -274,7 +289,7 @@ trait HasPaymentFormSections
                             if (! $creditItem) {
                                 return;
                             }
-                            $maxAmount = static::maxApplicableCreditMajor($creditItem);
+                            $maxAmount = static::maxApplicableCreditMajor($creditItem, $record?->getKey());
                             if ((float) $value > $maxAmount) {
                                 $fail("Amount cannot exceed the available credit of {$creditItem->currency_code} ".number_format($maxAmount, 2).'.');
                             }
@@ -1074,9 +1089,21 @@ trait HasPaymentFormSections
      * Teto (em unidades maiores) que uma NOVA aplicação de crédito pode
      * reservar no form — saldo disponível contando pagamentos pendentes.
      */
-    public static function maxApplicableCreditMajor(PaymentScheduleItem $creditItem): float
+    public static function maxApplicableCreditMajor(PaymentScheduleItem $creditItem, ?int $ignorePaymentId = null): float
     {
-        return Money::toMajor($creditItem->credit_available_amount);
+        $available = $creditItem->credit_available_amount;
+
+        if ($ignorePaymentId !== null) {
+            // No Edit, as aplicações do PRÓPRIO pagamento serão recriadas —
+            // a capacidade que elas ocupam volta a estar disponível.
+            $own = (int) $creditItem->creditAllocations()
+                ->where('payment_id', $ignorePaymentId)
+                ->sum('allocated_amount_in_document_currency');
+
+            $available = min($creditItem->amount, $available + $own);
+        }
+
+        return Money::toMajor($available);
     }
 
     public static function formatCreditItemLabel(PaymentScheduleItem $item): string

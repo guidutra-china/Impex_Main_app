@@ -88,7 +88,17 @@ class EditAccountsPayable extends EditRecord
         // report.
         foreach (array_unique(array_merge($previousScheduleItemIds, $previousCreditItemIds)) as $itemId) {
             $item = PaymentScheduleItem::find($itemId);
-            $item?->recalculateStatus();
+
+            if (! $item) {
+                continue;
+            }
+
+            // recalculateStatus() pula créditos por design — sem isto, um
+            // crédito cuja aplicação foi removida na edição ficaria PAID
+            // obsoleto (e sumiria da lista de créditos disponíveis).
+            $item->is_credit
+                ? app(\App\Domain\Financial\Actions\ReconcileSettlementStateAction::class)->recalculateCreditItemStatus($item)
+                : $item->recalculateStatus();
         }
 
         $this->persistAllocations($payment, $payment->currency_code);
