@@ -128,12 +128,14 @@ class ItemsRelationManager extends RelationManager
                 TextColumn::make('product.name')
                     ->label(__('forms.labels.product'))
                     ->searchable()
+                    ->sortable()
                     ->limit(30)
                     ->placeholder(__('forms.placeholders.manual_item'))
                     ->toggleable(),
                 TextColumn::make('product.model_number')
                     ->label(__('forms.labels.model_number'))
                     ->searchable()
+                    ->sortable()
                     ->placeholder('—')
                     ->toggleable(),
                 TextColumn::make('description')
@@ -143,6 +145,7 @@ class ItemsRelationManager extends RelationManager
                 TextColumn::make('quantity')
                     ->label(__('forms.labels.qty'))
                     ->alignCenter()
+                    ->sortable()
                     ->toggleable()
                     ->summarize(Sum::make()->label(__('forms.labels.total'))),
                 TextColumn::make('quantity_shipped')
