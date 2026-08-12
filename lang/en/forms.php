@@ -513,6 +513,8 @@ return [
         'selling_price' => 'Selling Price',
         'set_due_date' => 'Set Due Date',
         'shipping_instructions' => 'Shipping Instructions',
+        'show_model_number' => 'Show Model Number',
+        'show_product_code' => 'Show Product Code (SKU)',
         'show_suppliers_to_client' => 'Show Suppliers to Client',
         'size' => 'Size',
         'slug' => 'Slug',

@@ -481,6 +481,8 @@ return [
         'selling_price' => '销售价格',
         'set_due_date' => '设置截止日期',
         'shipping_instructions' => '运输说明',
+        'show_model_number' => '显示型号',
+        'show_product_code' => '显示产品代码 (SKU)',
         'show_suppliers_to_client' => '向客户显示供应商',
         'size' => '尺寸',
         'slug' => '别名',

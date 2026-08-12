@@ -65,7 +65,12 @@
                 @if(! empty($with_images))
                     <th class="text-center" style="width: 55px;">{{ $labels['photo'] ?? 'Photo' }}</th>
                 @endif
-                <th style="width: 80px;">{{ $labels['product_code'] }}</th>
+                @if(! empty($show_product_code))
+                    <th style="width: 80px;">{{ $labels['product_code'] }}</th>
+                @endif
+                @if(! empty($show_model_number))
+                    <th style="width: 80px;">{{ $labels['model_number'] }}</th>
+                @endif
                 <th>{{ $labels['description'] }}</th>
                 <th class="text-center" style="width: 55px;">{{ $labels['quantity'] }}</th>
                 <th class="text-center" style="width: 45px;">{{ $labels['unit'] }}</th>
@@ -84,7 +89,12 @@
                             @endif
                         </td>
                     @endif
-                    <td>{{ $item['product_code'] }}</td>
+                    @if(! empty($show_product_code))
+                        <td>{{ $item['product_code'] }}</td>
+                    @endif
+                    @if(! empty($show_model_number))
+                        <td>{{ $item['model_number'] }}</td>
+                    @endif
                     <td>
                         {{ $item['description'] }}
                         @if($item['specifications'])

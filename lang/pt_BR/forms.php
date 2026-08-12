@@ -512,6 +512,8 @@ return [
         'selling_price' => 'Preço de Venda',
         'set_due_date' => 'Definir Data de Vencimento',
         'shipping_instructions' => 'Instruções de Envio',
+        'show_model_number' => 'Mostrar Model Number',
+        'show_product_code' => 'Mostrar Código do Produto (SKU)',
         'show_suppliers_to_client' => 'Mostrar Fornecedores ao Cliente',
         'size' => 'Tamanho',
         'slug' => 'Slug',

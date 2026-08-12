@@ -10,19 +10,30 @@ use App\Domain\Quotations\Enums\CommissionType;
 
 class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
 {
+    /** Máximo de caracteres da descrição do item no PDF. */
+    protected const DESCRIPTION_LIMIT = 150;
+
     protected bool $hideCommission;
 
     protected bool $withImages;
+
+    protected bool $showProductCode;
+
+    protected bool $showModelNumber;
 
     public function __construct(
         \Illuminate\Database\Eloquent\Model $model,
         string $locale = 'en',
         bool $hideCommission = false,
         bool $withImages = false,
+        bool $showProductCode = false,
+        bool $showModelNumber = true,
     ) {
         parent::__construct($model, $locale);
         $this->hideCommission = $hideCommission;
         $this->withImages = $withImages;
+        $this->showProductCode = $showProductCode;
+        $this->showModelNumber = $showModelNumber;
     }
 
     public function getFilename(): string
@@ -58,19 +69,28 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
             'inquiry',
             'paymentTerm',
             'quotations',
-            'items.product',
+            'items.product.companies',
             'items.supplierCompany',
             'additionalCosts',
             'creator',
         ]);
 
         $currencyCode = $pi->currency_code ?? 'USD';
+        $clientId = $pi->company_id;
 
-        $items = $pi->items->sortBy('sort_order')->values()->map(function ($item, $index) use ($currencyCode) {
+        $items = $pi->items->sortBy('sort_order')->values()->map(function ($item, $index) use ($currencyCode, $clientId) {
+            // Model number visível ao cliente: código do cliente (pivot) tem
+            // prioridade, como na Commercial Invoice / Packing List.
+            $pivot = $item->product?->companies->firstWhere('id', $clientId)?->pivot;
+
             return [
                 'index' => $index + 1,
                 'product_code' => $item->product?->sku ?? '—',
-                'description' => $item->description ?? $item->product?->name ?? '—',
+                'model_number' => $pivot?->external_code ?: ($item->product?->model_number ?? '—'),
+                'description' => \Illuminate\Support\Str::limit(
+                    (string) ($item->description ?? $item->product?->name ?? '—'),
+                    self::DESCRIPTION_LIMIT,
+                ),
                 'specifications' => $item->specifications,
                 'quantity' => $item->quantity,
                 'unit' => $item->unit ?? 'pcs',
@@ -140,6 +160,8 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
             ],
             'items' => $items->toArray(),
             'with_images' => $this->withImages,
+            'show_product_code' => $this->showProductCode,
+            'show_model_number' => $this->showModelNumber,
             'service_fees' => $serviceFees,
             'totals' => [
                 'subtotal' => $this->formatMoney($subtotal, $currencyCode, 2),
