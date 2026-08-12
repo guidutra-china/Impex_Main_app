@@ -219,7 +219,9 @@ class ItemsRelationManager extends RelationManager
                     ->toggleable(),
                 TextColumn::make('description')
                     ->label(__('forms.labels.description'))
-                    ->limit(40)
+                    ->limit(80)
+                    ->wrap()
+                    ->tooltip(fn ($record) => $record->description)
                     ->toggleable(),
                 TextColumn::make('supplierCompany.name')
                     ->label(__('forms.labels.supplier'))
