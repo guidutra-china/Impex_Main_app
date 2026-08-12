@@ -10,9 +10,6 @@ use App\Domain\Quotations\Enums\CommissionType;
 
 class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
 {
-    /** Máximo de caracteres da descrição do item no PDF. */
-    protected const DESCRIPTION_LIMIT = 150;
-
     protected bool $hideCommission;
 
     protected bool $withImages;
@@ -169,19 +166,6 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
                 'description' => $pi->paymentTerm?->description,
             ],
         ];
-    }
-
-    /**
-     * Normaliza e limita a descrição para o PDF: espaço após vírgulas/barras
-     * (listas como "9560STS,9570STS,..." viram quebráveis — sem isso o DomPDF
-     * expande a coluna e empurra Qty/Price/Total para fora da página) e corte
-     * em DESCRIPTION_LIMIT caracteres.
-     */
-    protected function formatDescription(string $description): string
-    {
-        $breakable = preg_replace('~([,/;])(?=\S)~', '$1 ', $description);
-
-        return \Illuminate\Support\Str::limit($breakable, self::DESCRIPTION_LIMIT);
     }
 
     private function labels(string $key): string

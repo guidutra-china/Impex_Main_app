@@ -170,4 +170,17 @@ abstract class AbstractPdfTemplate
 
         return \Carbon\Carbon::parse($date)->format($format);
     }
+
+    /**
+     * Normaliza e limita descrições de item para tabelas de PDF: espaço após
+     * vírgulas/barras (listas como "9560STS,9570STS,..." viram quebráveis —
+     * sem isso o DomPDF expande a coluna e empurra as colunas de valores para
+     * fora da página) e corte no limite de caracteres.
+     */
+    protected function formatDescription(string $description, int $limit = 150): string
+    {
+        $breakable = preg_replace('~([,/;])(?=\S)~', '$1 ', $description);
+
+        return \Illuminate\Support\Str::limit($breakable, $limit);
+    }
 }

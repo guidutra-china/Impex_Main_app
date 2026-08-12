@@ -88,7 +88,7 @@ class CustomPricePdfTemplate extends AbstractPdfTemplate
             return [
                 'index' => $index + 1,
                 'product_code' => $item->product?->sku ?? '—',
-                'description' => $item->description ?? $item->product?->name ?? '—',
+                'description' => $this->formatDescription($item->description ?? $item->product?->name ?? '—'),
                 'specifications' => $item->specifications,
                 'quantity' => $item->quantity,
                 'unit' => $item->unit ?? 'pcs',

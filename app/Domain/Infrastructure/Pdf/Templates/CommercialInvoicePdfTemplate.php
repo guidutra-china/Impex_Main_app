@@ -147,7 +147,9 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
                     'index' => $index + 1,
                     'model_no' => $pivot?->external_code ?: ($product?->model_number ?: ($product?->sku ?? '—')),
                     'product_name' => $pivot?->external_name ?: $item->product_name,
-                    'description' => $pivot?->external_description ?: ($piItem?->description ?? $piItem?->specifications ?? ''),
+                    'description' => $this->formatDescription(
+                        $pivot?->external_description ?: ($piItem?->description ?? $piItem?->specifications ?? '')
+                    ),
                     'quantity' => $item->quantity,
                     'unit' => $piItem?->unit ?? 'pcs',
                     'unit_price' => $this->formatMoney($unitPrice, $currencyCode),

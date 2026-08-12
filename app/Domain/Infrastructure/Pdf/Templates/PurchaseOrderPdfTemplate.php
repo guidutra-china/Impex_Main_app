@@ -23,7 +23,7 @@ class PurchaseOrderPdfTemplate extends AbstractPdfTemplate
         $reference = $this->model->reference ?? $this->model->getKey();
         $picSuffix = $this->withImages ? '-PIC' : '';
 
-        return $reference . $picSuffix . '-v' . $this->getNextVersion() . '.pdf';
+        return $reference.$picSuffix.'-v'.$this->getNextVersion().'.pdf';
     }
 
     public function getView(): string
@@ -61,7 +61,7 @@ class PurchaseOrderPdfTemplate extends AbstractPdfTemplate
             return [
                 'index' => $index + 1,
                 'product_code' => $item->product?->sku ?? '—',
-                'description' => $item->description ?? $item->product?->name ?? '—',
+                'description' => $this->formatDescription($item->description ?? $item->product?->name ?? '—'),
                 'specifications' => $item->specifications,
                 'quantity' => $item->quantity,
                 'unit' => $item->unit ?? 'pcs',

@@ -119,7 +119,7 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
             return [
                 'index' => $index + 1,
                 'product_code' => $item->product?->sku ?? '—',
-                'description' => $item->product?->name ?? $item->notes ?? '—',
+                'description' => $this->formatDescription($item->product?->name ?? $item->notes ?? '—'),
                 // Só na cotação ao cliente: as notas de especificação do produto
                 // ajudam a vender; documentos formais (PI/CI) não as carregam.
                 // Pontuação CJK é normalizada centralmente no AbstractPdfTemplate.

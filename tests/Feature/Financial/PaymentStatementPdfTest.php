@@ -105,6 +105,29 @@ class PaymentStatementPdfTest extends TestCase
         $this->assertSame(1250000, $data['raw_pi_items_total']);
     }
 
+    public function test_pi_item_description_is_breakable_and_limited(): void
+    {
+        $pi = $this->makePi();
+
+        \Database\Factories\ProformaInvoiceItemFactory::new()->create([
+            'proforma_invoice_id' => $pi->id,
+            'product_id' => \App\Domain\Catalog\Models\Product::factory(),
+            // Lista longa sem espaço após vírgulas — estourava a largura da
+            // tabela no DomPDF (token inquebrável).
+            'description' => 'Fits: '.str_repeat('9560STS,9570STS,9650CTS,', 15),
+            'quantity' => 1,
+            'unit_price' => 1000,
+            'sort_order' => 1,
+        ]);
+
+        $description = $this->data($pi)['pi_items'][0]['description'];
+
+        $this->assertLessThanOrEqual(153, mb_strlen($description));
+        $this->assertStringEndsWith('...', $description);
+        $this->assertStringContainsString('9560STS, 9570STS', $description);
+        $this->assertStringNotContainsString('9560STS,9570STS', $description);
+    }
+
     public function test_schedule_payments_and_summary(): void
     {
         $pi = $this->makePi();
