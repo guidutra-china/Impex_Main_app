@@ -203,4 +203,121 @@ class DraftExtractorTest extends TestCase
         $this->expectException(ExtractionFailedException::class);
         $extractor->extract(new SupplierQuotationTarget, [TextBlockParam::with($this->spreadsheetText(150))]);
     }
+
+    /**
+     * Extractor fake com respostas completas por chamada: cada entrada é
+     * [input, stop_reason|null]. Captura o conteúdo enviado como o da fila.
+     */
+    private function extractorWithResponses(array $responses): DraftExtractor
+    {
+        return new class($responses) extends DraftExtractor
+        {
+            /** @var list<array<int,object>> */
+            public array $captured = [];
+
+            public function __construct(private array $responses) {}
+
+            protected function callModel(ImportTarget $target, array $content): object
+            {
+                $this->captured[] = $content;
+                $response = array_shift($this->responses);
+                if ($response === null) {
+                    throw new \RuntimeException('callModel chamado mais vezes que o esperado.');
+                }
+                [$input, $stopReason] = $response;
+
+                return (object) [
+                    'stopReason' => $stopReason,
+                    'content' => [
+                        (object) ['type' => 'tool_use', 'name' => $target->extractionToolName(), 'input' => $input],
+                    ],
+                ];
+            }
+        };
+    }
+
+    /** Planilha com poucas linhas mas células muito densas (caso Jinmu: listas de compatibilidade). */
+    private function denseSpreadsheetText(int $lines, int $cellChars = 250): string
+    {
+        $out = ['Delivery List | | |'];
+        $filler = str_repeat('Fits: Case-IH 1440 1460 ', (int) ceil($cellChars / 24));
+        for ($n = 2; $n <= $lines; $n++) {
+            $out[] = "Linha {$n}: {$n} | PART-{$n} | ".substr($filler, 0, $cellChars).' | 10 | 1.50';
+        }
+
+        return implode("\n", $out);
+    }
+
+    public function test_dense_spreadsheet_with_few_lines_is_chunked_by_character_volume(): void
+    {
+        // 40 linhas × ~300 chars ≈ 12k chars → 2 chunks mesmo abaixo do limiar de linhas.
+        $extractor = $this->extractorWithQueue([
+            [
+                'fornecedor' => ['nome' => 'Jinmu'],
+                'itens' => [['part_no' => 'A1', 'description' => 'Item A', 'quantity' => 1, 'unit_price' => 1.0, 'source_row' => 5]],
+            ],
+            [
+                'fornecedor' => ['nome' => 'Jinmu'],
+                'itens' => [['part_no' => 'B1', 'description' => 'Item B', 'quantity' => 2, 'unit_price' => 2.0, 'source_row' => 30]],
+            ],
+        ]);
+
+        $draft = $extractor->extract(new SupplierQuotationTarget, [TextBlockParam::with($this->denseSpreadsheetText(40))]);
+
+        $this->assertCount(2, $extractor->captured);
+        $this->assertStringContainsString('até a Linha 20', $extractor->captured[0][0]->text);
+        $this->assertStringContainsString('da Linha 21 até a Linha 40', $extractor->captured[1][0]->text);
+        $this->assertSame(['A1', 'B1'], array_column($draft['itens'], 'part_no'));
+    }
+
+    public function test_truncated_single_call_is_retried_in_split_ranges(): void
+    {
+        // Doc pequeno e leve → chamada única; resposta truncada (max_tokens) →
+        // o resultado parcial é descartado e o doc é re-extraído em 2 metades.
+        $extractor = $this->extractorWithResponses([
+            [['fornecedor' => ['nome' => 'X'], 'itens' => []], 'max_tokens'],
+            [['fornecedor' => ['nome' => 'X'], 'itens' => [['part_no' => 'A1', 'description' => 'A', 'quantity' => 1, 'unit_price' => 1.0, 'source_row' => 3]]], null],
+            [['fornecedor' => ['nome' => 'X'], 'itens' => [['part_no' => 'B1', 'description' => 'B', 'quantity' => 1, 'unit_price' => 1.0, 'source_row' => 8]]], 'end_turn'],
+        ]);
+
+        $draft = $extractor->extract(new SupplierQuotationTarget, [TextBlockParam::with($this->spreadsheetText(10))]);
+
+        $this->assertCount(3, $extractor->captured);
+        $this->assertStringContainsString('até a Linha 5', $extractor->captured[1][0]->text);
+        $this->assertStringContainsString('da Linha 6 até a Linha 10', $extractor->captured[2][0]->text);
+        $this->assertSame(['A1', 'B1'], array_column($draft['itens'], 'part_no'));
+    }
+
+    public function test_truncated_chunk_is_split_recursively(): void
+    {
+        // 2 chunks; o segundo trunca e é dividido em duas metades re-extraídas.
+        $extractor = $this->extractorWithResponses([
+            [['fornecedor' => ['nome' => 'X'], 'itens' => [['part_no' => 'A1', 'description' => 'A', 'quantity' => 1, 'unit_price' => 1.0, 'source_row' => 10]]], null],
+            [['fornecedor' => ['nome' => 'X'], 'itens' => []], 'max_tokens'],
+            [['fornecedor' => ['nome' => 'X'], 'itens' => [['part_no' => 'B1', 'description' => 'B', 'quantity' => 1, 'unit_price' => 1.0, 'source_row' => 80]]], null],
+            [['fornecedor' => ['nome' => 'X'], 'itens' => [['part_no' => 'C1', 'description' => 'C', 'quantity' => 1, 'unit_price' => 1.0, 'source_row' => 140]]], null],
+        ]);
+
+        $draft = $extractor->extract(new SupplierQuotationTarget, [TextBlockParam::with($this->spreadsheetText(150))]);
+
+        $this->assertCount(4, $extractor->captured);
+        $this->assertStringContainsString('da Linha 76 até a Linha 113', $extractor->captured[2][0]->text);
+        $this->assertStringContainsString('da Linha 114 até a Linha 150', $extractor->captured[3][0]->text);
+        $this->assertSame(['A1', 'B1', 'C1'], array_column($draft['itens'], 'part_no'));
+    }
+
+    public function test_truncated_pdf_throws_clear_density_error(): void
+    {
+        // PDFs vão como bloco único (sem como dividir por linhas): truncou → erro claro.
+        $extractor = $this->extractorWithResponses([
+            [['fornecedor' => ['nome' => 'X'], 'itens' => []], 'max_tokens'],
+        ]);
+
+        try {
+            $extractor->extract(new SupplierQuotationTarget, [(object) ['type' => 'document']]);
+            $this->fail('Esperava ExtractionFailedException');
+        } catch (ExtractionFailedException $e) {
+            $this->assertStringContainsString('denso', $e->getMessage());
+        }
+    }
 }

@@ -22,14 +22,21 @@ use App\Domain\AI\Import\Targets\ImportTarget;
  * truncado com stop_reason=max_tokens e a extração falhava). Cada chunk recebe
  * o documento INTEIRO (o custo está na saída, não na entrada) com instrução de
  * extrair somente um intervalo de linhas; os drafts são mesclados ao final.
+ *
+ * O corte considera linhas E volume de caracteres — linha é proxy ruim para o
+ * tamanho da SAÍDA (caso real Jinmu: 48 itens com listas de compatibilidade de
+ * 340 chars estouravam 8192 tokens em 51 linhas). Defesa em profundidade: se
+ * mesmo assim uma resposta vier truncada (stop_reason=max_tokens), o resultado
+ * parcial é descartado e o intervalo é dividido ao meio e re-extraído; PDFs
+ * (bloco único, sem linhas para dividir) falham com mensagem clara.
  */
 class DraftExtractor
 {
-    /** Acima deste nº de linhas achatadas a planilha é extraída em partes. */
-    private const CHUNK_THRESHOLD = 100;
-
     /** Tamanho-alvo de cada parte, em linhas (o real é distribuído por igual). */
     private const CHUNK_SIZE = 100;
+
+    /** Orçamento-alvo de caracteres do texto achatado por parte. */
+    private const CHUNK_CHAR_BUDGET = 6000;
 
     protected Client $client;
 
@@ -46,9 +53,22 @@ class DraftExtractor
     {
         $ranges = $this->chunkRanges($documentBlocks);
 
-        $draft = $ranges === null
-            ? $this->extractOnce($target, $documentBlocks, $target->extractionUserPrompt())
-            : $this->extractChunked($target, $documentBlocks, $ranges);
+        if ($ranges === null) {
+            [$draft, $truncated] = $this->extractOnce($target, $documentBlocks, $target->extractionUserPrompt());
+
+            if ($truncated) {
+                // Resposta cortada em maxTokens: o parcial é inútil (o array de
+                // itens some no parse). Re-extrai o documento em duas metades.
+                $lines = $this->flattenedLineCount($documentBlocks);
+                if ($lines === null || $lines < 2) {
+                    throw $this->tooDenseException();
+                }
+                $mid = intdiv(1 + $lines, 2);
+                $draft = $this->extractChunked($target, $documentBlocks, [[1, $mid], [$mid + 1, $lines]]);
+            }
+        } else {
+            $draft = $this->extractChunked($target, $documentBlocks, $ranges);
+        }
 
         if (empty($draft['itens'] ?? [])) {
             throw new ExtractionFailedException('Nenhum item encontrado no documento.');
@@ -58,25 +78,31 @@ class DraftExtractor
     }
 
     /**
-     * Line ranges when the payload is a large flattened spreadsheet; null keeps
-     * the single-call path (small documents, PDFs). Ranges are evenly sized so
-     * no tiny trailing chunk is produced.
+     * Line ranges when the payload is a large or dense flattened spreadsheet;
+     * null keeps the single-call path (small light documents, PDFs). Chunk count
+     * honours BOTH the line and the character budget — output size follows text
+     * volume, not row count — and ranges are evenly sized so no tiny trailing
+     * chunk is produced.
      *
      * @param  list<object>  $documentBlocks
      * @return list<array{int,int}>|null
      */
     private function chunkRanges(array $documentBlocks): ?array
     {
-        if (count($documentBlocks) !== 1 || ! $documentBlocks[0] instanceof TextBlockParam) {
+        $lines = $this->flattenedLineCount($documentBlocks);
+        if ($lines === null) {
             return null;
         }
 
-        $lines = substr_count($documentBlocks[0]->text, "\n") + 1;
-        if ($lines <= self::CHUNK_THRESHOLD) {
+        $chunks = max(
+            (int) ceil($lines / self::CHUNK_SIZE),
+            (int) ceil(strlen($documentBlocks[0]->text) / self::CHUNK_CHAR_BUDGET),
+        );
+        if ($chunks <= 1 || $lines < 2) {
             return null;
         }
 
-        $size = (int) ceil($lines / ceil($lines / self::CHUNK_SIZE));
+        $size = (int) ceil($lines / min($chunks, $lines));
 
         $ranges = [];
         for ($from = 1; $from <= $lines; $from += $size) {
@@ -84,6 +110,16 @@ class DraftExtractor
         }
 
         return $ranges;
+    }
+
+    /** Nº de linhas do texto achatado, ou null quando o payload não é uma planilha achatada (ex.: PDF). */
+    private function flattenedLineCount(array $documentBlocks): ?int
+    {
+        if (count($documentBlocks) !== 1 || ! $documentBlocks[0] instanceof TextBlockParam) {
+            return null;
+        }
+
+        return substr_count($documentBlocks[0]->text, "\n") + 1;
     }
 
     /**
@@ -97,37 +133,89 @@ class DraftExtractor
         $seenRows = [];
 
         foreach ($ranges as $index => [$from, $to]) {
-            $prompt = $target->extractionUserPrompt().$this->chunkInstruction($from, $to, first: $index === 0);
-            $draft = $this->extractOnce($target, $documentBlocks, $prompt);
-
-            $items = [];
-            foreach (array_values((array) ($draft['itens'] ?? [])) as $item) {
-                $item = (array) $item;
-                $row = $item['source_row'] ?? null;
-                if (is_numeric($row)) {
-                    if (isset($seenRows[(int) $row])) {
-                        continue; // o modelo vazou um item de outro intervalo — fica a 1ª ocorrência
-                    }
-                    $seenRows[(int) $row] = true;
-                }
-                $items[] = $item;
-            }
-
-            if ($merged === null) {
-                $merged = $draft;
-                $merged['itens'] = $items;
-
-                continue;
-            }
-
-            $merged['itens'] = array_merge($merged['itens'], $items);
-            $merged['extras'] = array_merge((array) ($merged['extras'] ?? []), (array) ($draft['extras'] ?? []));
-            if (empty($merged['documento_total']) && ! empty($draft['documento_total'])) {
-                $merged['documento_total'] = $draft['documento_total'];
+            foreach ($this->extractRangeDrafts($target, $documentBlocks, $from, $to, first: $index === 0) as $draft) {
+                $merged = $this->mergeDraft($merged, $draft, $seenRows);
             }
         }
 
         return $merged ?? [];
+    }
+
+    /**
+     * Extrai um intervalo de linhas; se a resposta truncar em maxTokens, divide
+     * o intervalo ao meio e re-extrai cada metade (recursivo). Um intervalo de
+     * UMA linha que ainda trunca não tem mais como encolher → documento denso.
+     *
+     * @param  list<object>  $documentBlocks
+     * @return list<array<string,mixed>> drafts em ordem de linha
+     */
+    private function extractRangeDrafts(ImportTarget $target, array $documentBlocks, int $from, int $to, bool $first): array
+    {
+        $prompt = $target->extractionUserPrompt().$this->chunkInstruction($from, $to, $first);
+        [$draft, $truncated] = $this->extractOnce($target, $documentBlocks, $prompt);
+
+        if (! $truncated) {
+            return [$draft];
+        }
+
+        if ($from >= $to) {
+            throw $this->tooDenseException();
+        }
+
+        $mid = intdiv($from + $to, 2);
+
+        return array_merge(
+            $this->extractRangeDrafts($target, $documentBlocks, $from, $mid, $first),
+            $this->extractRangeDrafts($target, $documentBlocks, $mid + 1, $to, false),
+        );
+    }
+
+    /**
+     * Mescla um draft de chunk no acumulado: itens concatenados (dedupe por
+     * source_row — o modelo pode vazar um item de intervalo vizinho), extras
+     * concatenados, documento_total preservado; cabeçalho vem do primeiro.
+     *
+     * @param  array<string,mixed>|null  $merged
+     * @param  array<string,mixed>  $draft
+     * @param  array<int,bool>  $seenRows
+     * @return array<string,mixed>
+     */
+    private function mergeDraft(?array $merged, array $draft, array &$seenRows): array
+    {
+        $items = [];
+        foreach (array_values((array) ($draft['itens'] ?? [])) as $item) {
+            $item = (array) $item;
+            $row = $item['source_row'] ?? null;
+            if (is_numeric($row)) {
+                if (isset($seenRows[(int) $row])) {
+                    continue;
+                }
+                $seenRows[(int) $row] = true;
+            }
+            $items[] = $item;
+        }
+
+        if ($merged === null) {
+            $draft['itens'] = $items;
+
+            return $draft;
+        }
+
+        $merged['itens'] = array_merge((array) ($merged['itens'] ?? []), $items);
+        $merged['extras'] = array_merge((array) ($merged['extras'] ?? []), (array) ($draft['extras'] ?? []));
+        if (empty($merged['documento_total']) && ! empty($draft['documento_total'])) {
+            $merged['documento_total'] = $draft['documento_total'];
+        }
+
+        return $merged;
+    }
+
+    private function tooDenseException(): ExtractionFailedException
+    {
+        return new ExtractionFailedException(
+            'O documento é denso demais para a extração estruturada (a resposta excedeu o limite '
+            .'e veio truncada). Divida o arquivo em partes menores e importe cada uma.',
+        );
     }
 
     private function chunkInstruction(int $from, int $to, bool $first): string
@@ -145,11 +233,13 @@ class DraftExtractor
     }
 
     /**
-     * One forced-tool round-trip. Throws only when the response carries no
-     * structured tool call — an empty item list is legítimo em chunks.
+     * One forced-tool round-trip. Returns the parsed draft plus whether the
+     * response was cut at maxTokens (partial JSON — o array de itens some no
+     * parse, então o chamador descarta e re-divide). Throws only when a
+     * NON-truncated response carries no structured tool call.
      *
      * @param  list<object>  $documentBlocks
-     * @return array<string,mixed>
+     * @return array{0:array<string,mixed>,1:bool}
      */
     private function extractOnce(ImportTarget $target, array $documentBlocks, string $userPrompt): array
     {
@@ -157,10 +247,18 @@ class DraftExtractor
 
         $response = $this->callModel($target, $content);
 
+        $stop = $response->stopReason ?? null;
+        $truncated = ($stop instanceof \BackedEnum ? $stop->value : $stop) === 'max_tokens';
+
         foreach ($response->content as $block) {
             if (($block->type ?? null) === 'tool_use' && ($block->name ?? null) === $target->extractionToolName()) {
-                return (array) $block->input;
+                return [(array) $block->input, $truncated];
             }
+        }
+
+        // Truncamento agressivo pode cortar o próprio bloco de tool_use.
+        if ($truncated) {
+            return [[], true];
         }
 
         throw new ExtractionFailedException('O modelo não retornou dados estruturados.');
