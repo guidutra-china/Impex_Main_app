@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Inquiries\Schemas;
 
+use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
@@ -115,6 +116,28 @@ class InquiryInfolist
                         ->state(fn ($record) => optional($record->quotations()->latest('version')->first())->status?->getLabel()),
                 ])
                 ->columns(3),
+
+            Section::make(__('forms.labels.proforma_invoices'))
+                ->visible(fn ($record) => $record->proformaInvoices()->exists())
+                ->schema([
+                    RepeatableEntry::make('proformaInvoices')
+                        ->hiddenLabel()
+                        ->schema([
+                            TextEntry::make('reference')
+                                ->label(__('forms.labels.reference'))
+                                ->weight(\Filament\Support\Enums\FontWeight::Bold)
+                                ->color('primary')
+                                ->url(fn ($record) => route('filament.admin.resources.proforma-invoices.view', $record)),
+                            TextEntry::make('status')
+                                ->label(__('forms.labels.status'))
+                                ->badge(),
+                            TextEntry::make('created_at')
+                                ->label(__('forms.labels.created'))
+                                ->date('d/m/Y'),
+                        ])
+                        ->columns(3),
+                ])
+                ->columns(1),
         ];
     }
 

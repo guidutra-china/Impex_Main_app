@@ -83,6 +83,13 @@ class InquiriesTable
                     ->counts('supplierQuotations')
                     ->alignCenter()
                     ->toggleable(isToggledHiddenByDefault: false),
+                TextColumn::make('proformaInvoices.reference')
+                    ->label(__('forms.labels.proforma_invoice'))
+                    ->badge()
+                    ->color('primary')
+                    ->placeholder('—')
+                    ->searchable()
+                    ->toggleable(),
                 TextColumn::make('responsible.name')
                     ->label(__('forms.labels.responsible'))
                     ->sortable()
