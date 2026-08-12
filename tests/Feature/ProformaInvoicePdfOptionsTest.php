@@ -47,7 +47,9 @@ class ProformaInvoicePdfOptionsTest extends TestCase
     {
         $withPivot = Product::factory()->create(['model_number' => 'MOD-X', 'sku' => 'SKU-X']);
         $withPivot->companies()->attach($this->client->id, ['role' => 'client', 'external_code' => 'CLIENT-77']);
-        $this->addItem($withPivot, str_repeat('Fits Case-IH Combines 1620 1640 ', 20));
+        // Lista longa SEM espaço após as vírgulas — o caso que estourava a
+        // largura da tabela no DomPDF (token inquebrável).
+        $this->addItem($withPivot, 'Fits: '.str_repeat('9560STS,9570STS,9650CTS,', 15));
 
         $plain = Product::factory()->create(['model_number' => 'MOD-Y', 'sku' => 'SKU-Y']);
         $this->addItem($plain, 'Short description');
@@ -61,6 +63,11 @@ class ProformaInvoicePdfOptionsTest extends TestCase
         $this->assertLessThanOrEqual(153, mb_strlen($items[0]['description']));
         $this->assertStringEndsWith('...', $items[0]['description']);
         $this->assertSame('Short description', $items[1]['description']);
+
+        // Commas become breakable (", ") so DomPDF can wrap the list instead
+        // of pushing the Qty/Price/Total columns off the page.
+        $this->assertStringContainsString('9560STS, 9570STS', $items[0]['description']);
+        $this->assertStringNotContainsString('9560STS,9570STS', $items[0]['description']);
 
         // Client external code wins; falls back to the product's model number.
         $this->assertSame('CLIENT-77', $items[0]['model_number']);
