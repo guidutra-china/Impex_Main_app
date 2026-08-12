@@ -94,6 +94,33 @@ class AssistantImportFlowTest extends TestCase
         $this->assertDatabaseHas('companies', ['name' => 'Flow Supplier']);
     }
 
+    public function test_upload_accepts_spreadsheets_up_to_50mb(): void
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo(['view-assistant', 'create-supplier-quotations']);
+        $this->actingAs($user);
+
+        // Caso real (5th shipment IMPEX): xlsx de 20,6MB — 283 fotos embutidas —
+        // era rejeitado pelo max:20480. Padding incompressível dentro do zip
+        // reproduz o tamanho sem inflar o teste com fotos de verdade.
+        $ss = new Spreadsheet;
+        $ss->getActiveSheet()->fromArray([['Part', 'Qty', 'Price'], ['P-1', 2, 50.0]]);
+        $tmp = tempnam(sys_get_temp_dir(), 'big').'.xlsx';
+        (new Xlsx($ss))->save($tmp);
+        $zip = new \ZipArchive;
+        $zip->open($tmp);
+        $zip->addFromString('xl/media/padding.bin', random_bytes(21 * 1024 * 1024));
+        $zip->close();
+
+        $file = UploadedFile::fake()->createWithContent('grande.xlsx', (string) file_get_contents($tmp));
+        @unlink($tmp);
+
+        Livewire::test(Assistant::class)
+            ->set('upload', $file)
+            ->call('submitImport')
+            ->assertHasNoErrors(['upload']);
+    }
+
     public function test_link_search_scopes_to_document_supplier_with_full_catalog_toggle(): void
     {
         $user = User::factory()->create();

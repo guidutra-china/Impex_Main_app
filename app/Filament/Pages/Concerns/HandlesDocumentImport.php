@@ -83,8 +83,11 @@ trait HandlesDocumentImport
             return;
         }
 
+        // 50MB, alinhado ao teto do temporary upload do Livewire (config/livewire.php)
+        // e ao client_max_body_size 50M do nginx — planilhas de fornecedor com
+        // centenas de fotos embutidas passam de 20MB (caso real: 20,6MB).
         $this->validate([
-            'upload' => 'required|file|mimes:xlsx,xls,pdf|max:20480',
+            'upload' => 'required|file|mimes:xlsx,xls,pdf|max:51200',
         ]);
 
         // A leftover file from a failed prior attempt must not leak as an orphan.
