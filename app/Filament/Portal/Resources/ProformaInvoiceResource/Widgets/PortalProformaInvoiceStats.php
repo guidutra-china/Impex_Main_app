@@ -128,9 +128,10 @@ class PortalProformaInvoiceStats extends Widget
             'is_blocking' => $item->is_blocking,
         ])->all();
 
-        $totalScheduleAmount = $regularItems->sum('amount');
-        $totalSchedulePaid = $regularItems->sum(fn ($i) => $i->paid_amount);
-        $totalScheduleRemaining = max(0, $totalScheduleAmount - $totalSchedulePaid - $waivedTotal);
+        // Linha de total da tabela: líquido de créditos (descontos), como os cards.
+        $totalScheduleAmount = $netDue;
+        $totalSchedulePaid = $totalPaid;
+        $totalScheduleRemaining = $netRemaining;
 
         $statusOptions = $scheduleItems
             ->pluck('status')

@@ -127,9 +127,10 @@ class PurchaseOrderStats extends Widget
             ->values()
             ->all();
 
-        $totalScheduleAmount = $regularItems->sum('amount');
-        $totalSchedulePaid = $regularItems->sum(fn ($i) => $i->paid_amount);
-        $totalScheduleRemaining = max(0, $totalScheduleAmount - $totalSchedulePaid - $waivedTotal);
+        // Linha de total da tabela: líquido de créditos (descontos), como os cards.
+        $totalScheduleAmount = $netDue;
+        $totalSchedulePaid = $totalPaid;
+        $totalScheduleRemaining = $netRemaining;
 
         return [
             'heading' => __('widgets.document_summary.financial_summary'),
