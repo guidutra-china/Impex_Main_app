@@ -114,6 +114,11 @@ class ItemsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            // A relação items() traz orderBy('sort_order') embutido, que vence
+            // qualquer sort de coluna. reorder() limpa; defaultSort restaura o
+            // comportamento padrão sem bloquear a ordenação do usuário.
+            ->modifyQueryUsing(fn ($query) => $query->reorder())
+            ->defaultSort('sort_order')
             ->columns([
                 TextColumn::make('sort_order')
                     ->label(__('forms.labels.hash'))
