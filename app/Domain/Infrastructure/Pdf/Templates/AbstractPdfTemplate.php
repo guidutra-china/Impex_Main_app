@@ -183,4 +183,23 @@ abstract class AbstractPdfTemplate
 
         return \Illuminate\Support\Str::limit($breakable, $limit);
     }
+
+    /**
+     * Código do produto como o cliente o conhece: código do cliente no pivot
+     * (external_code) tem prioridade, depois o model number do produto. O SKU
+     * interno é apenas o último recurso — documentos enviados ao cliente não
+     * devem exibi-lo quando existe um código dele.
+     */
+    protected function clientProductCode(?\App\Domain\Catalog\Models\Product $product, ?int $companyId): string
+    {
+        if (! $product) {
+            return '—';
+        }
+
+        $externalCode = $companyId
+            ? $product->companies->firstWhere('id', $companyId)?->pivot?->external_code
+            : null;
+
+        return $externalCode ?: ($product->model_number ?: ($product->sku ?: '—'));
+    }
 }

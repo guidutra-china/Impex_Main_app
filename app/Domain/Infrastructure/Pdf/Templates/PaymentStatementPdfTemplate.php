@@ -42,14 +42,15 @@ class PaymentStatementPdfTemplate extends AbstractPdfTemplate
     {
         /** @var ProformaInvoice $pi */
         $pi = $this->model;
-        $pi->loadMissing(['company', 'items.product', 'additionalCosts']);
+        $pi->loadMissing(['company', 'items.product.companies', 'additionalCosts']);
 
         $currencyCode = $pi->currency_code ?? 'USD';
+        $clientId = $pi->company_id;
 
-        $piItems = $pi->items->sortBy('sort_order')->values()->map(function ($item, int $index) use ($currencyCode) {
+        $piItems = $pi->items->sortBy('sort_order')->values()->map(function ($item, int $index) use ($currencyCode, $clientId) {
             return [
                 'index' => $index + 1,
-                'product_code' => $item->product?->sku ?? '—',
+                'product_code' => $this->clientProductCode($item->product, $clientId),
                 'description' => $this->formatDescription($item->description ?? $item->product?->name ?? '—'),
                 'quantity' => $item->quantity,
                 'unit' => $item->unit ?? 'pcs',

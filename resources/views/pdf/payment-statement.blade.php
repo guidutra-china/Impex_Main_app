@@ -110,7 +110,7 @@
             <thead>
                 <tr>
                     <th style="width: 25px;">#</th>
-                    <th style="width: 80px;">{{ $labels['product_code'] }}</th>
+                    <th style="width: 80px;">{{ $labels['model_number'] }}</th>
                     <th>{{ $labels['description'] }}</th>
                     <th class="text-center" style="width: 55px;">{{ $labels['quantity'] }}</th>
                     <th class="text-center" style="width: 40px;">{{ $labels['unit'] }}</th>

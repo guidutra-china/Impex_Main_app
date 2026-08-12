@@ -105,6 +105,40 @@ class PaymentStatementPdfTest extends TestCase
         $this->assertSame(1250000, $data['raw_pi_items_total']);
     }
 
+    public function test_pi_item_code_prefers_client_code_then_model_number_over_sku(): void
+    {
+        $pi = $this->makePi();
+
+        $withClientCode = \App\Domain\Catalog\Models\Product::factory()->create([
+            'model_number' => 'MOD-A',
+            'sku' => 'SKU-A',
+        ]);
+        $withClientCode->companies()->attach($pi->company_id, [
+            'role' => 'client',
+            'external_code' => 'CLIENT-55',
+        ]);
+
+        $plain = \App\Domain\Catalog\Models\Product::factory()->create([
+            'model_number' => 'MOD-B',
+            'sku' => 'SKU-B',
+        ]);
+
+        foreach ([$withClientCode, $plain] as $i => $product) {
+            \Database\Factories\ProformaInvoiceItemFactory::new()->create([
+                'proforma_invoice_id' => $pi->id,
+                'product_id' => $product->id,
+                'quantity' => 1,
+                'unit_price' => 1000,
+                'sort_order' => $i + 1,
+            ]);
+        }
+
+        $items = $this->data($pi)['pi_items'];
+
+        $this->assertSame('CLIENT-55', $items[0]['product_code']);
+        $this->assertSame('MOD-B', $items[1]['product_code']);
+    }
+
     public function test_pi_item_description_is_breakable_and_limited(): void
     {
         $pi = $this->makePi();

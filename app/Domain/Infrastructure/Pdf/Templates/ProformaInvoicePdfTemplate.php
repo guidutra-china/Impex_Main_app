@@ -76,14 +76,12 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
         $clientId = $pi->company_id;
 
         $items = $pi->items->sortBy('sort_order')->values()->map(function ($item, $index) use ($currencyCode, $clientId) {
-            // Model number visível ao cliente: código do cliente (pivot) tem
-            // prioridade, como na Commercial Invoice / Packing List.
-            $pivot = $item->product?->companies->firstWhere('id', $clientId)?->pivot;
-
             return [
                 'index' => $index + 1,
-                'product_code' => $item->product?->sku ?? '—',
-                'model_number' => $pivot?->external_code ?: ($item->product?->model_number ?? '—'),
+                'product_code' => $item->product?->sku ?: '—',
+                // Model number visível ao cliente: código do cliente (pivot) tem
+                // prioridade, como na Commercial Invoice / Packing List.
+                'model_number' => $this->clientProductCode($item->product, $clientId),
                 'description' => $this->formatDescription($item->description ?? $item->product?->name ?? '—'),
                 'specifications' => $item->specifications,
                 'quantity' => $item->quantity,
