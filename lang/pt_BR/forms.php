@@ -599,6 +599,7 @@ return [
         'update_dates' => 'Atualizar Datas',
         'type' => 'Tipo',
         'unallocated' => 'Não Alocado',
+        'with_unallocated_amount' => 'Com saldo não alocado',
         'unallocated_credit' => 'Não Alocado (Crédito)',
         'unit' => 'Unidade',
         'unit_cost' => 'Custo Unitário',

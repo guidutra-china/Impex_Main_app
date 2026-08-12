@@ -9,6 +9,7 @@ use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -94,6 +95,14 @@ trait HasPaymentColumns
                 ->relationship('company', 'name')
                 ->searchable()
                 ->preload(),
+            Filter::make('unallocated')
+                ->label(__('forms.labels.with_unallocated_amount'))
+                ->toggle()
+                // unallocated_amount é accessor (amount − soma das alocações),
+                // então o filtro precisa refazer a conta em SQL.
+                ->query(fn (Builder $query) => $query->whereRaw(
+                    'payments.amount > coalesce((select sum(allocated_amount) from payment_allocations where payment_allocations.payment_id = payments.id), 0)'
+                )),
         ];
     }
 

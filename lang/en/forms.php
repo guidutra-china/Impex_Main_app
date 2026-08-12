@@ -600,6 +600,7 @@ return [
         'update_dates' => 'Update Dates',
         'type' => 'Type',
         'unallocated' => 'Unallocated',
+        'with_unallocated_amount' => 'With unallocated balance',
         'unallocated_credit' => 'Unallocated (Credit)',
         'unit' => 'Unit',
         'unit_cost' => 'Unit Cost',

@@ -568,6 +568,7 @@ return [
         'update_dates' => '更新日期',
         'type' => '类型',
         'unallocated' => '未分配',
+        'with_unallocated_amount' => '有未分配余额',
         'unallocated_credit' => '未分配（信用）',
         'unit' => '单位',
         'unit_cost' => '单位成本',
