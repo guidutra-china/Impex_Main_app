@@ -1117,12 +1117,8 @@ class AdditionalCostsRelationManager extends RelationManager
                 return $owner;
             }
             if ($owner instanceof ProformaInvoice) {
-                $po = $owner->purchaseOrders()->first();
-                if ($po) {
-                    return $po;
-                }
-
-                return $owner;
+                // PO do MESMO fornecedor do custo; sem PO dele, fica na PI.
+                return SyncSupplierPayableScheduleItemAction::resolveSupplierPo($owner, $cost->supplier_company_id) ?? $owner;
             }
         }
 

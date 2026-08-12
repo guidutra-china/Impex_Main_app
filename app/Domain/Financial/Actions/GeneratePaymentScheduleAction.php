@@ -1062,13 +1062,23 @@ class GeneratePaymentScheduleAction
                 return $owner;
             }
             if ($owner instanceof ProformaInvoice) {
-                $po = $owner->purchaseOrders()->first();
-
-                return $po ?: $owner;
+                // PO do MESMO fornecedor do custo (PI multi-fornecedor não pode
+                // ancorar crédito na PO alheia); sem PO dele, fica na PI.
+                return SyncSupplierPayableScheduleItemAction::resolveSupplierPo($owner, $cost->supplier_company_id) ?? $owner;
             }
         }
 
         return $owner;
+    }
+
+    /**
+     * Public seam: re-sincroniza apenas as linhas de custo adicional de um
+     * documento (sem regenerate completo). Usado pelo atalho de desconto na
+     * tela da PO e por futuros chamadores fora do fluxo de cronograma.
+     */
+    public function syncCostScheduleItems(Model $payable): void
+    {
+        $this->syncAdditionalCosts($payable);
     }
 
     /**
