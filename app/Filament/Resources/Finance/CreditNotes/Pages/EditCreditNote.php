@@ -7,6 +7,7 @@ use App\Domain\Financial\Enums\CreditNoteStatus;
 use App\Domain\Financial\Models\CreditNoteLineItem;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
+use App\Filament\Pages\Concerns\HasSaveAndReturnFormActions;
 use App\Filament\Resources\Finance\CreditNotes\CreditNoteResource;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
@@ -14,6 +15,8 @@ use Illuminate\Validation\ValidationException;
 
 class EditCreditNote extends EditRecord
 {
+    use HasSaveAndReturnFormActions;
+
     protected static string $resource = CreditNoteResource::class;
 
     protected array $pendingLineItems = [];
@@ -117,10 +120,5 @@ class EditCreditNote extends EditRecord
             DeleteAction::make()
                 ->visible(fn () => $this->record->status === CreditNoteStatus::DRAFT),
         ];
-    }
-
-    protected function getRedirectUrl(): string
-    {
-        return $this->getResource()::getUrl('view', ['record' => $this->record]);
     }
 }

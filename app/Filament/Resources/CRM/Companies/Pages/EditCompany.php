@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\CRM\Companies\Pages;
 
 use App\Domain\CRM\Models\CompanyRoleAssignment;
+use App\Filament\Pages\Concerns\HasSaveAndReturnFormActions;
 use App\Filament\Resources\CRM\Companies\CompanyResource;
 use App\Filament\Resources\CRM\Companies\Concerns\ManagesCompanyGallery;
 use Filament\Actions\Action;
@@ -13,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 
 class EditCompany extends EditRecord
 {
+    use HasSaveAndReturnFormActions;
     use ManagesCompanyGallery;
 
     protected static string $resource = CompanyResource::class;
@@ -44,11 +46,6 @@ class EditCompany extends EditRecord
                 ->color('gray'),
             DeleteAction::make(),
         ];
-    }
-
-    protected function getRedirectUrl(): string
-    {
-        return $this->getResource()::getUrl('index');
     }
 
     protected function mutateFormDataBeforeFill(array $data): array

@@ -493,6 +493,8 @@ return [
         'sq_source' => 'Fonte SQ',
         'swift' => 'SWIFT',
         'swift_bic_code' => 'Código SWIFT / BIC',
+        'save' => 'Salvar',
+        'save_and_return' => 'Salvar e Retornar',
         'save_complete_audit' => 'Salvar & Completar Auditoria',
         'save_progress' => 'Salvar Progresso',
         'save_as_custom_price' => 'Salvar preços calculados como Preço Customizado',

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\Pages;
 
+use App\Filament\Pages\Concerns\HasSaveAndReturnFormActions;
 use App\Filament\Resources\Users\UserResource;
 use Filament\Actions\DeleteAction;
 use Filament\Notifications\Notification;
@@ -9,6 +10,8 @@ use Filament\Resources\Pages\EditRecord;
 
 class EditUser extends EditRecord
 {
+    use HasSaveAndReturnFormActions;
+
     protected static string $resource = UserResource::class;
 
     protected function getHeaderActions(): array
@@ -31,10 +34,5 @@ class EditUser extends EditRecord
 
             $this->halt();
         }
-    }
-
-    protected function getRedirectUrl(): string
-    {
-        return $this->getResource()::getUrl('view', ['record' => $this->getRecord()]);
     }
 }

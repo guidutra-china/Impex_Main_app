@@ -462,6 +462,8 @@ return [
         'sq_source' => 'SQ来源',
         'swift' => 'SWIFT',
         'swift_bic_code' => 'SWIFT / BIC代码',
+        'save' => '保存',
+        'save_and_return' => '保存并返回',
         'save_complete_audit' => '保存并完成审核',
         'save_progress' => '保存进度',
         'save_as_custom_price' => '将计算价格保存为自定义价格',

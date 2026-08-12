@@ -4,6 +4,7 @@ namespace App\Filament\Resources\PurchaseOrders\Pages;
 
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Filament\Concerns\HasOperationsHeaderActions;
+use App\Filament\Pages\Concerns\HasSaveAndReturnFormActions;
 use App\Filament\Resources\PurchaseOrders\Concerns\PurchaseOrderHeaderActions;
 use App\Filament\Resources\PurchaseOrders\PurchaseOrderResource;
 use Filament\Notifications\Notification;
@@ -12,6 +13,7 @@ use Filament\Resources\Pages\EditRecord;
 class EditPurchaseOrder extends EditRecord
 {
     use HasOperationsHeaderActions;
+    use HasSaveAndReturnFormActions;
     use PurchaseOrderHeaderActions;
 
     protected static string $resource = PurchaseOrderResource::class;

@@ -2,17 +2,20 @@
 
 namespace App\Filament\Resources\Settings\ExchangeRates\Pages;
 
+use App\Filament\Pages\Concerns\HasSaveAndReturnFormActions;
 use App\Filament\Resources\Settings\ExchangeRates\ExchangeRateResource;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditExchangeRate extends EditRecord
 {
+    use HasSaveAndReturnFormActions;
+
     protected static string $resource = ExchangeRateResource::class;
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        if (empty($data['inverse_rate']) && !empty($data['rate'])) {
+        if (empty($data['inverse_rate']) && ! empty($data['rate'])) {
             $data['inverse_rate'] = 1 / (float) $data['rate'];
         }
 
@@ -24,10 +27,5 @@ class EditExchangeRate extends EditRecord
         return [
             DeleteAction::make(),
         ];
-    }
-
-    protected function getRedirectUrl(): string
-    {
-        return $this->getResource()::getUrl('index');
     }
 }

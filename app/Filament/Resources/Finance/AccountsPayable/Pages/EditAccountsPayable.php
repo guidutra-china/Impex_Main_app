@@ -6,6 +6,7 @@ use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
+use App\Filament\Pages\Concerns\HasSaveAndReturnFormActions;
 use App\Filament\Resources\Finance\AccountsPayable\AccountsPayableResource;
 use App\Filament\Resources\Finance\Concerns\HasPaymentAllocationPersistence;
 use Filament\Actions\DeleteAction;
@@ -14,6 +15,7 @@ use Filament\Resources\Pages\EditRecord;
 class EditAccountsPayable extends EditRecord
 {
     use HasPaymentAllocationPersistence;
+    use HasSaveAndReturnFormActions;
 
     protected static string $resource = AccountsPayableResource::class;
 
@@ -99,10 +101,5 @@ class EditAccountsPayable extends EditRecord
             DeleteAction::make()
                 ->authorize('delete'),
         ];
-    }
-
-    protected function getRedirectUrl(): string
-    {
-        return $this->getResource()::getUrl('view', ['record' => $this->record]);
     }
 }

@@ -494,6 +494,8 @@ return [
         'sq_source' => 'SQ Source',
         'swift' => 'SWIFT',
         'swift_bic_code' => 'SWIFT / BIC Code',
+        'save' => 'Save',
+        'save_and_return' => 'Save & Return',
         'save_complete_audit' => 'Save & Complete Audit',
         'save_progress' => 'Save Progress',
         'save_as_custom_price' => 'Save calculated prices as Custom Price',

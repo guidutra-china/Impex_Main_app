@@ -6,6 +6,7 @@ use App\Domain\Catalog\Actions\ProductDeletionGuard;
 use App\Domain\Catalog\Actions\SyncProductPrimaryImageAction;
 use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\Product;
+use App\Filament\Pages\Concerns\HasSaveAndReturnFormActions;
 use App\Filament\Resources\Catalog\Products\Concerns\ManagesProductGallery;
 use App\Filament\Resources\Catalog\Products\ProductResource;
 use Filament\Actions\Action;
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class EditProduct extends EditRecord
 {
+    use HasSaveAndReturnFormActions;
     use ManagesProductGallery;
 
     protected static string $resource = ProductResource::class;
@@ -157,11 +159,5 @@ class EditProduct extends EditRecord
             RestoreAction::make(),
             ForceDeleteAction::make(),
         ];
-    }
-
-    protected function getRedirectUrl(): string
-    {
-        // Stay on the edit page after saving instead of redirecting to the list.
-        return $this->getResource()::getUrl('edit', ['record' => $this->getRecord()]);
     }
 }

@@ -6,12 +6,15 @@ use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\Shipment;
 use App\Events\ShipmentEtaChangedByForwarder;
 use App\Filament\ForwarderPortal\Resources\ShipmentResource;
+use App\Filament\Pages\Concerns\HasSaveAndReturnFormActions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Validation\ValidationException;
 
 class EditShipment extends EditRecord
 {
+    use HasSaveAndReturnFormActions;
+
     protected static string $resource = ShipmentResource::class;
 
     protected ?string $previousEta = null;
@@ -114,10 +117,5 @@ class EditShipment extends EditRecord
                 ->body(__('forwarder_portal.shipment.eta_change_acknowledged_body'))
                 ->send();
         }
-    }
-
-    protected function getRedirectUrl(): string
-    {
-        return $this->getResource()::getUrl('view', ['record' => $this->record]);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Settings\Roles\Pages;
 
+use App\Filament\Pages\Concerns\HasSaveAndReturnFormActions;
 use App\Filament\Resources\Settings\Roles\RoleResource;
 use App\Filament\Resources\Settings\Roles\Schemas\RoleForm;
 use Filament\Resources\Pages\EditRecord;
@@ -9,11 +10,13 @@ use Spatie\Permission\Models\Permission;
 
 class EditRole extends EditRecord
 {
+    use HasSaveAndReturnFormActions;
+
     protected static string $resource = RoleResource::class;
 
     public function getTitle(): string
     {
-        return 'Edit Role — ' . ucfirst($this->record->name);
+        return 'Edit Role — '.ucfirst($this->record->name);
     }
 
     protected function mutateFormDataBeforeFill(array $data): array
@@ -27,7 +30,7 @@ class EditRole extends EditRecord
                 ->pluck('id')
                 ->toArray();
 
-            $data['permissions_' . $group['key']] = array_values(
+            $data['permissions_'.$group['key']] = array_values(
                 array_intersect($rolePermissionIds, $groupPermissionIds)
             );
         }
@@ -41,7 +44,7 @@ class EditRole extends EditRecord
         $allSelectedIds = [];
 
         foreach ($groups as $group) {
-            $key = 'permissions_' . $group['key'];
+            $key = 'permissions_'.$group['key'];
             if (isset($data[$key]) && is_array($data[$key])) {
                 $allSelectedIds = array_merge($allSelectedIds, $data[$key]);
             }
@@ -53,11 +56,6 @@ class EditRole extends EditRecord
         );
 
         return $data;
-    }
-
-    protected function getRedirectUrl(): string
-    {
-        return $this->getResource()::getUrl('index');
     }
 
     protected function afterSave(): void

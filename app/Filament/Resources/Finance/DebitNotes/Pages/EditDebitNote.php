@@ -7,6 +7,7 @@ use App\Domain\Financial\Enums\DebitNoteStatus;
 use App\Domain\Financial\Models\DebitNoteLineItem;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
+use App\Filament\Pages\Concerns\HasSaveAndReturnFormActions;
 use App\Filament\Resources\Finance\DebitNotes\DebitNoteResource;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
@@ -14,6 +15,8 @@ use Illuminate\Validation\ValidationException;
 
 class EditDebitNote extends EditRecord
 {
+    use HasSaveAndReturnFormActions;
+
     protected static string $resource = DebitNoteResource::class;
 
     protected array $pendingLineItems = [];
@@ -116,10 +119,5 @@ class EditDebitNote extends EditRecord
             DeleteAction::make()
                 ->visible(fn () => $this->record->status === DebitNoteStatus::DRAFT),
         ];
-    }
-
-    protected function getRedirectUrl(): string
-    {
-        return $this->getResource()::getUrl('view', ['record' => $this->record]);
     }
 }
