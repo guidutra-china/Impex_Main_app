@@ -81,6 +81,50 @@ class ProformaInvoicePdfOptionsTest extends TestCase
         $this->assertFalse($data['show_product_code']);
     }
 
+    public function test_product_attributes_are_listed_under_the_description(): void
+    {
+        $category = \App\Domain\Catalog\Models\Category::create(['name' => 'Pulleys', 'slug' => 'pulleys']);
+
+        $material = \App\Domain\Catalog\Models\CategoryAttribute::create([
+            'category_id' => $category->id,
+            'name' => 'Material',
+            'type' => 'text',
+            'sort_order' => 2,
+        ]);
+        $diameter = \App\Domain\Catalog\Models\CategoryAttribute::create([
+            'category_id' => $category->id,
+            'name' => 'Diameter',
+            'type' => 'number',
+            'unit' => 'mm',
+            'sort_order' => 1,
+        ]);
+
+        $withAttributes = Product::factory()->create();
+        $withAttributes->attributeValues()->createMany([
+            ['category_attribute_id' => $material->id, 'value' => 'Steel'],
+            ['category_attribute_id' => $diameter->id, 'value' => '120'],
+            // Valor em branco não vira ruído no documento.
+            ['category_attribute_id' => \App\Domain\Catalog\Models\CategoryAttribute::create([
+                'category_id' => $category->id,
+                'name' => 'Finish',
+                'type' => 'text',
+                'sort_order' => 3,
+            ])->id, 'value' => null],
+        ]);
+        $this->addItem($withAttributes, 'Pulley');
+
+        $this->addItem(Product::factory()->create(), 'No attributes here');
+
+        $items = (new ProformaInvoicePdfTemplate($this->pi->fresh(), 'en'))->getData()['items'];
+
+        // Ordem definida na categoria (sort_order), unidade junto do valor.
+        $this->assertSame('Diameter: 120 mm | Material: Steel', $items[0]['attributes']);
+        $this->assertStringNotContainsString('Finish', $items[0]['attributes']);
+
+        // Sem atributos → null, para o template não imprimir linha vazia.
+        $this->assertNull($items[1]['attributes']);
+    }
+
     public function test_show_flags_flow_from_constructor_to_view_data(): void
     {
         $this->addItem(Product::factory()->create(), 'Item');

@@ -202,4 +202,24 @@ abstract class AbstractPdfTemplate
 
         return $externalCode ?: ($product->model_number ?: ($product->sku ?: '—'));
     }
+
+    /**
+     * Atributos cadastrados do produto ("Material: Steel", "Voltage: 220 V")
+     * em uma linha, na ordem definida na categoria. Retorna null quando o
+     * produto não tem atributos, para o template não imprimir linha vazia.
+     */
+    protected function productAttributesLine(?\App\Domain\Catalog\Models\Product $product): ?string
+    {
+        if (! $product) {
+            return null;
+        }
+
+        $line = $product->attributeValues
+            ->filter(fn ($value) => filled($value->value) && $value->categoryAttribute)
+            ->sortBy(fn ($value) => $value->categoryAttribute->sort_order ?? 0)
+            ->map(fn ($value) => $value->formatted)
+            ->implode(' | ');
+
+        return $line !== '' ? $line : null;
+    }
 }

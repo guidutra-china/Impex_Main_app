@@ -100,6 +100,9 @@
                         @if($item['specifications'])
                             <br><span style="font-size: 7.5pt; color: #6b7280;">{{ $item['specifications'] }}</span>
                         @endif
+                        @if(! empty($item['attributes']))
+                            <br><span style="font-size: 7.5pt; color: #6b7280;">{{ $item['attributes'] }}</span>
+                        @endif
                         @if($item['incoterm'])
                             <br><span style="font-size: 7.5pt; color: #6b7280;">{{ $labels['incoterm'] }}: {{ $item['incoterm'] }}</span>
                         @endif
