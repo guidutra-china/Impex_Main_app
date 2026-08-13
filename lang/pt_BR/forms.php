@@ -512,6 +512,7 @@ return [
         'selling_price' => 'Preço de Venda',
         'set_due_date' => 'Definir Data de Vencimento',
         'shipping_instructions' => 'Instruções de Envio',
+        'hide_service_fee' => 'Esconder Taxa de Serviço',
         'show_model_number' => 'Mostrar Model Number',
         'show_product_code' => 'Mostrar Código do Produto (SKU)',
         'show_suppliers_to_client' => 'Mostrar Fornecedores ao Cliente',
@@ -835,6 +836,7 @@ return [
         'filter_by_supplier' => 'Filtrar por Fornecedor',
     ],
     'helpers' => [
+        'hide_service_fee' => 'Se marcado, a linha de Taxa de Serviço não aparece no PDF.',
         'import_modality_affects_ci_and_packing_list' => 'A modalidade de importação afeta a Commercial Invoice e o Packing List.',
         'internal_expense' => 'Marque quando a viagem for despesa interna da empresa (sem cliente/fornecedor vinculado).',
         'indicative_rate' => 'Taxa indicativa — pode ser alterada.',

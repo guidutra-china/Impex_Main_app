@@ -481,6 +481,7 @@ return [
         'selling_price' => '销售价格',
         'set_due_date' => '设置截止日期',
         'shipping_instructions' => '运输说明',
+        'hide_service_fee' => '隐藏服务费',
         'show_model_number' => '显示型号',
         'show_product_code' => '显示产品代码 (SKU)',
         'show_suppliers_to_client' => '向客户显示供应商',
@@ -798,6 +799,7 @@ return [
         'filter_by_supplier' => '按供应商筛选',
     ],
     'helpers' => [
+        'hide_service_fee' => '勾选后，PDF 中不显示服务费行。',
         'import_modality_affects_ci_and_packing_list' => '进口方式会影响商业发票和装箱单。',
         'internal_expense' => '当出差为公司内部费用（无关联客户/供应商）时勾选。',
         'indicative_rate' => '指示性汇率 — 可修改。',

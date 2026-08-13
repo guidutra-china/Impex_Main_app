@@ -513,6 +513,7 @@ return [
         'selling_price' => 'Selling Price',
         'set_due_date' => 'Set Due Date',
         'shipping_instructions' => 'Shipping Instructions',
+        'hide_service_fee' => 'Hide Service Fee',
         'show_model_number' => 'Show Model Number',
         'show_product_code' => 'Show Product Code (SKU)',
         'show_suppliers_to_client' => 'Show Suppliers to Client',
@@ -836,6 +837,7 @@ return [
         'filter_by_supplier' => 'Filter by Supplier',
     ],
     'helpers' => [
+        'hide_service_fee' => 'If checked, the Service Fee line will not appear in the PDF.',
         'import_modality_affects_ci_and_packing_list' => 'The import modality affects the Commercial Invoice and Packing List.',
         'internal_expense' => 'Check when the trip is an internal company expense (no linked client/supplier).',
         'indicative_rate' => 'Indicative rate — can be changed.',

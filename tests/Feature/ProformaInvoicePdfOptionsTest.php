@@ -125,6 +125,57 @@ class ProformaInvoicePdfOptionsTest extends TestCase
         $this->assertNull($items[1]['attributes']);
     }
 
+    public function test_hide_commission_removes_the_service_fee_line(): void
+    {
+        $this->addItem(Product::factory()->create(), 'Item');
+
+        \App\Domain\Financial\Models\AdditionalCost::create([
+            'costable_type' => ProformaInvoice::class,
+            'costable_id' => $this->pi->id,
+            'cost_type' => \App\Domain\Financial\Enums\AdditionalCostType::COMMISSION,
+            'commission_mode' => \App\Domain\Quotations\Enums\CommissionType::SEPARATE,
+            'description' => 'Service Fee',
+            'amount' => 500000,
+            'currency_code' => 'USD',
+            'amount_in_document_currency' => 500000,
+            'billable_to' => \App\Domain\Financial\Enums\BillableTo::CLIENT,
+            'cost_date' => now()->toDateString(),
+        ]);
+
+        $visible = (new ProformaInvoicePdfTemplate($this->pi->fresh(), 'en'))->getData();
+        $this->assertNotEmpty($visible['service_fees']);
+
+        $hidden = (new ProformaInvoicePdfTemplate($this->pi->fresh(), 'en', hideCommission: true))->getData();
+        $this->assertEmpty($hidden['service_fees']);
+
+        // Escondida a linha, o total volta a ser apenas o subtotal dos itens.
+        $this->assertSame($hidden['totals']['subtotal'], $hidden['totals']['grand_total']);
+        $this->assertNotSame($visible['totals']['subtotal'], $visible['totals']['grand_total']);
+    }
+
+    public function test_modal_checkbox_names_map_onto_the_template_constructor(): void
+    {
+        $this->addItem(Product::factory()->create(), 'Item');
+
+        // Nomes usados nos formSchema dos modais Generate/Preview PDF.
+        $formData = [
+            'with_images' => false,
+            'show_model_number' => false,
+            'show_product_code' => true,
+            'hide_commission' => true,
+        ];
+
+        $method = new \ReflectionMethod(\App\Filament\Actions\GeneratePdfAction::class, 'createTemplate');
+        /** @var ProformaInvoicePdfTemplate $template */
+        $template = $method->invoke(null, ProformaInvoicePdfTemplate::class, $this->pi->fresh(), $formData);
+
+        $data = $template->getData();
+
+        $this->assertTrue($data['show_product_code']);
+        $this->assertFalse($data['show_model_number']);
+        $this->assertEmpty($data['service_fees']);
+    }
+
     public function test_show_flags_flow_from_constructor_to_view_data(): void
     {
         $this->addItem(Product::factory()->create(), 'Item');

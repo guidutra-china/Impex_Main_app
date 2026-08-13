@@ -120,6 +120,9 @@ trait ProformaInvoiceHeaderActions
                         ->default(true),
                     Checkbox::make('show_product_code')
                         ->label(__('forms.labels.show_product_code')),
+                    Checkbox::make('hide_commission')
+                        ->label(__('forms.labels.hide_service_fee'))
+                        ->helperText(__('forms.helpers.hide_service_fee')),
                 ],
             ),
             GeneratePdfAction::download(
@@ -141,6 +144,10 @@ trait ProformaInvoiceHeaderActions
                     Checkbox::make('show_product_code')
                         ->label(__('forms.labels.show_product_code'))
                         ->live(),
+                    Checkbox::make('hide_commission')
+                        ->label(__('forms.labels.hide_service_fee'))
+                        ->live()
+                        ->helperText(__('forms.helpers.hide_service_fee')),
                 ],
             ),
             SendDocumentByEmailAction::make(
