@@ -80,6 +80,32 @@ class SupplierQuotationTargetTest extends TestCase
         $this->assertSame([], $payload['images']);
     }
 
+    public function test_build_form_preserves_sub_cent_prices_through_the_round_trip(): void
+    {
+        $target = new SupplierQuotationTarget;
+
+        $preview = [
+            'fornecedor' => ['status' => 'novo', 'company_id' => null, 'nome' => 'ACME'],
+            'cabecalho' => ['currency_code' => 'USD'],
+            'itens' => [
+                ['status' => 'novo', 'product_id' => null, 'part_no' => '87728905', 'description' => 'Pin',
+                    'quantity' => 5000, 'unit' => 'pcs', 'unit_cost_minor' => Money::toMinor(0.247)],
+                ['status' => 'novo', 'product_id' => null, 'part_no' => '286333', 'description' => 'Bushing',
+                    'quantity' => 300, 'unit' => 'pcs', 'unit_cost_minor' => Money::toMinor(3.6765)],
+            ],
+        ];
+
+        $form = $target->buildForm($preview, []);
+
+        $this->assertSame(0.247, $form['itens'][0]['unit_price']);
+        $this->assertSame(3.6765, $form['itens'][1]['unit_price']);
+
+        $payload = $target->formToConfirmPayload($form, []);
+
+        $this->assertSame(2470, $payload['preview']['itens'][0]['unit_cost_minor']);
+        $this->assertSame(36765, $payload['preview']['itens'][1]['unit_cost_minor']);
+    }
+
     public function test_build_form_maps_contact_category_specs_and_photo_index(): void
     {
         $target = new SupplierQuotationTarget;

@@ -122,7 +122,7 @@
                         </td>
                         <td class="px-1 py-1 text-right"><input type="number" wire:model="form.itens.{{ $i }}.quantity" class="w-14 rounded border-gray-300 px-1 text-right text-xs dark:bg-gray-900 dark:border-white/10" /></td>
                         <td class="px-1 py-1"><input type="text" wire:model="form.itens.{{ $i }}.unit" class="w-12 rounded border-gray-300 px-1 text-xs dark:bg-gray-900 dark:border-white/10" /></td>
-                        <td class="px-1 py-1 text-right"><input type="number" step="0.01" wire:model="form.itens.{{ $i }}.target_price" class="w-20 rounded border-gray-300 px-1 text-right text-xs dark:bg-gray-900 dark:border-white/10" /></td>
+                        <td class="px-1 py-1 text-right"><input type="number" step="0.0001" wire:model="form.itens.{{ $i }}.target_price" class="w-20 rounded border-gray-300 px-1 text-right text-xs dark:bg-gray-900 dark:border-white/10" /></td>
                         <td class="px-2 py-1">
                             @if (($item['status'] ?? '') === 'novo')
                                 <span class="rounded bg-amber-200 px-1.5 py-0.5 text-[10px] text-amber-900" title="{{ __('assistant.new_product_hint') }}">

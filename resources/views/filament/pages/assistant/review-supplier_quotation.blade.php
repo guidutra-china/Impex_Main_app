@@ -120,7 +120,7 @@
                         </td>
                         <td class="px-1 py-1 text-right"><input type="number" wire:model="form.itens.{{ $i }}.quantity" class="w-14 rounded border-gray-300 px-1 text-right text-xs dark:bg-gray-900 dark:border-white/10" /></td>
                         <td class="px-1 py-1"><input type="text" wire:model="form.itens.{{ $i }}.unit" class="w-12 rounded border-gray-300 px-1 text-xs dark:bg-gray-900 dark:border-white/10" /></td>
-                        <td class="px-1 py-1 text-right"><input type="number" step="0.01" wire:model="form.itens.{{ $i }}.unit_price" class="w-20 rounded border-gray-300 px-1 text-right text-xs dark:bg-gray-900 dark:border-white/10" /></td>
+                        <td class="px-1 py-1 text-right"><input type="number" step="0.0001" wire:model="form.itens.{{ $i }}.unit_price" class="w-20 rounded border-gray-300 px-1 text-right text-xs dark:bg-gray-900 dark:border-white/10" /></td>
                         <td class="px-2 py-1">
                             <select wire:model="form.itens.{{ $i }}.category_id" class="w-32 rounded border-gray-300 text-xs dark:bg-gray-900 dark:border-white/10">
                                 <option value="">{{ __('assistant.no_category') }}</option>

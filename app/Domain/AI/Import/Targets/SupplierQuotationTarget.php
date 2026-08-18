@@ -126,7 +126,7 @@ class SupplierQuotationTarget implements ImportTarget
                 'description' => $it['description'] ?? '',
                 'quantity' => $it['quantity'] ?? 0,
                 'unit' => $it['unit'] ?? 'pcs',
-                'unit_price' => round(((int) ($it['unit_cost_minor'] ?? 0)) / Money::SCALE, 2),
+                'unit_price' => Money::toMajor((int) ($it['unit_cost_minor'] ?? 0)),
                 'category_id' => $it['category_id'] ?? null,
                 'part_no' => $it['part_no'] ?? null,
                 'status' => $it['status'] ?? 'novo',

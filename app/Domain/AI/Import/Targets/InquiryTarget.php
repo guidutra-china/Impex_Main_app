@@ -111,7 +111,7 @@ class InquiryTarget implements ImportTarget
                 'description' => $it['description'] ?? '',
                 'quantity' => $it['quantity'] ?? 0,
                 'unit' => $it['unit'] ?? 'pcs',
-                'target_price' => $minor !== null ? round(((int) $minor) / Money::SCALE, 2) : null,
+                'target_price' => $minor !== null ? Money::toMajor((int) $minor) : null,
                 'specifications' => $it['specifications'] ?? null,
                 'notes' => $it['notes'] ?? null,
                 'status' => $it['status'] ?? 'novo',
