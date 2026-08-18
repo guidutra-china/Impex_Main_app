@@ -14,6 +14,8 @@ use App\Domain\Infrastructure\Pdf\Templates\PackingListPdfTemplate;
 use App\Domain\Infrastructure\Pdf\Templates\ShipmentProformaInvoicePdfTemplate;
 use App\Domain\Infrastructure\Services\DocumentService;
 use App\Domain\Logistics\Enums\ShipmentStatus;
+use App\Domain\Logistics\Reports\CommercialInvoiceExcelExporter;
+use App\Domain\Logistics\Reports\PackingListExcelExporter;
 use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Actions\SendDocumentByEmailAction;
 use Filament\Actions\Action;
@@ -57,6 +59,7 @@ trait ShipmentHeaderActions
                     settingsKey: 'email_default_message_packing_list',
                     label: 'Send by Email',
                 )->name('sendPackingListByEmail'),
+                $this->packingListExcelAction(),
             ])
                 ->label(__('forms.labels.packing_list'))
                 ->icon('heroicon-o-clipboard-document-list')
@@ -79,6 +82,7 @@ trait ShipmentHeaderActions
                     settingsKey: 'email_default_message_commercial_invoice',
                     label: 'Send by Email',
                 )->name('sendCommercialInvoiceByEmail'),
+                $this->commercialInvoiceExcelAction(),
             ])
                 ->label(__('forms.labels.commercial_invoice'))
                 ->icon('heroicon-o-document-currency-dollar')
@@ -257,6 +261,45 @@ trait ShipmentHeaderActions
             ->unique()
             ->values()
             ->toArray();
+    }
+
+    /**
+     * Commercial Invoice em Excel. Usa o mesmo formulário de opções do PDF
+     * (custom prices, fórmula, frete) para que os dois formatos saiam com os
+     * mesmos valores; o arquivo é baixado direto, sem versionar como Document.
+     */
+    protected function commercialInvoiceExcelAction(): Action
+    {
+        return Action::make('exportCommercialInvoiceExcel')
+            ->label(__('forms.labels.export_excel'))
+            ->icon('heroicon-o-table-cells')
+            ->color('success')
+            ->visible(fn () => auth()->user()?->can('generate-documents'))
+            ->modalHeading(__('forms.labels.export_excel').' — '.__('forms.labels.commercial_invoice'))
+            ->modalSubmitActionLabel(__('forms.labels.export_excel'))
+            ->form($this->commercialInvoiceOptions())
+            ->action(function (array $data) {
+                $record = $this->getRecord();
+                $this->handleSaveCustomPrices($record, $data);
+
+                $path = (new CommercialInvoiceExcelExporter)->export($record, $data);
+
+                return response()->download($path)->deleteFileAfterSend();
+            });
+    }
+
+    protected function packingListExcelAction(): Action
+    {
+        return Action::make('exportPackingListExcel')
+            ->label(__('forms.labels.export_excel'))
+            ->icon('heroicon-o-table-cells')
+            ->color('info')
+            ->visible(fn () => auth()->user()?->can('generate-documents'))
+            ->action(function () {
+                $path = (new PackingListExcelExporter)->export($this->getRecord());
+
+                return response()->download($path)->deleteFileAfterSend();
+            });
     }
 
     protected function commercialInvoiceGenerateAction(): Action
