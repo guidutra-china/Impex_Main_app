@@ -1,35 +1,5 @@
 <x-filament-panels::page>
     <div class="mx-auto flex w-full max-w-3xl flex-col gap-4">
-        {{-- Transcript --}}
-        <div
-            class="flex min-h-[50vh] max-h-[65vh] flex-col gap-3 overflow-y-auto rounded-xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-gray-900"
-            x-data
-            x-init="$nextTick(() => $el.scrollTop = $el.scrollHeight)"
-            x-on:assistant-updated.window="$nextTick(() => $el.scrollTop = $el.scrollHeight)"
-        >
-            @forelse ($messages as $message)
-                <div @class([
-                    'max-w-[80%] whitespace-pre-wrap rounded-xl px-4 py-2 text-sm',
-                    'self-end bg-primary-600 text-white' => $message['role'] === 'user',
-                    'self-start bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-gray-100' => $message['role'] === 'assistant',
-                ])>
-                    {{ $message['text'] }}
-                </div>
-            @empty
-                <p class="m-auto max-w-sm text-center text-sm text-gray-400">
-                    {{ __('assistant.empty_hint') }}
-                </p>
-            @endforelse
-
-            <div
-                wire:loading
-                wire:target="send"
-                class="self-start rounded-xl bg-gray-100 px-4 py-2 text-sm text-gray-500 dark:bg-white/10"
-            >
-                {{ __('assistant.thinking') }}
-            </div>
-        </div>
-
         {{-- Import universal: revisão / escolha de destino / dropzone --}}
         @if ($form)
             @include('filament.pages.assistant.review-'.$importTargetKey)
@@ -148,6 +118,36 @@
                 {{ __('assistant.send') }}
             </x-filament::button>
         </form>
+
+        {{-- Transcript --}}
+        <div
+            class="flex min-h-[50vh] max-h-[65vh] flex-col gap-3 overflow-y-auto rounded-xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-gray-900"
+            x-data
+            x-init="$nextTick(() => $el.scrollTop = $el.scrollHeight)"
+            x-on:assistant-updated.window="$nextTick(() => $el.scrollTop = $el.scrollHeight)"
+        >
+            @forelse ($messages as $message)
+                <div @class([
+                    'max-w-[80%] whitespace-pre-wrap rounded-xl px-4 py-2 text-sm',
+                    'self-end bg-primary-600 text-white' => $message['role'] === 'user',
+                    'self-start bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-gray-100' => $message['role'] === 'assistant',
+                ])>
+                    {{ $message['text'] }}
+                </div>
+            @empty
+                <p class="m-auto max-w-sm text-center text-sm text-gray-400">
+                    {{ __('assistant.empty_hint') }}
+                </p>
+            @endforelse
+
+            <div
+                wire:loading
+                wire:target="send"
+                class="self-start rounded-xl bg-gray-100 px-4 py-2 text-sm text-gray-500 dark:bg-white/10"
+            >
+                {{ __('assistant.thinking') }}
+            </div>
+        </div>
 
         @if (count($messages) > 0)
             <div class="flex justify-end">
