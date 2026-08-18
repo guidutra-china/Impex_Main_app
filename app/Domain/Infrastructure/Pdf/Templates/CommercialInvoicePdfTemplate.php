@@ -2,7 +2,7 @@
 
 namespace App\Domain\Infrastructure\Pdf\Templates;
 
-use App\Domain\Catalog\Models\Product;
+use App\Domain\Catalog\Services\ProductIdentityResolver;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Logistics\Enums\ImportModality;
@@ -10,9 +10,7 @@ use App\Domain\Logistics\Models\Shipment;
 
 class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
 {
-    private ?int $clientCompanyId = null;
-
-    private array $clientPivotCache = [];
+    private ?ProductIdentityResolver $identity = null;
 
     public function getView(): string
     {
@@ -48,8 +46,15 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
             'additionalCosts',
         ]);
 
-        $this->clientCompanyId = $shipment->company_id;
-        $this->warmPivotCache($shipment);
+        // Documento endereçado à filial resolve o pivot da filial primeiro e
+        // cai para a matriz — o endereço já segue getDocumentClient().
+        $this->identity = ProductIdentityResolver::forClient(
+            $shipment->getDocumentClient()?->id,
+            $shipment->company_id,
+        );
+        $this->identity->warm(
+            $shipment->items->map(fn ($item) => $item->proformaInvoiceItem?->product)
+        );
 
         $currencyCode = $shipment->currency_code ?? 'USD';
 
@@ -115,6 +120,9 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
                 'tax_id' => $documentClient->tax_number,
             ],
             'items' => $items,
+            // Coluna NCM só aparece quando algum item tem NCM do cliente —
+            // clientes fora do Brasil não veem uma coluna vazia.
+            'show_ncm' => collect($items)->contains(fn ($item) => filled($item['ncm'])),
             'totals' => [
                 'subtotal' => $this->formatMoney($subtotal, $currencyCode, 2),
                 'freight' => $freightCosts > 0 ? $this->formatMoney($freightCosts, $currencyCode, 2) : null,
@@ -138,17 +146,25 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
             ->map(function ($item, $index) use ($currencyCode, $priceFormula, $useCustomPrices) {
                 $product = $item->proformaInvoiceItem?->product;
                 $piItem = $item->proformaInvoiceItem;
-                $pivot = $this->getClientPivot($product);
+
+                $identity = $this->identity->resolve(
+                    $product,
+                    lineName: $item->product_name,
+                    lineDescription: $piItem?->description,
+                );
 
                 $unitPrice = $this->effectiveUnitPrice($item, $priceFormula, $useCustomPrices);
                 $lineTotal = $unitPrice * $item->quantity;
 
                 return [
                     'index' => $index + 1,
-                    'model_no' => $pivot?->external_code ?: ($product?->model_number ?: ($product?->sku ?? '—')),
-                    'product_name' => $pivot?->external_name ?: $item->product_name,
+                    // Linha sem produto continua imprimindo "—"; produto sem
+                    // identificador continua imprimindo célula vazia.
+                    'model_no' => $product ? $identity->code : '—',
+                    'ncm' => $identity->ncm,
+                    'product_name' => $identity->name,
                     'description' => $this->formatDescription(
-                        $pivot?->external_description ?: ($piItem?->description ?? $piItem?->specifications ?? '')
+                        $identity->description ?: ($piItem?->specifications ?? '')
                     ),
                     'quantity' => $item->quantity,
                     'unit' => $piItem?->unit ?? 'pcs',
@@ -175,7 +191,7 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
         }
 
         if ($useCustomPrices) {
-            $pivot = $this->getClientPivot($item->proformaInvoiceItem?->product);
+            $pivot = $this->identity?->pivot($item->proformaInvoiceItem?->product);
 
             if ($pivot && filled($pivot->custom_price) && $pivot->custom_price > 0) {
                 return (int) $pivot->custom_price;
@@ -198,38 +214,6 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
             'port_of_destination' => $shipment->destination_port,
             'country_of_origin' => 'China',
         ]);
-    }
-
-    private function warmPivotCache(Shipment $shipment): void
-    {
-        if (! $this->clientCompanyId) {
-            return;
-        }
-
-        foreach ($shipment->items as $item) {
-            $product = $item->proformaInvoiceItem?->product;
-            if (! $product) {
-                continue;
-            }
-
-            $clientPivot = $product->companies
-                ->where('pivot.company_id', $this->clientCompanyId)
-                ->where('pivot.role', 'client')
-                ->first();
-
-            if ($clientPivot) {
-                $this->clientPivotCache[$product->id] = $clientPivot->pivot;
-            }
-        }
-    }
-
-    private function getClientPivot(?Product $product)
-    {
-        if (! $product) {
-            return null;
-        }
-
-        return $this->clientPivotCache[$product->id] ?? null;
     }
 
     private function buildImportModalityData(Shipment $shipment): array

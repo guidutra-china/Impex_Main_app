@@ -155,6 +155,8 @@ return [
 
     // Production Schedule & Shipment Plan
     'import_successful' => 'Import Successful',
+    'import_no_rows_matched_title' => 'No rows imported',
+    'import_no_rows_matched_body' => 'No spreadsheet row matched a Proforma Invoice item. Check that the product names or codes in the file match the ones on the generated template.',
     'confirm_shipment_plan_description' => 'This will generate payment schedule items for all shipment-dependent stages (BEFORE_SHIPMENT, BEFORE_ARRIVAL, etc.) based on the planned items and their PI payment terms. The plan status will advance to Pending Payment.',
     'shipment_plan_confirmed' => 'Shipment Plan Confirmed',
     'payment_schedule_generated' => 'Payment schedule items have been generated for this shipment plan.',

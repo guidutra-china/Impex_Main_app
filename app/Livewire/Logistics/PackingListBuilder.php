@@ -174,17 +174,18 @@ class PackingListBuilder extends Component
             ->get()
             ->keyBy('id');
 
-        return $items->map(function ($item) use ($progress, $products) {
+        $identity = \App\Domain\Catalog\Services\ProductIdentityResolver::forClient($this->shipment->company_id);
+
+        return $items->map(function ($item) use ($progress, $products, $identity) {
             $product = $products[$item->proformaInvoiceItem?->product_id] ?? null;
             $packaging = $product?->packaging;
-            $clientPivot = $product?->companies->first()?->pivot;
 
             return [
                 'item' => $item,
                 'progress' => $progress[$item->id] ?? null,
                 'pcs_per_carton' => (int) ($packaging?->pcs_per_carton ?? 0),
                 'carton_weight' => $packaging?->carton_weight,
-                'model_no' => $clientPivot?->external_code ?: ($product?->model_number ?: $product?->sku),
+                'model_no' => $identity->resolve($product)->code ?: null,
             ];
         });
     }

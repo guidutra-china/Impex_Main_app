@@ -18,9 +18,10 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
  * Célula em branco limpa o campo correspondente (a planilha é o estado final),
  * exceto unit_price, que é NOT NULL e volta para 0. Fotos são ignoradas.
  *
- * Colunas adicionais: NCM (M) atualiza o hs_code do PRODUTO quando preenchida —
- * em branco NÃO limpa (dado do produto, compartilhado entre clientes; um
- * arquivo antigo sem a coluna não pode apagar NCMs). Fabricante (N) é apenas
+ * Colunas adicionais: NCM (M) atualiza o external_ncm do vínculo do CLIENTE
+ * quando preenchida — em branco NÃO limpa (um arquivo antigo sem a coluna não
+ * pode apagar NCMs). NCM é classificação do importador, por isso vive no pivot
+ * e não em products.hs_code, que é global. Fabricante (N) é apenas
  * informativa e ignorada no import (vínculo com fornecedor não é editável por
  * planilha de cliente).
  */
@@ -81,9 +82,10 @@ class ClientProductsReportImporter
                     'currency_code' => $this->stringValue($sheet, 'L'.$row),
                 ]);
 
+                // NCM é do cliente: grava no vínculo, nunca no hs_code global.
                 $ncm = $this->stringValue($sheet, 'M'.$row);
-                if ($ncm !== null && $link->product && $link->product->hs_code !== $ncm) {
-                    $link->product->update(['hs_code' => $ncm]);
+                if ($ncm !== null && $link->external_ncm !== $ncm) {
+                    $link->update(['external_ncm' => $ncm]);
                 }
 
                 $stats['updated']++;

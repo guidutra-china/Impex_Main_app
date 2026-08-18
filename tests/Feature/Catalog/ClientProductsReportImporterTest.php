@@ -56,12 +56,12 @@ class ClientProductsReportImporterTest extends TestCase
         $sheet->setCellValue('J5', 15.5);
         $sheet->setCellValue('K5', 14.25);
         $sheet->setCellValue('L5', 'BRL');
-        $sheet->setCellValue('M5', '8501.31.20'); // NCM editado atualiza o produto
+        $sheet->setCellValue('M5', '8501.31.20'); // NCM editado atualiza o vínculo do cliente
 
         // Row 6 = product B: blank cells must clear the stored values.
         $sheet->setCellValue('G6', '');
         $sheet->setCellValue('J6', '');
-        $sheet->setCellValue('M6', ''); // NCM em branco NÃO limpa o produto
+        $sheet->setCellValue('M6', ''); // NCM em branco NÃO limpa o valor já gravado
 
         // Extra row with unknown SKU must be skipped.
         $sheet->setCellValue('B7', 'SKU-UNKNOWN');
@@ -88,7 +88,12 @@ class ClientProductsReportImporterTest extends TestCase
         $this->assertSame(0, $linkB->unit_price);
         $this->assertNull($linkB->custom_price);
 
-        $this->assertSame('8501.31.20', $productA->refresh()->hs_code);
+        // NCM é do importador: grava no vínculo do cliente…
+        $this->assertSame('8501.31.20', $linkA->external_ncm);
+        $this->assertNull($linkB->external_ncm, 'célula em branco não grava NCM');
+
+        // …e o HS Code global do produto não é tocado pela planilha do cliente.
+        $this->assertSame('9405.10.99', $productA->refresh()->hs_code);
         $this->assertSame('8544.49.00', $productB->refresh()->hs_code);
 
         unlink($path);

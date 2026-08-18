@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Catalog\Products\RelationManagers;
 
 use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\Infrastructure\Support\Money;
+use App\Filament\Support\ClientNcmInput;
 use BackedEnum;
 use Filament\Actions\AttachAction;
 use Filament\Actions\BulkAction;
@@ -50,6 +51,7 @@ class ClientsRelationManager extends RelationManager
                     ->maxLength(2000)
                     ->helperText(__('forms.helpers.product_description_as_used_by_the_client_will_appear_on'))
                     ->columnSpanFull(),
+                ClientNcmInput::make(),
                 TextInput::make('unit_price')
                     ->label(__('forms.labels.selling_price'))
                     ->numeric()
@@ -93,6 +95,10 @@ class ClientsRelationManager extends RelationManager
                 TextColumn::make('pivot.external_name')
                     ->label(__('forms.labels.client_product_name'))
                     ->placeholder('—'),
+                TextColumn::make('pivot.external_ncm')
+                    ->label(__('forms.labels.ncm'))
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('pivot.unit_price')
                     ->label(__('forms.labels.selling_price'))
                     ->formatStateUsing(fn ($state) => $state ? Money::format($state, 4) : '—')
@@ -134,6 +140,7 @@ class ClientsRelationManager extends RelationManager
                             ->rows(3)
                             ->maxLength(2000)
                             ->helperText(__('forms.helpers.will_appear_on_invoices')),
+                        ClientNcmInput::make(),
                         TextInput::make('unit_price')
                             ->label(__('forms.labels.selling_price'))
                             ->numeric()

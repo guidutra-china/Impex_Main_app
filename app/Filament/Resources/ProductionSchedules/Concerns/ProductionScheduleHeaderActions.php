@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ProductionSchedules\Concerns;
 
+use App\Domain\Catalog\Services\ProductIdentityResolver;
 use App\Domain\Planning\Actions\GenerateProductionScheduleTemplate;
 use App\Domain\Planning\Models\ProductionScheduleEntry;
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
@@ -72,15 +73,29 @@ trait ProductionScheduleHeaderActions
                         $filePath = reset($filePath);
                     }
 
-                    $path = storage_path('app/private/' . $filePath);
+                    $path = storage_path('app/private/'.$filePath);
 
                     if (! file_exists($path)) {
-                        $path = storage_path('app/' . $filePath);
+                        $path = storage_path('app/'.$filePath);
                     }
 
                     $imported = $this->processSpreadsheet($path);
 
                     @unlink($path);
+
+                    // Zero linhas importadas quase sempre significa que nenhuma
+                    // linha casou com os itens da PI — antes isso era reportado
+                    // como sucesso e a falha passava despercebida.
+                    if ($imported === 0) {
+                        Notification::make()
+                            ->title(__('messages.import_no_rows_matched_title'))
+                            ->body(__('messages.import_no_rows_matched_body'))
+                            ->warning()
+                            ->persistent()
+                            ->send();
+
+                        return;
+                    }
 
                     Notification::make()
                         ->title(__('messages.import_successful'))
@@ -107,7 +122,7 @@ trait ProductionScheduleHeaderActions
             return strtolower(trim($item->product?->name ?? $item->description ?? ''));
         });
 
-        $reader = new Reader();
+        $reader = new Reader;
         $reader->open($path);
 
         $imported = 0;
@@ -127,6 +142,7 @@ trait ProductionScheduleHeaderActions
                     $firstCell = strtolower(trim((string) ($values[0] ?? '')));
                     if (str_contains($firstCell, 'production schedule')) {
                         $isTemplateFormat = true;
+
                         continue;
                     }
                 }
@@ -170,6 +186,7 @@ trait ProductionScheduleHeaderActions
                     );
 
                     $imported++;
+
                     continue;
                 }
 
@@ -188,6 +205,7 @@ trait ProductionScheduleHeaderActions
 
                     if (! empty($dateColumns)) {
                         $isSupplierFormat = true;
+
                         continue;
                     }
 
@@ -266,6 +284,7 @@ trait ProductionScheduleHeaderActions
 
         if (is_numeric($value) && (int) $value > 40000) {
             $unix = ((int) $value - 25569) * 86400;
+
             return date('Y-m-d', $unix);
         }
 
@@ -299,6 +318,13 @@ trait ProductionScheduleHeaderActions
             return $piItemsByName->get($normalized);
         }
 
+        // O template enviado ao fornecedor imprime o nome/código DELE quando
+        // cadastrado, então a planilha volta com esses valores — casar por eles
+        // antes de partir para heurística de substring.
+        if ($match = $this->matchBySupplierIdentity($normalized, $piItems)) {
+            return $match;
+        }
+
         foreach ($piItemsByName as $key => $item) {
             if (str_contains($key, $normalized) || str_contains($normalized, $key)) {
                 return $item;
@@ -309,6 +335,40 @@ trait ProductionScheduleHeaderActions
             $sku = strtolower(trim($item->product?->sku ?? ''));
             if ($sku && str_contains($normalized, $sku)) {
                 return $item;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Casa a linha da planilha pelo nome ou código que o FORNECEDOR usa para o
+     * produto (pivot company_product, role=supplier).
+     */
+    protected function matchBySupplierIdentity(string $normalized, $piItems): ?ProformaInvoiceItem
+    {
+        $supplierId = $this->record->supplier_company_id;
+
+        if (! $supplierId || $normalized === '') {
+            return null;
+        }
+
+        $identity = ProductIdentityResolver::forSupplier($supplierId);
+
+        foreach ($piItems as $item) {
+            $product = $item->product;
+
+            if (! $product) {
+                continue;
+            }
+
+            $product->loadMissing('companies');
+            $resolved = $identity->resolve($product);
+
+            foreach ([$resolved->name, $resolved->code] as $candidate) {
+                if (filled($candidate) && strtolower(trim($candidate)) === $normalized) {
+                    return $item;
+                }
             }
         }
 

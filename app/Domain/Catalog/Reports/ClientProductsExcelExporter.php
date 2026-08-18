@@ -162,9 +162,9 @@ class ClientProductsExcelExporter
             $sheet->setCellValue('L'.$row, $pivot->currency_code);
         }
 
-        // NCM (hs_code) e fabricante — o fornecedor preferencial vinculado ao
-        // produto, ou o primeiro quando nenhum está marcado como preferencial.
-        $sheet->setCellValueExplicit('M'.$row, (string) ($product->hs_code ?? ''), DataType::TYPE_STRING);
+        // NCM do CLIENTE (pivot) e fabricante — o fornecedor preferencial
+        // vinculado ao produto, ou o primeiro quando nenhum está marcado.
+        $sheet->setCellValueExplicit('M'.$row, (string) ($pivot->external_ncm ?? ''), DataType::TYPE_STRING);
         $manufacturer = $product->suppliers
             ->sortByDesc(fn ($s) => (int) $s->pivot->is_preferred)
             ->first();

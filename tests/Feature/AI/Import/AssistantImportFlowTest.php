@@ -426,8 +426,19 @@ class AssistantImportFlowTest extends TestCase
             ->call('confirmImport');
 
         // O item desvinculado gera um produto NOVO com o texto editado; o antigo fica intocado.
-        $this->assertDatabaseHas('products', ['name' => 'Nome corrigido', 'reference_code' => 'P-1-NEW', 'model_number' => 'P-1-NEW']);
+        $this->assertDatabaseHas('products', ['name' => 'Nome corrigido', 'reference_code' => 'P-1-NEW']);
         $this->assertDatabaseHas('products', ['id' => $wrong->id, 'name' => 'Nome errado']);
+
+        // O part number do fornecedor vai para o pivot dele, NÃO para o
+        // model_number global — que é o 2º nível da regra do cliente e faria o
+        // código do fornecedor aparecer na fatura do cliente.
+        $created = \App\Domain\Catalog\Models\Product::where('reference_code', 'P-1-NEW')->firstOrFail();
+        $this->assertNull($created->model_number);
+        $this->assertDatabaseHas('company_product', [
+            'product_id' => $created->id,
+            'role' => 'supplier',
+            'external_code' => 'P-1-NEW',
+        ]);
     }
 
     public function test_chat_message_edits_the_active_preview(): void

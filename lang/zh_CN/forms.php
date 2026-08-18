@@ -335,6 +335,7 @@ return [
         'nw_carton' => '净重 / 箱',
         'nw_carton_kg' => '净重 / 箱 (kg)',
         'name' => '名称',
+        'ncm' => 'NCM',
         'net_weight' => '净重',
         'net_weight_1_pc' => '净重（1件）',
         'net_weight_kg' => '净重 (kg)',
@@ -800,6 +801,7 @@ return [
     ],
     'helpers' => [
         'hide_service_fee' => '勾选后，PDF 中不显示服务费行。',
+        'client_ncm' => '该客户进口此产品所用的税则分类，显示在商业发票上。4 至 8 位数字。',
         'import_modality_affects_ci_and_packing_list' => '进口方式会影响商业发票和装箱单。',
         'internal_expense' => '当出差为公司内部费用（无关联客户/供应商）时勾选。',
         'indicative_rate' => '指示性汇率 — 可修改。',

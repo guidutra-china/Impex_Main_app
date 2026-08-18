@@ -2,6 +2,7 @@
 
 namespace App\Domain\Infrastructure\Pdf\Templates;
 
+use App\Domain\Catalog\Services\ProductIdentityResolver;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
@@ -45,13 +46,17 @@ class PaymentStatementPdfTemplate extends AbstractPdfTemplate
         $pi->loadMissing(['company', 'items.product.companies', 'additionalCosts']);
 
         $currencyCode = $pi->currency_code ?? 'USD';
-        $clientId = $pi->company_id;
 
-        $piItems = $pi->items->sortBy('sort_order')->values()->map(function ($item, int $index) use ($currencyCode, $clientId) {
+        $identityResolver = ProductIdentityResolver::forClient($pi->company_id);
+        $identityResolver->warm($pi->items->map(fn ($item) => $item->product));
+
+        $piItems = $pi->items->sortBy('sort_order')->values()->map(function ($item, int $index) use ($currencyCode, $identityResolver) {
+            $identity = $identityResolver->resolve($item->product, lineDescription: $item->description);
+
             return [
                 'index' => $index + 1,
-                'product_code' => $this->clientProductCode($item->product, $clientId),
-                'description' => $this->formatDescription($item->description ?? $item->product?->name ?? '—'),
+                'product_code' => $identity->codeOr('—'),
+                'description' => $this->formatDescription($identity->description ?: $identity->name),
                 'quantity' => $item->quantity,
                 'unit' => $item->unit ?? 'pcs',
                 'unit_price' => $this->formatMoney($item->unit_price, $currencyCode),

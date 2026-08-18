@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ProformaInvoices\RelationManagers;
 
 use App\Domain\Catalog\Models\Product;
+use App\Domain\Catalog\Services\ProductIdentityResolver;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Support\Money;
@@ -186,6 +187,16 @@ class ItemsRelationManager extends RelationManager
                 ->rows(2)
                 ->columnSpanFull(),
         ]);
+    }
+
+    /** Cache por request: o cache de pivots vive enquanto a tela é montada. */
+    private ?ProductIdentityResolver $productIdentity = null;
+
+    private function productIdentity(): ProductIdentityResolver
+    {
+        return $this->productIdentity ??= ProductIdentityResolver::forClient(
+            $this->getOwnerRecord()->company_id,
+        );
     }
 
     public function table(Table $table): Table
@@ -407,8 +418,7 @@ class ItemsRelationManager extends RelationManager
                 $options = $quotationItems->mapWithKeys(function ($item) {
                     $product = $item->product;
                     // MODEL NO segue a regra do CI/PL: external_code do cliente > model_number > SKU.
-                    $clientPivot = $product?->clients->first()?->pivot;
-                    $modelNo = $clientPivot?->external_code ?: ($product?->model_number ?: $product?->sku);
+                    $modelNo = $this->productIdentity()->resolve($product)->code;
 
                     return [
                         $item->id => '['.$item->quotation->reference.'] '
@@ -683,8 +693,7 @@ class ItemsRelationManager extends RelationManager
                 $options = $inquiryItems->mapWithKeys(function ($item) use ($importedByProduct, $importedByDescription) {
                     $product = $item->product;
                     // MODEL NO segue a regra do CI/PL: external_code do cliente > model_number > SKU.
-                    $clientPivot = $product?->clients->first()?->pivot;
-                    $modelNo = $clientPivot?->external_code ?: ($product?->model_number ?: $product?->sku);
+                    $modelNo = $this->productIdentity()->resolve($product)->code;
 
                     $imported = $item->product_id
                         ? (int) ($importedByProduct[$item->product_id] ?? 0)

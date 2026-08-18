@@ -180,6 +180,7 @@ return [
 
     'custom' => [
         'branch_must_belong_to_selected_company' => 'The branch must belong to the selected company.',
+        'ncm_digits' => 'The NCM must contain 4 to 8 digits.',
         'parent_company_must_be_matrix' => 'The parent company cannot be a branch itself.',
     ],
 

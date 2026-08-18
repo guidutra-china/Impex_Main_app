@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Inquiries\RelationManagers;
 use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
+use App\Domain\Catalog\Services\ProductIdentityResolver;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Support\Money;
@@ -266,6 +267,16 @@ class ItemsRelationManager extends RelationManager
         return $ids;
     }
 
+    /** Cache por request: o cache de pivots vive enquanto a tabela é montada. */
+    private ?ProductIdentityResolver $productIdentity = null;
+
+    private function productIdentity(): ProductIdentityResolver
+    {
+        return $this->productIdentity ??= ProductIdentityResolver::forClient(
+            $this->getOwnerRecord()->company_id,
+        );
+    }
+
     public function table(Table $table): Table
     {
         return $table
@@ -297,16 +308,7 @@ class ItemsRelationManager extends RelationManager
                 TextColumn::make('model_no')
                     ->label(__('forms.labels.model_number'))
                     // Mesma regra do CI/PL: código do cliente (pivot) > modelo > SKU.
-                    ->state(function ($record) {
-                        $product = $record->product;
-                        if (! $product) {
-                            return null;
-                        }
-
-                        $pivot = $product->companies->first()?->pivot;
-
-                        return $pivot?->external_code ?: ($product->model_number ?: $product->sku);
-                    })
+                    ->state(fn ($record) => $this->productIdentity()->resolve($record->product)->code ?: null)
                     ->placeholder('—')
                     ->toggleable(),
                 TextColumn::make('displayName')
@@ -317,11 +319,9 @@ class ItemsRelationManager extends RelationManager
                 TextColumn::make('model_description')
                     ->label(__('forms.labels.description'))
                     // Mesma regra do CI/PL: descrição do cliente (pivot) > descrição do produto.
-                    ->state(function ($record) {
-                        $pivot = $record->product?->companies->first()?->pivot;
-
-                        return $pivot?->external_description ?: $record->product?->description;
-                    })
+                    ->state(fn ($record) => $this->productIdentity()
+                        ->resolve($record->product)
+                        ->description ?: $record->product?->description)
                     ->placeholder('—')
                     ->limit(30)
                     ->toggleable(),

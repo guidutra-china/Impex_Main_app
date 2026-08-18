@@ -2,6 +2,7 @@
 
 namespace App\Domain\Infrastructure\Excel\Templates;
 
+use App\Domain\Catalog\Services\ProductIdentityResolver;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\SupplierQuotations\Models\SupplierQuotation;
 
@@ -57,24 +58,33 @@ class RfqExcelTemplate extends AbstractExcelTemplate
 
         $sq->loadMissing([
             'company',
-            'items.product',
+            'items.product.companies',
             'items.inquiryItem',
         ]);
 
         $showTargetPrice = $this->options['show_target_price'] ?? false;
         $currencyCode = $sq->currency_code ?? 'USD';
 
+        $identityResolver = ProductIdentityResolver::forSupplier($sq->company_id);
+        $identityResolver->warm($sq->items->map(fn ($item) => $item->product));
+
         $rows = [];
         foreach ($sq->items as $index => $item) {
             $product = $item->product;
-            $description = $product?->name ?? $item->description ?? '—';
+            $identity = $identityResolver->resolve(
+                $product,
+                lineName: $item->description,
+                lineDescription: $item->description,
+            );
 
             $row = [
                 $index + 1,
+                // Coluna SKU segue interna: é por ela que o fornecedor devolve
+                // a planilha preenchida.
                 $product?->sku ?? '—',
-                $product?->model_number ?? '',
-                $description,
-                $item->specifications ?? $product?->description ?? '',
+                $identity->codeOr(''),
+                $identity->name,
+                $identity->description ?: ($item->specifications ?? $product?->description ?? ''),
                 $item->quantity ?? 0,
                 $item->unit ?? 'pcs',
             ];

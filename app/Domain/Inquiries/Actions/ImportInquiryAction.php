@@ -56,7 +56,9 @@ class ImportInquiryAction
                 foreach (array_values($preview['itens']) as $index => $item) {
                     $product = isset($item['product_id']) && $item['product_id']
                         ? Product::find($item['product_id'])
-                        : $this->createDraftProduct($item);
+                        : $this->createDraftProduct($item, $inquiry->company_id);
+
+                    $this->linkClientCode($product, $inquiry->company_id, trim((string) ($item['part_no'] ?? '')) ?: null);
 
                     $this->attachProductPhoto($product, $this->photoItemKey($item, $index), $images);
 
@@ -190,7 +192,7 @@ class ImportInquiryAction
      *
      * @param  array<string,mixed>  $item
      */
-    private function createDraftProduct(array $item): ?Product
+    private function createDraftProduct(array $item, int $clientCompanyId): ?Product
     {
         $partNo = trim((string) ($item['part_no'] ?? ''));
 
@@ -199,8 +201,17 @@ class ImportInquiryAction
         }
 
         // Revalida contra o catálogo (o preview pode estar defasado, e o mesmo
-        // código pode repetir dentro do próprio import) antes de criar.
-        $existing = Product::where('reference_code', $partNo)
+        // código pode repetir dentro do próprio import) antes de criar. O
+        // código do cliente vive no pivot, então é a primeira busca — sem ela,
+        // reimportar a mesma planilha duplicaria o produto.
+        $existing = Product::whereHas(
+            'companies',
+            fn ($q) => $q->where('companies.id', $clientCompanyId)
+                ->where('company_product.role', 'client')
+                ->where('company_product.external_code', $partNo)
+        )->first();
+
+        $existing ??= Product::where('reference_code', $partNo)
             ->orWhere('model_number', $partNo)
             ->orWhere('sku', $partNo)
             ->first();
@@ -209,11 +220,39 @@ class ImportInquiryAction
             return $existing;
         }
 
+        // model_number NÃO recebe o código do cliente: é campo global e o
+        // código de um cliente apareceria nos documentos dos outros.
         return Product::create([
             'name' => $this->cap(filled($item['description'] ?? null) ? (string) $item['description'] : $partNo, 255),
-            'model_number' => $this->cap($partNo, 255),
             'status' => ProductStatus::DRAFT,
         ]);
+    }
+
+    /**
+     * Grava o código que o CLIENTE usa para o produto no pivot dele — é o 1º
+     * nível da regra de identidade nos documentos do cliente. Não sobrescreve
+     * um código já cadastrado.
+     */
+    private function linkClientCode(?Product $product, int $clientCompanyId, ?string $partNo): void
+    {
+        if ($product === null || blank($partNo)) {
+            return;
+        }
+
+        $existing = $product->clients()->where('companies.id', $clientCompanyId)->first();
+
+        if (! $existing) {
+            $product->companies()->attach($clientCompanyId, [
+                'role' => 'client',
+                'external_code' => $partNo,
+            ]);
+
+            return;
+        }
+
+        if (blank($existing->pivot->external_code)) {
+            $existing->pivot->update(['external_code' => $partNo]);
+        }
     }
 
     private function photoItemKey(array $item, int $index): string

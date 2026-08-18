@@ -185,23 +185,13 @@ abstract class AbstractPdfTemplate
     }
 
     /**
-     * Código do produto como o cliente o conhece: código do cliente no pivot
-     * (external_code) tem prioridade, depois o model number do produto. O SKU
-     * interno é apenas o último recurso — documentos enviados ao cliente não
-     * devem exibi-lo quando existe um código dele.
+     * A identidade do produto na visão da contraparte (código, nome e
+     * descrição) é resolvida por
+     * {@see \App\Domain\Catalog\Services\ProductIdentityResolver}, que filtra o
+     * pivot por empresa E papel. Não reintroduzir um atalho aqui: sem o filtro
+     * de papel, uma empresa que é cliente e fornecedora do mesmo produto vaza o
+     * código de um lado para o documento do outro.
      */
-    protected function clientProductCode(?\App\Domain\Catalog\Models\Product $product, ?int $companyId): string
-    {
-        if (! $product) {
-            return '—';
-        }
-
-        $externalCode = $companyId
-            ? $product->companies->firstWhere('id', $companyId)?->pivot?->external_code
-            : null;
-
-        return $externalCode ?: ($product->model_number ?: ($product->sku ?: '—'));
-    }
 
     /**
      * Atributos cadastrados do produto ("Material: Steel", "Voltage: 220 V")

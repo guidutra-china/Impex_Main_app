@@ -180,6 +180,7 @@ return [
 
     'custom' => [
         'branch_must_belong_to_selected_company' => '分公司必须属于所选公司。',
+        'ncm_digits' => 'NCM 必须为 4 至 8 位数字。',
         'parent_company_must_be_matrix' => '母公司本身不能是分公司。',
     ],
 

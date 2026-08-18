@@ -180,6 +180,7 @@ return [
 
     'custom' => [
         'branch_must_belong_to_selected_company' => 'A filial deve pertencer à empresa selecionada.',
+        'ncm_digits' => 'O NCM deve ter de 4 a 8 dígitos.',
         'parent_company_must_be_matrix' => 'A empresa matriz não pode ser uma filial.',
     ],
 

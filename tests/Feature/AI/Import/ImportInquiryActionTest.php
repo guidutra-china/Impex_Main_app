@@ -84,11 +84,21 @@ class ImportInquiryActionTest extends TestCase
             ],
         ]), $user, $this->tempFile);
 
-        $product = \App\Domain\Catalog\Models\Product::where('model_number', 'SQ-1043')->first();
+        // O código do cliente vai para o pivot dele, não para o model_number
+        // global (que apareceria nos documentos de outros clientes).
+        $withClientCode = \App\Domain\Catalog\Models\Product::whereHas(
+            'companies',
+            fn ($q) => $q->where('company_product.role', 'client')
+                ->where('company_product.external_code', 'SQ-1043')
+        );
+
+        $product = $withClientCode->first();
         $this->assertNotNull($product, 'draft product must be created from the part number');
         $this->assertSame(\App\Domain\Catalog\Enums\ProductStatus::DRAFT, $product->status);
         $this->assertSame('Fitness equipment (air rower)', $product->name);
-        $this->assertSame(1, \App\Domain\Catalog\Models\Product::where('model_number', 'SQ-1043')->count());
+        $this->assertNull($product->model_number);
+        $this->assertSame(1, $withClientCode->count(), 'o código repetido no mesmo import não pode duplicar o produto');
+        $this->assertSame($inquiry->company_id, $product->clients()->first()->id);
 
         $items = $inquiry->items()->orderBy('sort_order')->get();
         $this->assertSame($product->id, $items[0]->product_id);

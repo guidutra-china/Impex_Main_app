@@ -102,6 +102,7 @@ class Company extends Model
                 'external_code',
                 'external_name',
                 'external_description',
+                'external_ncm',
                 'unit_price',
                 'custom_price',
                 'currency_code',

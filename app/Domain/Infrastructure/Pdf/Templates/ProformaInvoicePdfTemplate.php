@@ -2,6 +2,7 @@
 
 namespace App\Domain\Infrastructure\Pdf\Templates;
 
+use App\Domain\Catalog\Services\ProductIdentityResolver;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
@@ -74,16 +75,19 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
         ]);
 
         $currencyCode = $pi->currency_code ?? 'USD';
-        $clientId = $pi->company_id;
 
-        $items = $pi->items->sortBy('sort_order')->values()->map(function ($item, $index) use ($currencyCode, $clientId) {
+        $identityResolver = ProductIdentityResolver::forClient($pi->company_id);
+        $identityResolver->warm($pi->items->map(fn ($item) => $item->product));
+
+        $items = $pi->items->sortBy('sort_order')->values()->map(function ($item, $index) use ($currencyCode, $identityResolver) {
+            $identity = $identityResolver->resolve($item->product, lineDescription: $item->description);
+
             return [
                 'index' => $index + 1,
+                // Coluna opt-in e explicitamente interna: segue sendo o SKU.
                 'product_code' => $item->product?->sku ?: '—',
-                // Model number visível ao cliente: código do cliente (pivot) tem
-                // prioridade, como na Commercial Invoice / Packing List.
-                'model_number' => $this->clientProductCode($item->product, $clientId),
-                'description' => $this->formatDescription($item->description ?? $item->product?->name ?? '—'),
+                'model_number' => $identity->codeOr('—'),
+                'description' => $this->formatDescription($identity->description ?: $identity->name),
                 'specifications' => $item->specifications,
                 'attributes' => $this->productAttributesLine($item->product),
                 'quantity' => $item->quantity,

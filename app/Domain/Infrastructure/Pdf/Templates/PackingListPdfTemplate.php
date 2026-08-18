@@ -2,7 +2,9 @@
 
 namespace App\Domain\Infrastructure\Pdf\Templates;
 
+use App\Domain\Catalog\DataTransferObjects\ProductIdentity;
 use App\Domain\Catalog\Models\Product;
+use App\Domain\Catalog\Services\ProductIdentityResolver;
 use App\Domain\Logistics\Enums\ImportModality;
 use App\Domain\Logistics\Models\Carton;
 use App\Domain\Logistics\Models\Shipment;
@@ -10,9 +12,7 @@ use Illuminate\Support\Collection;
 
 class PackingListPdfTemplate extends AbstractPdfTemplate
 {
-    private ?int $clientCompanyId = null;
-
-    private array $clientPivotCache = [];
+    private ?ProductIdentityResolver $identity = null;
 
     public function getView(): string
     {
@@ -55,8 +55,11 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
             'cartons.pallet.container',
         ]);
 
-        $this->clientCompanyId = $shipment->company_id;
-        $this->warmPivotCache($shipment);
+        $this->identity = ProductIdentityResolver::forClient(
+            $shipment->getDocumentClient()?->id,
+            $shipment->company_id,
+        );
+        $this->warmIdentityCache($shipment);
 
         $currencyCode = $shipment->currency_code ?? 'USD';
 
@@ -252,9 +255,9 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
 
         $shipmentItem = $content->shipmentItem;
         $product = $shipmentItem?->proformaInvoiceItem?->product;
-        $pivot = $this->getClientPivot($product);
+        $identity = $this->resolveIdentity($shipmentItem);
 
-        $productName = $pivot?->external_name ?: ($shipmentItem?->product_name ?? '—');
+        $productName = $identity->name;
         if (filled($content->part_label)) {
             $productName .= ' — '.$content->part_label;
         }
@@ -273,9 +276,9 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
                 'package_no' => $packageRange,
                 'pallet' => $this->resolvePalletLabel($firstCarton),
                 'packaging_type' => $firstCarton->packaging_type?->getEnglishLabel(),
-                'model_no' => $pivot?->external_code ?: ($product?->model_number ?: ($product?->sku ?? '')),
+                'model_no' => $identity->code,
                 'product_name' => $productName,
-                'description' => filled($shipmentItem?->notes) ? $this->formatDescription($shipmentItem->notes) : null,
+                'description' => filled($identity->description) ? $this->formatDescription($identity->description) : null,
                 'unit' => $shipmentItem?->unit ?? 'pcs',
                 'equipment_qty' => $totalEquipmentQty,
                 'package_qty' => $count,
@@ -311,22 +314,23 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
     private function buildContentLine(Carton $carton, $content, bool $isFirst): array
     {
         $shipmentItem = $content->shipmentItem;
-        $product = $shipmentItem?->proformaInvoiceItem?->product;
-        $pivot = $this->getClientPivot($product);
+        $identity = $this->resolveIdentity($shipmentItem);
 
-        $productName = $pivot?->external_name ?: ($shipmentItem?->product_name ?? '—');
+        $productName = $identity->name;
         if (filled($content->part_label)) {
             $productName .= ' — '.$content->part_label;
         }
+
+        $description = filled($identity->description) ? $this->formatDescription($identity->description) : null;
 
         if ($isFirst) {
             return [
                 'package_no' => $carton->label,
                 'pallet' => $this->resolvePalletLabel($carton),
                 'packaging_type' => $carton->packaging_type?->getEnglishLabel(),
-                'model_no' => $pivot?->external_code ?: ($product?->model_number ?: ($product?->sku ?? '')),
+                'model_no' => $identity->code,
                 'product_name' => $productName,
-                'description' => filled($shipmentItem?->notes) ? $this->formatDescription($shipmentItem->notes) : null,
+                'description' => $description,
                 'unit' => $shipmentItem?->unit ?? 'pcs',
                 'equipment_qty' => (int) $content->pieces,
                 'package_qty' => 1,
@@ -342,9 +346,9 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
             'package_no' => '',
             'pallet' => null,
             'packaging_type' => null,
-            'model_no' => $pivot?->external_code ?: ($product?->model_number ?: ($product?->sku ?? '')),
+            'model_no' => $identity->code,
             'product_name' => $productName,
-            'description' => filled($shipmentItem?->notes) ? $this->formatDescription($shipmentItem->notes) : null,
+            'description' => $description,
             'unit' => $shipmentItem?->unit ?? 'pcs',
             'equipment_qty' => (int) $content->pieces,
             'package_qty' => '',
@@ -474,46 +478,35 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
         ];
     }
 
-    private function warmPivotCache(Shipment $shipment): void
+    private function warmIdentityCache(Shipment $shipment): void
     {
-        if (! $this->clientCompanyId) {
-            return;
-        }
+        $products = collect();
 
         foreach ($shipment->items as $item) {
-            $this->cachePivotForProduct($item->proformaInvoiceItem?->product);
+            $products->push($item->proformaInvoiceItem?->product);
         }
 
         foreach ($shipment->cartons as $carton) {
             foreach ($carton->contents as $content) {
-                $this->cachePivotForProduct($content->shipmentItem?->proformaInvoiceItem?->product);
+                $products->push($content->shipmentItem?->proformaInvoiceItem?->product);
             }
         }
+
+        $this->identity->warm($products->filter());
     }
 
-    private function cachePivotForProduct(?Product $product): void
+    /**
+     * Identidade da linha a partir do item de embarque. O nome cai para o
+     * snapshot do item e a descrição sai das notas do item — as duas fontes que
+     * o Packing List sempre usou.
+     */
+    private function resolveIdentity($shipmentItem): ProductIdentity
     {
-        if (! $product || isset($this->clientPivotCache[$product->id])) {
-            return;
-        }
-
-        $clientPivot = $product->companies
-            ->where('pivot.company_id', $this->clientCompanyId)
-            ->where('pivot.role', 'client')
-            ->first();
-
-        if ($clientPivot) {
-            $this->clientPivotCache[$product->id] = $clientPivot->pivot;
-        }
-    }
-
-    private function getClientPivot(?Product $product)
-    {
-        if (! $product) {
-            return null;
-        }
-
-        return $this->clientPivotCache[$product->id] ?? null;
+        return $this->identity->resolve(
+            $shipmentItem?->proformaInvoiceItem?->product,
+            lineName: $shipmentItem?->product_name,
+            lineDescription: $shipmentItem?->notes,
+        );
     }
 
     private function buildImportModalityData(Shipment $shipment): array

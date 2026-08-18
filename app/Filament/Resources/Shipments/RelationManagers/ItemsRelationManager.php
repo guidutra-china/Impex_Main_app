@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Shipments\RelationManagers;
 
+use App\Domain\Catalog\Services\ProductIdentityResolver;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Actions\RecalculateShipmentTotalsAction;
 use App\Domain\Logistics\Models\ShipmentItem;
@@ -29,6 +30,9 @@ use Illuminate\Support\Facades\DB;
 class ItemsRelationManager extends RelationManager
 {
     protected static string $relationship = 'items';
+
+    /** Cache por request: o cache de pivots vive enquanto a tabela é montada. */
+    private ?ProductIdentityResolver $productIdentity = null;
 
     protected static ?string $title = 'Shipment Items';
 
@@ -173,6 +177,13 @@ class ItemsRelationManager extends RelationManager
         ]);
     }
 
+    private function productIdentity(): ProductIdentityResolver
+    {
+        return $this->productIdentity ??= ProductIdentityResolver::forClient(
+            $this->getOwnerRecord()->company_id,
+        );
+    }
+
     public function table(Table $table): Table
     {
         return $table
@@ -198,16 +209,9 @@ class ItemsRelationManager extends RelationManager
                 TextColumn::make('model_no')
                     ->label(__('forms.labels.model_number'))
                     // Mesma regra do CI/PL: código do cliente (pivot) > modelo > SKU.
-                    ->state(function ($record) {
-                        $product = $record->proformaInvoiceItem?->product;
-                        if (! $product) {
-                            return null;
-                        }
-
-                        $pivot = $product->companies->first()?->pivot;
-
-                        return $pivot?->external_code ?: ($product->model_number ?: $product->sku);
-                    })
+                    ->state(fn ($record) => $this->productIdentity()
+                        ->resolve($record->proformaInvoiceItem?->product)
+                        ->code ?: null)
                     ->placeholder('—')
                     ->toggleable(),
                 TextColumn::make('product_name')

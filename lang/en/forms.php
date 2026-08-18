@@ -361,6 +361,7 @@ return [
         'nw_carton' => 'NW / Carton',
         'nw_carton_kg' => 'NW / Carton (kg)',
         'name' => 'Name',
+        'ncm' => 'NCM',
         'net_weight' => 'Net Weight',
         'net_weight_1_pc' => 'Net Weight (1 pc)',
         'net_weight_kg' => 'Net Weight (kg)',
@@ -838,6 +839,7 @@ return [
     ],
     'helpers' => [
         'hide_service_fee' => 'If checked, the Service Fee line will not appear in the PDF.',
+        'client_ncm' => 'Tax classification this client uses to import the product. Appears on the Commercial Invoice. 4 to 8 digits.',
         'import_modality_affects_ci_and_packing_list' => 'The import modality affects the Commercial Invoice and Packing List.',
         'internal_expense' => 'Check when the trip is an internal company expense (no linked client/supplier).',
         'indicative_rate' => 'Indicative rate — can be changed.',

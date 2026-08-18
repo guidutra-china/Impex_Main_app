@@ -145,6 +145,8 @@ return [
 
     // Production Schedule & Shipment Plan
     'import_successful' => '导入成功',
+    'import_no_rows_matched_title' => '未导入任何行',
+    'import_no_rows_matched_body' => '表格中没有任何行与形式发票项目匹配。请检查文件中的产品名称或编码是否与生成的模板一致。',
     'confirm_shipment_plan_description' => '这将根据计划项目及其形式发票付款条款，为所有依赖发货的阶段（发货前、到达前等）生成付款计划项。计划状态将进入待付款状态。',
     'shipment_plan_confirmed' => '发货计划已确认',
     'payment_schedule_generated' => '已为此发货计划生成付款计划项。',

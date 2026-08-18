@@ -155,6 +155,8 @@ return [
 
     // Production Schedule & Shipment Plan
     'import_successful' => 'Importação bem-sucedida',
+    'import_no_rows_matched_title' => 'Nenhuma linha importada',
+    'import_no_rows_matched_body' => 'Nenhuma linha da planilha casou com um item da Proforma Invoice. Verifique se os nomes ou códigos dos produtos no arquivo são os mesmos do template gerado.',
     'confirm_shipment_plan_description' => 'Isso irá gerar itens de cronograma de pagamento para todas as etapas dependentes de embarque (ANTES_DO_EMBARQUE, ANTES_DA_CHEGADA, etc.) com base nos itens planejados e seus termos de pagamento da PI. O status do plano avançará para Pagamento Pendente.',
     'shipment_plan_confirmed' => 'Plano de Embarque Confirmado',
     'payment_schedule_generated' => 'Os itens do cronograma de pagamento foram gerados para este plano de embarque.',

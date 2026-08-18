@@ -87,6 +87,9 @@
             <tr>
                 <th style="width: 30px;">{{ $labels['item'] }}</th>
                 <th style="width: 80px;">MODEL NO.</th>
+                @if(! empty($show_ncm))
+                    <th style="width: 70px;">NCM</th>
+                @endif
                 <th>PRODUCT</th>
                 <th class="text-center" style="width: 55px;">{{ $labels['quantity'] }}</th>
                 <th class="text-center" style="width: 45px;">{{ $labels['unit'] }}</th>
@@ -99,6 +102,9 @@
                 <tr>
                     <td class="text-center">{{ $item['index'] }}</td>
                     <td>{{ $item['model_no'] }}</td>
+                    @if(! empty($show_ncm))
+                        <td class="text-center">{{ $item['ncm'] ?: '—' }}</td>
+                    @endif
                     <td>
                         {{ $item['product_name'] }}
                         @if($item['description'])

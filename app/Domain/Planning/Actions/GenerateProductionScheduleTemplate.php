@@ -2,6 +2,7 @@
 
 namespace App\Domain\Planning\Actions;
 
+use App\Domain\Catalog\Services\ProductIdentityResolver;
 use App\Domain\Planning\Models\ProductionSchedule;
 use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Row;
@@ -14,48 +15,55 @@ class GenerateProductionScheduleTemplate
     public function execute(ProductionSchedule $schedule): string
     {
         $pi = $schedule->proformaInvoice;
-        $piItems = $pi->items()->with('product')->orderBy('sort_order')->get();
+        $piItems = $pi->items()->with('product.companies')->orderBy('sort_order')->get();
 
-        $filename = 'production_schedule_template_' . str($pi->reference)->slug() . '_v' . $schedule->version . '.xlsx';
-        $path = storage_path('app/temp/' . $filename);
+        // Planilha enviada ao fornecedor: nomeia o produto como ELE o conhece.
+        // matchPiItem() casa a planilha de volta por esse nome/código.
+        $identity = ProductIdentityResolver::forSupplier($schedule->supplier_company_id);
+        $identity->warm($piItems->map(fn ($item) => $item->product));
+
+        $filename = 'production_schedule_template_'.str($pi->reference)->slug().'_v'.$schedule->version.'.xlsx';
+        $path = storage_path('app/temp/'.$filename);
 
         if (! is_dir(dirname($path))) {
             mkdir(dirname($path), 0755, true);
         }
 
-        $writer = new Writer();
+        $writer = new Writer;
         $writer->openToFile($path);
 
-        $headerStyle = (new Style())
+        $headerStyle = (new Style)
             ->setFontBold()
             ->setFontSize(11)
             ->setBackgroundColor('4472C4')
             ->setFontColor(Color::WHITE);
 
-        $subHeaderStyle = (new Style())
+        $subHeaderStyle = (new Style)
             ->setFontBold()
             ->setFontSize(10)
             ->setBackgroundColor('D9E2F3')
             ->setFontColor('1F3864');
 
-        $hintStyle = (new Style())
+        $hintStyle = (new Style)
             ->setFontItalic()
             ->setFontSize(9)
             ->setFontColor('808080');
 
-        $dataStyle = (new Style())
+        $dataStyle = (new Style)
             ->setFontSize(10);
 
-        $lockedStyle = (new Style())
+        $lockedStyle = (new Style)
             ->setFontSize(10)
             ->setBackgroundColor('F2F2F2');
 
         // Row 1: Title
         $writer->addRow(new Row(
             [
-                Cell::fromValue('PRODUCTION SCHEDULE — ' . $pi->reference),
+                Cell::fromValue('PRODUCTION SCHEDULE — '.$pi->reference),
                 Cell::fromValue(''),
-                Cell::fromValue('Supplier: ' . ($pi->company?->name ?? '—')),
+                // O rótulo diz "Supplier", então o nome tem de ser o do
+                // fornecedor do cronograma — antes imprimia o do cliente da PI.
+                Cell::fromValue('Supplier: '.($schedule->supplierCompany?->name ?? '—')),
             ],
             $subHeaderStyle
         ));
@@ -81,7 +89,7 @@ class GenerateProductionScheduleTemplate
 
         // Data rows: one row per PI item as starting point
         foreach ($piItems as $item) {
-            $productName = $item->product?->name ?? $item->description ?? '—';
+            $productName = $identity->resolve($item->product, lineName: $item->description)->name;
             $writer->addRow(new Row(
                 [
                     Cell::fromValue($productName),

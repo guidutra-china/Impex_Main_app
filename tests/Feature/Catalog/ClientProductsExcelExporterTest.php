@@ -40,6 +40,7 @@ class ClientProductsExcelExporterTest extends TestCase
             'external_code' => 'CLI-001',
             'external_name' => 'Painel LED do Cliente',
             'external_description' => 'Descrição do cliente A',
+            'external_ncm' => '94051099',
             'unit_price' => Money::toMinor(12.5),
             'custom_price' => Money::toMinor(11.99),
             'currency_code' => 'USD',
@@ -94,7 +95,8 @@ class ClientProductsExcelExporterTest extends TestCase
 
         $this->assertSame('NCM', $sheet->getCell('M4')->getValue());
         $this->assertSame('Fabricante', $sheet->getCell('N4')->getValue());
-        $this->assertSame('9405.10.99', $sheet->getCell('M5')->getValue());
+        // Coluna NCM traz o NCM do CLIENTE (pivot), não o hs_code do produto.
+        $this->assertSame('94051099', $sheet->getCell('M5')->getValue());
         $this->assertSame('Ningbo Factory B', $sheet->getCell('N5')->getValue());
 
         // Second product: null client fields stay empty, no CI price.

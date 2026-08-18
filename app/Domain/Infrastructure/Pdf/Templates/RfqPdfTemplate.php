@@ -2,6 +2,7 @@
 
 namespace App\Domain\Infrastructure\Pdf\Templates;
 
+use App\Domain\Catalog\Services\ProductIdentityResolver;
 use App\Domain\Infrastructure\Pdf\DocumentLabels;
 use App\Domain\SupplierQuotations\Models\SupplierQuotation;
 
@@ -22,16 +23,6 @@ class RfqPdfTemplate extends AbstractPdfTemplate
         return 'rfq_pdf';
     }
 
-    private function buildProductDescription($item): string
-    {
-        $product = $item->product;
-        if (! $product) {
-            return $item->description ?? '—';
-        }
-
-        return $product->name;
-    }
-
     protected function getDocumentData(): array
     {
         /** @var SupplierQuotation $sq */
@@ -42,7 +33,7 @@ class RfqPdfTemplate extends AbstractPdfTemplate
             'contact',
             'inquiry',
             'inquiry.items.product',
-            'items.product',
+            'items.product.companies',
             'items.inquiryItem',
             'creator',
         ]);
@@ -50,16 +41,29 @@ class RfqPdfTemplate extends AbstractPdfTemplate
         $currencyCode = $sq->currency_code ?? 'USD';
         $showTargetPrice = $this->options['show_target_price'] ?? false;
 
-        $items = $sq->items->map(function ($item, $index) use ($currencyCode, $showTargetPrice) {
+        // RFQ vai para o fornecedor: usa o código/nome que ele conhece.
+        $identityResolver = ProductIdentityResolver::forSupplier($sq->company_id);
+        $identityResolver->warm($sq->items->map(fn ($item) => $item->product));
+
+        $items = $sq->items->map(function ($item, $index) use ($currencyCode, $showTargetPrice, $identityResolver) {
             $targetPrice = $item->inquiryItem?->target_price ?? 0;
             $quantity = $item->quantity ?? 0;
 
+            $identity = $identityResolver->resolve(
+                $item->product,
+                lineName: $item->description,
+                lineDescription: $item->description,
+            );
+
             return [
                 'index' => $index + 1,
-                'product_code' => $item->product?->sku ?? '—',
+                'product_code' => $identity->codeOr('—'),
+                // Coluna MODEL segue sendo o modelo do fabricante — o código do
+                // fornecedor já aparece em PRODUCT CODE, repetir não ajuda.
                 'model_number' => $item->product?->model_number ?? '',
-                'description' => $this->buildProductDescription($item),
-                'specifications' => $item->specifications ?? $item->product?->description ?? null,
+                'description' => $identity->name,
+                'specifications' => $identity->description
+                    ?: ($item->specifications ?? $item->product?->description ?? null),
                 'quantity' => $quantity,
                 'unit' => $item->unit ?? $item->product?->unit ?? 'pcs',
                 'target_price' => $showTargetPrice && $targetPrice > 0 ? $this->formatMoney($targetPrice, $currencyCode) : null,

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Infrastructure\Pdf\Templates;
 
+use App\Domain\Catalog\Services\ProductIdentityResolver;
 use App\Domain\Infrastructure\Pdf\DocumentLabels;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 
@@ -51,17 +52,24 @@ class PurchaseOrderPdfTemplate extends AbstractPdfTemplate
             'proformaInvoice',
             'proformaInvoice.inquiry',
             'paymentTerm',
-            'items.product',
+            'items.product.companies',
             'creator',
         ]);
 
         $currencyCode = $po->currency_code ?? 'USD';
 
-        $items = $po->items->sortBy('sort_order')->values()->map(function ($item, $index) use ($currencyCode) {
+        // Documento enviado ao fornecedor: identifica o produto como ELE o
+        // conhece (código/nome/descrição do pivot), não pelo nosso SKU.
+        $identityResolver = ProductIdentityResolver::forSupplier($po->supplier_company_id);
+        $identityResolver->warm($po->items->map(fn ($item) => $item->product));
+
+        $items = $po->items->sortBy('sort_order')->values()->map(function ($item, $index) use ($currencyCode, $identityResolver) {
+            $identity = $identityResolver->resolve($item->product, lineDescription: $item->description);
+
             return [
                 'index' => $index + 1,
-                'product_code' => $item->product?->sku ?? '—',
-                'description' => $this->formatDescription($item->description ?? $item->product?->name ?? '—'),
+                'product_code' => $identity->codeOr('—'),
+                'description' => $this->formatDescription($identity->description ?: $identity->name),
                 'specifications' => $item->specifications,
                 'quantity' => $item->quantity,
                 'unit' => $item->unit ?? 'pcs',
