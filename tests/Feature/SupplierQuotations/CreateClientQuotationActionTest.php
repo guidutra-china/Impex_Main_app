@@ -53,8 +53,10 @@ class CreateClientQuotationActionTest extends TestCase
         ]);
     }
 
-    private function buildSq(bool $withPricedItem = true): SupplierQuotation
-    {
+    private function buildSq(
+        bool $withPricedItem = true,
+        SupplierQuotationStatus $status = SupplierQuotationStatus::RECEIVED,
+    ): SupplierQuotation {
         $client = Company::factory()->create();
         // O select de cliente do modal filtra por papel (Company::withRole).
         CompanyRoleAssignment::create([
@@ -77,7 +79,7 @@ class CreateClientQuotationActionTest extends TestCase
             'inquiry_id' => $inquiry->id,
             'company_id' => Company::factory()->create()->id,
             'currency_code' => 'USD',
-            'status' => SupplierQuotationStatus::RECEIVED,
+            'status' => $status,
         ]);
 
         SupplierQuotationItem::create([
@@ -135,6 +137,29 @@ class CreateClientQuotationActionTest extends TestCase
         $sq = $this->buildSq(withPricedItem: false);
 
         Livewire::test(ViewSupplierQuotation::class, ['record' => $sq->getKey()])
+            ->assertActionHidden('createClientQuotation');
+    }
+
+    /**
+     * O allow-list de status aceitos como fonte é o mesmo consultado pela action de
+     * domínio (CreateQuotationFromSupplierQuotationAction::canBeSource()) — este teste
+     * pinça os dois extremos: SELECTED/REJECTED continuam entrando na lista, REQUESTED
+     * continua fora dela. Excluir SELECTED ou REJECTED da lista real deixaria este
+     * teste vermelho, ao contrário do que acontecia quando a lista vivia duplicada
+     * só na trait.
+     */
+    public function test_action_visible_for_selected_and_rejected_hidden_for_requested(): void
+    {
+        $selected = $this->buildSq(status: SupplierQuotationStatus::SELECTED);
+        Livewire::test(ViewSupplierQuotation::class, ['record' => $selected->getKey()])
+            ->assertActionVisible('createClientQuotation');
+
+        $rejected = $this->buildSq(status: SupplierQuotationStatus::REJECTED);
+        Livewire::test(ViewSupplierQuotation::class, ['record' => $rejected->getKey()])
+            ->assertActionVisible('createClientQuotation');
+
+        $requested = $this->buildSq(status: SupplierQuotationStatus::REQUESTED);
+        Livewire::test(ViewSupplierQuotation::class, ['record' => $requested->getKey()])
             ->assertActionHidden('createClientQuotation');
     }
 }

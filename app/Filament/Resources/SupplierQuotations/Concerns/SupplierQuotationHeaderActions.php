@@ -110,19 +110,6 @@ trait SupplierQuotationHeaderActions
             ->button();
     }
 
-    /**
-     * Status aceitos para a SQ de ORIGEM em CreateQuotationFromSupplierQuotationAction
-     * (constante privada de lá — precisa ficar em sincronia manualmente). A visibilidade
-     * da action é só uma otimização de UX: a guarda real é o InvalidArgumentException
-     * lançado pela própria action de domínio caso este status divirja.
-     */
-    private const QUOTABLE_AS_SOURCE_STATUSES = [
-        SupplierQuotationStatus::RECEIVED,
-        SupplierQuotationStatus::UNDER_ANALYSIS,
-        SupplierQuotationStatus::SELECTED,
-        SupplierQuotationStatus::REJECTED,
-    ];
-
     protected function createClientQuotationAction(): Action
     {
         return Action::make('createClientQuotation')
@@ -131,7 +118,7 @@ trait SupplierQuotationHeaderActions
             ->color('success')
             ->modalHeading(__('forms.labels.create_client_quotation'))
             ->modalDescription(__('forms.labels.create_client_quotation_help'))
-            ->visible(fn () => in_array($this->record->status, self::QUOTABLE_AS_SOURCE_STATUSES, true)
+            ->visible(fn () => CreateQuotationFromSupplierQuotationAction::canBeSource($this->record)
                 && $this->record->items()->where('unit_cost', '>', 0)->exists())
             ->fillForm(function () {
                 $inquiry = $this->record->inquiry;

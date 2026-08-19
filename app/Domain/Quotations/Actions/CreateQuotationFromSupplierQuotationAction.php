@@ -38,6 +38,18 @@ class CreateQuotationFromSupplierQuotationAction
     ) {}
 
     /**
+     * A SQ pode virar fonte de preço para uma Quotation de cliente? Único ponto de
+     * verdade sobre o allow-list de status aceitos — a UI (ação de header da SQ)
+     * consulta este método em vez de duplicar a lista, então os dois nunca podem
+     * divergir. `execute()` continua validando por conta própria: este método é
+     * uma checagem de UX, não a defesa real.
+     */
+    public static function canBeSource(SupplierQuotation $sq): bool
+    {
+        return in_array($sq->status, self::QUOTABLE_AS_SOURCE_STATUSES, true);
+    }
+
+    /**
      * Cria (ou atualiza) a Quotation do cliente a partir de uma SupplierQuotation,
      * incluindo os itens que o fornecedor ofereceu por conta própria (opções que
      * não faziam parte do pedido original do cliente).
