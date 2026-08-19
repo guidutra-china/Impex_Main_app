@@ -312,4 +312,91 @@ class SyncInquiryFromSupplierQuotationActionTest extends TestCase
 
         $this->assertSame(InquiryStatus::QUOTED, $result->status);
     }
+
+    public function test_truncates_description_to_fit_the_inquiry_item_column(): void
+    {
+        $client = Company::factory()->create();
+        $sq = $this->makeSq();
+        $this->addSqItem($sq, Product::factory()->create()->id, [
+            'description' => str_repeat('a', 500),
+        ]);
+
+        $inquiry = $this->makeAction()->execute(
+            sq: $sq,
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+        );
+
+        // sqlite não reforça o limite de varchar(255); em MySQL, sem o truncamento,
+        // este insert falharia com SQLSTATE 22001.
+        $this->assertSame(255, mb_strlen($inquiry->items()->first()->description));
+        $this->assertSame(str_repeat('a', 255), $inquiry->items()->first()->description);
+    }
+
+    public function test_defaults_zero_quantity_to_one(): void
+    {
+        $client = Company::factory()->create();
+        $sq = $this->makeSq();
+        $this->addSqItem($sq, Product::factory()->create()->id, ['quantity' => 0]);
+
+        $inquiry = $this->makeAction()->execute(
+            sq: $sq,
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+        );
+
+        $this->assertSame(1, $inquiry->items()->first()->quantity);
+    }
+
+    public function test_defaults_empty_unit_to_pcs(): void
+    {
+        $client = Company::factory()->create();
+        $sq = $this->makeSq();
+        $this->addSqItem($sq, Product::factory()->create()->id, ['unit' => '']);
+
+        $inquiry = $this->makeAction()->execute(
+            sq: $sq,
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+        );
+
+        $this->assertSame('pcs', $inquiry->items()->first()->unit);
+    }
+
+    public function test_carries_over_specifications_to_the_inquiry_item(): void
+    {
+        $client = Company::factory()->create();
+        $sq = $this->makeSq();
+        $this->addSqItem($sq, Product::factory()->create()->id, [
+            'specifications' => 'Cor azul, 220V',
+        ]);
+
+        $inquiry = $this->makeAction()->execute(
+            sq: $sq,
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+        );
+
+        $this->assertSame('Cor azul, 220V', $inquiry->items()->first()->specifications);
+    }
+
+    public function test_starts_sort_order_at_zero_for_a_brand_new_inquiry(): void
+    {
+        $client = Company::factory()->create();
+        $sq = $this->makeSq();
+        $this->addSqItem($sq, Product::factory()->create()->id);
+
+        $inquiry = $this->makeAction()->execute(
+            sq: $sq,
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+        );
+
+        $this->assertSame(0, $inquiry->items()->first()->sort_order);
+    }
 }
