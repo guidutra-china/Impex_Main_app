@@ -19,10 +19,17 @@ class CreateQuotationFromSupplierQuotationAction
         SupplierQuotationStatus::SELECTED,
     ];
 
-    /** SQs sem preço confirmado: não podem ser fonte de custo, nem mesmo como origem. */
-    private const UNQUOTABLE_SOURCE_STATUSES = [
-        SupplierQuotationStatus::REQUESTED,
-        SupplierQuotationStatus::EXPIRED,
+    /**
+     * Status aceitos para a SQ de ORIGEM (a que dispara o fluxo). Allow-list deliberada: um
+     * status novo, adicionado depois, precisa ser explicitamente incluído aqui para virar
+     * fonte de preço — a direção seria perigosa se um status desconhecido "vazasse" como
+     * aceito por omissão, já que o ponto desta regra é barrar preço não confirmado.
+     */
+    private const QUOTABLE_AS_SOURCE_STATUSES = [
+        SupplierQuotationStatus::RECEIVED,
+        SupplierQuotationStatus::UNDER_ANALYSIS,
+        SupplierQuotationStatus::SELECTED,
+        SupplierQuotationStatus::REJECTED,
     ];
 
     public function __construct(
@@ -39,17 +46,20 @@ class CreateQuotationFromSupplierQuotationAction
      * - A moeda escolhida (`currencyCode`) nunca reescreve a moeda da Inquiry do
      *   cliente — o pedido original é preservado; a conversão vale só para o
      *   cabeçalho e os itens desta Quotation.
-     * - A SQ de origem (`$sq`) sempre vence a eleição de fornecedor por produto,
-     *   mesmo quando outra SQ do mesmo pool oferece um custo menor.
+     * - A SQ de origem (`$sq`) sempre vence a eleição de fornecedor por produto — mas
+     *   só para os produtos que ela realmente cota com `unit_cost > 0`; nos demais,
+     *   prevalece o menor custo do pool (mesma regra do `preferredSupplierQuotationId`
+     *   em `CreateOrUpdateQuotationFromInquiryAction`).
      * - `$sq` só avança de status quando está em `RECEIVED`; qualquer outro status
-     *   quotável (`UNDER_ANALYSIS`, `SELECTED`, `REJECTED`) permanece como está —
-     *   escolher o fornecedor (`SELECTED`) é uma decisão posterior, feita em outro
-     *   fluxo.
+     *   aceito como origem (`UNDER_ANALYSIS`, `SELECTED`, `REJECTED`) permanece como
+     *   está — escolher o fornecedor (`SELECTED`) é uma decisão posterior, feita em
+     *   outro fluxo.
      * - Campos de cabeçalho opcionais nulos (`contactId`, `incoterm`,
      *   `paymentTermId`) significam "mantém o que já está gravado" — relevante
      *   porque um form do Filament sempre manda o payload inteiro, inclusive os
-     *   campos que o usuário não alterou. `validityDays` é a exceção documentada:
-     *   nulo assume o padrão de negócio de 30 dias (ver abaixo), nunca "preserva".
+     *   campos que o usuário não alterou. `validityDays` é a exceção deliberada:
+     *   nulo NÃO preserva um valor anterior, sempre assume o padrão de negócio de
+     *   30 dias (ver abaixo) — mesmo reescrevendo uma validade de 45 dias já gravada.
      *
      * @throws \InvalidArgumentException quando a SQ de origem ainda não tem preço
      *                                   confirmado (`REQUESTED`/`EXPIRED`) — não faz sentido gerar uma
@@ -72,7 +82,7 @@ class CreateQuotationFromSupplierQuotationAction
         ?int $validityDays = null,
         bool $forceNewVersion = false,
     ): Quotation {
-        if (in_array($sq->status, self::UNQUOTABLE_SOURCE_STATUSES, true)) {
+        if (! in_array($sq->status, self::QUOTABLE_AS_SOURCE_STATUSES, true)) {
             throw new \InvalidArgumentException(
                 'Cotação de fornecedor sem preços confirmados não pode gerar cotação ao cliente.',
             );

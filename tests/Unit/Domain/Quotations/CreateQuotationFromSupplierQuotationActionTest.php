@@ -376,6 +376,40 @@ class CreateQuotationFromSupplierQuotationActionTest extends TestCase
         $this->assertSame(today()->addDays(30)->toDateString(), $quotation->valid_until->toDateString());
     }
 
+    public function test_null_validity_days_on_rerun_resets_a_previously_set_value_to_the_default(): void
+    {
+        // Pinado deliberadamente: diferente de contactId/incoterm/paymentTermId (nulo
+        // preserva o valor gravado), validityDays nulo NÃO preserva — sempre volta para
+        // o default de 30. Assimétrico de propósito (ver docblock de execute()), mas sem
+        // este teste o próximo leitor pode "corrigir" isso para preservar.
+        [$client, $inquiry, $sq] = $this->buildScenario();
+
+        $quotation = $this->makeAction()->execute(
+            sq: $sq,
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 10,
+            validityDays: 45,
+        );
+        $this->assertSame(45, $quotation->validity_days);
+
+        $quotation2 = $this->makeAction()->execute(
+            sq: $sq->fresh(),
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 10,
+            // validityDays omitido nesta rodada.
+        );
+
+        $this->assertSame($quotation->id, $quotation2->id, 'atualiza no lugar, mesma Quotation');
+        $this->assertSame(30, $quotation2->validity_days);
+        $this->assertSame(today()->addDays(30)->toDateString(), $quotation2->valid_until->toDateString());
+    }
+
     public function test_unchanged_commission_rate_preserves_manually_edited_item_rate(): void
     {
         [$client, $inquiry, $sq, $asked, $extra] = $this->buildScenario();
