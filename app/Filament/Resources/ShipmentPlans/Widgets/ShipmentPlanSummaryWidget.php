@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\ShipmentPlans\Widgets;
 
-use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Infrastructure\Support\Money;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -37,17 +36,19 @@ class ShipmentPlanSummaryWidget extends StatsOverviewWidget
         $piCount = $plan->items->pluck('proforma_invoice_id')->unique()->count();
 
         return [
-            Stat::make(__('widgets.total_planned_value'), $currency . ' ' . Money::format($totalValue))
-                ->description("{$itemCount} items from {$piCount} PI(s)")
+            Stat::make(__('widgets.shipment_plan.total_planned_value'), $currency.' '.Money::format($totalValue))
+                ->description(__('widgets.shipment_plan.items_from_pis', ['items' => $itemCount, 'pis' => $piCount]))
                 ->icon('heroicon-o-banknotes'),
 
-            Stat::make(__('widgets.total_paid'), $currency . ' ' . Money::format($totalPaid))
-                ->description($currency . ' ' . Money::format($totalRemaining) . ' remaining')
+            Stat::make(__('widgets.shipment_plan.total_paid'), $currency.' '.Money::format($totalPaid))
+                ->description(__('widgets.shipment_plan.remaining', ['amount' => $currency.' '.Money::format($totalRemaining)]))
                 ->icon('heroicon-o-check-circle')
                 ->color($totalRemaining > 0 ? 'warning' : 'success'),
 
-            Stat::make(__('widgets.blocking_payments'), $blockingPending)
-                ->description($blockingPending > 0 ? 'Must be paid before shipping' : 'All clear')
+            Stat::make(__('widgets.shipment_plan.blocking_payments'), $blockingPending)
+                ->description($blockingPending > 0
+                    ? __('widgets.shipment_plan.must_be_paid_before_shipping')
+                    : __('widgets.shipment_plan.all_clear'))
                 ->icon('heroicon-o-exclamation-triangle')
                 ->color($blockingPending > 0 ? 'danger' : 'success'),
         ];
