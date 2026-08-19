@@ -223,4 +223,82 @@ class CreateQuotationFromSupplierQuotationActionTest extends TestCase
         $this->assertSame(700000, $askedItem->unit_price);
         $this->assertSame('USD', $inquiry->fresh()->currency_code);
     }
+
+    public function test_cross_client_creates_separate_inquiry_and_still_prices_from_the_sq(): void
+    {
+        [$originalClient, $originalInquiry, $sq, $asked, $extra] = $this->buildScenario();
+        $newClient = Company::factory()->create();
+        $itemsBeforeOriginal = $originalInquiry->items()->count();
+
+        $quotation = $this->makeAction()->execute(
+            sq: $sq,
+            companyId: $newClient->id,
+            contactId: null,
+            currencyCode: 'USD',
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 10,
+        );
+
+        // Uma nova Inquiry foi criada para o novo cliente, rastreada até a SQ.
+        $newInquiry = Inquiry::query()
+            ->where('company_id', $newClient->id)
+            ->where('source_supplier_quotation_id', $sq->id)
+            ->first();
+        $this->assertNotNull($newInquiry);
+
+        // A inquiry original do cliente A e o vínculo da SQ com ela ficam intocados.
+        $this->assertSame($itemsBeforeOriginal, $originalInquiry->fresh()->items()->count());
+        $this->assertSame($originalInquiry->id, $sq->fresh()->inquiry_id);
+
+        // A Quotation pertence ao NOVO cliente/inquiry e carrega os 2 itens da SQ.
+        $this->assertSame($newClient->id, $quotation->company_id);
+        $this->assertSame($newInquiry->id, $quotation->inquiry_id);
+        $this->assertSame(2, $quotation->items()->count());
+
+        $askedItem = $quotation->items()->where('product_id', $asked->id)->first();
+        $extraItem = $quotation->items()->where('product_id', $extra->id)->first();
+        $this->assertNotNull($askedItem);
+        $this->assertNotNull($extraItem);
+
+        // 10% embutidos, mesma moeda (USD): unit_cost * 1.10
+        $this->assertSame(100000, $askedItem->unit_cost);
+        $this->assertSame(110000, $askedItem->unit_price);
+        $this->assertSame(200000, $extraItem->unit_cost);
+        $this->assertSame(220000, $extraItem->unit_price);
+
+        // Prova que o preço sobrevive ao pool vazio de $inquiry->supplierQuotations():
+        // a única SQ considerada foi a $sq->id empurrada manualmente.
+        $this->assertSame($sq->company_id, $askedItem->selected_supplier_id);
+        $this->assertSame($sq->company_id, $extraItem->selected_supplier_id);
+    }
+
+    public function test_cross_client_second_call_reuses_the_forked_inquiry(): void
+    {
+        [$originalClient, $originalInquiry, $sq] = $this->buildScenario();
+        $newClient = Company::factory()->create();
+
+        $firstQuotation = $this->makeAction()->execute(
+            sq: $sq,
+            companyId: $newClient->id,
+            contactId: null,
+            currencyCode: 'USD',
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 10,
+        );
+
+        $this->assertSame(1, Inquiry::where('company_id', $newClient->id)->count());
+
+        $secondQuotation = $this->makeAction()->execute(
+            sq: $sq->fresh(),
+            companyId: $newClient->id,
+            contactId: null,
+            currencyCode: 'USD',
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 10,
+        );
+
+        // Nenhuma segunda Inquiry foi mintada para o mesmo cliente/SQ.
+        $this->assertSame(1, Inquiry::where('company_id', $newClient->id)->count());
+        $this->assertSame($firstQuotation->inquiry_id, $secondQuotation->inquiry_id);
+    }
 }
