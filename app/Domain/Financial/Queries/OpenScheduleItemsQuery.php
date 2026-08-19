@@ -2,13 +2,17 @@
 
 namespace App\Domain\Financial\Queries;
 
+use App\Domain\CRM\Enums\CompanyRole;
+use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\DebitNoteStatus;
 use App\Domain\Financial\Enums\PartyType;
+use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\DebitNote;
 use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use Illuminate\Database\Eloquent\Builder;
@@ -101,6 +105,58 @@ final class OpenScheduleItemsQuery
                         ->where('notes', 'LIKE', '%'.PaymentScheduleItem::SUPPLIER_PAYABLE_TAG.'%');
                 });
             });
+    }
+
+    /**
+     * Narrow an open-items query to a single counterparty. Mirrors
+     * PaymentScheduleItem::counterpartyCompanyId(): on the payable side the
+     * supplier named by a [supplier-payable] cost wins over the document
+     * owner, which is why the cost branch is matched separately.
+     */
+    public static function filterByCounterparty(Builder $query, int $companyId, PaymentDirection $direction): Builder
+    {
+        if ($direction === PaymentDirection::INBOUND) {
+            return $query->whereHasMorph(
+                'payable',
+                [ProformaInvoice::class, Shipment::class, DebitNote::class],
+                fn ($q) => $q->where('company_id', $companyId),
+            );
+        }
+
+        return $query->where(function (Builder $q) use ($companyId) {
+            $q->whereHasMorph(
+                'payable',
+                [PurchaseOrder::class],
+                fn ($pq) => $pq->where('supplier_company_id', $companyId),
+            )
+                ->orWhereHasMorph(
+                    'payable',
+                    [DebitNote::class],
+                    fn ($pq) => $pq->where('company_id', $companyId),
+                )
+                ->orWhere(function (Builder $q2) use ($companyId) {
+                    $q2->where('source_type', AdditionalCost::class)
+                        ->whereIn(
+                            'source_id',
+                            AdditionalCost::query()
+                                ->where('supplier_company_id', $companyId)
+                                ->select('id'),
+                        );
+                });
+        });
+    }
+
+    /**
+     * Companies that can appear as counterparty on this side, for the filter
+     * options.
+     *
+     * @return \Illuminate\Support\Collection<int, string>
+     */
+    public static function counterpartyOptions(PaymentDirection $direction): \Illuminate\Support\Collection
+    {
+        return Company::withRole($direction === PaymentDirection::INBOUND ? CompanyRole::CLIENT : CompanyRole::SUPPLIER)
+            ->orderBy('name')
+            ->pluck('name', 'id');
     }
 
     private static function base(): Builder

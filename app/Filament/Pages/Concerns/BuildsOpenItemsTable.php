@@ -31,6 +31,27 @@ use Illuminate\Support\Collection;
  */
 trait BuildsOpenItemsTable
 {
+    /**
+     * Estado da tabela repassado aos widgets de cabeçalho, para que os totais
+     * enxerguem exatamente as linhas filtradas. Não dá para usar o
+     * ExposesTableToWidgets do Filament aqui: ele publica $activeTab, que só
+     * existe em páginas com abas.
+     *
+     * @return array<string, mixed>
+     */
+    public function getWidgetData(): array
+    {
+        return [
+            'paginators' => $this->paginators,
+            'tableColumnSearches' => $this->tableColumnSearches,
+            'tableFilters' => $this->tableFilters,
+            'tableGrouping' => $this->tableGrouping,
+            'tableRecordsPerPage' => $this->tableRecordsPerPage,
+            'tableSearch' => $this->tableSearch,
+            'tableSort' => $this->tableSort,
+        ];
+    }
+
     protected function openItemsTable(Table $table, PaymentDirection $direction): Table
     {
         $query = $direction === PaymentDirection::INBOUND
@@ -110,6 +131,21 @@ trait BuildsOpenItemsTable
             ])
             ->defaultSort('due_date', 'asc')
             ->filters([
+                SelectFilter::make('counterparty')
+                    ->label($direction === PaymentDirection::INBOUND
+                        ? __('forms.labels.client')
+                        : __('forms.labels.supplier'))
+                    ->options(fn () => OpenScheduleItemsQuery::counterpartyOptions($direction))
+                    ->searchable()
+                    ->query(function (Builder $query, array $data) use ($direction) {
+                        $value = $data['value'] ?? null;
+
+                        if (blank($value)) {
+                            return;
+                        }
+
+                        OpenScheduleItemsQuery::filterByCounterparty($query, (int) $value, $direction);
+                    }),
                 SelectFilter::make('currency_code')
                     ->label(__('forms.labels.currency'))
                     ->options(fn () => Currency::pluck('code', 'code')),

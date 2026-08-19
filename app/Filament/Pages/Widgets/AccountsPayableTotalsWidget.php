@@ -2,13 +2,12 @@
 
 namespace App\Filament\Pages\Widgets;
 
-use App\Domain\Financial\Queries\OpenScheduleItemsQuery;
-use Illuminate\Database\Eloquent\Builder;
+use App\Filament\Pages\AccountsPayableOpenItems;
 
 class AccountsPayableTotalsWidget extends OpenItemsTotalsWidget
 {
-    protected function openItemsQuery(): Builder
+    protected function getTablePage(): string
     {
-        return OpenScheduleItemsQuery::payables();
+        return AccountsPayableOpenItems::class;
     }
 }

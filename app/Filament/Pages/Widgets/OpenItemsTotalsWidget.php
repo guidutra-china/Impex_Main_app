@@ -5,25 +5,29 @@ namespace App\Filament\Pages\Widgets;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Financial\Support\CurrencyTotals;
 use Carbon\CarbonImmutable;
+use Filament\Widgets\Concerns\InteractsWithPageTable;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /**
  * Header totals for the AR/AP open-item worklists: total open and total
- * overdue, broken down by currency. Subclasses supply the scoped query.
+ * overdue, broken down by currency.
+ *
+ * Reads the page's own filtered table query, so the totals always describe
+ * exactly the rows the user is looking at — counterparty, currency, status,
+ * aging and the search box all narrow them. Subclasses name the page.
  */
 abstract class OpenItemsTotalsWidget extends StatsOverviewWidget
 {
-    protected ?string $pollingInterval = null;
+    use InteractsWithPageTable;
 
-    abstract protected function openItemsQuery(): Builder;
+    protected ?string $pollingInterval = null;
 
     protected function getStats(): array
     {
         /** @var Collection<int, PaymentScheduleItem> $items */
-        $items = $this->openItemsQuery()->get();
+        $items = $this->getPageTableQuery()->get();
 
         $today = CarbonImmutable::now()->startOfDay();
 

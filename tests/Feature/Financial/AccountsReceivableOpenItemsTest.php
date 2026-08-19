@@ -8,6 +8,7 @@ use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Filament\Pages\AccountsReceivableOpenItems;
+use App\Filament\Pages\Widgets\AccountsReceivableTotalsWidget;
 use App\Filament\Resources\Finance\AccountsReceivable\Pages\CreateAccountsReceivable;
 use App\Filament\Resources\Finance\Concerns\HasPaymentAllocationPersistence;
 use App\Models\User;
@@ -122,6 +123,31 @@ class AccountsReceivableOpenItemsTest extends TestCase
             ->assertOk()
             ->assertCanSeeTableRecords([$mine])
             ->assertCanNotSeeTableRecords([$other]);
+    }
+
+    public function test_filtering_by_client_narrows_the_list_and_the_totals(): void
+    {
+        $this->adminActing();
+
+        $acme = Company::factory()->create(['name' => 'Acme Trading']);
+        $globex = Company::factory()->create(['name' => 'Globex Imports']);
+        $mine = $this->openPiItem(ProformaInvoice::factory()->create(['company_id' => $acme->id]), 3_000_000);
+        $other = $this->openPiItem(ProformaInvoice::factory()->create(['company_id' => $globex->id]), 2_000_000);
+
+        Livewire::test(AccountsReceivableOpenItems::class)
+            ->filterTable('counterparty', $acme->id)
+            ->assertOk()
+            ->assertCanSeeTableRecords([$mine])
+            ->assertCanNotSeeTableRecords([$other]);
+
+        Livewire::test(AccountsReceivableTotalsWidget::class)
+            ->assertSee('USD 500.00');
+
+        Livewire::test(AccountsReceivableTotalsWidget::class, [
+            'tableFilters' => ['counterparty' => ['value' => $acme->id]],
+        ])
+            ->assertSee('USD 300.00')
+            ->assertDontSee('USD 500.00');
     }
 
     public function test_bulk_action_same_company_redirects_to_create(): void
