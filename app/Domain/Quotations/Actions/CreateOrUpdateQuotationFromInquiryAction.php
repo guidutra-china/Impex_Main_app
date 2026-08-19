@@ -74,6 +74,13 @@ class CreateOrUpdateQuotationFromInquiryAction
             throw new \InvalidArgumentException("Moeda inválida ou inativa: {$currencyCode}.");
         }
 
+        // Arredondado ANTES de comparar com o rate gravado (decimal(5,2)) e de calcular
+        // unit_price: sem isto, ex. 10.001 grava commission_rate=10.00 (truncado pela coluna)
+        // mas calcula unit_price com o float não truncado — rate e preço dessincronizam, e
+        // toda rodada seguinte re-detecta "mudança" (10.00 gravado vs 10.001 recebido) e
+        // descarta ajustes manuais item a item sem nenhuma mudança real ter sido pedida.
+        $commissionRate = round($commissionRate, 2);
+
         return DB::transaction(function () use (
             $inquiry, $supplierQuotationIds, $commissionType, $commissionRate, $showSuppliers,
             $forceNewVersion, $itemOverrides, $incoterm, $preferredSupplierQuotationId, $currencyCode
@@ -97,11 +104,13 @@ class CreateOrUpdateQuotationFromInquiryAction
                 $newVersion = 1;
             }
 
-            // Capturada ANTES do update() de cabeçalho sobrescrever commission_rate: syncItems()
-            // usa esta comparação para decidir se a mudança de comissão vale como "aplicar em
-            // toda a cotação" (recalcula todo item) ou se cada item mantém seu próprio ajuste
-            // manual (rate igual ao da rodada anterior).
+            // Capturados ANTES do update() de cabeçalho sobrescrever commission_type/commission_rate:
+            // syncItems() usa esta comparação para decidir se a mudança da comissão do cabeçalho
+            // (taxa OU tipo — as duas metades da comissão selecionável no modal) vale como
+            // "aplicar em toda a cotação" (recalcula todo item) ou se cada item mantém seu
+            // próprio ajuste manual (comissão igual à da rodada anterior).
             $previousHeaderCommissionRate = $existing !== null ? (float) $existing->commission_rate : null;
+            $previousHeaderCommissionType = $existing?->commission_type;
 
             if ($existing) {
                 $existing->update([
@@ -131,8 +140,9 @@ class CreateOrUpdateQuotationFromInquiryAction
                 ]);
             }
 
-            $headerCommissionRateChanged = $previousHeaderCommissionRate !== null
-                && abs($previousHeaderCommissionRate - $commissionRate) > 0.0001;
+            $headerCommissionChanged = $previousHeaderCommissionRate !== null
+                && (abs($previousHeaderCommissionRate - $commissionRate) > 0.0001
+                    || $previousHeaderCommissionType !== $commissionType);
 
             $this->syncItems(
                 inquiry: $inquiry,
@@ -142,7 +152,7 @@ class CreateOrUpdateQuotationFromInquiryAction
                 commissionRate: $commissionRate,
                 itemOverrides: $itemOverrides,
                 preferredSupplierQuotationId: $preferredSupplierQuotationId,
-                headerCommissionRateChanged: $headerCommissionRateChanged,
+                headerCommissionChanged: $headerCommissionChanged,
             );
 
             return $quotation->fresh(['items.suppliers']);
@@ -157,7 +167,7 @@ class CreateOrUpdateQuotationFromInquiryAction
         float $commissionRate,
         array $itemOverrides = [],
         ?int $preferredSupplierQuotationId = null,
-        bool $headerCommissionRateChanged = false,
+        bool $headerCommissionChanged = false,
     ): void {
         $sqItemsByProduct = empty($supplierQuotationIds)
             ? collect()
@@ -207,11 +217,14 @@ class CreateOrUpdateQuotationFromInquiryAction
 
             $existingItem = $existingItems->get($productId);
 
-            // Mudar a comissão do cabeçalho vale como "aplicar em toda a cotação": todo item
-            // é recalculado com a nova taxa, descartando ajustes manuais anteriores. Manter a
-            // mesma taxa do cabeçalho preserva o ajuste que o usuário tenha feito item a item
-            // (ex.: reduzir a margem de um produto específico sem reduzir a comissão geral).
-            $itemCommissionRate = ($existingItem && ! $headerCommissionRateChanged)
+            // Mudar a comissão do cabeçalho — taxa OU tipo (EMBEDDED/SEPARATE) — vale como
+            // "aplicar em toda a cotação": todo item é recalculado com a nova comissão,
+            // descartando ajustes manuais anteriores. Manter a mesma comissão do cabeçalho
+            // preserva o ajuste que o usuário tenha feito item a item (ex.: reduzir a margem
+            // de um produto específico sem reduzir a comissão geral). Sem incluir o tipo aqui,
+            // SEPARATE→EMBEDDED com a taxa inalterada mantinha os itens com rate 0 (herdado da
+            // era SEPARATE) e a comissão inteira evaporava silenciosamente.
+            $itemCommissionRate = ($existingItem && ! $headerCommissionChanged)
                 ? (float) $existingItem->commission_rate
                 : ($commissionType === CommissionType::EMBEDDED ? $commissionRate : 0);
 

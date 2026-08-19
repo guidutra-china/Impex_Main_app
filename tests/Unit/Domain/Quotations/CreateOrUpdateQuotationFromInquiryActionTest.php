@@ -753,4 +753,140 @@ class CreateOrUpdateQuotationFromInquiryActionTest extends TestCase
         // A inquiry do cliente não é reescrita pela escolha de moeda da cotação.
         $this->assertSame('USD', $inquiry->fresh()->currency_code);
     }
+
+    public function test_unchanged_header_commission_preserves_manual_item_override(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems();
+        $supplier = Company::factory()->create();
+        $sq = $this->buildSqWith($inquiry, $supplier, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 100000],
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 10,
+            showSuppliers: false,
+        );
+        $item = $quotation->items->first();
+        $item->update(['commission_rate' => 40]); // ajuste manual no item
+
+        $quotation2 = $this->makeAction()->execute(
+            inquiry: $inquiry->fresh(),
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 10, // mesma comissão do cabeçalho da rodada anterior
+            showSuppliers: false,
+        );
+
+        $refreshed = $quotation2->items->first();
+        $this->assertEqualsWithDelta(40.0, (float) $refreshed->commission_rate, 0.01);
+        // 100000 × 1.40 = 140000: o ajuste manual do item se mantém.
+        $this->assertSame(140000, $refreshed->unit_price);
+    }
+
+    public function test_changed_header_commission_rate_reprices_every_item_discarding_manual_overrides(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems(itemCount: 2);
+        $supplier = Company::factory()->create();
+        $sq = $this->buildSqWith($inquiry, $supplier, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 100000],
+            ['product_id' => $items[1]->product_id, 'unit_cost' => 200000],
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 10,
+            showSuppliers: false,
+        );
+        // Ajuste manual nos dois itens — deve ser descartado quando a taxa do cabeçalho muda.
+        $quotation->items->each(fn ($item) => $item->update(['commission_rate' => 40]));
+
+        $quotation2 = $this->makeAction()->execute(
+            inquiry: $inquiry->fresh(),
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 25, // diferente da rodada anterior (10)
+            showSuppliers: false,
+        );
+
+        foreach ($quotation2->items as $refreshed) {
+            $this->assertEqualsWithDelta(25.0, (float) $refreshed->commission_rate, 0.01);
+        }
+        $byProduct = $quotation2->items->keyBy('product_id');
+        $this->assertSame(125000, $byProduct[$items[0]->product_id]->unit_price); // 100000 × 1.25
+        $this->assertSame(250000, $byProduct[$items[1]->product_id]->unit_price); // 200000 × 1.25
+    }
+
+    public function test_commission_type_switch_separate_to_embedded_at_unchanged_rate_embeds_the_rate(): void
+    {
+        // Mudar o TIPO da comissão do cabeçalho (metade da comissão selecionável no
+        // modal, ao lado da taxa) também vale como "aplicar em toda a cotação", mesmo
+        // com a taxa numérica inalterada — sem isto, SEPARATE→EMBEDDED preservava a
+        // commission_rate=0 herdada da era SEPARATE e a margem inteira evaporava.
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems();
+        $supplier = Company::factory()->create();
+        $sq = $this->buildSqWith($inquiry, $supplier, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 100000],
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::SEPARATE,
+            commissionRate: 10,
+            showSuppliers: false,
+        );
+        $item = $quotation->items->first();
+        $this->assertEqualsWithDelta(0.0, (float) $item->commission_rate, 0.01);
+        $this->assertSame(100000, $item->unit_price);
+
+        $quotation2 = $this->makeAction()->execute(
+            inquiry: $inquiry->fresh(),
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 10, // mesma taxa, tipo diferente
+            showSuppliers: false,
+        );
+
+        $refreshed = $quotation2->items->first();
+        $this->assertEqualsWithDelta(10.0, (float) $refreshed->commission_rate, 0.01);
+        $this->assertSame(110000, $refreshed->unit_price); // 100000 × 1.10
+    }
+
+    public function test_commission_type_switch_embedded_to_separate_at_unchanged_rate_zeroes_item_rates(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems();
+        $supplier = Company::factory()->create();
+        $sq = $this->buildSqWith($inquiry, $supplier, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 100000],
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 10,
+            showSuppliers: false,
+        );
+        $item = $quotation->items->first();
+        $this->assertEqualsWithDelta(10.0, (float) $item->commission_rate, 0.01);
+        $this->assertSame(110000, $item->unit_price);
+
+        $quotation2 = $this->makeAction()->execute(
+            inquiry: $inquiry->fresh(),
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::SEPARATE,
+            commissionRate: 10, // mesma taxa, tipo diferente
+            showSuppliers: false,
+        );
+
+        $refreshed = $quotation2->items->first();
+        $this->assertEqualsWithDelta(0.0, (float) $refreshed->commission_rate, 0.01);
+        // Sob SEPARATE nenhum item embute comissão — a comissão vive só no cabeçalho.
+        $this->assertSame(100000, $refreshed->unit_price);
+    }
 }
