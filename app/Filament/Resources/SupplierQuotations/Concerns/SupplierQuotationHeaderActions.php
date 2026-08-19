@@ -192,7 +192,7 @@ trait SupplierQuotationHeaderActions
                         $get('company_id') ? (int) $get('company_id') : null
                     )),
             ])
-            ->action(function (array $data) {
+            ->action(function (array $data, Action $action) {
                 try {
                     $commissionType = $data['commission_type'] instanceof CommissionType
                         ? $data['commission_type']
@@ -229,12 +229,16 @@ trait SupplierQuotationHeaderActions
                         ->body($e->getMessage())
                         ->danger()
                         ->send();
+
+                    $action->halt();
                 } catch (\Throwable $e) {
                     Notification::make()
                         ->title(__('messages.error_creating_quotation'))
                         ->body($e->getMessage())
                         ->danger()
                         ->send();
+
+                    $action->halt();
                 }
             });
     }

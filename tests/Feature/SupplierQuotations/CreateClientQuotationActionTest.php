@@ -8,6 +8,7 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Models\CompanyRoleAssignment;
 use App\Domain\Inquiries\Models\Inquiry;
 use App\Domain\Inquiries\Models\InquiryItem;
+use App\Domain\Quotations\Actions\CreateQuotationFromSupplierQuotationAction;
 use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\QuotationStatus;
 use App\Domain\Quotations\Models\Quotation;
@@ -268,5 +269,58 @@ class CreateClientQuotationActionTest extends TestCase
             ->all();
 
         $this->assertSame([1, 2], $versions);
+    }
+
+    /**
+     * Sem $action->halt(), Filament considera a action bem-sucedida e desmonta o
+     * modal mesmo quando o catch tratou uma falha — o trader perderia os dez campos
+     * já preenchidos por um erro corrigível (ex.: marcar force_new_version).
+     */
+    public function test_locked_quotation_error_halts_action_keeping_modal_open(): void
+    {
+        [$sq, , $clientB] = $this->buildLockedScenarioForDifferentClient();
+
+        Livewire::test(ViewSupplierQuotation::class, ['record' => $sq->getKey()])
+            ->callAction('createClientQuotation', [
+                'company_id' => $clientB->id,
+                'currency_code' => 'USD',
+                'commission_type' => CommissionType::EMBEDDED->value,
+                'commission_rate' => 10,
+                'validity_days' => 30,
+                'show_suppliers' => false,
+                'force_new_version' => false,
+            ])
+            ->assertActionHalted('createClientQuotation');
+    }
+
+    /**
+     * Todo campo Select do modal (company_id, currency_code, commission_type, ...)
+     * já valida server-side contra suas próprias options — um valor fora da lista
+     * nunca chega à action(), fica preso na validação do schema. Para exercitar o
+     * catch (\Throwable) genérico da action (não o de QuotationLockedException),
+     * troca a action de domínio por um dublê que falha por um motivo que nenhum
+     * Select consegue barrar (ex.: uma falha de infraestrutura).
+     */
+    public function test_generic_domain_error_halts_action_keeping_modal_open(): void
+    {
+        $sq = $this->buildSq();
+        $inquiry = $sq->inquiry;
+
+        $this->mock(CreateQuotationFromSupplierQuotationAction::class, function ($mock): void {
+            $mock->shouldReceive('execute')->andThrow(new \RuntimeException('Falha simulada de infraestrutura.'));
+        });
+
+        Livewire::test(ViewSupplierQuotation::class, ['record' => $sq->getKey()])
+            ->callAction('createClientQuotation', [
+                'company_id' => $inquiry->company_id,
+                'currency_code' => 'USD',
+                'commission_type' => CommissionType::EMBEDDED->value,
+                'commission_rate' => 10,
+                'validity_days' => 30,
+                'show_suppliers' => false,
+            ])
+            ->assertActionHalted('createClientQuotation');
+
+        $this->assertNull(Quotation::where('inquiry_id', $inquiry->id)->first());
     }
 }
