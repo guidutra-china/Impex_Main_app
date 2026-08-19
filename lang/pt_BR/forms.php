@@ -145,6 +145,8 @@ return [
         'make_this_selected' => 'Tornar este o Selecionado',
         'companies' => 'Empresas',
         'company' => 'Empresa',
+        'copy' => 'Copiar',
+        'copy_company_data' => 'Copiar dados da empresa',
         'company_logo' => 'Logo da Empresa',
         'company_name' => 'Nome da Empresa',
         'compare_supplier_quotations' => 'Comparar SQs',

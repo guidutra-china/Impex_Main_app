@@ -24,7 +24,11 @@ class CompaniesTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->query(fn () => Company::query()->with('parentCompany'))
+            // contacts entra para o texto copiado da coluna de cópia; sem o
+            // eager-load seria uma query por linha da página.
+            ->query(fn () => Company::query()->with(['parentCompany', 'contacts' => fn ($query) => $query
+                ->orderByDesc('is_primary')
+                ->limit(1)]))
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
@@ -40,6 +44,21 @@ class CompaniesTable
                         ? __('forms.labels.branch_of', ['company' => $record->parentCompany?->name])
                         : null
                     ),
+                // Ícone de copiar ao lado do nome: leva os dados cadastrais
+                // inteiros para a área de transferência, para colar em
+                // documentos externos. O caractere de largura zero é
+                // proposital — TextColumn com estado vazio renderiza só o
+                // placeholder e engoliria o ícone.
+                TextColumn::make('copy_company_data')
+                    ->label(__('forms.labels.copy'))
+                    ->state("\u{200B}")
+                    ->icon('heroicon-o-clipboard-document')
+                    ->color('gray')
+                    ->tooltip(__('forms.labels.copy_company_data'))
+                    ->copyable()
+                    ->copyableState(fn (Company $record): string => $record->clipboardSummary())
+                    ->copyMessage(__('messages.company_data_copied'))
+                    ->extraCellAttributes(['class' => 'w-px']),
                 TextColumn::make('companyRoles.role')
                     ->label(__('forms.labels.roles'))
                     ->badge()

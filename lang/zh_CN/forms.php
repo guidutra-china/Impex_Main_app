@@ -137,6 +137,8 @@ return [
         'make_this_selected' => '设为选定项',
         'companies' => '公司',
         'company' => '公司',
+        'copy' => '复制',
+        'copy_company_data' => '复制公司资料',
         'company_logo' => '公司标志',
         'company_name' => '公司名称',
         'compare_supplier_quotations' => '比较供应商报价',

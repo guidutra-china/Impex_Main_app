@@ -154,6 +154,7 @@ return [
     'previous_status' => 'status anterior',
 
     // Production Schedule & Shipment Plan
+    'company_data_copied' => 'Dados da empresa copiados',
     'import_successful' => 'Importação bem-sucedida',
     'import_no_rows_matched_title' => 'Nenhuma linha importada',
     'import_no_rows_matched_body' => 'Nenhuma linha da planilha casou com um item da Proforma Invoice. Verifique se os nomes ou códigos dos produtos no arquivo são os mesmos do template gerado.',

@@ -154,6 +154,7 @@ return [
     'previous_status' => 'previous status',
 
     // Production Schedule & Shipment Plan
+    'company_data_copied' => 'Company details copied',
     'import_successful' => 'Import Successful',
     'import_no_rows_matched_title' => 'No rows imported',
     'import_no_rows_matched_body' => 'No spreadsheet row matched a Proforma Invoice item. Check that the product names or codes in the file match the ones on the generated template.',

@@ -218,6 +218,60 @@ class Company extends Model
         return implode(', ', $parts);
     }
 
+    /**
+     * Bloco de texto com os dados cadastrais da empresa, pronto para colar em
+     * documentos externos (contratos, formulários de despachante, bancos).
+     *
+     * Duas linhas de identidade sem rótulo — razão social e endereço completo —
+     * seguidas dos contatos rotulados. Campos vazios não entram, para o texto
+     * colado nunca ter linha órfã.
+     */
+    public function clipboardSummary(): string
+    {
+        $identity = array_filter([
+            $this->legal_name ?: $this->name,
+            // Nome fantasia só quando difere da razão social, senão duplica.
+            ($this->legal_name && $this->name !== $this->legal_name) ? $this->name : null,
+            $this->full_address ?: null,
+        ]);
+
+        $details = array_filter([
+            'tax_id' => $this->tax_number,
+            'phone' => $this->phone,
+            'email' => $this->email,
+            'website' => $this->website,
+            'contact' => $this->clipboardContactLine(),
+        ]);
+
+        $lines = $identity;
+
+        foreach ($details as $key => $value) {
+            $lines[] = __('forms.labels.'.$key).': '.$value;
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Contato principal no formato "Nome — telefone".
+     *
+     * Marcado como principal tem prioridade; sem nenhum marcado, vale qualquer
+     * um, que é melhor do que não passar contato nenhum no documento.
+     */
+    private function clipboardContactLine(): ?string
+    {
+        $contact = $this->contacts->sortByDesc('is_primary')->first();
+
+        if (! $contact) {
+            return null;
+        }
+
+        return implode(' — ', array_filter([
+            $contact->name,
+            $contact->phone ?: $contact->whatsapp,
+        ]));
+    }
+
     // --- Helper Methods ---
 
     public function hasRole(CompanyRole $role): bool

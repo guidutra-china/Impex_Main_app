@@ -144,6 +144,7 @@ return [
     'previous_status' => '先前状态',
 
     // Production Schedule & Shipment Plan
+    'company_data_copied' => '已复制公司资料',
     'import_successful' => '导入成功',
     'import_no_rows_matched_title' => '未导入任何行',
     'import_no_rows_matched_body' => '表格中没有任何行与形式发票项目匹配。请检查文件中的产品名称或编码是否与生成的模板一致。',
