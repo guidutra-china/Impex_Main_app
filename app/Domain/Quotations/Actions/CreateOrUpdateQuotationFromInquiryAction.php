@@ -38,6 +38,7 @@ class CreateOrUpdateQuotationFromInquiryAction
         array $itemOverrides = [],
         ?Incoterm $incoterm = null,
         ?int $preferredSupplierQuotationId = null,
+        ?string $currencyCode = null,
     ): Quotation {
         if ($preferredSupplierQuotationId !== null && ! in_array($preferredSupplierQuotationId, array_map('intval', $supplierQuotationIds), true)) {
             throw new \InvalidArgumentException(
@@ -47,7 +48,7 @@ class CreateOrUpdateQuotationFromInquiryAction
 
         return DB::transaction(function () use (
             $inquiry, $supplierQuotationIds, $commissionType, $commissionRate, $showSuppliers,
-            $forceNewVersion, $itemOverrides, $incoterm, $preferredSupplierQuotationId
+            $forceNewVersion, $itemOverrides, $incoterm, $preferredSupplierQuotationId, $currencyCode
         ) {
             $existing = $inquiry->quotations()->latest('version')->first();
 
@@ -73,7 +74,7 @@ class CreateOrUpdateQuotationFromInquiryAction
                     'description' => $existing->description ?? $inquiry->description,
                     'company_id' => $inquiry->company_id,
                     'contact_id' => $inquiry->contact_id,
-                    'currency_code' => $inquiry->currency_code,
+                    'currency_code' => $currencyCode ?? $inquiry->currency_code,
                     'commission_type' => $commissionType,
                     'commission_rate' => $commissionRate,
                     'incoterm' => $incoterm ?? $existing->incoterm,
@@ -88,7 +89,7 @@ class CreateOrUpdateQuotationFromInquiryAction
                     'contact_id' => $inquiry->contact_id,
                     'status' => QuotationStatus::DRAFT,
                     'version' => $newVersion,
-                    'currency_code' => $inquiry->currency_code,
+                    'currency_code' => $currencyCode ?? $inquiry->currency_code,
                     'commission_type' => $commissionType,
                     'commission_rate' => $commissionRate,
                     'incoterm' => $incoterm,

@@ -646,4 +646,33 @@ class CreateOrUpdateQuotationFromInquiryActionTest extends TestCase
             preferredSupplierQuotationId: $outsidePoolSq->id,
         );
     }
+
+    public function test_currency_code_override_converts_cost_without_touching_inquiry(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems(1, 'USD');
+        $supplier = Company::factory()->create();
+
+        // Fornecedor cota em USD 10,00 (unit_cost em 4 casas: 100000).
+        $sq = $this->buildSqWith($inquiry, $supplier, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 100000],
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+            currencyCode: 'CNY',
+        );
+
+        $this->assertSame('CNY', $quotation->currency_code);
+        $item = $quotation->items()->first();
+        $this->assertSame('USD', $item->cost_currency_code);
+        $this->assertEqualsWithDelta(7.0, (float) $item->cost_exchange_rate, 0.0001);
+        $this->assertSame(700000, $item->unit_price);
+
+        // A inquiry do cliente não é reescrita pela escolha de moeda da cotação.
+        $this->assertSame('USD', $inquiry->fresh()->currency_code);
+    }
 }
