@@ -95,6 +95,27 @@ class AccountsPayableOpenItemsTest extends TestCase
             ->assertCanNotSeeTableRecords([$clientItem]);
     }
 
+    /**
+     * Regressão: o closure de busca recebia um parâmetro com nome diferente de
+     * $query, o Filament não conseguia injetar e o container montava um Builder
+     * sem model — "newQueryWithoutRelationships() on null" ao pesquisar.
+     */
+    public function test_searching_by_supplier_name_filters_the_list(): void
+    {
+        $this->adminActing();
+
+        $acme = Company::factory()->create(['name' => 'Acme Industrial']);
+        $globex = Company::factory()->create(['name' => 'Globex Manufacturing']);
+        $mine = $this->openPoItem($this->supplierPo($acme));
+        $other = $this->openPoItem($this->supplierPo($globex));
+
+        Livewire::test(AccountsPayableOpenItems::class)
+            ->searchTable('Acme')
+            ->assertOk()
+            ->assertCanSeeTableRecords([$mine])
+            ->assertCanNotSeeTableRecords([$other]);
+    }
+
     public function test_bulk_action_same_supplier_redirects_to_create(): void
     {
         $this->adminActing();

@@ -43,8 +43,11 @@ trait BuildsOpenItemsTable
                 TextColumn::make('counterparty')
                     ->label(__('forms.labels.client_supplier'))
                     ->state(fn (PaymentScheduleItem $record) => $record->counterpartyName($direction) ?? '—')
-                    ->searchable(query: function (Builder $q, string $search) {
-                        $q->where(function (Builder $inner) use ($search) {
+                    // O parâmetro PRECISA se chamar $query: o Filament injeta por
+                    // nome, e um nome diferente faz o container montar um Builder
+                    // sem model (erro newQueryWithoutRelationships() on null).
+                    ->searchable(query: function (Builder $query, string $search) {
+                        $query->where(function (Builder $inner) use ($search) {
                             $inner->whereHasMorph('payable', [ProformaInvoice::class, Shipment::class, DebitNote::class], function ($pq) use ($search) {
                                 $pq->whereHas('company', fn ($c) => $c->where('name', 'like', "%{$search}%"));
                             })->orWhereHasMorph('payable', [PurchaseOrder::class], function ($pq) use ($search) {

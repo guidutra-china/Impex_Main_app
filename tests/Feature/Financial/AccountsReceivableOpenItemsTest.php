@@ -103,6 +103,27 @@ class AccountsReceivableOpenItemsTest extends TestCase
         $this->assertNull($data['allocations'][0]['allocated_amount']);
     }
 
+    /**
+     * Regressão: o closure de busca recebia um parâmetro com nome diferente de
+     * $query, o Filament não conseguia injetar e o container montava um Builder
+     * sem model — "newQueryWithoutRelationships() on null" ao pesquisar.
+     */
+    public function test_searching_by_client_name_filters_the_list(): void
+    {
+        $this->adminActing();
+
+        $acme = Company::factory()->create(['name' => 'Acme Trading']);
+        $globex = Company::factory()->create(['name' => 'Globex Imports']);
+        $mine = $this->openPiItem(ProformaInvoice::factory()->create(['company_id' => $acme->id]));
+        $other = $this->openPiItem(ProformaInvoice::factory()->create(['company_id' => $globex->id]));
+
+        Livewire::test(AccountsReceivableOpenItems::class)
+            ->searchTable('Acme')
+            ->assertOk()
+            ->assertCanSeeTableRecords([$mine])
+            ->assertCanNotSeeTableRecords([$other]);
+    }
+
     public function test_bulk_action_same_company_redirects_to_create(): void
     {
         $this->adminActing();
