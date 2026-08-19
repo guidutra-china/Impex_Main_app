@@ -18,6 +18,7 @@ use App\Domain\Settings\Models\ExchangeRate;
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
 use App\Domain\SupplierQuotations\Models\SupplierQuotation;
 use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
+use App\Filament\Resources\Quotations\QuotationResource;
 use App\Filament\Resources\SupplierQuotations\Pages\ViewSupplierQuotation;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -157,7 +158,7 @@ class CreateClientQuotationActionTest extends TestCase
                 'validity_days' => 30,
             ]);
 
-        Livewire::test(ViewSupplierQuotation::class, ['record' => $sq->getKey()])
+        $test = Livewire::test(ViewSupplierQuotation::class, ['record' => $sq->getKey()])
             ->callAction('createClientQuotation', [
                 'company_id' => $inquiry->company_id,
                 'currency_code' => 'USD',
@@ -169,6 +170,7 @@ class CreateClientQuotationActionTest extends TestCase
 
         $quotation = Quotation::where('inquiry_id', $inquiry->id)->first();
         $this->assertNotNull($quotation);
+        $test->assertRedirect(QuotationResource::getUrl('edit', ['record' => $quotation]));
         $this->assertSame(1, $quotation->items()->count());
         $this->assertSame(110000, $quotation->items()->first()->unit_price);
         $this->assertSame(SupplierQuotationStatus::UNDER_ANALYSIS, $sq->fresh()->status);
