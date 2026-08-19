@@ -440,4 +440,132 @@ class CreateQuotationFromSupplierQuotationActionTest extends TestCase
         $this->assertEqualsWithDelta(25.0, (float) $refreshedExtra->commission_rate, 0.01);
         $this->assertSame(250000, $refreshedExtra->unit_price); // 200000 × 1.25
     }
+
+    public function test_selected_source_sq_creates_quotation_without_transitioning_status(): void
+    {
+        // Mutante que a revisão pegou: `if (true)` no lugar do guard RECEIVED
+        // tentaria RECEIVED->SELECTED->UNDER_ANALYSIS, uma transição inválida
+        // (`[selected] → [under_analysis]`), derrubando a cotação inteira.
+        [$client, $inquiry, $sq, $asked, $extra] = $this->buildScenario(SupplierQuotationStatus::SELECTED);
+
+        $quotation = $this->makeAction()->execute(
+            sq: $sq,
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+        );
+
+        $this->assertSame(QuotationStatus::DRAFT, $quotation->status);
+        $this->assertSame(2, $quotation->items()->count());
+        $this->assertSame(SupplierQuotationStatus::SELECTED, $sq->fresh()->status);
+    }
+
+    public function test_three_sq_pool_only_includes_quotable_statuses_and_source_always_wins(): void
+    {
+        // Mutante que a revisão pegou: `preferredSupplierQuotationId: null` e
+        // `QUOTABLE_STATUSES => []` sobrevivem quando só existe uma SQ no pool.
+        // Este cenário com 3 SQs distingue os três papéis: origem (sempre vence),
+        // sibling quotável mais barato (vira alternativa) e sibling REJECTED
+        // (nem eleito, nem alternativa — nem é a origem, nem está em QUOTABLE_STATUSES).
+        [$client, $inquiry, $sourceSq, $asked, $extra] = $this->buildScenario();
+        $sourceSq->items()->where('product_id', $asked->id)->update(['unit_cost' => 300000]);
+
+        $cheaperSibling = SupplierQuotation::create([
+            'inquiry_id' => $inquiry->id,
+            'company_id' => Company::factory()->create()->id,
+            'currency_code' => 'USD',
+            'status' => SupplierQuotationStatus::RECEIVED,
+        ]);
+        SupplierQuotationItem::create([
+            'supplier_quotation_id' => $cheaperSibling->id,
+            'product_id' => $asked->id,
+            'quantity' => 100,
+            'unit_cost' => 100000,
+        ]);
+
+        $rejectedCheapestSibling = SupplierQuotation::create([
+            'inquiry_id' => $inquiry->id,
+            'company_id' => Company::factory()->create()->id,
+            'currency_code' => 'USD',
+            'status' => SupplierQuotationStatus::REJECTED,
+        ]);
+        SupplierQuotationItem::create([
+            'supplier_quotation_id' => $rejectedCheapestSibling->id,
+            'product_id' => $asked->id,
+            'quantity' => 100,
+            'unit_cost' => 50000,
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            sq: $sourceSq,
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+        );
+
+        $askedItem = $quotation->items()->where('product_id', $asked->id)->first();
+
+        // A SQ de origem vence a eleição mesmo sendo a mais cara das três.
+        $this->assertSame(300000, $askedItem->unit_cost);
+        $this->assertSame($sourceSq->company_id, $askedItem->selected_supplier_id);
+
+        $alternativeCompanyIds = $askedItem->suppliers()->pluck('company_id')->all();
+
+        // O sibling RECEIVED mais barato fica registrado como alternativa.
+        $this->assertContains($cheaperSibling->company_id, $alternativeCompanyIds);
+
+        // O sibling REJECTED (o mais barato dos três) não aparece em lugar nenhum.
+        $this->assertNotContains($rejectedCheapestSibling->company_id, $alternativeCompanyIds);
+        $this->assertNotSame($rejectedCheapestSibling->company_id, $askedItem->selected_supplier_id);
+    }
+
+    public function test_force_new_version_on_locked_quotation_creates_v2_and_snapshots_v1(): void
+    {
+        [$client, $inquiry, $sq, $asked, $extra] = $this->buildScenario();
+
+        $v1 = $this->makeAction()->execute(
+            sq: $sq,
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 10,
+        );
+        $v1->update(['status' => QuotationStatus::SENT]);
+
+        // Primeira chamada já avançou a SQ para UNDER_ANALYSIS; a segunda não deve
+        // tentar avançar de novo (o guard só transiciona a partir de RECEIVED).
+        $sqAfterFirstCall = $sq->fresh();
+        $this->assertSame(SupplierQuotationStatus::UNDER_ANALYSIS, $sqAfterFirstCall->status);
+
+        $v2 = $this->makeAction()->execute(
+            sq: $sqAfterFirstCall,
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 25,
+            validityDays: 60,
+            forceNewVersion: true,
+        );
+
+        $this->assertNotSame($v1->id, $v2->id, 'new Quotation row');
+        $this->assertSame(2, $v2->version);
+        $this->assertSame(QuotationStatus::DRAFT, $v2->status);
+        $this->assertSame(QuotationStatus::SENT, $v1->fresh()->status, 'v1 stays sent');
+        $this->assertDatabaseHas('quotation_versions', [
+            'quotation_id' => $v1->id,
+            'version' => 1,
+        ]);
+        $this->assertEqualsWithDelta(25.0, (float) $v2->commission_rate, 0.01);
+        $this->assertSame(60, $v2->validity_days);
+        $this->assertSame(today()->addDays(60)->toDateString(), $v2->valid_until->toDateString());
+
+        // A SQ já estava UNDER_ANALYSIS antes desta segunda chamada; não muda de novo.
+        $this->assertSame(SupplierQuotationStatus::UNDER_ANALYSIS, $sq->fresh()->status);
+    }
 }
