@@ -16,6 +16,7 @@ return [
     'possible_duplicate' => 'Possible Duplicate Detected',
     'error_creating_sq' => 'Error creating supplier quotations',
     'error_creating_quotation' => 'Error creating quotation',
+    'client_quotation_created_from_sq' => 'Client quotation created from the supplier quotation',
     'error_creating_pi' => 'Error creating Proforma Invoice',
     'status_transition_failed' => 'Status transition failed',
     'import_failed' => 'Import failed',

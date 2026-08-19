@@ -16,6 +16,7 @@ return [
     'possible_duplicate' => '检测到可能重复',
     'error_creating_sq' => '创建供应商报价时出错',
     'error_creating_quotation' => '创建报价时出错',
+    'client_quotation_created_from_sq' => '已根据供应商报价单创建客户报价单',
     'error_creating_pi' => '创建形式发票时出错',
     'status_transition_failed' => '状态转换失败',
     'import_failed' => '导入失败',

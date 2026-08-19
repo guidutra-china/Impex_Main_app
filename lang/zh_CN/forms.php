@@ -178,6 +178,8 @@ return [
         'update_proforma_invoice' => '更新形式发票',
         'update_pi' => '更新 :reference',
         'update_quotation' => '更新报价单',
+        'create_client_quotation' => '创建客户报价单',
+        'create_client_quotation_help' => '将此供应商报价单的所有项目转入客户报价单。',
         'create_quotation' => '创建报价单',
         'create_quotation_new_version' => '创建新版本',
         'create_new_draft_product' => '创建新草稿产品',

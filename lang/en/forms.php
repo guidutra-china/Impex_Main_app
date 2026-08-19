@@ -189,6 +189,8 @@ return [
         'update_proforma_invoice' => 'Update Proforma Invoice',
         'update_pi' => 'Update :reference',
         'update_quotation' => 'Update Quotation',
+        'create_client_quotation' => 'Create Client Quotation',
+        'create_client_quotation_help' => 'Takes every item of this supplier quotation into a client quotation.',
         'create_quotation' => 'Create Quotation',
         'create_quotation_new_version' => 'Create new version',
         'create_new_draft_product' => 'Create new draft product',

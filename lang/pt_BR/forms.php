@@ -189,6 +189,8 @@ return [
         'update_proforma_invoice' => 'Atualizar Fatura Proforma',
         'update_pi' => 'Atualizar :reference',
         'update_quotation' => 'Atualizar Cotação',
+        'create_client_quotation' => 'Criar Cotação para o Cliente',
+        'create_client_quotation_help' => 'Leva todos os itens desta cotação de fornecedor para uma cotação ao cliente.',
         'create_quotation' => 'Criar Cotação',
         'create_quotation_new_version' => 'Criar nova versão',
         'create_new_draft_product' => 'Criar novo produto rascunho',
