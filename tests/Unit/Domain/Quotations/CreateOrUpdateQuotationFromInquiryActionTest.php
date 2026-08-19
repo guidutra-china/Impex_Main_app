@@ -675,4 +675,82 @@ class CreateOrUpdateQuotationFromInquiryActionTest extends TestCase
         // A inquiry do cliente não é reescrita pela escolha de moeda da cotação.
         $this->assertSame('USD', $inquiry->fresh()->currency_code);
     }
+
+    public function test_currency_code_override_rounds_converted_cost(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems(1, 'USD');
+        $supplier = Company::factory()->create();
+
+        // Custo que não converte em número redondo em EUR (0.92): 100001 × 0.92 = 92000.92 → arredonda p/ 92001.
+        $sq = $this->buildSqWith($inquiry, $supplier, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 100001],
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+            currencyCode: 'EUR',
+        );
+
+        $item = $quotation->items()->first();
+        $this->assertSame(92001, $item->unit_price);
+    }
+
+    public function test_currency_code_override_rejects_invalid_or_inactive_currency(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems(1, 'USD');
+        $supplier = Company::factory()->create();
+        $sq = $this->buildSqWith($inquiry, $supplier, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 100000],
+        ]);
+
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+            currencyCode: 'XYZ',
+        );
+    }
+
+    public function test_currency_code_override_on_rerun_updates_existing_draft_in_place(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems(1, 'USD');
+        $supplier = Company::factory()->create();
+        $sq = $this->buildSqWith($inquiry, $supplier, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 100000],
+        ]);
+
+        $quotation1 = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+        );
+
+        $quotation2 = $this->makeAction()->execute(
+            inquiry: $inquiry->fresh(),
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+            currencyCode: 'CNY',
+        );
+
+        $this->assertSame($quotation1->id, $quotation2->id, 'should update in place, not create new');
+        $this->assertSame(1, $quotation2->version, 'no new version created');
+        $this->assertSame('CNY', $quotation2->currency_code);
+        $item = $quotation2->items()->first();
+        $this->assertSame(700000, $item->unit_price);
+
+        // A inquiry do cliente não é reescrita pela escolha de moeda da cotação.
+        $this->assertSame('USD', $inquiry->fresh()->currency_code);
+    }
 }

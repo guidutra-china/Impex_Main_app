@@ -9,6 +9,7 @@ use App\Domain\Quotations\Enums\QuotationStatus;
 use App\Domain\Quotations\Exceptions\QuotationLockedException;
 use App\Domain\Quotations\Models\Quotation;
 use App\Domain\Quotations\Models\QuotationItem;
+use App\Domain\Settings\Models\Currency;
 use App\Domain\Settings\Services\CurrencyExchangeResolver;
 use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +29,23 @@ class CreateOrUpdateQuotationFromInquiryAction
         private CurrencyExchangeResolver $fx,
     ) {}
 
+    /**
+     * Cria ou atualiza a Quotation gerada a partir de uma Inquiry (e, opcionalmente, das
+     * SupplierQuotations selecionadas).
+     *
+     * A moeda escolhida (`currencyCode`) vale para o cabeçalho da Quotation e para a
+     * conversão de FX dos itens, mas a Inquiry do cliente nunca é reescrita — o cliente
+     * pediu na moeda dele; o trader cotar em outra não é motivo para alterar o pedido.
+     *
+     * @param  array<int, int>  $supplierQuotationIds
+     * @param  array<int, array{
+     *     unit_cost?: float,
+     *     cost_currency_code?: string,
+     *     cost_exchange_rate?: float,
+     *     commission_rate?: float,
+     *     unit_price?: float,
+     * }>  $itemOverrides  Keyed by inquiry item id.
+     */
     public function execute(
         Inquiry $inquiry,
         array $supplierQuotationIds,
@@ -38,12 +56,22 @@ class CreateOrUpdateQuotationFromInquiryAction
         array $itemOverrides = [],
         ?Incoterm $incoterm = null,
         ?int $preferredSupplierQuotationId = null,
+        // ATENÇÃO: itemOverrides já traz taxa de câmbio e preço unitário prontos por item.
+        // Se currencyCode vier junto com itemOverrides, o override prevalece sobre a conversão
+        // — os valores do override não são recalculados na nova moeda. Nenhum chamador atual
+        // passa os dois juntos (o modal antigo só manda itemOverrides; o novo orquestrador só
+        // manda currencyCode), mas um futuro caller que combine ambos precisa computar o
+        // override já na moeda de currencyCode.
         ?string $currencyCode = null,
     ): Quotation {
         if ($preferredSupplierQuotationId !== null && ! in_array($preferredSupplierQuotationId, array_map('intval', $supplierQuotationIds), true)) {
             throw new \InvalidArgumentException(
                 'A cotação de fornecedor preferida precisa estar entre as cotações consideradas.',
             );
+        }
+
+        if ($currencyCode !== null && ! Currency::query()->where('code', $currencyCode)->where('is_active', true)->exists()) {
+            throw new \InvalidArgumentException("Moeda inválida ou inativa: {$currencyCode}.");
         }
 
         return DB::transaction(function () use (
