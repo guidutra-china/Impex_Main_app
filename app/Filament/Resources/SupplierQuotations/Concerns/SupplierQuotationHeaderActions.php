@@ -118,7 +118,7 @@ trait SupplierQuotationHeaderActions
             ->icon('heroicon-o-document-plus')
             ->color('success')
             ->modalHeading(__('forms.labels.create_client_quotation'))
-            ->modalDescription(__('forms.labels.create_client_quotation_help'))
+            ->modalDescription(__('forms.helpers.create_client_quotation_help'))
             ->visible(fn () => CreateQuotationFromSupplierQuotationAction::canBeSource($this->record)
                 && $this->record->items()->where('unit_cost', '>', 0)->exists())
             ->fillForm(function () {
