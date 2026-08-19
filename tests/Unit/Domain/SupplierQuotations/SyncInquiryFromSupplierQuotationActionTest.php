@@ -186,6 +186,93 @@ class SyncInquiryFromSupplierQuotationActionTest extends TestCase
         $this->assertSame($product->id, $sqItem->fresh()->product_id);
     }
 
+    public function test_elects_lowest_unit_cost_item_when_two_sq_items_share_a_product(): void
+    {
+        $client = Company::factory()->create();
+        $sq = $this->makeSq();
+        $product = Product::factory()->create();
+
+        // A linha mais cara vem primeiro na ordem — a eleição não pode seguir a
+        // ordem das linhas, tem que seguir o menor unit_cost.
+        $this->addSqItem($sq, $product->id, [
+            'unit_cost' => 150000,
+            'quantity' => 20,
+            'description' => 'Tier caro (MOQ baixo)',
+            'sort_order' => 0,
+        ]);
+        $this->addSqItem($sq, $product->id, [
+            'unit_cost' => 90000,
+            'quantity' => 500,
+            'description' => 'Tier barato (MOQ alto)',
+            'sort_order' => 1,
+        ]);
+
+        $inquiry = $this->makeAction()->execute(
+            sq: $sq,
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+        );
+
+        $this->assertSame(1, $inquiry->items()->count());
+        $item = $inquiry->items()->first();
+        $this->assertSame(500, $item->quantity);
+        $this->assertSame('Tier barato (MOQ alto)', $item->description);
+    }
+
+    public function test_dedups_null_product_items_by_description_before_minting_drafts(): void
+    {
+        $client = Company::factory()->create();
+        $sq = $this->makeSq();
+
+        $first = $this->addSqItem($sq, null, [
+            'description' => '  Kettlebell 16kg  ',
+            'unit_cost' => 100000,
+            'quantity' => 10,
+            'sort_order' => 0,
+        ]);
+        $second = $this->addSqItem($sq, null, [
+            'description' => 'kettlebell 16kg',
+            'unit_cost' => 80000,
+            'quantity' => 40,
+            'sort_order' => 1,
+        ]);
+
+        $inquiry = $this->makeAction()->execute(
+            sq: $sq,
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+        );
+
+        $this->assertSame(1, Product::count());
+        $this->assertSame($first->fresh()->product_id, $second->fresh()->product_id);
+        $this->assertSame(1, $inquiry->items()->count());
+        // Também respeita a eleição por menor custo entre as duas linhas casadas.
+        $this->assertSame(40, $inquiry->items()->first()->quantity);
+    }
+
+    public function test_keeps_link_to_soft_deleted_product_without_minting_a_duplicate(): void
+    {
+        $client = Company::factory()->create();
+        $sq = $this->makeSq();
+        $product = Product::factory()->create();
+        $product->delete();
+        $sqItem = $this->addSqItem($sq, $product->id, ['description' => 'Produto removido']);
+
+        $inquiry = $this->makeAction()->execute(
+            sq: $sq,
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+        );
+
+        $this->assertSame($product->id, $sqItem->fresh()->product_id);
+        $this->assertSame(1, Product::withTrashed()->count());
+        $item = $inquiry->items()->first();
+        $this->assertSame($product->id, $item->product_id);
+    }
+
     public function test_advances_inquiry_from_received_to_quoting(): void
     {
         $client = Company::factory()->create();
