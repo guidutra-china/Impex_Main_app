@@ -19,13 +19,10 @@ class CreateAccountsReceivable extends CreateRecord
     {
         parent::mount();
 
-        $companyId = request()->query('company_id');
+        $prefill = $this->buildScheduleItemsPrefill(PaymentDirection::INBOUND);
 
-        if ($companyId) {
-            $this->form->fill([
-                'direction' => PaymentDirection::INBOUND->value,
-                'company_id' => (int) $companyId,
-            ]);
+        if ($prefill !== []) {
+            $this->form->fill($prefill);
         }
     }
 
