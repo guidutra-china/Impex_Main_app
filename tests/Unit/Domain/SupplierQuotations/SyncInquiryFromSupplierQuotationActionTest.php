@@ -107,6 +107,28 @@ class SyncInquiryFromSupplierQuotationActionTest extends TestCase
         $this->assertSame(1, $result->items()->count());
     }
 
+    public function test_reruns_for_a_different_client_reuse_the_inquiry_they_created(): void
+    {
+        $originalClient = Company::factory()->create();
+        $otherClient = Company::factory()->create();
+        $inquiry = Inquiry::factory()->create(['company_id' => $originalClient->id]);
+        $sq = $this->makeSq($inquiry);
+        $this->addSqItem($sq, Product::factory()->create()->id);
+
+        $action = $this->makeAction();
+
+        $first = $action->execute(sq: $sq, companyId: $otherClient->id, contactId: null, currencyCode: 'USD');
+        $second = $action->execute(sq: $sq, companyId: $otherClient->id, contactId: null, currencyCode: 'USD');
+        $third = $action->execute(sq: $sq, companyId: $otherClient->id, contactId: null, currencyCode: 'USD');
+
+        $this->assertSame($first->id, $second->id);
+        $this->assertSame($first->id, $third->id);
+        // A inquiry original do cliente A + a única criada para o cliente B.
+        $this->assertSame(2, Inquiry::count());
+        $this->assertSame(1, $third->items()->count());
+        $this->assertSame(1, $third->stateTransitions()->count());
+    }
+
     public function test_adds_only_missing_items_and_preserves_existing_quantity(): void
     {
         $client = Company::factory()->create();

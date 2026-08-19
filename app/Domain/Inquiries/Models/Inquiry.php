@@ -23,7 +23,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Inquiry extends Model
 {
-    use HasFactory, SoftDeletes, HasReference, HasStateMachine, HasDocuments;
+    use HasDocuments, HasFactory, HasReference, HasStateMachine, SoftDeletes;
 
     protected static function newFactory(): \Database\Factories\InquiryFactory
     {
@@ -35,6 +35,7 @@ class Inquiry extends Model
         'description',
         'company_id',
         'contact_id',
+        'source_supplier_quotation_id',
         'status',
         'source',
         'currency_code',
@@ -114,6 +115,11 @@ class Inquiry extends Model
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    public function sourceSupplierQuotation(): BelongsTo
+    {
+        return $this->belongsTo(SupplierQuotation::class, 'source_supplier_quotation_id');
     }
 
     public function creator(): BelongsTo

@@ -55,6 +55,19 @@ class SyncInquiryFromSupplierQuotationAction
             return $existing;
         }
 
+        // A inquiry gerada por esta SQ para este cliente é reencontrada nas rodadas
+        // seguintes; sem isto, cada clique criaria uma inquiry (e uma cadeia de
+        // cotações) nova para o mesmo cliente.
+        $fromThisSq = Inquiry::query()
+            ->where('source_supplier_quotation_id', $sq->id)
+            ->where('company_id', $companyId)
+            ->latest('id')
+            ->first();
+
+        if ($fromThisSq) {
+            return $fromThisSq;
+        }
+
         $inquiry = Inquiry::create([
             'description' => $sq->description ?: 'Itens de '.$sq->reference,
             'company_id' => $companyId,
@@ -63,6 +76,7 @@ class SyncInquiryFromSupplierQuotationAction
             'source' => InquirySource::OTHER,
             'currency_code' => $currencyCode,
             'received_at' => today(),
+            'source_supplier_quotation_id' => $sq->id,
         ]);
 
         // A SQ só é reamarrada quando ainda não pertencia a inquiry nenhuma:
