@@ -61,6 +61,7 @@ return [
     'quotation_created' => 'Cotação criada',
     'quotation_updated' => 'Cotação atualizada',
     'quotation_locked' => 'Cotação bloqueada para recálculo',
+    'quotation_locked_needs_new_version' => 'A cotação :reference já foi enviada ao cliente e não pode ser recalculada. Marque "Criar nova versão" para gerar uma nova versão a partir dela.',
     'quotation_new_version_created' => 'Nova versão da cotação criada',
     'product_linked' => 'Produto vinculado com sucesso',
     'product_link_updated' => 'Vínculo do produto atualizado',

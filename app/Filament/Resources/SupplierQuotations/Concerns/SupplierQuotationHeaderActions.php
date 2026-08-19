@@ -224,9 +224,14 @@ trait SupplierQuotationHeaderActions
 
                     return redirect(QuotationResource::getUrl('edit', ['record' => $quotation]));
                 } catch (QuotationLockedException $e) {
+                    // getMessage() é redigida para logs (em inglês, citando o parâmetro
+                    // forceNewVersion) — nunca mostrada ao trader. O corpo do toast usa a
+                    // mensagem traduzida, que nomeia a saída real: marcar o toggle.
                     Notification::make()
                         ->title(__('messages.quotation_locked'))
-                        ->body($e->getMessage())
+                        ->body(__('messages.quotation_locked_needs_new_version', [
+                            'reference' => $e->quotation->reference,
+                        ]))
                         ->danger()
                         ->send();
 

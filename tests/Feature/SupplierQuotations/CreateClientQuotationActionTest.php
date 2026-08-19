@@ -248,6 +248,38 @@ class CreateClientQuotationActionTest extends TestCase
         );
     }
 
+    /**
+     * QuotationLockedException::getMessage() é redigida para logs, em inglês, citando
+     * o parâmetro forceNewVersion — não para o trader ler. O corpo do toast precisa
+     * usar a mensagem traduzida (que nomeia a saída real: marcar "Criar nova versão"),
+     * nunca a mensagem crua da exceção.
+     */
+    public function test_locked_client_quotation_shows_translated_actionable_body(): void
+    {
+        [$sq, , $clientB, $lockedQuotation] = $this->buildLockedScenarioForDifferentClient();
+
+        Livewire::test(ViewSupplierQuotation::class, ['record' => $sq->getKey()])
+            ->callAction('createClientQuotation', [
+                'company_id' => $clientB->id,
+                'currency_code' => 'USD',
+                'commission_type' => CommissionType::EMBEDDED->value,
+                'commission_rate' => 10,
+                'validity_days' => 30,
+                'show_suppliers' => false,
+                'force_new_version' => false,
+            ]);
+
+        $notified = collect(session('filament.notifications', []))->last();
+        $this->assertNotNull($notified, 'A notification should have been sent.');
+
+        $this->assertSame(
+            __('messages.quotation_locked_needs_new_version', ['reference' => $lockedQuotation->reference]),
+            $notified['body'],
+        );
+        $this->assertStringNotContainsString('forceNewVersion', $notified['body']);
+        $this->assertStringNotContainsString('cannot be recomputed', $notified['body']);
+    }
+
     public function test_locked_client_quotation_creates_new_version_with_force_new_version(): void
     {
         [$sq, , $clientB, $lockedQuotation] = $this->buildLockedScenarioForDifferentClient();
