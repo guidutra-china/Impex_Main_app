@@ -213,20 +213,156 @@ class CreateClientQuotationActionTest extends TestCase
      * SELECIONADO no modal (company_id), não o da inquiry original da SQ.
      * Falha contra o código anterior ao fix, que lia sempre $this->record->inquiry
      * sem depender de $get('company_id') — o toggle ficava preso a "oculto".
+     *
+     * A inquiry PRÓPRIA da SQ (cliente A) também recebe uma cotação travada aqui —
+     * de propósito: sem isto, o "hidden" do cliente A passaria mesmo que o atalho
+     * de reaproveitar a inquiry própria (findExistingInquiry, ramo 1) fosse apagado
+     * inteiro, porque a inquiry de A não tem source_supplier_quotation_id e o ramo
+     * 2 (busca por esse campo) também não a encontraria — as duas ramificações
+     * dariam "não travado" pelo motivo errado. Com A também travada, o teste
+     * distingue de fato os dois ramos: A precisa do ramo 1, B precisa do ramo 2.
      */
     public function test_force_new_version_toggle_reacts_to_selected_client(): void
     {
         [$sq, , $clientB] = $this->buildLockedScenarioForDifferentClient();
 
+        Quotation::create([
+            'inquiry_id' => $sq->inquiry->id,
+            'company_id' => $sq->inquiry->company_id,
+            'status' => QuotationStatus::SENT,
+            'version' => 1,
+            'currency_code' => 'USD',
+            'commission_type' => CommissionType::EMBEDDED,
+            'commission_rate' => 10,
+            'validity_days' => 30,
+        ]);
+
         Livewire::test(ViewSupplierQuotation::class, ['record' => $sq->getKey()])
             ->mountAction('createClientQuotation')
-            // Prefill aponta para o cliente A (dono da inquiry da própria SQ), que não
-            // tem cotação nenhuma — o toggle deve começar oculto.
-            ->assertSchemaComponentHidden('force_new_version')
-            // Troca para o cliente B, dono da inquiry travada — o toggle precisa
-            // aparecer reativamente, sem remontar a action.
+            // Prefill aponta para o cliente A (dono da inquiry PRÓPRIA da SQ), que
+            // agora também tem uma cotação travada — o toggle precisa aparecer via
+            // o ramo 1 de findExistingInquiry (reaproveita a inquiry própria).
+            ->assertSchemaComponentVisible('force_new_version')
+            // Troca para o cliente B, dono da inquiry travada encontrada via o ramo
+            // 2 (source_supplier_quotation_id) — o toggle continua visível,
+            // reativamente, sem remontar a action.
             ->set('mountedActions.0.data.company_id', $clientB->id)
             ->assertSchemaComponentVisible('force_new_version');
+    }
+
+    /**
+     * Cliente B tem uma inquiry travada, mas ela NÃO foi gerada por esta SQ (sem
+     * source_supplier_quotation_id) — é só uma inquiry qualquer, de outro fluxo.
+     * O toggle precisa continuar oculto: matar o mutante que apaga o filtro
+     * `->where('source_supplier_quotation_id', ...)` de findExistingInquiry(), que
+     * faria a inquiry errada (mas do cliente certo) vazar como se fosse a fonte.
+     */
+    public function test_force_new_version_toggle_ignores_unrelated_locked_inquiry_of_same_client(): void
+    {
+        $sq = $this->buildSq();
+
+        $clientB = Company::factory()->create();
+        CompanyRoleAssignment::create([
+            'company_id' => $clientB->id,
+            'role' => CompanyRole::CLIENT,
+        ]);
+
+        $unrelatedInquiry = Inquiry::factory()->create([
+            'company_id' => $clientB->id,
+            'currency_code' => 'USD',
+        ]);
+
+        Quotation::create([
+            'inquiry_id' => $unrelatedInquiry->id,
+            'company_id' => $clientB->id,
+            'status' => QuotationStatus::SENT,
+            'version' => 1,
+            'currency_code' => 'USD',
+            'commission_type' => CommissionType::EMBEDDED,
+            'commission_rate' => 10,
+            'validity_days' => 30,
+        ]);
+
+        Livewire::test(ViewSupplierQuotation::class, ['record' => $sq->getKey()])
+            ->mountAction('createClientQuotation')
+            ->set('mountedActions.0.data.company_id', $clientB->id)
+            ->assertSchemaComponentHidden('force_new_version');
+    }
+
+    /**
+     * A inquiry travada do cliente B tem v1 SENT (travada) + v2 DRAFT (não travada,
+     * já é o resultado normal de um "force_new_version" anterior). O toggle precisa
+     * ficar oculto — reabrir o modal depois de gerar a v2 não pode convidar o
+     * trader a criar uma v3 sem necessidade. Mata o mutante que troca
+     * `->latest('version')` por `->oldest('version')` em clientQuotationIsLocked().
+     */
+    public function test_force_new_version_toggle_hidden_when_latest_version_is_draft(): void
+    {
+        [$sq, , $clientB] = $this->buildLockedScenarioForDifferentClient();
+
+        $inquiryB = Inquiry::query()
+            ->where('company_id', $clientB->id)
+            ->where('source_supplier_quotation_id', $sq->id)
+            ->firstOrFail();
+
+        Quotation::create([
+            'inquiry_id' => $inquiryB->id,
+            'company_id' => $clientB->id,
+            'status' => QuotationStatus::DRAFT,
+            'version' => 2,
+            'currency_code' => 'USD',
+            'commission_type' => CommissionType::EMBEDDED,
+            'commission_rate' => 10,
+            'validity_days' => 30,
+        ]);
+
+        Livewire::test(ViewSupplierQuotation::class, ['record' => $sq->getKey()])
+            ->mountAction('createClientQuotation')
+            ->set('mountedActions.0.data.company_id', $clientB->id)
+            ->assertSchemaComponentHidden('force_new_version');
+    }
+
+    /**
+     * Dois clientes (B e C) têm, cada um, uma inquiry gerada por ESTA MESMA SQ — só a
+     * de B está travada. O toggle precisa acompanhar qual cliente está selecionado.
+     * Mata o mutante que apaga `->where('company_id', $companyId)` de
+     * findExistingInquiry(): sem esse filtro, a busca por
+     * source_supplier_quotation_id sozinha devolveria sempre a MESMA inquiry (a
+     * mais recente, de C) não importa qual cliente esteja selecionado.
+     */
+    public function test_force_new_version_toggle_tracks_correct_client_among_two_source_linked(): void
+    {
+        [$sq, , $clientB] = $this->buildLockedScenarioForDifferentClient();
+
+        $clientC = Company::factory()->create();
+        CompanyRoleAssignment::create([
+            'company_id' => $clientC->id,
+            'role' => CompanyRole::CLIENT,
+        ]);
+
+        $inquiryC = Inquiry::factory()->create([
+            'company_id' => $clientC->id,
+            'currency_code' => 'USD',
+            'source_supplier_quotation_id' => $sq->id,
+        ]);
+
+        Quotation::create([
+            'inquiry_id' => $inquiryC->id,
+            'company_id' => $clientC->id,
+            'status' => QuotationStatus::DRAFT,
+            'version' => 1,
+            'currency_code' => 'USD',
+            'commission_type' => CommissionType::EMBEDDED,
+            'commission_rate' => 10,
+            'validity_days' => 30,
+        ]);
+
+        Livewire::test(ViewSupplierQuotation::class, ['record' => $sq->getKey()])
+            ->mountAction('createClientQuotation')
+            ->set('mountedActions.0.data.company_id', $clientB->id)
+            ->assertSchemaComponentVisible('force_new_version')
+            ->set('mountedActions.0.data.company_id', $clientC->id)
+            ->assertSchemaComponentHidden('force_new_version');
     }
 
     public function test_locked_client_quotation_blocks_creation_without_force_new_version(): void

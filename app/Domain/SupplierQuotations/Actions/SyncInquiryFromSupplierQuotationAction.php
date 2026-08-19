@@ -45,12 +45,25 @@ class SyncInquiryFromSupplierQuotationAction
         });
     }
 
-    private function resolveInquiry(
-        SupplierQuotation $sq,
-        int $companyId,
-        ?int $contactId,
-        string $currencyCode,
-    ): Inquiry {
+    /**
+     * Encontra a inquiry deste cliente já gerada por esta SQ, se existir — sem criar
+     * nada. Único ponto de verdade para "qual inquiry este par (SQ, cliente) usa":
+     * resolveInquiry() (abaixo) chama isto antes de decidir criar uma nova, e a UI
+     * (SupplierQuotationHeaderActions::resolveClientInquiry(), que decide se o toggle
+     * "nova versão" aparece) chama o mesmo método — os dois não podem divergir sobre
+     * qual inquiry está em jogo, a mesma lição que já valeu para
+     * CreateQuotationFromSupplierQuotationAction::canBeSource().
+     *
+     * Duas ramificações, na mesma ordem que resolveInquiry() aplicaria:
+     * 1. a inquiry ORIGINAL da SQ, se ela já pertence a este cliente;
+     * 2. senão, a inquiry marcada com source_supplier_quotation_id = $sq->id E
+     *    company_id = $companyId (rodada anterior, cliente diferente do original).
+     * Uma terceira ramificação de resolveInquiry() — criar uma inquiry nova — não
+     * tem equivalente aqui de propósito: para quem só quer PERGUNTAR "existe?", nada
+     * existir é uma resposta válida (null), não um gatilho para criar algo.
+     */
+    public static function findExistingInquiry(SupplierQuotation $sq, int $companyId): ?Inquiry
+    {
         $existing = $sq->inquiry;
 
         if ($existing && $existing->company_id === $companyId) {
@@ -60,11 +73,20 @@ class SyncInquiryFromSupplierQuotationAction
         // A inquiry gerada por esta SQ para este cliente é reencontrada nas rodadas
         // seguintes; sem isto, cada clique criaria uma inquiry (e uma cadeia de
         // cotações) nova para o mesmo cliente.
-        $fromThisSq = Inquiry::query()
+        return Inquiry::query()
             ->where('source_supplier_quotation_id', $sq->id)
             ->where('company_id', $companyId)
             ->latest('id')
             ->first();
+    }
+
+    private function resolveInquiry(
+        SupplierQuotation $sq,
+        int $companyId,
+        ?int $contactId,
+        string $currencyCode,
+    ): Inquiry {
+        $fromThisSq = static::findExistingInquiry($sq, $companyId);
 
         if ($fromThisSq) {
             return $fromThisSq;

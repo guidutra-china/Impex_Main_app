@@ -8,7 +8,6 @@ use App\Domain\CRM\Models\Contact;
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Infrastructure\Excel\Templates\RfqExcelTemplate;
 use App\Domain\Infrastructure\Pdf\Templates\RfqPdfTemplate;
-use App\Domain\Inquiries\Models\Inquiry;
 use App\Domain\Quotations\Actions\CreateQuotationFromSupplierQuotationAction;
 use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\Incoterm;
@@ -16,6 +15,7 @@ use App\Domain\Quotations\Enums\QuotationStatus;
 use App\Domain\Quotations\Exceptions\QuotationLockedException;
 use App\Domain\Settings\Models\Currency;
 use App\Domain\Settings\Models\PaymentTerm;
+use App\Domain\SupplierQuotations\Actions\SyncInquiryFromSupplierQuotationAction;
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
 use App\Filament\Actions\GenerateExcelAction;
 use App\Filament\Actions\GeneratePdfAction;
@@ -263,16 +263,16 @@ trait SupplierQuotationHeaderActions
      * $companyId vem do campo `company_id` do MODAL, não necessariamente do cliente
      * da inquiry original desta SQ — a mesma SQ pode ter gerado, em rodadas
      * anteriores, inquiries diferentes para clientes diferentes (uma por cliente).
-     * A resolução abaixo espelha exatamente SyncInquiryFromSupplierQuotationAction::
-     * resolveInquiry(): reaproveita a inquiry da própria SQ quando o cliente bate,
-     * senão procura a inquiry marcada com source_supplier_quotation_id + este
-     * cliente. UI e domínio não podem divergir sobre qual inquiry está em jogo.
+     * A resolução usa SyncInquiryFromSupplierQuotationAction::findExistingInquiry()
+     * — o mesmo método que resolveInquiry() consulta lá — em vez de reproduzir a
+     * lógica aqui: UI e domínio não podem divergir sobre qual inquiry está em jogo
+     * (a mesma lição de CreateQuotationFromSupplierQuotationAction::canBeSource()).
      */
     private function clientQuotationIsLocked(?int $companyId): bool
     {
         $inquiry = $companyId === null
             ? $this->record->inquiry
-            : $this->resolveClientInquiry($companyId);
+            : SyncInquiryFromSupplierQuotationAction::findExistingInquiry($this->record, $companyId);
 
         if (! $inquiry) {
             return false;
@@ -281,21 +281,6 @@ trait SupplierQuotationHeaderActions
         $latest = $inquiry->quotations()->latest('version')->first();
 
         return $latest !== null && $latest->status !== QuotationStatus::DRAFT;
-    }
-
-    private function resolveClientInquiry(int $companyId): ?Inquiry
-    {
-        $ownInquiry = $this->record->inquiry;
-
-        if ($ownInquiry && $ownInquiry->company_id === $companyId) {
-            return $ownInquiry;
-        }
-
-        return Inquiry::query()
-            ->where('source_supplier_quotation_id', $this->record->id)
-            ->where('company_id', $companyId)
-            ->latest('id')
-            ->first();
     }
 
     protected function statusActionGroup(): ?ActionGroup
