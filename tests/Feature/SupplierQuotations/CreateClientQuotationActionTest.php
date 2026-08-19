@@ -6,6 +6,7 @@ use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Models\CompanyRoleAssignment;
+use App\Domain\CRM\Models\Contact;
 use App\Domain\Inquiries\Models\Inquiry;
 use App\Domain\Inquiries\Models\InquiryItem;
 use App\Domain\Quotations\Actions\CreateQuotationFromSupplierQuotationAction;
@@ -356,5 +357,102 @@ class CreateClientQuotationActionTest extends TestCase
             ->assertActionHalted('createClientQuotation');
 
         $this->assertNull(Quotation::where('inquiry_id', $inquiry->id)->first());
+    }
+
+    public function test_contact_options_are_ordered_by_name(): void
+    {
+        $sq = $this->buildSq();
+        $inquiry = $sq->inquiry;
+
+        Contact::factory()->create(['company_id' => $inquiry->company_id, 'name' => 'Zeta Souza']);
+        Contact::factory()->create(['company_id' => $inquiry->company_id, 'name' => 'Alfa Lima']);
+
+        Livewire::test(ViewSupplierQuotation::class, ['record' => $sq->getKey()])
+            ->mountAction('createClientQuotation')
+            ->assertSchemaComponentExists(
+                'contact_id',
+                checkComponentUsing: fn ($component) => array_values($component->getOptions()) === ['Alfa Lima', 'Zeta Souza'],
+            );
+    }
+
+    public function test_commission_rate_label_has_no_duplicate_percent_sign(): void
+    {
+        $sq = $this->buildSq();
+
+        Livewire::test(ViewSupplierQuotation::class, ['record' => $sq->getKey()])
+            ->mountAction('createClientQuotation')
+            ->assertSchemaComponentExists(
+                'commission_rate',
+                checkComponentUsing: fn ($component) => ! str_contains($component->getLabel(), '(%)'),
+            );
+    }
+
+    /**
+     * helperText() não expõe um getter simples — vira um componente Text aninhado
+     * num child schema "below_content". Extrai o texto de lá em vez de confiar em
+     * assertSee() no HTML renderizado (o snapshot completo da página não bateu com
+     * o texto esperado de forma confiável neste teste, mesmo com o texto presente).
+     */
+    private function helperTextOf($component): ?string
+    {
+        $schema = $component->getChildSchema('below_content');
+
+        if (! $schema) {
+            return null;
+        }
+
+        foreach ($schema->getComponents() as $child) {
+            if ($child instanceof \Filament\Schemas\Components\Text) {
+                return (string) $child->getContent();
+            }
+        }
+
+        return null;
+    }
+
+    public function test_show_suppliers_has_anonymization_helper_text(): void
+    {
+        $sq = $this->buildSq();
+
+        Livewire::test(ViewSupplierQuotation::class, ['record' => $sq->getKey()])
+            ->mountAction('createClientQuotation')
+            ->assertSchemaComponentExists(
+                'show_suppliers',
+                checkComponentUsing: fn ($component) => $this->helperTextOf($component)
+                    === __('forms.helpers.show_suppliers_or_anonymize_help'),
+            );
+    }
+
+    public function test_force_new_version_has_dedicated_label_and_helper_text(): void
+    {
+        [$sq, , $clientB] = $this->buildLockedScenarioForDifferentClient();
+
+        Livewire::test(ViewSupplierQuotation::class, ['record' => $sq->getKey()])
+            ->mountAction('createClientQuotation')
+            ->set('mountedActions.0.data.company_id', $clientB->id)
+            ->assertSchemaComponentExists('force_new_version', checkComponentUsing: function ($component) {
+                return $component->getLabel() === __('forms.labels.force_new_version')
+                    && $this->helperTextOf($component) === __('forms.helpers.force_new_version_help');
+            });
+    }
+
+    public function test_optional_selects_have_placeholders(): void
+    {
+        $sq = $this->buildSq();
+
+        Livewire::test(ViewSupplierQuotation::class, ['record' => $sq->getKey()])
+            ->mountAction('createClientQuotation')
+            ->assertSchemaComponentExists(
+                'contact_id',
+                checkComponentUsing: fn ($c) => $c->getPlaceholder() === __('forms.placeholders.select_contact'),
+            )
+            ->assertSchemaComponentExists(
+                'incoterm',
+                checkComponentUsing: fn ($c) => $c->getPlaceholder() === __('forms.placeholders.select_incoterm'),
+            )
+            ->assertSchemaComponentExists(
+                'payment_term_id',
+                checkComponentUsing: fn ($c) => $c->getPlaceholder() === __('forms.placeholders.select_payment_term'),
+            );
     }
 }

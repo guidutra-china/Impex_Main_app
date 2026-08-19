@@ -153,15 +153,17 @@ trait SupplierQuotationHeaderActions
                     ->options(fn (Get $get) => $get('company_id')
                         ? Contact::query()
                             ->where('company_id', $get('company_id'))
+                            ->orderBy('name')
                             ->pluck('name', 'id')
                         : [])
-                    ->searchable(),
+                    ->searchable()
+                    ->placeholder(__('forms.placeholders.select_contact')),
                 Select::make('commission_type')
                     ->label(__('forms.labels.commission_type'))
                     ->options(CommissionType::class)
                     ->required(),
                 TextInput::make('commission_rate')
-                    ->label(__('forms.labels.default_commission_rate'))
+                    ->label(__('forms.labels.commission_rate'))
                     ->numeric()
                     ->minValue(0)
                     ->maxValue(100)
@@ -174,20 +176,24 @@ trait SupplierQuotationHeaderActions
                     ->required(),
                 Select::make('incoterm')
                     ->label(__('forms.labels.incoterm'))
-                    ->options(Incoterm::class),
+                    ->options(Incoterm::class)
+                    ->placeholder(__('forms.placeholders.select_incoterm')),
                 Select::make('payment_term_id')
                     ->label(__('forms.labels.payment_terms'))
                     ->options(fn () => PaymentTerm::query()->where('is_active', true)->pluck('name', 'id'))
-                    ->searchable(),
+                    ->searchable()
+                    ->placeholder(__('forms.placeholders.select_payment_term')),
                 TextInput::make('validity_days')
                     ->label(__('forms.labels.validity_days'))
                     ->numeric()
                     ->minValue(1)
                     ->required(),
                 Toggle::make('show_suppliers')
-                    ->label(__('forms.labels.show_suppliers_to_client')),
+                    ->label(__('forms.labels.show_suppliers_to_client'))
+                    ->helperText(__('forms.helpers.show_suppliers_or_anonymize_help')),
                 Toggle::make('force_new_version')
-                    ->label(__('forms.labels.create_quotation_new_version'))
+                    ->label(__('forms.labels.force_new_version'))
+                    ->helperText(__('forms.helpers.force_new_version_help'))
                     ->visible(fn (Get $get) => $this->clientQuotationIsLocked(
                         $get('company_id') ? (int) $get('company_id') : null
                     )),

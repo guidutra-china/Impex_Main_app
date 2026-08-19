@@ -61,7 +61,7 @@ return [
     'quotation_created' => 'Quotation created',
     'quotation_updated' => 'Quotation updated',
     'quotation_locked' => 'Quotation locked from recalculation',
-    'quotation_locked_needs_new_version' => 'Quotation :reference has already been sent to the client and cannot be recalculated. Check "Create new version" to generate a new version from it.',
+    'quotation_locked_needs_new_version' => 'Quotation :reference has already been sent to the client and cannot be recalculated. Check "Create New Version" to generate a new version from it.',
     'quotation_new_version_created' => 'New quotation version created',
     'product_linked' => 'Product linked successfully',
     'product_link_updated' => 'Product link updated',
