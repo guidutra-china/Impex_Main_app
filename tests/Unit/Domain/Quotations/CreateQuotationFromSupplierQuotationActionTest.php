@@ -375,4 +375,69 @@ class CreateQuotationFromSupplierQuotationActionTest extends TestCase
         $this->assertNotNull($quotation->valid_until);
         $this->assertSame(today()->addDays(30)->toDateString(), $quotation->valid_until->toDateString());
     }
+
+    public function test_unchanged_commission_rate_preserves_manually_edited_item_rate(): void
+    {
+        [$client, $inquiry, $sq, $asked, $extra] = $this->buildScenario();
+
+        $quotation = $this->makeAction()->execute(
+            sq: $sq,
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 10,
+        );
+
+        $askedItem = $quotation->items()->where('product_id', $asked->id)->first();
+        $askedItem->update(['commission_rate' => 40]); // ajuste manual no item
+
+        $quotation2 = $this->makeAction()->execute(
+            sq: $sq->fresh(),
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 10, // mesma taxa da rodada anterior
+        );
+
+        $refreshed = $quotation2->items()->where('product_id', $asked->id)->first();
+        $this->assertEqualsWithDelta(40.0, (float) $refreshed->commission_rate, 0.01);
+        // 100000 × 1.40 = 140000: o ajuste manual do item se mantém.
+        $this->assertSame(140000, $refreshed->unit_price);
+    }
+
+    public function test_changed_commission_rate_rewrites_all_item_rates_and_prices(): void
+    {
+        [$client, $inquiry, $sq, $asked, $extra] = $this->buildScenario();
+
+        $quotation = $this->makeAction()->execute(
+            sq: $sq,
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 10,
+        );
+
+        $askedItem = $quotation->items()->where('product_id', $asked->id)->first();
+        $askedItem->update(['commission_rate' => 40]); // será descartado: a taxa do cabeçalho muda
+
+        $quotation2 = $this->makeAction()->execute(
+            sq: $sq->fresh(),
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 25, // taxa diferente da rodada anterior (10)
+        );
+
+        $refreshedAsked = $quotation2->items()->where('product_id', $asked->id)->first();
+        $refreshedExtra = $quotation2->items()->where('product_id', $extra->id)->first();
+
+        $this->assertEqualsWithDelta(25.0, (float) $refreshedAsked->commission_rate, 0.01);
+        $this->assertSame(125000, $refreshedAsked->unit_price); // 100000 × 1.25
+        $this->assertEqualsWithDelta(25.0, (float) $refreshedExtra->commission_rate, 0.01);
+        $this->assertSame(250000, $refreshedExtra->unit_price); // 200000 × 1.25
+    }
 }

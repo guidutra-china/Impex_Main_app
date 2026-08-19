@@ -97,6 +97,12 @@ class CreateOrUpdateQuotationFromInquiryAction
                 $newVersion = 1;
             }
 
+            // Capturada ANTES do update() de cabeçalho sobrescrever commission_rate: syncItems()
+            // usa esta comparação para decidir se a mudança de comissão vale como "aplicar em
+            // toda a cotação" (recalcula todo item) ou se cada item mantém seu próprio ajuste
+            // manual (rate igual ao da rodada anterior).
+            $previousHeaderCommissionRate = $existing !== null ? (float) $existing->commission_rate : null;
+
             if ($existing) {
                 $existing->update([
                     'description' => $existing->description ?? $inquiry->description,
@@ -125,6 +131,9 @@ class CreateOrUpdateQuotationFromInquiryAction
                 ]);
             }
 
+            $headerCommissionRateChanged = $previousHeaderCommissionRate !== null
+                && abs($previousHeaderCommissionRate - $commissionRate) > 0.0001;
+
             $this->syncItems(
                 inquiry: $inquiry,
                 quotation: $quotation,
@@ -133,6 +142,7 @@ class CreateOrUpdateQuotationFromInquiryAction
                 commissionRate: $commissionRate,
                 itemOverrides: $itemOverrides,
                 preferredSupplierQuotationId: $preferredSupplierQuotationId,
+                headerCommissionRateChanged: $headerCommissionRateChanged,
             );
 
             return $quotation->fresh(['items.suppliers']);
@@ -147,6 +157,7 @@ class CreateOrUpdateQuotationFromInquiryAction
         float $commissionRate,
         array $itemOverrides = [],
         ?int $preferredSupplierQuotationId = null,
+        bool $headerCommissionRateChanged = false,
     ): void {
         $sqItemsByProduct = empty($supplierQuotationIds)
             ? collect()
@@ -195,7 +206,12 @@ class CreateOrUpdateQuotationFromInquiryAction
             $convertedCost = (int) round($unitCost * $rate);
 
             $existingItem = $existingItems->get($productId);
-            $itemCommissionRate = $existingItem
+
+            // Mudar a comissão do cabeçalho vale como "aplicar em toda a cotação": todo item
+            // é recalculado com a nova taxa, descartando ajustes manuais anteriores. Manter a
+            // mesma taxa do cabeçalho preserva o ajuste que o usuário tenha feito item a item
+            // (ex.: reduzir a margem de um produto específico sem reduzir a comissão geral).
+            $itemCommissionRate = ($existingItem && ! $headerCommissionRateChanged)
                 ? (float) $existingItem->commission_rate
                 : ($commissionType === CommissionType::EMBEDDED ? $commissionRate : 0);
 
