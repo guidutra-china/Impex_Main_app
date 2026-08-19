@@ -37,9 +37,11 @@ class CreateOrUpdateQuotationFromInquiryAction
         bool $forceNewVersion = false,
         array $itemOverrides = [],
         ?Incoterm $incoterm = null,
+        ?int $preferredSupplierQuotationId = null,
     ): Quotation {
         return DB::transaction(function () use (
-            $inquiry, $supplierQuotationIds, $commissionType, $commissionRate, $showSuppliers, $forceNewVersion, $itemOverrides, $incoterm
+            $inquiry, $supplierQuotationIds, $commissionType, $commissionRate, $showSuppliers,
+            $forceNewVersion, $itemOverrides, $incoterm, $preferredSupplierQuotationId
         ) {
             $existing = $inquiry->quotations()->latest('version')->first();
 
@@ -95,6 +97,7 @@ class CreateOrUpdateQuotationFromInquiryAction
                 commissionType: $commissionType,
                 commissionRate: $commissionRate,
                 itemOverrides: $itemOverrides,
+                preferredSupplierQuotationId: $preferredSupplierQuotationId,
             );
 
             return $quotation->fresh(['items.suppliers']);
@@ -108,6 +111,7 @@ class CreateOrUpdateQuotationFromInquiryAction
         CommissionType $commissionType,
         float $commissionRate,
         array $itemOverrides = [],
+        ?int $preferredSupplierQuotationId = null,
     ): void {
         $sqItemsByProduct = empty($supplierQuotationIds)
             ? collect()
@@ -128,7 +132,7 @@ class CreateOrUpdateQuotationFromInquiryAction
             // Elect primary by lowest converted cost.
             $quoteCurrency = $quotation->currency_code;
             $referenceDate = optional($quotation->created_at)->toDateString() ?? today()->toDateString();
-            $primary = $alternatives->sortBy(function ($sqItem) use ($quoteCurrency, $referenceDate) {
+            $sortedAlternatives = $alternatives->sortBy(function ($sqItem) use ($quoteCurrency, $referenceDate) {
                 $resolved = $this->fx->resolve(
                     $sqItem->supplierQuotation->currency_code,
                     $quoteCurrency,
@@ -136,7 +140,13 @@ class CreateOrUpdateQuotationFromInquiryAction
                 );
 
                 return $sqItem->unit_cost * $resolved['rate'];
-            })->first();
+            });
+
+            // A SQ de origem manda quando ela cota este item; senão, menor custo.
+            $primary = $preferredSupplierQuotationId !== null
+                ? ($sortedAlternatives->firstWhere('supplier_quotation_id', $preferredSupplierQuotationId)
+                    ?? $sortedAlternatives->first())
+                : $sortedAlternatives->first();
 
             $unitCost = $primary?->unit_cost ?? 0;
             $sourceCurrency = $primary?->supplierQuotation?->currency_code ?? $quoteCurrency;

@@ -504,4 +504,87 @@ class CreateOrUpdateQuotationFromInquiryActionTest extends TestCase
         $this->assertSame(\App\Domain\Quotations\Enums\Incoterm::EXW, $quotation->items->first()->incoterm);
         $this->assertSame(\App\Domain\Quotations\Enums\Incoterm::FOB, $quotation->incoterm);
     }
+
+    public function test_preferred_supplier_quotation_wins_even_when_more_expensive(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems(1);
+        $cheap = Company::factory()->create();
+        $expensive = Company::factory()->create();
+
+        $cheapSq = $this->buildSqWith($inquiry, $cheap, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 100000],
+        ]);
+        $expensiveSq = $this->buildSqWith($inquiry, $expensive, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 250000],
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$cheapSq->id, $expensiveSq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+            preferredSupplierQuotationId: $expensiveSq->id,
+        );
+
+        $item = $quotation->items()->first();
+        $this->assertSame($expensive->id, $item->selected_supplier_id);
+        $this->assertSame(250000, $item->unit_cost);
+        // A SQ mais barata continua disponível como alternativa.
+        $this->assertSame(2, $item->suppliers()->count());
+    }
+
+    public function test_without_preferred_id_the_cheapest_still_wins(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems(1);
+        $cheap = Company::factory()->create();
+        $expensive = Company::factory()->create();
+
+        $cheapSq = $this->buildSqWith($inquiry, $cheap, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 100000],
+        ]);
+        $expensiveSq = $this->buildSqWith($inquiry, $expensive, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 250000],
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$cheapSq->id, $expensiveSq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+        );
+
+        $item = $quotation->items()->first();
+        $this->assertSame($cheap->id, $item->selected_supplier_id);
+        $this->assertSame(100000, $item->unit_cost);
+    }
+
+    public function test_preferred_id_falls_back_to_cheapest_when_it_does_not_quote_the_item(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems(1);
+        $cheap = Company::factory()->create();
+        $other = Company::factory()->create();
+        $otherProduct = \App\Domain\Catalog\Models\Product::factory()->create();
+
+        $cheapSq = $this->buildSqWith($inquiry, $cheap, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 100000],
+        ]);
+        // Esta SQ cota outro produto: não tem alternativa para o item da inquiry.
+        $otherSq = $this->buildSqWith($inquiry, $other, 'USD', [
+            ['product_id' => $otherProduct->id, 'unit_cost' => 900000],
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$cheapSq->id, $otherSq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+            preferredSupplierQuotationId: $otherSq->id,
+        );
+
+        $item = $quotation->items()->first();
+        $this->assertSame($cheap->id, $item->selected_supplier_id);
+    }
 }
