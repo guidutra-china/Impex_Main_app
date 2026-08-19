@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Finance\Concerns;
 
+use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\CreditNote;
 use App\Domain\Financial\Models\PaymentAllocation;
@@ -16,6 +17,73 @@ trait HasPaymentAllocationPersistence
     protected array $pendingAllocations = [];
 
     protected array $pendingCreditApplications = [];
+
+    /**
+     * Build the Create-form prefill from `?company_id=` and an optional
+     * `?schedule_item_ids=` CSV (set by the "Registrar pagamento" bulk action
+     * on the AR/AP open-item worklists). One allocation row per item, seeded
+     * with its remaining balance; when all items share a currency, the payment
+     * currency + total wire amount are pre-filled too.
+     *
+     * @return array<string, mixed>
+     */
+    protected function buildScheduleItemsPrefill(PaymentDirection $direction): array
+    {
+        $companyId = request()->query('company_id');
+
+        if (! $companyId) {
+            return [];
+        }
+
+        $data = [
+            'direction' => $direction->value,
+            'company_id' => (int) $companyId,
+        ];
+
+        $idsParam = request()->query('schedule_item_ids');
+
+        if (! $idsParam) {
+            return $data;
+        }
+
+        $ids = collect(explode(',', (string) $idsParam))
+            ->map(fn ($id) => (int) trim($id))
+            ->filter()
+            ->all();
+
+        $items = PaymentScheduleItem::whereIn('id', $ids)->get();
+
+        if ($items->isEmpty()) {
+            return $data;
+        }
+
+        $currencies = $items->pluck('currency_code')->unique();
+        $sameCurrency = $currencies->count() === 1;
+
+        $data['allocations'] = $items->map(function (PaymentScheduleItem $item) use ($sameCurrency) {
+            $remaining = number_format(Money::toMajor($item->remaining_amount), 2, '.', '');
+
+            return [
+                'payment_schedule_item_id' => $item->id,
+                'document_currency_code' => $item->currency_code,
+                'allocated_amount_in_document_currency' => $remaining,
+                'allocated_amount' => $sameCurrency ? $remaining : null,
+                'exchange_rate' => null,
+            ];
+        })->values()->all();
+
+        if ($sameCurrency) {
+            $data['currency_code'] = $currencies->first();
+            $data['amount'] = number_format(
+                Money::toMajor((int) $items->sum(fn (PaymentScheduleItem $i) => $i->remaining_amount)),
+                2,
+                '.',
+                ''
+            );
+        }
+
+        return $data;
+    }
 
     protected function persistAllocations($payment, string $paymentCurrencyCode): void
     {
@@ -58,8 +126,7 @@ trait HasPaymentAllocationPersistence
                 );
             } catch (InvalidArgumentException $e) {
                 Notification::make()
-                    ->title(__('messages.allocation_conversion_incomplete', [], 'en')
-                        ?: 'Incomplete allocation data')
+                    ->title(__('messages.allocation_conversion_incomplete'))
                     ->body(
                         $e->getMessage().' '
                         ."[{$paymentCurrencyCode} → {$scheduleItem->currency_code}]"
