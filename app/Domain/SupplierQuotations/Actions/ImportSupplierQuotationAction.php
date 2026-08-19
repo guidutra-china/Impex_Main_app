@@ -6,7 +6,6 @@ namespace App\Domain\SupplierQuotations\Actions;
 
 use App\Domain\AI\Import\UpsertProductImportAliasAction;
 use App\Domain\Catalog\Actions\CreateDraftProductForSupplierAction;
-use App\Domain\Catalog\Actions\GenerateProductSkuAction;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\ProductImage;
 use App\Domain\CRM\Actions\ResolveOrCreateCompanyAction;
@@ -32,7 +31,6 @@ use Illuminate\Support\Str;
 class ImportSupplierQuotationAction
 {
     public function __construct(
-        private readonly GenerateProductSkuAction $skuGenerator = new GenerateProductSkuAction,
         private readonly UpsertProductImportAliasAction $aliasUpserter = new UpsertProductImportAliasAction,
         private readonly CreateDraftProductForSupplierAction $productCreator = new CreateDraftProductForSupplierAction,
     ) {}
