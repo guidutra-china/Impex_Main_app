@@ -17,6 +17,9 @@ class CreateDraftProductForSupplierAction
      * Cria um produto rascunho a partir da descrição do fornecedor e garante o
      * pivot de fornecedor. `model_number` NÃO recebe o código do fornecedor: ele
      * é o 2º nível da identidade do CLIENTE e apareceria na fatura dele.
+     *
+     * `reference_code` é UNIQUE: quem chama é responsável por deduplicar antes de
+     * criar (o import faz essa busca em `resolveProduct()`, esta action não).
      */
     public function execute(
         string $description,
@@ -57,8 +60,12 @@ class CreateDraftProductForSupplierAction
             return;
         }
 
+        // Atualiza pela relação com escopo de role: `companies()` não expõe o
+        // `id` da linha do pivot em withPivot(), então um update via
+        // $existing->pivot cai no fallback (company_id, product_id) e atinge
+        // TAMBÉM a linha `client` da mesma empresa, se existir.
         if (filled($externalCode) && blank($existing->pivot->external_code)) {
-            $existing->pivot->update(['external_code' => $externalCode]);
+            $product->suppliers()->updateExistingPivot($supplier->id, ['external_code' => $externalCode]);
         }
     }
 }
