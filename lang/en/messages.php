@@ -16,6 +16,7 @@ return [
     'possible_duplicate' => 'Possible Duplicate Detected',
     'error_creating_sq' => 'Error creating supplier quotations',
     'error_creating_quotation' => 'Error creating quotation',
+    'error_creating_quotation_body' => 'The quotation could not be created due to an unexpected error. Try again, or contact support if the problem persists.',
     'client_quotation_created_from_sq' => 'Client quotation created from the supplier quotation',
     'error_creating_pi' => 'Error creating Proforma Invoice',
     'status_transition_failed' => 'Status transition failed',

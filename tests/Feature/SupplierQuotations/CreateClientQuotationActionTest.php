@@ -174,6 +174,7 @@ class CreateClientQuotationActionTest extends TestCase
         $test->assertRedirect(QuotationResource::getUrl('edit', ['record' => $quotation]));
         $this->assertSame(1, $quotation->items()->count());
         $this->assertSame(110000, $quotation->items()->first()->unit_price);
+        $this->assertSame(30, $quotation->validity_days);
         $this->assertSame(SupplierQuotationStatus::UNDER_ANALYSIS, $sq->fresh()->status);
     }
 
@@ -493,6 +494,14 @@ class CreateClientQuotationActionTest extends TestCase
             ->assertActionHalted('createClientQuotation');
 
         $this->assertNull(Quotation::where('inquiry_id', $inquiry->id)->first());
+
+        // Mesmo tratamento do catch (QuotationLockedException): a mensagem real da
+        // exceção (aqui, "Falha simulada de infraestrutura.") vai só para o log —
+        // o toast usa um texto genérico e traduzido, nunca detalhe de infra.
+        $notified = collect(session('filament.notifications', []))->last();
+        $this->assertNotNull($notified, 'A notification should have been sent.');
+        $this->assertSame(__('messages.error_creating_quotation_body'), $notified['body']);
+        $this->assertStringNotContainsString('Falha simulada de infraestrutura', $notified['body']);
     }
 
     public function test_contact_options_are_ordered_by_name(): void

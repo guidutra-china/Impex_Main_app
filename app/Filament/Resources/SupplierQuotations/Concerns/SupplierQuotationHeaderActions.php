@@ -30,6 +30,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Concrete slot implementations for SupplierQuotation pages (View + Edit).
@@ -243,9 +244,15 @@ trait SupplierQuotationHeaderActions
 
                     $action->halt();
                 } catch (\Throwable $e) {
+                    // A mensagem real (SQLSTATE, stack trace, etc.) é só para o log —
+                    // nunca aparece no toast, que exibiria texto de infraestrutura para
+                    // quem não é dev. O mesmo tratamento que o catch (QuotationLockedException)
+                    // já recebeu logo acima.
+                    Log::error('Falha ao criar cotação do cliente a partir da SQ '.$this->record->reference.': '.$e->getMessage());
+
                     Notification::make()
                         ->title(__('messages.error_creating_quotation'))
-                        ->body($e->getMessage())
+                        ->body(__('messages.error_creating_quotation_body'))
                         ->danger()
                         ->send();
 

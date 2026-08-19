@@ -16,6 +16,7 @@ return [
     'possible_duplicate' => 'Possível duplicata detectada',
     'error_creating_sq' => 'Erro ao criar cotações de fornecedor',
     'error_creating_quotation' => 'Erro ao criar cotação',
+    'error_creating_quotation_body' => 'Não foi possível criar a cotação por um erro inesperado. Tente novamente ou contate o suporte se o problema persistir.',
     'client_quotation_created_from_sq' => 'Cotação ao cliente criada a partir da cotação do fornecedor',
     'error_creating_pi' => 'Erro ao criar Proforma Invoice',
     'status_transition_failed' => 'Falha na transição de status',
