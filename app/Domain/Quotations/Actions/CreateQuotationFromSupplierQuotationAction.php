@@ -94,7 +94,7 @@ class CreateQuotationFromSupplierQuotationAction
         ?int $validityDays = null,
         bool $forceNewVersion = false,
     ): Quotation {
-        if (! in_array($sq->status, self::QUOTABLE_AS_SOURCE_STATUSES, true)) {
+        if (! self::canBeSource($sq)) {
             throw new \InvalidArgumentException(
                 'Cotação de fornecedor sem preços confirmados não pode gerar cotação ao cliente.',
             );
