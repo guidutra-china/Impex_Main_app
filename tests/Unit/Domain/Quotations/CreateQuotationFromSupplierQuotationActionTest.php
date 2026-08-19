@@ -56,7 +56,7 @@ class CreateQuotationFromSupplierQuotationActionTest extends TestCase
      *
      * @return array{0: Company, 1: Inquiry, 2: SupplierQuotation, 3: Product, 4: Product}
      */
-    private function buildScenario(): array
+    private function buildScenario(SupplierQuotationStatus $sqStatus = SupplierQuotationStatus::RECEIVED): array
     {
         $client = Company::factory()->create();
         $supplier = Company::factory()->create();
@@ -77,7 +77,7 @@ class CreateQuotationFromSupplierQuotationActionTest extends TestCase
             'inquiry_id' => $inquiry->id,
             'company_id' => $supplier->id,
             'currency_code' => 'USD',
-            'status' => SupplierQuotationStatus::RECEIVED,
+            'status' => $sqStatus,
             'incoterm' => Incoterm::FOB,
         ]);
 
@@ -300,5 +300,79 @@ class CreateQuotationFromSupplierQuotationActionTest extends TestCase
         // Nenhuma segunda Inquiry foi mintada para o mesmo cliente/SQ.
         $this->assertSame(1, Inquiry::where('company_id', $newClient->id)->count());
         $this->assertSame($firstQuotation->inquiry_id, $secondQuotation->inquiry_id);
+    }
+
+    public function test_requested_source_sq_is_rejected(): void
+    {
+        [$client, $inquiry, $sq] = $this->buildScenario(SupplierQuotationStatus::REQUESTED);
+
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->makeAction()->execute(
+            sq: $sq,
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 10,
+        );
+    }
+
+    public function test_expired_source_sq_is_rejected(): void
+    {
+        [$client, $inquiry, $sq] = $this->buildScenario(SupplierQuotationStatus::EXPIRED);
+
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->makeAction()->execute(
+            sq: $sq,
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 10,
+        );
+    }
+
+    public function test_rejected_source_sq_still_works(): void
+    {
+        // Retomar uma SQ rejeitada para gerar cotação ao cliente é caso de uso real
+        // (ex.: o trader decide usar os preços mesmo após rejeitar formalmente).
+        [$client, $inquiry, $sq, $asked, $extra] = $this->buildScenario(SupplierQuotationStatus::REJECTED);
+
+        $quotation = $this->makeAction()->execute(
+            sq: $sq,
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+        );
+
+        $this->assertSame(2, $quotation->items()->count());
+        $askedItem = $quotation->items()->where('product_id', $asked->id)->first();
+        $this->assertSame(100000, $askedItem->unit_cost);
+        $this->assertSame($sq->company_id, $askedItem->selected_supplier_id);
+
+        // Status REJECTED não é RECEIVED: nenhuma transição é tentada.
+        $this->assertSame(SupplierQuotationStatus::REJECTED, $sq->fresh()->status);
+    }
+
+    public function test_null_validity_days_defaults_to_30_and_sets_valid_until(): void
+    {
+        [$client, $inquiry, $sq] = $this->buildScenario();
+
+        $quotation = $this->makeAction()->execute(
+            sq: $sq,
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+        );
+
+        $this->assertSame(30, $quotation->validity_days);
+        $this->assertNotNull($quotation->valid_until);
+        $this->assertSame(today()->addDays(30)->toDateString(), $quotation->valid_until->toDateString());
     }
 }
