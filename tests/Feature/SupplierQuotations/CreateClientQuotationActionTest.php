@@ -9,6 +9,7 @@ use App\Domain\CRM\Models\CompanyRoleAssignment;
 use App\Domain\Inquiries\Models\Inquiry;
 use App\Domain\Inquiries\Models\InquiryItem;
 use App\Domain\Quotations\Enums\CommissionType;
+use App\Domain\Quotations\Enums\QuotationStatus;
 use App\Domain\Quotations\Models\Quotation;
 use App\Domain\Settings\Enums\ExchangeRateStatus;
 use App\Domain\Settings\Models\Currency;
@@ -92,6 +93,46 @@ class CreateClientQuotationActionTest extends TestCase
         return $sq;
     }
 
+    /**
+     * SQ cuja própria inquiry (cliente A) não tem cotação nenhuma, mas que também
+     * gerou, numa rodada anterior, uma SEGUNDA inquiry — para o cliente B — com uma
+     * Quotation já enviada (version 1). É o cenário exato do bug reportado: o toggle
+     * "nova versão" precisa reagir a QUAL cliente está selecionado no modal, não à
+     * inquiry original da SQ.
+     *
+     * @return array{0: SupplierQuotation, 1: Company, 2: Company, 3: Quotation}
+     */
+    private function buildLockedScenarioForDifferentClient(): array
+    {
+        $sq = $this->buildSq();
+        $clientA = $sq->inquiry->company;
+
+        $clientB = Company::factory()->create();
+        CompanyRoleAssignment::create([
+            'company_id' => $clientB->id,
+            'role' => CompanyRole::CLIENT,
+        ]);
+
+        $inquiryB = Inquiry::factory()->create([
+            'company_id' => $clientB->id,
+            'currency_code' => 'USD',
+            'source_supplier_quotation_id' => $sq->id,
+        ]);
+
+        $lockedQuotation = Quotation::create([
+            'inquiry_id' => $inquiryB->id,
+            'company_id' => $clientB->id,
+            'status' => QuotationStatus::SENT,
+            'version' => 1,
+            'currency_code' => 'USD',
+            'commission_type' => CommissionType::EMBEDDED,
+            'commission_rate' => 10,
+            'validity_days' => 30,
+        ]);
+
+        return [$sq, $clientA, $clientB, $lockedQuotation];
+    }
+
     public function test_modal_prefills_client_and_creates_quotation(): void
     {
         $sq = $this->buildSq();
@@ -161,5 +202,71 @@ class CreateClientQuotationActionTest extends TestCase
         $requested = $this->buildSq(status: SupplierQuotationStatus::REQUESTED);
         Livewire::test(ViewSupplierQuotation::class, ['record' => $requested->getKey()])
             ->assertActionHidden('createClientQuotation');
+    }
+
+    /**
+     * Regressão do bug: force_new_version precisa refletir o lock do cliente
+     * SELECIONADO no modal (company_id), não o da inquiry original da SQ.
+     * Falha contra o código anterior ao fix, que lia sempre $this->record->inquiry
+     * sem depender de $get('company_id') — o toggle ficava preso a "oculto".
+     */
+    public function test_force_new_version_toggle_reacts_to_selected_client(): void
+    {
+        [$sq, , $clientB] = $this->buildLockedScenarioForDifferentClient();
+
+        Livewire::test(ViewSupplierQuotation::class, ['record' => $sq->getKey()])
+            ->mountAction('createClientQuotation')
+            // Prefill aponta para o cliente A (dono da inquiry da própria SQ), que não
+            // tem cotação nenhuma — o toggle deve começar oculto.
+            ->assertSchemaComponentHidden('force_new_version')
+            // Troca para o cliente B, dono da inquiry travada — o toggle precisa
+            // aparecer reativamente, sem remontar a action.
+            ->set('mountedActions.0.data.company_id', $clientB->id)
+            ->assertSchemaComponentVisible('force_new_version');
+    }
+
+    public function test_locked_client_quotation_blocks_creation_without_force_new_version(): void
+    {
+        [$sq, , $clientB, $lockedQuotation] = $this->buildLockedScenarioForDifferentClient();
+
+        Livewire::test(ViewSupplierQuotation::class, ['record' => $sq->getKey()])
+            ->callAction('createClientQuotation', [
+                'company_id' => $clientB->id,
+                'currency_code' => 'USD',
+                'commission_type' => CommissionType::EMBEDDED->value,
+                'commission_rate' => 10,
+                'validity_days' => 30,
+                'show_suppliers' => false,
+                'force_new_version' => false,
+            ]);
+
+        $this->assertSame(
+            1,
+            Quotation::where('inquiry_id', $lockedQuotation->inquiry_id)->count(),
+            'No new version should have been created without force_new_version.'
+        );
+    }
+
+    public function test_locked_client_quotation_creates_new_version_with_force_new_version(): void
+    {
+        [$sq, , $clientB, $lockedQuotation] = $this->buildLockedScenarioForDifferentClient();
+
+        Livewire::test(ViewSupplierQuotation::class, ['record' => $sq->getKey()])
+            ->callAction('createClientQuotation', [
+                'company_id' => $clientB->id,
+                'currency_code' => 'USD',
+                'commission_type' => CommissionType::EMBEDDED->value,
+                'commission_rate' => 10,
+                'validity_days' => 30,
+                'show_suppliers' => false,
+                'force_new_version' => true,
+            ]);
+
+        $versions = Quotation::where('inquiry_id', $lockedQuotation->inquiry_id)
+            ->orderBy('version')
+            ->pluck('version')
+            ->all();
+
+        $this->assertSame([1, 2], $versions);
     }
 }
