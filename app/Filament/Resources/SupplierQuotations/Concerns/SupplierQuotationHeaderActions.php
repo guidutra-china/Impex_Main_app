@@ -2,19 +2,33 @@
 
 namespace App\Filament\Resources\SupplierQuotations\Concerns;
 
+use App\Domain\CRM\Enums\CompanyRole;
+use App\Domain\CRM\Models\Company;
+use App\Domain\CRM\Models\Contact;
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Infrastructure\Excel\Templates\RfqExcelTemplate;
 use App\Domain\Infrastructure\Pdf\Templates\RfqPdfTemplate;
+use App\Domain\Quotations\Actions\CreateQuotationFromSupplierQuotationAction;
+use App\Domain\Quotations\Enums\CommissionType;
+use App\Domain\Quotations\Enums\Incoterm;
+use App\Domain\Quotations\Enums\QuotationStatus;
+use App\Domain\Quotations\Exceptions\QuotationLockedException;
+use App\Domain\Settings\Models\Currency;
+use App\Domain\Settings\Models\PaymentTerm;
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
 use App\Filament\Actions\GenerateExcelAction;
 use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Actions\SendDocumentByEmailAction;
+use App\Filament\Resources\Quotations\QuotationResource;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 
 /**
  * Concrete slot implementations for SupplierQuotation pages (View + Edit).
@@ -85,6 +99,175 @@ trait SupplierQuotationHeaderActions
             ->button();
     }
 
+    protected function workflowActionGroup(): ?ActionGroup
+    {
+        return ActionGroup::make([
+            $this->createClientQuotationAction(),
+        ])
+            ->label(__('forms.labels.workflow'))
+            ->icon('heroicon-o-arrows-right-left')
+            ->color('primary')
+            ->button();
+    }
+
+    /**
+     * Status aceitos para a SQ de ORIGEM em CreateQuotationFromSupplierQuotationAction
+     * (constante privada de lá — precisa ficar em sincronia manualmente). A visibilidade
+     * da action é só uma otimização de UX: a guarda real é o InvalidArgumentException
+     * lançado pela própria action de domínio caso este status divirja.
+     */
+    private const QUOTABLE_AS_SOURCE_STATUSES = [
+        SupplierQuotationStatus::RECEIVED,
+        SupplierQuotationStatus::UNDER_ANALYSIS,
+        SupplierQuotationStatus::SELECTED,
+        SupplierQuotationStatus::REJECTED,
+    ];
+
+    protected function createClientQuotationAction(): Action
+    {
+        return Action::make('createClientQuotation')
+            ->label(__('forms.labels.create_client_quotation'))
+            ->icon('heroicon-o-document-plus')
+            ->color('success')
+            ->modalHeading(__('forms.labels.create_client_quotation'))
+            ->modalDescription(__('forms.labels.create_client_quotation_help'))
+            ->visible(fn () => in_array($this->record->status, self::QUOTABLE_AS_SOURCE_STATUSES, true)
+                && $this->record->items()->where('unit_cost', '>', 0)->exists())
+            ->fillForm(function () {
+                $inquiry = $this->record->inquiry;
+
+                return [
+                    'company_id' => $inquiry?->company_id,
+                    'contact_id' => $inquiry?->contact_id,
+                    'commission_type' => CommissionType::EMBEDDED->value,
+                    'commission_rate' => 10,
+                    'currency_code' => $inquiry?->currency_code ?? $this->record->currency_code,
+                    'incoterm' => $this->record->incoterm,
+                    'payment_term_id' => $this->record->payment_term_id,
+                    'validity_days' => 30,
+                    'show_suppliers' => false,
+                    'force_new_version' => false,
+                ];
+            })
+            ->form([
+                Select::make('company_id')
+                    ->label(__('forms.labels.client'))
+                    ->options(fn () => Company::query()
+                        ->withRole(CompanyRole::CLIENT)
+                        ->orderBy('name')
+                        ->pluck('name', 'id'))
+                    ->searchable()
+                    ->required()
+                    ->live()
+                    ->afterStateUpdated(fn (Set $set) => $set('contact_id', null)),
+                Select::make('contact_id')
+                    ->label(__('forms.labels.contact'))
+                    ->options(fn (Get $get) => $get('company_id')
+                        ? Contact::query()
+                            ->where('company_id', $get('company_id'))
+                            ->pluck('name', 'id')
+                        : [])
+                    ->searchable(),
+                Select::make('commission_type')
+                    ->label(__('forms.labels.commission_type'))
+                    ->options(CommissionType::class)
+                    ->required(),
+                TextInput::make('commission_rate')
+                    ->label(__('forms.labels.default_commission_rate'))
+                    ->numeric()
+                    ->minValue(0)
+                    ->maxValue(100)
+                    ->step(0.01)
+                    ->suffix('%')
+                    ->required(),
+                Select::make('currency_code')
+                    ->label(__('forms.labels.currency'))
+                    ->options(fn () => Currency::query()->where('is_active', true)->pluck('code', 'code'))
+                    ->required(),
+                Select::make('incoterm')
+                    ->label(__('forms.labels.incoterm'))
+                    ->options(Incoterm::class),
+                Select::make('payment_term_id')
+                    ->label(__('forms.labels.payment_terms'))
+                    ->options(fn () => PaymentTerm::query()->where('is_active', true)->pluck('name', 'id'))
+                    ->searchable(),
+                TextInput::make('validity_days')
+                    ->label(__('forms.labels.validity_days'))
+                    ->numeric()
+                    ->minValue(1)
+                    ->required(),
+                Toggle::make('show_suppliers')
+                    ->label(__('forms.labels.show_suppliers_to_client')),
+                Toggle::make('force_new_version')
+                    ->label(__('forms.labels.create_quotation_new_version'))
+                    ->visible(fn () => $this->clientQuotationIsLocked()),
+            ])
+            ->action(function (array $data) {
+                try {
+                    $commissionType = $data['commission_type'] instanceof CommissionType
+                        ? $data['commission_type']
+                        : CommissionType::from($data['commission_type']);
+
+                    $incoterm = $data['incoterm'] ?? null;
+                    if ($incoterm !== null && ! $incoterm instanceof Incoterm) {
+                        $incoterm = Incoterm::tryFrom((string) $incoterm);
+                    }
+
+                    $quotation = app(CreateQuotationFromSupplierQuotationAction::class)->execute(
+                        sq: $this->record,
+                        companyId: (int) $data['company_id'],
+                        contactId: $data['contact_id'] ?? null,
+                        currencyCode: $data['currency_code'],
+                        commissionType: $commissionType,
+                        commissionRate: (float) ($data['commission_rate'] ?? 0),
+                        showSuppliers: (bool) ($data['show_suppliers'] ?? false),
+                        incoterm: $incoterm,
+                        paymentTermId: $data['payment_term_id'] ?? null,
+                        validityDays: $data['validity_days'] ?? null,
+                        forceNewVersion: (bool) ($data['force_new_version'] ?? false),
+                    );
+
+                    Notification::make()
+                        ->title(__('messages.client_quotation_created_from_sq').': '.$quotation->reference)
+                        ->success()
+                        ->send();
+
+                    return redirect(QuotationResource::getUrl('edit', ['record' => $quotation]));
+                } catch (QuotationLockedException $e) {
+                    Notification::make()
+                        ->title(__('messages.quotation_locked'))
+                        ->body($e->getMessage())
+                        ->danger()
+                        ->send();
+                } catch (\Throwable $e) {
+                    Notification::make()
+                        ->title(__('messages.error_creating_quotation'))
+                        ->body($e->getMessage())
+                        ->danger()
+                        ->send();
+                }
+            });
+    }
+
+    /**
+     * A Quotation já existente para o cliente da Inquiry desta SQ está travada
+     * (qualquer status além de DRAFT)? Se sim, o toggle "nova versão" aparece
+     * — do contrário CreateQuotationFromSupplierQuotationAction lançaria
+     * QuotationLockedException ao tentar sobrescrever uma versão enviada/negociada.
+     */
+    private function clientQuotationIsLocked(): bool
+    {
+        $inquiry = $this->record->inquiry;
+
+        if (! $inquiry) {
+            return false;
+        }
+
+        $latest = $inquiry->quotations()->latest('version')->first();
+
+        return $latest !== null && $latest->status !== QuotationStatus::DRAFT;
+    }
+
     protected function statusActionGroup(): ?ActionGroup
     {
         return ActionGroup::make([
@@ -132,7 +315,7 @@ trait SupplierQuotationHeaderActions
                     );
 
                     Notification::make()
-                        ->title(__('messages.status_changed_to') . ' ' . SupplierQuotationStatus::from($data['new_status'])->getLabel())
+                        ->title(__('messages.status_changed_to').' '.SupplierQuotationStatus::from($data['new_status'])->getLabel())
                         ->success()
                         ->send();
 
