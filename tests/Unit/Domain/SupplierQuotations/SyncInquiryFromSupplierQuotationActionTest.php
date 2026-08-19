@@ -129,6 +129,30 @@ class SyncInquiryFromSupplierQuotationActionTest extends TestCase
         $this->assertSame(1, $third->stateTransitions()->count());
     }
 
+    public function test_two_different_new_clients_each_get_their_own_inquiry(): void
+    {
+        $originalClient = Company::factory()->create();
+        $clientB = Company::factory()->create();
+        $clientC = Company::factory()->create();
+        $inquiry = Inquiry::factory()->create(['company_id' => $originalClient->id]);
+        $sq = $this->makeSq($inquiry);
+        $this->addSqItem($sq, Product::factory()->create()->id);
+
+        $action = $this->makeAction();
+
+        $resultB = $action->execute(sq: $sq, companyId: $clientB->id, contactId: null, currencyCode: 'USD');
+        $resultC = $action->execute(sq: $sq, companyId: $clientC->id, contactId: null, currencyCode: 'USD');
+
+        $this->assertNotSame($resultB->id, $resultC->id);
+        $this->assertSame($clientB->id, $resultB->company_id);
+        $this->assertSame($clientC->id, $resultC->company_id);
+        $this->assertSame(1, $resultB->items()->count());
+        $this->assertSame(1, $resultC->items()->count());
+        // O lookup de proveniência não pode achar a inquiry de B quando quem
+        // pediu foi C — senão os itens de C cairiam dentro da inquiry de B.
+        $this->assertSame(3, Inquiry::count());
+    }
+
     public function test_adds_only_missing_items_and_preserves_existing_quantity(): void
     {
         $client = Company::factory()->create();
@@ -218,6 +242,65 @@ class SyncInquiryFromSupplierQuotationActionTest extends TestCase
         $item = $inquiry->items()->first();
         $this->assertSame(500, $item->quantity);
         $this->assertSame('Tier barato (MOQ alto)', $item->description);
+    }
+
+    public function test_unpriced_row_never_displaces_a_priced_offer_for_the_same_product(): void
+    {
+        $client = Company::factory()->create();
+        $sq = $this->makeSq();
+        $product = Product::factory()->create();
+
+        // A linha sem preço vem primeiro na ordem — sort_order não pode decidir,
+        // e unit_cost 0 (default da coluna) não pode vencer um preço real.
+        $this->addSqItem($sq, $product->id, [
+            'unit_cost' => 0,
+            'quantity' => 1,
+            'description' => 'LINHA SEM PRECO',
+            'sort_order' => 0,
+        ]);
+        $this->addSqItem($sq, $product->id, [
+            'unit_cost' => 900000,
+            'quantity' => 500,
+            'description' => 'OFERTA REAL 90 USD',
+            'sort_order' => 1,
+        ]);
+
+        $inquiry = $this->makeAction()->execute(
+            sq: $sq,
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+        );
+
+        $this->assertSame(1, $inquiry->items()->count());
+        $item = $inquiry->items()->first();
+        $this->assertSame('OFERTA REAL 90 USD', $item->description);
+        $this->assertSame(500, $item->quantity);
+    }
+
+    public function test_unpriced_row_is_used_when_it_is_the_only_offer_for_the_product(): void
+    {
+        $client = Company::factory()->create();
+        $sq = $this->makeSq();
+        $product = Product::factory()->create();
+
+        $this->addSqItem($sq, $product->id, [
+            'unit_cost' => 0,
+            'quantity' => 7,
+            'description' => 'ÚNICA LINHA, SEM PREÇO AINDA',
+        ]);
+
+        $inquiry = $this->makeAction()->execute(
+            sq: $sq,
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+        );
+
+        $this->assertSame(1, $inquiry->items()->count());
+        $item = $inquiry->items()->first();
+        $this->assertSame('ÚNICA LINHA, SEM PREÇO AINDA', $item->description);
+        $this->assertSame(7, $item->quantity);
     }
 
     public function test_dedups_null_product_items_by_description_before_minting_drafts(): void

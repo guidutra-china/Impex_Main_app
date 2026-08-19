@@ -22,7 +22,14 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('inquiries', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('source_supplier_quotation_id');
+            // Ordem importa: em MySQL o índice explícito é o único servindo a FK
+            // (dropar índice antes da FK falha com errno 1553); em SQLite >= 3.35
+            // dropColumn vira um `alter table drop column` nativo, que recusa
+            // dropar uma coluna ainda indexada. FK -> índice -> coluna funciona
+            // nos dois drivers (dropForeign é no-op no SQLite).
+            $table->dropForeign(['source_supplier_quotation_id']);
+            $table->dropIndex(['source_supplier_quotation_id']);
+            $table->dropColumn('source_supplier_quotation_id');
         });
     }
 };

@@ -108,10 +108,13 @@ class SyncInquiryFromSupplierQuotationAction
         // Duas linhas da SQ podem apontar para o mesmo produto (mesmo catálogo ou
         // mesmo rascunho recém-criado por descrição idêntica) — mantém uma linha
         // por produto na Inquiry, elegendo a de menor unit_cost, na mesma regra
-        // usada pela Quotation (CreateOrUpdateQuotationFromInquiryAction).
+        // usada pela Quotation (CreateOrUpdateQuotationFromInquiryAction). Linha
+        // sem preço (unit_cost <= 0, inclusive o default da coluna) é demovida,
+        // não excluída: só vence se for a ÚNICA oferta para aquele produto —
+        // senão um produto sem nenhum preço preenchido sumiria da Inquiry.
         $elected = $sqItems
             ->groupBy(fn ($sqItem) => $productsById[$sqItem->id]->id)
-            ->map(fn ($group) => $group->sortBy('unit_cost')->first());
+            ->map(fn ($group) => $group->sortBy(fn ($item) => [$item->unit_cost <= 0 ? 1 : 0, $item->unit_cost])->first());
 
         foreach ($elected as $productId => $sqItem) {
             if (in_array($productId, $existingProductIds, true)) {
