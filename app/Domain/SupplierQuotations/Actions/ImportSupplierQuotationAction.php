@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\SupplierQuotations\Actions;
 
 use App\Domain\AI\Import\UpsertProductImportAliasAction;
+use App\Domain\Catalog\Actions\CreateDraftProductForSupplierAction;
 use App\Domain\Catalog\Actions\GenerateProductSkuAction;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\ProductImage;
@@ -33,6 +34,7 @@ class ImportSupplierQuotationAction
     public function __construct(
         private readonly GenerateProductSkuAction $skuGenerator = new GenerateProductSkuAction,
         private readonly UpsertProductImportAliasAction $aliasUpserter = new UpsertProductImportAliasAction,
+        private readonly CreateDraftProductForSupplierAction $productCreator = new CreateDraftProductForSupplierAction,
     ) {}
 
     /**
@@ -283,21 +285,12 @@ class ImportSupplierQuotationAction
 
         $categoryId = $item['category_id'] ?? null;
 
-        $product = Product::create([
-            'name' => Str::limit((string) $item['description'], 250, ''),
-            // Prefixed SKU when the product lands in a matched category; draft SKU otherwise.
-            'sku' => $categoryId
-                ? $this->skuGenerator->execute((int) $categoryId)
-                : $this->skuGenerator->generateDraftSku(),
-            'reference_code' => $partNo,
-            // model_number NÃO recebe o part number do fornecedor: ele é o 2º
-            // nível da regra do CLIENTE e apareceria na fatura dele. O código
-            // do fornecedor vive no pivot, em linkSupplier().
-            'category_id' => $categoryId,
-            'status' => 'draft',
-        ]);
-
-        $this->linkSupplier($product, $company, $partNo);
+        $product = $this->productCreator->execute(
+            description: (string) $item['description'],
+            supplier: $company,
+            externalCode: $partNo,
+            categoryId: $categoryId !== null ? (int) $categoryId : null,
+        );
 
         if ($partNo !== null) {
             $createdByRef[$partNo] = $product;
@@ -364,8 +357,8 @@ class ImportSupplierQuotationAction
     /**
      * Vincula o fornecedor gravando o part number DELE no pivot — é assim que
      * o PO e o RFQ passam a identificar a peça como o fornecedor a conhece.
-     * Nunca sobrescreve um código já cadastrado (mesma regra não-destrutiva do
-     * inquiries:backfill-client-codes).
+     * Delega para CreateDraftProductForSupplierAction, que já garante o
+     * pivot role=supplier sem sobrescrever um código já gravado.
      */
     private function linkSupplier(?Product $product, Company $company, ?string $partNo = null): void
     {
@@ -373,22 +366,7 @@ class ImportSupplierQuotationAction
             return;
         }
 
-        $existing = $product->suppliers()->where('companies.id', $company->id)->first();
-
-        if (! $existing) {
-            $product->companies()->attach($company->id, [
-                'role' => 'supplier',
-                'external_code' => $partNo,
-            ]);
-
-            return;
-        }
-
-        // Atualiza a linha exata do pivot: a mesma empresa pode ter também uma
-        // linha de cliente para este produto, que não pode ser tocada.
-        if (filled($partNo) && blank($existing->pivot->external_code)) {
-            $existing->pivot->update(['external_code' => $partNo]);
-        }
+        $this->productCreator->linkSupplier($product, $company, $partNo);
     }
 
     /**

@@ -6,6 +6,7 @@ namespace Tests\Feature\AI\Import;
 
 use App\Domain\AI\Import\Models\ProductImportAlias;
 use App\Domain\AI\Import\Support\NameNormalizer;
+use App\Domain\Catalog\Actions\CreateDraftProductForSupplierAction;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Infrastructure\Models\Document;
@@ -110,6 +111,8 @@ class ImportSupplierQuotationActionTest extends TestCase
 
         // Stub the SKU generator: execute() uses MySQL-only SQL (SUBSTRING_INDEX) that
         // can't run on the sqlite test DB; here we only verify the category branch is taken.
+        // Product creation now lives in CreateDraftProductForSupplierAction, so the stub
+        // is wired through that action rather than directly into the import action.
         $skuGenerator = new class extends \App\Domain\Catalog\Actions\GenerateProductSkuAction
         {
             public function execute(int $categoryId): string
@@ -117,8 +120,9 @@ class ImportSupplierQuotationActionTest extends TestCase
                 return 'RCK-00001';
             }
         };
+        $productCreator = new CreateDraftProductForSupplierAction($skuGenerator);
 
-        (new ImportSupplierQuotationAction($skuGenerator))($preview, $user, $this->fakeFile());
+        (new ImportSupplierQuotationAction(productCreator: $productCreator))($preview, $user, $this->fakeFile());
 
         $product = Product::where('reference_code', 'AH223014')->first();
         $this->assertSame($category->id, $product->category_id);
@@ -309,6 +313,38 @@ class ImportSupplierQuotationActionTest extends TestCase
         // O item "novo" do preview base criou produto draft — o alias dele
         // também é gravado (aponta para o produto recém-criado):
         $this->assertSame(count($preview['itens']), ProductImportAlias::count());
+    }
+
+    public function test_link_supplier_does_not_overwrite_client_pivot_row_of_same_company(): void
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo(['create-supplier-quotations', 'create-companies', 'create-products']);
+
+        $product = Product::factory()->create();
+        $company = \App\Domain\CRM\Models\Company::factory()->create(['name' => 'Existing Co']);
+
+        // A mesma empresa já tem uma linha `client` com o próprio código, e uma
+        // linha `supplier` ainda sem external_code — cenário em que o bug do
+        // fallback de pivot (company_id, product_id) atingia a linha errada.
+        $product->companies()->attach($company->id, ['role' => 'client', 'external_code' => 'CLIENT-CODE']);
+        $product->companies()->attach($company->id, ['role' => 'supplier', 'external_code' => null]);
+
+        $preview = $this->previewWithNewSupplierAndProduct();
+        $preview['fornecedor'] = ['status' => 'existente', 'company_id' => $company->id, 'nome' => 'Existing Co'];
+        $preview['itens'][0] = [
+            'status' => 'existente', 'product_id' => $product->id, 'part_no' => 'SUP-CODE',
+            'description' => $product->name, 'quantity' => 1, 'unit' => 'pcs',
+            'unit_cost_minor' => 1000, 'specifications' => null, 'moq' => null,
+            'lead_time_days' => null, 'notes' => null,
+        ];
+
+        (new ImportSupplierQuotationAction)($preview, $user, $this->fakeFile());
+
+        $clientPivot = $product->clients()->where('companies.id', $company->id)->first();
+        $supplierPivot = $product->suppliers()->where('companies.id', $company->id)->first();
+
+        $this->assertSame('CLIENT-CODE', $clientPivot->pivot->external_code);
+        $this->assertSame('SUP-CODE', $supplierPivot->pivot->external_code);
     }
 
     public function test_new_supplier_whose_name_matches_existing_company_is_reused(): void
