@@ -48,6 +48,7 @@ class AdditionalCost extends Model
         'notes',
         'attachment_path',
         'created_by',
+        'source_payment_id',
     ];
 
     protected function casts(): array
@@ -128,6 +129,20 @@ class AdditionalCost extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Payment this cost was entered from (bank fees). Non-null means the
+     * payment owns the cost and is the only place it should be edited.
+     */
+    public function sourcePayment(): BelongsTo
+    {
+        return $this->belongsTo(Payment::class, 'source_payment_id');
+    }
+
+    public function isFromPayment(): bool
+    {
+        return $this->source_payment_id !== null;
     }
 
     public function debitNoteLineItems(): \Illuminate\Database\Eloquent\Relations\HasMany

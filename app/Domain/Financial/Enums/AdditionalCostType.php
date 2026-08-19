@@ -20,6 +20,7 @@ enum AdditionalCostType: string implements HasColor, HasIcon, HasLabel
     case TRAVEL = 'travel';
     case COMMISSION = 'commission';
     case DISCOUNT = 'discount';
+    case BANK_FEE = 'bank_fee';
     case OTHER = 'other';
 
     public function getLabel(): ?string
@@ -37,6 +38,7 @@ enum AdditionalCostType: string implements HasColor, HasIcon, HasLabel
             self::COMMISSION => 'success',
             self::PACKAGING => 'secondary',
             self::DISCOUNT => 'warning',
+            self::BANK_FEE => 'gray',
             self::OTHER => 'gray',
         };
     }
@@ -56,6 +58,7 @@ enum AdditionalCostType: string implements HasColor, HasIcon, HasLabel
             self::TRAVEL => 'heroicon-o-paper-airplane',
             self::COMMISSION => 'heroicon-o-currency-dollar',
             self::DISCOUNT => 'heroicon-o-receipt-refund',
+            self::BANK_FEE => 'heroicon-o-building-library',
             self::OTHER => 'heroicon-o-ellipsis-horizontal-circle',
         };
     }
@@ -75,6 +78,7 @@ enum AdditionalCostType: string implements HasColor, HasIcon, HasLabel
             self::TRAVEL => 'Travel Expenses',
             self::COMMISSION => 'Commission',
             self::DISCOUNT => 'Discount',
+            self::BANK_FEE => 'Bank Fee',
             self::OTHER => 'Other',
         };
     }

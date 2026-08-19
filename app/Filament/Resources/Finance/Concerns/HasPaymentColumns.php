@@ -21,7 +21,7 @@ trait HasPaymentColumns
             ? __('forms.labels.client')
             : __('forms.labels.supplier');
 
-        return [
+        $columns = [
             TextColumn::make('payment_date')
                 ->label(__('forms.labels.date'))
                 ->date('d/m/Y')
@@ -81,6 +81,21 @@ trait HasPaymentColumns
                 ->placeholder('—')
                 ->toggleable(isToggledHiddenByDefault: true),
         ];
+
+        // Bank fees are only entered on outbound payments.
+        if ($direction === PaymentDirection::OUTBOUND) {
+            $columns[] = TextColumn::make('bankFeeCost.amount')
+                ->label(__('forms.labels.bank_fee'))
+                ->placeholder('—')
+                ->formatStateUsing(fn ($state, $record) => $record->bankFeeCost
+                    ? $record->bankFeeCost->currency_code.' '.Money::format($record->bankFeeCost->amount)
+                    : null)
+                ->tooltip(fn ($record) => $record->bankFeeCost?->billable_to?->getLabel())
+                ->alignEnd()
+                ->toggleable(isToggledHiddenByDefault: true);
+        }
+
+        return $columns;
     }
 
     public static function tableFilters(PaymentDirection $direction): array

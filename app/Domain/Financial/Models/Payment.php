@@ -5,12 +5,14 @@ namespace App\Domain\Financial\Models;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentStatus;
+use App\Domain\Financial\Support\AdditionalCostScheduleSync;
 use App\Domain\Settings\Models\BankAccount;
 use App\Domain\Settings\Models\PaymentMethod;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -72,6 +74,18 @@ class Payment extends Model
         // can no longer be edited (its client schedule item can't be removed
         // because it still "has" an allocation).
         static::deleting(function (Payment $payment) {
+            // The bank fee only exists because of this payment; take it (and
+            // its schedule item) down with it, unless something was already
+            // settled against it — typically the client having paid the fee
+            // through another payment. Evaluated before the allocations below
+            // are released, so that history is still visible here.
+            $fee = $payment->bankFeeCost()->first();
+
+            if ($fee && ! $fee->hasSettlementHistory()) {
+                AdditionalCostScheduleSync::removePrimaryLeg($fee);
+                $fee->delete();
+            }
+
             $payment->allocations()->get()->each(fn (PaymentAllocation $allocation) => $allocation->delete());
         });
     }
@@ -86,6 +100,15 @@ class Payment extends Model
     public function allocations(): HasMany
     {
         return $this->hasMany(PaymentAllocation::class);
+    }
+
+    /**
+     * The additional cost holding this payment's bank fee, if any. At most
+     * one per payment — see SyncPaymentBankFeeAction.
+     */
+    public function bankFeeCost(): HasOne
+    {
+        return $this->hasOne(AdditionalCost::class, 'source_payment_id');
     }
 
     public function paymentMethod(): BelongsTo

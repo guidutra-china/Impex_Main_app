@@ -66,6 +66,7 @@ return [
         'travel' => 'Despesas de Viagem',
         'commission' => 'Comissão',
         'discount' => 'Desconto',
+        'bank_fee' => 'Taxa Bancária',
         'other' => 'Outro',
     ],
     'billable_to' => [

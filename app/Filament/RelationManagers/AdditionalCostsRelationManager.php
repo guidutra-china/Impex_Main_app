@@ -12,6 +12,7 @@ use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\Financial\Support\AdditionalCostScheduleSync;
 use App\Domain\Infrastructure\Pdf\PdfGeneratorService;
 use App\Domain\Infrastructure\Pdf\PdfRenderer;
 use App\Domain\Infrastructure\Pdf\Templates\CostStatementPdfTemplate;
@@ -23,7 +24,6 @@ use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Settings\Models\Currency;
-use App\Domain\Settings\Models\ExchangeRate;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
@@ -151,7 +151,14 @@ class AdditionalCostsRelationManager extends RelationManager
                 TextColumn::make('description')
                     ->label(__('forms.labels.description'))
                     ->limit(40)
-                    ->tooltip(fn ($record) => $record->description),
+                    ->tooltip(fn ($record) => $record->description)
+                    // Costs entered from a payment (bank fees) are owned by
+                    // that payment and can only be edited there.
+                    ->description(fn ($record) => $record->isFromPayment()
+                        ? __('forms.helpers.bank_fee_from_payment', [
+                            'reference' => $record->sourcePayment?->reference ?: '#'.$record->source_payment_id,
+                        ])
+                        : null),
                 TextColumn::make('commission_rate')
                     ->label(__('forms.labels.commission_rate'))
                     ->formatStateUsing(fn ($state) => $state ? $state.'%' : null)
@@ -288,6 +295,7 @@ class AdditionalCostsRelationManager extends RelationManager
             ->color('gray')
             ->visible(fn ($record) => ! $this->isForwarderRow($record)
                 && ! $this->isSupplierPayableRow($record)
+                && ! $record->isFromPayment()
                 && $record->status !== AdditionalCostStatus::WAIVED
                 && auth()->user()?->can('create-payments'))
             ->fillForm(fn ($record) => [
@@ -376,6 +384,7 @@ class AdditionalCostsRelationManager extends RelationManager
             ->modalDescription('This will delete the cost and its linked schedule items.')
             ->visible(fn ($record) => ! $this->isForwarderRow($record)
                 && ! $this->isSupplierPayableRow($record)
+                && ! $record->isFromPayment()
                 && $record->status === AdditionalCostStatus::PENDING
                 && auth()->user()?->can('create-payments'))
             ->action(function ($record) {
@@ -912,22 +921,7 @@ class AdditionalCostsRelationManager extends RelationManager
 
     protected function convertCurrency(string $fromCode, string $toCode, int $amountMinor): int
     {
-        $fromCurrency = Currency::where('code', $fromCode)->first();
-        $toCurrency = Currency::where('code', $toCode)->first();
-
-        if ($fromCurrency && $toCurrency) {
-            $converted = ExchangeRate::convert(
-                $fromCurrency->id,
-                $toCurrency->id,
-                Money::toMajor($amountMinor)
-            );
-
-            if ($converted !== null) {
-                return Money::toMinor($converted);
-            }
-        }
-
-        return $amountMinor;
+        return AdditionalCostScheduleSync::convertCurrency($fromCode, $toCode, $amountMinor);
     }
 
     protected function syncScheduleItem(AdditionalCost $cost): void
@@ -936,47 +930,13 @@ class AdditionalCostsRelationManager extends RelationManager
         $billableTo = $cost->billable_to instanceof BillableTo ? $cost->billable_to : BillableTo::from($cost->billable_to);
 
         if ($billableTo === BillableTo::COMPANY) {
-            // Remove client schedule items (company absorbs the cost, not billed to client)
-            PaymentScheduleItem::where('source_type', AdditionalCost::class)
-                ->where('source_id', $cost->id)
-                ->withoutSideTags()
-                ->whereDoesntHave('allocations')
-                ->delete();
-
-            // Still create forwarder payable if forwarder data exists
-            $this->syncForwarderScheduleItem($cost, $owner);
-
-            app(SyncSupplierPayableScheduleItemAction::class)->execute($cost, $owner);
-
-            return;
+            // Company absorbs the cost: nothing is billed to the client.
+            AdditionalCostScheduleSync::removePrimaryLeg($cost);
+        } else {
+            AdditionalCostScheduleSync::syncPrimaryLeg($cost, $owner);
         }
 
-        $payable = $this->resolvePayableForCost($cost, $owner, $billableTo);
-
-        if (! $payable) {
-            return;
-        }
-
-        $isCredit = $billableTo === BillableTo::SUPPLIER
-            || $cost->cost_type === AdditionalCostType::DISCOUNT;
-
-        $costTypeLabel = $cost->cost_type instanceof AdditionalCostType
-            ? $cost->cost_type->getEnglishLabel()
-            : $cost->cost_type;
-
-        $label = $isCredit
-            ? ($cost->cost_type === AdditionalCostType::DISCOUNT ? 'Discount: ' : 'Credit: ').$cost->description
-            : "{$costTypeLabel}: {$cost->description}";
-
-        // --- Client receivable schedule item (existing logic) ---
-        $this->upsertScheduleItem($cost, $payable, [
-            'label' => mb_substr($label, 0, 100),
-            'amount' => abs($cost->amount_in_document_currency),
-            'is_credit' => $isCredit,
-            'notes' => $cost->notes,
-        ], 'client');
-
-        // --- Forwarder payable schedule item (new) ---
+        // --- Forwarder payable schedule item ---
         $this->syncForwarderScheduleItem($cost, $owner);
 
         // --- Supplier payable schedule item ---
@@ -985,53 +945,7 @@ class AdditionalCostsRelationManager extends RelationManager
 
     protected function upsertScheduleItem(AdditionalCost $cost, $payable, array $data, string $tag): void
     {
-        $query = PaymentScheduleItem::where('source_type', AdditionalCost::class)
-            ->where('source_id', $cost->id);
-
-        if ($tag === 'forwarder') {
-            $query->where('notes', 'LIKE', '%[forwarder-payable]%');
-        } else {
-            $query->withoutSideTags();
-        }
-
-        $existing = $query->first();
-
-        $maxSortOrder = PaymentScheduleItem::where('payable_type', get_class($payable))
-            ->where('payable_id', $payable->getKey())
-            ->max('sort_order') ?? 0;
-
-        $scheduleData = [
-            'payable_type' => get_class($payable),
-            'payable_id' => $payable->getKey(),
-            'label' => $data['label'],
-            'percentage' => 0,
-            'amount' => $data['amount'],
-            'currency_code' => $payable->currency_code ?? $cost->currency_code ?? 'USD',
-            'status' => PaymentScheduleStatus::DUE->value,
-            'is_blocking' => false,
-            'is_credit' => $data['is_credit'],
-            'source_type' => AdditionalCost::class,
-            'source_id' => $cost->id,
-            'sort_order' => $maxSortOrder + 1,
-            'notes' => $data['notes'],
-        ];
-
-        if ($existing) {
-            $isPinned = $existing->isPinnedByAllocations();
-
-            if ($isPinned) {
-                $existing->update([
-                    'label' => $scheduleData['label'],
-                    'amount' => $scheduleData['amount'],
-                    'is_credit' => $scheduleData['is_credit'],
-                    'notes' => $scheduleData['notes'],
-                ]);
-            } else {
-                $existing->update($scheduleData);
-            }
-        } else {
-            PaymentScheduleItem::create($scheduleData);
-        }
+        AdditionalCostScheduleSync::upsertScheduleItem($cost, $payable, $data, $tag);
     }
 
     protected function syncForwarderScheduleItem(AdditionalCost $cost, $owner): void
@@ -1099,30 +1013,7 @@ class AdditionalCostsRelationManager extends RelationManager
 
     protected function resolvePayableForCost(AdditionalCost $cost, $owner, BillableTo $billableTo)
     {
-        if ($owner instanceof Shipment) {
-            return $owner;
-        }
-
-        if ($billableTo === BillableTo::CLIENT) {
-            if ($owner instanceof ProformaInvoice) {
-                return $owner;
-            }
-            if ($owner instanceof PurchaseOrder) {
-                return $owner->proformaInvoice;
-            }
-        }
-
-        if ($billableTo === BillableTo::SUPPLIER) {
-            if ($owner instanceof PurchaseOrder) {
-                return $owner;
-            }
-            if ($owner instanceof ProformaInvoice) {
-                // PO do MESMO fornecedor do custo; sem PO dele, fica na PI.
-                return SyncSupplierPayableScheduleItemAction::resolveSupplierPo($owner, $cost->supplier_company_id) ?? $owner;
-            }
-        }
-
-        return $owner;
+        return AdditionalCostScheduleSync::resolvePayable($cost, $owner, $billableTo);
     }
 
     protected function isEmbeddedCommission($cost): bool

@@ -7,6 +7,12 @@ return [
     ],
 
     'labels' => [
+        'bank_fee_amount' => 'Fee amount',
+        'bank_fee_currency' => 'Fee currency',
+        'bank_fee_billable_to' => 'Fee paid by',
+        'bank_fee_process' => 'Process',
+        'bank_fee_description' => 'Fee description',
+        'bank_fee' => 'Bank fee',
         'default_dashboard' => 'Default dashboard',
         'export_excel' => 'Export Excel',
         'trip_title' => 'Trip Title / Purpose',
@@ -700,6 +706,7 @@ return [
         'revert_reason' => 'Reason for Revert',
     ],
     'sections' => [
+        'bank_fee' => 'Bank fee',
         'trip_details' => 'Trip Details',
         'access_role' => 'Access & Role',
         'account_details' => 'Account Details',
@@ -840,6 +847,11 @@ return [
         'filter_by_supplier' => 'Filter by Supplier',
     ],
     'helpers' => [
+        'bank_fee_amount' => 'Fee charged by the bank on top of the transfer. It is not part of the amount allocated to schedule items.',
+        'bank_fee_process' => 'PI or shipment the fee is recorded on. Suggestions come from the allocations above.',
+        'bank_fee_billable_to' => 'Client creates a receivable; Supplier becomes a credit deducted from what we owe them; Company just records the cost.',
+        'bank_fee_default_description' => 'Bank fee — :reference',
+        'bank_fee_from_payment' => 'Entered from payment :reference',
         'hide_service_fee' => 'If checked, the Service Fee line will not appear in the PDF.',
         'client_ncm' => 'Tax classification this client uses to import the product. Appears on the Commercial Invoice. 4 to 8 digits.',
         'import_modality_affects_ci_and_packing_list' => 'The import modality affects the Commercial Invoice and Packing List.',
@@ -1172,6 +1184,8 @@ return [
         'has_multi_currency_items' => 'Has multi-currency items',
     ],
     'validation' => [
+        'bank_fee_process_required' => 'Choose the process (PI or shipment) the bank fee belongs to.',
+        'bank_fee_locked_by_allocations' => 'This bank fee already has a payment allocated; its amount, bearer and process can no longer be changed.',
         'line_has_allocations_cannot_remove' => 'This line cannot be removed: its schedule item already has payment allocations. Remove the allocations first.',
         'supplier_payable_has_allocations' => 'The supplier payable side has payment allocations and cannot be removed or reassigned.',
         'cost_type_locked_by_allocations' => 'This cost has payment allocations; switching between discount and regular cost is blocked.',

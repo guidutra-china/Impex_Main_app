@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Finance\Concerns;
 
 use App\Domain\CRM\Models\Company;
+use App\Domain\Financial\Actions\SyncPaymentBankFeeAction;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\DebitNoteStatus;
 use App\Domain\Financial\Enums\PartyType;
@@ -68,7 +69,15 @@ trait HasPaymentFormSections
                     ->label(__('forms.labels.payment_currency'))
                     ->options(fn () => Currency::pluck('code', 'code'))
                     ->required()
-                    ->live(),
+                    ->live()
+                    ->afterStateUpdated(function ($state, Get $get, Set $set) {
+                        // Bank fees are almost always charged in the currency
+                        // of the wire; pre-fill it while the user hasn't
+                        // chosen otherwise.
+                        if (blank($get('bank_fee_currency_code'))) {
+                            $set('bank_fee_currency_code', $state);
+                        }
+                    }),
                 TextInput::make('amount')
                     ->label(__('forms.labels.wire_transfer_amount'))
                     ->numeric()
@@ -108,6 +117,48 @@ trait HasPaymentFormSections
                     ->maxSize(5120)
                     ->columnSpanFull(),
             ]),
+
+            Section::make(__('forms.sections.bank_fee'))
+                ->columns(2)
+                ->collapsible()
+                ->collapsed(fn (Get $get) => blank($get('bank_fee_amount')))
+                ->visible($direction === PaymentDirection::OUTBOUND)
+                ->schema([
+                    TextInput::make('bank_fee_amount')
+                        ->label(__('forms.labels.bank_fee_amount'))
+                        ->numeric()
+                        ->step('0.01')
+                        ->minValue(0.01)
+                        ->live(onBlur: true)
+                        ->helperText(__('forms.helpers.bank_fee_amount')),
+                    Select::make('bank_fee_currency_code')
+                        ->label(__('forms.labels.bank_fee_currency'))
+                        ->options(fn () => Currency::pluck('code', 'code'))
+                        ->default(fn (Get $get) => $get('currency_code'))
+                        ->required(fn (Get $get) => filled($get('bank_fee_amount'))),
+                    Select::make('bank_fee_billable_to')
+                        ->label(__('forms.labels.bank_fee_billable_to'))
+                        ->options(fn () => collect(BillableTo::cases())
+                            ->mapWithKeys(fn (BillableTo $case) => [$case->value => $case->getLabel()])
+                            ->all())
+                        ->default(BillableTo::CLIENT->value)
+                        ->helperText(__('forms.helpers.bank_fee_billable_to'))
+                        ->required(fn (Get $get) => filled($get('bank_fee_amount'))),
+                    Select::make('bank_fee_process')
+                        ->label(__('forms.labels.bank_fee_process'))
+                        ->options(fn (Get $get) => static::bankFeeProcessOptions($get('allocations') ?? []))
+                        ->searchable()
+                        ->getSearchResultsUsing(fn (string $search) => static::searchBankFeeProcesses($search))
+                        ->getOptionLabelUsing(fn ($value) => static::bankFeeProcessLabel($value))
+                        ->helperText(__('forms.helpers.bank_fee_process'))
+                        ->required(fn (Get $get) => filled($get('bank_fee_amount')))
+                        ->columnSpanFull(),
+                    TextInput::make('bank_fee_description')
+                        ->label(__('forms.labels.bank_fee_description'))
+                        ->maxLength(255)
+                        ->columnSpanFull(),
+                ])
+                ->columnSpanFull(),
 
             Section::make(__('forms.sections.outstanding_items_credits'))
                 ->description(__('forms.descriptions.overview_of_pending_schedule_items_and_available_credits'))
@@ -302,6 +353,94 @@ trait HasPaymentFormSections
             ->addActionLabel('+ Apply Credit')
             ->live()
             ->columnSpanFull();
+    }
+
+    /**
+     * Processes (PI / Shipment) implied by the allocations already filled in
+     * the form — the fee almost always belongs to one of them.
+     *
+     * @param  array<int, array<string, mixed>>  $allocations
+     * @return array<string, string>
+     */
+    public static function bankFeeProcessOptions(array $allocations): array
+    {
+        $itemIds = collect($allocations)
+            ->pluck('payment_schedule_item_id')
+            ->filter()
+            ->unique();
+
+        if ($itemIds->isEmpty()) {
+            return [];
+        }
+
+        $options = [];
+
+        foreach (PaymentScheduleItem::with('payable')->whereIn('id', $itemIds)->get() as $item) {
+            $process = static::bankFeeProcessFor($item->payable);
+
+            if ($process) {
+                $options[static::bankFeeProcessKey($process)] = static::bankFeeProcessOptionLabel($process);
+            }
+        }
+
+        return $options;
+    }
+
+    /**
+     * Free search over every process, because the fee is often charged to a
+     * client while the payment itself went to a supplier.
+     *
+     * @return array<string, string>
+     */
+    public static function searchBankFeeProcesses(string $search): array
+    {
+        $options = [];
+
+        $matches = fn ($query) => $query
+            ->where(fn ($q) => $q->where('reference', 'LIKE', "%{$search}%")
+                ->orWhereHas('company', fn ($c) => $c->where('name', 'LIKE', "%{$search}%")))
+            ->with('company')
+            ->latest('id')
+            ->limit(15)
+            ->get();
+
+        foreach ($matches(ProformaInvoice::query())->concat($matches(Shipment::query())) as $process) {
+            $options[static::bankFeeProcessKey($process)] = static::bankFeeProcessOptionLabel($process);
+        }
+
+        return $options;
+    }
+
+    public static function bankFeeProcessLabel(?string $value): ?string
+    {
+        $process = app(SyncPaymentBankFeeAction::class)->resolveProcess($value);
+
+        return $process ? static::bankFeeProcessOptionLabel($process) : null;
+    }
+
+    public static function bankFeeProcessKey(\Illuminate\Database\Eloquent\Model $process): string
+    {
+        return get_class($process).':'.$process->getKey();
+    }
+
+    protected static function bankFeeProcessOptionLabel(\Illuminate\Database\Eloquent\Model $process): string
+    {
+        $company = $process->company?->name;
+
+        return trim(($process->reference ?? '#'.$process->getKey()).($company ? " — {$company}" : ''));
+    }
+
+    /**
+     * The process a schedule item belongs to: PO installments roll up to
+     * their PI, PI and shipment items are already the process.
+     */
+    protected static function bankFeeProcessFor(mixed $payable): ?\Illuminate\Database\Eloquent\Model
+    {
+        return match (true) {
+            $payable instanceof ProformaInvoice, $payable instanceof Shipment => $payable,
+            $payable instanceof PurchaseOrder => $payable->proformaInvoice,
+            default => null,
+        };
     }
 
     public static function getCompanyScheduleItems(int $companyId, mixed $direction): Collection

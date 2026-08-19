@@ -9,12 +9,14 @@ use App\Domain\Infrastructure\Support\Money;
 use App\Filament\Pages\Concerns\HasSaveAndReturnFormActions;
 use App\Filament\Resources\Finance\AccountsPayable\AccountsPayableResource;
 use App\Filament\Resources\Finance\Concerns\HasPaymentAllocationPersistence;
+use App\Filament\Resources\Finance\Concerns\HasPaymentBankFee;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditAccountsPayable extends EditRecord
 {
     use HasPaymentAllocationPersistence;
+    use HasPaymentBankFee;
     use HasSaveAndReturnFormActions;
 
     protected static string $resource = AccountsPayableResource::class;
@@ -45,13 +47,15 @@ class EditAccountsPayable extends EditRecord
             'credit_amount' => Money::toMajor($alloc->allocated_amount_in_document_currency),
         ])->toArray();
 
-        return $data;
+        return $this->hydrateBankFee($data);
     }
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $this->pendingAllocations = $data['allocations'] ?? [];
         $this->pendingCreditApplications = $data['credit_applications'] ?? [];
+
+        $data = $this->extractBankFee($data);
 
         $data['amount'] = Money::toMinor((float) $data['amount']);
         $data['status'] = PaymentStatus::PENDING_APPROVAL->value;
@@ -103,6 +107,7 @@ class EditAccountsPayable extends EditRecord
 
         $this->persistAllocations($payment, $payment->currency_code);
         $this->persistCreditApplications($payment);
+        $this->persistBankFee($payment);
     }
 
     protected function getHeaderActions(): array

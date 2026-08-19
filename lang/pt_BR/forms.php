@@ -7,6 +7,12 @@ return [
     ],
 
     'labels' => [
+        'bank_fee_amount' => 'Valor da taxa',
+        'bank_fee_currency' => 'Moeda da taxa',
+        'bank_fee_billable_to' => 'Quem paga a taxa',
+        'bank_fee_process' => 'Processo',
+        'bank_fee_description' => 'Descrição da taxa',
+        'bank_fee' => 'Taxa bancária',
         'default_dashboard' => 'Dashboard padrão',
         'export_excel' => 'Exportar Excel',
         'trip_title' => 'Título da Viagem',
@@ -699,6 +705,7 @@ return [
         'revert_reason' => 'Motivo da Reversão',
     ],
     'sections' => [
+        'bank_fee' => 'Taxa bancária',
         'trip_details' => 'Dados da Viagem',
         'access_role' => 'Acesso & Função',
         'account_details' => 'Detalhes da Conta',
@@ -839,6 +846,11 @@ return [
         'filter_by_supplier' => 'Filtrar por Fornecedor',
     ],
     'helpers' => [
+        'bank_fee_amount' => 'Tarifa cobrada pelo banco por fora da transferência. Não entra no valor alocado às parcelas.',
+        'bank_fee_process' => 'PI ou embarque onde a taxa será registrada. Sugestões vêm das parcelas alocadas acima.',
+        'bank_fee_billable_to' => 'Cliente gera cobrança; Fornecedor vira crédito que abate do que devemos a ele; Empresa apenas registra o custo.',
+        'bank_fee_default_description' => 'Taxa bancária — :reference',
+        'bank_fee_from_payment' => 'Lançada pelo pagamento :reference',
         'hide_service_fee' => 'Se marcado, a linha de Taxa de Serviço não aparece no PDF.',
         'client_ncm' => 'Classificação fiscal que este cliente usa para importar o produto. Aparece na Commercial Invoice. De 4 a 8 dígitos.',
         'import_modality_affects_ci_and_packing_list' => 'A modalidade de importação afeta a Commercial Invoice e o Packing List.',
@@ -1177,6 +1189,8 @@ return [
         'has_multi_currency_items' => 'Tem itens em múltiplas moedas',
     ],
     'validation' => [
+        'bank_fee_process_required' => 'Escolha o processo (PI ou embarque) onde a taxa bancária será lançada.',
+        'bank_fee_locked_by_allocations' => 'Esta taxa bancária já tem pagamento alocado; o valor, a parte cobrada e o processo não podem mais ser alterados.',
         'line_has_allocations_cannot_remove' => 'Esta linha não pode ser removida: o item de cronograma dela já possui pagamentos alocados. Cancele as alocações primeiro.',
         'supplier_payable_has_allocations' => 'O lado pagável a fornecedor já tem alocações de pagamento e não pode ser removido ou trocado.',
         'cost_type_locked_by_allocations' => 'Este custo tem alocações de pagamento; trocar entre desconto e custo comum está bloqueado.',

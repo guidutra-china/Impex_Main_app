@@ -60,6 +60,21 @@ class PayableInfolist
                     ->label(__('forms.labels.approved_at'))
                     ->dateTime('d/m/Y H:i')
                     ->placeholder('—'),
+                TextEntry::make('bankFeeCost.amount')
+                    ->label(__('forms.labels.bank_fee'))
+                    ->placeholder('—')
+                    ->formatStateUsing(function ($state, $record) {
+                        $fee = $record->bankFeeCost;
+
+                        if (! $fee) {
+                            return null;
+                        }
+
+                        return $fee->currency_code.' '.Money::format($fee->amount)
+                            .' — '.$fee->billable_to?->getLabel();
+                    })
+                    ->helperText(fn ($record) => $record->bankFeeCost?->costable?->reference)
+                    ->columnSpan(2),
                 TextEntry::make('notes')
                     ->label(__('forms.labels.notes'))
                     ->placeholder('—')

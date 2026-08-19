@@ -7,6 +7,12 @@ return [
     ],
 
     'labels' => [
+        'bank_fee_amount' => '手续费金额',
+        'bank_fee_currency' => '手续费币种',
+        'bank_fee_billable_to' => '手续费承担方',
+        'bank_fee_process' => '业务流程',
+        'bank_fee_description' => '手续费说明',
+        'bank_fee' => '银行手续费',
         'default_dashboard' => '默认仪表盘',
         'export_excel' => '导出 Excel',
         'trip_title' => '出差标题 / 事由',
@@ -667,6 +673,7 @@ return [
         'revert_reason' => '恢复原因',
     ],
     'sections' => [
+        'bank_fee' => '银行手续费',
         'trip_details' => '出差信息',
         'access_role' => '访问与角色',
         'account_details' => '账户详情',
@@ -802,6 +809,11 @@ return [
         'filter_by_supplier' => '按供应商筛选',
     ],
     'helpers' => [
+        'bank_fee_amount' => '银行在汇款金额之外收取的手续费，不计入分配给付款计划的金额。',
+        'bank_fee_process' => '记录该手续费的形式发票或出货。建议项来自上方的付款分配。',
+        'bank_fee_billable_to' => '客户：产生应收；供应商：形成可抵扣应付的贷项；公司：仅记录成本。',
+        'bank_fee_default_description' => '银行手续费 — :reference',
+        'bank_fee_from_payment' => '由付款 :reference 录入',
         'hide_service_fee' => '勾选后，PDF 中不显示服务费行。',
         'client_ncm' => '该客户进口此产品所用的税则分类，显示在商业发票上。4 至 8 位数字。',
         'import_modality_affects_ci_and_packing_list' => '进口方式会影响商业发票和装箱单。',
@@ -1131,6 +1143,8 @@ return [
         'has_multi_currency_items' => '包含多币种项目',
     ],
     'validation' => [
+        'bank_fee_process_required' => '请选择该银行手续费所属的业务流程（形式发票或出货）。',
+        'bank_fee_locked_by_allocations' => '该银行手续费已有付款分配，无法再修改金额、承担方或所属流程。',
         'line_has_allocations_cannot_remove' => '无法删除此行：其付款计划项已存在付款分配。请先取消相关分配。',
         'supplier_payable_has_allocations' => '应付供应商部分已有付款分配，无法移除或更换供应商。',
         'cost_type_locked_by_allocations' => '此费用已有付款分配，无法在折扣与普通费用之间切换。',

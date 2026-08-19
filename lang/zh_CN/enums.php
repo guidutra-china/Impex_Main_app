@@ -66,6 +66,7 @@ return [
         'travel' => '差旅费',
         'commission' => '佣金',
         'discount' => '折扣',
+        'bank_fee' => '银行手续费',
         'other' => '其他',
     ],
     'billable_to' => [

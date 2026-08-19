@@ -7,11 +7,13 @@ use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Infrastructure\Support\Money;
 use App\Filament\Resources\Finance\AccountsPayable\AccountsPayableResource;
 use App\Filament\Resources\Finance\Concerns\HasPaymentAllocationPersistence;
+use App\Filament\Resources\Finance\Concerns\HasPaymentBankFee;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateAccountsPayable extends CreateRecord
 {
     use HasPaymentAllocationPersistence;
+    use HasPaymentBankFee;
 
     protected static string $resource = AccountsPayableResource::class;
 
@@ -19,13 +21,10 @@ class CreateAccountsPayable extends CreateRecord
     {
         parent::mount();
 
-        $companyId = request()->query('company_id');
+        $prefill = $this->buildScheduleItemsPrefill(PaymentDirection::OUTBOUND);
 
-        if ($companyId) {
-            $this->form->fill([
-                'direction' => PaymentDirection::OUTBOUND->value,
-                'company_id' => (int) $companyId,
-            ]);
+        if ($prefill !== []) {
+            $this->form->fill($prefill);
         }
     }
 
@@ -33,6 +32,8 @@ class CreateAccountsPayable extends CreateRecord
     {
         $this->pendingAllocations = $data['allocations'] ?? [];
         $this->pendingCreditApplications = $data['credit_applications'] ?? [];
+
+        $data = $this->extractBankFee($data);
 
         $data['amount'] = Money::toMinor((float) $data['amount']);
         $data['status'] = PaymentStatus::PENDING_APPROVAL->value;
@@ -47,6 +48,7 @@ class CreateAccountsPayable extends CreateRecord
     {
         $this->persistAllocations($this->record, $this->record->currency_code);
         $this->persistCreditApplications($this->record);
+        $this->persistBankFee($this->record);
     }
 
     protected function getRedirectUrl(): string
