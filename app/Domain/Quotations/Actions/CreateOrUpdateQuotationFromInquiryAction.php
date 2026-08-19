@@ -39,6 +39,12 @@ class CreateOrUpdateQuotationFromInquiryAction
         ?Incoterm $incoterm = null,
         ?int $preferredSupplierQuotationId = null,
     ): Quotation {
+        if ($preferredSupplierQuotationId !== null && ! in_array($preferredSupplierQuotationId, array_map('intval', $supplierQuotationIds), true)) {
+            throw new \InvalidArgumentException(
+                'A cotação de fornecedor preferida precisa estar entre as cotações consideradas.',
+            );
+        }
+
         return DB::transaction(function () use (
             $inquiry, $supplierQuotationIds, $commissionType, $commissionRate, $showSuppliers,
             $forceNewVersion, $itemOverrides, $incoterm, $preferredSupplierQuotationId
@@ -142,11 +148,12 @@ class CreateOrUpdateQuotationFromInquiryAction
                 return $sqItem->unit_cost * $resolved['rate'];
             });
 
+            $primary = $sortedAlternatives->first();
+
             // A SQ de origem manda quando ela cota este item; senão, menor custo.
-            $primary = $preferredSupplierQuotationId !== null
-                ? ($sortedAlternatives->firstWhere('supplier_quotation_id', $preferredSupplierQuotationId)
-                    ?? $sortedAlternatives->first())
-                : $sortedAlternatives->first();
+            if ($preferredSupplierQuotationId !== null) {
+                $primary = $sortedAlternatives->firstWhere('supplier_quotation_id', $preferredSupplierQuotationId) ?? $primary;
+            }
 
             $unitCost = $primary?->unit_cost ?? 0;
             $sourceCurrency = $primary?->supplierQuotation?->currency_code ?? $quoteCurrency;
@@ -225,16 +232,7 @@ class CreateOrUpdateQuotationFromInquiryAction
             // The same supplier company may quote a product across multiple SQs;
             // collapse to one row per company (keeping the lowest converted cost)
             // to respect the (quotation_item_id, company_id) unique constraint.
-            $dedupedAlternatives = $alternatives
-                ->sortBy(function ($sqItem) use ($quoteCurrency, $referenceDate) {
-                    $resolved = $this->fx->resolve(
-                        $sqItem->supplierQuotation->currency_code,
-                        $quoteCurrency,
-                        $referenceDate,
-                    );
-
-                    return $sqItem->unit_cost * $resolved['rate'];
-                })
+            $dedupedAlternatives = $sortedAlternatives
                 ->unique(fn ($sqItem) => $sqItem->supplierQuotation->company_id)
                 ->values();
 

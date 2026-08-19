@@ -587,4 +587,63 @@ class CreateOrUpdateQuotationFromInquiryActionTest extends TestCase
         $item = $quotation->items()->first();
         $this->assertSame($cheap->id, $item->selected_supplier_id);
     }
+
+    public function test_preferred_supplier_quotation_applies_per_item_not_globally(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems(2);
+        $cheap = Company::factory()->create();
+        $preferred = Company::factory()->create();
+
+        // Cotação barata: cobre os dois itens.
+        $cheapSq = $this->buildSqWith($inquiry, $cheap, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 100000],
+            ['product_id' => $items[1]->product_id, 'unit_cost' => 50000],
+        ]);
+        // Cotação preferida: só cota o primeiro item, e mais caro.
+        $preferredSq = $this->buildSqWith($inquiry, $preferred, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 250000],
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$cheapSq->id, $preferredSq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+            preferredSupplierQuotationId: $preferredSq->id,
+        );
+
+        $byProduct = $quotation->items()->get()->keyBy('product_id');
+        // Item 0: a SQ preferida cota este item, então ela vence mesmo mais cara.
+        $this->assertSame($preferred->id, $byProduct[$items[0]->product_id]->selected_supplier_id);
+        $this->assertSame(250000, $byProduct[$items[0]->product_id]->unit_cost);
+        // Item 1: a SQ preferida não cota este item, então cai para a mais barata.
+        $this->assertSame($cheap->id, $byProduct[$items[1]->product_id]->selected_supplier_id);
+        $this->assertSame(50000, $byProduct[$items[1]->product_id]->unit_cost);
+    }
+
+    public function test_preferred_id_outside_the_pool_throws(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems(1);
+        $inPool = Company::factory()->create();
+        $outsidePool = Company::factory()->create();
+
+        $inPoolSq = $this->buildSqWith($inquiry, $inPool, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 100000],
+        ]);
+        $outsidePoolSq = $this->buildSqWith($inquiry, $outsidePool, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 200000],
+        ]);
+
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$inPoolSq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+            preferredSupplierQuotationId: $outsidePoolSq->id,
+        );
+    }
 }
