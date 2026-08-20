@@ -505,6 +505,29 @@ class CreateOrUpdateQuotationFromInquiryActionTest extends TestCase
         $this->assertSame(\App\Domain\Quotations\Enums\Incoterm::FOB, $quotation->incoterm);
     }
 
+    public function test_free_text_incoterm_on_the_supplier_quotation_falls_back_instead_of_crashing(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems();
+        $supplier = Company::factory()->create();
+        $sq = $this->buildSqWith($inquiry, $supplier, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 1000],
+        ]);
+        // Valor real de produção: a coluna da SQ é texto livre.
+        $sq->update(['incoterm' => 'FOB Shanghai Port']);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [$sq->id],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+            incoterm: \App\Domain\Quotations\Enums\Incoterm::CIF,
+        );
+
+        // Não casa com o enum: cai para o incoterm do cabeçalho em vez de estourar.
+        $this->assertSame(\App\Domain\Quotations\Enums\Incoterm::CIF, $quotation->items->first()->incoterm);
+    }
+
     public function test_preferred_supplier_quotation_wins_even_when_more_expensive(): void
     {
         [$client, $inquiry, $items] = $this->buildInquiryWithItems(1);

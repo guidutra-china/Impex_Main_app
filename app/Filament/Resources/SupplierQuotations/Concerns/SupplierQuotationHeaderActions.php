@@ -131,7 +131,9 @@ trait SupplierQuotationHeaderActions
                     'commission_type' => CommissionType::EMBEDDED->value,
                     'commission_rate' => 10,
                     'currency_code' => $inquiry?->currency_code ?? $this->record->currency_code,
-                    'incoterm' => $this->record->incoterm,
+                    // O incoterm da SQ é texto livre ("FOB Shanghai Port" existe em
+                    // produção); só pré-preenche quando casa com o enum do Select.
+                    'incoterm' => Incoterm::tryFrom((string) ($this->record->incoterm ?? ''))?->value,
                     'payment_term_id' => $this->record->payment_term_id,
                     'validity_days' => 30,
                     'show_suppliers' => false,

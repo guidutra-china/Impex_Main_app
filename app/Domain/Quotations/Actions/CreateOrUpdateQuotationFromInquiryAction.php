@@ -269,7 +269,11 @@ class CreateOrUpdateQuotationFromInquiryAction
                 'cost_exchange_rate_captured_at' => $rateCapturedAt,
                 'commission_rate' => $itemCommissionRate,
                 'unit_price' => $unitPrice,
-                'incoterm' => $primary?->supplierQuotation?->incoterm
+                // supplier_quotations.incoterm é texto livre e o banco tem valores
+                // como "FOB Shanghai Port", que não existem no enum. Normaliza e
+                // cai para o incoterm do item/cabeçalho quando não casar, senão o
+                // cast de QuotationItem estoura com ValueError.
+                'incoterm' => Incoterm::tryFrom((string) ($primary?->supplierQuotation?->incoterm ?? ''))
                     ?? $existingItem?->incoterm
                     ?? $quotation->incoterm,
                 'sort_order' => $sortOrder++,
