@@ -8,7 +8,8 @@ use App\Domain\Catalog\Services\ProductIdentityResolver;
 use App\Domain\Logistics\Enums\ImportModality;
 use App\Domain\Logistics\Models\Carton;
 use App\Domain\Logistics\Models\Shipment;
-use App\Domain\Logistics\Services\ShippingUnitCounter;
+use App\Domain\Logistics\Models\ShipmentPallet;
+use App\Domain\Logistics\Services\PackingTotalsCalculator;
 use Illuminate\Support\Collection;
 
 class PackingListPdfTemplate extends AbstractPdfTemplate
@@ -138,12 +139,133 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
     }
 
     /**
+     * Monta as linhas de um container: primeiro as caixas soltas, depois um
+     * bloco por pallet (as caixas dele seguidas da linha do próprio pallet).
+     *
+     * Numa carga paletizada quem carrega bulto, peso bruto e cubo é o pallet,
+     * então as caixas em cima dele não repetem esses três — é assim que as
+     * colunas voltam a somar exatamente o GRAND TOTAL.
+     *
      * @param  Collection<int, Carton>  $cartons
      */
     private function buildLinesFromCartons(Collection $cartons): array
     {
+        [$palletized, $loose] = $cartons->partition(
+            fn (Carton $carton) => $carton->shipment_pallet_id !== null
+        );
+
+        $blocks = $this->buildSortableBlocks($loose);
+
+        foreach ($palletized->groupBy('shipment_pallet_id') as $onPallet) {
+            $palletLines = [];
+
+            foreach ($this->sortBlocks($this->buildSortableBlocks($onPallet)) as $block) {
+                foreach ($block['lines'] as $line) {
+                    $palletLines[] = $this->stripPalletizedTotals($line);
+                }
+            }
+
+            $palletLines[] = $this->buildPalletLine($onPallet);
+
+            $blocks[] = [
+                'sort_key' => (int) $onPallet->min('sort_order'),
+                'lines' => $palletLines,
+            ];
+        }
+
         $lines = [];
 
+        foreach ($this->sortBlocks($blocks) as $block) {
+            foreach ($block['lines'] as $line) {
+                $lines[] = $line;
+            }
+        }
+
+        return $lines;
+    }
+
+    /**
+     * Bulto, peso bruto e cubo de caixa paletizada ficam com o pallet.
+     *
+     * @param  array<string, mixed>  $line
+     * @return array<string, mixed>
+     */
+    private function stripPalletizedTotals(array $line): array
+    {
+        return array_merge($line, [
+            'package_qty' => '',
+            'gross_weight' => '',
+            'volume' => '',
+        ]);
+    }
+
+    /**
+     * @param  array<int, array{sort_key: int, lines: array}>  $blocks
+     * @return array<int, array{sort_key: int, lines: array}>
+     */
+    private function sortBlocks(array $blocks): array
+    {
+        usort($blocks, fn ($a, $b) => $a['sort_key'] <=> $b['sort_key']);
+
+        return $blocks;
+    }
+
+    /**
+     * A linha do pallet: um bulto, com o peso pesado e o cubo do conjunto
+     * (ou a soma das caixas quando o pallet não tem peso/medida).
+     *
+     * @param  Collection<int, Carton>  $onPallet
+     */
+    private function buildPalletLine(Collection $onPallet): array
+    {
+        $pallet = $onPallet->first()->pallet;
+        $boxesGross = (float) $onPallet->sum(fn (Carton $c) => (float) $c->gross_weight);
+        $boxesVolume = (float) $onPallet->sum(fn (Carton $c) => (float) $c->volume);
+
+        $gross = $pallet?->effectiveGrossWeight($boxesGross) ?? $boxesGross;
+        $volume = $pallet?->effectiveVolume($boxesVolume) ?? $boxesVolume;
+        $boxes = $onPallet->count();
+
+        return [
+            'package_no' => $pallet?->label ?? $this->resolvePalletLabel($onPallet->first()) ?? 'PALLET',
+            'pallet' => null,
+            'packaging_type' => 'PALLET',
+            'model_no' => '',
+            'product_name' => 'Pallet · '.$boxes.' '.($boxes === 1 ? 'box' : 'boxes'),
+            'description' => null,
+            'unit' => '',
+            'equipment_qty' => '',
+            'package_qty' => 1,
+            'net_weight' => '',
+            'gross_weight' => $gross > 0 ? number_format($gross, 2) : '',
+            'dimensions' => $this->formatPalletDimensions($pallet),
+            'volume' => $volume > 0 ? number_format($volume, 2) : '',
+            'is_sub_item' => false,
+        ];
+    }
+
+    private function formatPalletDimensions(?ShipmentPallet $pallet): string
+    {
+        if (! $pallet || (! $pallet->length && ! $pallet->width && ! $pallet->height)) {
+            return '';
+        }
+
+        $l = $pallet->length ? number_format((float) $pallet->length, 1) : '—';
+        $w = $pallet->width ? number_format((float) $pallet->width, 1) : '—';
+        $h = $pallet->height ? number_format((float) $pallet->height, 1) : '—';
+
+        return "{$l} × {$w} × {$h}";
+    }
+
+    /**
+     * Agrupa caixas idênticas e devolve blocos ordenáveis pela posição
+     * original da primeira caixa de cada grupo.
+     *
+     * @param  Collection<int, Carton>  $cartons
+     * @return array<int, array{sort_key: int, lines: array}>
+     */
+    private function buildSortableBlocks(Collection $cartons): array
+    {
         // Separate cartons into groupable (single-product, identical specs) and ungroupable
         $groups = [];
         $ungroupable = [];
@@ -210,16 +332,7 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
             ];
         }
 
-        // Sort by original carton order, then flatten
-        usort($sortableLines, fn ($a, $b) => $a['sort_key'] <=> $b['sort_key']);
-
-        foreach ($sortableLines as $entry) {
-            foreach ($entry['lines'] as $line) {
-                $lines[] = $line;
-            }
-        }
-
-        return $lines;
+        return $sortableLines;
     }
 
     /**
@@ -438,12 +551,12 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
      */
     private function computeCartonSubtotals(Collection $cartons): array
     {
-        $units = ShippingUnitCounter::breakdown($cartons);
+        $units = app(PackingTotalsCalculator::class)->fromCartons($cartons);
 
         $totalPackages = $units['units'];
-        $totalGross = (float) $cartons->sum(fn ($c) => (float) $c->gross_weight);
-        $totalNet = (float) $cartons->sum(fn ($c) => (float) $c->net_weight);
-        $totalVolume = (float) $cartons->sum(fn ($c) => (float) $c->volume);
+        $totalGross = $units['gross'];
+        $totalNet = $units['net'];
+        $totalVolume = $units['cbm'];
 
         $totalEquipmentQty = (int) $cartons
             ->flatMap(fn (Carton $c) => $c->contents)

@@ -35,7 +35,7 @@
             <span class="text-gray-500 dark:text-gray-400">Volumes:</span>
             <strong class="text-gray-950 dark:text-white">{{ number_format($totals['units']) }}</strong>
             @if ($totals['pallets'] > 0)
-                <span class="text-xs text-gray-400 dark:text-gray-500">({{ number_format($totals['boxes']) }} caixas · {{ number_format($totals['pallets']) }} pallet{{ $totals['pallets'] > 1 ? 's' : '' }})</span>
+                <span class="text-xs text-gray-400 dark:text-gray-500">({{ number_format($totals['cartons']) }} caixas · {{ number_format($totals['pallets']) }} pallet{{ $totals['pallets'] > 1 ? 's' : '' }})</span>
             @endif
         </span>
         <span>

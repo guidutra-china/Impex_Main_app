@@ -1,6 +1,13 @@
 @php
     $cartonsOnPallet = $pallet->cartons;
-    $totalWeight = (float) $cartonsOnPallet->sum('gross_weight');
+    // Peso e cubagem que valem para este pallet: os dele quando preenchidos,
+    // senão a soma das caixas em cima.
+    $boxesWeight = (float) $cartonsOnPallet->sum('gross_weight');
+    $boxesVolume = (float) $cartonsOnPallet->sum('volume');
+    $totalWeight = $pallet->effectiveGrossWeight($boxesWeight);
+    $totalVolume = $pallet->effectiveVolume($boxesVolume);
+    $weighed = (float) $pallet->gross_weight > 0;
+    $measured = $pallet->volume !== null;
 @endphp
 
 <div class="rounded-md border border-amber-300 bg-amber-50/40 p-3 dark:border-amber-800 dark:bg-amber-950/20">
@@ -16,6 +23,13 @@
             <div class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 {{ $cartonsOnPallet->count() }} box(es)
                 @if ($totalWeight > 0) · {{ number_format($totalWeight, 1) }} kg @endif
+                @if ($totalVolume > 0) · {{ number_format($totalVolume, 3) }} CBM @endif
+                @if ($cartonsOnPallet->isNotEmpty() && (! $weighed || ! $measured))
+                    <span class="text-xs text-gray-400 dark:text-gray-500"
+                        title="Sem {{ ! $weighed && ! $measured ? 'peso e medidas' : (! $weighed ? 'peso' : 'medidas') }} no pallet, o embarque soma as caixas. Preencha no lápis para o total usar o pallet.">
+                        (somado das caixas)
+                    </span>
+                @endif
             </div>
         </div>
         <div class="flex items-center gap-1.5 text-sm">
@@ -97,6 +111,13 @@
                         class="mt-0.5 block w-full rounded border-gray-300 text-xs dark:border-gray-700 dark:bg-gray-900" />
                 </label>
             </div>
+            <label class="block">
+                <span class="text-xs text-gray-700 dark:text-gray-300">GW do pallet (kg)</span>
+                <input type="number" step="0.001" min="0" wire:model="editPalletForm.gross_weight"
+                    placeholder="vazio = soma das caixas"
+                    class="mt-0.5 block w-full rounded border-gray-300 text-xs dark:border-gray-700 dark:bg-gray-900" />
+                <span class="mt-0.5 block text-[11px] text-gray-400">Peso do conjunto na balança (caixas + estrado). Preenchido, manda nos totais e nos documentos.</span>
+            </label>
             <label class="block">
                 <span class="text-xs text-gray-700 dark:text-gray-300">Move to container</span>
                 <select wire:model="editPalletForm.shipment_container_id"

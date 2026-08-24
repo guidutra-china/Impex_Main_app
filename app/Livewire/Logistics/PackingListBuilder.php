@@ -23,7 +23,7 @@ use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\CartonContent;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Logistics\Services\PackingProgressService;
-use App\Domain\Logistics\Services\ShippingUnitCounter;
+use App\Domain\Logistics\Services\PackingTotalsCalculator;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
@@ -85,6 +85,7 @@ class PackingListBuilder extends Component
         'length' => null,
         'width' => null,
         'height' => null,
+        'gross_weight' => null,
         'notes' => null,
     ];
 
@@ -199,6 +200,9 @@ class PackingListBuilder extends Component
             ->with([
                 'pallets.cartons.contents.shipmentItem.proformaInvoiceItem',
                 'directCartons.contents.shipmentItem.proformaInvoiceItem',
+                // O card do container soma peso/cubagem com a regra do pallet,
+                // então precisa do pallet junto das caixas.
+                'cartons.pallet',
             ])
             ->get();
     }
@@ -237,35 +241,20 @@ class PackingListBuilder extends Component
     }
 
     /**
-     * Totais gerais do embarque — agregado em SQL para não hidratar milhares
-     * de cartons.
+     * Totais gerais do embarque — agregados no banco para não hidratar
+     * milhares de cartons.
      *
      * 'units' são os VOLUMES embarcados (caixa solta = 1, pallet = 1 mesmo com
-     * N caixas em cima); 'boxes' é a contagem crua de caixas, que segue maior
-     * quando há pallet. Peso e CBM somam todas as caixas nos dois casos.
+     * N caixas em cima) e 'cartons' é a contagem crua de caixas, que segue
+     * maior quando há pallet. Peso e cubagem de carga paletizada vêm do
+     * pallet; o líquido é sempre a soma das caixas.
      *
-     * @return array{units: int, boxes: int, pallets: int, gross: float, net: float, cbm: float}
+     * @return array{units: int, cartons: int, loose_cartons: int, pallets: int, gross: float, net: float, cbm: float}
      */
     #[Computed]
     public function shipmentTotals(): array
     {
-        $row = $this->shipment->cartons()
-            ->selectRaw('COUNT(*) AS boxes')
-            ->selectRaw(ShippingUnitCounter::SQL.' AS units')
-            ->selectRaw('COUNT(DISTINCT shipment_pallet_id) AS pallets')
-            ->selectRaw('COALESCE(SUM(gross_weight), 0) AS gross')
-            ->selectRaw('COALESCE(SUM(net_weight), 0) AS net')
-            ->selectRaw('COALESCE(SUM(volume), 0) AS cbm')
-            ->first();
-
-        return [
-            'units' => (int) $row->units,
-            'boxes' => (int) $row->boxes,
-            'pallets' => (int) $row->pallets,
-            'gross' => (float) $row->gross,
-            'net' => (float) $row->net,
-            'cbm' => (float) $row->cbm,
-        ];
+        return app(PackingTotalsCalculator::class)->fromShipment($this->shipment);
     }
 
     /**
@@ -439,6 +428,7 @@ class PackingListBuilder extends Component
             'length' => $pallet->length,
             'width' => $pallet->width,
             'height' => $pallet->height,
+            'gross_weight' => $pallet->gross_weight,
             'notes' => $pallet->notes,
         ];
     }
@@ -451,6 +441,7 @@ class PackingListBuilder extends Component
             'length' => null,
             'width' => null,
             'height' => null,
+            'gross_weight' => null,
             'notes' => null,
         ];
     }

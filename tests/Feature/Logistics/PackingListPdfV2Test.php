@@ -326,6 +326,117 @@ class PackingListPdfV2Test extends TestCase
         $this->assertEquals(1, $group['totals']['pallets']);
     }
 
+    public function test_pallet_gets_its_own_line_carrying_weight_and_cubic(): void
+    {
+        [$shipment, $items] = $this->makeShipmentWithItems(['sandals' => 30]);
+
+        $pallet = ShipmentPallet::create([
+            'shipment_id' => $shipment->id,
+            'label' => 'PLT-001',
+            'gross_weight' => 430.0,
+            'length' => 115,
+            'width' => 150,
+            'height' => 100,
+        ]);
+
+        // 1 caixa solta + 2 caixas em cima do pallet.
+        $this->addContent(
+            $this->makeCarton($shipment, 'BOX-001', ['gross_weight' => 10.0, 'net_weight' => 9.0, 'volume' => 0.1]),
+            $items['sandals']->id,
+            10,
+        );
+
+        foreach (['BOX-002', 'BOX-003'] as $label) {
+            $this->addContent(
+                $this->makeCarton($shipment, $label, [
+                    'shipment_pallet_id' => $pallet->id,
+                    'gross_weight' => 10.0,
+                    'net_weight' => 9.0,
+                    'volume' => 0.1,
+                ]),
+                $items['sandals']->id,
+                10,
+            );
+        }
+
+        $data = $this->getData($shipment);
+        $lines = collect($data['container_groups'][0]['lines']);
+
+        // O pallet vira linha, com o peso pesado e o cubo do conjunto.
+        $palletLine = $lines->firstWhere('package_no', 'PLT-001');
+        $this->assertNotNull($palletLine, 'faltou a linha do pallet');
+        $this->assertEquals(1, $palletLine['package_qty']);
+        $this->assertEquals('430.00', $palletLine['gross_weight']);
+        $this->assertEquals('1.73', $palletLine['volume']);
+        $this->assertStringContainsString('115.0', $palletLine['dimensions']);
+        $this->assertEquals('PALLET', $palletLine['packaging_type']);
+
+        // As caixas em cima do pallet não repetem bulto, peso bruto nem cubo.
+        $boxesOnPallet = $lines->filter(fn ($l) => $l['pallet'] === 'PLT-001' && $l['package_no'] !== 'PLT-001');
+        $this->assertTrue($boxesOnPallet->isNotEmpty(), 'as caixas do pallet sumiram do documento');
+        foreach ($boxesOnPallet as $line) {
+            $this->assertSame('', (string) $line['package_qty']);
+            $this->assertSame('', (string) $line['gross_weight']);
+            $this->assertSame('', (string) $line['volume']);
+            // Produto, quantidade e líquido continuam na caixa.
+            $this->assertNotSame('', (string) $line['net_weight']);
+            $this->assertGreaterThan(0, (int) $line['equipment_qty']);
+        }
+
+        // Totais: 10 + 430 de peso, 0.1 + 1.725 de cubo, 2 bultos.
+        $this->assertEquals(2, $data['totals']['total_packages']);
+        $this->assertEqualsWithDelta(440.0, $data['totals']['total_gross_weight'], 0.001);
+        $this->assertEqualsWithDelta(1.825, $data['totals']['total_volume'], 0.001);
+        $this->assertEqualsWithDelta(27.0, $data['totals']['total_net_weight'], 0.001);
+        $this->assertEquals(30, $data['totals']['total_equipment_qty']);
+    }
+
+    public function test_document_columns_add_up_to_the_grand_total(): void
+    {
+        [$shipment, $items] = $this->makeShipmentWithItems(['sandals' => 40]);
+
+        $pallet = ShipmentPallet::create([
+            'shipment_id' => $shipment->id,
+            'label' => 'PLT-001',
+            'gross_weight' => 430.0,
+            'length' => 115,
+            'width' => 150,
+            'height' => 100,
+        ]);
+
+        $this->addContent(
+            $this->makeCarton($shipment, 'BOX-001', ['gross_weight' => 10.0, 'net_weight' => 9.0, 'volume' => 0.1]),
+            $items['sandals']->id,
+            10,
+        );
+
+        foreach (['BOX-002', 'BOX-003', 'BOX-004'] as $label) {
+            $this->addContent(
+                $this->makeCarton($shipment, $label, [
+                    'shipment_pallet_id' => $pallet->id,
+                    'gross_weight' => 10.0,
+                    'net_weight' => 9.0,
+                    'volume' => 0.1,
+                ]),
+                $items['sandals']->id,
+                10,
+            );
+        }
+
+        $data = $this->getData($shipment);
+        $lines = collect($data['container_groups'][0]['lines']);
+
+        $sum = fn (string $key) => $lines->sum(fn ($l) => (float) str_replace(',', '', (string) $l[$key]));
+
+        // A soma visual de cada coluna tem que fechar com o GRAND TOTAL —
+        // é isso que um despachante confere. Tolerância = arredondamento de exibição.
+        $this->assertEqualsWithDelta($data['totals']['total_packages'], $sum('package_qty'), 0.001);
+        $this->assertEqualsWithDelta($data['totals']['total_equipment_qty'], $sum('equipment_qty'), 0.001);
+        $this->assertEqualsWithDelta($data['totals']['total_gross_weight'], $sum('gross_weight'), 0.01);
+        $this->assertEqualsWithDelta($data['totals']['total_net_weight'], $sum('net_weight'), 0.01);
+        $this->assertEqualsWithDelta($data['totals']['total_volume'], $sum('volume'), 0.01);
+    }
+
     public function test_package_no_uses_carton_label(): void
     {
         [$shipment, $items] = $this->makeShipmentWithItems(['widget' => 5]);

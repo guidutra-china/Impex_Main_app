@@ -16,6 +16,7 @@ class ShipmentPallet extends Model
         'length',
         'width',
         'height',
+        'gross_weight',
         'notes',
         'sort_order',
     ];
@@ -27,6 +28,7 @@ class ShipmentPallet extends Model
             'length' => 'decimal:2',
             'width' => 'decimal:2',
             'height' => 'decimal:2',
+            'gross_weight' => 'decimal:3',
             'sort_order' => 'integer',
         ];
     }
@@ -59,5 +61,43 @@ class ShipmentPallet extends Model
     public function getCartonsCountAttribute(): int
     {
         return (int) $this->cartons()->count();
+    }
+
+    /**
+     * Cubagem do conjunto paletizado, derivada das medidas do pallet (que são
+     * as do conjunto, não as do estrado vazio). Null quando falta medida.
+     */
+    public function getVolumeAttribute(): ?float
+    {
+        $length = (float) $this->length;
+        $width = (float) $this->width;
+        $height = (float) $this->height;
+
+        if ($length <= 0 || $width <= 0 || $height <= 0) {
+            return null;
+        }
+
+        return round($length * $width * $height / 1_000_000, 6);
+    }
+
+    /**
+     * Peso bruto que vale para este pallet: o pesado na balança quando existe,
+     * senão a soma das caixas em cima. Zero não conta como pesagem — zeraria o
+     * total do embarque em silêncio.
+     */
+    public function effectiveGrossWeight(float $cartonsGrossWeight): float
+    {
+        $own = (float) $this->gross_weight;
+
+        return $own > 0 ? $own : $cartonsGrossWeight;
+    }
+
+    /**
+     * Cubagem que vale para este pallet: a do conjunto quando as três medidas
+     * estão preenchidas, senão a soma dos volumes das caixas.
+     */
+    public function effectiveVolume(float $cartonsVolume): float
+    {
+        return $this->volume ?? $cartonsVolume;
     }
 }

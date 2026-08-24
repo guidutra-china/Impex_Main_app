@@ -31,9 +31,12 @@ class RecalculatePackageTotalsCommandTest extends TestCase
         ]);
     }
 
-    private function fillWithPallet(Shipment $shipment): void
+    private function fillWithPallet(Shipment $shipment, array $palletAttrs = []): void
     {
-        $pallet = ShipmentPallet::create(['shipment_id' => $shipment->id, 'label' => 'PLT-001']);
+        $pallet = ShipmentPallet::create(array_merge([
+            'shipment_id' => $shipment->id,
+            'label' => 'PLT-001',
+        ], $palletAttrs));
 
         for ($i = 1; $i <= 5; $i++) {
             Carton::create([
@@ -41,6 +44,8 @@ class RecalculatePackageTotalsCommandTest extends TestCase
                 'label' => 'BOX-'.$i,
                 'packaging_type' => 'CARTON',
                 'gross_weight' => 10.0,
+                'net_weight' => 9.0,
+                'volume' => 0.1,
                 'shipment_pallet_id' => $i > 2 ? $pallet->id : null,
             ]);
         }
@@ -68,6 +73,26 @@ class RecalculatePackageTotalsCommandTest extends TestCase
 
         // 2 caixas soltas + 1 pallet = 3 volumes.
         $this->assertEquals(3, $shipment->fresh()->total_packages);
+    }
+
+    public function test_apply_also_rewrites_weight_and_cubic_from_the_pallet(): void
+    {
+        $shipment = $this->makeShipment('weights');
+        $this->fillWithPallet($shipment, [
+            'gross_weight' => 430.0,
+            'length' => 115,
+            'width' => 150,
+            'height' => 100,
+        ]);
+
+        $this->artisan('shipments:recalculate-package-totals', ['--apply' => true])
+            ->assertExitCode(0);
+
+        $shipment->refresh();
+        // 2 caixas soltas (20 kg, 0.2 m³) + o pallet pesado e cubado.
+        $this->assertEquals(3, $shipment->total_packages);
+        $this->assertEquals('450.000', $shipment->total_gross_weight);
+        $this->assertEquals('1.9250', $shipment->total_volume);
     }
 
     public function test_shipments_without_pallets_are_untouched(): void

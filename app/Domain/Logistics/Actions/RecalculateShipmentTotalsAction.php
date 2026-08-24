@@ -3,32 +3,29 @@
 namespace App\Domain\Logistics\Actions;
 
 use App\Domain\Logistics\Models\Shipment;
-use App\Domain\Logistics\Services\ShippingUnitCounter;
+use App\Domain\Logistics\Services\PackingTotalsCalculator;
 
 class RecalculateShipmentTotalsAction
 {
+    public function __construct(
+        private readonly PackingTotalsCalculator $totals,
+    ) {}
+
     public function execute(Shipment $shipment): void
     {
         $this->syncCurrencyCode($shipment);
 
         // total_packages são VOLUMES (bultos), não caixas: caixa fora de pallet
-        // conta 1 e cada pallet conta 1, quantas caixas leve em cima.
-        $cartonTotals = $shipment->cartons()
-            ->selectRaw('
-                COUNT(*) as total_cartons,
-                '.ShippingUnitCounter::SQL.' as total_packages,
-                COALESCE(SUM(gross_weight), 0) as total_gross,
-                COALESCE(SUM(net_weight), 0) as total_net,
-                COALESCE(SUM(volume), 0) as total_vol
-            ')
-            ->first();
+        // conta 1 e cada pallet conta 1, quantas caixas leve em cima. Peso e
+        // cubagem de carga paletizada vêm do pallet, não das caixas.
+        $totals = $this->totals->fromShipment($shipment);
 
-        if ($cartonTotals && (int) $cartonTotals->total_cartons > 0) {
+        if ($totals['cartons'] > 0) {
             $shipment->update([
-                'total_packages' => (int) $cartonTotals->total_packages,
-                'total_gross_weight' => $cartonTotals->total_gross,
-                'total_net_weight' => $cartonTotals->total_net,
-                'total_volume' => $cartonTotals->total_vol,
+                'total_packages' => $totals['units'],
+                'total_gross_weight' => $totals['gross'],
+                'total_net_weight' => $totals['net'],
+                'total_volume' => $totals['cbm'],
             ]);
 
             return;

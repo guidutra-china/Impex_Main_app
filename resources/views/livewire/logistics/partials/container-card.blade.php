@@ -1,11 +1,11 @@
 @php
     $cartonsInContainer = $container->cartons;
-    $totalWeight = (float) $cartonsInContainer->sum('gross_weight');
-    $totalVolume = (float) $cartonsInContainer->sum('volume');
-    // Volumes do container: caixa solta conta 1, pallet conta 1 (as caixas em
-    // cima dele não contam separado) — mesma regra do total do embarque.
-    $unitBreakdown = \App\Domain\Logistics\Services\ShippingUnitCounter::breakdown($cartonsInContainer);
-    $totalCartons = $unitBreakdown['cartons'];
+    // Mesma conta do total do embarque: volume é unidade de manuseio (pallet
+    // conta 1) e peso/cubagem de carga paletizada vêm do pallet.
+    $containerTotals = app(\App\Domain\Logistics\Services\PackingTotalsCalculator::class)->fromCartons($cartonsInContainer);
+    $totalWeight = $containerTotals['gross'];
+    $totalVolume = $containerTotals['cbm'];
+    $totalCartons = $containerTotals['cartons'];
     $isContainerCollapsed = (bool) ($collapsedContainers[$container->id] ?? false);
 @endphp
 
@@ -37,8 +37,8 @@
                 @endif
             </div>
             <div class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                {{ $unitBreakdown['units'] }} volume(s)
-                @if ($unitBreakdown['pallets'] > 0) · {{ $totalCartons }} caixas · {{ $unitBreakdown['pallets'] }} pallet(s) @endif
+                {{ $containerTotals['units'] }} volume(s)
+                @if ($containerTotals['pallets'] > 0) · {{ $totalCartons }} caixas · {{ $containerTotals['pallets'] }} pallet(s) @endif
                 @if ($totalWeight > 0) · {{ number_format($totalWeight, 1) }} kg @endif
                 @if ($totalVolume > 0) · {{ number_format($totalVolume, 3) }} CBM @endif
                 @if ($container->seal_number) · seal {{ $container->seal_number }} @endif

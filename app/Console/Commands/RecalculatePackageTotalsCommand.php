@@ -7,19 +7,21 @@ namespace App\Console\Commands;
 use App\Domain\Logistics\Actions\RecalculateShipmentTotalsAction;
 use App\Domain\Logistics\Models\Carton;
 use App\Domain\Logistics\Models\Shipment;
-use App\Domain\Logistics\Services\ShippingUnitCounter;
+use App\Domain\Logistics\Services\PackingTotalsCalculator;
 use Illuminate\Console\Command;
 
 /**
- * Reconta shipments.total_packages nos embarques que usam pallet.
+ * Regrava os totais dos embarques que usam pallet.
  *
- * O campo passou a guardar VOLUMES (caixa fora de pallet = 1, pallet = 1,
- * quantas caixas leve em cima) em vez da contagem crua de caixas. Quem já
- * tinha o valor gravado pela regra antiga só é corrigido quando alguma caixa
- * é mexida — este comando corrige de uma vez.
+ * Duas regras mudaram depois que esses valores foram gravados: total_packages
+ * passou a guardar VOLUMES (caixa fora de pallet = 1, pallet = 1 quantas
+ * caixas leve em cima) em vez da contagem crua de caixas, e o peso/cubagem de
+ * carga paletizada passou a vir do pallet em vez da soma das caixas. O
+ * recálculo só acontece sozinho quando alguém mexe numa caixa — este comando
+ * corrige de uma vez.
  *
- * Só toca em embarque com pelo menos uma caixa em pallet: nos demais as duas
- * regras dão o mesmo número.
+ * Só toca em embarque com pelo menos uma caixa em pallet: nos demais as regras
+ * novas dão exatamente o mesmo número.
  *
  * Dry-run por padrão; passe --apply para gravar.
  */
@@ -27,7 +29,7 @@ class RecalculatePackageTotalsCommand extends Command
 {
     protected $signature = 'shipments:recalculate-package-totals {--apply : Persist the changes (otherwise dry-run)}';
 
-    protected $description = 'Recount shipments.total_packages as shipping units (a pallet is one package, not N boxes)';
+    protected $description = 'Rewrite shipment totals for palletized cargo (a pallet is one package, and carries its own weight and cubic)';
 
     public function handle(): int
     {
@@ -45,22 +47,36 @@ class RecalculatePackageTotalsCommand extends Command
         }
 
         $recalc = app(RecalculateShipmentTotalsAction::class);
+        $calculator = app(PackingTotalsCalculator::class);
         $rows = [];
         $changed = 0;
 
         foreach (Shipment::whereIn('id', $shipmentIds)->orderBy('reference')->get() as $shipment) {
-            $units = (int) $shipment->cartons()
-                ->selectRaw(ShippingUnitCounter::SQL.' AS units')
-                ->value('units');
+            $totals = $calculator->fromShipment($shipment);
 
-            $stored = $shipment->total_packages;
+            $before = [
+                (int) $shipment->total_packages,
+                round((float) $shipment->total_gross_weight, 3),
+                round((float) $shipment->total_volume, 4),
+            ];
+            $after = [
+                $totals['units'],
+                round($totals['gross'], 3),
+                round($totals['cbm'], 4),
+            ];
 
-            if ((int) $stored === $units) {
+            if ($before === $after) {
                 continue;
             }
 
             $changed++;
-            $rows[] = [$shipment->reference, $stored ?? '—', $units, $shipment->cartons()->count()];
+            $rows[] = [
+                $shipment->reference,
+                $this->change((string) $before[0], (string) $after[0]),
+                $this->change(number_format($before[1], 2), number_format($after[1], 2)),
+                $this->change(number_format($before[2], 3), number_format($after[2], 3)),
+                $totals['cartons'].' em '.$totals['pallets'].' pallet(s)',
+            ];
 
             if ($apply) {
                 $recalc->execute($shipment);
@@ -68,16 +84,21 @@ class RecalculatePackageTotalsCommand extends Command
         }
 
         if ($rows === []) {
-            $this->info('Todos os embarques com pallet já estão com o total de volumes correto.');
+            $this->info('Todos os embarques com pallet já estão com os totais corretos.');
 
             return self::SUCCESS;
         }
 
-        $this->table(['Embarque', 'total_packages antes', 'volumes', 'caixas'], $rows);
+        $this->table(['Embarque', 'Volumes', 'GW (kg)', 'CBM', 'Caixas'], $rows);
         $this->line($apply
             ? "Atualizados: {$changed}."
             : "Seriam atualizados: {$changed}. Rode com --apply para gravar.");
 
         return self::SUCCESS;
+    }
+
+    private function change(string $before, string $after): string
+    {
+        return $before === $after ? $before : $before.' → '.$after;
     }
 }

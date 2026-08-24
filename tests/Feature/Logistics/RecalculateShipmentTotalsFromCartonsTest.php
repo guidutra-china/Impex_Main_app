@@ -119,6 +119,35 @@ class RecalculateShipmentTotalsFromCartonsTest extends TestCase
         $this->assertEquals('50.000', $shipment->total_gross_weight);
     }
 
+    public function test_pallet_weight_and_cubic_replace_the_boxes_in_the_stored_totals(): void
+    {
+        [$shipment] = $this->makeShipment();
+
+        $pallet = ShipmentPallet::create([
+            'shipment_id' => $shipment->id,
+            'label' => 'PLT-001',
+            'gross_weight' => 430.0,
+            'length' => 115,
+            'width' => 150,
+            'height' => 100,
+        ]);
+
+        $this->addCarton($shipment, ['gross_weight' => 10.0, 'net_weight' => 9.0, 'volume' => 0.1]);
+        $this->addCarton($shipment, ['gross_weight' => 10.0, 'net_weight' => 9.0, 'volume' => 0.1, 'shipment_pallet_id' => $pallet->id]);
+        $this->addCarton($shipment, ['gross_weight' => 10.0, 'net_weight' => 9.0, 'volume' => 0.1, 'shipment_pallet_id' => $pallet->id]);
+
+        $this->recalc->execute($shipment);
+
+        $shipment->refresh();
+        $this->assertEquals(2, $shipment->total_packages);
+        // 10 (caixa solta) + 430 (pallet pesado), não 30.
+        $this->assertEquals('440.000', $shipment->total_gross_weight);
+        // 0.1 (caixa solta) + 1.725 (cubo do conjunto), não 0.3.
+        $this->assertEquals('1.8250', $shipment->total_volume);
+        // Líquido segue somando todas as caixas.
+        $this->assertEquals('27.000', $shipment->total_net_weight);
+    }
+
     public function test_fallback_to_shipment_items_when_no_cartons(): void
     {
         [$shipment, $piItem] = $this->makeShipment();

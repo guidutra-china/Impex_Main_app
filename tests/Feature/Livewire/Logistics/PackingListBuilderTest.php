@@ -99,7 +99,7 @@ class PackingListBuilderTest extends TestCase
             ->assertSee('0.07 m³');
 
         $totals = $component->instance()->shipmentTotals;
-        $this->assertSame(2, $totals['boxes']);
+        $this->assertSame(2, $totals['cartons']);
         $this->assertEqualsWithDelta(0.07308, $totals['cbm'], 0.000001);
     }
 
@@ -130,10 +130,59 @@ class PackingListBuilderTest extends TestCase
 
         // 3 caixas soltas + 1 pallet = 4 volumes (as 2 caixas do pallet não contam).
         $this->assertSame(4, $totals['units']);
-        $this->assertSame(5, $totals['boxes']);
+        $this->assertSame(5, $totals['cartons']);
         $this->assertSame(1, $totals['pallets']);
         // Peso continua somando todas as caixas, paletizadas ou não.
         $this->assertSame(50.0, $totals['gross']);
+    }
+
+    public function test_shipment_totals_take_weight_and_cubic_from_the_pallet(): void
+    {
+        [$shipment] = $this->makeShipment();
+
+        $pallet = app(CreatePalletAction::class)->execute($shipment, [
+            'gross_weight' => 430.0,
+            'length' => 115,
+            'width' => 150,
+            'height' => 100,
+        ]);
+
+        $shipment->cartons()->createMany([
+            ['label' => 'BOX-001', 'gross_weight' => 10.0, 'net_weight' => 9.0, 'volume' => 0.1],
+            ['label' => 'BOX-002', 'gross_weight' => 10.0, 'net_weight' => 9.0, 'volume' => 0.1, 'shipment_pallet_id' => $pallet->id],
+            ['label' => 'BOX-003', 'gross_weight' => 10.0, 'net_weight' => 9.0, 'volume' => 0.1, 'shipment_pallet_id' => $pallet->id],
+        ]);
+
+        $totals = Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->assertOk()
+            ->instance()
+            ->shipmentTotals;
+
+        $this->assertSame(2, $totals['units']);
+        // 10 (caixa solta) + 430 (pallet pesado), não 30.
+        $this->assertEqualsWithDelta(440.0, $totals['gross'], 0.0001);
+        // 0.1 (caixa solta) + 1.725 (cubo do conjunto), não 0.3.
+        $this->assertEqualsWithDelta(1.825, $totals['cbm'], 0.0001);
+        $this->assertEqualsWithDelta(27.0, $totals['net'], 0.0001);
+    }
+
+    public function test_edit_pallet_persists_own_gross_weight(): void
+    {
+        [$shipment] = $this->makeShipment();
+        $pallet = app(CreatePalletAction::class)->execute($shipment);
+
+        Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->call('startEditPallet', $pallet->id)
+            ->set('editPalletForm.gross_weight', 430.5)
+            ->set('editPalletForm.length', 115)
+            ->set('editPalletForm.width', 150)
+            ->set('editPalletForm.height', 100)
+            ->call('saveEditPallet')
+            ->assertOk();
+
+        $pallet->refresh();
+        $this->assertEquals('430.500', $pallet->gross_weight);
+        $this->assertEqualsWithDelta(1.725, $pallet->volume, 0.000001);
     }
 
     public function test_shipment_totals_ignore_a_pallet_without_boxes(): void

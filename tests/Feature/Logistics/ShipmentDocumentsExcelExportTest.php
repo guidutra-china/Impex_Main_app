@@ -130,6 +130,10 @@ class ShipmentDocumentsExcelExportTest extends TestCase
         $pallet = ShipmentPallet::create([
             'shipment_id' => $this->shipment->id,
             'label' => 'PLT-001',
+            'gross_weight' => 430.0,
+            'length' => 115,
+            'width' => 150,
+            'height' => 100,
         ]);
 
         for ($i = 1; $i <= 5; $i++) {
@@ -166,6 +170,19 @@ class ShipmentDocumentsExcelExportTest extends TestCase
         // O rótulo explica a conta para quem lê a planilha.
         $this->assertStringContainsString('3 CTN + 1 PLT', (string) $grandTotalRow[0]);
         $this->assertStringContainsString('5 CTN TOTAL', (string) $grandTotalRow[0]);
+
+        // O pallet tem linha própria, com o peso pesado e o cubo do conjunto.
+        // A linha do pallet começa pelo label dele; as caixas em cima só o citam no fim.
+        $palletRow = collect($rows)->first(
+            fn ($row) => is_string($row[0] ?? null) && str_starts_with($row[0], 'PLT-001')
+        );
+        $this->assertNotNull($palletRow);
+        $this->assertStringContainsString('PALLET', (string) $palletRow[0]);
+        $this->assertEquals(1, (int) $palletRow[5]);
+        $this->assertEqualsWithDelta(430.0, (float) $palletRow[7], 0.01);
+
+        // GW total = 3 caixas soltas (15) + pallet (430).
+        $this->assertEqualsWithDelta(445.0, (float) $grandTotalRow[7], 0.01);
     }
 
     public function test_packing_list_excel_carries_cartons_and_grand_total(): void
