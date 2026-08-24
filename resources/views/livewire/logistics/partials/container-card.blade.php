@@ -2,7 +2,10 @@
     $cartonsInContainer = $container->cartons;
     $totalWeight = (float) $cartonsInContainer->sum('gross_weight');
     $totalVolume = (float) $cartonsInContainer->sum('volume');
-    $totalCartons = $cartonsInContainer->count();
+    // Volumes do container: caixa solta conta 1, pallet conta 1 (as caixas em
+    // cima dele não contam separado) — mesma regra do total do embarque.
+    $unitBreakdown = \App\Domain\Logistics\Services\ShippingUnitCounter::breakdown($cartonsInContainer);
+    $totalCartons = $unitBreakdown['cartons'];
     $isContainerCollapsed = (bool) ($collapsedContainers[$container->id] ?? false);
 @endphp
 
@@ -34,7 +37,8 @@
                 @endif
             </div>
             <div class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                {{ $totalCartons }} box(es)
+                {{ $unitBreakdown['units'] }} volume(s)
+                @if ($unitBreakdown['pallets'] > 0) · {{ $totalCartons }} caixas · {{ $unitBreakdown['pallets'] }} pallet(s) @endif
                 @if ($totalWeight > 0) · {{ number_format($totalWeight, 1) }} kg @endif
                 @if ($totalVolume > 0) · {{ number_format($totalVolume, 3) }} CBM @endif
                 @if ($container->seal_number) · seal {{ $container->seal_number }} @endif

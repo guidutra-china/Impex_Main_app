@@ -4,6 +4,8 @@ namespace Tests\Feature\Livewire\Logistics;
 
 use App\Domain\CRM\Models\Company;
 use App\Domain\Inquiries\Models\Inquiry;
+use App\Domain\Logistics\Actions\CreateContainerAction;
+use App\Domain\Logistics\Actions\CreatePalletAction;
 use App\Domain\Logistics\Models\CartonContent;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Logistics\Models\ShipmentItem;
@@ -99,6 +101,57 @@ class PackingListBuilderTest extends TestCase
         $totals = $component->instance()->shipmentTotals;
         $this->assertSame(2, $totals['boxes']);
         $this->assertEqualsWithDelta(0.07308, $totals['cbm'], 0.000001);
+    }
+
+    public function test_shipment_totals_count_a_pallet_as_a_single_volume(): void
+    {
+        [$shipment] = $this->makeShipment();
+
+        $container = app(CreateContainerAction::class)->execute($shipment);
+        $pallet = app(CreatePalletAction::class)->execute($shipment, ['shipment_container_id' => $container->id]);
+
+        // 3 caixas soltas no container + 2 caixas empilhadas no pallet.
+        $shipment->cartons()->createMany([
+            ['label' => 'BOX-001', 'shipment_container_id' => $container->id, 'gross_weight' => 10.0],
+            ['label' => 'BOX-002', 'shipment_container_id' => $container->id, 'gross_weight' => 10.0],
+            ['label' => 'BOX-003', 'shipment_container_id' => $container->id, 'gross_weight' => 10.0],
+            ['label' => 'BOX-004', 'shipment_container_id' => $container->id, 'shipment_pallet_id' => $pallet->id, 'gross_weight' => 10.0],
+            ['label' => 'BOX-005', 'shipment_container_id' => $container->id, 'shipment_pallet_id' => $pallet->id, 'gross_weight' => 10.0],
+        ]);
+
+        $component = Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->assertOk()
+            // Barra de totais e cabeçalho do container falam em volumes.
+            ->assertSee('Volumes:')
+            ->assertSee('4 volume(s)')
+            ->assertSee('5 caixas');
+
+        $totals = $component->instance()->shipmentTotals;
+
+        // 3 caixas soltas + 1 pallet = 4 volumes (as 2 caixas do pallet não contam).
+        $this->assertSame(4, $totals['units']);
+        $this->assertSame(5, $totals['boxes']);
+        $this->assertSame(1, $totals['pallets']);
+        // Peso continua somando todas as caixas, paletizadas ou não.
+        $this->assertSame(50.0, $totals['gross']);
+    }
+
+    public function test_shipment_totals_ignore_a_pallet_without_boxes(): void
+    {
+        [$shipment] = $this->makeShipment();
+
+        app(CreatePalletAction::class)->execute($shipment);
+        $shipment->cartons()->createMany([
+            ['label' => 'BOX-001'],
+            ['label' => 'BOX-002'],
+        ]);
+
+        $totals = Livewire::test(PackingListBuilder::class, ['shipment' => $shipment])
+            ->instance()
+            ->shipmentTotals;
+
+        $this->assertSame(2, $totals['units']);
+        $this->assertSame(0, $totals['pallets']);
     }
 
     public function test_create_carton_creates_row(): void

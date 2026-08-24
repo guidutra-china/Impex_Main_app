@@ -8,7 +8,9 @@ use App\Domain\Inquiries\Models\Inquiry;
 use App\Domain\Logistics\Models\Carton;
 use App\Domain\Logistics\Models\CartonContent;
 use App\Domain\Logistics\Models\Shipment;
+use App\Domain\Logistics\Models\ShipmentContainer;
 use App\Domain\Logistics\Models\ShipmentItem;
+use App\Domain\Logistics\Models\ShipmentPallet;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -267,6 +269,61 @@ class PackingListPdfV2Test extends TestCase
         $this->assertNotNull($containerB);
         $this->assertCount(2, $containerA['lines']);
         $this->assertCount(1, $containerB['lines']);
+    }
+
+    public function test_a_pallet_counts_as_one_package_in_the_totals(): void
+    {
+        [$shipment, $items] = $this->makeShipmentWithItems(['sandals' => 50]);
+
+        $container = ShipmentContainer::create([
+            'shipment_id' => $shipment->id,
+            'label' => 'CONT-001',
+            'container_number' => 'CCLU1111',
+        ]);
+
+        $pallet = ShipmentPallet::create([
+            'shipment_id' => $shipment->id,
+            'shipment_container_id' => $container->id,
+            'label' => 'PLT-001',
+        ]);
+
+        // 3 caixas soltas no container + 2 caixas em cima do pallet.
+        foreach (['BOX-001', 'BOX-002', 'BOX-003'] as $label) {
+            $this->addContent(
+                $this->makeCarton($shipment, $label, [
+                    'shipment_container_id' => $container->id,
+                    'gross_weight' => 10.0,
+                ]),
+                $items['sandals']->id,
+                10,
+            );
+        }
+
+        foreach (['BOX-004', 'BOX-005'] as $label) {
+            $this->addContent(
+                $this->makeCarton($shipment, $label, [
+                    'shipment_container_id' => $container->id,
+                    'shipment_pallet_id' => $pallet->id,
+                    'gross_weight' => 10.0,
+                ]),
+                $items['sandals']->id,
+                10,
+            );
+        }
+
+        $data = $this->getData($shipment);
+
+        // 3 caixas soltas + 1 pallet = 4 bultos; as 5 caixas seguem no detalhe.
+        $this->assertEquals(4, $data['totals']['total_packages']);
+        $this->assertEquals(5, $data['totals']['total_cartons']);
+        $this->assertEquals(1, $data['totals']['pallets']);
+        $this->assertEquals(50, $data['totals']['total_equipment_qty']);
+        $this->assertEqualsWithDelta(50.0, $data['totals']['total_gross_weight'], 0.01);
+
+        $group = $data['container_groups'][0];
+        $this->assertEquals(4, $group['totals']['packages']);
+        $this->assertEquals(5, $group['totals']['cartons']);
+        $this->assertEquals(1, $group['totals']['pallets']);
     }
 
     public function test_package_no_uses_carton_label(): void

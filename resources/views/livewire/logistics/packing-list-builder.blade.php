@@ -28,23 +28,27 @@
     </div>
 
     {{-- Totais gerais do embarque --}}
+    @php $totals = $this->shipmentTotals; @endphp
     <div class="flex flex-wrap items-center gap-x-6 gap-y-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm shadow-sm dark:border-white/10 dark:bg-gray-900">
         <span class="font-medium text-gray-500 dark:text-gray-400">Totais gerais:</span>
-        <span>
-            <span class="text-gray-500 dark:text-gray-400">Caixas:</span>
-            <strong class="text-gray-950 dark:text-white">{{ number_format($this->shipmentTotals['boxes']) }}</strong>
+        <span @if ($totals['pallets'] > 0) title="{{ number_format($totals['units'] - $totals['pallets']) }} caixa(s) fora de pallet + {{ number_format($totals['pallets']) }} pallet(s) = {{ number_format($totals['units']) }} volume(s). Caixas em cima de um pallet não contam como volume separado." @endif>
+            <span class="text-gray-500 dark:text-gray-400">Volumes:</span>
+            <strong class="text-gray-950 dark:text-white">{{ number_format($totals['units']) }}</strong>
+            @if ($totals['pallets'] > 0)
+                <span class="text-xs text-gray-400 dark:text-gray-500">({{ number_format($totals['boxes']) }} caixas · {{ number_format($totals['pallets']) }} pallet{{ $totals['pallets'] > 1 ? 's' : '' }})</span>
+            @endif
         </span>
         <span>
             <span class="text-gray-500 dark:text-gray-400">GW:</span>
-            <strong class="text-gray-950 dark:text-white">{{ number_format($this->shipmentTotals['gross'], 2) }} kg</strong>
+            <strong class="text-gray-950 dark:text-white">{{ number_format($totals['gross'], 2) }} kg</strong>
         </span>
         <span>
             <span class="text-gray-500 dark:text-gray-400">NW:</span>
-            <strong class="text-gray-950 dark:text-white">{{ number_format($this->shipmentTotals['net'], 2) }} kg</strong>
+            <strong class="text-gray-950 dark:text-white">{{ number_format($totals['net'], 2) }} kg</strong>
         </span>
         <span>
             <span class="text-gray-500 dark:text-gray-400">CBM:</span>
-            <strong class="text-gray-950 dark:text-white">{{ number_format($this->shipmentTotals['cbm'], 2) }} m³</strong>
+            <strong class="text-gray-950 dark:text-white">{{ number_format($totals['cbm'], 2) }} m³</strong>
         </span>
     </div>
 

@@ -392,7 +392,7 @@ return [
         'po_item' => 'Item da PO',
         'package_from' => 'Pacote De',
         'package_to' => 'Pacote Para',
-        'packages' => 'Pacotes',
+        'packages' => 'Volumes',
         'packaging_type' => 'Tipo de Embalagem',
         'include_freight' => 'Incluir Frete',
         'use_client_custom_prices' => 'Usar preços customizados do cliente',

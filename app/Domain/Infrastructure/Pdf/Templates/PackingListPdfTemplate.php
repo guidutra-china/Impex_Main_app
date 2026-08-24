@@ -8,6 +8,7 @@ use App\Domain\Catalog\Services\ProductIdentityResolver;
 use App\Domain\Logistics\Enums\ImportModality;
 use App\Domain\Logistics\Models\Carton;
 use App\Domain\Logistics\Models\Shipment;
+use App\Domain\Logistics\Services\ShippingUnitCounter;
 use Illuminate\Support\Collection;
 
 class PackingListPdfTemplate extends AbstractPdfTemplate
@@ -422,40 +423,24 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
      */
     private function computeShipmentTotals(Shipment $shipment): array
     {
-        $cartons = $shipment->cartons;
-
-        $totalPackages = $cartons->count();
-        $totalGross = (float) $cartons->sum(fn ($c) => (float) $c->gross_weight);
-        $totalNet = (float) $cartons->sum(fn ($c) => (float) $c->net_weight);
-        $totalVolume = (float) $cartons->sum(fn ($c) => (float) $c->volume);
-
-        $totalEquipmentQty = (int) $cartons
-            ->flatMap(fn (Carton $c) => $c->contents)
-            ->sum(fn ($content) => (int) $content->pieces);
-
-        return [
-            'total_packages' => $totalPackages,
-            'total_gross_weight' => $totalGross,
-            'total_net_weight' => $totalNet,
-            'total_volume' => $totalVolume,
-            'total_equipment_qty' => $totalEquipmentQty,
-            'packages' => $totalPackages,
-            'equipment_qty' => $totalEquipmentQty,
-            'gross_weight' => $totalGross,
-            'net_weight' => $totalNet,
-            'volume' => $totalVolume,
-        ];
+        return $this->computeCartonSubtotals($shipment->cartons);
     }
 
     /**
-     * Per-container subtotals — no dedupe needed because the grand total handles it.
-     * Sums pieces directly for equipment_qty display.
+     * Totais de um conjunto de caixas — usado tanto no total geral quanto no
+     * subtotal por container (não precisa deduplicar: os grupos são disjuntos).
+     *
+     * "packages" são os VOLUMES/bultos: caixa fora de pallet conta 1 e cada
+     * pallet conta 1, quantas caixas leve em cima. A contagem crua de caixas
+     * fica em "cartons", que é o que a coluna PKG QTY das linhas soma.
      *
      * @param  Collection<int, Carton>  $cartons
      */
     private function computeCartonSubtotals(Collection $cartons): array
     {
-        $totalPackages = $cartons->count();
+        $units = ShippingUnitCounter::breakdown($cartons);
+
+        $totalPackages = $units['units'];
         $totalGross = (float) $cartons->sum(fn ($c) => (float) $c->gross_weight);
         $totalNet = (float) $cartons->sum(fn ($c) => (float) $c->net_weight);
         $totalVolume = (float) $cartons->sum(fn ($c) => (float) $c->volume);
@@ -470,11 +455,15 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
             'total_net_weight' => $totalNet,
             'total_volume' => $totalVolume,
             'total_equipment_qty' => $totalEquipmentQty,
+            'total_cartons' => $units['cartons'],
             'packages' => $totalPackages,
             'equipment_qty' => $totalEquipmentQty,
             'gross_weight' => $totalGross,
             'net_weight' => $totalNet,
             'volume' => $totalVolume,
+            'cartons' => $units['cartons'],
+            'loose_cartons' => $units['loose_cartons'],
+            'pallets' => $units['pallets'],
         ];
     }
 

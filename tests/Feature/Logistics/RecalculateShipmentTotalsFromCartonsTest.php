@@ -8,6 +8,7 @@ use App\Domain\Logistics\Actions\RecalculateShipmentTotalsAction;
 use App\Domain\Logistics\Models\Carton;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Logistics\Models\ShipmentItem;
+use App\Domain\Logistics\Models\ShipmentPallet;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -92,6 +93,30 @@ class RecalculateShipmentTotalsFromCartonsTest extends TestCase
         $this->assertEquals('32.700', $shipment->total_gross_weight);
         $this->assertEquals('28.500', $shipment->total_net_weight);
         $this->assertEquals('0.1250', $shipment->total_volume);
+    }
+
+    public function test_total_packages_counts_a_pallet_as_one_package(): void
+    {
+        [$shipment] = $this->makeShipment();
+
+        $pallet = ShipmentPallet::create([
+            'shipment_id' => $shipment->id,
+            'label' => 'PLT-001',
+        ]);
+
+        $this->addCarton($shipment, ['gross_weight' => 10.0]);
+        $this->addCarton($shipment, ['gross_weight' => 10.0]);
+        $this->addCarton($shipment, ['gross_weight' => 10.0, 'shipment_pallet_id' => $pallet->id]);
+        $this->addCarton($shipment, ['gross_weight' => 10.0, 'shipment_pallet_id' => $pallet->id]);
+        $this->addCarton($shipment, ['gross_weight' => 10.0, 'shipment_pallet_id' => $pallet->id]);
+
+        $this->recalc->execute($shipment);
+
+        $shipment->refresh();
+        // 2 caixas soltas + 1 pallet = 3 volumes (as 3 caixas do pallet não contam).
+        $this->assertEquals(3, $shipment->total_packages);
+        // Peso segue somando todas as caixas.
+        $this->assertEquals('50.000', $shipment->total_gross_weight);
     }
 
     public function test_fallback_to_shipment_items_when_no_cartons(): void

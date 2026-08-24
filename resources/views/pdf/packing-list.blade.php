@@ -85,6 +85,12 @@
         padding: 5px 5px;
     }
 
+    .packages-breakdown {
+        font-size: 6pt;
+        font-weight: normal;
+        color: #4b5563;
+    }
+
     .container-subtotal {
         background: #f8fafc !important;
     }
@@ -279,6 +285,11 @@
                     <tr class="container-subtotal">
                         <td colspan="4" class="text-right">
                             Subtotal {{ $group['container_number'] ?? '' }}
+                            @if($group['totals']['pallets'] > 0)
+                                <br><span class="packages-breakdown">
+                                    PKG QTY = {{ number_format($group['totals']['loose_cartons']) }} CTN + {{ number_format($group['totals']['pallets']) }} PLT · {{ number_format($group['totals']['cartons']) }} CTN TOTAL
+                                </span>
+                            @endif
                         </td>
                         <td class="text-center">{{ number_format($group['totals']['equipment_qty']) }}</td>
                         <td class="text-center">{{ number_format($group['totals']['packages']) }}</td>
@@ -292,7 +303,14 @@
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="4" class="text-right">GRAND TOTAL</td>
+                <td colspan="4" class="text-right">
+                    GRAND TOTAL
+                    @if($totals['pallets'] > 0)
+                        <br><span class="packages-breakdown">
+                            PKG QTY = {{ number_format($totals['loose_cartons']) }} CTN + {{ number_format($totals['pallets']) }} PLT · {{ number_format($totals['total_cartons']) }} CTN TOTAL
+                        </span>
+                    @endif
+                </td>
                 <td class="text-center">{{ number_format($totals['total_equipment_qty']) }}</td>
                 <td class="text-center">{{ number_format($totals['total_packages']) }}</td>
                 <td class="text-right">{{ number_format($totals['total_net_weight'], 2) }}</td>

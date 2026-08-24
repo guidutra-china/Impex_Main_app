@@ -96,7 +96,7 @@ class PackingListExcelExporter
                 $this->writeTotalsRow(
                     $sheet,
                     $row,
-                    'Subtotal '.($group['container_number'] ?? ''),
+                    $this->totalsLabel('Subtotal '.($group['container_number'] ?? ''), $group['totals']),
                     $group['totals']['equipment_qty'],
                     $group['totals']['packages'],
                     $group['totals']['net_weight'],
@@ -113,7 +113,7 @@ class PackingListExcelExporter
         $this->writeTotalsRow(
             $sheet,
             $row,
-            'GRAND TOTAL',
+            $this->totalsLabel('GRAND TOTAL', $data['totals']),
             $data['totals']['total_equipment_qty'],
             $data['totals']['total_packages'],
             $data['totals']['total_net_weight'],
@@ -170,6 +170,22 @@ class PackingListExcelExporter
         $sheet->getStyle("I{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle("G{$row}:H{$row}")->getNumberFormat()->setFormatCode('#,##0.00');
         $sheet->getStyle("J{$row}")->getNumberFormat()->setFormatCode('#,##0.00');
+    }
+
+    /**
+     * Quando há pallet, PKG QTY conta bultos (caixa solta = 1, pallet = 1) e
+     * deixa de bater com a soma da coluna, que é por caixa. O rótulo explica
+     * a diferença para quem lê a planilha.
+     *
+     * @param  array<string, mixed>  $totals
+     */
+    private function totalsLabel(string $label, array $totals): string
+    {
+        if ((int) ($totals['pallets'] ?? 0) < 1) {
+            return $label;
+        }
+
+        return $label.' (PKG QTY = '.$totals['loose_cartons'].' CTN + '.$totals['pallets'].' PLT · '.$totals['cartons'].' CTN TOTAL)';
     }
 
     private function writeTotalsRow(

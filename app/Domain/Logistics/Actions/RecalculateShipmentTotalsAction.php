@@ -3,6 +3,7 @@
 namespace App\Domain\Logistics\Actions;
 
 use App\Domain\Logistics\Models\Shipment;
+use App\Domain\Logistics\Services\ShippingUnitCounter;
 
 class RecalculateShipmentTotalsAction
 {
@@ -10,16 +11,19 @@ class RecalculateShipmentTotalsAction
     {
         $this->syncCurrencyCode($shipment);
 
+        // total_packages são VOLUMES (bultos), não caixas: caixa fora de pallet
+        // conta 1 e cada pallet conta 1, quantas caixas leve em cima.
         $cartonTotals = $shipment->cartons()
             ->selectRaw('
-                COUNT(*) as total_packages,
+                COUNT(*) as total_cartons,
+                '.ShippingUnitCounter::SQL.' as total_packages,
                 COALESCE(SUM(gross_weight), 0) as total_gross,
                 COALESCE(SUM(net_weight), 0) as total_net,
                 COALESCE(SUM(volume), 0) as total_vol
             ')
             ->first();
 
-        if ($cartonTotals && (int) $cartonTotals->total_packages > 0) {
+        if ($cartonTotals && (int) $cartonTotals->total_cartons > 0) {
             $shipment->update([
                 'total_packages' => (int) $cartonTotals->total_packages,
                 'total_gross_weight' => $cartonTotals->total_gross,

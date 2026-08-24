@@ -23,6 +23,7 @@ use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\CartonContent;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Logistics\Services\PackingProgressService;
+use App\Domain\Logistics\Services\ShippingUnitCounter;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
@@ -236,23 +237,31 @@ class PackingListBuilder extends Component
     }
 
     /**
-     * Totais gerais do embarque (todas as caixas, independente de container/
-     * pallet) — agregado em SQL para não hidratar milhares de cartons.
+     * Totais gerais do embarque — agregado em SQL para não hidratar milhares
+     * de cartons.
      *
-     * @return array{boxes: int, gross: float, net: float, cbm: float}
+     * 'units' são os VOLUMES embarcados (caixa solta = 1, pallet = 1 mesmo com
+     * N caixas em cima); 'boxes' é a contagem crua de caixas, que segue maior
+     * quando há pallet. Peso e CBM somam todas as caixas nos dois casos.
+     *
+     * @return array{units: int, boxes: int, pallets: int, gross: float, net: float, cbm: float}
      */
     #[Computed]
     public function shipmentTotals(): array
     {
         $row = $this->shipment->cartons()
             ->selectRaw('COUNT(*) AS boxes')
+            ->selectRaw(ShippingUnitCounter::SQL.' AS units')
+            ->selectRaw('COUNT(DISTINCT shipment_pallet_id) AS pallets')
             ->selectRaw('COALESCE(SUM(gross_weight), 0) AS gross')
             ->selectRaw('COALESCE(SUM(net_weight), 0) AS net')
             ->selectRaw('COALESCE(SUM(volume), 0) AS cbm')
             ->first();
 
         return [
+            'units' => (int) $row->units,
             'boxes' => (int) $row->boxes,
+            'pallets' => (int) $row->pallets,
             'gross' => (float) $row->gross,
             'net' => (float) $row->net,
             'cbm' => (float) $row->cbm,

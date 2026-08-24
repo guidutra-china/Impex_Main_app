@@ -8,6 +8,7 @@ use App\Domain\Logistics\Models\Carton;
 use App\Domain\Logistics\Models\CartonContent;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Logistics\Models\ShipmentItem;
+use App\Domain\Logistics\Models\ShipmentPallet;
 use App\Domain\Logistics\Reports\CommercialInvoiceExcelExporter;
 use App\Domain\Logistics\Reports\PackingListExcelExporter;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
@@ -122,6 +123,49 @@ class ShipmentDocumentsExcelExportTest extends TestCase
         $grandTotalRow = collect($rows)->first(fn ($row) => in_array('GRAND TOTAL', array_map(fn ($c) => trim((string) $c), $row), true));
         $this->assertNotNull($grandTotalRow);
         $this->assertContains(650.0, array_map(fn ($c) => is_numeric($c) ? (float) $c : $c, $grandTotalRow));
+    }
+
+    public function test_packing_list_excel_counts_a_pallet_as_one_package(): void
+    {
+        $pallet = ShipmentPallet::create([
+            'shipment_id' => $this->shipment->id,
+            'label' => 'PLT-001',
+        ]);
+
+        for ($i = 1; $i <= 5; $i++) {
+            $carton = Carton::create([
+                'shipment_id' => $this->shipment->id,
+                'label' => 'BOX-'.$i,
+                'packaging_type' => 'CARTON',
+                'gross_weight' => 5.0,
+                'net_weight' => 4.5,
+                'volume' => 0.02,
+                'sort_order' => $i,
+                // As duas últimas caixas viajam empilhadas no pallet.
+                'shipment_pallet_id' => $i > 3 ? $pallet->id : null,
+            ]);
+
+            CartonContent::create([
+                'carton_id' => $carton->id,
+                'shipment_item_id' => $this->items['Pulley']->id,
+                'pieces' => 2,
+                'sort_order' => 1,
+            ]);
+        }
+
+        $path = (new PackingListExcelExporter)->export($this->shipment->fresh());
+        $rows = $this->readRows($path);
+
+        $grandTotalRow = collect($rows)->first(
+            fn ($row) => collect($row)->contains(fn ($c) => is_string($c) && str_contains($c, 'GRAND TOTAL'))
+        );
+        $this->assertNotNull($grandTotalRow);
+
+        // Coluna F (índice 5) = PKG QTY: 3 caixas soltas + 1 pallet = 4 bultos.
+        $this->assertEquals(4, (int) $grandTotalRow[5]);
+        // O rótulo explica a conta para quem lê a planilha.
+        $this->assertStringContainsString('3 CTN + 1 PLT', (string) $grandTotalRow[0]);
+        $this->assertStringContainsString('5 CTN TOTAL', (string) $grandTotalRow[0]);
     }
 
     public function test_packing_list_excel_carries_cartons_and_grand_total(): void
