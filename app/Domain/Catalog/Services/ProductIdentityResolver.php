@@ -46,9 +46,9 @@ class ProductIdentityResolver
         private readonly ?int $companyId,
         private readonly string $role,
         /** Usado quando o documento é endereçado a uma filial: tenta a filial, depois a matriz. */
-        private readonly ?int $fallbackCompanyId = null,
-        /** Null significa o comportamento histórico: o pivot da contraparte vence. */
-        private readonly NamingPreference $naming = new NamingPreference,
+        private readonly ?int $fallbackCompanyId,
+        /** As factories resolvem null para NamingPreference::default() — aqui já chega sempre explícito. */
+        private readonly NamingPreference $naming,
     ) {}
 
     public static function forClient(
