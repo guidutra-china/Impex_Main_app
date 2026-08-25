@@ -58,7 +58,7 @@ class ProductIdentityNamingPreferenceTest extends TestCase
 
     public function test_nome_do_sistema_mantendo_o_codigo_do_cliente(): void
     {
-        $preference = new NamingPreference(name: DocumentNamingSource::SYSTEM);
+        $preference = NamingPreference::default()->with(name: DocumentNamingSource::SYSTEM);
 
         $identity = ProductIdentityResolver::forClient($this->client->id, null, $preference)
             ->resolve($this->linkedProduct());
@@ -69,7 +69,7 @@ class ProductIdentityNamingPreferenceTest extends TestCase
 
     public function test_codigo_do_sistema_cai_para_model_number(): void
     {
-        $preference = new NamingPreference(code: DocumentNamingSource::SYSTEM);
+        $preference = NamingPreference::default()->with(code: DocumentNamingSource::SYSTEM);
 
         $identity = ProductIdentityResolver::forClient($this->client->id, null, $preference)
             ->resolve($this->linkedProduct());
@@ -80,7 +80,7 @@ class ProductIdentityNamingPreferenceTest extends TestCase
 
     public function test_codigo_do_sistema_sem_model_number_cai_para_sku(): void
     {
-        $preference = new NamingPreference(code: DocumentNamingSource::SYSTEM);
+        $preference = NamingPreference::default()->with(code: DocumentNamingSource::SYSTEM);
         $product = $this->linkedProduct([], ['model_number' => null, 'sku' => 'SKU-XYZ']);
 
         $identity = ProductIdentityResolver::forClient($this->client->id, null, $preference)
@@ -91,7 +91,7 @@ class ProductIdentityNamingPreferenceTest extends TestCase
 
     public function test_nome_do_sistema_ignora_o_snapshot_da_linha(): void
     {
-        $preference = new NamingPreference(name: DocumentNamingSource::SYSTEM);
+        $preference = NamingPreference::default()->with(name: DocumentNamingSource::SYSTEM);
 
         $identity = ProductIdentityResolver::forClient($this->client->id, null, $preference)
             ->resolve($this->linkedProduct(), lineName: 'Nome da linha');
@@ -101,7 +101,7 @@ class ProductIdentityNamingPreferenceTest extends TestCase
 
     public function test_ncm_nao_e_afetado_por_nenhum_toggle(): void
     {
-        $preference = new NamingPreference(
+        $preference = NamingPreference::default()->with(
             code: DocumentNamingSource::SYSTEM,
             name: DocumentNamingSource::SYSTEM,
             description: DocumentNamingSource::SYSTEM,
@@ -124,7 +124,7 @@ class ProductIdentityNamingPreferenceTest extends TestCase
 
     public function test_descricao_do_sistema_usa_o_cadastro_do_produto(): void
     {
-        $preference = new NamingPreference(description: DocumentNamingSource::SYSTEM);
+        $preference = NamingPreference::default()->with(description: DocumentNamingSource::SYSTEM);
 
         $identity = ProductIdentityResolver::forClient($this->client->id, null, $preference)
             ->resolve($this->linkedProduct());
@@ -134,7 +134,7 @@ class ProductIdentityNamingPreferenceTest extends TestCase
 
     public function test_texto_digitado_na_linha_vence_as_duas_fontes(): void
     {
-        $preference = new NamingPreference(description: DocumentNamingSource::SYSTEM);
+        $preference = NamingPreference::default()->with(description: DocumentNamingSource::SYSTEM);
 
         $identity = ProductIdentityResolver::forClient($this->client->id, null, $preference)
             ->resolve($this->linkedProduct(), lineDescription: 'Special packing, 2 pcs/ctn');
@@ -144,7 +144,7 @@ class ProductIdentityNamingPreferenceTest extends TestCase
 
     public function test_ocultar_descricao_zera_inclusive_o_texto_digitado(): void
     {
-        $preference = new NamingPreference(showDescription: false);
+        $preference = NamingPreference::default()->with(showDescription: false);
 
         $identity = ProductIdentityResolver::forClient($this->client->id, null, $preference)
             ->resolve($this->linkedProduct(), lineDescription: 'Special packing, 2 pcs/ctn');
@@ -154,12 +154,50 @@ class ProductIdentityNamingPreferenceTest extends TestCase
 
     public function test_descricao_do_sistema_vazia_nao_cai_para_o_cliente(): void
     {
-        $preference = new NamingPreference(description: DocumentNamingSource::SYSTEM);
+        $preference = NamingPreference::default()->with(description: DocumentNamingSource::SYSTEM);
         $product = $this->linkedProduct([], ['description' => null]);
 
         $identity = ProductIdentityResolver::forClient($this->client->id, null, $preference)
             ->resolve($product);
 
         $this->assertNull($identity->description);
+    }
+
+    /**
+     * O histórico mora só em default(). with() nunca deve reintroduzir uma
+     * segunda cópia dos valores default por trás de parâmetros opcionais do
+     * construtor — trocar um campo via with() precisa deixar os outros três
+     * exatamente iguais aos de default(), nunca a um default paralelo.
+     */
+    public function test_default_e_a_unica_fonte_do_historico(): void
+    {
+        $default = NamingPreference::default();
+        $changed = $default->with(name: DocumentNamingSource::SYSTEM);
+
+        $this->assertSame($default->code, $changed->code);
+        $this->assertSame($default->description, $changed->description);
+        $this->assertSame($default->showDescription, $changed->showDescription);
+        $this->assertNotSame($default->name, $changed->name);
+    }
+
+    /**
+     * Trava estrutural: o construtor não pode ter valores default nos quatro
+     * campos promovidos. Se alguém reintroduzir defaults ali (mesmo batendo
+     * com default() hoje), essa cópia paralela pode divergir de default() no
+     * futuro sem que nenhum outro teste perceba, porque nada no código de
+     * produção constrói a classe com argumentos parciais. Este teste é o que
+     * de fato pega essa reintrodução.
+     */
+    public function test_construtor_nao_tem_defaults_paralelos_a_default(): void
+    {
+        $constructor = new \ReflectionMethod(NamingPreference::class, '__construct');
+
+        foreach ($constructor->getParameters() as $parameter) {
+            $this->assertFalse(
+                $parameter->isDefaultValueAvailable(),
+                "Parâmetro \${$parameter->getName()} do construtor não deveria ter default — "
+                .'default() é a única fonte do histórico.'
+            );
+        }
     }
 }

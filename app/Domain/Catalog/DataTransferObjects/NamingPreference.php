@@ -40,10 +40,10 @@ class NamingPreference
     public const KEY_SHOW_DESCRIPTION = 'naming_show_description';
 
     public function __construct(
-        public readonly DocumentNamingSource $code = DocumentNamingSource::COUNTERPARTY,
-        public readonly DocumentNamingSource $name = DocumentNamingSource::COUNTERPARTY,
-        public readonly DocumentNamingSource $description = DocumentNamingSource::COUNTERPARTY,
-        public readonly bool $showDescription = true,
+        public readonly DocumentNamingSource $code,
+        public readonly DocumentNamingSource $name,
+        public readonly DocumentNamingSource $description,
+        public readonly bool $showDescription,
     ) {}
 
     public static function default(): self
@@ -53,6 +53,25 @@ class NamingPreference
             name: DocumentNamingSource::COUNTERPARTY,
             description: DocumentNamingSource::COUNTERPARTY,
             showDescription: true,
+        );
+    }
+
+    /**
+     * Cópia com alguns campos trocados. Existe para quem já tem uma preferência
+     * e quer variar um eixo — em vez de reconstruir os quatro e arriscar
+     * repetir o default histórico, que mora só em default().
+     */
+    public function with(
+        ?DocumentNamingSource $code = null,
+        ?DocumentNamingSource $name = null,
+        ?DocumentNamingSource $description = null,
+        ?bool $showDescription = null,
+    ): self {
+        return new self(
+            code: $code ?? $this->code,
+            name: $name ?? $this->name,
+            description: $description ?? $this->description,
+            showDescription: $showDescription ?? $this->showDescription,
         );
     }
 
