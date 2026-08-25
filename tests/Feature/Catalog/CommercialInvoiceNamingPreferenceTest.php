@@ -161,4 +161,52 @@ class CommercialInvoiceNamingPreferenceTest extends TestCase
 
         $this->assertSame('9506', $item['ncm']);
     }
+
+    /**
+     * forClientCompany(?Company $company, ?Company $parent = null, ...) tem
+     * dois argumentos do mesmo tipo — nada no PHP impede trocar a ordem, e
+     * todo teste que usa um shipment sem company_branch_id não enxerga a
+     * troca, porque getDocumentClient() e $shipment->company devolvem a
+     * MESMA empresa nesse caso. Este teste exige um shipment endereçado a
+     * uma filial com preferência PRÓPRIA — diferente da matriz — para que a
+     * ordem realmente importe.
+     */
+    public function test_branch_naming_preference_wins_over_the_parent_companys(): void
+    {
+        $hq = Company::create([
+            'name' => 'Naming HQ',
+            'status' => 'active',
+            // Se a ordem inverter (matriz entrando como "company" primário),
+            // o nome cai para o cadastro interno do produto — bem diferente
+            // do nome externo da filial abaixo.
+            'document_name_source' => DocumentNamingSource::SYSTEM,
+        ]);
+        $hq->companyRoles()->create(['role' => 'client']);
+
+        $branch = Company::create([
+            'name' => 'Naming Branch',
+            'status' => 'active',
+            'document_name_source' => DocumentNamingSource::COUNTERPARTY,
+        ]);
+        $branch->companyRoles()->create(['role' => 'client']);
+
+        // Pivot só na filial — a mesma chamada que deriva a preferência
+        // também deriva o pivot (filial > matriz), então um vínculo
+        // exclusivo da filial só aparece na linha quando a ordem dos
+        // argumentos está correta.
+        $this->product->companies()->attach($branch->id, [
+            'role' => 'client',
+            'external_name' => 'Branch External Name',
+        ]);
+        $this->product->load('companies');
+
+        $this->shipment->update([
+            'company_id' => $hq->id,
+            'company_branch_id' => $branch->id,
+        ]);
+
+        $item = (new CommercialInvoicePdfTemplate($this->shipment->fresh(), 'en'))->getData()['items'][0];
+
+        $this->assertSame('Branch External Name', $item['product_name']);
+    }
 }

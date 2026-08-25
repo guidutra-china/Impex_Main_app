@@ -51,9 +51,9 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
         // preferência de nomenclatura segue a mesma precedência, derivada na
         // mesma chamada para as duas não divergirem.
         $this->identity = ProductIdentityResolver::forClientCompany(
-            $shipment->getDocumentClient(),
-            $shipment->company,
-            $this->options,
+            company: $shipment->getDocumentClient(),
+            parent: $shipment->company,
+            overrides: $this->options,
         );
         $this->identity->warm(
             $shipment->items->map(fn ($item) => $item->proformaInvoiceItem?->product)
