@@ -7,17 +7,26 @@ use App\Domain\Catalog\DataTransferObjects\NamingPreference;
 use App\Domain\Catalog\DataTransferObjects\ProductIdentity;
 use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\Catalog\Models\Product;
+use App\Domain\CRM\Models\Company;
 
 /**
  * Resolve como uma contraparte identifica um produto em um documento.
  *
- * Regra única do sistema: mostre o que AQUELA contraparte chama de produto,
+ * Comportamento padrão (preferência COUNTERPARTY em todos os campos, o
+ * histórico do sistema): mostre o que AQUELA contraparte chama de produto,
  * caia para o modelo do fabricante e só então para o nosso código interno.
  *
  *     código:    pivot.external_code > product.model_number > product.sku
  *     nome:      pivot.external_name > nome da linha > product.name
  *     descrição: descrição digitada na linha > pivot.external_description
  *                > descrição da linha (auto-preenchida)
+ *
+ * Essas cadeias valem para os campos cuja NamingPreference está em
+ * COUNTERPARTY. Código, nome e descrição são redirecionáveis
+ * independentemente — um documento pode pedir nome do cadastro interno
+ * (SYSTEM) mantendo código e descrição do pivot, por exemplo. Veja
+ * resolve() e resolveDescription() para o que SYSTEM faz em cada campo, e
+ * a classe NamingPreference para a origem da preferência.
  *
  * O pivot é sempre filtrado por company_id E role — sem o filtro de papel, uma
  * empresa que é cliente e fornecedora do mesmo produto vaza o código de um lado
@@ -39,6 +48,12 @@ class ProductIdentityResolver
 
     public const ROLE_SUPPLIER = 'supplier';
 
+    /**
+     * Placeholder quando não há nome nenhum para mostrar — nem da contraparte,
+     * nem da linha, nem do cadastro do produto.
+     */
+    private const NO_NAME_PLACEHOLDER = '—';
+
     /** @var array<int, CompanyProduct|null> */
     private array $pivotCache = [];
 
@@ -51,17 +66,52 @@ class ProductIdentityResolver
         private readonly NamingPreference $naming,
     ) {}
 
-    public static function forClient(
-        ?int $companyId,
-        ?int $fallbackCompanyId = null,
-        ?NamingPreference $naming = null,
-    ): self {
-        return new self($companyId, self::ROLE_CLIENT, $fallbackCompanyId, $naming ?? NamingPreference::default());
+    /**
+     * Ids sem preferência — comportamento histórico (COUNTERPARTY em tudo).
+     * Serve quem nunca precisou de NamingPreference: PackingListBuilder, as
+     * relation managers do Filament, GenerateProductionScheduleTemplate,
+     * PaymentStatementPdfTemplate. Quem tem as empresas carregadas e quer
+     * honrar a preferência cadastrada usa forClientCompany()/forSupplierCompany().
+     */
+    public static function forClient(?int $companyId, ?int $fallbackCompanyId = null): self
+    {
+        return new self($companyId, self::ROLE_CLIENT, $fallbackCompanyId, NamingPreference::default());
     }
 
-    public static function forSupplier(?int $companyId, ?NamingPreference $naming = null): self
+    public static function forSupplier(?int $companyId): self
     {
-        return new self($companyId, self::ROLE_SUPPLIER, null, $naming ?? NamingPreference::default());
+        return new self($companyId, self::ROLE_SUPPLIER, null, NamingPreference::default());
+    }
+
+    /**
+     * Fábrica para documentos: recebe as empresas, não ids, e deriva de uma vez
+     * o pivot (filial > matriz) e a preferência de nomenclatura, que seguem a
+     * mesma regra de precedência. Derivar as duas em chamadas separadas deixava
+     * passar em silêncio o caso de uma receber a matriz e a outra não.
+     *
+     * Não viola o contrato de nunca consultar o banco: os models chegam prontos
+     * e nenhuma relação é percorrida aqui.
+     *
+     * @param  array<string, mixed>  $overrides  dados do formulário de geração
+     */
+    public static function forClientCompany(?Company $company, ?Company $parent = null, array $overrides = []): self
+    {
+        return new self(
+            $company?->id,
+            self::ROLE_CLIENT,
+            $parent?->id,
+            NamingPreference::fromCompany($company, $parent)->withOverrides($overrides),
+        );
+    }
+
+    public static function forSupplierCompany(?Company $company, array $overrides = []): self
+    {
+        return new self(
+            $company?->id,
+            self::ROLE_SUPPLIER,
+            null,
+            NamingPreference::fromCompany($company)->withOverrides($overrides),
+        );
     }
 
     public function isClientSide(): bool
@@ -119,7 +169,7 @@ class ProductIdentityResolver
         if (! $product) {
             return new ProductIdentity(
                 code: '',
-                name: filled($lineName) ? $lineName : '—',
+                name: filled($lineName) ? $lineName : self::NO_NAME_PLACEHOLDER,
                 description: filled($lineDescription) ? $lineDescription : null,
             );
         }
@@ -132,9 +182,14 @@ class ProductIdentityResolver
 
         $code = (string) ($counterpartyCode ?: ($product->model_number ?: ($product->sku ?: '')));
 
-        $name = $this->naming->name->isCounterparty()
-            ? (string) ($pivot?->external_name ?: (filled($lineName) ? $lineName : ($product->name ?: '—')))
-            : (string) ($product->name ?: '—');
+        // SYSTEM ignora tanto o pivot quanto o snapshot da linha — só o
+        // cadastro do produto. Por isso o lineName só entra na chain quando a
+        // preferência já é COUNTERPARTY, dentro deste mesmo ramo.
+        $counterpartyName = $this->naming->name->isCounterparty()
+            ? ($pivot?->external_name ?: (filled($lineName) ? $lineName : null))
+            : null;
+
+        $name = (string) ($counterpartyName ?: ($product->name ?: self::NO_NAME_PLACEHOLDER));
 
         return new ProductIdentity(
             code: $code,
@@ -148,25 +203,34 @@ class ProductIdentityResolver
     }
 
     /**
-     * Descrição digitada de verdade na linha vence a descrição cadastrada da
-     * contraparte; a cadastrada é o padrão quando a linha só tem o texto
-     * auto-preenchido.
+     * Descrição digitada de verdade na linha vence as duas fontes possíveis
+     * (pivot da contraparte ou cadastro do produto); a fonte é o padrão
+     * quando a linha só tem o texto auto-preenchido.
      *
      * "Auto-preenchida" = igual ao nome do produto após normalização — é a
      * assinatura de fillFromProduct(), que copia product.name para a descrição
      * ao escolher o produto. Sem esse teste, "linha vence" anularia a descrição
-     * do cliente em praticamente todas as linhas do sistema.
+     * cadastrada em praticamente todas as linhas do sistema.
      *
      * Limitação aceita: se o produto for renomeado depois, a descrição antiga
      * deixa de casar com o nome e passa a ser tratada como digitada — o texto
      * do snapshot é preservado, que é o comportamento conservador correto.
      *
-     * A preferência entra em dois pontos: showDescription zera tudo primeiro
-     * (inclusive o texto digitado — é um controle de exibição, não de fonte);
-     * depois, texto digitado ainda vence as duas fontes, porque é um humano
-     * escrevendo para aquele documento específico. Só quando não há texto
-     * digitado a preferência escolhe entre o cadastro do produto (SYSTEM) e o
-     * pivot da contraparte (COUNTERPARTY, o padrão histórico).
+     * A preferência entra em dois pontos. Primeiro, showDescription zera tudo
+     * — inclusive o texto digitado, porque é um controle de exibição, não de
+     * fonte. Depois, texto digitado ainda vence as duas fontes, porque é um
+     * humano escrevendo para aquele documento específico; a preferência só
+     * escolhe o que usar quando não há texto digitado.
+     *
+     * As duas fontes NÃO são simétricas nesse ponto, e é deliberado:
+     *   - COUNTERPARTY sem external_description cai para o texto
+     *     auto-preenchido da linha (histórico: a linha nunca fica vazia só
+     *     porque o pivot não tem descrição própria).
+     *   - SYSTEM sem product.description NÃO cai para a linha — devolve null.
+     *     Cair para a linha duplicaria o nome do produto na coluna de
+     *     descrição (o auto-preenchido É o nome do produto) e, pior, quando
+     *     o usuário pediu SYSTEM explicitamente, herdar o texto que só existe
+     *     porque outra fonte o auto-preencheu anularia a escolha dele.
      */
     private function resolveDescription(Product $product, ?CompanyProduct $pivot, ?string $lineDescription): ?string
     {

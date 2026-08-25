@@ -24,9 +24,12 @@ use App\Domain\CRM\Models\Company;
  * para ninguém "corrigir" essa assimetria depois achando que é uma omissão.
  *
  * `code`, `name` e `description` são entradas de resolução (dizem ao
- * ProductIdentityResolver onde procurar); `showDescription` é uma entrada de
- * renderização (diz ao template se a linha de descrição aparece), não algo
- * que o resolver consulta.
+ * ProductIdentityResolver onde procurar). `showDescription` TAMBÉM é
+ * consultada pelo resolver, não só pelo template: quando false,
+ * resolveDescription() já devolve null, inclusive por cima de texto digitado
+ * na linha. O que resta para o template é só decidir se esconde a coluna ou
+ * a linha da descrição — ele nunca precisa checar showDescription de novo
+ * para decidir se imprime o valor.
  */
 class NamingPreference
 {
