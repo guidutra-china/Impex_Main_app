@@ -12,6 +12,34 @@
 
 ---
 
+## Revisão de código: o que mudou nas Tasks 1–3
+
+As Tasks 1–3 foram implementadas e revisadas. A revisão de qualidade mudou decisões que
+as tarefas seguintes precisam respeitar. **O código implementado é a fonte da verdade;
+os blocos das Tasks 1–3 abaixo ficaram desatualizados de propósito, como registro.**
+
+| Mudou | De | Para |
+|---|---|---|
+| Cases do enum | `Counterparty` / `System` | `COUNTERPARTY` / `SYSTEM` (convenção do Catalog) |
+| Enum | sem contrato | `implements HasLabel` + `enums.document_naming_source.*` nos 3 idiomas |
+| Colunas | `enum()` NOT NULL com default | `string(20)` NULLABLE, sem default |
+| Semântica do NULL | não existia | **NULL = herda da matriz, senão o padrão histórico** |
+| `fromCompany()` | `(?Company)` | `(?Company $company, ?Company $fallback = null)`, campo a campo |
+| Chave do toggle | `show_description` | `naming_show_description` |
+| Chaves do modal | strings soltas | constantes `NamingPreference::KEY_*` |
+| Enum inválido | `from()` lança ValueError | `tryFrom() ?? $current`, degrada em vez de dar 500 |
+
+Consequência para quem for implementar as tarefas seguintes: nos formulários, use as
+constantes e `->options(DocumentNamingSource::class)` em vez de arrays de opções
+escritos à mão, e lembre que a filial herda da matriz — os templates precisam passar
+as duas empresas para `fromCompany()`.
+
+**Rejeitado da revisão:** a sugestão de o `ProductIdentityResolver` resolver as empresas
+internamente. O docblock dele diz que NUNCA consulta o banco, e é por isso que recebe ids
+e exige eager-load. A preferência fica fora do resolver e é passada pronta.
+
+---
+
 ## Contexto que o plano assume
 
 `ProductIdentityResolver` (`app/Domain/Catalog/Services/ProductIdentityResolver.php`) é a regra
@@ -876,7 +904,7 @@ Este modal serve CI PDF, preview, e-mail, Excel e PI do embarque — os cinco he
 Adicionar ao final do array devolvido por `commercialInvoiceOptions()`, antes do `];`:
 
 ```php
-            Select::make('naming_code_source')
+            Select::make(NamingPreference::KEY_CODE)
                 ->label('MODEL NO')
                 ->options([
                     'counterparty' => 'Código do cliente',
@@ -884,7 +912,7 @@ Adicionar ao final do array devolvido por `commercialInvoiceOptions()`, antes do
                 ])
                 ->default(fn () => $this->namingDefault('document_code_source'))
                 ->live(),
-            Select::make('naming_name_source')
+            Select::make(NamingPreference::KEY_NAME)
                 ->label('Nome do produto')
                 ->options([
                     'counterparty' => 'Nome do cliente',
@@ -892,18 +920,18 @@ Adicionar ao final do array devolvido por `commercialInvoiceOptions()`, antes do
                 ])
                 ->default(fn () => $this->namingDefault('document_name_source'))
                 ->live(),
-            Toggle::make('show_description')
+            Toggle::make(NamingPreference::KEY_SHOW_DESCRIPTION)
                 ->label('Exibir descrição')
                 ->default(fn () => (bool) ($this->getRecord()?->getDocumentClient()?->document_show_description ?? true))
                 ->live(),
-            Select::make('naming_description_source')
+            Select::make(NamingPreference::KEY_DESCRIPTION)
                 ->label('Descrição')
                 ->options([
                     'counterparty' => 'Descrição do cliente',
                     'system' => 'Descrição do sistema',
                 ])
                 ->default(fn () => $this->namingDefault('document_description_source'))
-                ->visible(fn (Get $get) => (bool) $get('show_description'))
+                ->visible(fn (Get $get) => (bool) $get(NamingPreference::KEY_SHOW_DESCRIPTION))
                 ->helperText('A descrição do sistema está hoje em português; a do cliente, em inglês.')
                 ->live(),
 ```
@@ -1118,7 +1146,7 @@ trait HasDocumentNamingOptions
         $source = fn (string $column) => $counterparty?->{$column}?->value ?? 'counterparty';
 
         return [
-            Select::make('naming_code_source')
+            Select::make(NamingPreference::KEY_CODE)
                 ->label('MODEL NO')
                 ->options([
                     'counterparty' => "Código do {$counterpartyLabel}",
@@ -1126,7 +1154,7 @@ trait HasDocumentNamingOptions
                 ])
                 ->default($source('document_code_source'))
                 ->live(),
-            Select::make('naming_name_source')
+            Select::make(NamingPreference::KEY_NAME)
                 ->label('Nome do produto')
                 ->options([
                     'counterparty' => "Nome do {$counterpartyLabel}",
@@ -1134,18 +1162,18 @@ trait HasDocumentNamingOptions
                 ])
                 ->default($source('document_name_source'))
                 ->live(),
-            Toggle::make('show_description')
+            Toggle::make(NamingPreference::KEY_SHOW_DESCRIPTION)
                 ->label('Exibir descrição')
                 ->default((bool) ($counterparty?->document_show_description ?? true))
                 ->live(),
-            Select::make('naming_description_source')
+            Select::make(NamingPreference::KEY_DESCRIPTION)
                 ->label('Descrição')
                 ->options([
                     'counterparty' => "Descrição do {$counterpartyLabel}",
                     'system' => 'Descrição do sistema',
                 ])
                 ->default($source('document_description_source'))
-                ->visible(fn (Get $get) => (bool) $get('show_description'))
+                ->visible(fn (Get $get) => (bool) $get(NamingPreference::KEY_SHOW_DESCRIPTION))
                 ->helperText('A descrição do sistema está hoje em português.')
                 ->live(),
         ];
