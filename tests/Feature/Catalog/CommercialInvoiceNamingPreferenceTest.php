@@ -163,6 +163,66 @@ class CommercialInvoiceNamingPreferenceTest extends TestCase
     }
 
     /**
+     * Monta um shipment próprio, com PI/Inquiry pertencendo à MESMA empresa
+     * que fatura — diferente do fixture de setUp(), que é sempre do
+     * $this->client. Os testes de filial abaixo precisavam de uma empresa
+     * faturadora diferente; reatribuir shipment->company_id no fixture de
+     * setUp() sem refazer a cadeia PI/Inquiry descreveria um estado
+     * impossível em produção (PI de uma empresa, shipment de outra) — foi
+     * exatamente isso que o primeiro teste de filial fazia antes desta
+     * extração.
+     */
+    private function shipmentBilledBy(Company $billingCompany, ?Company $branch = null): Shipment
+    {
+        $inquiry = Inquiry::create([
+            'reference' => 'INQ-BR-'.$billingCompany->id,
+            'company_id' => $billingCompany->id,
+            'status' => 'received',
+            'source' => 'email',
+            'currency_code' => 'USD',
+        ]);
+
+        $pi = ProformaInvoice::create([
+            'reference' => 'PI-BR-'.$billingCompany->id,
+            'inquiry_id' => $inquiry->id,
+            'company_id' => $billingCompany->id,
+            'currency_code' => 'USD',
+            'issue_date' => '2026-08-01',
+            'status' => 'confirmed',
+        ]);
+
+        $shipment = Shipment::create([
+            'reference' => 'SH-BR-'.$billingCompany->id,
+            'company_id' => $billingCompany->id,
+            'company_branch_id' => $branch?->id,
+            'currency_code' => 'USD',
+            'status' => 'draft',
+            'transport_mode' => 'sea',
+            'issue_date' => '2026-08-01',
+        ]);
+
+        $piItem = ProformaInvoiceItem::create([
+            'proforma_invoice_id' => $pi->id,
+            'product_id' => $this->product->id,
+            'description' => 'Internal Product Name',
+            'quantity' => 10,
+            'unit_price' => 100000,
+            'unit' => 'pcs',
+            'sort_order' => 0,
+        ]);
+
+        ShipmentItem::create([
+            'shipment_id' => $shipment->id,
+            'proforma_invoice_item_id' => $piItem->id,
+            'quantity' => 10,
+            'unit' => 'pcs',
+            'sort_order' => 0,
+        ]);
+
+        return $shipment;
+    }
+
+    /**
      * forClientCompany(?Company $company, ?Company $parent = null, ...) tem
      * dois argumentos do mesmo tipo — nada no PHP impede trocar a ordem, e
      * todo teste que usa um shipment sem company_branch_id não enxerga a
@@ -200,13 +260,47 @@ class CommercialInvoiceNamingPreferenceTest extends TestCase
         ]);
         $this->product->load('companies');
 
-        $this->shipment->update([
-            'company_id' => $hq->id,
-            'company_branch_id' => $branch->id,
-        ]);
+        $shipment = $this->shipmentBilledBy($hq, branch: $branch);
 
-        $item = (new CommercialInvoicePdfTemplate($this->shipment->fresh(), 'en'))->getData()['items'][0];
+        $item = (new CommercialInvoicePdfTemplate($shipment->fresh(), 'en'))->getData()['items'][0];
 
         $this->assertSame('Branch External Name', $item['product_name']);
+    }
+
+    /**
+     * O caso comum em produção não é a filial com vínculo próprio do teste
+     * acima — é a filial que é só um endereço de cobrança, sem pivot e sem
+     * nenhuma coluna document_* preenchida, herdando tudo da matriz. Esse
+     * caminho só é exercitado quando parent: chega no resolver: derrubar o
+     * argumento (em vez de trocar a ordem) não muda a preferência resultante
+     * aqui — matriz e filial usam a mesma COUNTERPARTY por default — mas
+     * quebra a busca do PIVOT, que também depende de parent como fallback.
+     */
+    public function test_branch_without_its_own_pivot_or_preference_falls_back_to_the_parent_company(): void
+    {
+        $hq = Company::create([
+            'name' => 'Fallback HQ',
+            'status' => 'active',
+            'document_name_source' => DocumentNamingSource::COUNTERPARTY,
+        ]);
+        $hq->companyRoles()->create(['role' => 'client']);
+
+        // Sem document_name_source próprio: exatamente o estado de uma
+        // filial cadastrada só como endereço.
+        $branch = Company::create(['name' => 'Fallback Branch', 'status' => 'active']);
+        $branch->companyRoles()->create(['role' => 'client']);
+
+        // Pivot só na matriz — a filial não tem vínculo próprio nenhum.
+        $this->product->companies()->attach($hq->id, [
+            'role' => 'client',
+            'external_name' => 'HQ External Name',
+        ]);
+        $this->product->load('companies');
+
+        $shipment = $this->shipmentBilledBy($hq, branch: $branch);
+
+        $item = (new CommercialInvoicePdfTemplate($shipment->fresh(), 'en'))->getData()['items'][0];
+
+        $this->assertSame('HQ External Name', $item['product_name']);
     }
 }
