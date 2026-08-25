@@ -167,7 +167,7 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
                     'ncm' => $identity->ncmHeading(),
                     'product_name' => $identity->name,
                     'description' => $this->formatDescription(
-                        $identity->description ?: ($piItem?->specifications ?? '')
+                        $identity->descriptionOr($piItem?->specifications ?? '') ?? ''
                     ),
                     'quantity' => $item->quantity,
                     'unit' => $piItem?->unit ?? 'pcs',

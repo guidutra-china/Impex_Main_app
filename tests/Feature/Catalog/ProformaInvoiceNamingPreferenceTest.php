@@ -120,4 +120,25 @@ class ProformaInvoiceNamingPreferenceTest extends TestCase
         $this->assertSame('Internal Product Name', $item['description']);
         $this->assertNotSame(self::CLIENT_NAME, $item['description']);
     }
+
+    /**
+     * O template usa `$identity->description ?: $identity->name` — sem o
+     * guard de descriptionHidden, esconder a descrição faz resolveDescription()
+     * devolver null e o `?:` cair direto no nome do produto (o fallback
+     * histórico desta coluna). 'Internal Product Name' está preenchido de
+     * propósito no produto: é exatamente esse fallback não-vazio que provava
+     * o defeito (a coluna nunca ficava vazia, só mudava de fonte).
+     */
+    public function test_show_description_false_empties_the_description_instead_of_falling_back_to_the_name(): void
+    {
+        [$client, $product] = $this->makeClientWithProduct([
+            'document_show_description' => false,
+        ]);
+
+        $pi = $this->makePiWithItem($client, $product);
+
+        $item = (new ProformaInvoicePdfTemplate($pi->fresh(), 'en'))->getData()['items'][0];
+
+        $this->assertSame('', $item['description']);
+    }
 }

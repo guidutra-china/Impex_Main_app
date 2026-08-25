@@ -66,8 +66,9 @@ class RfqPdfTemplate extends AbstractPdfTemplate
                 // fornecedor já aparece em PRODUCT CODE, repetir não ajuda.
                 'model_number' => $item->product?->model_number ?? '',
                 'description' => $identity->name,
-                'specifications' => $identity->description
-                    ?: ($item->specifications ?? $item->product?->description ?? null),
+                'specifications' => $identity->descriptionOr(
+                    $item->specifications ?? $item->product?->description ?? null
+                ),
                 'quantity' => $quantity,
                 'unit' => $item->unit ?? $item->product?->unit ?? 'pcs',
                 'target_price' => $showTargetPrice && $targetPrice > 0 ? $this->formatMoney($targetPrice, $currencyCode) : null,

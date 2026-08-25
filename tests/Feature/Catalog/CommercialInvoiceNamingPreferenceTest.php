@@ -88,10 +88,17 @@ class CommercialInvoiceNamingPreferenceTest extends TestCase
         // Descrição auto-preenchida com o nome do produto, como faz a UI —
         // assim "isDeliberate" não trava a descrição na linha e o resolver
         // fica livre para escolher a fonte pela preferência.
+        //
+        // specifications preenchida de propósito: é o fallback que a CI usa
+        // quando identity->description vem vazio (`?: $piItem?->specifications`).
+        // Sem um valor não-vazio aqui, um teste de "esconder descrição" passa
+        // pela razão errada — o fallback já estava vazio por acidente, não
+        // porque o guard de descriptionHidden funcionou.
         $piItem = ProformaInvoiceItem::create([
             'proforma_invoice_id' => $pi->id,
             'product_id' => $this->product->id,
             'description' => 'Internal Product Name',
+            'specifications' => 'Line specifications text',
             'quantity' => 10,
             'unit_price' => 100000,
             'unit' => 'pcs',
@@ -126,6 +133,16 @@ class CommercialInvoiceNamingPreferenceTest extends TestCase
         $this->assertNotSame(self::CLIENT_NAME, $item['product_name']);
     }
 
+    /**
+     * O fixture (setUp) grava 'Line specifications text' em
+     * $piItem->specifications de propósito: é o fallback que
+     * buildInvoiceItems() usa quando identity->description vem vazio. Antes
+     * do fix de descriptionHidden, esconder a descrição fazia
+     * resolveDescription() devolver null e o `?:` cair direto nessa
+     * specifications — a coluna "Description" imprimia texto interno da PI
+     * em vez de ficar vazia. Este teste prova que não sobra NENHUM texto,
+     * nem o da PI.
+     */
     public function test_show_description_false_empties_the_line_description(): void
     {
         $this->client->update(['document_show_description' => false]);

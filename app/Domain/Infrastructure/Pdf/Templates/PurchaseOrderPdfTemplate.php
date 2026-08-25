@@ -74,7 +74,7 @@ class PurchaseOrderPdfTemplate extends AbstractPdfTemplate
             return [
                 'index' => $index + 1,
                 'product_code' => $identity->codeOr('—'),
-                'description' => $this->formatDescription($identity->description ?: $identity->name),
+                'description' => $this->formatDescription($identity->descriptionOr($identity->name) ?? ''),
                 'specifications' => $item->specifications,
                 'quantity' => $item->quantity,
                 'unit' => $item->unit ?? 'pcs',

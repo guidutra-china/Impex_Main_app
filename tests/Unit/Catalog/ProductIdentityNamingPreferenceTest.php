@@ -176,6 +176,51 @@ class ProductIdentityNamingPreferenceTest extends TestCase
         $identity = $resolver->resolve($this->linkedProduct(), lineDescription: 'Special packing, 2 pcs/ctn');
 
         $this->assertNull($identity->description);
+        // Defeito da revisão final: description===null sozinho não distingue
+        // "escondida de propósito" de "sem fonte nenhuma" — os cinco
+        // templates que faziam `?: $outroCampo` vazavam um campo errado
+        // exatamente nesse caso. descriptionHidden existe para o template
+        // distinguir os dois.
+        $this->assertTrue($identity->descriptionHidden);
+    }
+
+    /**
+     * Contraste do teste acima: aqui description também vem null, mas por
+     * FALTA de fonte (produto sem descrição, sem digitado na linha, pivot
+     * sem external_description) — não porque a preferência escondeu. Um
+     * template que checasse só `description === null` trataria os dois
+     * casos como iguais; descriptionHidden precisa ficar false aqui.
+     */
+    public function test_descricao_hidden_e_false_quando_e_so_falta_de_fonte(): void
+    {
+        $resolver = ProductIdentityResolver::forClientCompany($this->client);
+        $product = $this->linkedProduct(['external_description' => null], ['description' => null]);
+
+        $identity = $resolver->resolve($product);
+
+        $this->assertNull($identity->description);
+        $this->assertFalse($identity->descriptionHidden);
+    }
+
+    /**
+     * descriptionOr(): mesmo `?: $fallback` de sempre quando a descrição não
+     * está escondida — inclusive a semântica solta do PHP (string vazia cai
+     * pro fallback), para não mudar comportamento em nenhum documento hoje
+     * às defaults. Só quando descriptionHidden é true o fallback é ignorado
+     * e o retorno é sempre null, mesmo com um $fallback não-vazio.
+     */
+    public function test_description_or_cai_para_o_fallback_so_quando_nao_esta_escondida(): void
+    {
+        $visible = ProductIdentityResolver::forClientCompany($this->client)
+            ->resolve($this->linkedProduct(['external_description' => null], ['description' => null]));
+
+        $this->assertSame('fallback', $visible->descriptionOr('fallback'));
+
+        $hidden = ProductIdentityResolver::forClientCompany($this->client, overrides: [
+            NamingPreference::KEY_SHOW_DESCRIPTION => false,
+        ])->resolve($this->linkedProduct());
+
+        $this->assertNull($hidden->descriptionOr('fallback'));
     }
 
     public function test_descricao_do_sistema_vazia_nao_cai_para_o_cliente(): void

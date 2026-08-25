@@ -94,7 +94,7 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
                 // Coluna opt-in e explicitamente interna: segue sendo o SKU.
                 'product_code' => $item->product?->sku ?: '—',
                 'model_number' => $identity->codeOr('—'),
-                'description' => $this->formatDescription($identity->description ?: $identity->name),
+                'description' => $this->formatDescription($identity->descriptionOr($identity->name) ?? ''),
                 'specifications' => $item->specifications,
                 'attributes' => $this->productAttributesLine($item->product),
                 'quantity' => $item->quantity,

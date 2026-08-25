@@ -122,4 +122,23 @@ class PaymentStatementNamingPreferenceTest extends TestCase
         $this->assertSame('Internal Product Name', $item['description']);
         $this->assertNotSame(self::CLIENT_NAME, $item['description']);
     }
+
+    /**
+     * Sem o guard de descriptionHidden, `$identity->description ?: $identity->name`
+     * cai direto no nome do produto quando a descrição é escondida — a
+     * coluna nunca fica vazia, só troca de fonte. 'Internal Product Name' é
+     * o fallback não-vazio que expõe isso.
+     */
+    public function test_show_description_false_empties_the_description_instead_of_falling_back_to_the_name(): void
+    {
+        [$client, $product] = $this->makeClientWithProduct([
+            'document_show_description' => false,
+        ]);
+
+        $pi = $this->makePiWithItem($client, $product);
+
+        $item = (new PaymentStatementPdfTemplate($pi->fresh()))->getData()['pi_items'][0];
+
+        $this->assertSame('', $item['description']);
+    }
 }

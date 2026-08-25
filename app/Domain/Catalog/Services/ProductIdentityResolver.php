@@ -199,6 +199,11 @@ class ProductIdentityResolver
             // e não cai para products.hs_code (HS de 6 dígitos não é NCM).
             ncm: $this->isClientSide() ? ($pivot?->external_ncm ?: null) : null,
             fromCounterparty: filled($counterpartyCode),
+            // showDescription=false é a única razão de resolveDescription() vir
+            // null por SUPRESSÃO — as outras (sem pivot, sem cadastro) são
+            // "sem fonte", não "escondida". Ver o docblock da flag em
+            // ProductIdentity.
+            descriptionHidden: ! $this->naming->showDescription,
         );
     }
 

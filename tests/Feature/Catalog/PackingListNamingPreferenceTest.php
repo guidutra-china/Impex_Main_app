@@ -152,6 +152,26 @@ class PackingListNamingPreferenceTest extends TestCase
     }
 
     /**
+     * Pin: PackingListPdfTemplate já era o único (com o RfqPdfTemplate) que
+     * não caía num fallback quando a descrição é escondida — o site usa
+     * `filled($identity->description) ? ... : null`, sem `?:` para outro
+     * campo. O produto vem com descrição não-vazia (Product::factory()
+     * preenche um parágrafo por padrão) só para provar que, mesmo havendo
+     * texto disponível em algum lugar, a linha impressa fica vazia.
+     */
+    public function test_show_description_false_empties_the_line_description(): void
+    {
+        $this->client->update(['document_show_description' => false]);
+
+        $shipment = $this->shipmentBilledBy($this->client);
+
+        $line = (new PackingListPdfTemplate($shipment->fresh(), 'en'))
+            ->getData()['container_groups'][0]['lines'][0];
+
+        $this->assertNull($line['description']);
+    }
+
+    /**
      * Mesmo guard que o Commercial Invoice precisou: se company: e parent:
      * trocarem de lugar dentro de forClientCompany(), o pivot exclusivo da
      * filial deixa de ser encontrado (cai para o pivot inexistente da

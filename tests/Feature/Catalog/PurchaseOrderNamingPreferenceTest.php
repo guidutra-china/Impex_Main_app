@@ -105,4 +105,24 @@ class PurchaseOrderNamingPreferenceTest extends TestCase
         $this->assertSame('Internal Product Name', $item['description']);
         $this->assertNotSame(self::SUPPLIER_NAME, $item['description']);
     }
+
+    /**
+     * Reprodução do defeito relatado na review final: sem o guard de
+     * descriptionHidden, `$identity->description ?: $identity->name` cai
+     * direto no nome do produto quando a descrição é escondida — a coluna
+     * "Description" nunca fica vazia, só troca de fonte. 'Internal Product
+     * Name' é o fallback não-vazio que expõe isso.
+     */
+    public function test_show_description_false_empties_the_description_instead_of_falling_back_to_the_name(): void
+    {
+        [$supplier, $product] = $this->makeSupplierWithProduct([
+            'document_show_description' => false,
+        ]);
+
+        $po = $this->makePoWithItem($supplier, $product);
+
+        $item = (new PurchaseOrderPdfTemplate($po->fresh(), 'en'))->getData()['items'][0];
+
+        $this->assertSame('', $item['description']);
+    }
 }

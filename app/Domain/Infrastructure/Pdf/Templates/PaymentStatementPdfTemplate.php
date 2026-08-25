@@ -65,7 +65,7 @@ class PaymentStatementPdfTemplate extends AbstractPdfTemplate
             return [
                 'index' => $index + 1,
                 'product_code' => $identity->codeOr('—'),
-                'description' => $this->formatDescription($identity->description ?: $identity->name),
+                'description' => $this->formatDescription($identity->descriptionOr($identity->name) ?? ''),
                 'quantity' => $item->quantity,
                 'unit' => $item->unit ?? 'pcs',
                 'unit_price' => $this->formatMoney($item->unit_price, $currencyCode),

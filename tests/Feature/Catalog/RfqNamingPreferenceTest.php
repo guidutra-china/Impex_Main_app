@@ -43,20 +43,20 @@ class RfqNamingPreferenceTest extends TestCase
         return [$supplier, $product];
     }
 
-    private function makeSqWithItem(Company $supplier, Product $product): SupplierQuotation
+    private function makeSqWithItem(Company $supplier, Product $product, array $itemAttributes = []): SupplierQuotation
     {
         $sq = SupplierQuotation::factory()->create([
             'company_id' => $supplier->id,
             'currency_code' => 'USD',
         ]);
 
-        SupplierQuotationItem::create([
+        SupplierQuotationItem::create(array_merge([
             'supplier_quotation_id' => $sq->id,
             'product_id' => $product->id,
             'description' => 'Internal Product Name',
             'quantity' => 5,
             'sort_order' => 1,
-        ]);
+        ], $itemAttributes));
 
         return $sq;
     }
@@ -124,5 +124,50 @@ class RfqNamingPreferenceTest extends TestCase
 
         $this->assertSame('Internal Product Name', $row[3]);
         $this->assertNotSame(self::SUPPLIER_NAME, $row[3]);
+    }
+
+    /**
+     * Coluna 4 (índice 4) é a Specifications, que carrega
+     * `$identity->description ?: ($item->specifications ?? $product?->description ?? '')`.
+     * Sem o guard de descriptionHidden, esconder a descrição fazia essa
+     * célula cair direto no texto de specifications da linha — nunca ficava
+     * vazia, só trocava de fonte. 'Line specifications text' é o fallback
+     * não-vazio que expõe isso.
+     */
+    public function test_excel_show_description_false_empties_the_specifications_column(): void
+    {
+        [$supplier, $product] = $this->makeSupplierWithProduct([
+            'document_show_description' => false,
+        ]);
+
+        $sq = $this->makeSqWithItem($supplier, $product, [
+            'specifications' => 'Line specifications text',
+        ]);
+
+        $template = new RfqExcelTemplate($sq->fresh());
+        $row = (new \ReflectionMethod($template, 'getRows'))->invoke($template)[0];
+
+        $this->assertSame('', $row[4]);
+    }
+
+    /**
+     * Pina o PDF: 'specifications' honra a mesma preferência (a review final
+     * havia classificado este site como já correto, mas ele usa exatamente o
+     * mesmo padrão `?:` sem guard que o Excel — corrigido junto). Mesmo
+     * fallback não-vazio do teste do Excel, mesma prova.
+     */
+    public function test_pdf_show_description_false_empties_the_specifications_field(): void
+    {
+        [$supplier, $product] = $this->makeSupplierWithProduct([
+            'document_show_description' => false,
+        ]);
+
+        $sq = $this->makeSqWithItem($supplier, $product, [
+            'specifications' => 'Line specifications text',
+        ]);
+
+        $item = (new RfqPdfTemplate($sq->fresh(), 'en'))->getData()['items'][0];
+
+        $this->assertNull($item['specifications']);
     }
 }

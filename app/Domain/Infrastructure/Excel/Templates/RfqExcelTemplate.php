@@ -88,7 +88,7 @@ class RfqExcelTemplate extends AbstractExcelTemplate
                 $product?->sku ?? '—',
                 $identity->codeOr(''),
                 $identity->name,
-                $identity->description ?: ($item->specifications ?? $product?->description ?? ''),
+                $identity->descriptionOr($item->specifications ?? $product?->description ?? '') ?? '',
                 $item->quantity ?? 0,
                 $item->unit ?? 'pcs',
             ];

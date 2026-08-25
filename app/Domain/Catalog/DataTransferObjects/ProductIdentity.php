@@ -30,11 +30,46 @@ class ProductIdentity
         public readonly ?string $ncm = null,
         /** True quando o código veio do pivot da contraparte, não do produto. */
         public readonly bool $fromCounterparty = false,
+        /**
+         * `description === null` sozinho é ambíguo: pode significar "a
+         * preferência escondeu de propósito" ou "não havia fonte nenhuma".
+         * Um template que faz `$identity->description ?: $outroCampo` não
+         * distingue os dois casos e, no primeiro, acaba imprimindo um campo
+         * qualquer no lugar da descrição escondida — exatamente o defeito
+         * que esta flag existe para evitar. True só quando
+         * {@see \App\Domain\Catalog\Services\ProductIdentityResolver}
+         * suprimiu a descrição por causa de `NamingPreference::$showDescription`
+         * ser false; nunca true só por falta de fonte. Ver
+         * {@see self::descriptionOr()}.
+         */
+        public readonly bool $descriptionHidden = false,
     ) {}
 
     public function codeOr(string $placeholder = '—'): string
     {
         return $this->code !== '' ? $this->code : $placeholder;
+    }
+
+    /**
+     * `$description ?: $fallback`, exceto quando a descrição foi
+     * deliberadamente escondida — nesse caso sempre null, mesmo que
+     * $fallback não seja vazio. Existe para nenhum site voltar a cometer o
+     * defeito desta classe: usar `?:` direto deixa a descrição escondida
+     * cair para o que quer que $fallback seja (specifications, nome do
+     * produto…), imprimindo um campo errado em vez de nada.
+     *
+     * Quem chama decide o valor "vazio" que o próprio template já trata
+     * como ausente (`''` para formatDescription(), `null` para um `@if`) —
+     * este método só devolve null; o cast final é responsabilidade do
+     * chamador.
+     */
+    public function descriptionOr(?string $fallback): ?string
+    {
+        if ($this->descriptionHidden) {
+            return null;
+        }
+
+        return $this->description ?: $fallback;
     }
 
     /**
