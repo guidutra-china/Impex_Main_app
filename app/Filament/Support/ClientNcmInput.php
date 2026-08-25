@@ -2,6 +2,7 @@
 
 namespace App\Filament\Support;
 
+use App\Domain\Catalog\Support\Ncm;
 use Filament\Forms\Components\TextInput;
 
 /**
@@ -9,7 +10,9 @@ use Filament\Forms\Components\TextInput;
  *
  * NCM é a classificação fiscal do importador, então só existe do lado cliente —
  * não adicionar este campo nas telas de fornecedor. Aceita de 4 a 8 dígitos: 4
- * é a posição, 8 é o NCM completo.
+ * é a posição, 8 é o NCM completo — mesmo intervalo que
+ * {@see \App\Domain\Catalog\Support\Ncm} valida do lado do documento, pela
+ * mesma constante, para as duas camadas não voltarem a divergir.
  */
 class ClientNcmInput
 {
@@ -19,7 +22,7 @@ class ClientNcmInput
             ->label(__('forms.labels.ncm'))
             ->helperText(__('forms.helpers.client_ncm'))
             ->maxLength(20)
-            ->rule('regex:/^\d{4,8}$/')
+            ->rule('regex:'.Ncm::DIGIT_COUNT_PATTERN)
             ->validationMessages([
                 'regex' => __('validation.custom.ncm_digits'),
             ])
