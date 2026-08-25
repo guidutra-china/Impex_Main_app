@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SupplierQuotations\Concerns;
 
+use App\Domain\Catalog\DataTransferObjects\NamingPreference;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Models\Contact;
@@ -20,6 +21,7 @@ use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
 use App\Filament\Actions\GenerateExcelAction;
 use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Actions\SendDocumentByEmailAction;
+use App\Filament\Concerns\HasDocumentNamingOptions;
 use App\Filament\Resources\Quotations\QuotationResource;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -40,6 +42,8 @@ use Illuminate\Support\Facades\Log;
  */
 trait SupplierQuotationHeaderActions
 {
+    use HasDocumentNamingOptions;
+
     protected function documentsActionGroup(): ?ActionGroup
     {
         return ActionGroup::make([
@@ -52,6 +56,7 @@ trait SupplierQuotationHeaderActions
                         ->label('Include Target Price')
                         ->helperText('Show the client\'s target price in the RFQ document')
                         ->default(false),
+                    $this->documentNamingSection($this->namingPreferenceDefaults()),
                 ],
             ),
             GeneratePdfAction::download(
@@ -67,6 +72,7 @@ trait SupplierQuotationHeaderActions
                         ->helperText('Show the client\'s target price in the RFQ document')
                         ->live()
                         ->default(false),
+                    $this->documentNamingSection($this->namingPreferenceDefaults()),
                 ],
             ),
             GenerateExcelAction::make(
@@ -77,6 +83,7 @@ trait SupplierQuotationHeaderActions
                     Toggle::make('show_target_price')
                         ->label('Include Target Price')
                         ->default(false),
+                    $this->documentNamingSection($this->namingPreferenceDefaults()),
                 ],
             ),
             GenerateExcelAction::downloadStored(
@@ -99,6 +106,15 @@ trait SupplierQuotationHeaderActions
             ->icon('heroicon-o-document-text')
             ->color('info')
             ->button();
+    }
+
+    /**
+     * Fornecedor não tem conceito de filial — sem parent: aqui, diferente do
+     * namingPreferenceDefaults() do Shipment.
+     */
+    protected function namingPreferenceDefaults(): NamingPreference
+    {
+        return NamingPreference::fromCompany($this->getRecord()?->company);
     }
 
     protected function workflowActionGroup(): ?ActionGroup

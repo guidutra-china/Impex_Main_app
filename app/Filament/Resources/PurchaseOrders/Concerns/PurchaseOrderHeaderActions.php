@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PurchaseOrders\Concerns;
 
+use App\Domain\Catalog\DataTransferObjects\NamingPreference;
 use App\Domain\Financial\Actions\CreatePoDiscountAction;
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Infrastructure\Pdf\Templates\PurchaseOrderPdfTemplate;
@@ -10,6 +11,7 @@ use App\Domain\PurchaseOrders\Actions\SyncSupplierProductPricesAction;
 use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
 use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Actions\SendDocumentByEmailAction;
+use App\Filament\Concerns\HasDocumentNamingOptions;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\Checkbox;
@@ -25,6 +27,8 @@ use Filament\Notifications\Notification;
  */
 trait PurchaseOrderHeaderActions
 {
+    use HasDocumentNamingOptions;
+
     /**
      * Slot workflow do buildOperationsHeader: atalho de desconto do
      * fornecedor nesta PO (o custo vive na PI; o crédito ancora aqui).
@@ -112,6 +116,7 @@ trait PurchaseOrderHeaderActions
                     Checkbox::make('with_images')
                         ->label('Include product photos')
                         ->helperText('If checked, each line item will display the product photo and the filename will include "PIC".'),
+                    $this->documentNamingSection($this->namingPreferenceDefaults()),
                 ],
             ),
             GeneratePdfAction::download(
@@ -126,6 +131,7 @@ trait PurchaseOrderHeaderActions
                         ->label('Include product photos')
                         ->live()
                         ->helperText('Preview the PDF with product photos in each line item.'),
+                    $this->documentNamingSection($this->namingPreferenceDefaults()),
                 ],
             ),
             SendDocumentByEmailAction::make(
@@ -138,6 +144,15 @@ trait PurchaseOrderHeaderActions
             ->icon('heroicon-o-document-text')
             ->color('info')
             ->button();
+    }
+
+    /**
+     * Fornecedor não tem conceito de filial — sem parent: aqui, diferente do
+     * namingPreferenceDefaults() do Shipment.
+     */
+    protected function namingPreferenceDefaults(): NamingPreference
+    {
+        return NamingPreference::fromCompany($this->getRecord()?->supplierCompany);
     }
 
     protected function statusActionGroup(): ?ActionGroup

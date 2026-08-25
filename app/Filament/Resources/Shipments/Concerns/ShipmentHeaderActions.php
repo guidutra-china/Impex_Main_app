@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Shipments\Concerns;
 
 use App\Domain\Catalog\DataTransferObjects\NamingPreference;
-use App\Domain\Catalog\Enums\DocumentNamingSource;
 use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
@@ -20,6 +19,7 @@ use App\Domain\Logistics\Reports\CommercialInvoiceExcelExporter;
 use App\Domain\Logistics\Reports\PackingListExcelExporter;
 use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Actions\SendDocumentByEmailAction;
+use App\Filament\Concerns\HasDocumentNamingOptions;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\Checkbox;
@@ -41,6 +41,8 @@ use Filament\Schemas\Components\Utilities\Get;
  */
 trait ShipmentHeaderActions
 {
+    use HasDocumentNamingOptions;
+
     protected function documentsActionGroup(): ?ActionGroup
     {
         return ActionGroup::make([
@@ -225,9 +227,9 @@ trait ShipmentHeaderActions
     /**
      * Agrupados à parte dos seis controles acima (que já lotam o modal)
      * porque respondem a uma pergunta diferente — não "o que mostrar" mas
-     * "de onde tirar o nome" — e porque o toggle de descrição precisa ficar
-     * perto do Select que ele esconde para o comportamento condicional ficar
-     * óbvio para quem preenche o formulário.
+     * "de onde tirar o nome". A seção em si (os quatro controles) é
+     * compartilhada com PO e RFQ via HasDocumentNamingOptions; só a
+     * derivação dos defaults é específica do Shipment.
      *
      * Os defaults vêm de namingPreferenceDefaults(), nunca das colunas cruas
      * da empresa: uma filial com as colunas em branco herda da matriz, e ler
@@ -236,37 +238,7 @@ trait ShipmentHeaderActions
      */
     protected function namingPreferenceSection(): Section
     {
-        $defaults = $this->namingPreferenceDefaults();
-
-        return Section::make(__('forms.sections.naming_preferences'))
-            ->description(__('forms.helpers.naming_preferences_section'))
-            ->columns(2)
-            ->collapsible()
-            ->schema([
-                Select::make(NamingPreference::KEY_CODE)
-                    ->label(__('forms.labels.naming_code_source'))
-                    ->options(DocumentNamingSource::class)
-                    ->default($defaults->code->value)
-                    ->native(false)
-                    ->helperText(__('forms.helpers.naming_code_source')),
-                Select::make(NamingPreference::KEY_NAME)
-                    ->label(__('forms.labels.naming_name_source'))
-                    ->options(DocumentNamingSource::class)
-                    ->default($defaults->name->value)
-                    ->native(false)
-                    ->helperText(__('forms.helpers.naming_name_source')),
-                Toggle::make(NamingPreference::KEY_SHOW_DESCRIPTION)
-                    ->label(__('forms.labels.naming_show_description'))
-                    ->default($defaults->showDescription)
-                    ->live(),
-                Select::make(NamingPreference::KEY_DESCRIPTION)
-                    ->label(__('forms.labels.naming_description_source'))
-                    ->options(DocumentNamingSource::class)
-                    ->default($defaults->description->value)
-                    ->native(false)
-                    ->visible(fn (Get $get) => (bool) $get(NamingPreference::KEY_SHOW_DESCRIPTION))
-                    ->helperText(__('forms.helpers.naming_description_source')),
-            ]);
+        return $this->documentNamingSection($this->namingPreferenceDefaults());
     }
 
     /**
