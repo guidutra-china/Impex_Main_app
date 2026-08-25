@@ -157,13 +157,24 @@ class ClientNcmTest extends TestCase
         $rows = IOFactory::load($path)->getActiveSheet()->toArray(null, true, false, false);
         @unlink($path);
 
-        $header = collect($rows)->first(fn ($row) => in_array('MODEL NO.', array_map(fn ($c) => trim((string) $c), $row), true));
-        $this->assertNotNull($header);
-        $this->assertContains('NCM', array_map(fn ($c) => trim((string) $c), $header));
+        $headerRowIndex = collect($rows)->search(fn ($row) => in_array('MODEL NO.', array_map(fn ($c) => trim((string) $c), $row), true));
+        $this->assertNotFalse($headerRowIndex);
+        $header = array_map(fn ($c) => trim((string) $c), $rows[$headerRowIndex]);
+        $this->assertContains('NCM', $header);
 
+        // Célula exata da coluna NCM, não uma busca por substring no texto
+        // da planilha inteira: '8431' também seria encontrado dentro de
+        // '84314900', então uma checagem por conteúdo não provaria o
+        // truncamento por si só. A mesma regra do PDF vale aqui: 4 dígitos
+        // na célula.
+        $ncmColumn = array_search('NCM', $header, true);
+        $ncmCell = trim((string) $rows[$headerRowIndex + 1][$ncmColumn]);
+        $this->assertSame('8431', $ncmCell);
+
+        // Reforço: os 8 dígitos brutos não vazam para NENHUMA célula da
+        // planilha, não só a da coluna NCM.
         $text = implode("\n", array_map(fn ($row) => implode('|', array_map(fn ($c) => (string) $c, $row)), $rows));
-        // Mesma regra do PDF: a planilha imprime a posição de 4 dígitos.
-        $this->assertStringContainsString('8431', $text);
+        $this->assertStringNotContainsString('84314900', $text);
 
         // Total continua correto com a coluna extra (10 × 10.00 = 100.00).
         $grandTotal = collect($rows)->first(fn ($row) => in_array('GRAND TOTAL', array_map(fn ($c) => trim((string) $c), $row), true));
