@@ -50,6 +50,7 @@ trait ShipmentHeaderActions
                 GeneratePdfAction::make(
                     templateClass: PackingListPdfTemplate::class,
                     label: 'Generate PDF',
+                    formSchema: $this->packingListOptions(),
                 )->name('generatePackingListPdf'),
                 GeneratePdfAction::download(
                     documentType: 'packing_list_pdf',
@@ -58,6 +59,7 @@ trait ShipmentHeaderActions
                 GeneratePdfAction::preview(
                     templateClass: PackingListPdfTemplate::class,
                     label: 'Preview PDF',
+                    formSchema: $this->packingListOptions(),
                 )->name('previewPackingListPdf'),
                 SendDocumentByEmailAction::make(
                     documentType: 'packing_list_pdf',
@@ -242,6 +244,19 @@ trait ShipmentHeaderActions
     }
 
     /**
+     * Packing List (generate, preview e Excel) não tinha NENHUM formSchema —
+     * as três ações eram surdas ao toggle mesmo depois do resolver honrar a
+     * preferência (05dbd053). Mesmos defaults do Commercial Invoice: mesmo
+     * shipment, mesmo getDocumentClient()/company.
+     */
+    protected function packingListOptions(): array
+    {
+        return [
+            $this->namingPreferenceSection(),
+        ];
+    }
+
+    /**
      * Mesma precedência do CommercialInvoicePdfTemplate: endereço do
      * documento (filial, senão matriz) resolvido por getDocumentClient(),
      * matriz como fallback de herança para fromCompany(). getRecord() pode
@@ -335,8 +350,11 @@ trait ShipmentHeaderActions
             ->icon('heroicon-o-table-cells')
             ->color('info')
             ->visible(fn () => auth()->user()?->can('generate-documents'))
-            ->action(function () {
-                $path = (new PackingListExcelExporter)->export($this->getRecord());
+            ->modalHeading(__('forms.labels.export_excel').' — '.__('forms.labels.packing_list'))
+            ->modalSubmitActionLabel(__('forms.labels.export_excel'))
+            ->form($this->packingListOptions())
+            ->action(function (array $data) {
+                $path = (new PackingListExcelExporter)->export($this->getRecord(), $data);
 
                 return response()->download($path)->deleteFileAfterSend();
             });

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ProformaInvoices\Concerns;
 
+use App\Domain\Catalog\DataTransferObjects\NamingPreference;
 use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\Financial\Actions\OverridePaymentBlocksAction;
 use App\Domain\Financial\Actions\RequestPaymentOverrideAuthorizationAction;
@@ -19,6 +20,7 @@ use App\Domain\ProformaInvoices\Services\ProformaInvoiceItemCurrencyResolver;
 use App\Domain\PurchaseOrders\Actions\GeneratePurchaseOrdersAction;
 use App\Filament\Actions\GeneratePdfAction;
 use App\Filament\Actions\SendDocumentByEmailAction;
+use App\Filament\Concerns\HasDocumentNamingOptions;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -35,6 +37,8 @@ use Filament\Schemas\Components\Utilities\Get;
  */
 trait ProformaInvoiceHeaderActions
 {
+    use HasDocumentNamingOptions;
+
     protected function primaryLifecycleActions(): array
     {
         return [
@@ -123,6 +127,7 @@ trait ProformaInvoiceHeaderActions
                     Checkbox::make('hide_commission')
                         ->label(__('forms.labels.hide_service_fee'))
                         ->helperText(__('forms.helpers.hide_service_fee')),
+                    $this->documentNamingSection($this->namingPreferenceDefaults()),
                 ],
             ),
             GeneratePdfAction::download(
@@ -148,6 +153,7 @@ trait ProformaInvoiceHeaderActions
                         ->label(__('forms.labels.hide_service_fee'))
                         ->live()
                         ->helperText(__('forms.helpers.hide_service_fee')),
+                    $this->documentNamingSection($this->namingPreferenceDefaults()),
                 ],
             ),
             SendDocumentByEmailAction::make(
@@ -161,6 +167,17 @@ trait ProformaInvoiceHeaderActions
             ->icon('heroicon-o-document-text')
             ->color('info')
             ->button();
+    }
+
+    /**
+     * PI é faturada direto à empresa — sem conceito de filial (só
+     * company_id, sem company_branch_id no schema), então nenhum parent:
+     * aqui, diferente do namingPreferenceDefaults() do Shipment. Mesma
+     * derivação que ProformaInvoicePdfTemplate já usa para o resolver.
+     */
+    protected function namingPreferenceDefaults(): NamingPreference
+    {
+        return NamingPreference::fromCompany($this->getRecord()?->company);
     }
 
     protected function workflowActionGroup(): ?ActionGroup

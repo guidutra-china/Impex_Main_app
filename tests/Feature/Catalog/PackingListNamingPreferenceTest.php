@@ -11,9 +11,11 @@ use App\Domain\Logistics\Models\Carton;
 use App\Domain\Logistics\Models\CartonContent;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Logistics\Models\ShipmentItem;
+use App\Domain\Logistics\Reports\PackingListExcelExporter;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Tests\TestCase;
 
 /**
@@ -169,6 +171,29 @@ class PackingListNamingPreferenceTest extends TestCase
             ->getData()['container_groups'][0]['lines'][0];
 
         $this->assertNull($line['description']);
+    }
+
+    /**
+     * PackingListExcelExporter::export() ignorava $options por completo até
+     * este pass (gap de honestidade 1) — a planilha sempre saía com o
+     * default histórico mesmo que o modal enviasse SYSTEM. Prova a fiação
+     * ponta a ponta: options -> exporter -> template -> célula PRODUCT NAME.
+     */
+    public function test_excel_export_honours_the_modal_override(): void
+    {
+        $shipment = $this->shipmentBilledBy($this->client);
+
+        $path = (new PackingListExcelExporter)->export(
+            $shipment->fresh(),
+            ['naming_name_source' => 'system'],
+        );
+
+        $sheet = IOFactory::load($path)->getActiveSheet();
+        $productCell = (string) $sheet->getCell('C12')->getValue();
+        unlink($path);
+
+        $this->assertStringContainsString('Internal Product Name', $productCell);
+        $this->assertStringNotContainsString(self::CLIENT_NAME, $productCell);
     }
 
     /**

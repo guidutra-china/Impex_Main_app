@@ -30,11 +30,14 @@ class PackingListExcelExporter
     private const LAST_COLUMN = 'J';
 
     /**
+     * @param  array<string, mixed>  $options  opções de nomenclatura do modal
+     *                                         (naming_code_source, naming_name_source…) —
+     *                                         mesmo formato que o PDF já aceita.
      * @return string caminho absoluto do .xlsx gerado
      */
-    public function export(Shipment $shipment, string $locale = 'en'): string
+    public function export(Shipment $shipment, array $options = [], string $locale = 'en'): string
     {
-        $data = (new PackingListPdfTemplate($shipment, $locale))->getData();
+        $data = (new PackingListPdfTemplate($shipment, $locale, $options))->getData();
 
         $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
