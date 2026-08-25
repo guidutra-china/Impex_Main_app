@@ -47,10 +47,13 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
         ]);
 
         // Documento endereçado à filial resolve o pivot da filial primeiro e
-        // cai para a matriz — o endereço já segue getDocumentClient().
-        $this->identity = ProductIdentityResolver::forClient(
-            $shipment->getDocumentClient()?->id,
-            $shipment->company_id,
+        // cai para a matriz — o endereço já segue getDocumentClient(). A
+        // preferência de nomenclatura segue a mesma precedência, derivada na
+        // mesma chamada para as duas não divergirem.
+        $this->identity = ProductIdentityResolver::forClientCompany(
+            $shipment->getDocumentClient(),
+            $shipment->company,
+            $this->options,
         );
         $this->identity->warm(
             $shipment->items->map(fn ($item) => $item->proformaInvoiceItem?->product)
