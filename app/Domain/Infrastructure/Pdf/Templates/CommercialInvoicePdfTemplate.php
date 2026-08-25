@@ -289,14 +289,32 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
      * despachante enviou, que é o que a DI/DUIMP precisa. Formatação é do
      * documento, não do dado.
      *
-     * Menos de 4 dígitos devolve null: um fragmento de posição num documento
-     * aduaneiro é pior do que campo vazio.
+     * external_ncm chega de uma planilha reimportada sem validação
+     * (ClientProductsReportImporter grava o texto quase cru), então "extrair
+     * os dígitos e truncar" transformava qualquer ruído em algo que parece
+     * uma posição válida: "Ref 12: 8431.49.00" virava "1284", "NCM a definir
+     * 2026" virava "2026" — nenhum dos dois é NCM, mas nada no documento
+     * denunciava. Por isso a validação acontece ANTES de extrair dígitos:
+     * se sobrar qualquer caractere que não seja dígito ou separador
+     * (ponto, barra, hífen, espaço), o valor inteiro é rejeitado — não só
+     * truncado. Só depois disso os dígitos são contados: 4 a 8, o mesmo
+     * intervalo que ClientNcmInput já valida na entrada do formulário.
+     *
+     * Um valor fora do intervalo (curto demais ou comprido demais) devolve
+     * null: um fragmento de posição num documento aduaneiro é pior do que
+     * campo vazio.
      */
     private static function formatNcm(?string $ncm): ?string
     {
-        $digits = preg_replace('/\D/', '', (string) $ncm);
+        $trimmed = trim((string) $ncm);
 
-        return strlen((string) $digits) >= 4 ? substr((string) $digits, 0, 4) : null;
+        if ($trimmed === '' || ! preg_match('/^[\d.\-\/\s]+$/', $trimmed)) {
+            return null;
+        }
+
+        $digits = preg_replace('/\D/', '', $trimmed);
+
+        return preg_match('/^\d{4,8}$/', $digits) ? substr($digits, 0, 4) : null;
     }
 
     private function labels(string $key): string
