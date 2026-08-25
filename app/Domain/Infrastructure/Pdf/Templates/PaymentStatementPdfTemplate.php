@@ -47,7 +47,16 @@ class PaymentStatementPdfTemplate extends AbstractPdfTemplate
 
         $currencyCode = $pi->currency_code ?? 'USD';
 
-        $identityResolver = ProductIdentityResolver::forClient($pi->company_id);
+        // Documento endereçado ao cliente: identifica o produto como ELE o
+        // conhece (código/nome/descrição do pivot), honrando a preferência de
+        // nomenclatura cadastrada na empresa. PI não tem conceito de filial —
+        // sem parent:. Esta action não tem formulário (ver
+        // PaymentScheduleRelationManager::paymentStatementAction()), então
+        // $this->options fica sempre vazio e o documento usa só o cadastrado.
+        $identityResolver = ProductIdentityResolver::forClientCompany(
+            company: $pi->company,
+            overrides: $this->options,
+        );
         $identityResolver->warm($pi->items->map(fn ($item) => $item->product));
 
         $piItems = $pi->items->sortBy('sort_order')->values()->map(function ($item, int $index) use ($currencyCode, $identityResolver) {
