@@ -109,6 +109,12 @@ class NamingPreference
      * isso roda no meio da geração de um documento, e um 500 ali é pior do
      * que ignorar um valor inválido.
      *
+     * Essa política de degradar em vez de estourar cobre só o que chega pelo
+     * formulário. Um valor já corrompido no banco (fora dos cases do enum)
+     * ainda estoura ValueError na leitura do atributo, antes de chegar aqui —
+     * de propósito: dado inconsistente no banco é bug de integridade e deve
+     * quebrar alto, não ser silenciosamente engolido.
+     *
      * @param  array<string, mixed>  $options
      */
     private function source(array $options, string $key, DocumentNamingSource $current): DocumentNamingSource
@@ -125,14 +131,20 @@ class NamingPreference
     }
 
     /**
-     * Mesma regra de source(), para o único campo booleano. Extraído à parte
-     * porque o único defeito encontrado nesta unidade foi justamente uma cópia
-     * manual desta guarda que esqueceu o blank() — um quinto campo booleano
-     * não tem chance de repetir o erro se passar por aqui.
+     * Mesma guarda de presença-e-blank de source(), para o único campo
+     * booleano. Extraído à parte porque o único defeito encontrado nesta
+     * unidade foi justamente uma cópia manual desta guarda que esqueceu o
+     * blank() — um quinto campo booleano não tem chance de repetir o erro se
+     * passar por aqui.
      *
      * blank(false) === false, então um toggle genuinamente desmarcado (valor
      * false) ainda desliga a descrição normalmente; só ausência, null e ''
-     * são ignorados.
+     * são ignorados antes de chegar no filter_var abaixo.
+     *
+     * Valida em vez de fazer (bool) cru: 'false', 'off', 'no' e '0' viram
+     * false; 'true', '1' e 1 viram true; uma string que não é nenhum dos dois
+     * (ex.: 'lixo') não é reconhecida e mantém o valor atual, em vez de virar
+     * true por acidente como (bool) 'false' faria.
      *
      * @param  array<string, mixed>  $options
      */
@@ -142,6 +154,6 @@ class NamingPreference
             return $current;
         }
 
-        return (bool) $options[$key];
+        return filter_var($options[$key], FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? $current;
     }
 }

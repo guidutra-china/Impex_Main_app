@@ -6,6 +6,7 @@ use App\Domain\Catalog\DataTransferObjects\NamingPreference;
 use App\Domain\Catalog\Enums\DocumentNamingSource;
 use App\Domain\CRM\Models\Company;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class NamingPreferenceTest extends TestCase
@@ -117,6 +118,52 @@ class NamingPreferenceTest extends TestCase
         $this->assertFalse($preference->showDescription);
     }
 
+    #[DataProvider('provideFalseyStringsForShowDescription')]
+    public function test_show_description_reconhece_strings_falsy_e_desliga(mixed $value): void
+    {
+        $preference = NamingPreference::default()->withOverrides([NamingPreference::KEY_SHOW_DESCRIPTION => $value]);
+
+        $this->assertFalse($preference->showDescription);
+    }
+
+    public static function provideFalseyStringsForShowDescription(): array
+    {
+        return [
+            "'false'" => ['false'],
+            "'off'" => ['off'],
+            "'no'" => ['no'],
+            "'0'" => ['0'],
+            'inteiro 0' => [0],
+        ];
+    }
+
+    #[DataProvider('provideTruthyStringsForShowDescription')]
+    public function test_show_description_reconhece_strings_truthy_e_liga(mixed $value): void
+    {
+        $preference = NamingPreference::default()
+            ->withOverrides([NamingPreference::KEY_SHOW_DESCRIPTION => false])
+            ->withOverrides([NamingPreference::KEY_SHOW_DESCRIPTION => $value]);
+
+        $this->assertTrue($preference->showDescription);
+    }
+
+    public static function provideTruthyStringsForShowDescription(): array
+    {
+        return [
+            "'true'" => ['true'],
+            "'1'" => ['1'],
+            'inteiro 1' => [1],
+            'booleano true' => [true],
+        ];
+    }
+
+    public function test_show_description_string_nao_reconhecida_mantem_o_valor_atual(): void
+    {
+        $preference = NamingPreference::default()->withOverrides([NamingPreference::KEY_SHOW_DESCRIPTION => 'lixo']);
+
+        $this->assertTrue($preference->showDescription);
+    }
+
     public function test_as_tres_chaves_de_enum_sao_aplicadas_independentemente(): void
     {
         $preference = NamingPreference::default()->withOverrides([
@@ -202,5 +249,24 @@ class NamingPreferenceTest extends TestCase
         $preference = NamingPreference::fromCompany($filial, $matriz);
 
         $this->assertEquals(NamingPreference::default(), $preference);
+    }
+
+    public function test_filial_explicita_vence_matriz_explicita_nas_duas_direcoes(): void
+    {
+        $matrizMostrando = Company::factory()->create(['document_show_description' => true]);
+        $filialEscondendo = Company::factory()->create([
+            'parent_company_id' => $matrizMostrando->id,
+            'document_show_description' => false,
+        ]);
+
+        $this->assertFalse(NamingPreference::fromCompany($filialEscondendo, $matrizMostrando)->showDescription);
+
+        $matrizEscondendo = Company::factory()->create(['document_show_description' => false]);
+        $filialMostrando = Company::factory()->create([
+            'parent_company_id' => $matrizEscondendo->id,
+            'document_show_description' => true,
+        ]);
+
+        $this->assertTrue(NamingPreference::fromCompany($filialMostrando, $matrizEscondendo)->showDescription);
     }
 }
