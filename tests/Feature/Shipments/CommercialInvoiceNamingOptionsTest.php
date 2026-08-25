@@ -66,12 +66,46 @@ class CommercialInvoiceNamingOptionsTest extends TestCase
     }
 
     /**
-     * O caso central desta unidade: a filial não tem nada configurado nas
-     * próprias colunas (NULL = "não configurado"), mas o embarque é
-     * endereçado à matriz que escolheu SYSTEM. Ler a coluna crua da filial
-     * mostraria "Contraparte" (o default histórico do enum ausente) enquanto
-     * o documento de fato sai com a nomenclatura do sistema — é exatamente a
-     * mentira que fromCompany() existe para evitar.
+     * Pina a ORDEM dos argumentos de fromCompany(), não só a herança: a
+     * filial tem um valor próprio (COUNTERPARTY) que diverge do valor da
+     * matriz (SYSTEM). Se namingPreferenceDefaults() trocasse os argumentos
+     * ou ignorasse getDocumentClient() e lesse sempre $record->company, o
+     * modal mostraria SYSTEM (da matriz) em vez do COUNTERPARTY configurado
+     * na própria filial — e ainda assim passaria no teste de herança abaixo,
+     * porque naquele fixture os dois arranjos convergem para o mesmo valor.
+     * Este teste é o que distingue "leu a filial primeiro" de "leu a matriz
+     * e por acaso bateu".
+     */
+    public function test_branch_with_its_own_preference_wins_over_the_headquarters(): void
+    {
+        $headquarters = Company::factory()->create([
+            'document_name_source' => DocumentNamingSource::SYSTEM,
+        ]);
+        $branch = Company::factory()->create([
+            'document_name_source' => DocumentNamingSource::COUNTERPARTY,
+        ]);
+        $shipment = Shipment::factory()->create([
+            'company_id' => $headquarters->id,
+            'company_branch_id' => $branch->id,
+        ]);
+
+        Livewire::test(ViewShipment::class, ['record' => $shipment->getKey()])
+            ->mountAction('generateCommercialInvoicePdf')
+            ->assertActionDataSet([
+                NamingPreference::KEY_NAME => DocumentNamingSource::COUNTERPARTY,
+            ]);
+    }
+
+    /**
+     * Complementa o teste acima: a filial não tem NADA configurado nas
+     * próprias colunas (NULL = "não configurado"), e o embarque é endereçado
+     * à matriz que escolheu SYSTEM. Ler a coluna crua da filial mostraria
+     * "Contraparte" (o default histórico do enum ausente) enquanto o
+     * documento de fato sai com a nomenclatura do sistema — é a mentira que
+     * fromCompany() existe para evitar. Sozinho este teste NÃO comprova que
+     * a filial é lida antes da matriz (matriz e filial convergem para o
+     * mesmo valor em qualquer arranjo dos argumentos aqui) — quem prova isso
+     * é o teste acima, com valores divergentes nas duas empresas.
      */
     public function test_branch_with_blank_columns_inherits_system_from_its_headquarters(): void
     {
