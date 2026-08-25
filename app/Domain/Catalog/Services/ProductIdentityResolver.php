@@ -160,11 +160,26 @@ class ProductIdentityResolver
      * Limitação aceita: se o produto for renomeado depois, a descrição antiga
      * deixa de casar com o nome e passa a ser tratada como digitada — o texto
      * do snapshot é preservado, que é o comportamento conservador correto.
+     *
+     * A preferência entra em dois pontos: showDescription zera tudo primeiro
+     * (inclusive o texto digitado — é um controle de exibição, não de fonte);
+     * depois, texto digitado ainda vence as duas fontes, porque é um humano
+     * escrevendo para aquele documento específico. Só quando não há texto
+     * digitado a preferência escolhe entre o cadastro do produto (SYSTEM) e o
+     * pivot da contraparte (COUNTERPARTY, o padrão histórico).
      */
     private function resolveDescription(Product $product, ?CompanyProduct $pivot, ?string $lineDescription): ?string
     {
+        if (! $this->naming->showDescription) {
+            return null;
+        }
+
         if ($this->isDeliberate($lineDescription, $product)) {
             return $lineDescription;
+        }
+
+        if (! $this->naming->description->isCounterparty()) {
+            return filled($product->description) ? (string) $product->description : null;
         }
 
         if (filled($pivot?->external_description)) {

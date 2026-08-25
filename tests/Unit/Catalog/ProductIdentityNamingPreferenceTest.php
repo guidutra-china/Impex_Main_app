@@ -113,4 +113,53 @@ class ProductIdentityNamingPreferenceTest extends TestCase
 
         $this->assertSame('9506.91.00', $identity->ncm);
     }
+
+    public function test_descricao_do_cliente_e_o_padrao(): void
+    {
+        $identity = ProductIdentityResolver::forClient($this->client->id)
+            ->resolve($this->linkedProduct());
+
+        $this->assertSame('Olympic bearing bar, 1.5 m', $identity->description);
+    }
+
+    public function test_descricao_do_sistema_usa_o_cadastro_do_produto(): void
+    {
+        $preference = new NamingPreference(description: DocumentNamingSource::SYSTEM);
+
+        $identity = ProductIdentityResolver::forClient($this->client->id, null, $preference)
+            ->resolve($this->linkedProduct());
+
+        $this->assertSame('Barra em aço para treinos livres', $identity->description);
+    }
+
+    public function test_texto_digitado_na_linha_vence_as_duas_fontes(): void
+    {
+        $preference = new NamingPreference(description: DocumentNamingSource::SYSTEM);
+
+        $identity = ProductIdentityResolver::forClient($this->client->id, null, $preference)
+            ->resolve($this->linkedProduct(), lineDescription: 'Special packing, 2 pcs/ctn');
+
+        $this->assertSame('Special packing, 2 pcs/ctn', $identity->description);
+    }
+
+    public function test_ocultar_descricao_zera_inclusive_o_texto_digitado(): void
+    {
+        $preference = new NamingPreference(showDescription: false);
+
+        $identity = ProductIdentityResolver::forClient($this->client->id, null, $preference)
+            ->resolve($this->linkedProduct(), lineDescription: 'Special packing, 2 pcs/ctn');
+
+        $this->assertNull($identity->description);
+    }
+
+    public function test_descricao_do_sistema_vazia_nao_cai_para_o_cliente(): void
+    {
+        $preference = new NamingPreference(description: DocumentNamingSource::SYSTEM);
+        $product = $this->linkedProduct([], ['description' => null]);
+
+        $identity = ProductIdentityResolver::forClient($this->client->id, null, $preference)
+            ->resolve($product);
+
+        $this->assertNull($identity->description);
+    }
 }
