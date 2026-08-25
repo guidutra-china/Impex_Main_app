@@ -161,7 +161,7 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
                     // Linha sem produto continua imprimindo "—"; produto sem
                     // identificador continua imprimindo célula vazia.
                     'model_no' => $product ? $identity->code : '—',
-                    'ncm' => $identity->ncm,
+                    'ncm' => self::formatNcm($identity->ncm),
                     'product_name' => $identity->name,
                     'description' => $this->formatDescription(
                         $identity->description ?: ($piItem?->specifications ?? '')
@@ -279,6 +279,21 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
             ->get()
             ->map(fn (Company $c) => filled($c->legal_name) ? $c->legal_name : $c->name)
             ->toArray();
+    }
+
+    /**
+     * O documento mostra a posição de 4 dígitos; o banco guarda os 8 que o
+     * despachante enviou, que é o que a DI/DUIMP precisa. Formatação é do
+     * documento, não do dado.
+     *
+     * Menos de 4 dígitos devolve null: um fragmento de posição num documento
+     * aduaneiro é pior do que campo vazio.
+     */
+    private static function formatNcm(?string $ncm): ?string
+    {
+        $digits = preg_replace('/\D/', '', (string) $ncm);
+
+        return strlen((string) $digits) >= 4 ? substr((string) $digits, 0, 4) : null;
     }
 
     private function labels(string $key): string

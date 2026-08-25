@@ -144,7 +144,9 @@ class ClientNcmTest extends TestCase
 
         $withNcm = (new CommercialInvoicePdfTemplate($this->shipment->fresh(), 'en'))->getData();
         $this->assertTrue($withNcm['show_ncm']);
-        $this->assertSame('84314900', $withNcm['items'][0]['ncm']);
+        // O banco guarda os 8 dígitos do despachante; o documento imprime
+        // só a posição de 4.
+        $this->assertSame('8431', $withNcm['items'][0]['ncm']);
     }
 
     public function test_commercial_invoice_excel_adds_the_ncm_column_without_shifting_the_totals(): void
@@ -160,7 +162,8 @@ class ClientNcmTest extends TestCase
         $this->assertContains('NCM', array_map(fn ($c) => trim((string) $c), $header));
 
         $text = implode("\n", array_map(fn ($row) => implode('|', array_map(fn ($c) => (string) $c, $row)), $rows));
-        $this->assertStringContainsString('84314900', $text);
+        // Mesma regra do PDF: a planilha imprime a posição de 4 dígitos.
+        $this->assertStringContainsString('8431', $text);
 
         // Total continua correto com a coluna extra (10 × 10.00 = 100.00).
         $grandTotal = collect($rows)->first(fn ($row) => in_array('GRAND TOTAL', array_map(fn ($c) => trim((string) $c), $row), true));
