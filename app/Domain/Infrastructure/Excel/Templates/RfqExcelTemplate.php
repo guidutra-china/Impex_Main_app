@@ -65,7 +65,11 @@ class RfqExcelTemplate extends AbstractExcelTemplate
         $showTargetPrice = $this->options['show_target_price'] ?? false;
         $currencyCode = $sq->currency_code ?? 'USD';
 
-        $identityResolver = ProductIdentityResolver::forSupplier($sq->company_id);
+        // Mesmo destinatário e mesma ausência de filial do RfqPdfTemplate.
+        $identityResolver = ProductIdentityResolver::forSupplierCompany(
+            company: $sq->company,
+            overrides: $this->options,
+        );
         $identityResolver->warm($sq->items->map(fn ($item) => $item->product));
 
         $rows = [];

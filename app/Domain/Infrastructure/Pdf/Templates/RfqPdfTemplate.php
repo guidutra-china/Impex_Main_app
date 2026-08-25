@@ -42,7 +42,11 @@ class RfqPdfTemplate extends AbstractPdfTemplate
         $showTargetPrice = $this->options['show_target_price'] ?? false;
 
         // RFQ vai para o fornecedor: usa o código/nome que ele conhece.
-        $identityResolver = ProductIdentityResolver::forSupplier($sq->company_id);
+        // Fornecedor não tem conceito de filial — sem parent:.
+        $identityResolver = ProductIdentityResolver::forSupplierCompany(
+            company: $sq->company,
+            overrides: $this->options,
+        );
         $identityResolver->warm($sq->items->map(fn ($item) => $item->product));
 
         $items = $sq->items->map(function ($item, $index) use ($currencyCode, $showTargetPrice, $identityResolver) {

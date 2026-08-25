@@ -14,8 +14,9 @@ class PurchaseOrderPdfTemplate extends AbstractPdfTemplate
         \Illuminate\Database\Eloquent\Model $model,
         string $locale = 'en',
         bool $withImages = false,
+        array $options = [],
     ) {
-        parent::__construct($model, $locale);
+        parent::__construct($model, $locale, $options);
         $this->withImages = $withImages;
     }
 
@@ -60,7 +61,11 @@ class PurchaseOrderPdfTemplate extends AbstractPdfTemplate
 
         // Documento enviado ao fornecedor: identifica o produto como ELE o
         // conhece (código/nome/descrição do pivot), não pelo nosso SKU.
-        $identityResolver = ProductIdentityResolver::forSupplier($po->supplier_company_id);
+        // Fornecedor não tem conceito de filial — sem parent:.
+        $identityResolver = ProductIdentityResolver::forSupplierCompany(
+            company: $po->supplierCompany,
+            overrides: $this->options,
+        );
         $identityResolver->warm($po->items->map(fn ($item) => $item->product));
 
         $items = $po->items->sortBy('sort_order')->values()->map(function ($item, $index) use ($currencyCode, $identityResolver) {
