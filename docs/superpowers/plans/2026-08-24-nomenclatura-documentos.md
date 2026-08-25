@@ -50,7 +50,9 @@ construtor do template: um parâmetro `array $options` recebe **todo** o `$data`
 os demais são mapeados por nome em snake_case. É assim que o modal chega no template.
 
 `commercialInvoiceOptions()` (`app/Filament/Resources/Shipments/Concerns/ShipmentHeaderActions.php:182`)
-é compartilhado por cinco ações: CI PDF, preview, e-mail, Excel e PI do embarque.
+é compartilhado por quatro ações que constroem um template: CI PDF, preview, Excel e PI do
+embarque. A ação de e-mail (`SendDocumentByEmailAction`) fica de fora — ela anexa um documento
+já gerado e nunca instancia um template, então não tem controles de nomenclatura próprios.
 
 Rodar testes: `php artisan test --filter=NomeDoTeste`
 

@@ -104,9 +104,13 @@ alguém quis o nome em inglês.
 ### Modal
 
 `commercialInvoiceOptions()` ganha quatro controles com default vindo da
-empresa. Ele já é compartilhado por cinco ações (CI PDF, preview, e-mail, Excel
-e PI do embarque), então as cinco herdam. PO e RFQ recebem os mesmos controles
-nos seus próprios formulários.
+empresa. Ele já é compartilhado por quatro ações que de fato constroem um
+template (CI PDF, preview, Excel e PI do embarque), então as quatro herdam.
+A ação de e-mail (`SendDocumentByEmailAction`) NÃO está entre elas: ela anexa
+um documento já gerado e nunca instancia um template, então não tem — nem
+pode ter — os controles de nomenclatura; quem quer nomenclatura diferente
+gera o PDF de novo antes de enviar. PO e RFQ recebem os mesmos controles nos
+seus próprios formulários.
 
 ### NCM na Commercial Invoice
 

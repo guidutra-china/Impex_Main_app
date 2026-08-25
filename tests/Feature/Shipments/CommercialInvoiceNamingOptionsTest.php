@@ -16,9 +16,15 @@ use Tests\TestCase;
 
 /**
  * Controles de nomenclatura no modal de geração de documentos do embarque
- * (Task 8). Cobre a Commercial Invoice PDF; o formulário é compartilhado
- * pelas outras cinco actions (preview, e-mail, Excel, proforma) então uma
- * cobertura aqui já vale para as seis.
+ * (Task 8). Cobre a Commercial Invoice PDF; o formulário
+ * (commercialInvoiceOptions()) é compartilhado pelas outras três ações que
+ * de fato constroem um template — preview, Excel e a Proforma Invoice do
+ * embarque — então uma cobertura aqui já vale para as quatro.
+ *
+ * "Send by Email" NÃO está nessa lista: SendDocumentByEmailAction anexa um
+ * documento já gerado e nunca instancia um template, então não tem — nem
+ * pode ter — os controles de nomenclatura. Quem quer nomenclatura diferente
+ * gera o PDF de novo antes de enviar.
  */
 class CommercialInvoiceNamingOptionsTest extends TestCase
 {
