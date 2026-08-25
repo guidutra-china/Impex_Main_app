@@ -57,9 +57,13 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
             'cartons.pallet.container',
         ]);
 
-        $this->identity = ProductIdentityResolver::forClient(
-            $shipment->getDocumentClient()?->id,
-            $shipment->company_id,
+        // Mesma precedência (e mesma armadilha de argumentos) do Commercial
+        // Invoice: company: é o endereço do documento (filial > matriz via
+        // getDocumentClient()), parent: é sempre a matriz.
+        $this->identity = ProductIdentityResolver::forClientCompany(
+            company: $shipment->getDocumentClient(),
+            parent: $shipment->company,
+            overrides: $this->options,
         );
         $this->warmIdentityCache($shipment);
 

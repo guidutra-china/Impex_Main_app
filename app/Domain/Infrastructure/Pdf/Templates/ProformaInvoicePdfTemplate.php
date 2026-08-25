@@ -26,8 +26,9 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
         bool $withImages = false,
         bool $showProductCode = false,
         bool $showModelNumber = true,
+        array $options = [],
     ) {
-        parent::__construct($model, $locale);
+        parent::__construct($model, $locale, $options);
         $this->hideCommission = $hideCommission;
         $this->withImages = $withImages;
         $this->showProductCode = $showProductCode;
@@ -76,7 +77,13 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
 
         $currencyCode = $pi->currency_code ?? 'USD';
 
-        $identityResolver = ProductIdentityResolver::forClient($pi->company_id);
+        // PI é faturada direto à empresa — sem conceito de filial (só
+        // company_id, sem company_branch_id no schema), então nenhum parent:
+        // aqui, diferente do Commercial Invoice/Packing List do embarque.
+        $identityResolver = ProductIdentityResolver::forClientCompany(
+            company: $pi->company,
+            overrides: $this->options,
+        );
         $identityResolver->warm($pi->items->map(fn ($item) => $item->product));
 
         $items = $pi->items->sortBy('sort_order')->values()->map(function ($item, $index) use ($currencyCode, $identityResolver) {
