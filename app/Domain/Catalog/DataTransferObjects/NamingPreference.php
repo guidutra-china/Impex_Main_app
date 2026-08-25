@@ -57,7 +57,7 @@ class NamingPreference
             code: $this->source($options, 'naming_code_source', $this->code),
             name: $this->source($options, 'naming_name_source', $this->name),
             description: $this->source($options, 'naming_description_source', $this->description),
-            showDescription: array_key_exists('show_description', $options)
+            showDescription: (array_key_exists('show_description', $options) && ! blank($options['show_description']))
                 ? (bool) $options['show_description']
                 : $this->showDescription,
         );

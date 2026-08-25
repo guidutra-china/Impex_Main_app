@@ -62,4 +62,58 @@ class NamingPreferenceTest extends TestCase
 
         $this->assertEquals(NamingPreference::default(), $preference);
     }
+
+    public function test_show_description_em_branco_nao_altera_o_valor_atual(): void
+    {
+        $preference = NamingPreference::default()->withOverrides(['show_description' => '']);
+
+        $this->assertTrue($preference->showDescription);
+    }
+
+    public function test_show_description_nulo_nao_altera_o_valor_atual(): void
+    {
+        $preference = NamingPreference::default()->withOverrides(['show_description' => null]);
+
+        $this->assertTrue($preference->showDescription);
+    }
+
+    public function test_show_description_false_desliga_a_descricao(): void
+    {
+        $preference = NamingPreference::default()->withOverrides(['show_description' => false]);
+
+        $this->assertFalse($preference->showDescription);
+    }
+
+    public function test_show_description_em_branco_preserva_false_salvo_na_empresa(): void
+    {
+        $company = Company::factory()->create([
+            'document_show_description' => false,
+        ]);
+
+        $preference = NamingPreference::fromCompany($company)->withOverrides(['show_description' => '']);
+
+        $this->assertFalse($preference->showDescription);
+    }
+
+    public function test_show_description_nulo_preserva_false_salvo_na_empresa(): void
+    {
+        $company = Company::factory()->create([
+            'document_show_description' => false,
+        ]);
+
+        $preference = NamingPreference::fromCompany($company)->withOverrides(['show_description' => null]);
+
+        $this->assertFalse($preference->showDescription);
+    }
+
+    public function test_show_description_false_mantem_false_salvo_na_empresa(): void
+    {
+        $company = Company::factory()->create([
+            'document_show_description' => false,
+        ]);
+
+        $preference = NamingPreference::fromCompany($company)->withOverrides(['show_description' => false]);
+
+        $this->assertFalse($preference->showDescription);
+    }
 }
