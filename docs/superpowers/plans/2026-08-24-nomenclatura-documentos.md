@@ -770,6 +770,37 @@ git commit -m "feat(catalog): fonte e exibição da descrição no resolver"
 
 ---
 
+### Fábricas do resolver — use estas nas tarefas de fiação
+
+A revisão das Tasks 4–5 substituiu a assinatura que os blocos abaixo usam. **Não use
+`forClient($id, $fallback, $naming)`** — essa forma não existe mais, e a variante de
+fornecedor colocava `$naming` em outra posição, o que o PHP descartava em silêncio.
+
+```php
+// documentos de cliente (CI, Packing List, Proforma, PI do embarque)
+$resolver = ProductIdentityResolver::forClientCompany(
+    $shipment->getDocumentClient(),   // filial ou matriz, o model
+    $shipment->company,               // a matriz, para herança
+    $this->options,                   // dados do modal
+);
+
+// documentos de fornecedor (PO, RFQ)
+$resolver = ProductIdentityResolver::forSupplierCompany($po->supplierCompany, $this->options);
+```
+
+Uma chamada deriva o pivot **e** a preferência, com a mesma regra de precedência
+filial > matriz. Derivar as duas separadamente deixava passar em silêncio o caso de
+uma receber a matriz e a outra não.
+
+`forClient(?int, ?int)` e `forSupplier(?int)` continuam existindo, sem preferência,
+para os chamadores que não geram documento — `PackingListBuilder`, os relation managers,
+`GenerateProductionScheduleTemplate` e `PaymentStatementPdfTemplate`. **Não mexa neles.**
+
+Os templates precisam ter a empresa carregada. Onde hoje só existe `company_id`
+(Proforma, PO, RFQ), acrescente o eager-load em vez de deixar o Eloquent buscar sozinho.
+
+---
+
 ### Task 6: NCM com 4 dígitos na Commercial Invoice
 
 **Files:**
