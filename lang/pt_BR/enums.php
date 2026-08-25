@@ -47,6 +47,10 @@ return [
         'discontinued' => 'Descontinuado',
         'out_of_stock' => 'Fora de Estoque',
     ],
+    'document_naming_source' => [
+        'counterparty' => 'Contraparte',
+        'system' => 'Sistema',
+    ],
     'additional_cost_status' => [
         'pending' => 'Pendente',
         'invoiced' => 'Faturado',

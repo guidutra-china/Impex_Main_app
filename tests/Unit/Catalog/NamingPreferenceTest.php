@@ -16,23 +16,23 @@ class NamingPreferenceTest extends TestCase
     {
         $preference = NamingPreference::default();
 
-        $this->assertSame(DocumentNamingSource::Counterparty, $preference->code);
-        $this->assertSame(DocumentNamingSource::Counterparty, $preference->name);
-        $this->assertSame(DocumentNamingSource::Counterparty, $preference->description);
+        $this->assertSame(DocumentNamingSource::COUNTERPARTY, $preference->code);
+        $this->assertSame(DocumentNamingSource::COUNTERPARTY, $preference->name);
+        $this->assertSame(DocumentNamingSource::COUNTERPARTY, $preference->description);
         $this->assertTrue($preference->showDescription);
     }
 
     public function test_le_os_padroes_da_empresa(): void
     {
         $company = Company::factory()->create([
-            'document_name_source' => DocumentNamingSource::System,
+            'document_name_source' => DocumentNamingSource::SYSTEM,
             'document_show_description' => false,
         ]);
 
         $preference = NamingPreference::fromCompany($company);
 
-        $this->assertSame(DocumentNamingSource::System, $preference->name);
-        $this->assertSame(DocumentNamingSource::Counterparty, $preference->code);
+        $this->assertSame(DocumentNamingSource::SYSTEM, $preference->name);
+        $this->assertSame(DocumentNamingSource::COUNTERPARTY, $preference->code);
         $this->assertFalse($preference->showDescription);
     }
 
@@ -44,15 +44,15 @@ class NamingPreferenceTest extends TestCase
     public function test_overrides_do_modal_vencem_a_empresa(): void
     {
         $company = Company::factory()->create([
-            'document_name_source' => DocumentNamingSource::System,
+            'document_name_source' => DocumentNamingSource::SYSTEM,
         ]);
 
         $preference = NamingPreference::fromCompany($company)->withOverrides([
-            'naming_name_source' => 'counterparty',
-            'show_description' => false,
+            NamingPreference::KEY_NAME => 'counterparty',
+            NamingPreference::KEY_SHOW_DESCRIPTION => false,
         ]);
 
-        $this->assertSame(DocumentNamingSource::Counterparty, $preference->name);
+        $this->assertSame(DocumentNamingSource::COUNTERPARTY, $preference->name);
         $this->assertFalse($preference->showDescription);
     }
 
@@ -65,21 +65,21 @@ class NamingPreferenceTest extends TestCase
 
     public function test_show_description_em_branco_nao_altera_o_valor_atual(): void
     {
-        $preference = NamingPreference::default()->withOverrides(['show_description' => '']);
+        $preference = NamingPreference::default()->withOverrides([NamingPreference::KEY_SHOW_DESCRIPTION => '']);
 
         $this->assertTrue($preference->showDescription);
     }
 
     public function test_show_description_nulo_nao_altera_o_valor_atual(): void
     {
-        $preference = NamingPreference::default()->withOverrides(['show_description' => null]);
+        $preference = NamingPreference::default()->withOverrides([NamingPreference::KEY_SHOW_DESCRIPTION => null]);
 
         $this->assertTrue($preference->showDescription);
     }
 
     public function test_show_description_false_desliga_a_descricao(): void
     {
-        $preference = NamingPreference::default()->withOverrides(['show_description' => false]);
+        $preference = NamingPreference::default()->withOverrides([NamingPreference::KEY_SHOW_DESCRIPTION => false]);
 
         $this->assertFalse($preference->showDescription);
     }
@@ -90,7 +90,7 @@ class NamingPreferenceTest extends TestCase
             'document_show_description' => false,
         ]);
 
-        $preference = NamingPreference::fromCompany($company)->withOverrides(['show_description' => '']);
+        $preference = NamingPreference::fromCompany($company)->withOverrides([NamingPreference::KEY_SHOW_DESCRIPTION => '']);
 
         $this->assertFalse($preference->showDescription);
     }
@@ -101,7 +101,7 @@ class NamingPreferenceTest extends TestCase
             'document_show_description' => false,
         ]);
 
-        $preference = NamingPreference::fromCompany($company)->withOverrides(['show_description' => null]);
+        $preference = NamingPreference::fromCompany($company)->withOverrides([NamingPreference::KEY_SHOW_DESCRIPTION => null]);
 
         $this->assertFalse($preference->showDescription);
     }
@@ -112,8 +112,95 @@ class NamingPreferenceTest extends TestCase
             'document_show_description' => false,
         ]);
 
-        $preference = NamingPreference::fromCompany($company)->withOverrides(['show_description' => false]);
+        $preference = NamingPreference::fromCompany($company)->withOverrides([NamingPreference::KEY_SHOW_DESCRIPTION => false]);
 
         $this->assertFalse($preference->showDescription);
+    }
+
+    public function test_as_tres_chaves_de_enum_sao_aplicadas_independentemente(): void
+    {
+        $preference = NamingPreference::default()->withOverrides([
+            NamingPreference::KEY_CODE => 'system',
+            NamingPreference::KEY_NAME => 'system',
+            NamingPreference::KEY_DESCRIPTION => 'system',
+        ]);
+
+        $this->assertSame(DocumentNamingSource::SYSTEM, $preference->code);
+        $this->assertSame(DocumentNamingSource::SYSTEM, $preference->name);
+        $this->assertSame(DocumentNamingSource::SYSTEM, $preference->description);
+    }
+
+    public function test_string_invalida_degrada_para_o_valor_atual_em_vez_de_estourar(): void
+    {
+        $preference = NamingPreference::default()->withOverrides([
+            NamingPreference::KEY_CODE => 'lixo-invalido',
+        ]);
+
+        $this->assertSame(DocumentNamingSource::COUNTERPARTY, $preference->code);
+    }
+
+    public function test_filial_com_tudo_nulo_herda_todos_os_campos_da_matriz(): void
+    {
+        $matriz = Company::factory()->create([
+            'document_code_source' => DocumentNamingSource::SYSTEM,
+            'document_name_source' => DocumentNamingSource::SYSTEM,
+            'document_description_source' => DocumentNamingSource::SYSTEM,
+            'document_show_description' => false,
+        ]);
+        $filial = Company::factory()->create(['parent_company_id' => $matriz->id]);
+
+        $preference = NamingPreference::fromCompany($filial, $matriz);
+
+        $this->assertSame(DocumentNamingSource::SYSTEM, $preference->code);
+        $this->assertSame(DocumentNamingSource::SYSTEM, $preference->name);
+        $this->assertSame(DocumentNamingSource::SYSTEM, $preference->description);
+        $this->assertFalse($preference->showDescription);
+    }
+
+    public function test_filial_com_campo_proprio_vence_a_matriz(): void
+    {
+        $matriz = Company::factory()->create([
+            'document_name_source' => DocumentNamingSource::SYSTEM,
+        ]);
+        $filial = Company::factory()->create([
+            'parent_company_id' => $matriz->id,
+            'document_name_source' => DocumentNamingSource::COUNTERPARTY,
+        ]);
+
+        $preference = NamingPreference::fromCompany($filial, $matriz);
+
+        $this->assertSame(DocumentNamingSource::COUNTERPARTY, $preference->name);
+    }
+
+    public function test_filial_herda_por_campo_nao_tudo_ou_nada(): void
+    {
+        $matriz = Company::factory()->create([
+            'document_code_source' => DocumentNamingSource::SYSTEM,
+            'document_show_description' => false,
+        ]);
+        $filial = Company::factory()->create([
+            'parent_company_id' => $matriz->id,
+            'document_name_source' => DocumentNamingSource::SYSTEM,
+        ]);
+
+        $preference = NamingPreference::fromCompany($filial, $matriz);
+
+        // Herdado da matriz, porque a filial não configurou.
+        $this->assertSame(DocumentNamingSource::SYSTEM, $preference->code);
+        $this->assertFalse($preference->showDescription);
+        // Próprio da filial, não o default da matriz (que está em branco também).
+        $this->assertSame(DocumentNamingSource::SYSTEM, $preference->name);
+        // Nem filial nem matriz configuraram: cai no histórico.
+        $this->assertSame(DocumentNamingSource::COUNTERPARTY, $preference->description);
+    }
+
+    public function test_filial_e_matriz_nulas_devolvem_o_default(): void
+    {
+        $matriz = Company::factory()->create();
+        $filial = Company::factory()->create(['parent_company_id' => $matriz->id]);
+
+        $preference = NamingPreference::fromCompany($filial, $matriz);
+
+        $this->assertEquals(NamingPreference::default(), $preference);
     }
 }

@@ -47,6 +47,10 @@ return [
         'discontinued' => '停产',
         'out_of_stock' => '缺货',
     ],
+    'document_naming_source' => [
+        'counterparty' => '交易对方',
+        'system' => '系统',
+    ],
     'additional_cost_status' => [
         'pending' => '待处理',
         'invoiced' => '已开票',
