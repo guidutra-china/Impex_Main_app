@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CRM\Companies\Schemas;
 
+use App\Domain\Catalog\Enums\DocumentNamingSource;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Enums\CompanyStatus;
 use App\Domain\CRM\Models\Company;
@@ -77,6 +78,53 @@ class CompanyForm
                             ])
                             ->placeholder(__('statements.use_system_default'))
                             ->nullable(),
+                        // As quatro colunas abaixo são anuláveis por natureza (ver a
+                        // migração 2026_08_25_024241): NULL significa "não configurado
+                        // — herda da matriz e, na ausência dela, do padrão histórico do
+                        // sistema" (NamingPreference::fromCompany()). Um Select em
+                        // branco (nullable + placeholder "Herdar da matriz") é a
+                        // representação natural para os três campos de origem — mesmo
+                        // padrão já usado no modal de geração de documentos.
+                        Select::make('document_code_source')
+                            ->label(__('forms.labels.naming_code_source'))
+                            ->options(DocumentNamingSource::class)
+                            ->native(false)
+                            ->nullable()
+                            ->placeholder(__('forms.placeholders.inherit_from_headquarters'))
+                            ->helperText(__('forms.helpers.naming_code_source').' '.__('forms.helpers.document_naming_inherits')),
+                        Select::make('document_name_source')
+                            ->label(__('forms.labels.naming_name_source'))
+                            ->options(DocumentNamingSource::class)
+                            ->native(false)
+                            ->nullable()
+                            ->placeholder(__('forms.placeholders.inherit_from_headquarters'))
+                            ->helperText(__('forms.helpers.naming_name_source').' '.__('forms.helpers.document_naming_inherits')),
+                        Select::make('document_description_source')
+                            ->label(__('forms.labels.naming_description_source'))
+                            ->options(DocumentNamingSource::class)
+                            ->native(false)
+                            ->nullable()
+                            ->placeholder(__('forms.placeholders.inherit_from_headquarters'))
+                            ->helperText(__('forms.helpers.naming_description_source').' '.__('forms.helpers.document_naming_inherits')),
+                        // document_show_description é um booleano anulável — o terceiro
+                        // estado (herdar) é o comportamento correto, não um acidente do
+                        // schema. Um Toggle não serve: o BooleanStateCast padrão do
+                        // Filament (Toggle::getDefaultStateCasts()) é fixado com
+                        // isNullable: false e transformaria "herdar" em "ocultar" a
+                        // cada salvamento, quebrando a herança de toda filial cujo
+                        // cadastro seja reaberto e salvo. Select::boolean() é o helper
+                        // pronto do próprio Filament para exatamente este caso: registra
+                        // um BooleanStateCast com isNullable: true (padrão do método),
+                        // então em branco vai e volta como null — sem hooks manuais.
+                        Select::make('document_show_description')
+                            ->label(__('forms.labels.document_show_description'))
+                            ->boolean(
+                                trueLabel: __('forms.labels.document_show_description_show'),
+                                falseLabel: __('forms.labels.document_show_description_hide'),
+                                placeholder: __('forms.placeholders.inherit_from_headquarters'),
+                            )
+                            ->native(false)
+                            ->helperText(__('forms.helpers.document_show_description_inherits')),
                     ])
                     ->columns(2)
                     ->columnSpan(['lg' => fn (?Company $record) => $record === null ? 3 : 2]),
