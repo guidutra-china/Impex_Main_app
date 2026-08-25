@@ -2,6 +2,7 @@
 
 namespace App\Domain\CRM\Models;
 
+use App\Domain\Catalog\Enums\DocumentNamingSource;
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\CRM\Enums\CompanyRole;
@@ -48,12 +49,20 @@ class Company extends Model
         'contracted_importer_details',
         'trade_fair_id',
         'preferred_language',
+        'document_code_source',
+        'document_name_source',
+        'document_description_source',
+        'document_show_description',
     ];
 
     protected function casts(): array
     {
         return [
             'status' => CompanyStatus::class,
+            'document_code_source' => DocumentNamingSource::class,
+            'document_name_source' => DocumentNamingSource::class,
+            'document_description_source' => DocumentNamingSource::class,
+            'document_show_description' => 'boolean',
         ];
     }
 
