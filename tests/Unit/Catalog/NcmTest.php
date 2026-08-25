@@ -46,4 +46,30 @@ class NcmTest extends TestCase
         // Fora do intervalo 4-8: curto demais continua null.
         $this->assertNull(Ncm::heading('84'));
     }
+
+    /**
+     * Espaço não quebrável (comum em texto colado do Siscomex ou extraído
+     * de PDF) e travessões unicode não podem reprovar um NCM que seria
+     * válido com espaço/hífen comuns. Antes de normalizar, um NBSP
+     * escondido no meio ou no fim do valor derrubava a checagem de
+     * caracteres válidos — e como show_ncm é derivado do valor já
+     * formatado, uma planilha inteira contaminada com NBSP não produzia
+     * células vazias isoladas: a coluna de NCM inteira sumia do documento.
+     */
+    public function test_espacos_e_travessoes_unicode_nao_reprovam_o_valor(): void
+    {
+        $this->assertSame('9506', Ncm::heading("9506\u{00A0}91.00"));
+        $this->assertSame('9506', Ncm::heading("9506.91.00\u{00A0}"));
+        $this->assertSame('9506', Ncm::heading("9506\u{2013}91.00"));
+    }
+
+    /**
+     * UTF-8 inválido é tratado explicitamente como "não é NCM" — não deixa
+     * o null de preg_replace('/u') vazar sem checagem para o resto da
+     * função.
+     */
+    public function test_utf8_invalido_devolve_null_em_vez_de_vazar(): void
+    {
+        $this->assertNull(Ncm::heading('9506'.chr(0xB1).chr(0x31)));
+    }
 }

@@ -44,7 +44,13 @@ class Ncm
      */
     public static function heading(?string $ncm): ?string
     {
-        $trimmed = trim((string) $ncm);
+        $normalized = self::normalizeSeparators((string) $ncm);
+
+        if ($normalized === null) {
+            return null;
+        }
+
+        $trimmed = trim($normalized);
 
         if ($trimmed === '' || ! preg_match('/^[\d.\-\/\s]+$/', $trimmed)) {
             return null;
@@ -53,5 +59,25 @@ class Ncm
         $digits = preg_replace('/\D/', '', $trimmed);
 
         return preg_match(self::DIGIT_COUNT_PATTERN, $digits) ? substr($digits, 0, 4) : null;
+    }
+
+    /**
+     * Espaço não quebrável (comum em texto colado do Siscomex ou extraído de
+     * PDF) e travessões unicode (en dash, em dash) viram espaço ASCII antes
+     * de qualquer outra checagem. Sem isso, um NBSP no meio ou no fim do
+     * valor reprovava a checagem de caracteres válidos — e como show_ncm é
+     * derivado do valor já formatado, uma planilha inteira contaminada com
+     * NBSP não produzia células vazias isoladas: a coluna de NCM inteira
+     * sumia do documento, sem nenhum aviso.
+     *
+     * preg_replace com /u devolve null quando a entrada não é UTF-8 válido.
+     * Tratado aqui explicitamente como "não é NCM" — propagar esse null
+     * como se fosse o valor normalizado, em vez de checar, faria a função
+     * inteira falhar silenciosamente para qualquer byte inválido perdido no
+     * meio de uma planilha grande.
+     */
+    private static function normalizeSeparators(string $value): ?string
+    {
+        return preg_replace('/[\p{Zs}\p{Pd}]/u', ' ', $value);
     }
 }
