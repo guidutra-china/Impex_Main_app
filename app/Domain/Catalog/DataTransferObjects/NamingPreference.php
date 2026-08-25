@@ -40,10 +40,10 @@ class NamingPreference
     public const KEY_SHOW_DESCRIPTION = 'naming_show_description';
 
     public function __construct(
-        public readonly DocumentNamingSource $code,
-        public readonly DocumentNamingSource $name,
-        public readonly DocumentNamingSource $description,
-        public readonly bool $showDescription,
+        public readonly DocumentNamingSource $code = DocumentNamingSource::COUNTERPARTY,
+        public readonly DocumentNamingSource $name = DocumentNamingSource::COUNTERPARTY,
+        public readonly DocumentNamingSource $description = DocumentNamingSource::COUNTERPARTY,
+        public readonly bool $showDescription = true,
     ) {}
 
     public static function default(): self

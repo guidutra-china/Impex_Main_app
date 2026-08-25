@@ -3,6 +3,7 @@
 namespace App\Domain\Catalog\Services;
 
 use App\Domain\AI\Import\Support\NameNormalizer;
+use App\Domain\Catalog\DataTransferObjects\NamingPreference;
 use App\Domain\Catalog\DataTransferObjects\ProductIdentity;
 use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\Catalog\Models\Product;
@@ -46,16 +47,21 @@ class ProductIdentityResolver
         private readonly string $role,
         /** Usado quando o documento é endereçado a uma filial: tenta a filial, depois a matriz. */
         private readonly ?int $fallbackCompanyId = null,
+        /** Null significa o comportamento histórico: o pivot da contraparte vence. */
+        private readonly NamingPreference $naming = new NamingPreference,
     ) {}
 
-    public static function forClient(?int $companyId, ?int $fallbackCompanyId = null): self
-    {
-        return new self($companyId, self::ROLE_CLIENT, $fallbackCompanyId);
+    public static function forClient(
+        ?int $companyId,
+        ?int $fallbackCompanyId = null,
+        ?NamingPreference $naming = null,
+    ): self {
+        return new self($companyId, self::ROLE_CLIENT, $fallbackCompanyId, $naming ?? NamingPreference::default());
     }
 
-    public static function forSupplier(?int $companyId): self
+    public static function forSupplier(?int $companyId, ?NamingPreference $naming = null): self
     {
-        return new self($companyId, self::ROLE_SUPPLIER);
+        return new self($companyId, self::ROLE_SUPPLIER, null, $naming ?? NamingPreference::default());
     }
 
     public function isClientSide(): bool
@@ -120,10 +126,15 @@ class ProductIdentityResolver
 
         $pivot = $this->pivot($product);
 
-        $code = (string) ($pivot?->external_code ?: ($product->model_number ?: ($product->sku ?: '')));
+        $counterpartyCode = $this->naming->code->isCounterparty()
+            ? $pivot?->external_code
+            : null;
 
-        $name = (string) ($pivot?->external_name
-            ?: (filled($lineName) ? $lineName : ($product->name ?: '—')));
+        $code = (string) ($counterpartyCode ?: ($product->model_number ?: ($product->sku ?: '')));
+
+        $name = $this->naming->name->isCounterparty()
+            ? (string) ($pivot?->external_name ?: (filled($lineName) ? $lineName : ($product->name ?: '—')))
+            : (string) ($product->name ?: '—');
 
         return new ProductIdentity(
             code: $code,
@@ -132,7 +143,7 @@ class ProductIdentityResolver
             // NCM é classificação do importador: não existe do lado do fornecedor
             // e não cai para products.hs_code (HS de 6 dígitos não é NCM).
             ncm: $this->isClientSide() ? ($pivot?->external_ncm ?: null) : null,
-            fromCounterparty: filled($pivot?->external_code),
+            fromCounterparty: filled($counterpartyCode),
         );
     }
 
