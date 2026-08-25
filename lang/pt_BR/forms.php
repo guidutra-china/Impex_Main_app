@@ -7,6 +7,10 @@ return [
     ],
 
     'labels' => [
+        'naming_code_source' => 'Origem do MODEL NO',
+        'naming_name_source' => 'Origem do nome do produto',
+        'naming_show_description' => 'Exibir linha de descrição',
+        'naming_description_source' => 'Origem da descrição',
         'bank_fee_amount' => 'Valor da taxa',
         'bank_fee_currency' => 'Moeda da taxa',
         'bank_fee_billable_to' => 'Quem paga a taxa',
@@ -707,6 +711,7 @@ return [
         'revert_reason' => 'Motivo da Reversão',
     ],
     'sections' => [
+        'naming_preferences' => 'Nomenclatura dos produtos',
         'bank_fee' => 'Taxa bancária',
         'trip_details' => 'Dados da Viagem',
         'access_role' => 'Acesso & Função',
@@ -848,6 +853,10 @@ return [
         'filter_by_supplier' => 'Filtrar por Fornecedor',
     ],
     'helpers' => [
+        'naming_preferences_section' => 'Controla se o documento usa a nomenclatura informada pela contraparte (cadastro do vínculo) ou o cadastro interno do produto, campo a campo.',
+        'naming_code_source' => 'Contraparte usa o código informado pela contraparte (MODEL NO); Sistema usa o SKU interno do produto.',
+        'naming_name_source' => 'Contraparte usa o nome informado pela contraparte; Sistema usa o nome cadastrado no produto.',
+        'naming_description_source' => 'A descrição do Sistema está em português; a da Contraparte, em inglês. Confira antes de usar em um documento de exportação.',
         'bank_fee_amount' => 'Tarifa cobrada pelo banco por fora da transferência. Não entra no valor alocado às parcelas.',
         'bank_fee_process' => 'PI ou embarque onde a taxa será registrada. Sugestões vêm das parcelas alocadas acima.',
         'bank_fee_billable_to' => 'Cliente gera cobrança; Fornecedor vira crédito que abate do que devemos a ele; Empresa apenas registra o custo.',

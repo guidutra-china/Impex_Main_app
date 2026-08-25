@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Shipments\Concerns;
 
+use App\Domain\Catalog\DataTransferObjects\NamingPreference;
+use App\Domain\Catalog\Enums\DocumentNamingSource;
 use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
@@ -26,6 +28,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 
 /**
@@ -215,7 +218,72 @@ trait ShipmentHeaderActions
                 ->label(__('forms.labels.save_as_custom_price'))
                 ->visible(fn (Get $get) => ! $get('use_custom_prices') && $get('use_formula'))
                 ->helperText(__('forms.helpers.save_formula_prices_to_custom_price')),
+            $this->namingPreferenceSection(),
         ];
+    }
+
+    /**
+     * Agrupados à parte dos seis controles acima (que já lotam o modal)
+     * porque respondem a uma pergunta diferente — não "o que mostrar" mas
+     * "de onde tirar o nome" — e porque o toggle de descrição precisa ficar
+     * perto do Select que ele esconde para o comportamento condicional ficar
+     * óbvio para quem preenche o formulário.
+     *
+     * Os defaults vêm de namingPreferenceDefaults(), nunca das colunas cruas
+     * da empresa: uma filial com as colunas em branco herda da matriz, e ler
+     * a coluna diretamente mostraria "Contraparte" no modal enquanto o
+     * documento sairia com a nomenclatura do sistema.
+     */
+    protected function namingPreferenceSection(): Section
+    {
+        $defaults = $this->namingPreferenceDefaults();
+
+        return Section::make(__('forms.sections.naming_preferences'))
+            ->description(__('forms.helpers.naming_preferences_section'))
+            ->columns(2)
+            ->collapsible()
+            ->schema([
+                Select::make(NamingPreference::KEY_CODE)
+                    ->label(__('forms.labels.naming_code_source'))
+                    ->options(DocumentNamingSource::class)
+                    ->default($defaults->code->value)
+                    ->native(false)
+                    ->helperText(__('forms.helpers.naming_code_source')),
+                Select::make(NamingPreference::KEY_NAME)
+                    ->label(__('forms.labels.naming_name_source'))
+                    ->options(DocumentNamingSource::class)
+                    ->default($defaults->name->value)
+                    ->native(false)
+                    ->helperText(__('forms.helpers.naming_name_source')),
+                Toggle::make(NamingPreference::KEY_SHOW_DESCRIPTION)
+                    ->label(__('forms.labels.naming_show_description'))
+                    ->default($defaults->showDescription)
+                    ->live(),
+                Select::make(NamingPreference::KEY_DESCRIPTION)
+                    ->label(__('forms.labels.naming_description_source'))
+                    ->options(DocumentNamingSource::class)
+                    ->default($defaults->description->value)
+                    ->native(false)
+                    ->visible(fn (Get $get) => (bool) $get(NamingPreference::KEY_SHOW_DESCRIPTION))
+                    ->helperText(__('forms.helpers.naming_description_source')),
+            ]);
+    }
+
+    /**
+     * Mesma precedência do CommercialInvoicePdfTemplate: endereço do
+     * documento (filial, senão matriz) resolvido por getDocumentClient(),
+     * matriz como fallback de herança para fromCompany(). getRecord() pode
+     * ser null enquanto o schema do modal ainda está sendo montado;
+     * fromCompany(null, null) já devolve o default histórico nesse caso.
+     */
+    protected function namingPreferenceDefaults(): NamingPreference
+    {
+        $record = $this->getRecord();
+
+        return NamingPreference::fromCompany(
+            $record?->getDocumentClient(),
+            $record?->company,
+        );
     }
 
     protected function getManufacturerOptionsForShipment(): array

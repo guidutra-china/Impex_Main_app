@@ -7,6 +7,10 @@ return [
     ],
 
     'labels' => [
+        'naming_code_source' => 'MODEL NO 来源',
+        'naming_name_source' => '产品名称来源',
+        'naming_show_description' => '显示描述行',
+        'naming_description_source' => '描述来源',
         'bank_fee_amount' => '手续费金额',
         'bank_fee_currency' => '手续费币种',
         'bank_fee_billable_to' => '手续费承担方',
@@ -675,6 +679,7 @@ return [
         'revert_reason' => '恢复原因',
     ],
     'sections' => [
+        'naming_preferences' => '产品命名',
         'bank_fee' => '银行手续费',
         'trip_details' => '出差信息',
         'access_role' => '访问与角色',
@@ -811,6 +816,10 @@ return [
         'filter_by_supplier' => '按供应商筛选',
     ],
     'helpers' => [
+        'naming_preferences_section' => '逐项控制单据使用对方提供的命名（对方对该产品的登记）还是系统内部的产品档案。',
+        'naming_code_source' => '"对方"使用对方提供的编码（MODEL NO）；"系统"使用产品内部的 SKU。',
+        'naming_name_source' => '"对方"使用对方提供的名称；"系统"使用产品档案登记的名称。',
+        'naming_description_source' => '系统的描述是葡萄牙语，对方的描述是英语。用于出口单据前请先确认。',
         'bank_fee_amount' => '银行在汇款金额之外收取的手续费，不计入分配给付款计划的金额。',
         'bank_fee_process' => '记录该手续费的形式发票或出货。建议项来自上方的付款分配。',
         'bank_fee_billable_to' => '客户：产生应收；供应商：形成可抵扣应付的贷项；公司：仅记录成本。',

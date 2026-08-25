@@ -7,6 +7,10 @@ return [
     ],
 
     'labels' => [
+        'naming_code_source' => 'MODEL NO source',
+        'naming_name_source' => 'Product name source',
+        'naming_show_description' => 'Show description line',
+        'naming_description_source' => 'Description source',
         'bank_fee_amount' => 'Fee amount',
         'bank_fee_currency' => 'Fee currency',
         'bank_fee_billable_to' => 'Fee paid by',
@@ -708,6 +712,7 @@ return [
         'revert_reason' => 'Reason for Revert',
     ],
     'sections' => [
+        'naming_preferences' => 'Product naming',
         'bank_fee' => 'Bank fee',
         'trip_details' => 'Trip Details',
         'access_role' => 'Access & Role',
@@ -849,6 +854,10 @@ return [
         'filter_by_supplier' => 'Filter by Supplier',
     ],
     'helpers' => [
+        'naming_preferences_section' => 'Controls, field by field, whether the document uses the naming supplied by the counterparty (their record of the product) or the internal product catalog.',
+        'naming_code_source' => 'Counterparty uses the code supplied by the counterparty (MODEL NO); System uses the product\'s internal SKU.',
+        'naming_name_source' => 'Counterparty uses the name supplied by the counterparty; System uses the name registered on the product.',
+        'naming_description_source' => 'The System description is in Portuguese; the Counterparty one is in English. Check before using it on an export invoice.',
         'bank_fee_amount' => 'Fee charged by the bank on top of the transfer. It is not part of the amount allocated to schedule items.',
         'bank_fee_process' => 'PI or shipment the fee is recorded on. Suggestions come from the allocations above.',
         'bank_fee_billable_to' => 'Client creates a receivable; Supplier becomes a credit deducted from what we owe them; Company just records the cost.',
