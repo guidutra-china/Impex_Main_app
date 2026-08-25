@@ -27,6 +27,20 @@ namespace App\Domain\Catalog\Support;
  * Um valor fora do intervalo (curto demais ou comprido demais) devolve
  * null: um fragmento de posição num documento aduaneiro é pior do que campo
  * vazio.
+ *
+ * Limitação aceita: dentro do intervalo 4-8, o comprimento sozinho não
+ * decide se o valor faz sentido. Um bruto de 6 dígitos sem separador
+ * ("102291") é aceito e truncado para os 4 primeiros — mas é ambíguo:
+ * pode ser uma subposição do SH, caso em que os 4 primeiros dígitos já são
+ * a posição correta, ou pode ser um NCM de 8 dígitos que perdeu o zero à
+ * esquerda no Excel ("01022910" virando "102291"), caso em que truncar os
+ * 4 primeiros está errado. 5 e 7 dígitos não são um comprimento de NCM
+ * válido de jeito nenhum e também são aceitos hoje. O risco prático é
+ * baixíssimo para este catálogo (capítulos 84, 94 e 95, sem zero à
+ * esquerda), então a decisão é documentar, não apertar: reduzir o
+ * intervalo aceito para {4, 6, 8} mudaria também o que
+ * {@see \App\Filament\Support\ClientNcmInput} aceita na entrada do
+ * formulário, e essa mudança fica fora do escopo desta unidade.
  */
 class Ncm
 {

@@ -45,6 +45,11 @@ class NcmTest extends TestCase
 
         // Fora do intervalo 4-8: curto demais continua null.
         $this->assertNull(Ncm::heading('84'));
+
+        // Despachante oferecendo duas classificações na mesma célula: o
+        // total de dígitos extrapola o intervalo 4-8, então null — não uma
+        // das duas posições escolhida ao acaso.
+        $this->assertNull(Ncm::heading('8431.49.00 / 8481.80.99'));
     }
 
     /**
