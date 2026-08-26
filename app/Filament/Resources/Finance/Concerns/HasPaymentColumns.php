@@ -126,38 +126,51 @@ trait HasPaymentColumns
      * cada um com seu documento auxiliar: invoice number do fornecedor (PO)
      * ou B/L number (Shipment).
      *
-     * @return \Illuminate\Support\Collection<int, array{reference: string, extra: string|null}>
+     * @return \Illuminate\Support\Collection<int, array{reference: string, extra: string|null, total: int}>
      */
     protected static function resolveAllocatedToEntries($record): \Illuminate\Support\Collection
     {
         $record->loadMissing(['allocations.scheduleItem.payable']);
 
         return $record->allocations
-            ->map(fn ($allocation) => $allocation->scheduleItem?->payable)
-            ->filter(fn ($payable) => filled($payable?->reference))
-            ->unique(fn ($payable) => $payable->getMorphClass().':'.$payable->getKey())
-            ->map(fn ($payable) => [
-                'reference' => $payable->reference,
-                'extra' => match (true) {
-                    $payable instanceof PurchaseOrder => $payable->supplier_invoice_number,
-                    $payable instanceof Shipment => $payable->bl_number,
-                    default => null,
-                },
-            ])
+            ->filter(fn ($allocation) => filled($allocation->scheduleItem?->payable?->reference))
+            // Um pagamento costuma ter várias parcelas do MESMO documento; a
+            // coluna mostra um documento por linha, com a soma das parcelas.
+            ->groupBy(fn ($allocation) => $allocation->scheduleItem->payable->getMorphClass()
+                .':'.$allocation->scheduleItem->payable->getKey())
+            ->map(function ($allocations) {
+                $payable = $allocations->first()->scheduleItem->payable;
+
+                return [
+                    'reference' => $payable->reference,
+                    'extra' => match (true) {
+                        $payable instanceof PurchaseOrder => $payable->supplier_invoice_number,
+                        $payable instanceof Shipment => $payable->bl_number,
+                        default => null,
+                    },
+                    // Na moeda do pagamento, como a coluna "Alocado" — assim a
+                    // soma das linhas bate com o total dela.
+                    'total' => (int) $allocations->sum('allocated_amount'),
+                ];
+            })
             ->values();
     }
 
     /**
-     * Versão em texto puro — "PO-2026-00007 (F0225-12027), SH-2026-00028 (BL123)".
-     * Usada no tooltip e na coluna dos relatórios.
+     * Versão em texto puro, uma linha por documento —
+     * "PO-2026-00007 (F0225-12027) — 12,345.67". Usada no tooltip.
      */
     protected static function resolveAllocatedToLabels($record): string
     {
         return static::resolveAllocatedToEntries($record)
-            ->map(fn (array $entry) => filled($entry['extra'])
-                ? "{$entry['reference']} ({$entry['extra']})"
-                : $entry['reference'])
-            ->implode(', ');
+            ->map(function (array $entry) {
+                $label = filled($entry['extra'])
+                    ? "{$entry['reference']} ({$entry['extra']})"
+                    : $entry['reference'];
+
+                return $label.' — '.Money::format($entry['total']);
+            })
+            ->implode("\n");
     }
 
     /**
@@ -175,9 +188,14 @@ trait HasPaymentColumns
                     $label .= ' <span style="font-size:0.75rem;opacity:0.65;">('.e($entry['extra']).')</span>';
                 }
 
-                return $label;
+                // Estilos inline: o CSS pré-compilado do painel não traz as
+                // utilitárias arbitrárias que este bloco precisaria.
+                return '<div style="display:flex;gap:0.5rem;justify-content:space-between;white-space:nowrap;">'
+                    .'<span>'.$label.'</span>'
+                    .'<span style="font-variant-numeric:tabular-nums;">'.e(Money::format($entry['total'])).'</span>'
+                    .'</div>';
             })
-            ->implode(', ');
+            ->implode('');
 
         return $html !== '' ? $html : null;
     }
