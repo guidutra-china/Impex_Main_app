@@ -44,6 +44,29 @@ class DocumentExtractorTest extends TestCase
         @unlink($path);
     }
 
+    public function test_xlsx_trims_bloated_used_range(): void
+    {
+        // Caso real (PI JGYAN-20260818): célula perdida na coluna XEG inflava o
+        // used range para 16k colunas → 2,4M chars de pipes vazios → estourava o
+        // limite de 1M tokens da API. Célula suja longe + linha vazia no meio.
+        $path = tempnam(sys_get_temp_dir(), 'imp').'.xlsx';
+        $ss = new Spreadsheet;
+        $sheet = $ss->getActiveSheet();
+        $sheet->fromArray([['Part', 'Qty'], ['AH1', 6]]);
+        // linha 3 vazia; linha 4 com item; sujeira em XFD1 (célula em branco formatada)
+        $sheet->setCellValue('A4', 'AH2');
+        $sheet->setCellValue('B4', 3);
+        $sheet->setCellValue('XFD1', ' ');
+        (new Xlsx($ss))->save($path);
+
+        $text = (new DocumentExtractor)->toContentBlocks($path)[0]['text'];
+
+        $this->assertLessThan(500, strlen($text), 'colunas vazias do used range inflado devem ser aparadas');
+        $this->assertStringContainsString('Linha 4: AH2', $text); // numeração real preservada
+        $this->assertStringNotContainsString('Linha 3:', $text);  // linha vazia é pulada
+        @unlink($path);
+    }
+
     public function test_pdf_becomes_document_block(): void
     {
         $path = tempnam(sys_get_temp_dir(), 'imp').'.pdf';

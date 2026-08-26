@@ -177,6 +177,61 @@ class ItemsRelationManager extends RelationManager
         ]);
     }
 
+    /**
+     * Itens da PI oferecidos no "Import from PI".
+     *
+     * Com "somente quantidades restantes" marcado, itens já totalmente
+     * embarcados saem da lista: selecioná-los não importaria nada (a ação os
+     * descarta), e deixá-los visíveis fazia a opção parecer quebrada.
+     * Desmarcado, tudo aparece — é o caso de reembarcar a quantidade cheia.
+     *
+     * @return array<int, string>
+     */
+    protected static function piItemPickerOptions(mixed $piId, bool $onlyRemaining): array
+    {
+        if (! $piId) {
+            return [];
+        }
+
+        $currency = ProformaInvoice::find($piId)?->currency_code ?? '';
+
+        return ProformaInvoiceItem::where('proforma_invoice_id', $piId)
+            ->whereHas('purchaseOrderItem') // só itens com PO vinculada
+            ->with('product')
+            ->get()
+            ->mapWithKeys(function ($item) use ($currency, $onlyRemaining) {
+                $shipped = ShipmentItem::where('proforma_invoice_item_id', $item->id)
+                    ->whereHas('shipment', fn ($q) => $q->countsAsShipped())
+                    ->sum('quantity');
+
+                $remaining = $item->quantity - $shipped;
+
+                if ($onlyRemaining && $remaining <= 0) {
+                    return [];
+                }
+
+                return [$item->id => static::piItemPickerLabel($item, $remaining, $currency)];
+            })
+            ->all();
+    }
+
+    /**
+     * Rótulo de uma linha da PI no seletor do "Import from PI".
+     *
+     * O preço unitário entra porque o mesmo produto pode aparecer duas vezes na
+     * PI — com desconto ou modificação — e sem o valor as duas opções ficam
+     * visualmente idênticas na lista.
+     */
+    protected static function piItemPickerLabel(ProformaInvoiceItem $item, int $remaining, string $currency): string
+    {
+        return implode(' | ', [
+            ($item->product?->model_number ?? '').' — '.$item->product_name,
+            'Qty: '.$item->quantity,
+            'Remaining: '.$remaining,
+            trim($currency.' '.Money::format($item->unit_price, 4)),
+        ]);
+    }
+
     private function productIdentity(): ProductIdentityResolver
     {
         return $this->productIdentity ??= ProductIdentityResolver::forClient(
@@ -315,39 +370,26 @@ class ItemsRelationManager extends RelationManager
                                 ->required()
                                 ->live(),
 
+                            // Antes da lista: é ela que decide quais itens
+                            // aparecem, então o usuário escolhe o modo primeiro.
+                            Checkbox::make('only_remaining')
+                                ->label(__('forms.labels.only_import_remaining_quantities_exclude_already_shipped'))
+                                ->default(true)
+                                ->live(),
+
                             \Filament\Forms\Components\CheckboxList::make('pi_item_ids')
                                 ->label(__('forms.labels.select_items_to_import'))
-                                ->options(function (Get $get) {
-                                    $piId = $get('proforma_invoice_id');
-                                    if (! $piId) {
-                                        return [];
-                                    }
-
-                                    return ProformaInvoiceItem::where('proforma_invoice_id', $piId)
-                                        ->whereHas('purchaseOrderItem') // só itens com PO vinculada
-                                        ->with('product')
-                                        ->get()
-                                        ->mapWithKeys(function ($item) {
-                                            $shipped = ShipmentItem::where('proforma_invoice_item_id', $item->id)
-                                                ->whereHas('shipment', fn ($q) => $q->countsAsShipped())
-                                                ->sum('quantity');
-                                            $remaining = $item->quantity - $shipped;
-                                            $label = ($item->product?->model_number ?? '').' — '.$item->product_name
-                                                .' | Qty: '.$item->quantity
-                                                .' | Remaining: '.$remaining;
-
-                                            return [$item->id => $label];
-                                        });
-                                })
+                                ->options(fn (Get $get) => static::piItemPickerOptions(
+                                    $get('proforma_invoice_id'),
+                                    // null antes do default ser aplicado: o
+                                    // padrão do checkbox é marcado.
+                                    $get('only_remaining') ?? true,
+                                ))
                                 ->helperText('Apenas itens com PO vinculada aparecem. Itens sem PO precisam ter a PO gerada antes de embarcar.')
                                 ->visible(fn (Get $get) => filled($get('proforma_invoice_id')))
                                 ->bulkToggleable()
                                 ->required()
                                 ->columns(1),
-
-                            Checkbox::make('only_remaining')
-                                ->label(__('forms.labels.only_import_remaining_quantities_exclude_already_shipped'))
-                                ->default(true),
                         ];
                     })
                     ->action(function (array $data) {

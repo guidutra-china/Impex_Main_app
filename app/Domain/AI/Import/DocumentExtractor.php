@@ -46,9 +46,21 @@ class DocumentExtractor
         foreach ($sheet->toArray() as $row) {
             $rowNumber++;
             $cells = array_map(
-                fn ($cell) => $cell === null ? '' : (string) $cell,
+                fn ($cell) => $cell === null ? '' : trim((string) $cell),
                 $row,
             );
+
+            // Uma célula suja numa coluna distante infla o used range (caso real:
+            // A1:XEG50 → 16k colunas → 2,4M chars de pipes vazios, acima do limite
+            // de tokens da API). Apara as colunas vazias do fim e pula linhas sem
+            // conteúdo — o rótulo "Linha N" preserva a numeração real da planilha.
+            while ($cells !== [] && end($cells) === '') {
+                array_pop($cells);
+            }
+            if ($cells === []) {
+                continue;
+            }
+
             $prefix = $rowNumber === 1 ? '' : "Linha {$rowNumber}: ";
             $lines[] = $prefix.implode(' | ', $cells);
         }
