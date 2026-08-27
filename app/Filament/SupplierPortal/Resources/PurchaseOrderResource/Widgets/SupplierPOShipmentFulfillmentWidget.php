@@ -2,13 +2,15 @@
 
 namespace App\Filament\SupplierPortal\Resources\PurchaseOrderResource\Widgets;
 
-use App\Domain\Logistics\Models\ShipmentItem;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
+use App\Filament\Concerns\CountsPoShipmentFulfillment;
 use Filament\Widgets\Widget;
 use Illuminate\Database\Eloquent\Model;
 
 class SupplierPOShipmentFulfillmentWidget extends Widget
 {
+    use CountsPoShipmentFulfillment;
+
     protected static bool $isLazy = false;
 
     protected string $view = 'filament.widgets.shipment-fulfillment';
@@ -124,41 +126,14 @@ class SupplierPOShipmentFulfillmentWidget extends Widget
 
     private function getShippedQuantity($poItem): int
     {
-        $baseQuery = $this->buildShipmentItemQuery($poItem);
-
-        return (int) $baseQuery->sum('quantity');
+        return $this->shippedQuantityForPoItem($poItem);
     }
 
     private function getShipmentReferences($poItem): array
     {
-        $baseQuery = $this->buildShipmentItemQuery($poItem)->with('shipment');
-
-        return $baseQuery->get()
-            ->map(fn ($si) => $si->shipment?->bl_number ?: $si->shipment?->reference)
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
-    }
-
-    private function buildShipmentItemQuery($poItem)
-    {
-        $query = ShipmentItem::query();
-
-        if ($poItem->proforma_invoice_item_id) {
-            $query->where(function ($q) use ($poItem) {
-                $q->where('purchase_order_item_id', $poItem->id)
-                    ->orWhere('proforma_invoice_item_id', $poItem->proforma_invoice_item_id);
-            });
-        } else {
-            $query->where('purchase_order_item_id', $poItem->id);
-        }
-
-        $query->whereHas('shipment', function ($q) {
-            $q->withoutGlobalScopes()->countsAsShipped();
-        });
-
-        return $query;
+        // No portal do fornecedor o B/L identifica melhor o embarque do que a
+        // nossa referência interna.
+        return $this->shipmentReferencesForPoItem($poItem, preferBlNumber: true);
     }
 
     private function emptyState(): array

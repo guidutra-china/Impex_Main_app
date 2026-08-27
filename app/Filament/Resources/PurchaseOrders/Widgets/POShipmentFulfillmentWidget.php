@@ -2,13 +2,15 @@
 
 namespace App\Filament\Resources\PurchaseOrders\Widgets;
 
-use App\Domain\Logistics\Models\ShipmentItem;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
+use App\Filament\Concerns\CountsPoShipmentFulfillment;
 use Filament\Widgets\Widget;
 use Illuminate\Database\Eloquent\Model;
 
 class POShipmentFulfillmentWidget extends Widget
 {
+    use CountsPoShipmentFulfillment;
+
     protected static bool $isLazy = false;
 
     protected string $view = 'filament.widgets.shipment-fulfillment';
@@ -124,50 +126,12 @@ class POShipmentFulfillmentWidget extends Widget
 
     private function getShippedQuantity($poItem): int
     {
-        $shipped = ShipmentItem::where('purchase_order_item_id', $poItem->id)
-            ->whereHas('shipment', fn ($q) => $q->countsAsShipped())
-            ->sum('quantity');
-
-        if ($shipped > 0) {
-            return (int) $shipped;
-        }
-
-        if ($poItem->proforma_invoice_item_id) {
-            $shipped = ShipmentItem::where('proforma_invoice_item_id', $poItem->proforma_invoice_item_id)
-                ->whereHas('shipment', fn ($q) => $q->countsAsShipped())
-                ->sum('quantity');
-        }
-
-        return (int) $shipped;
+        return $this->shippedQuantityForPoItem($poItem);
     }
 
     private function getShipmentReferences($poItem): array
     {
-        $refs = ShipmentItem::where('purchase_order_item_id', $poItem->id)
-            ->whereHas('shipment', fn ($q) => $q->countsAsShipped())
-            ->with('shipment')
-            ->get()
-            ->pluck('shipment.reference')
-            ->unique()
-            ->values()
-            ->all();
-
-        if (! empty($refs)) {
-            return $refs;
-        }
-
-        if ($poItem->proforma_invoice_item_id) {
-            $refs = ShipmentItem::where('proforma_invoice_item_id', $poItem->proforma_invoice_item_id)
-                ->whereHas('shipment', fn ($q) => $q->countsAsShipped())
-                ->with('shipment')
-                ->get()
-                ->pluck('shipment.reference')
-                ->unique()
-                ->values()
-                ->all();
-        }
-
-        return $refs;
+        return $this->shipmentReferencesForPoItem($poItem);
     }
 
     private function emptyState(): array
