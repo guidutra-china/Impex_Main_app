@@ -29,6 +29,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Collection;
 
 class ShipmentsTable
 {
@@ -155,14 +156,20 @@ class ShipmentsTable
                     QuickViewAction::make(ShipmentResource::class),
                     ViewAction::make(),
                     EditAction::make(),
-                    DeleteAction::make(),
+                    DeleteAction::make()
+                        ->before(function (Shipment $record, DeleteAction $action) {
+                            static::haltIfDeletionBlocked([$record], $action);
+                        }),
                 ])
                     ->icon('heroicon-m-ellipsis-vertical')
                     ->color('gray'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->before(function (Collection $records, DeleteBulkAction $action) {
+                            static::haltIfDeletionBlocked($records, $action);
+                        }),
                 ]),
             ])
             ->persistFiltersInSession()
@@ -271,5 +278,38 @@ class ShipmentsTable
                     ->success()
                     ->send();
             });
+    }
+
+    /**
+     * Barra a exclusão de embarques cujas parcelas têm pagamento alocado.
+     *
+     * O hook `deleting` do Shipment é a rede de segurança e lança exceção; aqui
+     * a checagem acontece antes para virar notificação em vez de erro cru, no
+     * mesmo formato de lista usado nos bloqueios de finalização da PI.
+     *
+     * @param  iterable<Shipment>  $records
+     */
+    protected static function haltIfDeletionBlocked(iterable $records, mixed $action): void
+    {
+        $blocked = [];
+
+        foreach ($records as $record) {
+            foreach ($record->getDeletionBlockers() as $blocker) {
+                $blocked[] = '• '.$record->reference.': '.$blocker;
+            }
+        }
+
+        if ($blocked === []) {
+            return;
+        }
+
+        Notification::make()
+            ->danger()
+            ->title(__('messages.shipment_delete_blocked_title'))
+            ->body(__('messages.shipment_delete_blocked_body')."\n".implode("\n", $blocked))
+            ->persistent()
+            ->send();
+
+        $action->halt();
     }
 }

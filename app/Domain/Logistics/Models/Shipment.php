@@ -3,6 +3,8 @@
 namespace App\Domain\Logistics\Models;
 
 use App\Domain\CRM\Models\Company;
+use App\Domain\Financial\Enums\PaymentScheduleStatus;
+use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Financial\Traits\HasAdditionalCosts;
 use App\Domain\Financial\Traits\HasPaymentSchedule;
 use App\Domain\Infrastructure\Enums\DocumentType;
@@ -12,6 +14,7 @@ use App\Domain\Infrastructure\Traits\HasStateMachine;
 use App\Domain\Logistics\Enums\ImportModality;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Enums\TransportMode;
+use App\Domain\Logistics\Exceptions\ShipmentDeletionBlockedException;
 use App\Domain\Planning\Models\ShipmentPlan;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Models\User;
@@ -100,6 +103,87 @@ class Shipment extends Model
                 $shipment->issue_date = now()->toDateString();
             }
         });
+
+        // As parcelas ship-specific não somem sozinhas quando o embarque é
+        // apagado: o `cascadeOnDelete` da FK só dispara em DELETE, e soft
+        // delete é UPDATE. Sem isto, elas continuam vivas apontando para um
+        // embarque inexistente (caso SH-2026-00033, que deixou pendência de
+        // US$ 582.998 no contas a pagar de uma PO cujo embarque não existe).
+        //
+        // Parcela sem dinheiro é pura projeção do embarque e vai junto. Se
+        // alguma tiver pagamento alocado, a exclusão é bloqueada: re-alocar
+        // dinheiro é decisão de quem opera, não efeito colateral de apagar um
+        // embarque. A guarda roda antes de qualquer remoção — tudo ou nada.
+        static::deleting(function (Shipment $shipment) {
+            $blockers = $shipment->getDeletionBlockers();
+
+            if ($blockers !== []) {
+                throw new ShipmentDeletionBlockedException($blockers);
+            }
+
+            $shipment->deletableScheduleItemsQuery()->delete();
+        });
+    }
+
+    /**
+     * Motivos que impedem apagar este embarque, em linguagem de negócio.
+     *
+     * @return list<string>
+     */
+    public function getDeletionBlockers(): array
+    {
+        return $this->scheduleItemsForDeletion()
+            ->filter(fn (PaymentScheduleItem $item) => $this->scheduleItemHoldsMoney($item))
+            ->map(function (PaymentScheduleItem $item) {
+                $document = $item->payable?->reference ?? __('Documento');
+                $amount = number_format($item->amount / 100, 2);
+
+                return sprintf(
+                    '%s — %s (%s %s, %s)',
+                    $document,
+                    $item->label,
+                    $item->currency_code,
+                    $amount,
+                    $item->status instanceof PaymentScheduleStatus ? $item->status->value : (string) $item->status,
+                );
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Uma parcela só carrega dinheiro de verdade quando é canônica.
+     *
+     * O espelho (payable = o próprio embarque) é reflexo: getMirrorPaidAmount()
+     * deriva o pago do canônico da PI/PO, então um espelho "pago" sem alocação
+     * própria não é motivo para barrar — quem barra é o canônico.
+     */
+    private function scheduleItemHoldsMoney(PaymentScheduleItem $item): bool
+    {
+        if ($item->allocations()->exists()) {
+            return true;
+        }
+
+        if ($item->payable_type === static::class) {
+            return false;
+        }
+
+        return in_array($item->status, [PaymentScheduleStatus::PAID, PaymentScheduleStatus::WAIVED], true);
+    }
+
+    /** @return \Illuminate\Support\Collection<int, PaymentScheduleItem> */
+    private function scheduleItemsForDeletion(): \Illuminate\Support\Collection
+    {
+        return $this->deletableScheduleItemsQuery()->with('payable')->get();
+    }
+
+    private function deletableScheduleItemsQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return PaymentScheduleItem::query()
+            ->where(fn ($q) => $q->where('shipment_id', $this->id)
+                ->orWhere(fn ($mirror) => $mirror
+                    ->where('payable_type', static::class)
+                    ->where('payable_id', $this->id)));
     }
 
     // --- Activity Log ---

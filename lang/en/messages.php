@@ -72,6 +72,8 @@ return [
     'pi_update_description' => 'This will update the existing Proforma Invoice :reference with the current inquiry data (company, contact, currency).',
     'status_changed_to' => 'Status changed to',
     'dates_updated' => 'Dates updated',
+    'shipment_delete_blocked_title' => 'Shipment cannot be deleted',
+    'shipment_delete_blocked_body' => 'These schedule items already have payments allocated. Reallocate or reverse them first:',
     'requested_sqs_with_costs_warning' => 'There are supplier quotations with costs filled in but still in Requested status (:refs). Mark them as Received to use them as a price source.',
     'auto_transitioned_on_shipment_complete' => 'Auto-transition: all items have been shipped.',
     'version_saved' => 'Version v:version saved',
