@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Shipments\RelationManagers;
 use App\Domain\Catalog\Services\ProductIdentityResolver;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Actions\RecalculateShipmentTotalsAction;
+use App\Domain\Logistics\Actions\ResolvePurchaseOrderItemForShipmentAction;
 use App\Domain\Logistics\Models\ShipmentItem;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
@@ -118,7 +119,10 @@ class ItemsRelationManager extends RelationManager
                     $remaining = $piItem->quantity - $shipped;
                     $set('max_quantity', $remaining);
 
-                    $poItem = PurchaseOrderItem::where('proforma_invoice_item_id', $piItem->id)->first();
+                    // Prefill otimista com quantidade 1 — a quantidade real
+                    // ainda não foi digitada. O vínculo definitivo é resolvido
+                    // de novo em mutateFormDataUsing, já com a quantidade.
+                    $poItem = app(ResolvePurchaseOrderItemForShipmentAction::class)->execute($piItem->id);
                     if ($poItem) {
                         $set('purchase_order_item_id', $poItem->id);
                     }
@@ -339,6 +343,11 @@ class ItemsRelationManager extends RelationManager
                         $form->fill(array_merge($record->toArray(), [
                             'proforma_invoice_id' => $piId,
                         ]));
+                    })
+                    ->mutateFormDataUsing(function (array $data, $record): array {
+                        unset($data['proforma_invoice_id'], $data['max_quantity']);
+
+                        return $this->resolvePoLink($data, $record->getKey());
                     }),
                 \Filament\Actions\DeleteAction::make()
                     ->visible(fn () => auth()->user()?->can('edit-shipments'))
@@ -436,7 +445,8 @@ class ItemsRelationManager extends RelationManager
                                 $totalVolume = round($numCartons * (float) $packaging->carton_cbm, 4);
                             }
 
-                            $poItem = PurchaseOrderItem::where('proforma_invoice_item_id', $piItem->id)->first();
+                            $poItem = app(ResolvePurchaseOrderItemForShipmentAction::class)
+                                ->execute($piItem->id, (int) $qty);
 
                             // Segurança: não embarcar item sem PO vinculada.
                             if (! $poItem) {
@@ -483,7 +493,7 @@ class ItemsRelationManager extends RelationManager
                     ->mutateFormDataUsing(function (array $data): array {
                         unset($data['proforma_invoice_id'], $data['max_quantity']);
 
-                        return $data;
+                        return $this->resolvePoLink($data);
                     })
                     ->after(function () {
                         app(RecalculateShipmentTotalsAction::class)->execute($this->getOwnerRecord());
@@ -502,6 +512,31 @@ class ItemsRelationManager extends RelationManager
             ->emptyStateIcon('heroicon-o-cube')
             ->reorderable('sort_order')
             ->defaultSort('sort_order');
+    }
+
+    /**
+     * Re-resolve o vínculo com a PO já sabendo a quantidade real da linha.
+     *
+     * O prefill do formulário roda quando o item da PI é escolhido, antes de a
+     * quantidade ser digitada; com a linha da PI dividida entre duas POs, isso
+     * é justamente o que decide qual das duas deve receber o embarque.
+     */
+    protected function resolvePoLink(array $data, ?int $ignoreShipmentItemId = null): array
+    {
+        $piItemId = $data['proforma_invoice_item_id'] ?? null;
+
+        if (! $piItemId) {
+            return $data;
+        }
+
+        $poItem = app(ResolvePurchaseOrderItemForShipmentAction::class)
+            ->execute((int) $piItemId, (int) ($data['quantity'] ?? 1), $ignoreShipmentItemId);
+
+        if ($poItem) {
+            $data['purchase_order_item_id'] = $poItem->id;
+        }
+
+        return $data;
     }
 
     protected static function recalculateTotals(Get $get, Set $set): void

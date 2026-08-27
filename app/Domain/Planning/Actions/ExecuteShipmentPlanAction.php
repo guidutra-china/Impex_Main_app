@@ -2,6 +2,7 @@
 
 namespace App\Domain\Planning\Actions;
 
+use App\Domain\Logistics\Actions\ResolvePurchaseOrderItemForShipmentAction;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Logistics\Models\ShipmentItem;
@@ -13,7 +14,7 @@ class ExecuteShipmentPlanAction
 {
     public function execute(ShipmentPlan $plan, ?Shipment $existingShipment = null): Shipment
     {
-if ($plan->status !== ShipmentPlanStatus::CONFIRMED) {
+        if ($plan->status !== ShipmentPlanStatus::CONFIRMED) {
             throw new \RuntimeException("Shipment Plan {$plan->reference} is not confirmed.");
         }
 
@@ -51,7 +52,9 @@ if ($plan->status !== ShipmentPlanStatus::CONFIRMED) {
 
     protected function createShipmentItems(ShipmentPlan $plan, Shipment $shipment): void
     {
-        $plan->load('items.proformaInvoiceItem.purchaseOrderItem');
+        $plan->load('items.proformaInvoiceItem');
+
+        $resolvePoItem = app(ResolvePurchaseOrderItemForShipmentAction::class);
 
         $sortOrder = $shipment->items()->max('sort_order') ?? 0;
 
@@ -62,7 +65,10 @@ if ($plan->status !== ShipmentPlanStatus::CONFIRMED) {
                 continue;
             }
 
-            $poItemId = $piItem->purchaseOrderItem?->id;
+            // Não usar $piItem->purchaseOrderItem (hasOne): com a linha da PI
+            // dividida entre duas POs ele devolve uma qualquer, e todo o plano
+            // acaba grudado na mesma PO.
+            $poItemId = $resolvePoItem->execute($piItem->id, (int) $planItem->quantity)?->id;
 
             if (! $poItemId) {
                 throw new \RuntimeException(
