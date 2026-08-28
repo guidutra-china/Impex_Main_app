@@ -7,6 +7,8 @@ namespace Tests\Unit\AI\Import;
 use App\Domain\AI\Import\DocumentImageExtractor;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+use PhpOffice\PhpSpreadsheet\Worksheet\MemoryDrawing;
+use PhpOffice\PhpSpreadsheet\Writer\Xls;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\TestCase;
 
@@ -33,6 +35,33 @@ class DocumentImageExtractorTest extends TestCase
         $this->assertFileExists($result['by_row'][2]);
         @unlink($png);
         @unlink($xlsx);
+    }
+
+    public function test_xls_memory_drawing_extracted_with_anchor_row(): void
+    {
+        // Fotos de .xls (BIFF) chegam do reader como MemoryDrawing (imagem em
+        // memória), não Drawing — caso real PI2026JG-0068: 172 fotos ignoradas
+        // em silêncio pelo gate de instanceof.
+        $ss = new Spreadsheet;
+        $sheet = $ss->getActiveSheet();
+        $sheet->fromArray([['Part'], ['AH1']]);
+        $img = imagecreatetruecolor(40, 30);
+        imagefilledrectangle($img, 0, 0, 39, 29, imagecolorallocate($img, 200, 30, 30));
+        $drawing = new MemoryDrawing;
+        $drawing->setImageResource($img);
+        $drawing->setRenderingFunction(MemoryDrawing::RENDERING_PNG);
+        $drawing->setMimeType(MemoryDrawing::MIMETYPE_PNG);
+        $drawing->setCoordinates('B2');
+        $drawing->setWorksheet($sheet);
+        $xls = tempnam(sys_get_temp_dir(), 'img').'.xls';
+        (new Xls($ss))->save($xls);
+
+        $result = (new DocumentImageExtractor)->extract($xls);
+
+        $this->assertArrayHasKey(2, $result['by_row']);
+        $this->assertFileExists($result['by_row'][2]);
+        $this->assertNotFalse(@imagecreatefromstring((string) file_get_contents($result['by_row'][2])), 'bytes gravados devem ser uma imagem válida');
+        @unlink($xls);
     }
 
     public function test_unsupported_returns_empty_gracefully(): void

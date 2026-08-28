@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+use PhpOffice\PhpSpreadsheet\Worksheet\MemoryDrawing;
 
 /**
  * Extracts embedded product images from a quotation file into a temp dir. Best-effort
@@ -52,27 +53,44 @@ class DocumentImageExtractor
         $images = [];
 
         foreach ($sheet->getDrawingCollection() as $drawing) {
-            if (! $drawing instanceof Drawing) {
-                continue;
-            }
-
             $row = (int) preg_replace('/\D/', '', $drawing->getCoordinates());
             if ($row <= 1) {
                 continue;
             }
 
-            $bytes = $this->drawingBytes($drawing);
+            // .xlsx entrega Drawing (bytes atrás de um caminho zip://); .xls (BIFF)
+            // entrega MemoryDrawing (recurso GD em memória) — caso real
+            // PI2026JG-0068: 172 fotos eram ignoradas pelo gate de instanceof.
+            [$bytes, $ext] = match (true) {
+                $drawing instanceof Drawing => [$this->drawingBytes($drawing), $drawing->getExtension() ?: 'png'],
+                $drawing instanceof MemoryDrawing => [$this->memoryDrawingBytes($drawing), 'png'],
+                default => [null, 'png'],
+            };
             if ($bytes === null || $bytes === '') {
                 continue;
             }
 
-            $ext = $drawing->getExtension() ?: 'png';
             $out = $dir.'/'.Str::uuid()->toString().'.'.$ext;
             file_put_contents($out, $bytes);
             $images[$row] = $out;
         }
 
         return $images;
+    }
+
+    /** Renderiza o recurso GD de um MemoryDrawing como PNG (lossless, formato único). */
+    private function memoryDrawingBytes(MemoryDrawing $drawing): ?string
+    {
+        $resource = $drawing->getImageResource();
+        if ($resource === null) {
+            return null;
+        }
+
+        ob_start();
+        $ok = imagepng($resource);
+        $bytes = (string) ob_get_clean();
+
+        return $ok && $bytes !== '' ? $bytes : null;
     }
 
     /**
