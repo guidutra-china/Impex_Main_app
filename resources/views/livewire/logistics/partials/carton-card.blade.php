@@ -24,7 +24,11 @@
                 @forelse ($carton->contents as $content)
                     <div class="flex items-center justify-between text-sm">
                         <div class="flex-1 text-gray-700 dark:text-gray-300">
-                            • {{ $content->shipmentItem?->product_name ?? '—' }}
+                            •
+                            @if ($code = $this->productCodes[$content->shipment_item_id] ?? null)
+                                <span class="rounded bg-primary-50 px-1 py-0.5 font-mono text-xs font-semibold text-primary-700 dark:bg-primary-950 dark:text-primary-300">{{ $code }}</span>
+                            @endif
+                            {{ $content->shipmentItem?->product_name ?? '—' }}
                             @if ($content->part_label)
                                 <span class="text-primary-600 dark:text-primary-400">[{{ $content->part_label }}]</span>
                             @endif

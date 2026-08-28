@@ -32,6 +32,7 @@
         $firstCartonContents = $cartons->first()->contents;
         $firstContent = $firstCartonContents->first();
         $productName = $firstContent?->shipmentItem?->product_name ?? '—';
+        $productCode = $this->productCodes[$firstContent?->shipment_item_id] ?? null;
         $partLabel = $firstContent?->part_label;
         // Sum, not first row: a box may hold the same product in multiple rows.
         $piecesEach = (int) $firstCartonContents->sum('pieces');
@@ -130,9 +131,13 @@
                     @php
                         $totalPieces = (int) $contents->sum('pieces');
                         $name = $contents->first()->shipmentItem?->product_name ?? '—';
+                        $code = $this->productCodes[$itemId] ?? null;
                     @endphp
                     <div class="ml-4 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
                         <span>◦</span>
+                        @if ($code)
+                            <span class="rounded bg-primary-50 px-1 py-0.5 font-mono font-semibold text-primary-700 dark:bg-primary-950 dark:text-primary-300">{{ $code }}</span>
+                        @endif
                         <span>{{ $name }}</span>
                         <span class="whitespace-nowrap">· {{ number_format($totalPieces) }} pcs</span>
                     </div>
@@ -140,6 +145,9 @@
             @else
                 <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm text-gray-700 dark:text-gray-300">
                     <span>•</span>
+                    @if ($productCode)
+                        <span class="rounded bg-primary-50 px-1.5 py-0.5 font-mono text-xs font-semibold text-primary-700 dark:bg-primary-950 dark:text-primary-300">{{ $productCode }}</span>
+                    @endif
                     <span class="font-medium">{{ $productName }}</span>
                     @if ($partLabel)
                         <span class="whitespace-nowrap text-xs text-primary-600 dark:text-primary-400">[{{ $partLabel }}]</span>

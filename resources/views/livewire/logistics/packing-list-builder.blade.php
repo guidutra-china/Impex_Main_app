@@ -114,7 +114,10 @@
                             <div class="flex flex-wrap items-center gap-2">
                                 <span class="{{ $statusColor }} text-lg font-bold">{{ $statusIcon }}</span>
                                 @if ($row['model_no'])
-                                    <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                                    {{-- Código em destaque: é por ele que se
+                                         confere a caixa, então não pode ficar
+                                         mais apagado que o nome. --}}
+                                    <span class="rounded bg-primary-50 px-2 py-0.5 font-mono text-sm font-bold tracking-tight text-primary-700 ring-1 ring-inset ring-primary-200 dark:bg-primary-950 dark:text-primary-300 dark:ring-primary-800">
                                         {{ $row['model_no'] }}
                                     </span>
                                 @endif

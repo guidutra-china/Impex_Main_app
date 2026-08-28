@@ -192,6 +192,23 @@ class PackingListBuilder extends Component
         });
     }
 
+    /**
+     * Código do produto por item de embarque, para as caixas mostrarem o mesmo
+     * MODEL NO da lista de produtos e do Packing List.
+     *
+     * Deriva de products(), que já resolve a identidade com os pivots
+     * carregados — não custa query nenhuma a mais.
+     *
+     * @return Collection<int, string|null>
+     */
+    #[Computed]
+    public function productCodes(): Collection
+    {
+        return $this->products->mapWithKeys(fn (array $row) => [
+            $row['item']->id => $row['model_no'],
+        ]);
+    }
+
     #[Computed]
     public function containers(): Collection
     {
