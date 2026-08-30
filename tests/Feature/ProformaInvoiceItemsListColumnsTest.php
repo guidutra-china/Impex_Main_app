@@ -161,7 +161,7 @@ class ProformaInvoiceItemsListColumnsTest extends TestCase
         ])->assertSuccessful()->instance()->getTable()->getColumn('cost_exchange_rate')->record($item);
 
         $this->assertSame(
-            'CNY-USD 0.148790 / USD-CNY 6.720882',
+            '0.148790 / 6.720882',
             $column->formatState($item->cost_exchange_rate),
         );
     }

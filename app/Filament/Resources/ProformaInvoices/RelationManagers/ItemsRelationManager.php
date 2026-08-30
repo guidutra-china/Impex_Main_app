@@ -314,7 +314,7 @@ class ItemsRelationManager extends RelationManager
                 TextColumn::make('cost_exchange_rate')
                     ->label(__('forms.labels.exchange_rate'))
                     ->alignEnd()
-                    // Mostra o par nos dois sentidos: CNY-USD 0.148790 / USD-CNY 6.720000.
+                    // Mostra o par nos dois sentidos: 0.148790 / 6.720882.
                     ->formatStateUsing(function ($state, $record): string {
                         $rate = (float) $state;
 
@@ -331,8 +331,7 @@ class ItemsRelationManager extends RelationManager
                             return number_format($rate, 6);
                         }
 
-                        return $cost.'-'.$document.' '.number_format($rate, 6)
-                            .' / '.$document.'-'.$cost.' '.number_format(1 / $rate, 6);
+                        return number_format($rate, 6).' / '.number_format(1 / $rate, 6);
                     })
                     ->description(fn ($record) => $record->cost_exchange_rate_captured_at?->format('d/m/Y'))
                     ->placeholder('—')
