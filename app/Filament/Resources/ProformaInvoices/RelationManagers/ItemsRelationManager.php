@@ -314,7 +314,26 @@ class ItemsRelationManager extends RelationManager
                 TextColumn::make('cost_exchange_rate')
                     ->label(__('forms.labels.exchange_rate'))
                     ->alignEnd()
-                    ->formatStateUsing(fn ($state) => number_format((float) $state, 6))
+                    // Mostra o par nos dois sentidos: CNY-USD 0.148790 / USD-CNY 6.720000.
+                    ->formatStateUsing(function ($state, $record): string {
+                        $rate = (float) $state;
+
+                        if ($rate <= 0) {
+                            return '—';
+                        }
+
+                        $cost = $record->cost_currency_code;
+                        $document = $record->proformaInvoice?->currency_code
+                            ?? $this->getOwnerRecord()->currency_code;
+
+                        // Custo na própria moeda do documento: o par não diz nada.
+                        if (! $cost || ! $document || $cost === $document) {
+                            return number_format($rate, 6);
+                        }
+
+                        return $cost.'-'.$document.' '.number_format($rate, 6)
+                            .' / '.$document.'-'.$cost.' '.number_format(1 / $rate, 6);
+                    })
                     ->description(fn ($record) => $record->cost_exchange_rate_captured_at?->format('d/m/Y'))
                     ->placeholder('—')
                     ->toggleable(),

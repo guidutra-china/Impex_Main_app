@@ -145,6 +145,45 @@ class ProformaInvoiceItemsListColumnsTest extends TestCase
         $this->assertSame('CNY 70.0000', $column->formatState($item->unit_cost_in_document_currency));
     }
 
+    public function test_exchange_rate_column_shows_both_directions_of_the_pair(): void
+    {
+        $pi = ProformaInvoice::factory()->create(['currency_code' => 'USD']);
+        $item = ProformaInvoiceItemFactory::new()->create([
+            'proforma_invoice_id' => $pi->id,
+            'product_id' => Product::factory(),
+            'cost_currency_code' => 'CNY',
+            'cost_exchange_rate' => 0.148790,
+        ]);
+
+        $column = Livewire::test(ItemsRelationManager::class, [
+            'ownerRecord' => $pi,
+            'pageClass' => EditProformaInvoice::class,
+        ])->assertSuccessful()->instance()->getTable()->getColumn('cost_exchange_rate')->record($item);
+
+        $this->assertSame(
+            'CNY-USD 0.148790 / USD-CNY 6.720882',
+            $column->formatState($item->cost_exchange_rate),
+        );
+    }
+
+    public function test_exchange_rate_column_stays_plain_when_cost_is_in_the_pi_currency(): void
+    {
+        $pi = ProformaInvoice::factory()->create(['currency_code' => 'CNY']);
+        $item = ProformaInvoiceItemFactory::new()->create([
+            'proforma_invoice_id' => $pi->id,
+            'product_id' => Product::factory(),
+            'cost_currency_code' => 'CNY',
+            'cost_exchange_rate' => 1,
+        ]);
+
+        $column = Livewire::test(ItemsRelationManager::class, [
+            'ownerRecord' => $pi,
+            'pageClass' => EditProformaInvoice::class,
+        ])->assertSuccessful()->instance()->getTable()->getColumn('cost_exchange_rate')->record($item);
+
+        $this->assertSame('1.000000', $column->formatState($item->cost_exchange_rate));
+    }
+
     public function test_price_and_total_columns_use_the_pi_currency_not_a_hardcoded_dollar(): void
     {
         $pi = ProformaInvoice::factory()->create(['currency_code' => 'CNY']);
