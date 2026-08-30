@@ -708,6 +708,7 @@ return [
         'cost_currency' => 'Cost Currency',
         'cost_currency_short' => 'Cur',
         'cost_in_pi_currency' => 'Cost in document currency',
+        'cost_in_pi_currency_short' => 'Cost (doc. currency)',
         'cost_in_quote_currency' => 'Cost in quotation currency',
         'multi_currency_costs' => 'Multi-currency costs',
         'refresh_all_rates' => 'Refresh all rates from FX table',

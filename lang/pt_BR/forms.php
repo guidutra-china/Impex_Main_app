@@ -707,6 +707,7 @@ return [
         'cost_currency' => 'Moeda do Custo',
         'cost_currency_short' => 'Moeda',
         'cost_in_pi_currency' => 'Custo na moeda do documento',
+        'cost_in_pi_currency_short' => 'Custo (moeda do doc.)',
         'cost_in_quote_currency' => 'Custo na moeda da cotação',
         'multi_currency_costs' => 'Custos em múltiplas moedas',
         'refresh_all_rates' => 'Atualizar todas as taxas pela tabela de câmbio',

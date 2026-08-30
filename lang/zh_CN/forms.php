@@ -675,6 +675,7 @@ return [
         'cost_currency' => '成本币种',
         'cost_currency_short' => '币种',
         'cost_in_pi_currency' => '以单据币种表示的成本',
+        'cost_in_pi_currency_short' => '成本（单据币种）',
         'cost_in_quote_currency' => '以报价币种表示的成本',
         'multi_currency_costs' => '多币种成本',
         'refresh_all_rates' => '从汇率表刷新所有汇率',

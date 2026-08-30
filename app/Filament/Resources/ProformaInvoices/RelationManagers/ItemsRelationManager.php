@@ -115,14 +115,15 @@ class ItemsRelationManager extends RelationManager
                 ->label(__('forms.labels.unit_price_client'))
                 ->numeric()
                 ->required()
-                ->prefix('$')
+                ->prefix(fn () => $this->getOwnerRecord()->currency_code)
                 ->step(0.0001)
                 ->minValue(0),
 
             TextInput::make('unit_cost')
                 ->label(__('forms.labels.unit_cost_internal'))
                 ->numeric()
-                ->prefix('$')
+                ->prefix(fn (Get $get) => $get('cost_currency_code')
+                    ?: $this->getOwnerRecord()->currency_code)
                 ->step(0.0001)
                 ->minValue(0)
                 ->default(0)
@@ -266,23 +267,6 @@ class ItemsRelationManager extends RelationManager
                     ->label(__('forms.labels.unit'))
                     ->alignCenter()
                     ->toggleable(),
-                TextInputColumn::make('unit_price')
-                    ->label(__('forms.labels.price'))
-                    ->type('number')
-                    ->inputMode('decimal')
-                    ->step('0.0001')
-                    ->prefix('$')
-                    ->rules(['required', 'numeric', 'min:0'])
-                    ->getStateUsing(fn ($record) => number_format(Money::toMajor($record->unit_price ?? 0), 4, '.', ''))
-                    ->updateStateUsing(function ($record, $state) {
-                        $floatValue = (float) str_replace(',', '', (string) $state);
-                        $record->unit_price = Money::toMinor($floatValue);
-                        $record->save();
-
-                        return number_format($floatValue, 4, '.', '');
-                    })
-                    ->alignEnd()
-                    ->toggleable(),
                 TextColumn::make('cost_currency_code')
                     ->label(__('forms.labels.cost_currency_short'))
                     ->alignCenter()
@@ -294,13 +278,6 @@ class ItemsRelationManager extends RelationManager
                             : 'gray')
                     ->placeholder('—')
                     ->toggleable(),
-                TextColumn::make('cost_exchange_rate')
-                    ->label(__('forms.labels.exchange_rate'))
-                    ->alignEnd()
-                    ->formatStateUsing(fn ($state) => number_format((float) $state, 6))
-                    ->description(fn ($record) => $record->cost_exchange_rate_captured_at?->format('d/m/Y'))
-                    ->placeholder('—')
-                    ->toggleable(isToggledHiddenByDefault: true),
                 TextInputColumn::make('unit_cost')
                     ->label(__('forms.labels.cost'))
                     ->type('number')
@@ -334,11 +311,44 @@ class ItemsRelationManager extends RelationManager
                     })
                     ->alignEnd()
                     ->toggleable(),
+                TextColumn::make('cost_exchange_rate')
+                    ->label(__('forms.labels.exchange_rate'))
+                    ->alignEnd()
+                    ->formatStateUsing(fn ($state) => number_format((float) $state, 6))
+                    ->description(fn ($record) => $record->cost_exchange_rate_captured_at?->format('d/m/Y'))
+                    ->placeholder('—')
+                    ->toggleable(),
+                TextColumn::make('unit_cost_in_document_currency')
+                    ->label(__('forms.labels.cost_in_pi_currency_short'))
+                    ->alignEnd()
+                    ->prefix(fn ($record) => ($record->proformaInvoice?->currency_code
+                        ?? $this->getOwnerRecord()->currency_code).' ')
+                    ->formatStateUsing(fn ($state) => Money::format((int) $state, 4))
+                    ->toggleable(),
+                TextInputColumn::make('unit_price')
+                    ->label(__('forms.labels.price'))
+                    ->type('number')
+                    ->inputMode('decimal')
+                    ->step('0.0001')
+                    ->prefix(fn ($record) => ($record->proformaInvoice?->currency_code
+                        ?? $this->getOwnerRecord()->currency_code).' ')
+                    ->rules(['required', 'numeric', 'min:0'])
+                    ->getStateUsing(fn ($record) => number_format(Money::toMajor($record->unit_price ?? 0), 4, '.', ''))
+                    ->updateStateUsing(function ($record, $state) {
+                        $floatValue = (float) str_replace(',', '', (string) $state);
+                        $record->unit_price = Money::toMinor($floatValue);
+                        $record->save();
+
+                        return number_format($floatValue, 4, '.', '');
+                    })
+                    ->alignEnd()
+                    ->toggleable(),
                 TextColumn::make('line_total')
                     ->label(__('forms.labels.total'))
                     ->getStateUsing(fn ($record) => $record->line_total)
                     ->formatStateUsing(fn ($state) => Money::format($state))
-                    ->prefix('$ ')
+                    ->prefix(fn ($record) => ($record->proformaInvoice?->currency_code
+                        ?? $this->getOwnerRecord()->currency_code).' ')
                     ->alignEnd()
                     ->weight('bold')
                     ->toggleable()
@@ -346,7 +356,8 @@ class ItemsRelationManager extends RelationManager
                         Summarizer::make()
                             ->label(__('forms.labels.total'))
                             ->using(fn ($query): int => (int) $query->sum(DB::raw('unit_price * quantity')))
-                            ->formatStateUsing(fn ($state) => '$ '.Money::format((int) $state))
+                            ->formatStateUsing(fn ($state) => $this->getOwnerRecord()->currency_code
+                                .' '.Money::format((int) $state))
                     ),
                 TextColumn::make('margin')
                     ->label(__('forms.labels.margin'))
@@ -1011,10 +1022,28 @@ class ItemsRelationManager extends RelationManager
                     $updated++;
                 }
 
+                // Nada mudou: avisa em amarelo em vez de dar um "sucesso" de 0 itens.
+                if ($updated === 0) {
+                    Notification::make()
+                        ->title(__('messages.fx_rate_no_items_updated'))
+                        ->body(__('messages.fx_rate_skipped_same_currency', [
+                            'count' => $skipped,
+                            'currency' => $pi->currency_code,
+                        ]))
+                        ->warning()
+                        ->persistent()
+                        ->send();
+
+                    return;
+                }
+
                 Notification::make()
                     ->title(__('messages.fx_rate_updated_for_items', ['count' => $updated]))
                     ->body($skipped > 0
-                        ? __('messages.fx_rate_skipped_same_currency', ['count' => $skipped])
+                        ? __('messages.fx_rate_skipped_same_currency', [
+                            'count' => $skipped,
+                            'currency' => $pi->currency_code,
+                        ])
                         : null)
                     ->success()
                     ->send();

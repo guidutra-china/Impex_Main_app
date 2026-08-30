@@ -105,6 +105,11 @@ class BulkChangeExchangeRateTest extends TestCase
 
         $this->assertEqualsWithDelta(1.0, (float) $sameCurrency->cost_exchange_rate, 0.00000001);
         $this->assertSame(10000, $sameCurrency->unit_cost_in_document_currency);
+
+        // O usuário precisa ver POR QUE nada mudou, não um "sucesso" de 0 itens.
+        \Filament\Notifications\Notification::assertNotified(
+            __('messages.fx_rate_no_items_updated')
+        );
     }
 
     public function test_table_mode_resolves_the_rate_per_item_currency(): void
