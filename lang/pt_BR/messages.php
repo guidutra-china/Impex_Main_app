@@ -174,6 +174,8 @@ return [
     'reconciliation_complete' => 'Reconciliação Concluída',
     'fx_rates_refreshed' => ':count item(ns) atualizado(s) pela tabela de câmbio',
     'currency_updated_for_items' => 'Moeda do custo atualizada para :count item(ns)',
+    'fx_rate_updated_for_items' => 'Taxa de câmbio atualizada em :count item(ns)',
+    'fx_rate_skipped_same_currency' => ':count item(ns) ignorado(s): o custo já está na moeda da PI',
     'supplier_updated_for_items' => 'Fornecedor atualizado para :count item(ns)',
     'unit_updated_for_items' => 'Unidade atualizada para :count item(ns)',
     'fx_rates_updated_title' => 'Câmbio atualizado',

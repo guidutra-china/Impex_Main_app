@@ -25,8 +25,10 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -292,6 +294,13 @@ class ItemsRelationManager extends RelationManager
                             : 'gray')
                     ->placeholder('—')
                     ->toggleable(),
+                TextColumn::make('cost_exchange_rate')
+                    ->label(__('forms.labels.exchange_rate'))
+                    ->alignEnd()
+                    ->formatStateUsing(fn ($state) => number_format((float) $state, 6))
+                    ->description(fn ($record) => $record->cost_exchange_rate_captured_at?->format('d/m/Y'))
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextInputColumn::make('unit_cost')
                     ->label(__('forms.labels.cost'))
                     ->type('number')
@@ -382,6 +391,7 @@ class ItemsRelationManager extends RelationManager
             ->toolbarActions([
                 BulkActionGroup::make([
                     $this->bulkChangeCurrencyAction(),
+                    $this->bulkChangeExchangeRateAction(),
                     $this->bulkChangeSupplierAction(),
                     $this->bulkChangeUnitAction(),
                     DeleteBulkAction::make()
@@ -864,26 +874,148 @@ class ItemsRelationManager extends RelationManager
                 Select::make('cost_currency_code')
                     ->label(__('forms.labels.cost_currency'))
                     ->options(fn () => Currency::where('is_active', true)->pluck('code', 'code'))
-                    ->required(),
+                    ->required()
+                    ->live()
+                    ->afterStateUpdated(function (Get $get, Set $set) {
+                        $resolved = $this->resolveCostRate($get('cost_currency_code'));
+                        $set('cost_exchange_rate', $resolved['rate']);
+                    }),
+
+                TextInput::make('cost_exchange_rate')
+                    ->label(__('forms.labels.exchange_rate'))
+                    ->numeric()
+                    ->step(0.00000001)
+                    ->minValue(0)
+                    ->helperText(__('forms.helpers.bulk_fx_rate_override'))
+                    ->visible(fn (Get $get) => filled($get('cost_currency_code'))
+                        && $get('cost_currency_code') !== $this->getOwnerRecord()->currency_code),
             ])
             ->action(function (Collection $records, array $data) {
                 $pi = $this->getOwnerRecord();
-                $resolver = app(ProformaInvoiceItemCurrencyResolver::class);
-                $resolved = $resolver->resolve(
-                    $data['cost_currency_code'],
-                    $pi->currency_code,
-                    $pi->issue_date?->toDateString(),
-                );
+                $resolved = $this->resolveCostRate($data['cost_currency_code']);
+
+                // Taxa digitada pelo usuário tem prioridade sobre a tabela de câmbio.
+                $manualRate = isset($data['cost_exchange_rate']) && $data['cost_exchange_rate'] !== ''
+                    ? (float) $data['cost_exchange_rate']
+                    : null;
+
+                $rate = $manualRate !== null && $manualRate > 0 ? $manualRate : $resolved['rate'];
+                $capturedAt = $manualRate !== null && $manualRate > 0
+                    ? now()->toDateString()
+                    : ($resolved['rate_date'] ?? now()->toDateString());
 
                 foreach ($records as $record) {
                     $record->update([
                         'cost_currency_code' => $resolved['currency'],
-                        'cost_exchange_rate' => $resolved['rate'],
+                        'cost_exchange_rate' => $resolved['currency'] === $pi->currency_code ? 1 : $rate,
+                        'cost_exchange_rate_captured_at' => $capturedAt,
                     ]);
                 }
 
                 Notification::make()
                     ->title(__('messages.currency_updated_for_items', ['count' => $records->count()]))
+                    ->success()
+                    ->send();
+            })
+            ->deselectRecordsAfterCompletion();
+    }
+
+    /**
+     * Taxa da tabela de câmbio entre a moeda de custo e a moeda da PI.
+     *
+     * @return array{currency: string, rate: float, rate_date: ?string}
+     */
+    protected function resolveCostRate(?string $costCurrency, ?string $date = null): array
+    {
+        $pi = $this->getOwnerRecord();
+
+        return app(ProformaInvoiceItemCurrencyResolver::class)->resolve(
+            $costCurrency,
+            $pi->currency_code,
+            $date ?? $pi->issue_date?->toDateString(),
+        );
+    }
+
+    protected function bulkChangeExchangeRateAction(): BulkAction
+    {
+        return BulkAction::make('bulkChangeExchangeRate')
+            ->label(__('forms.labels.change_exchange_rate'))
+            ->icon('heroicon-o-arrows-right-left')
+            ->color('warning')
+            ->visible(fn () => auth()->user()?->can('edit-proforma-invoices'))
+            ->modalDescription(fn () => __('forms.helpers.bulk_fx_rate_explanation', [
+                'currency' => $this->getOwnerRecord()->currency_code,
+            ]))
+            ->form([
+                Radio::make('mode')
+                    ->label(__('forms.labels.fx_rate_source'))
+                    ->options([
+                        'manual' => __('forms.labels.fx_rate_manual'),
+                        'table' => __('forms.labels.fx_rate_from_table'),
+                    ])
+                    ->default('manual')
+                    ->required()
+                    ->live(),
+
+                TextInput::make('cost_exchange_rate')
+                    ->label(__('forms.labels.exchange_rate'))
+                    ->numeric()
+                    ->step(0.00000001)
+                    ->minValue(0)
+                    ->helperText(__('forms.helpers.cost_currency_to_pi_currency'))
+                    ->visible(fn (Get $get) => $get('mode') === 'manual')
+                    ->required(fn (Get $get) => $get('mode') === 'manual'),
+
+                DatePicker::make('rate_date')
+                    ->label(__('forms.labels.rate_date'))
+                    ->default(fn () => today()->toDateString())
+                    ->visible(fn (Get $get) => $get('mode') === 'table')
+                    ->required(fn (Get $get) => $get('mode') === 'table'),
+            ])
+            ->action(function (Collection $records, array $data) {
+                $pi = $this->getOwnerRecord();
+                $mode = $data['mode'] ?? 'manual';
+                $updated = 0;
+                $skipped = 0;
+
+                foreach ($records as $record) {
+                    $costCurrency = $record->cost_currency_code ?: $pi->currency_code;
+
+                    // Item custeado na própria moeda da PI: a taxa é 1 por definição.
+                    if ($costCurrency === $pi->currency_code) {
+                        $skipped++;
+
+                        continue;
+                    }
+
+                    if ($mode === 'table') {
+                        $resolved = $this->resolveCostRate($costCurrency, $data['rate_date'] ?? null);
+                        $rate = (float) $resolved['rate'];
+                        $capturedAt = $resolved['rate_date'] ?? ($data['rate_date'] ?? now()->toDateString());
+                    } else {
+                        $rate = (float) $data['cost_exchange_rate'];
+                        $capturedAt = now()->toDateString();
+                    }
+
+                    if ($rate <= 0) {
+                        $skipped++;
+
+                        continue;
+                    }
+
+                    // O hook de saving recalcula unit_cost_in_document_currency.
+                    $record->update([
+                        'cost_exchange_rate' => $rate,
+                        'cost_exchange_rate_captured_at' => $capturedAt,
+                    ]);
+                    $updated++;
+                }
+
+                Notification::make()
+                    ->title(__('messages.fx_rate_updated_for_items', ['count' => $updated]))
+                    ->body($skipped > 0
+                        ? __('messages.fx_rate_skipped_same_currency', ['count' => $skipped])
+                        : null)
                     ->success()
                     ->send();
             })

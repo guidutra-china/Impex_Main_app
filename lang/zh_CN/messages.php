@@ -164,6 +164,8 @@ return [
     'reconciliation_complete' => '对账完成',
     'fx_rates_refreshed' => '已根据汇率表刷新 :count 项',
     'currency_updated_for_items' => '已更新 :count 项的成本货币',
+    'fx_rate_updated_for_items' => '已更新 :count 项的汇率',
+    'fx_rate_skipped_same_currency' => '已跳过 :count 项：成本已是形式发票币种',
     'supplier_updated_for_items' => '已更新 :count 项的供应商',
     'unit_updated_for_items' => '已更新 :count 项的单位',
     'fx_rates_updated_title' => '汇率已更新',

@@ -176,6 +176,8 @@ return [
     // Proforma Invoice multi-currency
     'fx_rates_refreshed' => ':count item(s) refreshed from the FX table',
     'currency_updated_for_items' => 'Cost currency updated for :count item(s)',
+    'fx_rate_updated_for_items' => 'Exchange rate updated for :count item(s)',
+    'fx_rate_skipped_same_currency' => ':count item(s) skipped: cost is already in the PI currency',
     'supplier_updated_for_items' => 'Supplier updated for :count item(s)',
     'unit_updated_for_items' => 'Unit updated for :count item(s)',
     'fx_rates_updated_title' => 'Exchange rates updated',
