@@ -151,10 +151,13 @@ nota. Divergência escondida é pior que divergência visível.
 
 ## Moeda
 
-Tudo na moeda do embarque. Se as PIs embarcadas tiverem moedas diferentes — hoje
-não ocorre em nenhum dos 23 embarques multi-PI, mas o schema permite — o
-documento sai em blocos separados por moeda. **Moedas diferentes nunca são
-somadas.**
+Tudo na moeda do embarque. Se uma PI embarcada tiver moeda diferente — hoje não
+ocorre em nenhum dos 23 embarques multi-PI, mas o schema permite — a linha dela
+aparece na seção 2 com a própria moeda e a marca *não incluída nos totais*, e
+fica de fora de todos os subtotais. Mesmo padrão que o extrato da PI já usa para
+Debit Notes em moeda estrangeira (`in_totals` + `.currency-note`). Blocos
+separados por moeda seriam mais completos, mas repetiriam as seis seções para um
+caso que não existe em produção. **Moedas diferentes nunca são somadas.**
 
 ## Wiring no menu Documents
 
@@ -188,7 +191,8 @@ de `getData()`, sem renderizar PDF:
    `fatia` proporcional, e o total usa a fatia;
 5. linha `[remaining]` não aparece;
 6. pagamento aprovado alocado aparece na seção 5; pagamento pendente não;
-7. moedas distintas produzem blocos separados e nenhum total somando as duas;
+7. PI em moeda diferente da do embarque sai marcada fora dos totais e não entra
+   em nenhum subtotal;
 8. o payload não contém nenhuma chave de custo/margem — asserção explícita de
    ausência, para que uma regressão futura não vaze margem para o cliente.
 
