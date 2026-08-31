@@ -158,10 +158,12 @@
             <thead>
                 <tr>
                     <th style="width: 25px;">#</th>
-                    <th style="width: 110px;">Type</th>
+                    <th style="width: 95px;">Type</th>
                     <th>Description</th>
-                    <th class="text-center" style="width: 65px;">Date</th>
-                    <th class="text-right" style="width: 110px;">Amount</th>
+                    <th style="width: 90px;">Document</th>
+                    <th class="text-center" style="width: 60px;">Date</th>
+                    <th class="text-right" style="width: 95px;">Full Amount</th>
+                    <th class="text-right" style="width: 95px;">This Shipment</th>
                 </tr>
             </thead>
             <tbody>
@@ -169,13 +171,23 @@
                     <tr>
                         <td class="text-center">{{ $row['index'] }}</td>
                         <td>{{ $row['type'] }}</td>
-                        <td>{{ $row['description'] }}</td>
+                        <td>
+                            {{ $row['description'] }}
+                            @if($row['is_prorated'])
+                                <br><span class="prorated-note">{{ $row['share_percent'] }}% of the document charge</span>
+                            @endif
+                            @unless($row['in_totals'])
+                                <br><span class="currency-note">{{ $row['currency_code'] }} — not included in totals</span>
+                            @endunless
+                        </td>
+                        <td>{{ $row['document'] }}</td>
                         <td class="text-center">{{ $row['date'] }}</td>
-                        <td class="text-right">{{ $shipment['currency_code'] }} {{ $row['amount'] }}</td>
+                        <td class="text-right">{{ $row['currency_code'] }} {{ $row['document_amount'] }}</td>
+                        <td class="text-right">{{ $row['currency_code'] }} {{ $row['shipment_amount'] }}</td>
                     </tr>
                 @endforeach
                 <tr class="subtotal-row">
-                    <td colspan="4" class="text-right">Charges Subtotal</td>
+                    <td colspan="6" class="text-right">Charges Subtotal</td>
                     <td class="text-right">{{ $shipment['currency_code'] }} {{ $costs_total }}</td>
                 </tr>
             </tbody>

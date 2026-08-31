@@ -4,14 +4,16 @@ namespace App\Domain\Infrastructure\Pdf\Templates;
 
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\BillableTo;
-use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Enums\PaymentStatus;
+use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Financial\Services\ShipmentPaymentSummaryService;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
 use App\Domain\Settings\Enums\CalculationBase;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /**
@@ -64,17 +66,20 @@ class ShipmentFinancialStatementPdfTemplate extends AbstractPdfTemplate
 
         $proformaInvoices = ProformaInvoice::query()
             ->whereIn('id', $shares->keys())
+            ->with('additionalCosts')
             ->orderBy('reference')
             ->get();
 
         $goods = $this->buildGoods($proformaInvoices, $shares, $currencyCode);
         $goodsTotal = (int) collect($goods)->where('in_totals', true)->sum('raw_amount');
 
-        $costs = $this->buildCosts($shipment, $currencyCode);
-        $costsTotal = (int) collect($costs)->sum('raw_amount');
+        $ratios = $this->shippedRatioByProformaInvoice($shares);
+
+        $costs = $this->buildCosts($shipment, $proformaInvoices, $ratios, $currencyCode);
+        $costsTotal = (int) collect($costs)->where('in_totals', true)->sum('raw_shipment_amount');
 
         $scheduleItems = $this->collectScheduleItems($shipment, $shares);
-        $schedule = $this->buildSchedule($scheduleItems, $shares, $currencyCode);
+        $schedule = $this->buildSchedule($scheduleItems, $shares, $ratios, $currencyCode);
         $scheduleTotal = (int) collect($schedule)->sum('raw_shipment_amount');
 
         $payments = $this->buildPayments($scheduleItems->pluck('id'), $currencyCode);
@@ -148,31 +153,120 @@ class ShipmentFinancialStatementPdfTemplate extends AbstractPdfTemplate
     }
 
     /**
-     * Custos do embarque repassados ao cliente. Custos absorvidos pela empresa
-     * ou repassados ao fornecedor jamais entram — é documento de cliente.
+     * Fração de cada PI que este embarque leva, pelo valor dos itens. É o que
+     * rateia um custo de PI — que pertence ao documento inteiro — para a fatia
+     * embarcada aqui.
      *
+     * @param  Collection<int, int>  $shares
+     * @return Collection<int, float> PI id => fração entre 0 e 1
+     */
+    private function shippedRatioByProformaInvoice(Collection $shares): Collection
+    {
+        if ($shares->isEmpty()) {
+            return collect();
+        }
+
+        $documentTotals = ProformaInvoiceItem::query()
+            ->whereIn('proforma_invoice_id', $shares->keys())
+            ->selectRaw('proforma_invoice_id, sum(quantity * unit_price) as total')
+            ->groupBy('proforma_invoice_id')
+            ->pluck('total', 'proforma_invoice_id');
+
+        return $shares->map(function (int $share, int $piId) use ($documentTotals) {
+            $total = (int) $documentTotals->get($piId, 0);
+
+            return $total > 0 ? min(1.0, $share / $total) : 1.0;
+        });
+    }
+
+    /**
+     * Tudo que é cobrado do cliente além da mercadoria: os custos do próprio
+     * embarque e os custos das PIs embarcadas.
+     *
+     * Fora ficam só os custos absorvidos pela empresa, os repassados ao
+     * fornecedor e os dispensados — é documento de cliente. Comissão entra
+     * qualquer que seja o commission_mode: o GeneratePaymentScheduleAction
+     * gera parcela para todo custo billable_to=client, inclusive as marcadas
+     * EMBEDDED, então filtrar por esse flag esconderia dívida que o
+     * cronograma cobra (PI-2026-00078: 4.325,06 + 219,14 de comissão).
+     *
+     * Custo de PI pertence ao documento inteiro: sai com o valor cheio e a
+     * fatia deste embarque, e só a fatia entra no subtotal.
+     *
+     * @param  Collection<int, ProformaInvoice>  $proformaInvoices
+     * @param  Collection<int, float>  $ratios
      * @return array<int, array<string, mixed>>
      */
-    private function buildCosts(Shipment $shipment, string $currencyCode): array
-    {
-        return $shipment->additionalCosts
-            ->filter(fn (AdditionalCost $cost) => $cost->billable_to === BillableTo::CLIENT
-                && $cost->status !== AdditionalCostStatus::WAIVED)
-            ->sortBy('cost_date')
+    private function buildCosts(
+        Shipment $shipment,
+        Collection $proformaInvoices,
+        Collection $ratios,
+        string $currencyCode,
+    ): array {
+        $shipmentCosts = $shipment->additionalCosts
+            ->filter(fn (AdditionalCost $cost) => $this->isChargedToClient($cost))
+            ->map(fn (AdditionalCost $cost) => [
+                'cost' => $cost,
+                'document' => '—',
+                'currency' => $currencyCode,
+                'ratio' => 1.0,
+            ]);
+
+        $piCosts = $proformaInvoices->flatMap(function (ProformaInvoice $pi) use ($ratios, $currencyCode) {
+            return $pi->additionalCosts
+                ->filter(fn (AdditionalCost $cost) => $this->isChargedToClient($cost))
+                ->map(fn (AdditionalCost $cost) => [
+                    'cost' => $cost,
+                    'document' => $pi->reference,
+                    'currency' => $pi->currency_code ?? $currencyCode,
+                    'ratio' => (float) $ratios->get($pi->id, 1.0),
+                ]);
+        });
+
+        return $shipmentCosts
+            ->concat($piCosts)
+            ->sortBy(fn (array $entry) => [
+                $entry['document'] === '—' ? 0 : 1,
+                $entry['document'],
+                $entry['cost']->cost_date?->timestamp ?? 0,
+            ])
             ->values()
-            ->map(function (AdditionalCost $cost, int $index) use ($currencyCode) {
-                $amount = (int) ($cost->amount_in_document_currency ?? $cost->amount);
+            ->map(function (array $entry, int $index) use ($currencyCode) {
+                /** @var AdditionalCost $cost */
+                $cost = $entry['cost'];
+                $documentAmount = (int) ($cost->amount_in_document_currency ?? $cost->amount);
+                $shipmentAmount = (int) round($documentAmount * $entry['ratio']);
 
                 return [
                     'index' => $index + 1,
                     'type' => $cost->cost_type->getEnglishLabel(),
                     'description' => $cost->description ?: '—',
+                    'document' => $entry['document'],
                     'date' => $this->formatDate($cost->cost_date),
-                    'amount' => $this->formatMoney($amount, $currencyCode, 2),
-                    'raw_amount' => $amount,
+                    'currency_code' => $entry['currency'],
+                    'document_amount' => $this->formatMoney($documentAmount, $entry['currency'], 2),
+                    'raw_document_amount' => $documentAmount,
+                    'shipment_amount' => $this->formatMoney($shipmentAmount, $entry['currency'], 2),
+                    'raw_shipment_amount' => $shipmentAmount,
+                    'is_prorated' => $shipmentAmount !== $documentAmount,
+                    'share_percent' => $documentAmount > 0
+                        ? (int) round($shipmentAmount / $documentAmount * 100)
+                        : 100,
+                    'in_totals' => $entry['currency'] === $currencyCode,
                 ];
             })
             ->all();
+    }
+
+    /**
+     * Um custo adicional é cobrado do cliente quando é repassado a ele e não
+     * foi dispensado — a mesma condição que faz o payment schedule gerar a
+     * parcela correspondente.
+     */
+    private function isChargedToClient(AdditionalCost $cost): bool
+    {
+        return $cost->billable_to === BillableTo::CLIENT
+            && $cost->status !== AdditionalCostStatus::WAIVED;
     }
 
     /**
@@ -204,46 +298,73 @@ class ShipmentFinancialStatementPdfTemplate extends AbstractPdfTemplate
                 ->whereIn('due_condition', CalculationBase::documentLevelValues())
                 ->get();
 
+        $piCostItems = $shares->isEmpty()
+            ? collect()
+            : PaymentScheduleItem::query()
+                ->where('payable_type', ProformaInvoice::class)
+                ->whereIn('payable_id', $shares->keys())
+                ->whereNull('shipment_id')
+                ->where('source_type', AdditionalCost::class)
+                ->where('is_credit', false)
+                ->withoutSideTags()
+                ->whereIn('source_id', $this->clientChargeableCostIds())
+                ->get();
+
         $shipmentCosts = PaymentScheduleItem::query()
             ->where('payable_type', Shipment::class)
             ->where('payable_id', $shipment->id)
             ->where('source_type', AdditionalCost::class)
             ->where('is_credit', false)
             ->withoutSideTags()
-            ->whereIn(
-                'source_id',
-                AdditionalCost::query()
-                    ->where('billable_to', BillableTo::CLIENT)
-                    ->where('status', '!=', AdditionalCostStatus::WAIVED)
-                    ->select('id'),
-            )
+            ->whereIn('source_id', $this->clientChargeableCostIds())
             ->get();
 
         return $shipSpecific
             ->concat($documentLevel)
+            ->concat($piCostItems)
             ->concat($shipmentCosts)
             ->sortBy('sort_order')
             ->values();
     }
 
     /**
+     * Ids dos custos adicionais cobrados do cliente — mesma regra de
+     * isChargedToClient(), em SQL, para filtrar as parcelas de origem.
+     */
+    private function clientChargeableCostIds(): Builder
+    {
+        return AdditionalCost::query()
+            ->where('billable_to', BillableTo::CLIENT)
+            ->where('status', '!=', AdditionalCostStatus::WAIVED)
+            ->select('id');
+    }
+
+    /**
      * @param  Collection<int, PaymentScheduleItem>  $items
      * @param  Collection<int, int>  $shares
+     * @param  Collection<int, float>  $ratios
      * @return array<int, array<string, mixed>>
      */
-    private function buildSchedule(Collection $items, Collection $shares, string $currencyCode): array
+    private function buildSchedule(Collection $items, Collection $shares, Collection $ratios, string $currencyCode): array
     {
         $references = ProformaInvoice::query()
             ->whereIn('id', $shares->keys())
             ->pluck('reference', 'id');
 
         return $items
-            ->map(function (PaymentScheduleItem $item) use ($shares, $references, $currencyCode) {
+            ->map(function (PaymentScheduleItem $item) use ($shares, $ratios, $references, $currencyCode) {
                 $documentAmount = (int) $item->amount;
-                $isDocumentLevel = $item->payable_type === ProformaInvoice::class
-                    && $item->shipment_id === null;
+                $isPiCost = $item->payable_type === ProformaInvoice::class
+                    && $item->shipment_id === null
+                    && $item->source_type === AdditionalCost::class;
+                $isDocumentStage = $item->payable_type === ProformaInvoice::class
+                    && $item->shipment_id === null
+                    && ! $isPiCost;
 
-                if ($isDocumentLevel) {
+                if ($isPiCost) {
+                    // Custo da PI: valor fixo, rateado pela fração embarcada.
+                    $shipmentAmount = (int) round($documentAmount * (float) $ratios->get($item->payable_id, 1.0));
+                } elseif ($isDocumentStage) {
                     $share = (int) $shares->get($item->payable_id, 0);
                     $shipmentAmount = $item->percentage
                         ? (int) round($share * $item->percentage / 100)
@@ -277,7 +398,7 @@ class ShipmentFinancialStatementPdfTemplate extends AbstractPdfTemplate
                     'raw_balance' => $balance,
                     'status' => $item->status->getEnglishLabel(),
                     'status_value' => $item->status->value,
-                    'is_prorated' => $isDocumentLevel && $shipmentAmount !== $documentAmount,
+                    'is_prorated' => ($isDocumentStage || $isPiCost) && $shipmentAmount !== $documentAmount,
                     'share_percent' => $documentAmount > 0
                         ? (int) round($shipmentAmount / $documentAmount * 100)
                         : 100,

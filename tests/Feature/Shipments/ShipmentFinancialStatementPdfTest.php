@@ -18,6 +18,7 @@ use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Logistics\Models\ShipmentItem;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
+use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Settings\Enums\CalculationBase;
 use Database\Factories\PaymentScheduleItemFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -498,5 +499,156 @@ class ShipmentFinancialStatementPdfTest extends TestCase
         $this->assertStringContainsString('Air shipping cost', $html);
         $this->assertStringContainsString('Financial Statement', $html);
         $this->assertStringContainsString('50% of the document instalment', $html);
+    }
+
+    private function piCost(ProformaInvoice $pi, int $amount, array $overrides = []): AdditionalCost
+    {
+        return AdditionalCost::create(array_merge([
+            'costable_type' => ProformaInvoice::class,
+            'costable_id' => $pi->id,
+            'cost_type' => AdditionalCostType::OTHER,
+            'description' => 'Extra labels',
+            'amount' => $amount,
+            'currency_code' => 'USD',
+            'amount_in_document_currency' => $amount,
+            'billable_to' => BillableTo::CLIENT,
+            'cost_date' => '2026-08-20',
+            'status' => AdditionalCostStatus::PENDING,
+        ], $overrides));
+    }
+
+    public function test_client_billable_costs_of_the_shipped_pi_are_listed(): void
+    {
+        $shipment = $this->makeShipment();
+        $pi = ProformaInvoice::factory()->create([
+            'company_id' => $this->client->id,
+            'currency_code' => 'USD',
+            'reference' => 'PI-2026-00078',
+        ]);
+        $this->ship($shipment, $pi, quantity: 100, unitPrice: 10_000);
+
+        $this->cost($shipment, BillableTo::CLIENT, 200_000);
+        $this->piCost($pi, 150_000, ['description' => 'Extra labels']);
+
+        $data = $this->data($shipment);
+
+        $descriptions = collect($data['costs'])->pluck('description')->all();
+        $this->assertContains('Extra labels', $descriptions, 'Custo da PI repassado ao cliente tem de aparecer.');
+        $this->assertContains('Air shipping cost', $descriptions);
+
+        $labels = collect($data['costs'])->firstWhere('description', 'Extra labels');
+        $this->assertSame('PI-2026-00078', $labels['document'], 'A linha diz de qual PI o custo veio.');
+        $this->assertSame(150_000, $labels['raw_shipment_amount']);
+
+        $this->assertSame(350_000, $data['raw_costs_total']);
+        $this->assertSame(1_350_000, $data['totals']['raw_billed']);
+    }
+
+    public function test_pi_cost_of_a_partial_shipment_shows_full_and_prorated_amounts(): void
+    {
+        $shipment = $this->makeShipment();
+        $pi = ProformaInvoice::factory()->create([
+            'company_id' => $this->client->id,
+            'currency_code' => 'USD',
+        ]);
+        // Só 40% da PI embarca.
+        $this->ship($shipment, $pi, quantity: 100, unitPrice: 10_000, shippedQuantity: 40);
+
+        $this->piCost($pi, 100_000, ['description' => 'Customization Fee']);
+
+        $row = collect($this->data($shipment)['costs'])->firstWhere('description', 'Customization Fee');
+
+        $this->assertSame(100_000, $row['raw_document_amount'], 'Valor cheio do custo na PI.');
+        $this->assertSame(40_000, $row['raw_shipment_amount'], 'Fatia deste embarque: 40%.');
+        $this->assertTrue($row['is_prorated']);
+        $this->assertSame(40, $row['share_percent']);
+    }
+
+    public function test_commission_is_listed_whatever_the_commission_mode(): void
+    {
+        $shipment = $this->makeShipment();
+        $pi = ProformaInvoice::factory()->create([
+            'company_id' => $this->client->id,
+            'currency_code' => 'USD',
+        ]);
+        $this->ship($shipment, $pi, quantity: 100, unitPrice: 10_000);
+
+        // O GeneratePaymentScheduleAction gera parcela para todo custo
+        // billable_to=client, inclusive comissão marcada EMBEDDED. Filtrar por
+        // commission_mode aqui esconderia dívida que o cronograma cobra.
+        $this->piCost($pi, 50_000, [
+            'description' => 'Commission marked embedded',
+            'cost_type' => AdditionalCostType::COMMISSION,
+            'commission_mode' => CommissionType::EMBEDDED,
+            'commission_rate' => 5,
+        ]);
+        $this->piCost($pi, 30_000, [
+            'description' => 'Separate commission',
+            'cost_type' => AdditionalCostType::COMMISSION,
+            'commission_mode' => CommissionType::SEPARATE,
+            'commission_rate' => 3,
+        ]);
+
+        $data = $this->data($shipment);
+        $descriptions = collect($data['costs'])->pluck('description')->all();
+
+        $this->assertContains('Commission marked embedded', $descriptions);
+        $this->assertContains('Separate commission', $descriptions);
+        $this->assertSame(80_000, $data['raw_costs_total']);
+    }
+
+    public function test_pi_cost_installment_appears_in_the_schedule(): void
+    {
+        $shipment = $this->makeShipment();
+        $pi = ProformaInvoice::factory()->create([
+            'company_id' => $this->client->id,
+            'currency_code' => 'USD',
+            'reference' => 'PI-2026-00078',
+        ]);
+        $this->ship($shipment, $pi, quantity: 100, unitPrice: 10_000, shippedQuantity: 50);
+
+        $cost = $this->piCost($pi, 200_000, ['description' => 'Extra labels']);
+
+        PaymentScheduleItemFactory::new()->create([
+            'payable_type' => ProformaInvoice::class,
+            'payable_id' => $pi->id,
+            'shipment_id' => null,
+            'source_type' => AdditionalCost::class,
+            'source_id' => $cost->id,
+            'label' => 'Other: Extra labels',
+            'percentage' => 0,
+            'amount' => 200_000,
+            'due_condition' => null,
+        ]);
+
+        $data = $this->data($shipment);
+
+        $row = collect($data['schedule'])->firstWhere('label', 'Other: Extra labels');
+        $this->assertNotNull($row, 'A parcela do custo da PI tem de entrar no cronograma.');
+        $this->assertSame('PI-2026-00078', $row['document']);
+        $this->assertSame(200_000, $row['raw_document_amount']);
+        $this->assertSame(100_000, $row['raw_shipment_amount'], 'Metade embarcou.');
+    }
+
+    public function test_pi_cost_in_another_currency_stays_out_of_totals(): void
+    {
+        $shipment = $this->makeShipment();
+        $pi = ProformaInvoice::factory()->create([
+            'company_id' => $this->client->id,
+            'currency_code' => 'CNY',
+            'reference' => 'PI-CNY',
+        ]);
+        $this->ship($shipment, $pi, quantity: 10, unitPrice: 1_000);
+
+        $this->piCost($pi, 90_000, [
+            'description' => 'Internal Freight',
+            'currency_code' => 'CNY',
+        ]);
+
+        $data = $this->data($shipment);
+
+        $row = collect($data['costs'])->firstWhere('description', 'Internal Freight');
+        $this->assertFalse($row['in_totals']);
+        $this->assertSame(0, $data['raw_costs_total']);
     }
 }

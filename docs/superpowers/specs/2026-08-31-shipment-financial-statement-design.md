@@ -80,16 +80,32 @@ Subtotal ao final. **Sem** abrir item a item.
 
 ### 3. Custos repassados
 
-`shipment->additionalCosts` com `billable_to = client`, ordenados por
-`cost_date`: tipo, descrição, data, valor em `amount_in_document_currency`.
-Subtotal ao final. Custos `company` e `supplier` não aparecem.
+Duas origens, na mesma tabela: os custos do próprio embarque
+(`shipment->additionalCosts`) e os custos das PIs embarcadas
+(`pi->additionalCosts`), ambos com `billable_to = client` e status diferente de
+`waived`. Colunas: tipo, descrição, **documento** (referência da PI, ou `—` para
+custo do embarque), data, **valor cheio** e **fatia deste embarque**, em
+`amount_in_document_currency`. Subtotal soma a fatia.
+
+Um custo de PI pertence ao documento inteiro, então é rateado pela fração
+embarcada — `valor embarcado da PI / soma(quantidade × unit_price) da PI` — a
+mesma lógica de coluna cheia + fatia das parcelas de nível documento.
+
+Custos `company` e `supplier` nunca aparecem: é documento de cliente.
+
+**Comissão entra qualquer que seja o `commission_mode`, EMBEDDED incluído.**
+O `GeneratePaymentScheduleAction` gera parcela para todo custo
+`billable_to = client` sem olhar esse flag, então filtrar por ele esconderia
+dívida que o cronograma cobra. Confirmado na PI-2026-00078: itens 4.325,06 mais
+uma parcela de comissão de 219,14, ambas em aberto. A regra deste documento é
+listar exatamente o que gera parcela cobrável do cliente.
 
 ### 4. Cronograma de pagamento
 
 Colunas: descrição, PI de origem, vencimento, **valor na PI**, **fatia deste
 embarque**, pago, saldo, status.
 
-As linhas vêm de três baldes, todos com `is_credit = false`:
+As linhas vêm de quatro baldes, todos com `is_credit = false`:
 
 **B1 — parcelas específicas do embarque**
 `payable_type = ProformaInvoice`, `shipment_id = shipment.id`,
@@ -104,11 +120,15 @@ As linhas vêm de três baldes, todos com `is_credit = false`:
 `fatia` = `round(share × percentage / 100)`, mesma fórmula de
 `ShipmentPaymentSummaryService::proratedDocumentLevelEntries()`;
 `pago da fatia` = `round(fatia × paid_amount / amount)`.
-Linhas com `fatia <= 0` são descartadas — é o que mantém fora as parcelas de
-custo da própria PI (comissão etc.), que têm `percentage = 0` e `due_condition`
-nulo.
+Linhas com `fatia <= 0` são descartadas.
 
-**B3 — custos repassados do embarque**
+**B3 — parcelas dos custos das PIs embarcadas**
+`payable_type = ProformaInvoice`, `payable_id IN` (PIs do embarque),
+`shipment_id IS NULL`, `source_type = AdditionalCost`, `withoutSideTags()`, e a
+origem com `billable_to = client` e status diferente de `waived`.
+`valor na PI` = `amount`; `fatia` = `round(amount × fração embarcada da PI)`.
+
+**B4 — custos repassados do embarque**
 `payable_type = Shipment`, `payable_id = shipment.id`,
 `source_type = AdditionalCost`, filtradas por `withoutSideTags()` (remove
 forwarder/supplier payable) e restritas a custos com `billable_to = client`.
@@ -135,7 +155,8 @@ real, não uma fração) — a fração aparece só na coluna `pago` da seção 
 Agrupado por `due_condition`, na ordem de
 `ShipmentPaymentSummaryService::CONDITION_ORDER` — hoje `private`, passa a
 `public` junto com o método de fatia. Colunas: total, pago, saldo. Linhas do
-balde B3 têm `due_condition` nulo e caem num grupo "Custos do embarque" ao final.
+baldes B3 e B4 têm `due_condition` nulo e caem num grupo "Shipment Costs" ao
+final.
 
 E o fecho:
 
@@ -194,7 +215,11 @@ de `getData()`, sem renderizar PDF:
 7. PI em moeda diferente da do embarque sai marcada fora dos totais e não entra
    em nenhum subtotal;
 8. o payload não contém nenhuma chave de custo/margem — asserção explícita de
-   ausência, para que uma regressão futura não vaze margem para o cliente.
+   ausência, para que uma regressão futura não vaze margem para o cliente;
+9. custo de PI repassado ao cliente aparece nas seções 3 e 4 com a PI de origem;
+10. comissão aparece com `commission_mode` EMBEDDED e SEPARATE;
+11. custo de PI em embarque parcial sai com valor cheio e fatia proporcional;
+12. custo de PI em moeda diferente da do embarque fica fora dos subtotais.
 
 Um teste de wiring em `tests/Feature/Shipments/` garantindo que as quatro ações
 existem no header do `ViewShipment`.
