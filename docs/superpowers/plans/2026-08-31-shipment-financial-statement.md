@@ -1845,7 +1845,17 @@ git commit -m "feat(shipments): extrato financeiro no menu Documents do embarque
 
 ---
 
+## Correção aplicada durante a execução
+
+O plano esqueceu a **settings migration** do `spatie/laravel-settings`: declarar
+a propriedade no DTO não basta, o pacote lança `MissingSettings` até a chave
+existir na tabela. Resolvido com
+`database/settings/2026_08_31_000001_add_financial_statement_email_message_to_company_settings.php`.
+
+`Money::SCALE` é **10000**, não 100 — os valores de exemplo dos testes usam essa
+escala (40.000 unidades menores = USD 4,00).
+
 ## Verificação manual final
 
-- [ ] Abrir `/panel/shipments/41` e conferir que **Documents → Financial Statement → Preview PDF** abre o documento do SH-2026-00041 com a PI-2026-00078, a parcela de USD 432.506,41 (fatia 100%, pois o embarque leva a PI inteira), os USD 215.138,00 pagos e os USD 217.368,41 em aberto, mais o frete e o custo extra na seção Charges.
+- [x] Abrir `/panel/shipments/41` e conferir que **Documents → Financial Statement → Preview PDF** abre o documento do SH-2026-00041 com a PI-2026-00078, a parcela de USD 4.325,06 (fatia 100%, pois o embarque leva a PI inteira), os USD 2.151,38 pagos e os USD 2.173,68 em aberto, mais o frete (USD 1.743,40) e o custo extra (USD 426,00) na seção Charges. Verificado com os dados de dev: faturado 6.494,46 = cronograma, pago 2.151,38, em aberto 4.343,08.
 - [ ] Conferir que nenhum valor de custo nosso ou margem aparece no PDF.
