@@ -55,6 +55,7 @@ return [
     'confirm_transition' => 'Change status from :from to :to?',
     'no_schedule_items_created' => 'No schedule items created',
     'schedule_items_shipment_dependent' => 'All payment stages are shipment-dependent and will be created when Shipping Plans are made.',
+    'schedule_document_level_hint' => 'Charged once for the whole document — this amount is the document parcel, not this shipment\'s slice.',
     'schedule_stale_banner' => 'Schedule out of date: scheduled :scheduled but current values total :expected. Use "Regenerate" to update it.',
 
     // Dynamic notification titles

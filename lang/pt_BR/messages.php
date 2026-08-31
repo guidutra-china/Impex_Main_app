@@ -55,6 +55,7 @@ return [
     'confirm_transition' => 'Alterar status de :from para :to?',
     'no_schedule_items_created' => 'Nenhum item de cronograma criado',
     'schedule_items_shipment_dependent' => 'Todas as etapas de pagamento dependem do embarque e serão criadas quando os Planos de Embarque forem feitos.',
+    'schedule_document_level_hint' => 'Cobrada uma vez pelo documento inteiro — este valor é a parcela do documento, não a fatia deste embarque.',
     'schedule_stale_banner' => 'Cronograma desatualizado: agendado :scheduled, mas os valores atuais somam :expected. Use "Regenerar" para atualizar.',
 
     // Dynamic notification titles

@@ -45,6 +45,7 @@ return [
     'confirm_transition' => '将状态从 :from 更改为 :to？',
     'no_schedule_items_created' => '未创建付款计划项',
     'schedule_items_shipment_dependent' => '所有付款阶段都依赖于发货，将在创建发货计划时生成。',
+    'schedule_document_level_hint' => '按整份单据收取一次 — 此金额为单据的分期金额，而非本次出运的份额。',
     'schedule_stale_banner' => '付款计划已过期：计划金额为 :scheduled，但当前值合计为 :expected。请使用"重新生成"更新。',
 
     // Dynamic notification titles

@@ -32,6 +32,13 @@ class PaymentScheduleRelationManager extends RelationManager
 
     protected static BackedEnum|string|null $icon = 'heroicon-o-calendar-days';
 
+    /**
+     * Badge marking a parcel that belongs to the document as a whole (charged
+     * once per PI/PO) rather than to the shipment being viewed — its amount is
+     * the document's, not this shipment's slice.
+     */
+    public const DOCUMENT_LEVEL_BADGE = 'Doc-level';
+
     public function table(Table $table): Table
     {
         return $table
@@ -93,6 +100,10 @@ class PaymentScheduleRelationManager extends RelationManager
                             }
                             if ($clientRef) {
                                 $html .= ' <span class="inline-flex items-center rounded-md px-2 py-0.5 text-[0.65rem] font-medium '.$purpleClass.'" title="Client Reference">Ref: '.e($clientRef).'</span>';
+                            }
+                            if ($this->isDocumentLevelRow($record)) {
+                                $html .= ' <span class="inline-flex items-center rounded-md bg-gray-100 px-1.5 py-0.5 text-[0.6rem] font-semibold text-gray-600 ring-1 ring-inset ring-gray-500/20 dark:bg-gray-400/10 dark:text-gray-400 dark:ring-gray-400/30" title="'
+                                    .e(__('messages.schedule_document_level_hint')).'">'.self::DOCUMENT_LEVEL_BADGE.'</span>';
                             }
                         }
 
@@ -213,6 +224,12 @@ class PaymentScheduleRelationManager extends RelationManager
             return [$docRef, null, $invoiceNumber];
         }
 
+        if ($payableType === ProformaInvoice::class) {
+            $record->loadMissing('payable');
+
+            return [$record->payable?->reference, $record->payable?->client_reference, null];
+        }
+
         if (! $record->label || ! preg_match('#/\s*((?:PI|PO)-[\w-]+)\]#', $record->label, $m)) {
             return [null, null, null];
         }
@@ -231,6 +248,18 @@ class PaymentScheduleRelationManager extends RelationManager
         $cache[$docRef] = $clientRef;
 
         return [$docRef, $clientRef, null];
+    }
+
+    /**
+     * A document-level parcel carried into a shipment view: it belongs to the
+     * PI/PO as a whole (no shipment carve-out) so its amount covers the entire
+     * document, which may span more shipments than the one being viewed.
+     */
+    protected function isDocumentLevelRow($record): bool
+    {
+        return $record->shipment_id === null
+            && in_array($record->payable_type, [ProformaInvoice::class, \App\Domain\PurchaseOrders\Models\PurchaseOrder::class], true)
+            && $record->due_condition?->isDocumentLevel() === true;
     }
 
     /**
@@ -526,6 +555,9 @@ class PaymentScheduleRelationManager extends RelationManager
             ->modalDescription('This will permanently delete this schedule item.')
             ->visible(fn ($record) => ! $record->allocations()->exists()
                 && ! in_array($record->status, [PaymentScheduleStatus::PAID])
+                // A document-level parcel is only borrowed into the shipment view;
+                // it belongs to the PI/PO and must be deleted from there.
+                && ! ($this->getOwnerRecord() instanceof Shipment && $this->isDocumentLevelRow($record))
                 && auth()->user()?->can('generate-payment-schedule'))
             ->action(function ($record) {
                 $record->delete();

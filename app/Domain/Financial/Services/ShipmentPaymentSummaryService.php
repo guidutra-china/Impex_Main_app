@@ -25,15 +25,6 @@ use Illuminate\Support\Collection;
  */
 class ShipmentPaymentSummaryService
 {
-    /** Conditions charged once per document, not per shipment. */
-    private const DOCUMENT_LEVEL_CONDITIONS = [
-        CalculationBase::ORDER_DATE,
-        CalculationBase::PO_DATE,
-        CalculationBase::INVOICE_DATE,
-        CalculationBase::BEFORE_PRODUCTION,
-        CalculationBase::AFTER_PRODUCTION,
-    ];
-
     /** Display order: document-level events first, then the shipment lifecycle. */
     private const CONDITION_ORDER = [
         'order_date',
@@ -199,7 +190,7 @@ class ShipmentPaymentSummaryService
             ->whereIn('payable_id', $shares->keys())
             ->whereNull('shipment_id')
             ->where('is_credit', false)
-            ->whereIn('due_condition', array_map(fn (CalculationBase $c) => $c->value, self::DOCUMENT_LEVEL_CONDITIONS))
+            ->whereIn('due_condition', CalculationBase::documentLevelValues())
             ->get()
             ->map(function (PaymentScheduleItem $item) use ($shares) {
                 $share = (int) $shares->get($item->payable_id, 0);

@@ -18,9 +18,8 @@ enum CalculationBase: string implements HasLabel
 
     public function getLabel(): ?string
     {
-        return __('enums.calculation_base.' . $this->value);
+        return __('enums.calculation_base.'.$this->value);
     }
-
 
     public function isShipmentDependent(): bool
     {
@@ -30,6 +29,30 @@ enum CalculationBase: string implements HasLabel
             self::DELIVERY_DATE,
             self::BL_DATE,
         ]);
+    }
+
+    /**
+     * Stages charged once per document (PI/PO), not per shipment — the
+     * complement of isShipmentDependent(). A document-level parcel is never
+     * carved out per shipment, so a shipment that carries the document shows
+     * the whole parcel rather than a slice of it.
+     */
+    public function isDocumentLevel(): bool
+    {
+        return ! $this->isShipmentDependent();
+    }
+
+    /**
+     * Values of every document-level stage — for query filters.
+     *
+     * @return array<int, string>
+     */
+    public static function documentLevelValues(): array
+    {
+        return array_values(array_map(
+            fn (self $case) => $case->value,
+            array_filter(self::cases(), fn (self $case) => $case->isDocumentLevel()),
+        ));
     }
 
     public function getEnglishLabel(): string
