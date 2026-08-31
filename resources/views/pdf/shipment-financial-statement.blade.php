@@ -10,20 +10,6 @@
         border-bottom: 1px solid #e5e7eb;
     }
     .section-heading:first-child { margin-top: 0; }
-    .status-badge {
-        display: inline-block;
-        padding: 1px 6px;
-        border-radius: 3px;
-        font-size: 6.5pt;
-        font-weight: bold;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-    }
-    .status-paid { background: #dcfce7; color: #166534; }
-    .status-pending { background: #fef3c7; color: #92400e; }
-    .status-due { background: #dbeafe; color: #1e40af; }
-    .status-overdue { background: #fee2e2; color: #b91c1c; }
-    .status-waived { background: #f3f4f6; color: #6b7280; }
     .currency-note { font-size: 6.5pt; color: #9ca3af; font-style: italic; }
     .prorated-note { font-size: 6.5pt; color: #6b7280; font-style: italic; }
     .logistics-table { width: 100%; border-collapse: collapse; font-size: 7.5pt; margin-bottom: 4px; }
@@ -189,53 +175,6 @@
                 <tr class="subtotal-row">
                     <td colspan="6" class="text-right">Charges Subtotal</td>
                     <td class="text-right">{{ $shipment['currency_code'] }} {{ $costs_total }}</td>
-                </tr>
-            </tbody>
-        </table>
-    @endif
-
-    {{-- === PAYMENT SCHEDULE === --}}
-    @if(count($schedule) > 0)
-        <div class="section-heading">Payment Schedule</div>
-        <table class="items-table">
-            <thead>
-                <tr>
-                    <th style="width: 25px;">#</th>
-                    <th>Installment</th>
-                    <th style="width: 90px;">Document</th>
-                    <th class="text-center" style="width: 60px;">Due Date</th>
-                    <th class="text-right" style="width: 85px;">Full Amount</th>
-                    <th class="text-right" style="width: 85px;">This Shipment</th>
-                    <th class="text-right" style="width: 80px;">Paid</th>
-                    <th class="text-right" style="width: 80px;">Balance</th>
-                    <th class="text-center" style="width: 55px;">Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($schedule as $row)
-                    <tr>
-                        <td class="text-center">{{ $row['index'] }}</td>
-                        <td>
-                            {{ $row['label'] }}
-                            @if($row['is_prorated'])
-                                <br><span class="prorated-note">{{ $row['share_percent'] }}% of the document instalment</span>
-                            @endif
-                        </td>
-                        <td>{{ $row['document'] }}</td>
-                        <td class="text-center">{{ $row['due_date'] }}</td>
-                        <td class="text-right">{{ $row['document_amount'] }}</td>
-                        <td class="text-right">{{ $row['shipment_amount'] }}</td>
-                        <td class="text-right">{{ $row['paid'] }}</td>
-                        <td class="text-right">{{ $row['balance'] }}</td>
-                        <td class="text-center">
-                            <span class="status-badge status-{{ $row['status_value'] }}">{{ $row['status'] }}</span>
-                        </td>
-                    </tr>
-                @endforeach
-                <tr class="subtotal-row">
-                    <td colspan="5" class="text-right">Due for this shipment</td>
-                    <td class="text-right">{{ $shipment['currency_code'] }} {{ $schedule_total }}</td>
-                    <td colspan="3"></td>
                 </tr>
             </tbody>
         </table>

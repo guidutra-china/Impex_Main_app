@@ -498,7 +498,11 @@ class ShipmentFinancialStatementPdfTest extends TestCase
         $this->assertStringContainsString('PI-2026-00078', $html);
         $this->assertStringContainsString('Air shipping cost', $html);
         $this->assertStringContainsString('Financial Statement', $html);
-        $this->assertStringContainsString('50% of the document instalment', $html);
+        // O cronograma parcela a parcela saiu do PDF por ser poluído demais; o
+        // cálculo continua alimentando o resumo por estágio e os totais.
+        $this->assertStringNotContainsString('Payment Schedule', $html);
+        $this->assertStringContainsString('Summary by Stage', $html);
+        $this->assertStringContainsString('Outstanding Balance', $html);
     }
 
     private function piCost(ProformaInvoice $pi, int $amount, array $overrides = []): AdditionalCost

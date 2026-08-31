@@ -100,7 +100,12 @@ dívida que o cronograma cobra. Confirmado na PI-2026-00078: itens 4.325,06 mais
 uma parcela de comissão de 219,14, ambas em aberto. A regra deste documento é
 listar exatamente o que gera parcela cobrável do cliente.
 
-### 4. Cronograma de pagamento
+### 4. Cronograma de pagamento — calculado, **não impresso**
+
+A tabela parcela a parcela saiu do PDF em 2026-08-31: poluía demais o
+documento. O cálculo continua igual e alimenta a seção 6 e os totais; só a
+renderização foi removida. As regras abaixo seguem valendo para o payload.
+
 
 Colunas: descrição, PI de origem, vencimento, **valor na PI**, **fatia deste
 embarque**, pago, saldo, status.
