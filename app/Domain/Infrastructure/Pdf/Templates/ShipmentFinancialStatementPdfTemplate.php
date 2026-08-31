@@ -2,6 +2,9 @@
 
 namespace App\Domain\Infrastructure\Pdf\Templates;
 
+use App\Domain\Financial\Enums\AdditionalCostStatus;
+use App\Domain\Financial\Enums\BillableTo;
+use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Services\ShipmentPaymentSummaryService;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
@@ -47,6 +50,7 @@ class ShipmentFinancialStatementPdfTemplate extends AbstractPdfTemplate
         $shipment->loadMissing([
             'company',
             'items.proformaInvoiceItem.proformaInvoice',
+            'additionalCosts',
         ]);
 
         $currencyCode = $shipment->currency_code ?? 'USD';
@@ -62,6 +66,9 @@ class ShipmentFinancialStatementPdfTemplate extends AbstractPdfTemplate
         $goods = $this->buildGoods($proformaInvoices, $shares, $currencyCode);
         $goodsTotal = (int) collect($goods)->where('in_totals', true)->sum('raw_amount');
 
+        $costs = $this->buildCosts($shipment, $currencyCode);
+        $costsTotal = (int) collect($costs)->sum('raw_amount');
+
         return [
             'shipment' => $this->buildShipmentBlock($shipment, $currencyCode),
             'client' => ['name' => $shipment->company?->name ?? '—'],
@@ -69,6 +76,9 @@ class ShipmentFinancialStatementPdfTemplate extends AbstractPdfTemplate
             'goods_total' => $this->formatMoney($goodsTotal, $currencyCode, 2),
             'raw_goods_total' => $goodsTotal,
             'has_foreign_currency_pis' => collect($goods)->contains(fn (array $row) => ! $row['in_totals']),
+            'costs' => $costs,
+            'costs_total' => $this->formatMoney($costsTotal, $currencyCode, 2),
+            'raw_costs_total' => $costsTotal,
             'generated_at' => now()->format('d/m/Y H:i'),
         ];
     }
@@ -100,6 +110,34 @@ class ShipmentFinancialStatementPdfTemplate extends AbstractPdfTemplate
                 ? number_format((float) $shipment->total_volume, 4).' CBM'
                 : '—',
         ];
+    }
+
+    /**
+     * Custos do embarque repassados ao cliente. Custos absorvidos pela empresa
+     * ou repassados ao fornecedor jamais entram — é documento de cliente.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildCosts(Shipment $shipment, string $currencyCode): array
+    {
+        return $shipment->additionalCosts
+            ->filter(fn (AdditionalCost $cost) => $cost->billable_to === BillableTo::CLIENT
+                && $cost->status !== AdditionalCostStatus::WAIVED)
+            ->sortBy('cost_date')
+            ->values()
+            ->map(function (AdditionalCost $cost, int $index) use ($currencyCode) {
+                $amount = (int) ($cost->amount_in_document_currency ?? $cost->amount);
+
+                return [
+                    'index' => $index + 1,
+                    'type' => $cost->cost_type->getEnglishLabel(),
+                    'description' => $cost->description ?: '—',
+                    'date' => $this->formatDate($cost->cost_date),
+                    'amount' => $this->formatMoney($amount, $currencyCode, 2),
+                    'raw_amount' => $amount,
+                ];
+            })
+            ->all();
     }
 
     /**

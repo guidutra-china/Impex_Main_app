@@ -3,6 +3,10 @@
 namespace Tests\Feature\Shipments;
 
 use App\Domain\CRM\Models\Company;
+use App\Domain\Financial\Enums\AdditionalCostStatus;
+use App\Domain\Financial\Enums\AdditionalCostType;
+use App\Domain\Financial\Enums\BillableTo;
+use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Infrastructure\Pdf\Templates\ShipmentFinancialStatementPdfTemplate;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Logistics\Models\ShipmentItem;
@@ -125,5 +129,65 @@ class ShipmentFinancialStatementPdfTest extends TestCase
         $this->assertTrue($data['has_foreign_currency_pis']);
 
         $this->assertSame(10_000, $data['raw_goods_total'], 'A PI em CNY não pode entrar no subtotal em USD.');
+    }
+
+    private function cost(Shipment $shipment, BillableTo $billableTo, int $amount, array $overrides = []): AdditionalCost
+    {
+        return AdditionalCost::create(array_merge([
+            'costable_type' => Shipment::class,
+            'costable_id' => $shipment->id,
+            'cost_type' => AdditionalCostType::FREIGHT,
+            'description' => 'Air shipping cost',
+            'amount' => $amount,
+            'currency_code' => 'USD',
+            'amount_in_document_currency' => $amount,
+            'billable_to' => $billableTo,
+            'cost_date' => '2026-08-28',
+            'status' => AdditionalCostStatus::PENDING,
+        ], $overrides));
+    }
+
+    public function test_only_client_billable_costs_are_listed(): void
+    {
+        $shipment = $this->makeShipment();
+        $pi = ProformaInvoice::factory()->create([
+            'company_id' => $this->client->id,
+            'currency_code' => 'USD',
+        ]);
+        $this->ship($shipment, $pi, quantity: 10, unitPrice: 1_000);
+
+        $this->cost($shipment, BillableTo::CLIENT, 17_434_000);
+        $this->cost($shipment, BillableTo::COMPANY, 999_999, ['description' => 'Internal only']);
+        $this->cost($shipment, BillableTo::SUPPLIER, 888_888, ['description' => 'Supplier repass']);
+
+        $data = $this->data($shipment);
+
+        $this->assertCount(1, $data['costs']);
+        $this->assertSame('Air shipping cost', $data['costs'][0]['description']);
+        $this->assertSame(17_434_000, $data['raw_costs_total']);
+
+        $payload = json_encode($data);
+        $this->assertStringNotContainsString('Internal only', $payload);
+        $this->assertStringNotContainsString('Supplier repass', $payload);
+    }
+
+    public function test_waived_costs_are_not_listed(): void
+    {
+        $shipment = $this->makeShipment();
+        $pi = ProformaInvoice::factory()->create([
+            'company_id' => $this->client->id,
+            'currency_code' => 'USD',
+        ]);
+        $this->ship($shipment, $pi, quantity: 10, unitPrice: 1_000);
+
+        $this->cost($shipment, BillableTo::CLIENT, 500_000, [
+            'description' => 'Waived charge',
+            'status' => AdditionalCostStatus::WAIVED,
+        ]);
+
+        $data = $this->data($shipment);
+
+        $this->assertSame([], $data['costs']);
+        $this->assertSame(0, $data['raw_costs_total']);
     }
 }
