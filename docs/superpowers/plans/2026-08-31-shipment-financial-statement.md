@@ -955,7 +955,7 @@ E o helper mais o teste:
         ]);
 
         $this->allocate($psi, 40_000, PaymentStatus::APPROVED);
-        $this->allocate($psi, 25_000, PaymentStatus::PENDING);
+        $this->allocate($psi, 25_000, PaymentStatus::PENDING_APPROVAL);
 
         $data = $this->data($shipment);
 

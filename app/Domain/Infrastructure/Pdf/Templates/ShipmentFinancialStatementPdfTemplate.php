@@ -5,6 +5,8 @@ namespace App\Domain\Infrastructure\Pdf\Templates;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Models\AdditionalCost;
+use App\Domain\Financial\Enums\PaymentStatus;
+use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Financial\Services\ShipmentPaymentSummaryService;
 use App\Domain\Logistics\Models\Shipment;
@@ -75,6 +77,9 @@ class ShipmentFinancialStatementPdfTemplate extends AbstractPdfTemplate
         $schedule = $this->buildSchedule($scheduleItems, $shares, $currencyCode);
         $scheduleTotal = (int) collect($schedule)->sum('raw_shipment_amount');
 
+        $payments = $this->buildPayments($scheduleItems->pluck('id'), $currencyCode);
+        $paidTotal = (int) collect($payments)->sum('raw_amount');
+
         return [
             'shipment' => $this->buildShipmentBlock($shipment, $currencyCode),
             'client' => ['name' => $shipment->company?->name ?? '—'],
@@ -88,6 +93,8 @@ class ShipmentFinancialStatementPdfTemplate extends AbstractPdfTemplate
             'schedule' => $schedule,
             'schedule_total' => $this->formatMoney($scheduleTotal, $currencyCode, 2),
             'raw_schedule_total' => $scheduleTotal,
+            'payments' => $payments,
+            'raw_paid_total' => $paidTotal,
             'generated_at' => now()->format('d/m/Y H:i'),
         ];
     }
@@ -262,6 +269,44 @@ class ShipmentFinancialStatementPdfTemplate extends AbstractPdfTemplate
             ->filter()
             ->values()
             ->map(fn (array $row, int $index) => ['index' => $index + 1] + $row)
+            ->all();
+    }
+
+    /**
+     * Pagamentos em dinheiro já recebidos e alocados às parcelas deste
+     * extrato. Alocações de crédito (credit_schedule_item_id preenchido) não
+     * entram — Credit Notes estão fora do escopo deste documento.
+     *
+     * @param  Collection<int, int>  $scheduleItemIds
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildPayments(Collection $scheduleItemIds, string $currencyCode): array
+    {
+        if ($scheduleItemIds->isEmpty()) {
+            return [];
+        }
+
+        return PaymentAllocation::query()
+            ->whereIn('payment_schedule_item_id', $scheduleItemIds)
+            ->whereNull('credit_schedule_item_id')
+            ->whereHas('payment', fn ($q) => $q->where('status', PaymentStatus::APPROVED))
+            ->with(['payment.paymentMethod', 'scheduleItem'])
+            ->get()
+            ->sortBy(fn (PaymentAllocation $a) => [$a->payment->payment_date?->timestamp ?? 0, $a->id])
+            ->values()
+            ->map(function (PaymentAllocation $allocation, int $index) use ($currencyCode) {
+                $amount = (int) $allocation->allocated_amount_in_document_currency;
+
+                return [
+                    'index' => $index + 1,
+                    'date' => $this->formatDate($allocation->payment->payment_date),
+                    'reference' => $allocation->payment->reference ?: '—',
+                    'method' => $allocation->payment->paymentMethod?->name ?? '—',
+                    'applied_to' => $allocation->scheduleItem?->label ?? '—',
+                    'amount' => $this->formatMoney($amount, $currencyCode, 2),
+                    'raw_amount' => $amount,
+                ];
+            })
             ->all();
     }
 

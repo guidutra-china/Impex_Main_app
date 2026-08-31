@@ -6,7 +6,11 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
+use App\Domain\Financial\Enums\PaymentDirection;
+use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\AdditionalCost;
+use App\Domain\Financial\Models\Payment;
+use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Pdf\Templates\ShipmentFinancialStatementPdfTemplate;
 use App\Domain\Logistics\Models\Shipment;
@@ -307,5 +311,59 @@ class ShipmentFinancialStatementPdfTest extends TestCase
         $this->assertNotContains('70% — Shipment Date [remaining]', $labels);
         $this->assertNotContains('Freight payable: Forwarder', $labels);
         $this->assertSame(100_000, $data['raw_schedule_total']);
+    }
+
+    private function allocate(PaymentScheduleItem $psi, int $amount, PaymentStatus $status): Payment
+    {
+        $payment = Payment::create([
+            'direction' => PaymentDirection::INBOUND,
+            'company_id' => $this->client->id,
+            'amount' => $amount,
+            'currency_code' => 'USD',
+            'payment_date' => '2026-08-07',
+            'status' => $status,
+        ]);
+
+        PaymentAllocation::create([
+            'payment_id' => $payment->id,
+            'payment_schedule_item_id' => $psi->id,
+            'allocated_amount' => $amount,
+            'allocated_amount_in_document_currency' => $amount,
+        ]);
+
+        return $payment;
+    }
+
+    public function test_only_approved_payments_are_listed(): void
+    {
+        $shipment = $this->makeShipment();
+        $pi = ProformaInvoice::factory()->create([
+            'company_id' => $this->client->id,
+            'currency_code' => 'USD',
+        ]);
+        $this->ship($shipment, $pi, quantity: 10, unitPrice: 10_000);
+
+        $psi = PaymentScheduleItemFactory::new()->create([
+            'payable_type' => ProformaInvoice::class,
+            'payable_id' => $pi->id,
+            'shipment_id' => $shipment->id,
+            'label' => '100% — Shipment Date',
+            'percentage' => 100,
+            'amount' => 100_000,
+            'due_condition' => CalculationBase::SHIPMENT_DATE,
+        ]);
+
+        $this->allocate($psi, 40_000, PaymentStatus::APPROVED);
+        $this->allocate($psi, 25_000, PaymentStatus::PENDING_APPROVAL);
+
+        $data = $this->data($shipment);
+
+        $this->assertCount(1, $data['payments']);
+        $this->assertSame('4.00', $data['payments'][0]['amount']);
+        $this->assertSame('07/08/2026', $data['payments'][0]['date']);
+        $this->assertSame('100% — Shipment Date', $data['payments'][0]['applied_to']);
+
+        $this->assertSame(40_000, $data['schedule'][0]['raw_paid']);
+        $this->assertSame(60_000, $data['schedule'][0]['raw_balance']);
     }
 }
