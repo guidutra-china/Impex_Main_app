@@ -307,4 +307,47 @@ class ShipmentPaymentSummaryServiceTest extends TestCase
 
         $this->assertNull($presenter->build('Vazio', []), 'Empty sections must collapse the whole block.');
     }
+
+    public function test_client_share_by_proforma_invoice_returns_shipped_value_per_pi(): void
+    {
+        $shipment = $this->makeShipment();
+        $piA = ProformaInvoice::factory()->create();
+        $piB = ProformaInvoice::factory()->create();
+
+        $itemA = ProformaInvoiceItemFactory::new()->create([
+            'proforma_invoice_id' => $piA->id,
+            'quantity' => 100,
+            'unit_price' => 10_000,
+        ]);
+        $itemB = ProformaInvoiceItemFactory::new()->create([
+            'proforma_invoice_id' => $piB->id,
+            'quantity' => 10,
+            'unit_price' => 5_000,
+        ]);
+
+        // Só metade da quantidade da PI A embarca.
+        ShipmentItem::create([
+            'shipment_id' => $shipment->id,
+            'proforma_invoice_item_id' => $itemA->id,
+            'quantity' => 50,
+            'sort_order' => 1,
+        ]);
+        ShipmentItem::create([
+            'shipment_id' => $shipment->id,
+            'proforma_invoice_item_id' => $itemB->id,
+            'quantity' => 10,
+            'sort_order' => 2,
+        ]);
+
+        $shares = app(ShipmentPaymentSummaryService::class)->clientShareByProformaInvoice($shipment);
+
+        $this->assertSame(500_000, $shares->get($piA->id), 'Fatia da PI A = 50 x 10.000.');
+        $this->assertSame(50_000, $shares->get($piB->id), 'Fatia da PI B = 10 x 5.000.');
+    }
+
+    public function test_condition_order_is_publicly_readable(): void
+    {
+        $this->assertSame('order_date', ShipmentPaymentSummaryService::CONDITION_ORDER[0]);
+        $this->assertContains('delivery_date', ShipmentPaymentSummaryService::CONDITION_ORDER);
+    }
 }

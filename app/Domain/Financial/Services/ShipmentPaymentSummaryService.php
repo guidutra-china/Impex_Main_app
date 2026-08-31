@@ -26,7 +26,7 @@ use Illuminate\Support\Collection;
 class ShipmentPaymentSummaryService
 {
     /** Display order: document-level events first, then the shipment lifecycle. */
-    private const CONDITION_ORDER = [
+    public const CONDITION_ORDER = [
         'order_date',
         'po_date',
         'invoice_date',
@@ -81,6 +81,18 @@ class ShipmentPaymentSummaryService
                 ->groupBy('currency_code')
                 ->map(fn (Collection $currencyItems) => (int) $currencyItems->sum('remaining_amount'))
                 ->filter(fn (int $remaining) => $remaining > 0));
+    }
+
+    /**
+     * Valor deste embarque em cada PI que ele carrega (unidades menores),
+     * precificado pelo unit_price da PI. É a chave de rateio das parcelas de
+     * nível documento — e o subtotal de mercadoria do extrato do embarque.
+     *
+     * @return Collection<int, int> PI id => valor embarcado
+     */
+    public function clientShareByProformaInvoice(Shipment $shipment): Collection
+    {
+        return $this->shipmentShareByDocument($shipment, ProformaInvoice::class, null);
     }
 
     /**
