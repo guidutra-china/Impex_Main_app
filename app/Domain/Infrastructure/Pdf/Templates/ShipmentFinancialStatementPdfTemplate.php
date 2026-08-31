@@ -5,9 +5,11 @@ namespace App\Domain\Infrastructure\Pdf\Templates;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Models\AdditionalCost;
+use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Financial\Services\ShipmentPaymentSummaryService;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\Settings\Enums\CalculationBase;
 use Illuminate\Support\Collection;
 
 /**
@@ -69,6 +71,10 @@ class ShipmentFinancialStatementPdfTemplate extends AbstractPdfTemplate
         $costs = $this->buildCosts($shipment, $currencyCode);
         $costsTotal = (int) collect($costs)->sum('raw_amount');
 
+        $scheduleItems = $this->collectScheduleItems($shipment, $shares);
+        $schedule = $this->buildSchedule($scheduleItems, $shares, $currencyCode);
+        $scheduleTotal = (int) collect($schedule)->sum('raw_shipment_amount');
+
         return [
             'shipment' => $this->buildShipmentBlock($shipment, $currencyCode),
             'client' => ['name' => $shipment->company?->name ?? '—'],
@@ -79,6 +85,9 @@ class ShipmentFinancialStatementPdfTemplate extends AbstractPdfTemplate
             'costs' => $costs,
             'costs_total' => $this->formatMoney($costsTotal, $currencyCode, 2),
             'raw_costs_total' => $costsTotal,
+            'schedule' => $schedule,
+            'schedule_total' => $this->formatMoney($scheduleTotal, $currencyCode, 2),
+            'raw_schedule_total' => $scheduleTotal,
             'generated_at' => now()->format('d/m/Y H:i'),
         ];
     }
@@ -137,6 +146,122 @@ class ShipmentFinancialStatementPdfTemplate extends AbstractPdfTemplate
                     'raw_amount' => $amount,
                 ];
             })
+            ->all();
+    }
+
+    /**
+     * As parcelas que este embarque cobra do cliente, em três baldes:
+     * ship-specific da PI, nível documento da PI (rateado) e custo repassado
+     * do próprio embarque. Linhas [remaining] — condição de embarque sem
+     * vínculo — são o saldo não embarcado e ficam fora.
+     *
+     * @param  Collection<int, int>  $shares
+     * @return Collection<int, PaymentScheduleItem>
+     */
+    private function collectScheduleItems(Shipment $shipment, Collection $shares): Collection
+    {
+        $shipSpecific = PaymentScheduleItem::query()
+            ->where('payable_type', ProformaInvoice::class)
+            ->where('shipment_id', $shipment->id)
+            ->whereNull('source_type')
+            ->where('is_credit', false)
+            ->get();
+
+        $documentLevel = $shares->isEmpty()
+            ? collect()
+            : PaymentScheduleItem::query()
+                ->where('payable_type', ProformaInvoice::class)
+                ->whereIn('payable_id', $shares->keys())
+                ->whereNull('shipment_id')
+                ->whereNull('source_type')
+                ->where('is_credit', false)
+                ->whereIn('due_condition', CalculationBase::documentLevelValues())
+                ->get();
+
+        $shipmentCosts = PaymentScheduleItem::query()
+            ->where('payable_type', Shipment::class)
+            ->where('payable_id', $shipment->id)
+            ->where('source_type', AdditionalCost::class)
+            ->where('is_credit', false)
+            ->withoutSideTags()
+            ->whereIn(
+                'source_id',
+                AdditionalCost::query()
+                    ->where('billable_to', BillableTo::CLIENT)
+                    ->where('status', '!=', AdditionalCostStatus::WAIVED)
+                    ->select('id'),
+            )
+            ->get();
+
+        return $shipSpecific
+            ->concat($documentLevel)
+            ->concat($shipmentCosts)
+            ->sortBy('sort_order')
+            ->values();
+    }
+
+    /**
+     * @param  Collection<int, PaymentScheduleItem>  $items
+     * @param  Collection<int, int>  $shares
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildSchedule(Collection $items, Collection $shares, string $currencyCode): array
+    {
+        $references = ProformaInvoice::query()
+            ->whereIn('id', $shares->keys())
+            ->pluck('reference', 'id');
+
+        return $items
+            ->map(function (PaymentScheduleItem $item) use ($shares, $references, $currencyCode) {
+                $documentAmount = (int) $item->amount;
+                $isDocumentLevel = $item->payable_type === ProformaInvoice::class
+                    && $item->shipment_id === null;
+
+                if ($isDocumentLevel) {
+                    $share = (int) $shares->get($item->payable_id, 0);
+                    $shipmentAmount = $item->percentage
+                        ? (int) round($share * $item->percentage / 100)
+                        : 0;
+                } else {
+                    $shipmentAmount = $documentAmount;
+                }
+
+                if ($shipmentAmount <= 0) {
+                    return null;
+                }
+
+                $ratio = $documentAmount > 0 ? $shipmentAmount / $documentAmount : 1;
+                $paid = (int) round(min($item->paid_amount, $documentAmount) * $ratio);
+                $balance = max(0, $shipmentAmount - $paid);
+
+                return [
+                    'label' => $item->label ?? '—',
+                    'document' => $item->payable_type === ProformaInvoice::class
+                        ? ($references->get($item->payable_id) ?? '—')
+                        : '—',
+                    'due_date' => $item->due_date ? $this->formatDate($item->due_date) : '—',
+                    'condition' => $item->due_condition?->value,
+                    'document_amount' => $this->formatMoney($documentAmount, $currencyCode, 2),
+                    'raw_document_amount' => $documentAmount,
+                    'shipment_amount' => $this->formatMoney($shipmentAmount, $currencyCode, 2),
+                    'raw_shipment_amount' => $shipmentAmount,
+                    'paid' => $this->formatMoney($paid, $currencyCode, 2),
+                    'raw_paid' => $paid,
+                    'balance' => $this->formatMoney($balance, $currencyCode, 2),
+                    'raw_balance' => $balance,
+                    'status' => $item->status->getEnglishLabel(),
+                    'status_value' => $item->status->value,
+                    'is_prorated' => $isDocumentLevel && $shipmentAmount !== $documentAmount,
+                    'share_percent' => $documentAmount > 0
+                        ? (int) round($shipmentAmount / $documentAmount * 100)
+                        : 100,
+                    'is_overdue' => $item->due_date?->isPast() === true
+                        && ! $item->status->isResolved(),
+                ];
+            })
+            ->filter()
+            ->values()
+            ->map(fn (array $row, int $index) => ['index' => $index + 1] + $row)
             ->all();
     }
 

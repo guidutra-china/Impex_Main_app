@@ -7,11 +7,14 @@ use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Models\AdditionalCost;
+use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Pdf\Templates\ShipmentFinancialStatementPdfTemplate;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Logistics\Models\ShipmentItem;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
+use App\Domain\Settings\Enums\CalculationBase;
+use Database\Factories\PaymentScheduleItemFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -189,5 +192,120 @@ class ShipmentFinancialStatementPdfTest extends TestCase
 
         $this->assertSame([], $data['costs']);
         $this->assertSame(0, $data['raw_costs_total']);
+    }
+
+    public function test_document_level_installment_shows_full_and_prorated_amounts(): void
+    {
+        $shipment = $this->makeShipment();
+        $pi = ProformaInvoice::factory()->create([
+            'company_id' => $this->client->id,
+            'currency_code' => 'USD',
+            'reference' => 'PI-2026-00078',
+        ]);
+
+        // PI de 1.000.000; só metade embarca => fatia = 500.000.
+        $this->ship($shipment, $pi, quantity: 100, unitPrice: 10_000, shippedQuantity: 50);
+
+        PaymentScheduleItemFactory::new()->create([
+            'payable_type' => ProformaInvoice::class,
+            'payable_id' => $pi->id,
+            'shipment_id' => null,
+            'label' => '100% — Order Date',
+            'percentage' => 100,
+            'amount' => 1_000_000,
+            'due_condition' => CalculationBase::ORDER_DATE,
+        ]);
+
+        $data = $this->data($shipment);
+
+        $this->assertCount(1, $data['schedule']);
+        $row = $data['schedule'][0];
+
+        $this->assertSame('PI-2026-00078', $row['document']);
+        $this->assertSame(1_000_000, $row['raw_document_amount'], 'Coluna da parcela cheia na PI.');
+        $this->assertSame(500_000, $row['raw_shipment_amount'], 'Coluna da fatia deste embarque.');
+        $this->assertTrue($row['is_prorated']);
+        $this->assertSame(50, $row['share_percent']);
+
+        $this->assertSame(500_000, $data['raw_schedule_total'], 'O total soma a fatia, não a parcela cheia.');
+    }
+
+    public function test_ship_specific_installment_uses_the_same_value_in_both_columns(): void
+    {
+        $shipment = $this->makeShipment();
+        $pi = ProformaInvoice::factory()->create([
+            'company_id' => $this->client->id,
+            'currency_code' => 'USD',
+        ]);
+        $this->ship($shipment, $pi, quantity: 10, unitPrice: 10_000);
+
+        PaymentScheduleItemFactory::new()->create([
+            'payable_type' => ProformaInvoice::class,
+            'payable_id' => $pi->id,
+            'shipment_id' => $shipment->id,
+            'label' => '70% — Shipment Date',
+            'percentage' => 70,
+            'amount' => 70_000,
+            'due_condition' => CalculationBase::SHIPMENT_DATE,
+        ]);
+
+        $row = $this->data($shipment)['schedule'][0];
+
+        $this->assertSame(70_000, $row['raw_document_amount']);
+        $this->assertSame(70_000, $row['raw_shipment_amount']);
+        $this->assertFalse($row['is_prorated']);
+    }
+
+    public function test_remaining_rows_and_forwarder_legs_are_excluded(): void
+    {
+        $shipment = $this->makeShipment();
+        $pi = ProformaInvoice::factory()->create([
+            'company_id' => $this->client->id,
+            'currency_code' => 'USD',
+        ]);
+        $this->ship($shipment, $pi, quantity: 10, unitPrice: 10_000);
+
+        PaymentScheduleItemFactory::new()->create([
+            'payable_type' => ProformaInvoice::class,
+            'payable_id' => $pi->id,
+            'shipment_id' => null,
+            'label' => '70% — Shipment Date [remaining]',
+            'due_condition' => CalculationBase::SHIPMENT_DATE,
+        ]);
+
+        $cost = $this->cost($shipment, BillableTo::CLIENT, 100_000);
+
+        PaymentScheduleItemFactory::new()->create([
+            'payable_type' => Shipment::class,
+            'payable_id' => $shipment->id,
+            'shipment_id' => null,
+            'source_type' => AdditionalCost::class,
+            'source_id' => $cost->id,
+            'label' => 'Freight: Air shipping cost',
+            'percentage' => 0,
+            'amount' => 100_000,
+            'due_condition' => null,
+        ]);
+
+        PaymentScheduleItemFactory::new()->create([
+            'payable_type' => Shipment::class,
+            'payable_id' => $shipment->id,
+            'shipment_id' => null,
+            'source_type' => AdditionalCost::class,
+            'source_id' => $cost->id,
+            'label' => 'Freight payable: Forwarder',
+            'percentage' => 0,
+            'amount' => 95_000,
+            'due_condition' => null,
+            'notes' => PaymentScheduleItem::FORWARDER_PAYABLE_TAG.' ',
+        ]);
+
+        $data = $this->data($shipment);
+
+        $labels = collect($data['schedule'])->pluck('label')->all();
+        $this->assertContains('Freight: Air shipping cost', $labels);
+        $this->assertNotContains('70% — Shipment Date [remaining]', $labels);
+        $this->assertNotContains('Freight payable: Forwarder', $labels);
+        $this->assertSame(100_000, $data['raw_schedule_total']);
     }
 }
