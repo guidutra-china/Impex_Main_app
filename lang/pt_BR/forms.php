@@ -148,6 +148,7 @@ return [
         'code' => 'Código',
         'color' => 'Cor',
         'comm' => 'Comissão %',
+        'financial_statement' => 'Extrato Financeiro',
         'commercial_invoice' => 'Fatura Comercial',
         'commercial_invoice_pdf' => 'PDF da Fatura Comercial',
         'commercial_invoice_prefix' => 'Prefixo da Fatura Comercial',

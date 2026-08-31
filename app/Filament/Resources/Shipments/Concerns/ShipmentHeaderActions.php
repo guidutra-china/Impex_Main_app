@@ -12,6 +12,7 @@ use App\Domain\Infrastructure\Pdf\PdfRenderer;
 use App\Domain\Infrastructure\Pdf\Templates\CommercialInvoicePdfTemplate;
 use App\Domain\Infrastructure\Pdf\Templates\CustomPricePdfTemplate;
 use App\Domain\Infrastructure\Pdf\Templates\PackingListPdfTemplate;
+use App\Domain\Infrastructure\Pdf\Templates\ShipmentFinancialStatementPdfTemplate;
 use App\Domain\Infrastructure\Pdf\Templates\ShipmentProformaInvoicePdfTemplate;
 use App\Domain\Infrastructure\Services\DocumentService;
 use App\Domain\Logistics\Enums\ShipmentStatus;
@@ -116,6 +117,29 @@ trait ShipmentHeaderActions
                 ->label(__('forms.labels.proforma_invoice'))
                 ->icon('heroicon-o-document-currency-dollar')
                 ->color('warning'),
+
+            ActionGroup::make([
+                GeneratePdfAction::make(
+                    templateClass: ShipmentFinancialStatementPdfTemplate::class,
+                    label: 'Generate PDF',
+                )->name('generateFinancialStatementPdf'),
+                GeneratePdfAction::download(
+                    documentType: 'shipment_financial_statement_pdf',
+                    label: 'Download PDF',
+                )->name('downloadFinancialStatementPdf'),
+                GeneratePdfAction::preview(
+                    templateClass: ShipmentFinancialStatementPdfTemplate::class,
+                    label: 'Preview PDF',
+                )->name('previewFinancialStatementPdf'),
+                SendDocumentByEmailAction::make(
+                    documentType: 'shipment_financial_statement_pdf',
+                    settingsKey: 'email_default_message_financial_statement',
+                    label: 'Send by Email',
+                )->name('sendFinancialStatementByEmail'),
+            ])
+                ->label(__('forms.labels.financial_statement'))
+                ->icon('heroicon-o-banknotes')
+                ->color('gray'),
         ])
             ->label(__('forms.labels.documents'))
             ->icon('heroicon-o-document-text')

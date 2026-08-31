@@ -3,15 +3,14 @@
 namespace App\Filament\Pages;
 
 use App\Domain\Settings\DataTransferObjects\CompanySettings;
+use BackedEnum;
 use Filament\Forms\Components\FileUpload;
-use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Pages\SettingsPage;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Schema;
-use BackedEnum;
-use UnitEnum;
 
 class ManageCompanySettings extends SettingsPage
 {
@@ -182,6 +181,11 @@ class ManageCompanySettings extends SettingsPage
                                             ->columnSpanFull(),
                                         Textarea::make('email_default_message_commercial_invoice')
                                             ->label('Commercial Invoice email message')
+                                            ->rows(4)
+                                            ->helperText('Available placeholders: {recipient_name}, {company_name}, {reference}, {document_name}')
+                                            ->columnSpanFull(),
+                                        Textarea::make('email_default_message_financial_statement')
+                                            ->label('Financial Statement email message')
                                             ->rows(4)
                                             ->helperText('Available placeholders: {recipient_name}, {company_name}, {reference}, {document_name}')
                                             ->columnSpanFull(),

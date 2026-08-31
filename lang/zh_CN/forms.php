@@ -140,6 +140,7 @@ return [
         'code' => '代码',
         'color' => '颜色',
         'comm' => '佣金 %',
+        'financial_statement' => '财务对账单',
         'commercial_invoice' => '商业发票',
         'commercial_invoice_pdf' => '商业发票 PDF',
         'commercial_invoice_prefix' => '商业发票前缀',

@@ -148,6 +148,7 @@ return [
         'code' => 'Code',
         'color' => 'Color',
         'comm' => 'Comm. %',
+        'financial_statement' => 'Financial Statement',
         'commercial_invoice' => 'Commercial Invoice',
         'commercial_invoice_pdf' => 'Commercial Invoice PDF',
         'commercial_invoice_prefix' => 'Commercial Invoice Prefix',
