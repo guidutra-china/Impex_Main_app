@@ -153,6 +153,43 @@ class ProformaInvoicePdfOptionsTest extends TestCase
         $this->assertNotSame($visible['totals']['subtotal'], $visible['totals']['grand_total']);
     }
 
+    /**
+     * O commission_mode não é consultado pelo GeneratePaymentScheduleAction: ele
+     * gera parcela para todo custo billable_to=client. Filtrar EMBEDDED aqui
+     * fazia a PI impressa mostrar um grand total menor do que o cronograma
+     * cobra (prod: PI-2026-00078, 4.325,06 impresso contra 4.544,20 cobrados).
+     * Quem quer a PI sem a comissão usa a opção hideCommission.
+     */
+    public function test_embedded_commission_is_listed_and_counted_in_the_grand_total(): void
+    {
+        $this->addItem(Product::factory()->create(), 'Item');
+
+        \App\Domain\Financial\Models\AdditionalCost::create([
+            'costable_type' => ProformaInvoice::class,
+            'costable_id' => $this->pi->id,
+            'cost_type' => \App\Domain\Financial\Enums\AdditionalCostType::COMMISSION,
+            'commission_mode' => \App\Domain\Quotations\Enums\CommissionType::EMBEDDED,
+            'commission_rate' => 5,
+            'description' => 'Embedded commission',
+            'amount' => 500000,
+            'currency_code' => 'USD',
+            'amount_in_document_currency' => 500000,
+            'billable_to' => \App\Domain\Financial\Enums\BillableTo::CLIENT,
+            'cost_date' => now()->toDateString(),
+        ]);
+
+        $data = (new ProformaInvoicePdfTemplate($this->pi->fresh(), 'en'))->getData();
+
+        $this->assertCount(1, $data['service_fees']);
+        $this->assertSame('Embedded commission', $data['service_fees'][0]['description']);
+        $this->assertNotSame($data['totals']['subtotal'], $data['totals']['grand_total']);
+
+        // hideCommission continua sendo a forma de omitir a linha.
+        $hidden = (new ProformaInvoicePdfTemplate($this->pi->fresh(), 'en', hideCommission: true))->getData();
+        $this->assertEmpty($hidden['service_fees']);
+        $this->assertSame($hidden['totals']['subtotal'], $hidden['totals']['grand_total']);
+    }
+
     public function test_modal_checkbox_names_map_onto_the_template_constructor(): void
     {
         $this->addItem(Product::factory()->create(), 'Item');

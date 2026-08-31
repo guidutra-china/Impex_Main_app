@@ -7,7 +7,6 @@ use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
-use App\Domain\Quotations\Enums\CommissionType;
 
 class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
 {
@@ -116,15 +115,14 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
                 if ($cost->status === AdditionalCostStatus::WAIVED) {
                     return false;
                 }
-                if ($cost->cost_type === AdditionalCostType::COMMISSION) {
-                    if ($this->hideCommission) {
-                        return false;
-                    }
-                    // Embedded commissions are already baked into item unit prices;
-                    // listing them again would double-count.
-                    if ($cost->commission_mode === CommissionType::EMBEDDED) {
-                        return false;
-                    }
+                // commission_mode is NOT consulted here: the payment schedule
+                // charges every client-billable cost regardless of it, so
+                // dropping EMBEDDED rows printed a grand total lower than the
+                // amount actually invoiced (prod: PI-2026-00078 printed
+                // 4,325.06 against 4,544.20 charged). hideCommission stays as
+                // the explicit, per-document way to omit the line.
+                if ($cost->cost_type === AdditionalCostType::COMMISSION && $this->hideCommission) {
+                    return false;
                 }
 
                 return true;
