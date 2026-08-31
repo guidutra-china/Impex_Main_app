@@ -12,6 +12,15 @@ use Illuminate\Support\Facades\Storage;
 
 class Document extends Model
 {
+    /**
+     * Tamanho da coluna `type`. Os testes rodam em SQLite, que ignora o limite
+     * de varchar, então nada avisa quando um tipo novo não cabe — foi assim que
+     * shipment_financial_statement_pdf (32) estourou a coluna de 30 em
+     * produção. DocumentTypeFitsColumnTest confere todo template contra esta
+     * constante; mudá-la exige uma migration que altere a coluna junto.
+     */
+    public const TYPE_MAX_LENGTH = 60;
+
     protected $fillable = [
         'documentable_type',
         'documentable_id',
