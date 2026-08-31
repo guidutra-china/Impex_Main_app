@@ -100,10 +100,19 @@ class PaymentStatementDiscountTest extends TestCase
 
         $data = $this->statementData();
 
-        // Só o custo visível vira linha; waived e comissão embedded ficam fora
-        // das linhas E do total (embedded já vive nos preços unitários).
-        $this->assertCount(1, $data['additional_costs']);
-        $this->assertStringContainsString('1,400.00', $data['totals']['pi_grand_total']);
+        // Waived fica fora das linhas E do total. Comissão entra qualquer que
+        // seja o commission_mode: o GeneratePaymentScheduleAction cobra todo
+        // custo billable_to=client sem olhar esse flag, então escondê-la aqui
+        // deixava o total impresso menor do que o cronograma do próprio
+        // documento (prod: PI-2026-00078).
+        $this->assertCount(2, $data['additional_costs']);
+
+        $descriptions = collect($data['additional_costs'])->pluck('description')->all();
+        $this->assertContains('Embedded commission', $descriptions);
+        $this->assertNotContains('Waived cost', $descriptions);
+
+        // 1.000,00 + 400,00 + 400,00 = 1.800,00
+        $this->assertStringContainsString('1,800.00', $data['totals']['pi_grand_total']);
     }
 
     public function test_statement_without_costs_has_empty_section(): void

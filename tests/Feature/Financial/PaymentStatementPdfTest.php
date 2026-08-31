@@ -3,17 +3,22 @@
 namespace Tests\Feature\Financial;
 
 use App\Domain\CRM\Models\Company;
+use App\Domain\Financial\Enums\AdditionalCostStatus;
+use App\Domain\Financial\Enums\AdditionalCostType;
+use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\DebitNoteStatus;
 use App\Domain\Financial\Enums\PartyType;
 use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
+use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\DebitNote;
 use App\Domain\Financial\Models\Payment;
 use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Pdf\Templates\PaymentStatementPdfTemplate;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
+use App\Domain\Quotations\Enums\CommissionType;
 use App\Filament\Resources\ProformaInvoices\Pages\EditProformaInvoice;
 use App\Filament\Resources\ProformaInvoices\RelationManagers\PaymentScheduleRelationManager;
 use App\Models\User;
@@ -348,5 +353,99 @@ class PaymentStatementPdfTest extends TestCase
 
         $this->assertSame(0, $data['totals']['raw_outstanding']);
         $this->assertSame('Waived', $data['schedule'][0]['status']);
+    }
+
+    private function makeClientCost(ProformaInvoice $pi, int $amount, array $overrides = []): AdditionalCost
+    {
+        return AdditionalCost::create(array_merge([
+            'costable_type' => ProformaInvoice::class,
+            'costable_id' => $pi->id,
+            'cost_type' => AdditionalCostType::COMMISSION,
+            'description' => '5% comission',
+            'amount' => $amount,
+            'currency_code' => 'USD',
+            'amount_in_document_currency' => $amount,
+            'billable_to' => BillableTo::CLIENT,
+            'cost_date' => now()->subDays(5),
+            'status' => AdditionalCostStatus::PENDING,
+        ], $overrides));
+    }
+
+    /**
+     * O commission_mode não é consultado pelo GeneratePaymentScheduleAction: ele
+     * gera parcela para todo custo billable_to=client. Esconder a comissão
+     * EMBEDDED da lista de custos fazia o "Proforma Invoice Total" impresso
+     * ficar menor do que o cronograma do próprio documento cobra
+     * (prod: PI-2026-00078, total 4.325,06 com uma parcela de 219,14 em aberto).
+     */
+    public function test_embedded_commission_is_listed_and_counted_in_the_grand_total(): void
+    {
+        $pi = $this->makePi();
+        $item = $pi->items()->create([
+            'description' => 'Laser welding machine',
+            'quantity' => 1,
+            'unit_price' => 1_000_000,
+            'unit' => 'pcs',
+        ]);
+
+        $cost = $this->makeClientCost($pi, 50_000, [
+            'commission_mode' => CommissionType::EMBEDDED,
+            'commission_rate' => 5,
+        ]);
+
+        // A parcela que o sistema realmente cobra do cliente por esse custo.
+        $this->makeScheduleItem($pi, [
+            'label' => 'Commission: 5% comission',
+            'percentage' => 0,
+            'amount' => 50_000,
+            'source_type' => AdditionalCost::class,
+            'source_id' => $cost->id,
+            'sort_order' => 2,
+        ]);
+
+        $data = $this->data($pi);
+
+        $this->assertCount(1, $data['additional_costs']);
+        $this->assertSame('5% comission', $data['additional_costs'][0]['description']);
+        $this->assertSame(50_000, $data['additional_costs'][0]['raw_amount']);
+
+        $itemsTotal = $item->quantity * $item->unit_price;
+        $this->assertSame(
+            $this->formatMoneyLike($itemsTotal + 50_000),
+            $data['totals']['pi_grand_total'],
+            'O total impresso tem de incluir o custo que o cronograma cobra.',
+        );
+    }
+
+    public function test_waived_and_non_client_costs_stay_out_of_the_grand_total(): void
+    {
+        $pi = $this->makePi();
+        $pi->items()->create([
+            'description' => 'Item',
+            'quantity' => 1,
+            'unit_price' => 1_000_000,
+            'unit' => 'pcs',
+        ]);
+
+        $this->makeClientCost($pi, 70_000, [
+            'description' => 'Waived charge',
+            'cost_type' => AdditionalCostType::OTHER,
+            'status' => AdditionalCostStatus::WAIVED,
+        ]);
+        $this->makeClientCost($pi, 90_000, [
+            'description' => 'Company absorbs',
+            'cost_type' => AdditionalCostType::OTHER,
+            'billable_to' => BillableTo::COMPANY,
+        ]);
+
+        $data = $this->data($pi);
+
+        $this->assertSame([], $data['additional_costs']);
+        $this->assertSame($this->formatMoneyLike(1_000_000), $data['totals']['pi_grand_total']);
+    }
+
+    private function formatMoneyLike(int $minorUnits): string
+    {
+        return number_format($minorUnits / \App\Domain\Infrastructure\Support\Money::SCALE, 2, '.', ',');
     }
 }

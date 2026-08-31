@@ -4,7 +4,6 @@ namespace App\Domain\Infrastructure\Pdf\Templates;
 
 use App\Domain\Catalog\Services\ProductIdentityResolver;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
-use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\DebitNoteStatus;
 use App\Domain\Financial\Enums\PartyType;
@@ -13,7 +12,6 @@ use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
-use App\Domain\Quotations\Enums\CommissionType;
 
 class PaymentStatementPdfTemplate extends AbstractPdfTemplate
 {
@@ -162,21 +160,18 @@ class PaymentStatementPdfTemplate extends AbstractPdfTemplate
         });
 
         // --- Additional costs as visible lines (discounts as negatives) ---
-        // Mesma regra dos service fees do PDF da PI: só client-billable, sem
-        // WAIVED e sem comissão EMBEDDED (já embutida nos preços unitários).
-        // O grand total soma exatamente as linhas exibidas — nada invisível.
+        // Só client-billable e sem WAIVED — a mesma condição que faz o
+        // GeneratePaymentScheduleAction gerar a parcela correspondente.
+        //
+        // O commission_mode NÃO entra no filtro. Esconder a comissão EMBEDDED
+        // supondo que já estivesse dentro dos preços unitários deixava o grand
+        // total impresso menor do que o cronograma logo abaixo cobra
+        // (prod: PI-2026-00078, total 4.325,06 e uma parcela de comissão de
+        // 219,14 em aberto). O grand total soma exatamente as linhas exibidas —
+        // nada invisível.
         $visibleCosts = $pi->additionalCosts
-            ->filter(function ($cost) {
-                if ($cost->billable_to !== BillableTo::CLIENT) {
-                    return false;
-                }
-                if ($cost->status === AdditionalCostStatus::WAIVED) {
-                    return false;
-                }
-
-                return ! ($cost->cost_type === AdditionalCostType::COMMISSION
-                    && $cost->commission_mode === CommissionType::EMBEDDED);
-            })
+            ->filter(fn ($cost) => $cost->billable_to === BillableTo::CLIENT
+                && $cost->status !== AdditionalCostStatus::WAIVED)
             ->values();
 
         $additionalCostRows = $visibleCosts->map(function ($cost, int $index) use ($currencyCode) {
