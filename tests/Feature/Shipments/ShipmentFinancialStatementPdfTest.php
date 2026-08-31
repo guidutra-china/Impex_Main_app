@@ -469,4 +469,34 @@ class ShipmentFinancialStatementPdfTest extends TestCase
             );
         }
     }
+
+    public function test_pdf_view_renders_without_error(): void
+    {
+        $shipment = $this->makeShipment();
+        $pi = ProformaInvoice::factory()->create([
+            'company_id' => $this->client->id,
+            'currency_code' => 'USD',
+            'reference' => 'PI-2026-00078',
+        ]);
+        $this->ship($shipment, $pi, quantity: 100, unitPrice: 10_000, shippedQuantity: 50);
+
+        PaymentScheduleItemFactory::new()->create([
+            'payable_type' => ProformaInvoice::class,
+            'payable_id' => $pi->id,
+            'shipment_id' => null,
+            'label' => '100% — Order Date',
+            'percentage' => 100,
+            'amount' => 1_000_000,
+            'due_condition' => CalculationBase::ORDER_DATE,
+        ]);
+        $this->cost($shipment, BillableTo::CLIENT, 200_000);
+
+        $template = new ShipmentFinancialStatementPdfTemplate($shipment);
+        $html = view($template->getView(), $template->getData())->render();
+
+        $this->assertStringContainsString('PI-2026-00078', $html);
+        $this->assertStringContainsString('Air shipping cost', $html);
+        $this->assertStringContainsString('Financial Statement', $html);
+        $this->assertStringContainsString('50% of the document instalment', $html);
+    }
 }
