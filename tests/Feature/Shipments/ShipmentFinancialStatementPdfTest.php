@@ -7,6 +7,7 @@ use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\PaymentDirection;
+use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\Payment;
@@ -365,5 +366,107 @@ class ShipmentFinancialStatementPdfTest extends TestCase
 
         $this->assertSame(40_000, $data['schedule'][0]['raw_paid']);
         $this->assertSame(60_000, $data['schedule'][0]['raw_balance']);
+    }
+
+    public function test_summary_groups_by_condition_and_totals_use_the_shipment_slice(): void
+    {
+        $shipment = $this->makeShipment();
+        $pi = ProformaInvoice::factory()->create([
+            'company_id' => $this->client->id,
+            'currency_code' => 'USD',
+        ]);
+        $this->ship($shipment, $pi, quantity: 100, unitPrice: 10_000);
+
+        $psi = PaymentScheduleItemFactory::new()->create([
+            'payable_type' => ProformaInvoice::class,
+            'payable_id' => $pi->id,
+            'shipment_id' => null,
+            'label' => '100% — Order Date',
+            'percentage' => 100,
+            'amount' => 1_000_000,
+            'due_condition' => CalculationBase::ORDER_DATE,
+            'due_date' => now()->subDays(10),
+            'status' => PaymentScheduleStatus::OVERDUE,
+        ]);
+        $this->allocate($psi, 400_000, PaymentStatus::APPROVED);
+
+        $freight = $this->cost($shipment, BillableTo::CLIENT, 200_000);
+        PaymentScheduleItemFactory::new()->create([
+            'payable_type' => Shipment::class,
+            'payable_id' => $shipment->id,
+            'shipment_id' => null,
+            'source_type' => AdditionalCost::class,
+            'source_id' => $freight->id,
+            'label' => 'Freight: Air shipping cost',
+            'percentage' => 0,
+            'amount' => 200_000,
+            'due_condition' => null,
+        ]);
+
+        $data = $this->data($shipment);
+
+        $orderDate = collect($data['summary_by_condition'])->firstWhere('condition', 'order_date');
+        $this->assertSame(1_000_000, $orderDate['raw_amount']);
+        $this->assertSame(400_000, $orderDate['raw_paid']);
+        $this->assertSame(600_000, $orderDate['raw_balance']);
+
+        $shipmentCosts = collect($data['summary_by_condition'])->firstWhere('condition', null);
+        $this->assertSame('Shipment Costs', $shipmentCosts['label']);
+        $this->assertSame(200_000, $shipmentCosts['raw_amount']);
+
+        $this->assertSame(1_200_000, $data['totals']['raw_billed'], 'Mercadoria 1.000.000 + custos 200.000.');
+        $this->assertSame(1_200_000, $data['totals']['raw_scheduled']);
+        $this->assertSame(400_000, $data['totals']['raw_paid']);
+        $this->assertSame(800_000, $data['totals']['raw_outstanding']);
+        $this->assertSame(600_000, $data['totals']['raw_overdue']);
+        $this->assertFalse($data['totals']['has_mismatch']);
+    }
+
+    public function test_mismatch_between_billed_and_scheduled_is_surfaced(): void
+    {
+        $shipment = $this->makeShipment();
+        $pi = ProformaInvoice::factory()->create([
+            'company_id' => $this->client->id,
+            'currency_code' => 'USD',
+        ]);
+        $this->ship($shipment, $pi, quantity: 100, unitPrice: 10_000);
+
+        // Cronograma cobre só 30% do valor embarcado.
+        PaymentScheduleItemFactory::new()->create([
+            'payable_type' => ProformaInvoice::class,
+            'payable_id' => $pi->id,
+            'shipment_id' => null,
+            'label' => '30% — Order Date',
+            'percentage' => 30,
+            'amount' => 300_000,
+            'due_condition' => CalculationBase::ORDER_DATE,
+        ]);
+
+        $data = $this->data($shipment);
+
+        $this->assertSame(1_000_000, $data['totals']['raw_billed']);
+        $this->assertSame(300_000, $data['totals']['raw_scheduled']);
+        $this->assertTrue($data['totals']['has_mismatch']);
+    }
+
+    public function test_payload_carries_no_cost_or_margin_figures(): void
+    {
+        $shipment = $this->makeShipment();
+        $pi = ProformaInvoice::factory()->create([
+            'company_id' => $this->client->id,
+            'currency_code' => 'USD',
+        ]);
+        $this->ship($shipment, $pi, quantity: 10, unitPrice: 10_000);
+        $this->cost($shipment, BillableTo::COMPANY, 777_777, ['description' => 'Internal']);
+
+        $payload = json_encode($this->data($shipment));
+
+        foreach (['margin', 'landed', 'gross_profit', 'unit_cost', 'fob', 'forwarder'] as $forbidden) {
+            $this->assertStringNotContainsString(
+                $forbidden,
+                $payload,
+                "Documento de cliente não pode conter '{$forbidden}'.",
+            );
+        }
     }
 }

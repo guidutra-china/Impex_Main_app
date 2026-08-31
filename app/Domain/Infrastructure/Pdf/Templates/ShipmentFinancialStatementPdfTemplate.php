@@ -80,6 +80,10 @@ class ShipmentFinancialStatementPdfTemplate extends AbstractPdfTemplate
         $payments = $this->buildPayments($scheduleItems->pluck('id'), $currencyCode);
         $paidTotal = (int) collect($payments)->sum('raw_amount');
 
+        $billedTotal = $goodsTotal + $costsTotal;
+        $outstanding = max(0, $scheduleTotal - $paidTotal);
+        $overdue = (int) collect($schedule)->where('is_overdue', true)->sum('raw_balance');
+
         return [
             'shipment' => $this->buildShipmentBlock($shipment, $currencyCode),
             'client' => ['name' => $shipment->company?->name ?? '—'],
@@ -95,6 +99,21 @@ class ShipmentFinancialStatementPdfTemplate extends AbstractPdfTemplate
             'raw_schedule_total' => $scheduleTotal,
             'payments' => $payments,
             'raw_paid_total' => $paidTotal,
+            'summary_by_condition' => $this->buildSummaryByCondition($schedule, $currencyCode),
+            'totals' => [
+                'billed' => $this->formatMoney($billedTotal, $currencyCode, 2),
+                'raw_billed' => $billedTotal,
+                'scheduled' => $this->formatMoney($scheduleTotal, $currencyCode, 2),
+                'raw_scheduled' => $scheduleTotal,
+                'paid' => $this->formatMoney($paidTotal, $currencyCode, 2),
+                'raw_paid' => $paidTotal,
+                'outstanding' => $this->formatMoney($outstanding, $currencyCode, 2),
+                'raw_outstanding' => $outstanding,
+                'overdue' => $this->formatMoney($overdue, $currencyCode, 2),
+                'raw_overdue' => $overdue,
+                'has_overdue' => $overdue > 0,
+                'has_mismatch' => $billedTotal !== $scheduleTotal,
+            ],
             'generated_at' => now()->format('d/m/Y H:i'),
         ];
     }
@@ -269,6 +288,47 @@ class ShipmentFinancialStatementPdfTemplate extends AbstractPdfTemplate
             ->filter()
             ->values()
             ->map(fn (array $row, int $index) => ['index' => $index + 1] + $row)
+            ->all();
+    }
+
+    /**
+     * Agrupa as parcelas do extrato por estágio de cobrança, na ordem de
+     * exibição do summary service. Custos do embarque não têm estágio e caem
+     * num grupo próprio ao final.
+     *
+     * @param  array<int, array<string, mixed>>  $schedule
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildSummaryByCondition(array $schedule, string $currencyCode): array
+    {
+        $order = ShipmentPaymentSummaryService::CONDITION_ORDER;
+
+        return collect($schedule)
+            ->groupBy(fn (array $row) => $row['condition'] ?? '')
+            ->map(function (Collection $rows, string $condition) use ($currencyCode) {
+                $amount = (int) $rows->sum('raw_shipment_amount');
+                $paid = (int) $rows->sum('raw_paid');
+                $balance = max(0, $amount - $paid);
+
+                return [
+                    'condition' => $condition === '' ? null : $condition,
+                    'label' => $condition === ''
+                        ? 'Shipment Costs'
+                        : (CalculationBase::tryFrom($condition)?->getEnglishLabel() ?? $condition),
+                    'amount' => $this->formatMoney($amount, $currencyCode, 2),
+                    'raw_amount' => $amount,
+                    'paid' => $this->formatMoney($paid, $currencyCode, 2),
+                    'raw_paid' => $paid,
+                    'balance' => $this->formatMoney($balance, $currencyCode, 2),
+                    'raw_balance' => $balance,
+                ];
+            })
+            ->sortBy(function (array $group) use ($order) {
+                $index = array_search($group['condition'], $order, true);
+
+                return $index === false ? count($order) : $index;
+            })
+            ->values()
             ->all();
     }
 
