@@ -184,6 +184,108 @@ class ImportShipmentLoadingListCommandTest extends TestCase
         return $this->file;
     }
 
+    /**
+     * Acrescenta ao embarque um segundo item para o MESMO produto de um item
+     * existente — é o que acontece quando o fornecedor fatura o modelo em duas
+     * invoices e as duas viram linha na PI.
+     */
+    private function duplicateItem(ShipmentItem $item, int $quantity): ShipmentItem
+    {
+        $piItem = ProformaInvoiceItem::create([
+            'proforma_invoice_id' => $item->proformaInvoiceItem->proforma_invoice_id,
+            'product_id' => $item->proformaInvoiceItem->product_id,
+            'description' => $item->proformaInvoiceItem->description,
+            'quantity' => $quantity,
+            'unit_price' => 100000,
+            'unit' => 'pcs',
+        ]);
+
+        return ShipmentItem::create([
+            'shipment_id' => $item->shipment_id,
+            'proforma_invoice_item_id' => $piItem->id,
+            'quantity' => $quantity,
+            'sort_order' => 99,
+        ]);
+    }
+
+    public function test_spreads_one_model_across_the_several_shipment_items_that_carry_it(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['LT012C' => 14]);
+        $second = $this->duplicateItem($items['LT012C'], 2);
+
+        // 16 volumes de LT012C para dois itens de 14 e 2.
+        $file = $this->makeFile($shipment, [
+            ['HMMU1111111', ['LT012C' => 1]],
+            ['KOCU2222222', ['LT012C' => 15]],
+        ]);
+
+        $this->artisan("shipments:import-loading-list {$file} --apply")->assertSuccessful();
+
+        $contents = CartonContent::whereIn('carton_id', Carton::where('shipment_id', $shipment->id)->pluck('id'))->get();
+
+        $this->assertSame(16, (int) $contents->sum('pieces'));
+        $this->assertSame(14, (int) $contents->where('shipment_item_id', $items['LT012C']->id)->sum('pieces'));
+        $this->assertSame(2, (int) $contents->where('shipment_item_id', $second->id)->sum('pieces'));
+    }
+
+    public function test_a_package_may_straddle_two_items_of_the_same_model(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['LT013' => 3]);
+        $second = $this->duplicateItem($items['LT013'], 2);
+
+        // Um único volume com 5 peças cobre o resto do 1º item e todo o 2º.
+        $file = $this->makePackageFile($shipment, [
+            ['HMMU1111111', [['pallet', 500.0, 460.0, 2.0, [['LT013', 5]]]]],
+        ]);
+
+        $this->artisan("shipments:import-loading-list {$file} --apply")->assertSuccessful();
+
+        $carton = Carton::where('shipment_id', $shipment->id)->first();
+        $this->assertSame(2, $carton->contents()->count());
+        $this->assertSame(3, (int) $carton->contents()->where('shipment_item_id', $items['LT013']->id)->sum('pieces'));
+        $this->assertSame(2, (int) $carton->contents()->where('shipment_item_id', $second->id)->sum('pieces'));
+    }
+
+    public function test_aborts_when_the_pieces_do_not_fill_every_item_of_the_model(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['LT012C' => 14]);
+        $this->duplicateItem($items['LT012C'], 2);
+
+        $file = $this->makeFile($shipment, [['HMMU1111111', ['LT012C' => 15]]]);
+
+        $this->artisan("shipments:import-loading-list {$file} --apply")->assertFailed();
+        $this->assertSame(0, Carton::where('shipment_id', $shipment->id)->count());
+    }
+
+    public function test_a_package_with_no_contents_is_an_extra_volume_and_needs_a_note(): void
+    {
+        [$shipment] = $this->makeShipment(['D905Z' => 1]);
+
+        $payload = json_decode(file_get_contents($this->makePackageFile($shipment, [
+            ['HMMU1111111', [['carton', 100.0, 90.0, 1.0, [['D905Z', 1]]]]],
+        ])), true);
+
+        // Volume de acessório: entra no peso e na cubagem, não tem item.
+        $extra = ['type' => 'carton', 'gross_weight' => 20.0, 'net_weight' => 18.0, 'volume' => 0.4, 'contents' => []];
+
+        $payload['containers'][0]['packages'][] = $extra;
+        file_put_contents($this->file, json_encode($payload));
+        $this->artisan("shipments:import-loading-list {$this->file} --apply")->assertFailed();
+
+        $payload['containers'][0]['packages'][1]['notes'] = 'Caixa de acessórios, sem linha na PI';
+        file_put_contents($this->file, json_encode($payload));
+        $this->artisan("shipments:import-loading-list {$this->file} --apply")->assertSuccessful();
+
+        $cartons = Carton::where('shipment_id', $shipment->id)->orderBy('sort_order')->get();
+        $this->assertCount(2, $cartons);
+        $this->assertSame(0, $cartons[1]->contents()->count());
+
+        $shipment->refresh();
+        $this->assertSame(2, (int) $shipment->total_packages);
+        $this->assertEquals(120.0, $shipment->total_gross_weight);
+        $this->assertEquals(1.4, $shipment->total_volume);
+    }
+
     public function test_creates_a_pallet_whose_gross_weight_drives_the_totals_and_counts_as_one_volume(): void
     {
         [$shipment] = $this->makeShipment(['D905Z' => 6]);

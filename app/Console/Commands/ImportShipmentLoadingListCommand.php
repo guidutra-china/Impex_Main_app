@@ -237,9 +237,14 @@ class ImportShipmentLoadingListCommand extends Command
                 throw new RuntimeException("Contêiner {$container['container_number']} não declara nem `lines` nem `packages`.");
             }
 
+            // Volume sem conteúdo é caixa de acessório ou sobressalente: entra no
+            // peso e na cubagem do contêiner mas não corresponde a linha nenhuma
+            // da PI. Exige `notes` para nunca ser esquecimento.
             foreach ($packages as $package) {
-                if ($package['contents'] === []) {
-                    throw new RuntimeException("Contêiner {$container['container_number']}: volume sem conteúdo declarado.");
+                if ($package['contents'] === [] && ($package['notes'] ?? '') === '') {
+                    throw new RuntimeException(
+                        "Contêiner {$container['container_number']}: volume sem conteúdo e sem `notes` explicando o porquê."
+                    );
                 }
             }
 
@@ -273,16 +278,20 @@ class ImportShipmentLoadingListCommand extends Command
     }
 
     /**
-     * Casa cada referência do arquivo com o item do embarque e confere se a
-     * carga fecha. Devolve, por item, o mapa de partes (multi-box) e o que o
-     * loading list atribui a ele.
+     * Casa cada referência do arquivo com os itens do embarque e confere se a
+     * carga fecha.
+     *
+     * Uma referência pode resolver para MAIS DE UM item: o Yinqian fatura o
+     * mesmo modelo em duas invoices e o embarque fica com duas linhas idênticas
+     * do mesmo produto. Nesse caso as peças são distribuídas na ordem dos itens
+     * — enche o primeiro, depois o próximo — e a soma tem de fechar todos.
      */
     private function buildPlan(Shipment $shipment, array $containers): array
     {
         $byModel = [];
         $byDescription = [];
 
-        foreach ($shipment->items as $item) {
+        foreach ($shipment->items->sortBy([['sort_order', 'asc'], ['id', 'asc']]) as $item) {
             $code = $item->proformaInvoiceItem?->product?->reference_code;
 
             if ($code !== null && $code !== '') {
@@ -319,7 +328,7 @@ class ImportShipmentLoadingListCommand extends Command
         }
 
         $errors = [];
-        $items = [];
+        $plan = [];
         $seen = [];
 
         foreach ($loaded as $key => $totals) {
@@ -337,45 +346,53 @@ class ImportShipmentLoadingListCommand extends Command
                 continue;
             }
 
-            if (count($candidates) > 1) {
-                $errors[] = "{$label}: {$shipment->reference} tem ".count($candidates).' itens com esta referência — ambíguo.';
+            $slots = [];
+            $expected = 0;
+            $clash = false;
 
-                continue;
+            foreach ($candidates as $item) {
+                if (isset($seen[$item->id])) {
+                    $errors[] = "{$label}: o item #{$item->id} já foi referenciado por outra chave do arquivo.";
+                    $clash = true;
+
+                    break;
+                }
+
+                $parts = $this->partLabels($item);
+                $expected += (int) $item->quantity * count($parts);
+
+                $slots[] = [
+                    'item' => $item,
+                    'parts' => $parts,
+                    'set_id' => $item->packing_split['set_id'] ?? null,
+                    'remaining' => array_fill_keys($parts, (int) $item->quantity),
+                ];
             }
 
-            $item = $candidates[0];
-
-            if (isset($seen[$item->id])) {
-                $errors[] = "{$label}: o item #{$item->id} já foi referenciado por outra chave do arquivo.";
-
+            if ($clash) {
                 continue;
             }
-
-            $seen[$item->id] = true;
-            $parts = $this->partLabels($item);
-            $expected = (int) $item->quantity * count($parts);
 
             if ($totals['pieces'] !== $expected) {
                 $errors[] = sprintf(
-                    '%s: loading list traz %d peça(s), mas o item #%d tem %d × %d volume(s) por peça = %d.',
+                    '%s: loading list traz %d peça(s), mas %s soma%s %d.',
                     $label,
                     $totals['pieces'],
-                    $item->id,
-                    (int) $item->quantity,
-                    count($parts),
+                    count($slots) === 1
+                        ? sprintf('o item #%d (%d × %d volume(s) por peça)', $slots[0]['item']->id, (int) $slots[0]['item']->quantity, count($slots[0]['parts']))
+                        : count($slots).' itens do embarque ('.implode(' + ', array_map(fn (array $s) => '#'.$s['item']->id.'×'.(int) $s['item']->quantity, $slots)).')',
+                    count($slots) === 1 ? '' : 'm',
                     $expected,
                 );
 
                 continue;
             }
 
-            $items[$key] = [
-                'item' => $item,
-                'parts' => $parts,
-                'set_id' => $item->packing_split['set_id'] ?? null,
-                'remaining' => array_fill_keys($parts, (int) $item->quantity),
-                'totals' => $totals,
-            ];
+            foreach ($slots as $slot) {
+                $seen[$slot['item']->id] = true;
+            }
+
+            $plan[$key] = ['slots' => $slots, 'totals' => $totals];
         }
 
         foreach ($shipment->items as $item) {
@@ -392,7 +409,7 @@ class ImportShipmentLoadingListCommand extends Command
             throw new RuntimeException("A carga não fecha com o embarque:\n  - ".implode("\n  - ", $errors));
         }
 
-        return ['items' => $items];
+        return ['items' => $plan];
     }
 
     /**
@@ -532,19 +549,38 @@ class ImportShipmentLoadingListCommand extends Command
 
                 foreach ($package['contents'] as $content) {
                     $key = $content['ref']['by'].':'.$content['ref']['value'];
-                    $plan = &$items[$key];
-                    $part = $this->nextPart($plan, $content['pieces']);
+                    $slots = &$items[$key]['slots'];
 
-                    CartonContent::create([
-                        'carton_id' => $carton->id,
-                        'shipment_item_id' => $plan['item']->id,
-                        'pieces' => $content['pieces'],
-                        'part_label' => $part,
-                        'multi_box_set_id' => $part === null ? null : $plan['set_id'],
-                        'sort_order' => ++$order,
-                    ]);
+                    // Quando a referência cobre mais de um item do embarque, as
+                    // peças do volume enchem um item de cada vez, na ordem.
+                    $left = $content['pieces'];
 
-                    unset($plan);
+                    foreach ($slots as &$slot) {
+                        if ($left === 0) {
+                            break;
+                        }
+
+                        $available = array_sum($slot['remaining']);
+
+                        if ($available === 0) {
+                            continue;
+                        }
+
+                        $take = min($left, $available);
+                        $left -= $take;
+                        $part = $this->nextPart($slot, $take);
+
+                        CartonContent::create([
+                            'carton_id' => $carton->id,
+                            'shipment_item_id' => $slot['item']->id,
+                            'pieces' => $take,
+                            'part_label' => $part,
+                            'multi_box_set_id' => $part === null ? null : $slot['set_id'],
+                            'sort_order' => ++$order,
+                        ]);
+                    }
+
+                    unset($slot, $slots);
                 }
             }
         }
@@ -559,14 +595,16 @@ class ImportShipmentLoadingListCommand extends Command
      * intercala os volumes dentro de cada contêiner (corpo e acessórios viajam
      * juntos) e fecha exatamente a contagem de cada parte no fim.
      */
-    private function nextPart(array &$plan, int $pieces): ?string
+    private function nextPart(array &$slot, int $pieces): ?string
     {
-        if ($plan['parts'] === [null]) {
+        if ($slot['parts'] === [null]) {
+            $slot['remaining'][null] -= $pieces;
+
             return null;
         }
 
-        $part = array_keys($plan['remaining'], max($plan['remaining']), true)[0];
-        $plan['remaining'][$part] -= $pieces;
+        $part = array_keys($slot['remaining'], max($slot['remaining']), true)[0];
+        $slot['remaining'][$part] -= $pieces;
 
         return $part;
     }
@@ -582,11 +620,12 @@ class ImportShipmentLoadingListCommand extends Command
     private function syncItemWeights(array $plan): void
     {
         foreach ($plan['items'] as $entry) {
-            if ($entry['totals']['mixed']) {
+            // Referência que cobre dois itens não diz quanto do peso é de cada.
+            if ($entry['totals']['mixed'] || count($entry['slots']) > 1) {
                 continue;
             }
 
-            $item = $entry['item'];
+            $item = $entry['slots'][0]['item'];
             $quantity = max(1, (int) $item->quantity);
 
             $item->update([
@@ -666,24 +705,45 @@ class ImportShipmentLoadingListCommand extends Command
         ));
 
         foreach ($plan['items'] as $entry) {
-            if ($entry['parts'] !== [null]) {
+            foreach ($entry['slots'] as $slot) {
+                if ($slot['parts'] !== [null]) {
+                    $this->line(sprintf(
+                        'Multi-box %s: %d peças × %d partes (%s).',
+                        $slot['item']->proformaInvoiceItem?->product?->reference_code ?? $slot['item']->id,
+                        (int) $slot['item']->quantity,
+                        count($slot['parts']),
+                        implode('/', $slot['parts']),
+                    ));
+                }
+            }
+
+            if (count($entry['slots']) > 1) {
                 $this->line(sprintf(
-                    'Multi-box %s: %d peças × %d partes (%s).',
-                    $entry['item']->proformaInvoiceItem?->product?->reference_code ?? $entry['item']->id,
-                    (int) $entry['item']->quantity,
-                    count($entry['parts']),
-                    implode('/', $entry['parts']),
+                    '%s: %d peças distribuídas entre %d itens do embarque (%s).',
+                    $entry['totals']['ref']['value'],
+                    $entry['totals']['pieces'],
+                    count($entry['slots']),
+                    implode(' + ', array_map(fn (array $s) => '#'.$s['item']->id.'×'.(int) $s['item']->quantity, $entry['slots'])),
                 ));
             }
         }
 
         if (! $this->option('no-item-weights')) {
-            $mixed = count(array_filter($plan['items'], fn (array $i) => $i['totals']['mixed']));
+            $total = array_sum(array_map(fn (array $i) => count($i['slots']), $plan['items']));
+            $syncable = 0;
+
+            foreach ($plan['items'] as $entry) {
+                if (! $entry['totals']['mixed'] && count($entry['slots']) === 1) {
+                    $syncable++;
+                }
+            }
+
+            $skipped = $total - $syncable;
             $this->line(sprintf(
                 'Peso/cubagem dos itens: %d de %d serão atualizados%s.',
-                count($plan['items']) - $mixed,
-                count($plan['items']),
-                $mixed ? " ({$mixed} viajam misturados no mesmo volume e ficam como estão)" : '',
+                $syncable,
+                $total,
+                $skipped ? " ({$skipped} viajam misturados no volume ou compartilham o modelo com outro item e ficam como estão)" : '',
             ));
         }
 

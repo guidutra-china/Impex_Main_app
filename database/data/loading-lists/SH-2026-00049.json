@@ -1,0 +1,3025 @@
+{
+    "shipment": "SH-2026-00049",
+    "source": "LWSS26215 LOADING LIST (GUILHERME).xlsx — aba 分柜明细",
+    "containers": [
+        {
+            "label": "CONT-001",
+            "container_number": "FFAU3302460",
+            "type": "40HQ",
+            "sort_order": 1,
+            "declared": {
+                "packages": 47,
+                "gross_weight": 13211,
+                "volume": 68.72
+            },
+            "packages": [
+                {
+                    "type": "carton",
+                    "gross_weight": 271.5,
+                    "net_weight": 235,
+                    "volume": 1.7633,
+                    "contents": [
+                        {
+                            "model": "BLT012",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 271.5,
+                    "net_weight": 235,
+                    "volume": 1.7633,
+                    "contents": [
+                        {
+                            "model": "BLT012",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 271.5,
+                    "net_weight": 235,
+                    "volume": 1.7633,
+                    "contents": [
+                        {
+                            "model": "BLT012",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 271.5,
+                    "net_weight": 235,
+                    "volume": 1.7633,
+                    "contents": [
+                        {
+                            "model": "BLT012",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 271.5,
+                    "net_weight": 235,
+                    "volume": 1.7633,
+                    "contents": [
+                        {
+                            "model": "BLT012",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 337,
+                    "net_weight": 307.071,
+                    "volume": 1.6858,
+                    "contents": [
+                        {
+                            "model": "LT008",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 337,
+                    "net_weight": 307.071,
+                    "volume": 1.6858,
+                    "contents": [
+                        {
+                            "model": "LT008",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 337,
+                    "net_weight": 307.071,
+                    "volume": 1.6858,
+                    "contents": [
+                        {
+                            "model": "LT008",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 337,
+                    "net_weight": 307.071,
+                    "volume": 1.6858,
+                    "contents": [
+                        {
+                            "model": "LT008",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 337,
+                    "net_weight": 307.071,
+                    "volume": 1.6858,
+                    "contents": [
+                        {
+                            "model": "LT008",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 290,
+                    "net_weight": 270,
+                    "volume": 1.6075,
+                    "contents": [
+                        {
+                            "model": "LT012C",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 290,
+                    "net_weight": 270,
+                    "volume": 1.6075,
+                    "contents": [
+                        {
+                            "model": "LT012C",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 290,
+                    "net_weight": 270,
+                    "volume": 1.6075,
+                    "contents": [
+                        {
+                            "model": "LT012C",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 290,
+                    "net_weight": 270,
+                    "volume": 1.6075,
+                    "contents": [
+                        {
+                            "model": "LT012C",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 290,
+                    "net_weight": 270,
+                    "volume": 1.6075,
+                    "contents": [
+                        {
+                            "model": "LT012C",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 290,
+                    "net_weight": 270,
+                    "volume": 1.6075,
+                    "contents": [
+                        {
+                            "model": "LT012C",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 290,
+                    "net_weight": 270,
+                    "volume": 1.6075,
+                    "contents": [
+                        {
+                            "model": "LT012C",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 290,
+                    "net_weight": 270,
+                    "volume": 1.6075,
+                    "contents": [
+                        {
+                            "model": "LT012C",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 290,
+                    "net_weight": 270,
+                    "volume": 1.6075,
+                    "contents": [
+                        {
+                            "model": "LT012C",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 290,
+                    "net_weight": 270,
+                    "volume": 1.6075,
+                    "contents": [
+                        {
+                            "model": "LT012C",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 290,
+                    "net_weight": 270,
+                    "volume": 1.6075,
+                    "contents": [
+                        {
+                            "model": "LT012C",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 290,
+                    "net_weight": 270,
+                    "volume": 1.6075,
+                    "contents": [
+                        {
+                            "model": "LT012C",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 290,
+                    "net_weight": 270,
+                    "volume": 1.6075,
+                    "contents": [
+                        {
+                            "model": "LT012C",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 290,
+                    "net_weight": 270,
+                    "volume": 1.6075,
+                    "contents": [
+                        {
+                            "model": "LT012C",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 290,
+                    "net_weight": 270,
+                    "volume": 1.6075,
+                    "contents": [
+                        {
+                            "model": "LT012C",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 335,
+                    "net_weight": 261,
+                    "volume": 1.8561,
+                    "contents": [
+                        {
+                            "model": "LT015",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 292,
+                    "net_weight": 228,
+                    "volume": 1.5051,
+                    "contents": [
+                        {
+                            "model": "LT018",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 292,
+                    "net_weight": 228,
+                    "volume": 1.5051,
+                    "contents": [
+                        {
+                            "model": "LT018",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 292,
+                    "net_weight": 228,
+                    "volume": 1.5051,
+                    "contents": [
+                        {
+                            "model": "LT018",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 300,
+                    "net_weight": 250.5,
+                    "volume": 1.3081,
+                    "contents": [
+                        {
+                            "model": "LT014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 300,
+                    "net_weight": 250.5,
+                    "volume": 1.3081,
+                    "contents": [
+                        {
+                            "model": "LT014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 300,
+                    "net_weight": 250.5,
+                    "volume": 1.3081,
+                    "contents": [
+                        {
+                            "model": "LT014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 300,
+                    "net_weight": 250.5,
+                    "volume": 1.3081,
+                    "contents": [
+                        {
+                            "model": "LT014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 289,
+                    "net_weight": 269,
+                    "volume": 1.2185,
+                    "contents": [
+                        {
+                            "model": "BLT1819",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 289,
+                    "net_weight": 269,
+                    "volume": 1.2185,
+                    "contents": [
+                        {
+                            "model": "BLT1819",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 289,
+                    "net_weight": 269,
+                    "volume": 1.2185,
+                    "contents": [
+                        {
+                            "model": "BLT1819",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 289,
+                    "net_weight": 269,
+                    "volume": 1.2185,
+                    "contents": [
+                        {
+                            "model": "BLT1819",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 294,
+                    "net_weight": 228,
+                    "volume": 1.6379,
+                    "contents": [
+                        {
+                            "model": "LT019",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 294,
+                    "net_weight": 228,
+                    "volume": 1.6379,
+                    "contents": [
+                        {
+                            "model": "LT019",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 150,
+                    "net_weight": 142,
+                    "volume": 0.6329,
+                    "contents": [
+                        {
+                            "model": "XVD014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 291.5,
+                    "net_weight": 271,
+                    "volume": 1.1985,
+                    "contents": [
+                        {
+                            "model": "BLT0607",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 308,
+                    "net_weight": 257,
+                    "volume": 1.5051,
+                    "contents": [
+                        {
+                            "model": "LT002A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 284,
+                    "net_weight": 254,
+                    "volume": 1.3124,
+                    "contents": [
+                        {
+                            "model": "LT001",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 139,
+                    "net_weight": 132,
+                    "volume": 0.529,
+                    "contents": [
+                        {
+                            "model": "XVD043",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 131,
+                    "net_weight": 122.5,
+                    "volume": 0.6404,
+                    "contents": [
+                        {
+                            "model": "XVD040",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 77,
+                    "net_weight": 70.5,
+                    "volume": 0.4828,
+                    "contents": [
+                        {
+                            "model": "XVD019",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 283,
+                    "net_weight": 236.73,
+                    "volume": 1.3073,
+                    "contents": [
+                        {
+                            "model": "LT013",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": "Loading list traz o modelo como \"FTA\""
+                }
+            ]
+        },
+        {
+            "label": "CONT-002",
+            "container_number": "OOCU9653877",
+            "type": "40HQ",
+            "sort_order": 2,
+            "declared": {
+                "packages": 43,
+                "gross_weight": 7675.5,
+                "volume": 37.23
+            },
+            "packages": [
+                {
+                    "type": "carton",
+                    "gross_weight": 271.5,
+                    "net_weight": 235,
+                    "volume": 1.7633,
+                    "contents": [
+                        {
+                            "model": "BLT012",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 271.5,
+                    "net_weight": 235,
+                    "volume": 1.7633,
+                    "contents": [
+                        {
+                            "model": "BLT012",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 337,
+                    "net_weight": 307.071,
+                    "volume": 1.6858,
+                    "contents": [
+                        {
+                            "model": "LT008",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 337,
+                    "net_weight": 307.071,
+                    "volume": 1.6858,
+                    "contents": [
+                        {
+                            "model": "LT008",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 289,
+                    "net_weight": 269,
+                    "volume": 1.2185,
+                    "contents": [
+                        {
+                            "model": "BLT1819",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 291.5,
+                    "net_weight": 271,
+                    "volume": 1.1985,
+                    "contents": [
+                        {
+                            "model": "BLT0607",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 297,
+                    "net_weight": 277,
+                    "volume": 1.314,
+                    "contents": [
+                        {
+                            "model": "BLT1314",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 297,
+                    "net_weight": 277,
+                    "volume": 1.314,
+                    "contents": [
+                        {
+                            "model": "BLT1314",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 297,
+                    "net_weight": 277,
+                    "volume": 1.314,
+                    "contents": [
+                        {
+                            "model": "BLT1314",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 297,
+                    "net_weight": 277,
+                    "volume": 1.314,
+                    "contents": [
+                        {
+                            "model": "BLT1314",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 297,
+                    "net_weight": 277,
+                    "volume": 1.314,
+                    "contents": [
+                        {
+                            "model": "BLT1314",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 297,
+                    "net_weight": 277,
+                    "volume": 1.314,
+                    "contents": [
+                        {
+                            "model": "BLT1314",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 297,
+                    "net_weight": 277,
+                    "volume": 1.314,
+                    "contents": [
+                        {
+                            "model": "BLT1314",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 162,
+                    "net_weight": 147.5,
+                    "volume": 0.8709,
+                    "contents": [
+                        {
+                            "model": "XVD007",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 170,
+                    "net_weight": 153,
+                    "volume": 1.0255,
+                    "contents": [
+                        {
+                            "model": "XVD001",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 247.5,
+                    "net_weight": 197.5,
+                    "volume": 0.9822,
+                    "contents": [
+                        {
+                            "model": "XVD010",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 247.5,
+                    "net_weight": 197.5,
+                    "volume": 0.9822,
+                    "contents": [
+                        {
+                            "model": "XVD010",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 218,
+                    "net_weight": 169.5,
+                    "volume": 1.2363,
+                    "contents": [
+                        {
+                            "model": "XVD015",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 157,
+                    "net_weight": 143,
+                    "volume": 0.7515,
+                    "contents": [
+                        {
+                            "model": "XVD002",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 128,
+                    "net_weight": 104,
+                    "volume": 0.5376,
+                    "contents": [
+                        {
+                            "model": "U3042",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 128,
+                    "net_weight": 104,
+                    "volume": 0.5376,
+                    "contents": [
+                        {
+                            "model": "U3042",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 128,
+                    "net_weight": 104,
+                    "volume": 0.5376,
+                    "contents": [
+                        {
+                            "model": "U3042",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 128,
+                    "net_weight": 104,
+                    "volume": 0.5376,
+                    "contents": [
+                        {
+                            "model": "U3042",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 128,
+                    "net_weight": 104,
+                    "volume": 0.5376,
+                    "contents": [
+                        {
+                            "model": "U3042",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 128,
+                    "net_weight": 104,
+                    "volume": 0.5376,
+                    "contents": [
+                        {
+                            "model": "U3042",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 128,
+                    "net_weight": 104,
+                    "volume": 0.5376,
+                    "contents": [
+                        {
+                            "model": "U3042",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 128,
+                    "net_weight": 104,
+                    "volume": 0.5376,
+                    "contents": [
+                        {
+                            "model": "U3042",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 128,
+                    "net_weight": 104,
+                    "volume": 0.5376,
+                    "contents": [
+                        {
+                            "model": "U3042",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 128,
+                    "net_weight": 104,
+                    "volume": 0.5376,
+                    "contents": [
+                        {
+                            "model": "U3042",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 128,
+                    "net_weight": 104,
+                    "volume": 0.5376,
+                    "contents": [
+                        {
+                            "model": "U3042",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 107,
+                    "net_weight": 87,
+                    "volume": 0.8789,
+                    "contents": [
+                        {
+                            "model": "U3061",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 107,
+                    "net_weight": 87,
+                    "volume": 0.8789,
+                    "contents": [
+                        {
+                            "model": "U3061",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 107,
+                    "net_weight": 87,
+                    "volume": 0.8789,
+                    "contents": [
+                        {
+                            "model": "U3061",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 106,
+                    "net_weight": 76,
+                    "volume": 0.3509,
+                    "contents": [
+                        {
+                            "model": "U3043",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 106,
+                    "net_weight": 76,
+                    "volume": 0.3509,
+                    "contents": [
+                        {
+                            "model": "U3043",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 82,
+                    "net_weight": 77,
+                    "volume": 0.452,
+                    "contents": [
+                        {
+                            "model": "U3045",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 82,
+                    "net_weight": 77,
+                    "volume": 0.452,
+                    "contents": [
+                        {
+                            "model": "U3045",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 82,
+                    "net_weight": 77,
+                    "volume": 0.452,
+                    "contents": [
+                        {
+                            "model": "U3045",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 82,
+                    "net_weight": 77,
+                    "volume": 0.452,
+                    "contents": [
+                        {
+                            "model": "U3045",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 82,
+                    "net_weight": 77,
+                    "volume": 0.452,
+                    "contents": [
+                        {
+                            "model": "U3045",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 82,
+                    "net_weight": 77,
+                    "volume": 0.452,
+                    "contents": [
+                        {
+                            "model": "U3045",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 82,
+                    "net_weight": 77,
+                    "volume": 0.452,
+                    "contents": [
+                        {
+                            "model": "U3045",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 82,
+                    "net_weight": 77,
+                    "volume": 0.4521,
+                    "contents": [
+                        {
+                            "model": "U3045",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                }
+            ]
+        },
+        {
+            "label": "CONT-003",
+            "container_number": "TGBU5013449",
+            "type": "40HQ",
+            "sort_order": 3,
+            "declared": {
+                "packages": 46,
+                "gross_weight": 13268.92,
+                "volume": 65.81
+            },
+            "packages": [
+                {
+                    "type": "carton",
+                    "gross_weight": 308,
+                    "net_weight": 257,
+                    "volume": 1.5051,
+                    "contents": [
+                        {
+                            "model": "LT002A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 308,
+                    "net_weight": 257,
+                    "volume": 1.5051,
+                    "contents": [
+                        {
+                            "model": "LT002A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 308,
+                    "net_weight": 257,
+                    "volume": 1.5051,
+                    "contents": [
+                        {
+                            "model": "LT002A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 308,
+                    "net_weight": 257,
+                    "volume": 1.5051,
+                    "contents": [
+                        {
+                            "model": "LT002A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 308,
+                    "net_weight": 257,
+                    "volume": 1.5051,
+                    "contents": [
+                        {
+                            "model": "LT002A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 308,
+                    "net_weight": 257,
+                    "volume": 1.5051,
+                    "contents": [
+                        {
+                            "model": "LT002A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 308,
+                    "net_weight": 257,
+                    "volume": 1.5051,
+                    "contents": [
+                        {
+                            "model": "LT002A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 308,
+                    "net_weight": 257,
+                    "volume": 1.5051,
+                    "contents": [
+                        {
+                            "model": "LT002A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 308,
+                    "net_weight": 257,
+                    "volume": 1.5051,
+                    "contents": [
+                        {
+                            "model": "LT002A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 297.5,
+                    "net_weight": 242.5,
+                    "volume": 1.6851,
+                    "contents": [
+                        {
+                            "model": "LT004",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 297.5,
+                    "net_weight": 242.5,
+                    "volume": 1.6851,
+                    "contents": [
+                        {
+                            "model": "LT004",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 297.5,
+                    "net_weight": 242.5,
+                    "volume": 1.6851,
+                    "contents": [
+                        {
+                            "model": "LT004",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 300,
+                    "net_weight": 250.5,
+                    "volume": 1.3081,
+                    "contents": [
+                        {
+                            "model": "LT014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 300,
+                    "net_weight": 250.5,
+                    "volume": 1.3081,
+                    "contents": [
+                        {
+                            "model": "LT014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 300,
+                    "net_weight": 250.5,
+                    "volume": 1.3081,
+                    "contents": [
+                        {
+                            "model": "LT014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 300,
+                    "net_weight": 250.5,
+                    "volume": 1.3081,
+                    "contents": [
+                        {
+                            "model": "LT014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 300,
+                    "net_weight": 250.5,
+                    "volume": 1.3081,
+                    "contents": [
+                        {
+                            "model": "LT014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 300,
+                    "net_weight": 250.5,
+                    "volume": 1.3081,
+                    "contents": [
+                        {
+                            "model": "LT014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 300,
+                    "net_weight": 250.5,
+                    "volume": 1.3081,
+                    "contents": [
+                        {
+                            "model": "LT014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 300,
+                    "net_weight": 250.5,
+                    "volume": 1.3081,
+                    "contents": [
+                        {
+                            "model": "LT014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 289,
+                    "net_weight": 269,
+                    "volume": 1.2185,
+                    "contents": [
+                        {
+                            "model": "BLT1819",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 289,
+                    "net_weight": 269,
+                    "volume": 1.2185,
+                    "contents": [
+                        {
+                            "model": "BLT1819",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 289,
+                    "net_weight": 269,
+                    "volume": 1.2185,
+                    "contents": [
+                        {
+                            "model": "BLT1819",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 289,
+                    "net_weight": 269,
+                    "volume": 1.2185,
+                    "contents": [
+                        {
+                            "model": "BLT1819",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 258,
+                    "net_weight": 208.5,
+                    "volume": 1.326,
+                    "contents": [
+                        {
+                            "model": "LT013A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 258,
+                    "net_weight": 208.5,
+                    "volume": 1.326,
+                    "contents": [
+                        {
+                            "model": "LT013A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 258,
+                    "net_weight": 208.5,
+                    "volume": 1.326,
+                    "contents": [
+                        {
+                            "model": "LT013A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 258,
+                    "net_weight": 208.5,
+                    "volume": 1.326,
+                    "contents": [
+                        {
+                            "model": "LT013A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 258,
+                    "net_weight": 208.5,
+                    "volume": 1.326,
+                    "contents": [
+                        {
+                            "model": "LT013A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 246.417,
+                    "net_weight": 206.128,
+                    "volume": 1.0901,
+                    "contents": [
+                        {
+                            "model": "LT013",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 246.417,
+                    "net_weight": 206.128,
+                    "volume": 1.0901,
+                    "contents": [
+                        {
+                            "model": "LT013",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 216.5,
+                    "net_weight": 197,
+                    "volume": 2.1476,
+                    "contents": [
+                        {
+                            "model": "LT010",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 268,
+                    "net_weight": 209,
+                    "volume": 1.3205,
+                    "contents": [
+                        {
+                            "model": "LT003",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 294,
+                    "net_weight": 228,
+                    "volume": 1.6379,
+                    "contents": [
+                        {
+                            "model": "LT019",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 294,
+                    "net_weight": 228,
+                    "volume": 1.6379,
+                    "contents": [
+                        {
+                            "model": "LT019",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 294,
+                    "net_weight": 228,
+                    "volume": 1.6379,
+                    "contents": [
+                        {
+                            "model": "LT019",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 294,
+                    "net_weight": 228,
+                    "volume": 1.6379,
+                    "contents": [
+                        {
+                            "model": "LT019",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 335,
+                    "net_weight": 261,
+                    "volume": 1.8561,
+                    "contents": [
+                        {
+                            "model": "LT015",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 271.5,
+                    "net_weight": 235,
+                    "volume": 1.7633,
+                    "contents": [
+                        {
+                            "model": "BLT012",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 290,
+                    "net_weight": 270,
+                    "volume": 1.6075,
+                    "contents": [
+                        {
+                            "model": "LT012C",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 250,
+                    "net_weight": 206,
+                    "volume": 1.2033,
+                    "contents": [
+                        {
+                            "model": "XVD045",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 291.5,
+                    "net_weight": 271,
+                    "volume": 1.1985,
+                    "contents": [
+                        {
+                            "model": "BLT0607",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 291.5,
+                    "net_weight": 271,
+                    "volume": 1.1985,
+                    "contents": [
+                        {
+                            "model": "BLT0607",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 291.5,
+                    "net_weight": 271,
+                    "volume": 1.1985,
+                    "contents": [
+                        {
+                            "model": "BLT0607",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 292,
+                    "net_weight": 228,
+                    "volume": 1.5051,
+                    "contents": [
+                        {
+                            "model": "LT018",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 292.086,
+                    "net_weight": 228,
+                    "volume": 1.5093,
+                    "contents": [
+                        {
+                            "model": "LT018",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                }
+            ]
+        },
+        {
+            "label": "CONT-004",
+            "container_number": "GCXU5103827",
+            "type": "40HQ",
+            "sort_order": 4,
+            "declared": {
+                "packages": 45,
+                "gross_weight": 10542.5,
+                "volume": 51.57
+            },
+            "packages": [
+                {
+                    "type": "carton",
+                    "gross_weight": 291.5,
+                    "net_weight": 271,
+                    "volume": 1.1985,
+                    "contents": [
+                        {
+                            "model": "BLT0607",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 292,
+                    "net_weight": 228,
+                    "volume": 1.5051,
+                    "contents": [
+                        {
+                            "model": "LT018",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 292,
+                    "net_weight": 228,
+                    "volume": 1.5051,
+                    "contents": [
+                        {
+                            "model": "LT018",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 287.5,
+                    "net_weight": 247.5,
+                    "volume": 1.631,
+                    "contents": [
+                        {
+                            "model": "LT003A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 216.5,
+                    "net_weight": 197,
+                    "volume": 2.1476,
+                    "contents": [
+                        {
+                            "model": "LT010",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 216.5,
+                    "net_weight": 197,
+                    "volume": 2.1476,
+                    "contents": [
+                        {
+                            "model": "LT010",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 258,
+                    "net_weight": 208.5,
+                    "volume": 1.326,
+                    "contents": [
+                        {
+                            "model": "LT013A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 258,
+                    "net_weight": 208.5,
+                    "volume": 1.326,
+                    "contents": [
+                        {
+                            "model": "LT013A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 258,
+                    "net_weight": 208.5,
+                    "volume": 1.326,
+                    "contents": [
+                        {
+                            "model": "LT013A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 258,
+                    "net_weight": 208.5,
+                    "volume": 1.326,
+                    "contents": [
+                        {
+                            "model": "LT013A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 258,
+                    "net_weight": 208.5,
+                    "volume": 1.326,
+                    "contents": [
+                        {
+                            "model": "LT013A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 258,
+                    "net_weight": 208.5,
+                    "volume": 1.326,
+                    "contents": [
+                        {
+                            "model": "LT013A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 258,
+                    "net_weight": 208.5,
+                    "volume": 1.326,
+                    "contents": [
+                        {
+                            "model": "LT013A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 258,
+                    "net_weight": 208.5,
+                    "volume": 1.326,
+                    "contents": [
+                        {
+                            "model": "LT013A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 300,
+                    "net_weight": 250.5,
+                    "volume": 1.3081,
+                    "contents": [
+                        {
+                            "model": "LT014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 300,
+                    "net_weight": 250.5,
+                    "volume": 1.3081,
+                    "contents": [
+                        {
+                            "model": "LT014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 300,
+                    "net_weight": 250.5,
+                    "volume": 1.3081,
+                    "contents": [
+                        {
+                            "model": "LT014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 300,
+                    "net_weight": 250.5,
+                    "volume": 1.3081,
+                    "contents": [
+                        {
+                            "model": "LT014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 300,
+                    "net_weight": 250.5,
+                    "volume": 1.3081,
+                    "contents": [
+                        {
+                            "model": "LT014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 297.5,
+                    "net_weight": 242.5,
+                    "volume": 1.6851,
+                    "contents": [
+                        {
+                            "model": "LT004",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 308,
+                    "net_weight": 257,
+                    "volume": 1.5051,
+                    "contents": [
+                        {
+                            "model": "LT002A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 308,
+                    "net_weight": 257,
+                    "volume": 1.5051,
+                    "contents": [
+                        {
+                            "model": "LT002A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 266,
+                    "net_weight": 220,
+                    "volume": 1.183,
+                    "contents": [
+                        {
+                            "model": "XVD036A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 284,
+                    "net_weight": 254,
+                    "volume": 1.3124,
+                    "contents": [
+                        {
+                            "model": "LT001",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 284,
+                    "net_weight": 254,
+                    "volume": 1.3124,
+                    "contents": [
+                        {
+                            "model": "LT001",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 284,
+                    "net_weight": 254,
+                    "volume": 1.3124,
+                    "contents": [
+                        {
+                            "model": "LT001",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 284,
+                    "net_weight": 254,
+                    "volume": 1.3124,
+                    "contents": [
+                        {
+                            "model": "LT001",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 196.5,
+                    "net_weight": 157,
+                    "volume": 1.0271,
+                    "contents": [
+                        {
+                            "model": "XVD027",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 246.417,
+                    "net_weight": 206.128,
+                    "volume": 1.0901,
+                    "contents": [
+                        {
+                            "model": "LT013",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 246.417,
+                    "net_weight": 206.128,
+                    "volume": 1.0901,
+                    "contents": [
+                        {
+                            "model": "LT013",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 246.417,
+                    "net_weight": 206.128,
+                    "volume": 1.0901,
+                    "contents": [
+                        {
+                            "model": "LT013",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 246.417,
+                    "net_weight": 206.128,
+                    "volume": 1.0901,
+                    "contents": [
+                        {
+                            "model": "LT013",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 246.417,
+                    "net_weight": 206.128,
+                    "volume": 1.0901,
+                    "contents": [],
+                    "notes": "Caixa de acessório do LT013 — sem linha na proforma"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 236.5,
+                    "net_weight": 193,
+                    "volume": 0.9258,
+                    "contents": [
+                        {
+                            "model": "LT007",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 268,
+                    "net_weight": 209,
+                    "volume": 1.3205,
+                    "contents": [
+                        {
+                            "model": "LT003",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 128,
+                    "net_weight": 104,
+                    "volume": 0.5376,
+                    "contents": [
+                        {
+                            "model": "U3042",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 128,
+                    "net_weight": 104,
+                    "volume": 0.5376,
+                    "contents": [
+                        {
+                            "model": "U3042",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 128,
+                    "net_weight": 104,
+                    "volume": 0.5376,
+                    "contents": [
+                        {
+                            "model": "U3042",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 106,
+                    "net_weight": 76,
+                    "volume": 0.3509,
+                    "contents": [
+                        {
+                            "model": "U3043",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 106,
+                    "net_weight": 76,
+                    "volume": 0.3509,
+                    "contents": [
+                        {
+                            "model": "U3043",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 106,
+                    "net_weight": 76,
+                    "volume": 0.3509,
+                    "contents": [
+                        {
+                            "model": "U3043",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 106,
+                    "net_weight": 76,
+                    "volume": 0.3509,
+                    "contents": [
+                        {
+                            "model": "U3043",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 106,
+                    "net_weight": 76,
+                    "volume": 0.3509,
+                    "contents": [
+                        {
+                            "model": "U3043",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 110,
+                    "net_weight": 80,
+                    "volume": 0.5358,
+                    "contents": [
+                        {
+                            "model": "U3047",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 109.915,
+                    "net_weight": 80,
+                    "volume": 0.5317,
+                    "contents": [
+                        {
+                            "model": "U3047",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                }
+            ]
+        },
+        {
+            "label": "CONT-005",
+            "container_number": "TGCU5060980",
+            "type": "40HQ",
+            "sort_order": 5,
+            "declared": {
+                "packages": 47,
+                "gross_weight": 13323.08,
+                "volume": 66.08
+            },
+            "packages": [
+                {
+                    "type": "carton",
+                    "gross_weight": 335,
+                    "net_weight": 261,
+                    "volume": 1.8561,
+                    "contents": [
+                        {
+                            "model": "LT015",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 335,
+                    "net_weight": 261,
+                    "volume": 1.8561,
+                    "contents": [
+                        {
+                            "model": "LT015",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 335,
+                    "net_weight": 261,
+                    "volume": 1.8561,
+                    "contents": [
+                        {
+                            "model": "LT015",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 335,
+                    "net_weight": 261,
+                    "volume": 1.8561,
+                    "contents": [
+                        {
+                            "model": "LT015",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 335,
+                    "net_weight": 261,
+                    "volume": 1.8561,
+                    "contents": [
+                        {
+                            "model": "LT015",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 335,
+                    "net_weight": 261,
+                    "volume": 1.8561,
+                    "contents": [
+                        {
+                            "model": "LT015",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 335,
+                    "net_weight": 261,
+                    "volume": 1.8561,
+                    "contents": [
+                        {
+                            "model": "LT015",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 335,
+                    "net_weight": 261,
+                    "volume": 1.8561,
+                    "contents": [
+                        {
+                            "model": "LT015",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 335,
+                    "net_weight": 261,
+                    "volume": 1.8561,
+                    "contents": [
+                        {
+                            "model": "LT015",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 308,
+                    "net_weight": 257,
+                    "volume": 1.5051,
+                    "contents": [
+                        {
+                            "model": "LT002A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 308,
+                    "net_weight": 257,
+                    "volume": 1.5051,
+                    "contents": [
+                        {
+                            "model": "LT002A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 308,
+                    "net_weight": 257,
+                    "volume": 1.5051,
+                    "contents": [
+                        {
+                            "model": "LT002A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 294,
+                    "net_weight": 228,
+                    "volume": 1.6379,
+                    "contents": [
+                        {
+                            "model": "LT019",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 300,
+                    "net_weight": 250.5,
+                    "volume": 1.3081,
+                    "contents": [
+                        {
+                            "model": "LT014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 300,
+                    "net_weight": 250.5,
+                    "volume": 1.3081,
+                    "contents": [
+                        {
+                            "model": "LT014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 300,
+                    "net_weight": 250.5,
+                    "volume": 1.3081,
+                    "contents": [
+                        {
+                            "model": "LT014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 300,
+                    "net_weight": 250.5,
+                    "volume": 1.3081,
+                    "contents": [
+                        {
+                            "model": "LT014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 300,
+                    "net_weight": 250.5,
+                    "volume": 1.3081,
+                    "contents": [
+                        {
+                            "model": "LT014",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 246.417,
+                    "net_weight": 206.128,
+                    "volume": 1.0901,
+                    "contents": [
+                        {
+                            "model": "LT013",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 246.417,
+                    "net_weight": 206.128,
+                    "volume": 1.0901,
+                    "contents": [
+                        {
+                            "model": "LT013",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 246.417,
+                    "net_weight": 206.128,
+                    "volume": 1.0901,
+                    "contents": [
+                        {
+                            "model": "LT013",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 246.417,
+                    "net_weight": 206.128,
+                    "volume": 1.0901,
+                    "contents": [
+                        {
+                            "model": "LT013",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 246.417,
+                    "net_weight": 206.128,
+                    "volume": 1.0901,
+                    "contents": [],
+                    "notes": "Caixa de acessório do LT013 — sem linha na proforma"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 162.5,
+                    "net_weight": 154,
+                    "volume": 0.7495,
+                    "contents": [
+                        {
+                            "model": "XVD017",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 258,
+                    "net_weight": 208.5,
+                    "volume": 1.326,
+                    "contents": [
+                        {
+                            "model": "LT013A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 258,
+                    "net_weight": 208.5,
+                    "volume": 1.326,
+                    "contents": [
+                        {
+                            "model": "LT013A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 258,
+                    "net_weight": 208.5,
+                    "volume": 1.326,
+                    "contents": [
+                        {
+                            "model": "LT013A",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 268,
+                    "net_weight": 209,
+                    "volume": 1.3205,
+                    "contents": [
+                        {
+                            "model": "LT003",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 268,
+                    "net_weight": 209,
+                    "volume": 1.3205,
+                    "contents": [
+                        {
+                            "model": "LT003",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 268,
+                    "net_weight": 209,
+                    "volume": 1.3205,
+                    "contents": [
+                        {
+                            "model": "LT003",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 268,
+                    "net_weight": 209,
+                    "volume": 1.3205,
+                    "contents": [
+                        {
+                            "model": "LT003",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 268,
+                    "net_weight": 209,
+                    "volume": 1.3205,
+                    "contents": [
+                        {
+                            "model": "LT003",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 268,
+                    "net_weight": 209,
+                    "volume": 1.3205,
+                    "contents": [
+                        {
+                            "model": "LT003",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 284,
+                    "net_weight": 254,
+                    "volume": 1.3124,
+                    "contents": [
+                        {
+                            "model": "LT001",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 284,
+                    "net_weight": 254,
+                    "volume": 1.3124,
+                    "contents": [
+                        {
+                            "model": "LT001",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 284,
+                    "net_weight": 254,
+                    "volume": 1.3124,
+                    "contents": [
+                        {
+                            "model": "LT001",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 289,
+                    "net_weight": 269,
+                    "volume": 1.2185,
+                    "contents": [
+                        {
+                            "model": "BLT1819",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 289,
+                    "net_weight": 269,
+                    "volume": 1.2185,
+                    "contents": [
+                        {
+                            "model": "BLT1819",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 297.5,
+                    "net_weight": 242.5,
+                    "volume": 1.6851,
+                    "contents": [
+                        {
+                            "model": "LT004",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 297.5,
+                    "net_weight": 242.5,
+                    "volume": 1.6851,
+                    "contents": [
+                        {
+                            "model": "LT004",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 297.5,
+                    "net_weight": 242.5,
+                    "volume": 1.6851,
+                    "contents": [
+                        {
+                            "model": "LT004",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 297.5,
+                    "net_weight": 242.5,
+                    "volume": 1.6851,
+                    "contents": [
+                        {
+                            "model": "LT004",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 131.5,
+                    "net_weight": 124,
+                    "volume": 0.6189,
+                    "contents": [
+                        {
+                            "model": "XVD003",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 196,
+                    "net_weight": 176,
+                    "volume": 1.1405,
+                    "contents": [
+                        {
+                            "model": "XT008",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 291.5,
+                    "net_weight": 271,
+                    "volume": 1.1985,
+                    "contents": [
+                        {
+                            "model": "BLT0607",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 291.5,
+                    "net_weight": 271,
+                    "volume": 1.1985,
+                    "contents": [
+                        {
+                            "model": "BLT0607",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 282.995,
+                    "net_weight": 236.73,
+                    "volume": 1.3094,
+                    "contents": [
+                        {
+                            "model": "LT013",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": "Loading list traz o modelo como \"FTA\""
+                }
+            ]
+        }
+    ]
+}
