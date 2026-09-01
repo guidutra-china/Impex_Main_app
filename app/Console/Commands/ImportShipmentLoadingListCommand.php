@@ -12,6 +12,7 @@ use App\Domain\Logistics\Models\CartonContent;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Logistics\Models\ShipmentContainer;
 use App\Domain\Logistics\Models\ShipmentItem;
+use App\Domain\Logistics\Models\ShipmentPallet;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -20,21 +21,29 @@ use RuntimeException;
  * Monta o packing list de um embarque a partir do loading list do fornecedor.
  *
  * O arquivo de entrada é um JSON normalizado, versionado em
- * database/data/loading-lists/, com um bloco por contêiner e uma linha por
- * modelo carregado (quantidade de volumes + peso líquido, peso bruto e cubagem
- * unitários). O formato é o mesmo que o fornecedor manda na planilha; a
- * conversão planilha → JSON é feita fora daqui, para que o dado aplicado seja
- * revisável no diff do git antes de tocar o banco.
+ * database/data/loading-lists/. A conversão planilha → JSON é feita fora daqui,
+ * para que o dado aplicado seja revisável no diff do git antes de tocar o banco.
  *
- * O casamento é feito por REFERÊNCIA do embarque e por `reference_code` do
- * produto — nunca por id — para que o mesmo arquivo e o mesmo comando produzam
- * o mesmo resultado em dev e em produção, onde os ids divergem.
+ * O contêiner pode declarar sua carga de duas formas:
+ *
+ *   lines     — atalho para quando 1 volume = 1 peça: modelo, quantos volumes e
+ *               os pesos e cubagem unitários. Cada volume vira uma caixa.
+ *   packages  — a lista explícita de volumes, para carga que não é 1:1: caixa
+ *               com várias peças, pallet, ou volume com mais de um item dentro.
+ *
+ * O casamento é feito por REFERÊNCIA do embarque e, dentro dele, por
+ * `reference_code` do produto ou pela descrição do item — nunca por id — para
+ * que o mesmo arquivo e o mesmo comando produzam o mesmo resultado em dev e em
+ * produção, onde os ids divergem.
  *
  * Antes de gravar qualquer coisa o comando exige que a carga feche: para cada
- * modelo, a soma dos volumes declarados nos contêineres tem de ser exatamente
- * a quantidade do item do embarque multiplicada pelo número de volumes por
- * peça (1, ou o número de partes quando o item está dividido em multi-box).
- * Não fechando, aborta sem escrever nada.
+ * item, a soma das peças declaradas nos volumes tem de ser exatamente a
+ * quantidade do item multiplicada pelo número de partes (1, ou o número de
+ * partes quando o item está dividido em multi-box). Não fechando, aborta sem
+ * escrever nada.
+ *
+ * Pallet segue a regra do domínio: conta 1 volume, o peso bruto é o dele, a
+ * cubagem sai da caixa que ele carrega e o líquido nunca vem do estrado.
  *
  * Dry-run por padrão; passe --apply para gravar.
  */
@@ -48,7 +57,7 @@ class ImportShipmentLoadingListCommand extends Command
         {--no-item-weights : Não atualiza peso e cubagem dos itens do embarque}
         {--apply : Grava as alterações (padrão: dry-run)}';
 
-    protected $description = 'Monta as caixas e contêineres de um embarque a partir do loading list do fornecedor';
+    protected $description = 'Monta as caixas, pallets e contêineres de um embarque a partir do loading list do fornecedor';
 
     public function __construct(
         private readonly RecalculateShipmentTotalsAction $recalculateTotals,
@@ -65,14 +74,15 @@ class ImportShipmentLoadingListCommand extends Command
             $data = $this->readFile((string) $this->argument('file'));
             $shipment = $this->resolveShipment($data);
             $this->guardExistingCartons($shipment);
-            $plan = $this->buildPlan($shipment, $data);
+            $containers = $this->normalizeContainers($data);
+            $plan = $this->buildPlan($shipment, $containers);
         } catch (RuntimeException $e) {
             $this->error($e->getMessage());
 
             return self::FAILURE;
         }
 
-        $this->renderPlan($shipment, $data, $plan);
+        $this->renderPlan($shipment, $data, $containers, $plan);
 
         if (! $apply) {
             $this->newLine();
@@ -81,10 +91,10 @@ class ImportShipmentLoadingListCommand extends Command
             return self::SUCCESS;
         }
 
-        DB::transaction(function () use ($shipment, $data, $plan) {
-            $this->wipeExistingCartons($shipment);
-            $containers = $this->syncContainers($shipment, $data['containers']);
-            $this->createCartons($shipment, $data['containers'], $containers, $plan['items']);
+        DB::transaction(function () use ($shipment, $containers, $plan) {
+            $this->wipeExistingPacking($shipment);
+            $models = $this->syncContainers($shipment, $containers);
+            $this->createPackages($shipment, $containers, $models, $plan['items']);
 
             if (! $this->option('no-item-weights')) {
                 $this->syncItemWeights($plan);
@@ -183,63 +193,173 @@ class ImportShipmentLoadingListCommand extends Command
     }
 
     /**
-     * Casa cada modelo do arquivo com o item do embarque e confere se a carga
-     * fecha. Devolve, por item, o mapa de partes (multi-box) e os totais que o
+     * Põe os dois formatos de contêiner na mesma forma: uma lista de volumes,
+     * cada um com tipo, pesos, cubagem e o que tem dentro.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function normalizeContainers(array $data): array
+    {
+        $containers = [];
+
+        foreach ($data['containers'] as $index => $container) {
+            $packages = [];
+
+            foreach ($container['packages'] ?? [] as $package) {
+                $packages[] = [
+                    'type' => ($package['type'] ?? 'carton') === 'pallet' ? 'pallet' : 'carton',
+                    'gross_weight' => $package['gross_weight'] ?? null,
+                    'net_weight' => $package['net_weight'] ?? null,
+                    'volume' => $package['volume'] ?? null,
+                    'notes' => $package['notes'] ?? null,
+                    'contents' => array_map(
+                        fn (array $c) => ['ref' => $this->contentRef($c), 'pieces' => (int) ($c['pieces'] ?? 1)],
+                        $package['contents'] ?? [],
+                    ),
+                ];
+            }
+
+            // Atalho `lines`: um volume por peça, todos iguais.
+            foreach ($container['lines'] ?? [] as $line) {
+                for ($i = 0; $i < (int) $line['packages']; $i++) {
+                    $packages[] = [
+                        'type' => 'carton',
+                        'gross_weight' => $line['unit_gross_weight'] ?? null,
+                        'net_weight' => $line['unit_net_weight'] ?? null,
+                        'volume' => $line['unit_volume'] ?? null,
+                        'notes' => $line['notes'] ?? null,
+                        'contents' => [['ref' => $this->contentRef($line), 'pieces' => 1]],
+                    ];
+                }
+            }
+
+            if ($packages === []) {
+                throw new RuntimeException("Contêiner {$container['container_number']} não declara nem `lines` nem `packages`.");
+            }
+
+            foreach ($packages as $package) {
+                if ($package['contents'] === []) {
+                    throw new RuntimeException("Contêiner {$container['container_number']}: volume sem conteúdo declarado.");
+                }
+            }
+
+            // array_merge e não `+`: o `+` manteria o `packages` cru do arquivo.
+            $containers[] = array_merge($container, [
+                'packages' => $packages,
+                'sort_order' => $container['sort_order'] ?? $index + 1,
+            ]);
+        }
+
+        return $containers;
+    }
+
+    /**
+     * Como o arquivo aponta para um item do embarque: pelo `reference_code` do
+     * produto, ou pela descrição do item quando o produto não tem código.
+     *
+     * @return array{by: string, value: string}
+     */
+    private function contentRef(array $node): array
+    {
+        if (($node['model'] ?? '') !== '') {
+            return ['by' => 'model', 'value' => mb_strtoupper(trim((string) $node['model']))];
+        }
+
+        if (($node['description'] ?? '') !== '') {
+            return ['by' => 'description', 'value' => mb_strtolower(trim((string) $node['description']))];
+        }
+
+        throw new RuntimeException('Conteúdo de volume sem `model` nem `description`.');
+    }
+
+    /**
+     * Casa cada referência do arquivo com o item do embarque e confere se a
+     * carga fecha. Devolve, por item, o mapa de partes (multi-box) e o que o
      * loading list atribui a ele.
      */
-    private function buildPlan(Shipment $shipment, array $data): array
+    private function buildPlan(Shipment $shipment, array $containers): array
     {
-        $itemsByModel = [];
+        $byModel = [];
+        $byDescription = [];
 
         foreach ($shipment->items as $item) {
             $code = $item->proformaInvoiceItem?->product?->reference_code;
 
-            if ($code === null || $code === '') {
-                continue;
+            if ($code !== null && $code !== '') {
+                $byModel[mb_strtoupper($code)][] = $item;
             }
 
-            $itemsByModel[mb_strtoupper($code)][] = $item;
+            $description = $item->proformaInvoiceItem?->description;
+
+            if ($description !== null && $description !== '') {
+                $byDescription[mb_strtolower(trim($description))][] = $item;
+            }
         }
 
+        // Peças e totais que o arquivo atribui a cada referência.
         $loaded = [];
 
-        foreach ($data['containers'] as $container) {
-            foreach ($container['lines'] as $line) {
-                $model = mb_strtoupper((string) $line['model']);
-                $loaded[$model]['packages'] = ($loaded[$model]['packages'] ?? 0) + (int) $line['packages'];
-                $loaded[$model]['gross'] = ($loaded[$model]['gross'] ?? 0.0) + $line['packages'] * (float) $line['unit_gross_weight'];
-                $loaded[$model]['net'] = ($loaded[$model]['net'] ?? 0.0) + $line['packages'] * (float) $line['unit_net_weight'];
-                $loaded[$model]['volume'] = ($loaded[$model]['volume'] ?? 0.0) + $line['packages'] * (float) $line['unit_volume'];
+        foreach ($containers as $container) {
+            foreach ($container['packages'] as $package) {
+                $single = count($package['contents']) === 1;
+
+                foreach ($package['contents'] as $content) {
+                    $key = $content['ref']['by'].':'.$content['ref']['value'];
+                    $loaded[$key]['ref'] = $content['ref'];
+                    $loaded[$key]['pieces'] = ($loaded[$key]['pieces'] ?? 0) + $content['pieces'];
+                    $loaded[$key]['mixed'] = ($loaded[$key]['mixed'] ?? false) || ! $single;
+
+                    if ($single) {
+                        $loaded[$key]['gross'] = ($loaded[$key]['gross'] ?? 0.0) + (float) $package['gross_weight'];
+                        $loaded[$key]['net'] = ($loaded[$key]['net'] ?? 0.0) + (float) $package['net_weight'];
+                        $loaded[$key]['volume'] = ($loaded[$key]['volume'] ?? 0.0) + (float) $package['volume'];
+                    }
+                }
             }
         }
 
         $errors = [];
         $items = [];
+        $seen = [];
 
-        foreach ($loaded as $model => $totals) {
-            $candidates = $itemsByModel[$model] ?? [];
+        foreach ($loaded as $key => $totals) {
+            $ref = $totals['ref'];
+            $label = $ref['value'];
+            $candidates = $ref['by'] === 'model'
+                ? ($byModel[$ref['value']] ?? [])
+                : ($byDescription[$ref['value']] ?? []);
 
             if ($candidates === []) {
-                $errors[] = "{$model}: nenhum item do embarque aponta para um produto com este reference_code.";
+                $errors[] = $ref['by'] === 'model'
+                    ? "{$label}: nenhum item do embarque aponta para um produto com este reference_code."
+                    : "\"{$label}\": nenhum item do embarque tem esta descrição.";
 
                 continue;
             }
 
             if (count($candidates) > 1) {
-                $errors[] = "{$model}: {$shipment->reference} tem ".count($candidates).' itens para este produto — ambíguo.';
+                $errors[] = "{$label}: {$shipment->reference} tem ".count($candidates).' itens com esta referência — ambíguo.';
 
                 continue;
             }
 
             $item = $candidates[0];
+
+            if (isset($seen[$item->id])) {
+                $errors[] = "{$label}: o item #{$item->id} já foi referenciado por outra chave do arquivo.";
+
+                continue;
+            }
+
+            $seen[$item->id] = true;
             $parts = $this->partLabels($item);
             $expected = (int) $item->quantity * count($parts);
 
-            if ($totals['packages'] !== $expected) {
+            if ($totals['pieces'] !== $expected) {
                 $errors[] = sprintf(
-                    '%s: loading list traz %d volumes, mas o item #%d tem %d peça(s) × %d volume(s) por peça = %d.',
-                    $model,
-                    $totals['packages'],
+                    '%s: loading list traz %d peça(s), mas o item #%d tem %d × %d volume(s) por peça = %d.',
+                    $label,
+                    $totals['pieces'],
                     $item->id,
                     (int) $item->quantity,
                     count($parts),
@@ -249,7 +369,7 @@ class ImportShipmentLoadingListCommand extends Command
                 continue;
             }
 
-            $items[$model] = [
+            $items[$key] = [
                 'item' => $item,
                 'parts' => $parts,
                 'set_id' => $item->packing_split['set_id'] ?? null,
@@ -258,9 +378,13 @@ class ImportShipmentLoadingListCommand extends Command
             ];
         }
 
-        foreach ($itemsByModel as $model => $candidates) {
-            if (! isset($loaded[$model])) {
-                $errors[] = "{$model}: item #{$candidates[0]->id} está no embarque mas não aparece em nenhum contêiner do arquivo.";
+        foreach ($shipment->items as $item) {
+            if (! isset($seen[$item->id])) {
+                $errors[] = sprintf(
+                    'item #%d (%s) está no embarque mas não aparece em nenhum volume do arquivo.',
+                    $item->id,
+                    $item->proformaInvoiceItem?->description ?? '?',
+                );
             }
         }
 
@@ -272,8 +396,8 @@ class ImportShipmentLoadingListCommand extends Command
     }
 
     /**
-     * Rótulos das partes de um item. Itens normais têm uma parte anônima (uma
-     * caixa por peça); itens divididos em multi-box têm um rótulo por caixa.
+     * Rótulos das partes de um item. Itens normais têm uma parte anônima; itens
+     * divididos em multi-box têm um rótulo por caixa.
      *
      * @return list<string|null>
      */
@@ -288,14 +412,16 @@ class ImportShipmentLoadingListCommand extends Command
 
     // ───────────────────────────── escrita ─────────────────────────────
 
-    private function wipeExistingCartons(Shipment $shipment): void
+    private function wipeExistingPacking(Shipment $shipment): void
     {
         if ($this->option('keep-existing')) {
             return;
         }
 
-        // carton_contents é cascadeOnDelete a partir de cartons.
+        // carton_contents é cascadeOnDelete a partir de cartons; pallets ficam
+        // órfãos se sobrarem, então saem junto.
         $shipment->cartons()->delete();
+        $shipment->shipmentPallets()->delete();
     }
 
     /**
@@ -325,7 +451,7 @@ class ImportShipmentLoadingListCommand extends Command
                 'label' => $container['label'],
                 'container_number' => $number,
                 'type' => $container['type'] ?? null,
-                'sort_order' => (int) ($container['sort_order'] ?? 0),
+                'sort_order' => (int) $container['sort_order'],
             ])->save();
 
             $synced[$number] = $model;
@@ -342,89 +468,124 @@ class ImportShipmentLoadingListCommand extends Command
     }
 
     /**
-     * Cria uma caixa por volume, na ordem dos contêineres e das linhas do
-     * arquivo, com os pesos e a cubagem unitários do fornecedor.
+     * Cria um volume por entrada do arquivo, na ordem dos contêineres.
+     *
+     * Caixa solta vira uma linha em `cartons`. Pallet vira um `shipment_pallets`
+     * com o peso bruto declarado — que é o que vale nos totais — carregando uma
+     * caixa com a cubagem e o peso líquido, porque o domínio tira a cubagem da
+     * caixa quando o pallet não tem medida, e o líquido nunca vem do estrado.
      *
      * @param  list<array<string, mixed>>  $containers
      * @param  array<string, ShipmentContainer>  $containerModels
      * @param  array<string, array<string, mixed>>  $items
      */
-    private function createCartons(Shipment $shipment, array $containers, array $containerModels, array &$items): void
+    private function createPackages(Shipment $shipment, array $containers, array $containerModels, array &$items): void
     {
         $sequence = (int) ($shipment->cartons()->max('sort_order') ?? 0);
+        $palletSequence = (int) ($shipment->shipmentPallets()->max('sort_order') ?? 0);
         $usedLabels = $shipment->cartons()->pluck('label')->flip();
+        $usedPalletLabels = $shipment->shipmentPallets()->pluck('label')->flip();
 
         foreach ($containers as $container) {
             $containerModel = $containerModels[mb_strtoupper(trim((string) $container['container_number']))];
 
-            foreach ($container['lines'] as $line) {
-                $model = mb_strtoupper((string) $line['model']);
-                $plan = &$items[$model];
+            foreach ($container['packages'] as $package) {
+                $sequence++;
 
-                for ($i = 0; $i < (int) $line['packages']; $i++) {
+                while ($usedLabels->has($label = 'BOX-'.str_pad((string) $sequence, 3, '0', STR_PAD_LEFT))) {
                     $sequence++;
+                }
 
-                    while ($usedLabels->has($label = 'BOX-'.str_pad((string) $sequence, 3, '0', STR_PAD_LEFT))) {
-                        $sequence++;
+                $pallet = null;
+
+                if ($package['type'] === 'pallet') {
+                    $palletSequence++;
+
+                    while ($usedPalletLabels->has($palletLabel = 'PLT-'.str_pad((string) $palletSequence, 3, '0', STR_PAD_LEFT))) {
+                        $palletSequence++;
                     }
 
-                    $carton = Carton::create([
+                    $pallet = ShipmentPallet::create([
                         'shipment_id' => $shipment->id,
                         'shipment_container_id' => $containerModel->id,
-                        'label' => $label,
-                        'packaging_type' => PackagingType::CARTON->value,
-                        'net_weight' => $line['unit_net_weight'],
-                        'gross_weight' => $line['unit_gross_weight'],
-                        'volume' => $line['unit_volume'],
-                        'notes' => $line['notes'] ?? null,
-                        'sort_order' => $sequence,
+                        'label' => $palletLabel,
+                        'gross_weight' => $package['gross_weight'],
+                        'notes' => $package['notes'],
+                        'sort_order' => $palletSequence,
                     ]);
+                }
 
-                    $part = $this->nextPart($plan);
+                $carton = Carton::create([
+                    'shipment_id' => $shipment->id,
+                    'shipment_container_id' => $containerModel->id,
+                    'shipment_pallet_id' => $pallet?->id,
+                    'label' => $label,
+                    'packaging_type' => PackagingType::CARTON->value,
+                    'net_weight' => $package['net_weight'],
+                    'gross_weight' => $package['gross_weight'],
+                    'volume' => $package['volume'],
+                    'notes' => $pallet ? null : $package['notes'],
+                    'sort_order' => $sequence,
+                ]);
+
+                $order = 0;
+
+                foreach ($package['contents'] as $content) {
+                    $key = $content['ref']['by'].':'.$content['ref']['value'];
+                    $plan = &$items[$key];
+                    $part = $this->nextPart($plan, $content['pieces']);
 
                     CartonContent::create([
                         'carton_id' => $carton->id,
                         'shipment_item_id' => $plan['item']->id,
-                        'pieces' => 1,
+                        'pieces' => $content['pieces'],
                         'part_label' => $part,
                         'multi_box_set_id' => $part === null ? null : $plan['set_id'],
-                        'sort_order' => 1,
+                        'sort_order' => ++$order,
                     ]);
-                }
 
-                unset($plan);
+                    unset($plan);
+                }
             }
         }
     }
 
     /**
-     * Escolhe a parte da próxima caixa de um item multi-box.
+     * Escolhe a parte do próximo volume de um item multi-box.
      *
      * O loading list diz quantos volumes de cada modelo foram para cada
      * contêiner, mas não diz quais partes — então distribuímos sempre pela
      * parte com mais volumes pendentes. Para um item de duas partes isso
-     * intercala as caixas dentro de cada contêiner (corpo e acessórios viajam
+     * intercala os volumes dentro de cada contêiner (corpo e acessórios viajam
      * juntos) e fecha exatamente a contagem de cada parte no fim.
      */
-    private function nextPart(array &$plan): ?string
+    private function nextPart(array &$plan, int $pieces): ?string
     {
         if ($plan['parts'] === [null]) {
             return null;
         }
 
         $part = array_keys($plan['remaining'], max($plan['remaining']), true)[0];
-        $plan['remaining'][$part]--;
+        $plan['remaining'][$part] -= $pieces;
 
         return $part;
     }
 
     /**
      * Traz peso e cubagem dos itens do embarque para os números reais do
-     * loading list, para que item e caixa não se contradigam nos documentos.
+     * loading list, para que item e volume não se contradigam nos documentos.
+     *
+     * Só vale para item que viaja sozinho no volume. Num pallet com placas de
+     * quatro pesos diferentes não há como repartir o peso do conjunto entre
+     * elas sem inventar número, então esses ficam como estão.
      */
     private function syncItemWeights(array $plan): void
     {
         foreach ($plan['items'] as $entry) {
+            if ($entry['totals']['mixed']) {
+                continue;
+            }
+
             $item = $entry['item'];
             $quantity = max(1, (int) $item->quantity);
 
@@ -438,84 +599,119 @@ class ImportShipmentLoadingListCommand extends Command
 
     // ───────────────────────────── relatório ─────────────────────────────
 
-    private function renderPlan(Shipment $shipment, array $data, array $plan): void
+    private function renderPlan(Shipment $shipment, array $data, array $containers, array $plan): void
     {
         $this->line("Embarque: <info>{$shipment->reference}</info> (#{$shipment->id}, {$shipment->status->value})");
         $this->newLine();
 
         $rows = [];
-        $packages = 0;
-        $gross = 0.0;
-        $net = 0.0;
-        $volume = 0.0;
+        $totals = ['packages' => 0, 'pallets' => 0, 'gross' => 0.0, 'net' => 0.0, 'volume' => 0.0];
 
-        foreach ($data['containers'] as $container) {
-            $declared = $container['declared'];
-            $packages += (int) $declared['packages'];
-            $gross += (float) $declared['gross_weight'];
-            $net += (float) $declared['net_weight'];
-            $volume += (float) $declared['volume'];
+        foreach ($containers as $container) {
+            $pallets = 0;
+            $gross = 0.0;
+            $net = 0.0;
+            $volume = 0.0;
+
+            foreach ($container['packages'] as $package) {
+                $pallets += $package['type'] === 'pallet' ? 1 : 0;
+                $gross += (float) $package['gross_weight'];
+                $net += (float) $package['net_weight'];
+                $volume += (float) $package['volume'];
+            }
+
+            $count = count($container['packages']);
+            $declared = $container['declared'] ?? null;
 
             $rows[] = [
                 $container['label'],
                 $container['container_number'],
-                $container['type'] ?? '—',
-                count($container['lines']),
-                $declared['packages'],
-                number_format((float) $declared['gross_weight'], 3),
-                number_format((float) $declared['net_weight'], 3),
-                number_format((float) $declared['volume'], 3),
+                $count.($pallets ? " ({$pallets} plt)" : ''),
+                number_format($gross, 3),
+                number_format($net, 3),
+                number_format($volume, 3),
+                $this->declaredCheck($declared, $count, $gross, $volume),
             ];
+
+            $totals['packages'] += $count;
+            $totals['pallets'] += $pallets;
+            $totals['gross'] += $gross;
+            $totals['net'] += $net;
+            $totals['volume'] += $volume;
         }
 
-        $rows[] = ['', '<info>TOTAL</info>', '', '', $packages, number_format($gross, 3), number_format($net, 3), number_format($volume, 3)];
+        $rows[] = [
+            '', '<info>TOTAL</info>',
+            $totals['packages'].($totals['pallets'] ? " ({$totals['pallets']} plt)" : ''),
+            number_format($totals['gross'], 3),
+            number_format($totals['net'], 3),
+            number_format($totals['volume'], 3),
+            '',
+        ];
 
-        $this->table(['Rótulo', 'Contêiner', 'Tipo', 'Linhas', 'Volumes', 'GW (kg)', 'NW (kg)', 'CBM'], $rows);
+        $this->table(['Rótulo', 'Contêiner', 'Volumes', 'GW (kg)', 'NW (kg)', 'CBM', 'vs declarado'], $rows);
 
         $existing = $shipment->cartons()->count();
 
         $this->line($this->option('keep-existing')
-            ? "Caixas atuais: <comment>{$existing}</comment> (mantidas) → serão acrescentadas {$packages}."
-            : "Caixas atuais: <comment>{$existing}</comment> (serão APAGADAS) → serão criadas {$packages}.");
+            ? "Caixas atuais: <comment>{$existing}</comment> (mantidas) → serão acrescentados {$totals['packages']} volumes."
+            : "Caixas atuais: <comment>{$existing}</comment> (serão APAGADAS) → serão criados {$totals['packages']} volumes.");
 
         $this->line(sprintf(
-            'Cabeçalho: %d volumes / %s CBM  →  %d volumes / %s CBM',
-            (int) $shipment->total_packages,
+            'Cabeçalho: %s volumes / %s CBM  →  %d volumes / %s CBM',
+            $shipment->total_packages ?? '—',
             number_format((float) $shipment->total_volume, 3),
-            $packages,
-            number_format($volume, 3),
+            $totals['packages'],
+            number_format($totals['volume'], 3),
         ));
 
-        $split = array_filter($plan['items'], fn (array $i) => $i['parts'] !== [null]);
-
-        foreach ($split as $model => $entry) {
-            $this->line(sprintf(
-                'Multi-box %s: %d peças × %d partes (%s) = %d volumes.',
-                $model,
-                (int) $entry['item']->quantity,
-                count($entry['parts']),
-                implode('/', $entry['parts']),
-                $entry['totals']['packages'],
-            ));
+        foreach ($plan['items'] as $entry) {
+            if ($entry['parts'] !== [null]) {
+                $this->line(sprintf(
+                    'Multi-box %s: %d peças × %d partes (%s).',
+                    $entry['item']->proformaInvoiceItem?->product?->reference_code ?? $entry['item']->id,
+                    (int) $entry['item']->quantity,
+                    count($entry['parts']),
+                    implode('/', $entry['parts']),
+                ));
+            }
         }
 
         if (! $this->option('no-item-weights')) {
-            $changed = 0;
-
-            foreach ($plan['items'] as $entry) {
-                $quantity = max(1, (int) $entry['item']->quantity);
-                $unit = round($entry['totals']['gross'] / $quantity, 3);
-
-                if (abs($unit - (float) $entry['item']->unit_weight) > 0.001) {
-                    $changed++;
-                }
-            }
-
-            $this->line("Peso/cubagem dos itens: {$changed} de ".count($plan['items']).' serão atualizados para os números do loading list.');
+            $mixed = count(array_filter($plan['items'], fn (array $i) => $i['totals']['mixed']));
+            $this->line(sprintf(
+                'Peso/cubagem dos itens: %d de %d serão atualizados%s.',
+                count($plan['items']) - $mixed,
+                count($plan['items']),
+                $mixed ? " ({$mixed} viajam misturados no mesmo volume e ficam como estão)" : '',
+            ));
         }
 
         foreach ($data['notes'] ?? [] as $note) {
             $this->line("<comment>Nota:</comment> {$note}");
         }
+    }
+
+    private function declaredCheck(?array $declared, int $packages, float $gross, float $volume): string
+    {
+        if ($declared === null) {
+            return '—';
+        }
+
+        $problems = [];
+
+        if (isset($declared['packages']) && (int) $declared['packages'] !== $packages) {
+            $problems[] = 'volumes '.$declared['packages'];
+        }
+
+        if (isset($declared['gross_weight']) && abs((float) $declared['gross_weight'] - $gross) > 0.05) {
+            $problems[] = 'GW '.number_format((float) $declared['gross_weight'], 3);
+        }
+
+        if (isset($declared['volume']) && abs((float) $declared['volume'] - $volume) > 0.005) {
+            $problems[] = 'CBM '.number_format((float) $declared['volume'], 3);
+        }
+
+        return $problems === [] ? 'confere' : '<error>≠ '.implode(', ', $problems).'</error>';
     }
 }

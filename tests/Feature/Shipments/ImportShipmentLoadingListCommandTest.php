@@ -10,6 +10,7 @@ use App\Domain\Logistics\Models\CartonContent;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Logistics\Models\ShipmentContainer;
 use App\Domain\Logistics\Models\ShipmentItem;
+use App\Domain\Logistics\Models\ShipmentPallet;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\ProformaInvoices\Models\ProformaInvoiceItem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -142,6 +143,165 @@ class ImportShipmentLoadingListCommandTest extends TestCase
         file_put_contents($this->file, json_encode($payload));
 
         return $this->file;
+    }
+
+    /**
+     * Escreve um JSON no formato explícito de volumes. $containers é uma lista de
+     * [numero, [ [tipo, gw, nw, cbm, [ [ref, peças], ... ]], ... ]].
+     */
+    private function makePackageFile(Shipment $shipment, array $containers): string
+    {
+        $payload = ['shipment' => $shipment->reference, 'containers' => []];
+
+        foreach ($containers as $index => [$number, $packages]) {
+            $entries = [];
+
+            foreach ($packages as [$type, $gw, $nw, $cbm, $contents]) {
+                $entries[] = [
+                    'type' => $type,
+                    'gross_weight' => $gw,
+                    'net_weight' => $nw,
+                    'volume' => $cbm,
+                    'contents' => array_map(
+                        fn (array $c) => (str_contains($c[0], ' ') ? ['description' => $c[0]] : ['model' => $c[0]]) + ['pieces' => $c[1]],
+                        $contents,
+                    ),
+                ];
+            }
+
+            $payload['containers'][] = [
+                'label' => 'CONT-'.str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT),
+                'container_number' => $number,
+                'type' => '40HQ',
+                'sort_order' => $index + 1,
+                'packages' => $entries,
+            ];
+        }
+
+        $this->file = tempnam(sys_get_temp_dir(), 'll').'.json';
+        file_put_contents($this->file, json_encode($payload));
+
+        return $this->file;
+    }
+
+    public function test_creates_a_pallet_whose_gross_weight_drives_the_totals_and_counts_as_one_volume(): void
+    {
+        [$shipment] = $this->makeShipment(['D905Z' => 6]);
+
+        // Um pallet com 6 peças e uma caixa solta com 0 — o pallet conta 1 volume.
+        $file = $this->makePackageFile($shipment, [
+            ['HMMU1111111', [
+                ['pallet', 900.0, 850.0, 2.5, [['D905Z', 5]]],
+                ['carton', 150.0, 140.0, 0.5, [['D905Z', 1]]],
+            ]],
+        ]);
+
+        $this->artisan("shipments:import-loading-list {$file} --apply")->assertSuccessful();
+
+        $pallets = ShipmentPallet::where('shipment_id', $shipment->id)->get();
+        $this->assertCount(1, $pallets);
+        $this->assertEquals(900.0, $pallets->first()->gross_weight);
+
+        // A caixa do pallet fica pendurada nele, e a solta não.
+        $cartons = Carton::where('shipment_id', $shipment->id)->orderBy('sort_order')->get();
+        $this->assertCount(2, $cartons);
+        $this->assertSame($pallets->first()->id, $cartons[0]->shipment_pallet_id);
+        $this->assertNull($cartons[1]->shipment_pallet_id);
+
+        $shipment->refresh();
+        // 2 volumes: o pallet (1, por mais caixas que leve) e a caixa solta.
+        $this->assertSame(2, (int) $shipment->total_packages);
+        // Bruto do pallet + bruto da caixa solta; a cubagem do pallet vem da caixa nele.
+        $this->assertEquals(1050.0, $shipment->total_gross_weight);
+        $this->assertEquals(990.0, $shipment->total_net_weight);
+        $this->assertEquals(3.0, $shipment->total_volume);
+    }
+
+    public function test_accepts_several_pieces_in_one_package(): void
+    {
+        [$shipment] = $this->makeShipment(['SQ-1043' => 5]);
+
+        $file = $this->makePackageFile($shipment, [
+            ['HMMU1111111', [['pallet', 175.0, 150.0, 1.573, [['SQ-1043', 5]]]]],
+        ]);
+
+        $this->artisan("shipments:import-loading-list {$file} --apply")->assertSuccessful();
+
+        $this->assertSame(1, Carton::where('shipment_id', $shipment->id)->count());
+        $this->assertSame(5, (int) CartonContent::whereIn('carton_id', Carton::where('shipment_id', $shipment->id)->pluck('id'))->sum('pieces'));
+
+        $shipment->refresh();
+        $this->assertSame(1, (int) $shipment->total_packages);
+    }
+
+    public function test_matches_items_by_description_when_the_product_has_no_reference_code(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['__NOCODE__' => 4]);
+        $items['__NOCODE__']->proformaInvoiceItem->update(['description' => 'Weight plate 10kg']);
+        $items['__NOCODE__']->proformaInvoiceItem->product->update(['reference_code' => null]);
+
+        $file = $this->makePackageFile($shipment, [
+            ['HMMU1111111', [['pallet', 120.0, 100.0, 1.0, [['Weight plate 10kg', 4]]]]],
+        ]);
+
+        $this->artisan("shipments:import-loading-list {$file} --apply")->assertSuccessful();
+
+        $content = CartonContent::whereIn('carton_id', Carton::where('shipment_id', $shipment->id)->pluck('id'))->first();
+        $this->assertSame($items['__NOCODE__']->id, $content->shipment_item_id);
+        $this->assertSame(4, $content->pieces);
+    }
+
+    public function test_one_package_can_hold_several_items_and_their_weights_are_left_alone(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['D905Z' => 2, 'U3050' => 3]);
+
+        $file = $this->makePackageFile($shipment, [
+            ['HMMU1111111', [['pallet', 500.0, 460.0, 1.2, [['D905Z', 2], ['U3050', 3]]]]],
+        ]);
+
+        $this->artisan("shipments:import-loading-list {$file} --apply")->assertSuccessful();
+
+        $carton = Carton::where('shipment_id', $shipment->id)->first();
+        $this->assertSame(2, $carton->contents()->count());
+
+        $shipment->refresh();
+        $this->assertSame(1, (int) $shipment->total_packages);
+        $this->assertEquals(500.0, $shipment->total_gross_weight);
+
+        // Não há como repartir o peso do pallet entre dois itens sem inventar.
+        foreach ($items as $item) {
+            $this->assertNull($item->refresh()->unit_weight);
+        }
+    }
+
+    public function test_aborts_when_the_pieces_in_the_packages_do_not_match_the_item_quantity(): void
+    {
+        [$shipment] = $this->makeShipment(['D905Z' => 5]);
+
+        $file = $this->makePackageFile($shipment, [
+            ['HMMU1111111', [['pallet', 500.0, 460.0, 1.2, [['D905Z', 4]]]]],
+        ]);
+
+        $this->artisan("shipments:import-loading-list {$file} --apply")->assertFailed();
+        $this->assertSame(0, Carton::where('shipment_id', $shipment->id)->count());
+        $this->assertSame(0, ShipmentPallet::where('shipment_id', $shipment->id)->count());
+    }
+
+    public function test_replacing_the_packing_removes_the_old_pallets_too(): void
+    {
+        [$shipment] = $this->makeShipment(['D905Z' => 1]);
+        $file = $this->makePackageFile($shipment, [
+            ['HMMU1111111', [['pallet', 100.0, 90.0, 1.0, [['D905Z', 1]]]]],
+        ]);
+
+        $this->artisan("shipments:import-loading-list {$file} --apply")->assertSuccessful();
+        $first = ShipmentPallet::where('shipment_id', $shipment->id)->pluck('id')->all();
+
+        $this->artisan("shipments:import-loading-list {$file} --apply")->assertSuccessful();
+        $second = ShipmentPallet::where('shipment_id', $shipment->id)->pluck('id')->all();
+
+        $this->assertCount(1, $second);
+        $this->assertEmpty(array_intersect($first, $second));
     }
 
     public function test_creates_containers_cartons_and_recalculates_shipment_totals(): void

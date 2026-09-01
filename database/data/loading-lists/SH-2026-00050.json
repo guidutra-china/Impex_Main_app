@@ -1,0 +1,2105 @@
+{
+    "shipment": "SH-2026-00050",
+    "source": "Loading lists LWSS26217 — Shengqi, XUYU e Yangrun",
+    "containers": [
+        {
+            "label": "CONT-001",
+            "container_number": "CSNU7633361",
+            "type": "40HQ",
+            "sort_order": 1,
+            "declared": {
+                "packages": 49,
+                "gross_weight": 10329.6,
+                "volume": 31.886
+            },
+            "packages": [
+                {
+                    "type": "carton",
+                    "gross_weight": 170,
+                    "net_weight": 140,
+                    "volume": 0.8932,
+                    "contents": [
+                        {
+                            "description": "Fitness equipment - esteira/treadmill",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "SHENGQI"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 175,
+                    "net_weight": 150,
+                    "volume": 1.3536,
+                    "contents": [
+                        {
+                            "description": "Fitness equipment - remo (rowing machine)",
+                            "pieces": 5
+                        }
+                    ],
+                    "notes": "Pallet de compensado com 5 peça(s)",
+                    "supplier": "SHENGQI"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 280,
+                    "net_weight": 245,
+                    "volume": 1.5438,
+                    "contents": [
+                        {
+                            "description": "Fitness equipment - air bike",
+                            "pieces": 5
+                        }
+                    ],
+                    "notes": "Pallet de compensado com 5 peça(s)",
+                    "supplier": "SHENGQI"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 83,
+                    "net_weight": 62,
+                    "volume": 0.5421,
+                    "contents": [
+                        {
+                            "model": "SQ-X19",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 83,
+                    "net_weight": 62,
+                    "volume": 0.5421,
+                    "contents": [
+                        {
+                            "model": "SQ-X19",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 83,
+                    "net_weight": 62,
+                    "volume": 0.5421,
+                    "contents": [
+                        {
+                            "model": "SQ-X19",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 83,
+                    "net_weight": 62,
+                    "volume": 0.5421,
+                    "contents": [
+                        {
+                            "model": "SQ-X19",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 83,
+                    "net_weight": 62,
+                    "volume": 0.5421,
+                    "contents": [
+                        {
+                            "model": "SQ-X19",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 83,
+                    "net_weight": 62,
+                    "volume": 0.5421,
+                    "contents": [
+                        {
+                            "model": "SQ-X19",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 83,
+                    "net_weight": 62,
+                    "volume": 0.5421,
+                    "contents": [
+                        {
+                            "model": "SQ-X19",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 83,
+                    "net_weight": 62,
+                    "volume": 0.5421,
+                    "contents": [
+                        {
+                            "model": "SQ-X19",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.4715,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.4715,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.4715,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.4715,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.4715,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67,
+                    "net_weight": 62,
+                    "volume": 0.2495,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 402,
+                    "net_weight": 372,
+                    "volume": 1.4973,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 6
+                        }
+                    ],
+                    "notes": "Pallet de compensado com 6 peça(s)",
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 402,
+                    "net_weight": 372,
+                    "volume": 1.4973,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 6
+                        }
+                    ],
+                    "notes": "Pallet de compensado com 6 peça(s)",
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 402,
+                    "net_weight": 372,
+                    "volume": 1.4985,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 6
+                        }
+                    ],
+                    "notes": "Pallet de compensado com 6 peça(s)",
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1298.6,
+                    "net_weight": 1240,
+                    "volume": 0.79,
+                    "contents": [
+                        {
+                            "description": "Weight plate 10kg",
+                            "pieces": 120
+                        },
+                        {
+                            "description": "Weight plate 20kg",
+                            "pieces": 2
+                        }
+                    ],
+                    "notes": "Pallet 6 — 10kg-120片-60件\n20kg-2片-2件 — 114*101*69",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1240,
+                    "net_weight": 1200,
+                    "volume": 1.18,
+                    "contents": [
+                        {
+                            "description": "Weight plate 20kg",
+                            "pieces": 60
+                        }
+                    ],
+                    "notes": "Pallet 7 — 20kg-60片-60件 — 115×115×89",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 574,
+                    "net_weight": 552,
+                    "volume": 1.12,
+                    "contents": [
+                        {
+                            "description": "W - 1.2 meters Olympic bearing bar",
+                            "pieces": 24
+                        },
+                        {
+                            "description": "1.5m Olympic bearing bar",
+                            "pieces": 24
+                        }
+                    ],
+                    "notes": "Pallet 25 — 1.2米\n1.5米 — 154*104*70",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 778,
+                    "net_weight": 756,
+                    "volume": 0.88,
+                    "contents": [
+                        {
+                            "description": "2.2m Olympic bearing bar",
+                            "pieces": 36
+                        }
+                    ],
+                    "notes": "Pallet 26 — 2.2米 — 223×97×41",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 778,
+                    "net_weight": 756,
+                    "volume": 1.02,
+                    "contents": [
+                        {
+                            "description": "2.2m Olympic bearing bar",
+                            "pieces": 36
+                        }
+                    ],
+                    "notes": "Pallet 27 — 2.2米 — 223*97*47",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 358,
+                    "net_weight": 336,
+                    "volume": 0.93,
+                    "contents": [
+                        {
+                            "description": "Vertical Dumbbell Rack",
+                            "pieces": 24
+                        }
+                    ],
+                    "notes": "Pallet 28 — 10A — 154*104*58",
+                    "supplier": "YANGRUN"
+                }
+            ]
+        },
+        {
+            "label": "CONT-002",
+            "container_number": "CSGU6781365",
+            "type": "40HQ",
+            "sort_order": 2,
+            "declared": {
+                "packages": 46,
+                "gross_weight": 20740.5,
+                "volume": 53.328
+            },
+            "packages": [
+                {
+                    "type": "carton",
+                    "gross_weight": 170,
+                    "net_weight": 140,
+                    "volume": 1.038,
+                    "contents": [
+                        {
+                            "description": "Fitness equipment - esteira/treadmill",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "SHENGQI"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97,
+                    "net_weight": 76,
+                    "volume": 1.01,
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97,
+                    "net_weight": 76,
+                    "volume": 1.01,
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97,
+                    "net_weight": 76,
+                    "volume": 1.01,
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97,
+                    "net_weight": 76,
+                    "volume": 1.01,
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97,
+                    "net_weight": 76,
+                    "volume": 1.01,
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97,
+                    "net_weight": 76,
+                    "volume": 1.01,
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97,
+                    "net_weight": 76,
+                    "volume": 1.01,
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97,
+                    "net_weight": 76,
+                    "volume": 1.01,
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97,
+                    "net_weight": 76,
+                    "volume": 1.01,
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97,
+                    "net_weight": 76,
+                    "volume": 1.01,
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97,
+                    "net_weight": 76,
+                    "volume": 1.01,
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97,
+                    "net_weight": 76,
+                    "volume": 1.01,
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97,
+                    "net_weight": 76,
+                    "volume": 1.01,
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97,
+                    "net_weight": 76,
+                    "volume": 1.01,
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97,
+                    "net_weight": 76,
+                    "volume": 1.01,
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97,
+                    "net_weight": 76,
+                    "volume": 1.01,
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174,
+                    "net_weight": 137,
+                    "volume": 1.4,
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174,
+                    "net_weight": 137,
+                    "volume": 1.4,
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174,
+                    "net_weight": 137,
+                    "volume": 1.4,
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174,
+                    "net_weight": 137,
+                    "volume": 1.4,
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174,
+                    "net_weight": 137,
+                    "volume": 1.4,
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174,
+                    "net_weight": 137,
+                    "volume": 1.4,
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174,
+                    "net_weight": 137,
+                    "volume": 1.4,
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174,
+                    "net_weight": 137,
+                    "volume": 1.4,
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174,
+                    "net_weight": 137,
+                    "volume": 1.4,
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174,
+                    "net_weight": 137,
+                    "volume": 1.4,
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174,
+                    "net_weight": 137,
+                    "volume": 1.4,
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174,
+                    "net_weight": 137,
+                    "volume": 1.4,
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174,
+                    "net_weight": 137,
+                    "volume": 1.4,
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174,
+                    "net_weight": 137,
+                    "volume": 1.4,
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174,
+                    "net_weight": 137,
+                    "volume": 1.4,
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174,
+                    "net_weight": 137,
+                    "volume": 1.4,
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1298.6,
+                    "net_weight": 1240,
+                    "volume": 0.79,
+                    "contents": [
+                        {
+                            "description": "Weight plate 10kg",
+                            "pieces": 120
+                        },
+                        {
+                            "description": "Weight plate 20kg",
+                            "pieces": 2
+                        }
+                    ],
+                    "notes": "Pallet 1 — 10kg-120片-60件\n20kg-2片-2件 — 114*101*69",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1362.2,
+                    "net_weight": 1300,
+                    "volume": 0.84,
+                    "contents": [
+                        {
+                            "description": "Weight plate 10kg",
+                            "pieces": 120
+                        },
+                        {
+                            "description": "Weight plate 20kg",
+                            "pieces": 2
+                        },
+                        {
+                            "description": "Weight plate 5kg",
+                            "pieces": 12
+                        }
+                    ],
+                    "notes": "Pallet 3 — 10kg-120片-60件\n20kg-2片-2件\n5kg-12片-3件 — 117*103*70",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1298.6,
+                    "net_weight": 1240,
+                    "volume": 0.79,
+                    "contents": [
+                        {
+                            "description": "Weight plate 10kg",
+                            "pieces": 120
+                        },
+                        {
+                            "description": "Weight plate 20kg",
+                            "pieces": 2
+                        }
+                    ],
+                    "notes": "Pallet 4 — 10kg-120片-60件\n20kg-2片-2件 — 114*101*69",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1240,
+                    "net_weight": 1200,
+                    "volume": 0.72,
+                    "contents": [
+                        {
+                            "description": "Weight plate 20kg",
+                            "pieces": 60
+                        }
+                    ],
+                    "notes": "Pallet 5 — 20kg-60片-60件 — 112*104*62",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1639,
+                    "net_weight": 1500,
+                    "volume": 1.05,
+                    "contents": [
+                        {
+                            "description": "Weight plate 5kg",
+                            "pieces": 192
+                        },
+                        {
+                            "description": "Weight plate 2.5kg",
+                            "pieces": 192
+                        },
+                        {
+                            "description": "Weight plate 10kg",
+                            "pieces": 6
+                        }
+                    ],
+                    "notes": "Pallet 9 — 5kg-192片-48件\n2.5kg-192片-19件\n10kg-6片-3件 — 114*103*89",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 744.4,
+                    "net_weight": 682,
+                    "volume": 0.82,
+                    "contents": [
+                        {
+                            "description": "Dumbbell 1kg",
+                            "pieces": 48
+                        },
+                        {
+                            "description": "Dumbbell 2kg",
+                            "pieces": 48
+                        },
+                        {
+                            "description": "Dumbbell 3kg",
+                            "pieces": 44
+                        },
+                        {
+                            "description": "Dumbbell 5kg",
+                            "pieces": 14
+                        },
+                        {
+                            "description": "Dumbbell 7kg",
+                            "pieces": 48
+                        }
+                    ],
+                    "notes": "Pallet 12 — 1kg-48支-5件\n2kg-48支-5件\n3kg-44支-22件\n5kg-14支-7件\n7kg-48kg-24件 — 114*100*72",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1157.2,
+                    "net_weight": 1094,
+                    "volume": 1.07,
+                    "contents": [
+                        {
+                            "description": "Dumbbell 9kg",
+                            "pieces": 48
+                        },
+                        {
+                            "description": "Dumbbell 10kg",
+                            "pieces": 48
+                        },
+                        {
+                            "description": "Dumbbell 5kg",
+                            "pieces": 34
+                        },
+                        {
+                            "description": "Dumbbell 3kg",
+                            "pieces": 4
+                        }
+                    ],
+                    "notes": "Pallet 13 — 9kg-48支-24件\n10kg-48支-24件\n5kg-34支-17件\n3kg-4支-2件 — 114*101*93",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1222.3,
+                    "net_weight": 1177.5,
+                    "volume": 1.12,
+                    "contents": [
+                        {
+                            "description": "Dumbbell 12.5kg",
+                            "pieces": 48
+                        },
+                        {
+                            "description": "Dumbbell 22.5kg",
+                            "pieces": 18
+                        },
+                        {
+                            "description": "Dumbbell 17.5kg",
+                            "pieces": 9
+                        },
+                        {
+                            "description": "Dumbbell 15kg",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": "Pallet 15 — 12.5kg-48支-24件\n22.5kg-18支-18件\n17.5kg-9支-9件\n15kg-1支-1件 — 115*100*97",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1222.2,
+                    "net_weight": 1182.5,
+                    "volume": 0.71,
+                    "contents": [
+                        {
+                            "description": "Dumbbell 22.5kg",
+                            "pieces": 30
+                        },
+                        {
+                            "description": "Dumbbell 17.5kg",
+                            "pieces": 29
+                        }
+                    ],
+                    "notes": "Pallet 16 — 22.5kg-30支\n17.5kg-29支 — 111*103*62",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1457.6,
+                    "net_weight": 1420,
+                    "volume": 1.05,
+                    "contents": [
+                        {
+                            "description": "Dumbbell 27.5kg",
+                            "pieces": 48
+                        },
+                        {
+                            "description": "Dumbbell 25kg",
+                            "pieces": 4
+                        }
+                    ],
+                    "notes": "Pallet 19 — 27.5kg-48支\n25kg-4支 — 114*103*89",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1476.4,
+                    "net_weight": 1440,
+                    "volume": 1.12,
+                    "contents": [
+                        {
+                            "description": "Dumbbell 30kg",
+                            "pieces": 48
+                        }
+                    ],
+                    "notes": "Pallet 23 — 30kg-48支 — 114*101*97",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1554,
+                    "net_weight": 1520,
+                    "volume": 1.02,
+                    "contents": [
+                        {
+                            "description": "Dumbbell 35kg",
+                            "pieces": 8
+                        },
+                        {
+                            "description": "Dumbbell 40kg",
+                            "pieces": 16
+                        },
+                        {
+                            "description": "Dumbbell 37.5kg",
+                            "pieces": 16
+                        }
+                    ],
+                    "notes": "Pallet 24 — 35kg-8支\n40kg-16支\n37.5kg-16支 — 111*103*89",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 562,
+                    "net_weight": 540,
+                    "volume": 2.63,
+                    "contents": [
+                        {
+                            "description": "Dumbell Rack",
+                            "pieces": 12
+                        }
+                    ],
+                    "notes": "Pallet 29 — 两层十副 — 217*100*121",
+                    "supplier": "YANGRUN"
+                }
+            ]
+        },
+        {
+            "label": "CONT-003",
+            "container_number": "TGBU9217590",
+            "type": "40HQ",
+            "sort_order": 3,
+            "declared": {
+                "packages": 43,
+                "gross_weight": 20080.9,
+                "volume": 62.304
+            },
+            "packages": [
+                {
+                    "type": "carton",
+                    "gross_weight": 170,
+                    "net_weight": 140,
+                    "volume": 1.0053,
+                    "contents": [
+                        {
+                            "description": "Fitness equipment - esteira/treadmill",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "SHENGQI"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 170,
+                    "net_weight": 140,
+                    "volume": 1.0053,
+                    "contents": [
+                        {
+                            "description": "Fitness equipment - esteira/treadmill",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "SHENGQI"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 170,
+                    "net_weight": 140,
+                    "volume": 1.0053,
+                    "contents": [
+                        {
+                            "description": "Fitness equipment - esteira/treadmill",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "SHENGQI"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 240,
+                    "net_weight": 190,
+                    "volume": 1.6562,
+                    "contents": [
+                        {
+                            "model": "SQ-X13",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null,
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 402,
+                    "net_weight": 372,
+                    "volume": 1.6845,
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 6
+                        }
+                    ],
+                    "notes": "Pallet de compensado com 6 peça(s)",
+                    "supplier": "XUYU"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1240,
+                    "net_weight": 1200,
+                    "volume": 0.72,
+                    "contents": [
+                        {
+                            "description": "Weight plate 20kg",
+                            "pieces": 60
+                        }
+                    ],
+                    "notes": "Pallet 2 — 20kg-60片-60件 — 112*104*62",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1270,
+                    "net_weight": 1200,
+                    "volume": 0.79,
+                    "contents": [
+                        {
+                            "description": "Weight plate 10kg",
+                            "pieces": 94
+                        },
+                        {
+                            "description": "Weight plate 5kg",
+                            "pieces": 24
+                        },
+                        {
+                            "description": "Weight plate 2.5kg",
+                            "pieces": 40
+                        },
+                        {
+                            "description": "Weight plate 20kg",
+                            "pieces": 2
+                        }
+                    ],
+                    "notes": "Pallet 8 — 10kg-94片-47件\n5kg-24片-6件\n2.5kg-40片-4件\n20kg-2片-2件 — 114*101*69",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1298.6,
+                    "net_weight": 1240,
+                    "volume": 0.79,
+                    "contents": [
+                        {
+                            "description": "Weight plate 10kg",
+                            "pieces": 120
+                        },
+                        {
+                            "description": "Weight plate 20kg",
+                            "pieces": 2
+                        }
+                    ],
+                    "notes": "Pallet 10 — 10kg-120片-60件\n20kg-2片-2件 — 114*101*69",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1082.4,
+                    "net_weight": 1040,
+                    "volume": 0.67,
+                    "contents": [
+                        {
+                            "description": "Weight plate 20kg",
+                            "pieces": 48
+                        },
+                        {
+                            "description": "Weight plate 5kg",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Weight plate 2.5kg",
+                            "pieces": 8
+                        }
+                    ],
+                    "notes": "Pallet 11 — 20kg-48片-48件\n5kg-12片-3件\n2.5kg-8片-1件 — 111*101*60",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 914.8,
+                    "net_weight": 864,
+                    "volume": 0.98,
+                    "contents": [
+                        {
+                            "description": "Dumbbell 8kg",
+                            "pieces": 48
+                        },
+                        {
+                            "description": "Dumbbell 6kg",
+                            "pieces": 48
+                        },
+                        {
+                            "description": "Dumbbell 4kg",
+                            "pieces": 48
+                        }
+                    ],
+                    "notes": "Pallet 14 — 8kg-48支-24件\n6kg-48支-24件\n4kg-48支-24件 — 115*100*85",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 903.8,
+                    "net_weight": 865,
+                    "volume": 0.94,
+                    "contents": [
+                        {
+                            "description": "Dumbbell 15kg",
+                            "pieces": 46
+                        },
+                        {
+                            "description": "Dumbbell 17.5kg",
+                            "pieces": 10
+                        }
+                    ],
+                    "notes": "Pallet 17 — 15kg-46支-46件\n17.5kg-10支-10件 — 114*101*82",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1135.2,
+                    "net_weight": 1100,
+                    "volume": 0.82,
+                    "contents": [
+                        {
+                            "description": "Dumbbell 25kg",
+                            "pieces": 44
+                        }
+                    ],
+                    "notes": "Pallet 18 — 25kg-44支 — 114*104*69",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1596.4,
+                    "net_weight": 1560,
+                    "volume": 1.02,
+                    "contents": [
+                        {
+                            "description": "Dumbbell 32.5kg",
+                            "pieces": 48
+                        }
+                    ],
+                    "notes": "Pallet 20 — 32.5kg-48支 — 111*103*89",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1449.3,
+                    "net_weight": 1415,
+                    "volume": 1.02,
+                    "contents": [
+                        {
+                            "description": "Dumbbell 35kg",
+                            "pieces": 40
+                        },
+                        {
+                            "description": "Dumbbell 15kg",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": "Pallet 21 — 35kg-40支\n15kg-1支 — 111*103*89",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 996.4,
+                    "net_weight": 960,
+                    "volume": 0.85,
+                    "contents": [
+                        {
+                            "description": "Dumbbell 20kg",
+                            "pieces": 48
+                        }
+                    ],
+                    "notes": "Pallet 22 — 20kg-48支 — 114*101*74",
+                    "supplier": "YANGRUN"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 562,
+                    "net_weight": 540,
+                    "volume": 2.63,
+                    "contents": [
+                        {
+                            "description": "Dumbell Rack",
+                            "pieces": 12
+                        }
+                    ],
+                    "notes": "Pallet 30 — 两层十副 — 217*100*121",
+                    "supplier": "YANGRUN"
+                }
+            ]
+        }
+    ]
+}
