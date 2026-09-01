@@ -838,6 +838,7 @@ return [
         'bank_fee_from_payment' => '由付款 :reference 录入',
         'hide_service_fee' => '勾选后，PDF 中不显示服务费行。',
         'client_ncm' => '该客户进口此产品所用的税则分类，显示在商业发票上。4 至 8 位数字。',
+        'only_pis_with_items_left_to_ship' => '仅显示仍有待发货项目的形式发票。',
         'import_modality_affects_ci_and_packing_list' => '进口方式会影响商业发票和装箱单。',
         'internal_expense' => '当出差为公司内部费用（无关联客户/供应商）时勾选。',
         'indicative_rate' => '指示性汇率 — 可修改。',

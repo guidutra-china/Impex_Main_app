@@ -182,6 +182,46 @@ class ItemsRelationManager extends RelationManager
     }
 
     /**
+     * PIs oferecidas no "Import from PI".
+     *
+     * Só entram as que têm algo para importar: pelo menos um item com PO
+     * vinculada e — quando o modo "somente quantidades restantes" está ativo —
+     * com saldo a embarcar. Sem isso a lista trazia todas as PIs do cliente,
+     * inclusive as já embarcadas por inteiro.
+     *
+     * @return array<int, string>
+     */
+    protected static function piPickerOptions(int $companyId, bool $onlyRemaining): array
+    {
+        // Subquery da quantidade já embarcada, montada pelo próprio scope
+        // countsAsShipped() — replicar a lista de status aqui deixaria os dois
+        // lugares livres para divergir na próxima mudança de status.
+        $shipped = ShipmentItem::query()
+            ->selectRaw('coalesce(sum(shipment_items.quantity), 0)')
+            ->whereColumn('shipment_items.proforma_invoice_item_id', 'proforma_invoice_items.id')
+            ->whereHas('shipment', fn ($query) => $query->countsAsShipped());
+
+        return ProformaInvoice::where('company_id', $companyId)
+            ->whereNotIn('status', ['draft', 'cancelled'])
+            ->whereHas('items', function ($query) use ($onlyRemaining, $shipped) {
+                $query->whereHas('purchaseOrderItem');
+
+                if ($onlyRemaining) {
+                    $query->whereRaw(
+                        'proforma_invoice_items.quantity > ('.$shipped->toSql().')',
+                        $shipped->getBindings(),
+                    );
+                }
+            })
+            ->orderByDesc('id')
+            ->get()
+            ->mapWithKeys(fn ($pi) => [
+                $pi->id => $pi->reference.($pi->client_reference ? ' — '.$pi->client_reference : ''),
+            ])
+            ->all();
+    }
+
+    /**
      * Itens da PI oferecidos no "Import from PI".
      *
      * Com "somente quantidades restantes" marcado, itens já totalmente
@@ -363,27 +403,26 @@ class ItemsRelationManager extends RelationManager
                     ->color('warning')
                     ->form(function () {
                         $companyId = $this->getOwnerRecord()->company_id;
-                        $piOptions = ProformaInvoice::where('company_id', $companyId)
-                            ->whereNotIn('status', ['draft', 'cancelled'])
-                            ->orderByDesc('id')
-                            ->get()
-                            ->mapWithKeys(fn ($pi) => [
-                                $pi->id => $pi->reference.($pi->client_reference ? ' — '.$pi->client_reference : ''),
-                            ]);
 
                         return [
-                            Select::make('proforma_invoice_id')
-                                ->label(__('forms.labels.proforma_invoice'))
-                                ->options($piOptions)
-                                ->searchable()
-                                ->required()
-                                ->live(),
-
-                            // Antes da lista: é ela que decide quais itens
-                            // aparecem, então o usuário escolhe o modo primeiro.
+                            // Primeiro de todos: este modo filtra tanto a lista
+                            // de PIs quanto a de itens.
                             Checkbox::make('only_remaining')
                                 ->label(__('forms.labels.only_import_remaining_quantities_exclude_already_shipped'))
                                 ->default(true)
+                                ->live(),
+
+                            Select::make('proforma_invoice_id')
+                                ->label(__('forms.labels.proforma_invoice'))
+                                ->options(fn (Get $get) => static::piPickerOptions(
+                                    $companyId,
+                                    $get('only_remaining') ?? true,
+                                ))
+                                ->helperText(fn (Get $get) => ($get('only_remaining') ?? true)
+                                    ? __('forms.helpers.only_pis_with_items_left_to_ship')
+                                    : null)
+                                ->searchable()
+                                ->required()
                                 ->live(),
 
                             \Filament\Forms\Components\CheckboxList::make('pi_item_ids')

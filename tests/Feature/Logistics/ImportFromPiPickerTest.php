@@ -137,6 +137,47 @@ class ImportFromPiPickerTest extends TestCase
         $this->assertStringContainsString('Remaining: 6', $options[$items['partial']->id]);
     }
 
+    public function test_pi_list_only_shows_invoices_with_something_left_to_ship(): void
+    {
+        [$open, $client] = $this->makePi('PI-OPEN', shipQty: 0);
+        [$fullyShipped] = $this->makePi('PI-DONE', shipQty: 10, client: $client);
+        [$partial] = $this->makePi('PI-PART', shipQty: 4, client: $client);
+        // PI sem PO vinculada: nada nela é importável, mesmo com saldo.
+        [$noPo] = $this->makePi('PI-NOPO', shipQty: 0, client: $client, withPo: false);
+
+        $options = new \ReflectionMethod(ItemsRelationManager::class, 'piPickerOptions');
+
+        $onlyRemaining = $options->invoke(null, $client->id, true);
+
+        $this->assertArrayHasKey($open->id, $onlyRemaining);
+        $this->assertArrayHasKey($partial->id, $onlyRemaining, 'PI parcialmente embarcada ainda tem saldo');
+        $this->assertArrayNotHasKey($fullyShipped->id, $onlyRemaining);
+        $this->assertArrayNotHasKey($noPo->id, $onlyRemaining, 'sem PO vinculada não há o que importar');
+
+        // Desmarcado, a totalmente embarcada volta (caso de reembarque), mas a
+        // sem PO continua fora.
+        $all = $options->invoke(null, $client->id, false);
+
+        $this->assertArrayHasKey($fullyShipped->id, $all);
+        $this->assertArrayNotHasKey($noPo->id, $all);
+    }
+
+    public function test_pi_list_ignores_draft_and_cancelled_and_other_clients(): void
+    {
+        [$valid, $client] = $this->makePi('PI-VALID', shipQty: 0);
+        [$draft] = $this->makePi('PI-DRAFT', shipQty: 0, client: $client, status: 'draft');
+        [$cancelled] = $this->makePi('PI-CANC', shipQty: 0, client: $client, status: 'cancelled');
+        [$otherClient] = $this->makePi('PI-OTHER', shipQty: 0);
+
+        $options = (new \ReflectionMethod(ItemsRelationManager::class, 'piPickerOptions'))
+            ->invoke(null, $client->id, true);
+
+        $this->assertArrayHasKey($valid->id, $options);
+        $this->assertArrayNotHasKey($draft->id, $options);
+        $this->assertArrayNotHasKey($cancelled->id, $options);
+        $this->assertArrayNotHasKey($otherClient->id, $options);
+    }
+
     public function test_label_shows_the_remaining_quantity_it_receives(): void
     {
         $item = new ProformaInvoiceItem([
@@ -240,5 +281,78 @@ class ImportFromPiPickerTest extends TestCase
         }
 
         return [$pi, $items, $shipped];
+    }
+
+    /**
+     * PI com um item (opcionalmente com PO vinculada) e, quando shipQty > 0,
+     * um embarque que já consumiu essa quantidade.
+     *
+     * @return array{0: ProformaInvoice, 1: Company}
+     */
+    private function makePi(
+        string $prefix,
+        int $shipQty,
+        ?Company $client = null,
+        bool $withPo = true,
+        string $status = 'confirmed',
+    ): array {
+        $client ??= Company::factory()->create();
+
+        $inquiry = Inquiry::create([
+            'reference' => $prefix.'-INQ-'.uniqid(),
+            'company_id' => $client->id,
+            'status' => 'received',
+            'source' => 'email',
+            'currency_code' => 'USD',
+        ]);
+
+        $pi = ProformaInvoice::create([
+            'reference' => $prefix.'-'.uniqid(),
+            'inquiry_id' => $inquiry->id,
+            'company_id' => $client->id,
+            'currency_code' => 'USD',
+            'issue_date' => '2026-08-01',
+            'status' => $status,
+        ]);
+
+        $piItem = ProformaInvoiceItem::create([
+            'proforma_invoice_id' => $pi->id,
+            'product_id' => Product::factory()->create()->id,
+            'description' => 'Item',
+            'quantity' => 10,
+            'unit_price' => 100000,
+            'unit' => 'pcs',
+            'sort_order' => 0,
+        ]);
+
+        if ($withPo) {
+            $po = PurchaseOrder::factory()->create(['proforma_invoice_id' => $pi->id]);
+            PurchaseOrderItem::create([
+                'purchase_order_id' => $po->id,
+                'product_id' => $piItem->product_id,
+                'proforma_invoice_item_id' => $piItem->id,
+                'quantity' => 10,
+                'unit_cost' => 50000,
+                'sort_order' => 1,
+            ]);
+        }
+
+        if ($shipQty > 0) {
+            $shipment = Shipment::factory()->create([
+                'company_id' => $client->id,
+                'currency_code' => 'USD',
+                'status' => 'in_transit',
+            ]);
+
+            ShipmentItem::create([
+                'shipment_id' => $shipment->id,
+                'proforma_invoice_item_id' => $piItem->id,
+                'quantity' => $shipQty,
+                'unit' => 'pcs',
+                'sort_order' => 0,
+            ]);
+        }
+
+        return [$pi, $client];
     }
 }

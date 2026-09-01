@@ -875,6 +875,7 @@ return [
         'bank_fee_from_payment' => 'Lançada pelo pagamento :reference',
         'hide_service_fee' => 'Se marcado, a linha de Taxa de Serviço não aparece no PDF.',
         'client_ncm' => 'Classificação fiscal que este cliente usa para importar o produto. Aparece na Commercial Invoice. De 4 a 8 dígitos.',
+        'only_pis_with_items_left_to_ship' => 'Só aparecem as Proforma Invoices com itens ainda a embarcar.',
         'import_modality_affects_ci_and_packing_list' => 'A modalidade de importação afeta a Commercial Invoice e o Packing List.',
         'internal_expense' => 'Marque quando a viagem for despesa interna da empresa (sem cliente/fornecedor vinculado).',
         'indicative_rate' => 'Taxa indicativa — pode ser alterada.',
