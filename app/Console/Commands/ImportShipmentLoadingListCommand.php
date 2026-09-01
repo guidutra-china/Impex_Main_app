@@ -213,7 +213,11 @@ class ImportShipmentLoadingListCommand extends Command
                     'volume' => $package['volume'] ?? null,
                     'notes' => $package['notes'] ?? null,
                     'contents' => array_map(
-                        fn (array $c) => ['ref' => $this->contentRef($c), 'pieces' => (int) ($c['pieces'] ?? 1)],
+                        fn (array $c) => [
+                            'ref' => $this->contentRef($c),
+                            'pieces' => (int) ($c['pieces'] ?? 1),
+                            'part' => $c['part'] ?? null,
+                        ],
                         $package['contents'] ?? [],
                     ),
                 ];
@@ -228,7 +232,7 @@ class ImportShipmentLoadingListCommand extends Command
                         'net_weight' => $line['unit_net_weight'] ?? null,
                         'volume' => $line['unit_volume'] ?? null,
                         'notes' => $line['notes'] ?? null,
-                        'contents' => [['ref' => $this->contentRef($line), 'pieces' => 1]],
+                        'contents' => [['ref' => $this->contentRef($line), 'pieces' => 1, 'part' => null]],
                     ];
                 }
             }
@@ -318,6 +322,12 @@ class ImportShipmentLoadingListCommand extends Command
                     $loaded[$key]['pieces'] = ($loaded[$key]['pieces'] ?? 0) + $content['pieces'];
                     $loaded[$key]['mixed'] = ($loaded[$key]['mixed'] ?? false) || ! $single;
 
+                    if ($content['part'] !== null) {
+                        $loaded[$key]['parts'][$content['part']] = ($loaded[$key]['parts'][$content['part']] ?? 0) + $content['pieces'];
+                    } else {
+                        $loaded[$key]['unnamed'] = ($loaded[$key]['unnamed'] ?? 0) + $content['pieces'];
+                    }
+
                     if ($single) {
                         $loaded[$key]['gross'] = ($loaded[$key]['gross'] ?? 0.0) + (float) $package['gross_weight'];
                         $loaded[$key]['net'] = ($loaded[$key]['net'] ?? 0.0) + (float) $package['net_weight'];
@@ -388,6 +398,12 @@ class ImportShipmentLoadingListCommand extends Command
                 continue;
             }
 
+            if ($error = $this->partsError($label, $totals, $slots)) {
+                $errors[] = $error;
+
+                continue;
+            }
+
             foreach ($slots as $slot) {
                 $seen[$slot['item']->id] = true;
             }
@@ -410,6 +426,48 @@ class ImportShipmentLoadingListCommand extends Command
         }
 
         return ['items' => $plan];
+    }
+
+    /**
+     * Confere as partes que o arquivo nomeia explicitamente.
+     *
+     * Quando o fornecedor diz qual caixa é qual parte — a caixa M é o corpo, a Z
+     * são os acessórios — o arquivo declara `part` no conteúdo e o rótulo vai
+     * como veio. Nesse caso todos os volumes daquela referência têm de nomear a
+     * parte, e cada parte tem de fechar a quantidade do item; senão o rótulo
+     * sairia certo em uns volumes e chutado em outros.
+     */
+    private function partsError(string $label, array $totals, array $slots): ?string
+    {
+        $named = $totals['parts'] ?? [];
+
+        if ($named === []) {
+            return null;
+        }
+
+        $parts = $slots[0]['parts'];
+
+        if ($parts === [null]) {
+            return "{$label}: o arquivo nomeia partes, mas o item não está dividido em multi-box.";
+        }
+
+        if (($totals['unnamed'] ?? 0) > 0) {
+            return "{$label}: {$totals['unnamed']} peça(s) sem `part` declarada, mas o resto do modelo declara.";
+        }
+
+        if ($unknown = array_diff(array_keys($named), $parts)) {
+            return "{$label}: parte(s) desconhecida(s) ".implode(', ', $unknown).'; o item tem '.implode(', ', $parts).'.';
+        }
+
+        $quantity = array_sum(array_map(fn (array $s) => (int) $s['item']->quantity, $slots));
+
+        foreach ($parts as $part) {
+            if (($named[$part] ?? 0) !== $quantity) {
+                return sprintf('%s: parte "%s" tem %d peça(s) no arquivo, mas o item soma %d.', $label, $part, $named[$part] ?? 0, $quantity);
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -463,13 +521,14 @@ class ImportShipmentLoadingListCommand extends Command
                 ->whereRaw('UPPER(container_number) = ?', [$number])
                 ->first() ?? new ShipmentContainer(['shipment_id' => $shipment->id]);
 
-            $model->fill([
+            $model->fill(array_filter([
                 'shipment_id' => $shipment->id,
                 'label' => $container['label'],
                 'container_number' => $number,
                 'type' => $container['type'] ?? null,
+                'seal_number' => $container['seal_number'] ?? null,
                 'sort_order' => (int) $container['sort_order'],
-            ])->save();
+            ], fn ($v) => $v !== null))->save();
 
             $synced[$number] = $model;
         }
@@ -568,7 +627,7 @@ class ImportShipmentLoadingListCommand extends Command
 
                         $take = min($left, $available);
                         $left -= $take;
-                        $part = $this->nextPart($slot, $take);
+                        $part = $this->nextPart($slot, $take, $content['part']);
 
                         CartonContent::create([
                             'carton_id' => $carton->id,
@@ -595,7 +654,7 @@ class ImportShipmentLoadingListCommand extends Command
      * intercala os volumes dentro de cada contêiner (corpo e acessórios viajam
      * juntos) e fecha exatamente a contagem de cada parte no fim.
      */
-    private function nextPart(array &$slot, int $pieces): ?string
+    private function nextPart(array &$slot, int $pieces, ?string $declared = null): ?string
     {
         if ($slot['parts'] === [null]) {
             $slot['remaining'][null] -= $pieces;
@@ -603,7 +662,7 @@ class ImportShipmentLoadingListCommand extends Command
             return null;
         }
 
-        $part = array_keys($slot['remaining'], max($slot['remaining']), true)[0];
+        $part = $declared ?? array_keys($slot['remaining'], max($slot['remaining']), true)[0];
         $slot['remaining'][$part] -= $pieces;
 
         return $part;

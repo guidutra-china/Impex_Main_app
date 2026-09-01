@@ -163,7 +163,9 @@ class ImportShipmentLoadingListCommandTest extends TestCase
                     'net_weight' => $nw,
                     'volume' => $cbm,
                     'contents' => array_map(
-                        fn (array $c) => (str_contains($c[0], ' ') ? ['description' => $c[0]] : ['model' => $c[0]]) + ['pieces' => $c[1]],
+                        fn (array $c) => (str_contains($c[0], ' ') ? ['description' => $c[0]] : ['model' => $c[0]])
+                            + ['pieces' => $c[1]]
+                            + (isset($c[2]) ? ['part' => $c[2]] : []),
                         $contents,
                     ),
                 ];
@@ -206,6 +208,58 @@ class ImportShipmentLoadingListCommandTest extends TestCase
             'quantity' => $quantity,
             'sort_order' => 99,
         ]);
+    }
+
+    public function test_uses_the_part_named_in_the_file_instead_of_alternating(): void
+    {
+        [$shipment, $items] = $this->makeShipment([
+            'JG-9800A' => ['qty' => 3, 'parts' => ['Part 1', 'Part 2']],
+        ]);
+
+        // As três caixas do corpo vêm primeiro, depois as três de acessórios.
+        $packages = [];
+
+        foreach (['Part 1', 'Part 2'] as $part) {
+            for ($i = 0; $i < 3; $i++) {
+                $packages[] = ['carton', 100.0, 90.0, 1.0, [['JG-9800A', 1, $part]]];
+            }
+        }
+
+        $file = $this->makePackageFile($shipment, [['HMMU1111111', $packages]]);
+
+        $this->artisan("shipments:import-loading-list {$file} --apply")->assertSuccessful();
+
+        $labels = CartonContent::whereIn('carton_id', Carton::where('shipment_id', $shipment->id)->orderBy('sort_order')->pluck('id'))
+            ->join('cartons', 'cartons.id', '=', 'carton_contents.carton_id')
+            ->orderBy('cartons.sort_order')
+            ->pluck('carton_contents.part_label')
+            ->all();
+
+        // Sem a parte declarada o comando alternaria P1, P2, P1, P2...
+        $this->assertSame(['Part 1', 'Part 1', 'Part 1', 'Part 2', 'Part 2', 'Part 2'], $labels);
+        $this->assertSame(
+            [$items['JG-9800A']->packing_split['set_id']],
+            CartonContent::whereIn('carton_id', Carton::where('shipment_id', $shipment->id)->pluck('id'))
+                ->pluck('multi_box_set_id')->unique()->values()->all(),
+        );
+    }
+
+    public function test_aborts_when_a_named_part_does_not_fill_the_item(): void
+    {
+        [$shipment] = $this->makeShipment([
+            'JG-9800A' => ['qty' => 2, 'parts' => ['Part 1', 'Part 2']],
+        ]);
+
+        // 4 volumes, mas 3 marcados como Part 1 e só 1 como Part 2.
+        $file = $this->makePackageFile($shipment, [['HMMU1111111', [
+            ['carton', 100.0, 90.0, 1.0, [['JG-9800A', 1, 'Part 1']]],
+            ['carton', 100.0, 90.0, 1.0, [['JG-9800A', 1, 'Part 1']]],
+            ['carton', 100.0, 90.0, 1.0, [['JG-9800A', 1, 'Part 1']]],
+            ['carton', 100.0, 90.0, 1.0, [['JG-9800A', 1, 'Part 2']]],
+        ]]]);
+
+        $this->artisan("shipments:import-loading-list {$file} --apply")->assertFailed();
+        $this->assertSame(0, Carton::where('shipment_id', $shipment->id)->count());
     }
 
     public function test_spreads_one_model_across_the_several_shipment_items_that_carry_it(): void

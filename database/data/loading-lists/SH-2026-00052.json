@@ -1,0 +1,1049 @@
+{
+    "shipment": "SH-2026-00052",
+    "source": "（JG ） JGYAN-20260728PL(2).xls — aba TOTAL",
+    "notes": [
+        "O cabeçalho do packing list da JG cita o contêiner UETU5422150; o BL e o embarque usam KOCU4015896.",
+        "M01-M36 é o corpo da esteira e Z01-Z36 os acessórios — as duas partes do multi-box do item.",
+        "A planilha dá peso e cubagem do conjunto M+Z, não de cada caixa; os 72 volumes dividem igualmente."
+    ],
+    "containers": [
+        {
+            "label": "CONT-001",
+            "container_number": "KOCU4015896",
+            "type": "40HQ",
+            "seal_number": "26H0287299",
+            "sort_order": 1,
+            "declared": {
+                "packages": 74,
+                "gross_weight": 9066,
+                "volume": 65
+            },
+            "packages": [
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M01"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M02"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M03"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M04"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M05"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M06"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M07"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M08"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M09"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M10"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M11"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M12"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M13"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M14"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M15"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M16"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M17"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M18"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M19"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M20"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M21"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M22"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M23"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M24"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M25"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M26"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M27"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M28"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M29"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M30"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M31"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M32"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M33"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M34"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M35"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 1"
+                        }
+                    ],
+                    "notes": "M36"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z01"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z02"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z03"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z04"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z05"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z06"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z07"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z08"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z09"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z10"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z11"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z12"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z13"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z14"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z15"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z16"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z17"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z18"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z19"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z20"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z21"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z22"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z23"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z24"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z25"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z26"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z27"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z28"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z29"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z30"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z31"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z32"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z33"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z34"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902778,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z35"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 125.5,
+                    "net_weight": 100,
+                    "volume": 0.902762,
+                    "contents": [
+                        {
+                            "description": "Treadmill JG-9800A — LED Screen Treadmil (taiwan inverter)",
+                            "pieces": 1,
+                            "part": "Part 2"
+                        }
+                    ],
+                    "notes": "Z36"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 20,
+                    "net_weight": 19,
+                    "volume": 0,
+                    "contents": [],
+                    "notes": "Z37 — volume avulso do packing list, sem linha na proforma"
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 10,
+                    "net_weight": 9,
+                    "volume": 0,
+                    "contents": [],
+                    "notes": "B01 — volume avulso do packing list, sem linha na proforma"
+                }
+            ]
+        }
+    ]
+}
