@@ -150,6 +150,11 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
      * então as caixas em cima dele não repetem esses três — é assim que as
      * colunas voltam a somar exatamente o GRAND TOTAL.
      *
+     * Exceção: pallet com UMA caixa. Aí a caixa é só o conteúdo do pallet, e
+     * as duas viram uma linha — o produto com o rótulo, o peso e o cubo do
+     * pallet. É o caso de toda carga que chega paletizada do fornecedor
+     * (placas, halteres, máquina em estrado de compensado).
+     *
      * @param  Collection<int, Carton>  $cartons
      */
     private function buildLinesFromCartons(Collection $cartons): array
@@ -161,6 +166,19 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
         $blocks = $this->buildSortableBlocks($loose);
 
         foreach ($palletized->groupBy('shipment_pallet_id') as $onPallet) {
+            // Pallet com uma caixa só: essa "caixa" é o conteúdo do pallet, não
+            // um volume à parte. Renderizar como duas linhas — a caixa sem peso
+            // bruto e um "Pallet · 1 box" sem produto — fazia o documento
+            // parecer ter produto sem GW e pallet sem conteúdo. Vira uma linha.
+            if ($onPallet->count() === 1) {
+                $blocks[] = [
+                    'sort_key' => (int) $onPallet->first()->sort_order,
+                    'lines' => $this->buildSinglePalletLines($onPallet->first()),
+                ];
+
+                continue;
+            }
+
             $palletLines = [];
 
             foreach ($this->sortBlocks($this->buildSortableBlocks($onPallet)) as $block) {
@@ -212,6 +230,40 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
         usort($blocks, fn ($a, $b) => $a['sort_key'] <=> $b['sort_key']);
 
         return $blocks;
+    }
+
+    /**
+     * Pallet com uma caixa só vira as linhas dessa caixa com a identidade do
+     * pallet: PKG NO é o rótulo do pallet, o bulto é 1, e peso bruto, cubo e
+     * medida são os do pallet (ou os da caixa, quando ele não tem). Líquido,
+     * produto e quantidade seguem vindo do conteúdo, como em qualquer caixa —
+     * e um segundo produto na mesma caixa continua sub-item.
+     */
+    private function buildSinglePalletLines(Carton $carton): array
+    {
+        $lines = [];
+
+        foreach ($this->buildSortableBlocks(collect([$carton])) as $block) {
+            foreach ($block['lines'] as $line) {
+                $lines[] = $line;
+            }
+        }
+
+        $pallet = $carton->pallet;
+        $gross = $pallet?->effectiveGrossWeight((float) $carton->gross_weight) ?? (float) $carton->gross_weight;
+        $volume = $pallet?->effectiveVolume((float) $carton->volume) ?? (float) $carton->volume;
+
+        $lines[0] = array_merge($lines[0], [
+            'package_no' => $pallet?->label ?? $this->resolvePalletLabel($carton) ?? $carton->label,
+            'pallet' => null,
+            'packaging_type' => 'PALLET',
+            'package_qty' => 1,
+            'gross_weight' => $gross > 0 ? number_format($gross, 2) : '',
+            'dimensions' => $this->formatPalletDimensions($pallet) ?: $this->formatCartonDimensions($carton),
+            'volume' => $volume > 0 ? number_format($volume, 2) : '',
+        ]);
+
+        return $lines;
     }
 
     /**

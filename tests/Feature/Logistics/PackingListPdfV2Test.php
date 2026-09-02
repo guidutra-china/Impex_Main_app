@@ -391,6 +391,64 @@ class PackingListPdfV2Test extends TestCase
         $this->assertEquals(30, $data['totals']['total_equipment_qty']);
     }
 
+    public function test_a_pallet_with_a_single_box_is_one_line_carrying_product_and_weight(): void
+    {
+        [$shipment, $items] = $this->makeShipmentWithItems(['plates 10kg' => 120, 'plates 20kg' => 2]);
+
+        $pallet = ShipmentPallet::create([
+            'shipment_id' => $shipment->id,
+            'label' => 'PLT-006',
+            'gross_weight' => 1298.6,
+        ]);
+
+        // Uma "caixa" só no pallet: é o conteúdo do pallet, não um volume à parte.
+        $box = $this->makeCarton($shipment, 'BOX-044', [
+            'shipment_pallet_id' => $pallet->id,
+            'gross_weight' => 1298.6,
+            'net_weight' => 1240.0,
+            'volume' => 0.79,
+        ]);
+        $this->addContent($box, $items['plates 10kg']->id, 120);
+        $this->addContent($box, $items['plates 20kg']->id, 2);
+
+        $data = $this->getData($shipment);
+        $lines = collect($data['container_groups'][0]['lines']);
+
+        // Não existe mais uma linha "Pallet · 1 box" sem produto: são só as
+        // duas linhas de conteúdo.
+        $this->assertNull($lines->first(fn ($l) => str_starts_with((string) $l['product_name'], 'Pallet ·')));
+        $this->assertCount(2, $lines);
+
+        // A 1ª linha é o pallet E o produto ao mesmo tempo.
+        $first = $lines[0];
+        $this->assertSame('PLT-006', $first['package_no']);
+        $this->assertSame('PALLET', $first['packaging_type']);
+        $this->assertNull($first['pallet']);
+        $this->assertEquals(1, $first['package_qty']);
+        $this->assertEquals('1,298.60', $first['gross_weight']);
+        $this->assertEquals('0.79', $first['volume']);
+        $this->assertEquals('1,240.00', $first['net_weight']);
+        $this->assertEquals(120, $first['equipment_qty']);
+        $this->assertNotSame('', (string) $first['product_name']);
+
+        // O 2º produto da mesma caixa segue como sub-item, sem bulto/peso/cubo.
+        $second = $lines[1];
+        $this->assertTrue($second['is_sub_item']);
+        $this->assertEquals(2, $second['equipment_qty']);
+        $this->assertSame('', (string) $second['package_qty']);
+        $this->assertSame('', (string) $second['gross_weight']);
+        $this->assertSame('', (string) $second['volume']);
+
+        // E as colunas continuam fechando com o total: 1 bulto, 1.298,6 kg, 0,79 m³.
+        $this->assertEquals(1, $data['totals']['total_packages']);
+        $this->assertEqualsWithDelta(1298.6, $data['totals']['total_gross_weight'], 0.001);
+        $this->assertEqualsWithDelta(0.79, $data['totals']['total_volume'], 0.001);
+        $sum = fn (string $key) => $lines->sum(fn ($l) => (float) str_replace(',', '', (string) $l[$key]));
+        $this->assertEqualsWithDelta($data['totals']['total_gross_weight'], $sum('gross_weight'), 0.01);
+        $this->assertEqualsWithDelta($data['totals']['total_volume'], $sum('volume'), 0.01);
+        $this->assertEqualsWithDelta($data['totals']['total_packages'], $sum('package_qty'), 0.001);
+    }
+
     public function test_document_columns_add_up_to_the_grand_total(): void
     {
         [$shipment, $items] = $this->makeShipmentWithItems(['sandals' => 40]);
