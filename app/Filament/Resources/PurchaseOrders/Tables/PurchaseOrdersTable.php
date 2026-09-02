@@ -124,6 +124,15 @@ class PurchaseOrdersTable
                 TextInputColumn::make('expected_delivery_date')
                     ->label(__('forms.labels.expected_delivery'))
                     ->type('date')
+                    // O wrapper da coluna tem x-on:click.prevent.stop (para o
+                    // clique não abrir a linha) e o preventDefault cancela a
+                    // abertura do calendário nativo — só o ícone aparece e nada
+                    // acontece ao clicar. O Filament corrige isso com showPicker()
+                    // apenas para type=color (issue #15895); aqui replicamos
+                    // para date.
+                    ->extraInputAttributes([
+                        'onclick' => "if (typeof this.showPicker === 'function') { this.showPicker() }",
+                    ])
                     ->rules(['nullable', 'date'])
                     ->disabled(fn () => ! auth()->user()?->can('edit-purchase-orders'))
                     // O cast do model devolve Carbon; o input date exige Y-m-d.

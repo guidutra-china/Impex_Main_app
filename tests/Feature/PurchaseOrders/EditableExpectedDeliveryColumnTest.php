@@ -40,6 +40,23 @@ class EditableExpectedDeliveryColumnTest extends TestCase
             ->call('updateTableColumnState', 'expected_delivery_date', (string) $po->getKey(), $value);
     }
 
+    /**
+     * O wrapper da coluna faz preventDefault no clique (para não abrir a
+     * linha), e isso cancela a abertura do calendário nativo do input date:
+     * o usuário via só o ícone. O input precisa abrir o picker por conta
+     * própria (Filament só faz isso para type=color — issue #15895).
+     */
+    public function test_the_date_input_opens_the_native_picker_itself(): void
+    {
+        $this->actAsEditor();
+        PurchaseOrder::factory()->create(['expected_delivery_date' => '2026-09-01']);
+
+        Livewire::test(ListPurchaseOrders::class)
+            ->toggleAllTableColumns()
+            ->assertSeeHtml('type="date"')
+            ->assertSeeHtml('this.showPicker()');
+    }
+
     public function test_editing_the_cell_persists_the_new_date(): void
     {
         $this->actAsEditor();
