@@ -12,11 +12,17 @@ use Illuminate\Support\Str;
 
 class GeneratePdfAction
 {
+    /**
+     * @param  ?\Closure  $beforeGenerate  efeito colateral pedido no formulário
+     *                                     (ex.: salvar os preços calculados)
+     *                                     antes de montar o PDF
+     */
     public static function make(
         string $templateClass,
         string $label = 'Generate PDF',
         string $icon = 'heroicon-o-document-arrow-down',
         array $formSchema = [],
+        ?\Closure $beforeGenerate = null,
     ): Action {
         return Action::make('generatePdf')
             ->label($label)
@@ -28,7 +34,11 @@ class GeneratePdfAction
             ->modalDescription('This will generate a new PDF version. If a previous version exists, it will be archived.')
             ->modalSubmitActionLabel('Generate')
             ->form($formSchema)
-            ->action(function ($record, array $data = []) use ($templateClass) {
+            ->action(function ($record, array $data = []) use ($templateClass, $beforeGenerate) {
+                if ($beforeGenerate) {
+                    $beforeGenerate($record, $data);
+                }
+
                 self::generateAndNotify($templateClass, $record, $data);
             });
     }

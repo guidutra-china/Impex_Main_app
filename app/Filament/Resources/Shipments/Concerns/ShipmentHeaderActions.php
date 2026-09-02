@@ -9,8 +9,8 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Infrastructure\Pdf\PdfGeneratorService;
 use App\Domain\Infrastructure\Pdf\PdfRenderer;
+use App\Domain\Infrastructure\Pdf\Support\PriceFormula;
 use App\Domain\Infrastructure\Pdf\Templates\CommercialInvoicePdfTemplate;
-use App\Domain\Infrastructure\Pdf\Templates\CustomPricePdfTemplate;
 use App\Domain\Infrastructure\Pdf\Templates\PackingListPdfTemplate;
 use App\Domain\Infrastructure\Pdf\Templates\ShipmentFinancialStatementPdfTemplate;
 use App\Domain\Infrastructure\Pdf\Templates\ShipmentProformaInvoicePdfTemplate;
@@ -492,7 +492,7 @@ trait ShipmentHeaderActions
                 continue;
             }
 
-            $calculatedPrice = CustomPricePdfTemplate::applyFormula($item->unit_price, $formula);
+            $calculatedPrice = PriceFormula::apply($item->unit_price, $formula);
 
             CompanyProduct::updateOrCreate(
                 [

@@ -6,6 +6,7 @@ use App\Domain\Catalog\Services\ProductIdentityResolver;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
+use App\Domain\Infrastructure\Pdf\Support\PriceFormula;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 
 class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
@@ -18,6 +19,16 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
 
     protected bool $showModelNumber;
 
+    // Com valor na declaração de propósito: getDocumentType() é chamado em
+    // instâncias criadas sem construtor (DocumentTypeFitsColumnTest), e
+    // propriedade tipada sem default explode nesse caminho.
+    protected ?string $priceFormula = null;
+
+    protected bool $useCustomPrices = false;
+
+    /** Resolvido em getDocumentData(); effectiveUnitPrice() lê o pivot por ele. */
+    private ?ProductIdentityResolver $identity = null;
+
     public function __construct(
         \Illuminate\Database\Eloquent\Model $model,
         string $locale = 'en',
@@ -25,6 +36,10 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
         bool $withImages = false,
         bool $showProductCode = false,
         bool $showModelNumber = true,
+        /** Fórmula aplicada ao preço unitário ("*0.70", "+10"…). */
+        ?string $priceFormula = null,
+        /** Usa o preço especial cadastrado para o cliente, quando houver. */
+        bool $useCustomPrices = false,
         array $options = [],
     ) {
         parent::__construct($model, $locale, $options);
@@ -32,14 +47,29 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
         $this->withImages = $withImages;
         $this->showProductCode = $showProductCode;
         $this->showModelNumber = $showModelNumber;
+        $this->priceFormula = blank($priceFormula) ? null : $priceFormula;
+        $this->useCustomPrices = $useCustomPrices;
+    }
+
+    /**
+     * True quando os preços impressos não são os da PI.
+     *
+     * Documento com preço alterado é arquivado à parte, com versionamento
+     * próprio: gerar uma proposta com desconto não pode avançar a versão da
+     * PI oficial nem se passar por ela no histórico.
+     */
+    protected function hasOverriddenPrices(): bool
+    {
+        return $this->priceFormula !== null || $this->useCustomPrices;
     }
 
     public function getFilename(): string
     {
         $reference = $this->model->reference ?? $this->model->getKey();
         $picSuffix = $this->withImages ? '-PIC' : '';
+        $prefix = $this->hasOverriddenPrices() ? 'Custom-' : '';
 
-        return $reference.$picSuffix.'-v'.$this->getNextVersion().'.pdf';
+        return $prefix.$reference.$picSuffix.'-v'.$this->getNextVersion().'.pdf';
     }
 
     public function getView(): string
@@ -54,7 +84,7 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
 
     public function getDocumentType(): string
     {
-        return 'proforma_invoice_pdf';
+        return $this->hasOverriddenPrices() ? 'custom_price_pdf' : 'proforma_invoice_pdf';
     }
 
     protected function getDocumentData(): array
@@ -79,7 +109,7 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
         // PI é faturada direto à empresa — sem conceito de filial (só
         // company_id, sem company_branch_id no schema), então nenhum parent:
         // aqui, diferente do Commercial Invoice/Packing List do embarque.
-        $identityResolver = ProductIdentityResolver::forClientCompany(
+        $identityResolver = $this->identity = ProductIdentityResolver::forClientCompany(
             company: $pi->company,
             overrides: $this->options,
         );
@@ -98,14 +128,14 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
                 'attributes' => $this->productAttributesLine($item->product),
                 'quantity' => $item->quantity,
                 'unit' => $item->unit ?? 'pcs',
-                'unit_price' => $this->formatMoney($item->unit_price, $currencyCode),
-                'line_total' => $this->formatMoney($item->line_total, $currencyCode, 2),
+                'unit_price' => $this->formatMoney($this->effectiveUnitPrice($item), $currencyCode),
+                'line_total' => $this->formatMoney($this->effectiveUnitPrice($item) * $item->quantity, $currencyCode, 2),
                 'incoterm' => $item->incoterm instanceof \BackedEnum ? $item->incoterm->value : $item->incoterm,
                 'image' => $this->withImages ? $this->resolveImagePath($item->product?->avatar) : null,
             ];
         });
 
-        $subtotal = $pi->items->sum(fn ($item) => $item->line_total);
+        $subtotal = $pi->items->sum(fn ($item) => $this->effectiveUnitPrice($item) * $item->quantity);
 
         $serviceFees = $pi->additionalCosts
             ->filter(function ($cost) {
@@ -175,6 +205,32 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
                 'description' => $pi->paymentTerm?->description,
             ],
         ];
+    }
+
+    /**
+     * Preço unitário impresso: fórmula > preço especial do cliente (quando
+     * pedido) > preço da linha da PI.
+     *
+     * Fórmula e preço especial são exclusivos na tela; a ordem aqui só define
+     * o desempate se os dois vierem marcados.
+     */
+    protected function effectiveUnitPrice($item): int
+    {
+        $base = (int) $item->unit_price;
+
+        if ($this->priceFormula !== null) {
+            return PriceFormula::apply($base, $this->priceFormula);
+        }
+
+        if ($this->useCustomPrices) {
+            $customPrice = (int) ($this->identity?->pivot($item->product)?->custom_price ?? 0);
+
+            if ($customPrice > 0) {
+                return $customPrice;
+            }
+        }
+
+        return $base;
     }
 
     private function labels(string $key): string

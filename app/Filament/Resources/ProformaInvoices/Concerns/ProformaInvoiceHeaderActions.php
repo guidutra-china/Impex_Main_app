@@ -8,11 +8,8 @@ use App\Domain\Financial\Actions\OverridePaymentBlocksAction;
 use App\Domain\Financial\Actions\RequestPaymentOverrideAuthorizationAction;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
-use App\Domain\Infrastructure\Pdf\PdfGeneratorService;
-use App\Domain\Infrastructure\Pdf\PdfRenderer;
-use App\Domain\Infrastructure\Pdf\Templates\CustomPricePdfTemplate;
+use App\Domain\Infrastructure\Pdf\Support\PriceFormula;
 use App\Domain\Infrastructure\Pdf\Templates\ProformaInvoicePdfTemplate;
-use App\Domain\Infrastructure\Services\DocumentService;
 use App\Domain\ProformaInvoices\Actions\CancelProformaInvoiceAction;
 use App\Domain\ProformaInvoices\Actions\SyncClientProductPricesAction;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
@@ -127,8 +124,33 @@ trait ProformaInvoiceHeaderActions
                     Checkbox::make('hide_commission')
                         ->label(__('forms.labels.hide_service_fee'))
                         ->helperText(__('forms.helpers.hide_service_fee')),
+                    Checkbox::make('use_custom_prices')
+                        ->label(__('forms.labels.use_client_custom_prices'))
+                        ->helperText(__('forms.helpers.use_client_custom_prices'))
+                        ->live(),
+                    Checkbox::make('use_formula')
+                        ->label(__('forms.labels.apply_price_formula'))
+                        ->visible(fn (Get $get) => ! $get('use_custom_prices'))
+                        ->live()
+                        ->helperText(__('forms.helpers.apply_formula_to_recalculate_prices')),
+                    TextInput::make('price_formula')
+                        ->label(__('forms.labels.formula'))
+                        ->placeholder('e.g. *0.70, *1.15, +10, -5')
+                        ->visible(fn (Get $get) => ! $get('use_custom_prices') && $get('use_formula'))
+                        // Escondido não deve chegar ao template: sem isto uma
+                        // fórmula digitada e depois desmarcada seguiria valendo.
+                        ->dehydrated(fn (Get $get) => (bool) $get('use_formula'))
+                        ->requiredIf('use_formula', true)
+                        ->regex('/^[*\/+\-]\s*[0-9]*\.?[0-9]+$/')
+                        ->helperText(__('forms.helpers.formula_operators'))
+                        ->live(onBlur: true),
+                    Checkbox::make('save_as_custom_price')
+                        ->label(__('forms.labels.save_as_custom_price'))
+                        ->visible(fn (Get $get) => ! $get('use_custom_prices') && $get('use_formula'))
+                        ->helperText(__('forms.helpers.save_formula_prices_to_custom_price')),
                     $this->documentNamingSection($this->namingPreferenceDefaults()),
                 ],
+                beforeGenerate: fn ($record, array $data) => $this->handleSaveCustomPrices($record, $data),
             ),
             GeneratePdfAction::download(
                 documentType: 'proforma_invoice_pdf',
@@ -153,15 +175,39 @@ trait ProformaInvoiceHeaderActions
                         ->label(__('forms.labels.hide_service_fee'))
                         ->live()
                         ->helperText(__('forms.helpers.hide_service_fee')),
+                    Checkbox::make('use_custom_prices')
+                        ->label(__('forms.labels.use_client_custom_prices'))
+                        ->helperText(__('forms.helpers.use_client_custom_prices'))
+                        ->live(),
+                    Checkbox::make('use_formula')
+                        ->label(__('forms.labels.apply_price_formula'))
+                        ->visible(fn (Get $get) => ! $get('use_custom_prices'))
+                        ->live()
+                        ->helperText(__('forms.helpers.apply_formula_to_recalculate_prices')),
+                    TextInput::make('price_formula')
+                        ->label(__('forms.labels.formula'))
+                        ->placeholder('e.g. *0.70, *1.15, +10, -5')
+                        ->visible(fn (Get $get) => ! $get('use_custom_prices') && $get('use_formula'))
+                        // Escondido não deve chegar ao template: sem isto uma
+                        // fórmula digitada e depois desmarcada seguiria valendo.
+                        ->dehydrated(fn (Get $get) => (bool) $get('use_formula'))
+                        ->requiredIf('use_formula', true)
+                        ->regex('/^[*\/+\-]\s*[0-9]*\.?[0-9]+$/')
+                        ->helperText(__('forms.helpers.formula_operators'))
+                        ->live(onBlur: true),
+                    Checkbox::make('save_as_custom_price')
+                        ->label(__('forms.labels.save_as_custom_price'))
+                        ->visible(fn (Get $get) => ! $get('use_custom_prices') && $get('use_formula'))
+                        ->helperText(__('forms.helpers.save_formula_prices_to_custom_price')),
                     $this->documentNamingSection($this->namingPreferenceDefaults()),
                 ],
+                beforeGenerate: fn ($record, array $data) => $this->handleSaveCustomPrices($record, $data),
             ),
             SendDocumentByEmailAction::make(
                 documentType: 'proforma_invoice_pdf',
                 settingsKey: 'email_default_message_proforma_invoice',
                 label: 'Send by Email',
             ),
-            $this->customPricePdfAction(),
         ])
             ->label(__('forms.labels.documents'))
             ->icon('heroicon-o-document-text')
@@ -713,83 +759,19 @@ trait ProformaInvoiceHeaderActions
             });
     }
 
-    protected function customPricePdfAction(): Action
+    /**
+     * Salva os preços calculados pela fórmula como preço especial do cliente,
+     * quando o formulário pediu. Roda antes de montar o PDF, para o documento
+     * já sair coerente com o que ficou gravado.
+     */
+    protected function handleSaveCustomPrices($pi, array $data): void
     {
-        return Action::make('customPricePdf')
-            ->label('Custom Price PDF')
-            ->icon('heroicon-o-document-currency-dollar')
-            ->color('gray')
-            ->visible(fn () => auth()->user()?->can('generate-documents'))
-            ->form([
-                Checkbox::make('hide_commission')
-                    ->label('Hide Service Fee')
-                    ->helperText('If checked, the Service Fee line will not appear in the PDF.'),
-                Checkbox::make('use_formula')
-                    ->label('Apply price formula')
-                    ->live()
-                    ->helperText('Apply a formula to recalculate all unit prices (e.g. *0.70 for 30% discount).'),
-                TextInput::make('price_formula')
-                    ->label('Formula')
-                    ->placeholder('e.g. *0.70, *1.15, +10, -5')
-                    ->visible(fn (Get $get) => $get('use_formula'))
-                    ->requiredIf('use_formula', true)
-                    ->regex('/^[*\/+\-]\s*[0-9]*\.?[0-9]+$/')
-                    ->helperText('Operators: * (multiply), / (divide), + (add), - (subtract). Value in major units for +/-.'),
-                Checkbox::make('save_as_custom_price')
-                    ->label('Save calculated prices as Custom Price')
-                    ->visible(fn (Get $get) => $get('use_formula'))
-                    ->helperText('If checked, the formula-calculated prices will be saved to each product\'s custom price for this client.'),
-            ])
-            ->action(function (array $data) {
-                try {
-                    $formula = ($data['use_formula'] ?? false) ? ($data['price_formula'] ?? null) : null;
+        $formula = ($data['use_formula'] ?? false) ? ($data['price_formula'] ?? null) : null;
 
-                    if (($data['save_as_custom_price'] ?? false) && $formula) {
-                        $this->saveFormulaAsCustomPrices($this->getRecord(), $formula);
-                    }
+        if (! ($data['save_as_custom_price'] ?? false) || blank($formula)) {
+            return;
+        }
 
-                    $template = new CustomPricePdfTemplate(
-                        model: $this->getRecord(),
-                        hideCommission: $data['hide_commission'] ?? false,
-                        priceFormula: $formula,
-                    );
-                    $service = new PdfGeneratorService(
-                        new PdfRenderer,
-                        new DocumentService,
-                    );
-
-                    $document = $service->generate($template);
-
-                    Notification::make()
-                        ->title('Custom Price PDF Generated')
-                        ->body("Version {$document->version} created: {$document->name}")
-                        ->success()
-                        ->send();
-
-                    return response()->streamDownload(
-                        function () use ($document) {
-                            echo file_get_contents($document->getFullPath());
-                        },
-                        $document->name,
-                        [
-                            'Content-Type' => 'application/pdf',
-                            'Content-Disposition' => 'inline; filename="'.$document->name.'"',
-                        ],
-                    );
-                } catch (\Throwable $e) {
-                    report($e);
-
-                    Notification::make()
-                        ->title('Custom Price PDF Failed')
-                        ->body($e->getMessage())
-                        ->danger()
-                        ->send();
-                }
-            });
-    }
-
-    protected function saveFormulaAsCustomPrices($pi, string $formula): void
-    {
         $pi->loadMissing('items.product');
         $clientId = $pi->company_id;
 
@@ -802,8 +784,6 @@ trait ProformaInvoiceHeaderActions
                 continue;
             }
 
-            $calculatedPrice = CustomPricePdfTemplate::applyFormula($item->unit_price, $formula);
-
             CompanyProduct::updateOrCreate(
                 [
                     'product_id' => $item->product_id,
@@ -811,7 +791,7 @@ trait ProformaInvoiceHeaderActions
                     'role' => 'client',
                 ],
                 [
-                    'custom_price' => $calculatedPrice,
+                    'custom_price' => PriceFormula::apply($item->unit_price, $formula),
                 ],
             );
         }

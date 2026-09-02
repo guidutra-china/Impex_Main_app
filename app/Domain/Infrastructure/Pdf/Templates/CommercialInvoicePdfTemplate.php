@@ -5,6 +5,7 @@ namespace App\Domain\Infrastructure\Pdf\Templates;
 use App\Domain\Catalog\Services\ProductIdentityResolver;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\AdditionalCostType;
+use App\Domain\Infrastructure\Pdf\Support\PriceFormula;
 use App\Domain\Logistics\Enums\ImportModality;
 use App\Domain\Logistics\Models\Shipment;
 
@@ -190,7 +191,7 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
         $base = (int) $item->unit_price;
 
         if ($priceFormula) {
-            return (int) CustomPricePdfTemplate::applyFormula($base, $priceFormula);
+            return (int) PriceFormula::apply($base, $priceFormula);
         }
 
         if ($useCustomPrices) {

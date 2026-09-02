@@ -213,6 +213,52 @@ class ProformaInvoicePdfOptionsTest extends TestCase
         $this->assertEmpty($data['service_fees']);
     }
 
+    /**
+     * As opções de preço vieram do antigo "Custom Price PDF" para os modais
+     * Generate/Preview. O mapeamento snake_case → construtor é feito por
+     * reflexão, então um nome de campo errado falharia em silêncio: o PDF
+     * sairia com o preço cheio sem nenhum erro.
+     */
+    public function test_price_option_names_map_onto_the_template_constructor(): void
+    {
+        $product = Product::factory()->create();
+        $this->addItem($product, 'Item');
+        $this->pi->items()->update(['unit_price' => 100 * \App\Domain\Infrastructure\Support\Money::SCALE]);
+
+        $method = new \ReflectionMethod(\App\Filament\Actions\GeneratePdfAction::class, 'createTemplate');
+
+        /** @var ProformaInvoicePdfTemplate $withFormula */
+        $withFormula = $method->invoke(null, ProformaInvoicePdfTemplate::class, $this->pi->fresh(), [
+            'use_formula' => true,
+            'price_formula' => '*0.70',
+        ]);
+
+        $this->assertSame('70.0000', $withFormula->getData()['items'][0]['unit_price']);
+        $this->assertSame('custom_price_pdf', $withFormula->getDocumentType());
+
+        \App\Domain\Catalog\Models\CompanyProduct::create([
+            'company_id' => $this->client->id,
+            'product_id' => $product->id,
+            'role' => 'client',
+            'unit_price' => 0,
+            'custom_price' => 80 * \App\Domain\Infrastructure\Support\Money::SCALE,
+        ]);
+
+        /** @var ProformaInvoicePdfTemplate $withCustom */
+        $withCustom = $method->invoke(null, ProformaInvoicePdfTemplate::class, $this->pi->fresh(), [
+            'use_custom_prices' => true,
+        ]);
+
+        $this->assertSame('80.0000', $withCustom->getData()['items'][0]['unit_price']);
+
+        // Sem nenhuma opção de preço, o PDF continua sendo o da PI oficial.
+        /** @var ProformaInvoicePdfTemplate $plain */
+        $plain = $method->invoke(null, ProformaInvoicePdfTemplate::class, $this->pi->fresh(), []);
+
+        $this->assertSame('100.0000', $plain->getData()['items'][0]['unit_price']);
+        $this->assertSame('proforma_invoice_pdf', $plain->getDocumentType());
+    }
+
     public function test_show_flags_flow_from_constructor_to_view_data(): void
     {
         $this->addItem(Product::factory()->create(), 'Item');
