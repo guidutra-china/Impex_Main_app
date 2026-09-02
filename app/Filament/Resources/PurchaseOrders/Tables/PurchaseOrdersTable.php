@@ -5,6 +5,7 @@ namespace App\Filament\Resources\PurchaseOrders\Tables;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\PurchaseOrders\Actions\SyncSupplierProductPricesAction;
 use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
+use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Filament\Actions\QuickViewAction;
 use App\Filament\Actions\StatusTransitionActions;
 use App\Filament\Resources\PurchaseOrders\PurchaseOrderResource;
@@ -15,6 +16,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
@@ -117,9 +119,22 @@ class PurchaseOrdersTable
                     ->label(__('forms.labels.issue_date'))
                     ->date('d/m/Y')
                     ->sortable(),
-                TextColumn::make('expected_delivery_date')
+                // Editável na própria lista: a data de entrega muda com
+                // frequência e abrir a PO só para isso era o passo a mais.
+                TextInputColumn::make('expected_delivery_date')
                     ->label(__('forms.labels.expected_delivery'))
-                    ->date('d/m/Y')
+                    ->type('date')
+                    ->rules(['nullable', 'date'])
+                    ->disabled(fn () => ! auth()->user()?->can('edit-purchase-orders'))
+                    // O cast do model devolve Carbon; o input date exige Y-m-d.
+                    ->getStateUsing(fn (PurchaseOrder $record) => $record->expected_delivery_date?->toDateString())
+                    ->updateStateUsing(function (PurchaseOrder $record, $state) {
+                        $record->update([
+                            'expected_delivery_date' => filled($state) ? $state : null,
+                        ]);
+
+                        return $record->expected_delivery_date?->toDateString();
+                    })
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('confirmation_method')
