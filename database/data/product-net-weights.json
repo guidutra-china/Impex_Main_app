@@ -1,0 +1,30 @@
+{
+    "_": "Peso líquido de 1 peça, em kg, para produto que só viaja em volume compartilhado e não tem bruto em cadastro nenhum — o comando products:backfill-net-weight não consegue derivar esses do embarque.",
+    "_fonte": "Placas e halteres da Hebei Yangrun: o peso líquido é o nominal do próprio nome. Conferido no loading list do LWSS26217 (SH-2026-00050) — somando nominal × quantidade pallet a pallet dá 32.360 kg, exatamente o líquido declarado no packing list deles.",
+    "net_weights": {
+        "BAR-00005": 11.5,
+        "BAR-00006": 11.5,
+        "DBE-00009": 1.0,
+        "DBE-00010": 2.0,
+        "DBE-00011": 3.0,
+        "DBE-00012": 4.0,
+        "DBE-00013": 5.0,
+        "DBE-00014": 6.0,
+        "DBE-00015": 7.0,
+        "DBE-00016": 8.0,
+        "DBE-00017": 9.0,
+        "DBE-00018": 10.0,
+        "DBE-00019": 12.5,
+        "DBE-00020": 15.0,
+        "DBE-00021": 17.5,
+        "DBE-00023": 22.5,
+        "DBE-00025": 27.5,
+        "DBE-00028": 35.0,
+        "DBE-00029": 37.5,
+        "DBE-00030": 40.0,
+        "WEP-00001": 2.5,
+        "WEP-00002": 5.0,
+        "WEP-00003": 10.0
+    },
+    "_barras": "As duas barras de 1,2m e 1,5m viajam juntas no pallet 25 do LWSS26217: 48 barras, 574 kg brutos e 552 líquidos, sem separar por comprimento. Os 11,5 kg são a média do próprio pallet — preserva o total mas subestima a de 1,5m e superestima a de 1,2m. Trocar assim que a Yangrun informar o peso de cada uma."
+}
