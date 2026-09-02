@@ -21,9 +21,14 @@ use RuntimeException;
  * inventar, então esses caem na ordem abaixo:
  *
  *   1. volume de um produto só, do próprio embarque         (exato)
- *   2. 90% do bruto unitário, também do embarque            (convenção da casa)
- *   3. 90% do bruto do cadastro de embalagem                (convenção da casa)
- *   4. valor declarado em database/data/product-net-weights.json
+ *   2. valor declarado em database/data/product-net-weights.json
+ *   3. 90% do bruto unitário, também do embarque            (convenção da casa)
+ *   4. 90% do bruto do cadastro de embalagem                (convenção da casa)
+ *
+ * O declarado vem antes dos 90% de propósito: número conferido à mão vale mais
+ * que estimativa. E o bruto do cadastro é o último porque é o menos confiável —
+ * nos embarques SH-48/49/50/52 ele estava desatualizado em 12 produtos, a ponto
+ * de declarar bruto MENOR que o líquido real do fornecedor.
  *
  * Item dividido em multi-box conta as partes: as duas caixas de uma esteira são
  * uma peça só, então o líquido da peça é a soma das partes.
