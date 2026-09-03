@@ -211,6 +211,9 @@ class ImportShipmentLoadingListCommand extends Command
                     'gross_weight' => $package['gross_weight'] ?? null,
                     'net_weight' => $package['net_weight'] ?? null,
                     'volume' => $package['volume'] ?? null,
+                    // [comprimento, largura, altura] em cm, quando o documento (ou o
+                    // cadastro anterior) traz a medida do volume.
+                    'dimensions' => $this->dimensions($package['dimensions'] ?? null),
                     'notes' => $package['notes'] ?? null,
                     'contents' => array_map(
                         fn (array $c) => [
@@ -231,6 +234,7 @@ class ImportShipmentLoadingListCommand extends Command
                         'gross_weight' => $line['unit_gross_weight'] ?? null,
                         'net_weight' => $line['unit_net_weight'] ?? null,
                         'volume' => $line['unit_volume'] ?? null,
+                        'dimensions' => $this->dimensions($line['dimensions'] ?? null),
                         'notes' => $line['notes'] ?? null,
                         'contents' => [['ref' => $this->contentRef($line), 'pieces' => 1, 'part' => null]],
                     ];
@@ -279,6 +283,23 @@ class ImportShipmentLoadingListCommand extends Command
         }
 
         throw new RuntimeException('Conteúdo de volume sem `model` nem `description`.');
+    }
+
+    /**
+     * Medida do volume como [comprimento, largura, altura] em cm, ou null
+     * quando o arquivo não traz as três.
+     *
+     * @return array{0: float, 1: float, 2: float}|null
+     */
+    private function dimensions(mixed $raw): ?array
+    {
+        if (! is_array($raw) || count($raw) !== 3) {
+            return null;
+        }
+
+        $dims = array_map(fn ($v) => (float) $v, array_values($raw));
+
+        return min($dims) > 0 ? $dims : null;
     }
 
     /**
@@ -581,15 +602,24 @@ class ImportShipmentLoadingListCommand extends Command
                         $palletSequence++;
                     }
 
+                    // Com as três medidas o domínio tira a cubagem do pallet delas,
+                    // e não da caixa em cima — por isso as duas têm de concordar.
+                    [$length, $width, $height] = $package['dimensions'] ?? [null, null, null];
+
                     $pallet = ShipmentPallet::create([
                         'shipment_id' => $shipment->id,
                         'shipment_container_id' => $containerModel->id,
                         'label' => $palletLabel,
                         'gross_weight' => $package['gross_weight'],
+                        'length' => $length,
+                        'width' => $width,
+                        'height' => $height,
                         'notes' => $package['notes'],
                         'sort_order' => $palletSequence,
                     ]);
                 }
+
+                [$length, $width, $height] = $package['dimensions'] ?? [null, null, null];
 
                 $carton = Carton::create([
                     'shipment_id' => $shipment->id,
@@ -599,6 +629,9 @@ class ImportShipmentLoadingListCommand extends Command
                     'packaging_type' => PackagingType::CARTON->value,
                     'net_weight' => $package['net_weight'],
                     'gross_weight' => $package['gross_weight'],
+                    'length' => $length,
+                    'width' => $width,
+                    'height' => $height,
                     'volume' => $package['volume'],
                     'notes' => $pallet ? null : $package['notes'],
                     'sort_order' => $sequence,

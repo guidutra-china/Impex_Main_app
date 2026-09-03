@@ -156,12 +156,16 @@ class ImportShipmentLoadingListCommandTest extends TestCase
         foreach ($containers as $index => [$number, $packages]) {
             $entries = [];
 
-            foreach ($packages as [$type, $gw, $nw, $cbm, $contents]) {
+            foreach ($packages as $package) {
+                [$type, $gw, $nw, $cbm, $contents] = $package;
+                $dims = $package[5] ?? null;
+
                 $entries[] = [
                     'type' => $type,
                     'gross_weight' => $gw,
                     'net_weight' => $nw,
                     'volume' => $cbm,
+                    'dimensions' => $dims,
                     'contents' => array_map(
                         fn (array $c) => (str_contains($c[0], ' ') ? ['description' => $c[0]] : ['model' => $c[0]])
                             + ['pieces' => $c[1]]
@@ -338,6 +342,48 @@ class ImportShipmentLoadingListCommandTest extends TestCase
         $this->assertSame(2, (int) $shipment->total_packages);
         $this->assertEquals(120.0, $shipment->total_gross_weight);
         $this->assertEquals(1.4, $shipment->total_volume);
+    }
+
+    public function test_stores_the_dimensions_declared_for_a_carton(): void
+    {
+        [$shipment] = $this->makeShipment(['D905Z' => 1]);
+
+        $file = $this->makePackageFile($shipment, [
+            ['HMMU1111111', [['carton', 157.0, 132.0, 1.245686, [['D905Z', 1]], [111, 168, 66.8]]]],
+        ]);
+
+        $this->artisan("shipments:import-loading-list {$file} --apply")->assertSuccessful();
+
+        $carton = Carton::where('shipment_id', $shipment->id)->first();
+        $this->assertEquals(111, $carton->length);
+        $this->assertEquals(168, $carton->width);
+        $this->assertEquals(66.8, $carton->height);
+        // A cubagem gravada é a do arquivo; medida e cubagem viajam juntas.
+        $this->assertEqualsWithDelta(1.245686, (float) $carton->volume, 0.000001);
+    }
+
+    public function test_pallet_dimensions_drive_its_volume_over_the_box_on_it(): void
+    {
+        [$shipment] = $this->makeShipment(['WP-20' => 60]);
+
+        // 120 × 100 × 123 cm = 1,476 m³; a caixa declara outra cubagem de
+        // propósito, para provar que a medida do pallet é a que vale.
+        $file = $this->makePackageFile($shipment, [
+            ['HMMU1111111', [['pallet', 1273.0, 1200.0, 0.5, [['WP-20', 60]], [120, 100, 123]]]],
+        ]);
+
+        $this->artisan("shipments:import-loading-list {$file} --apply")->assertSuccessful();
+
+        $pallet = ShipmentPallet::where('shipment_id', $shipment->id)->first();
+        $this->assertEquals(120, $pallet->length);
+        $this->assertEquals(100, $pallet->width);
+        $this->assertEquals(123, $pallet->height);
+
+        $shipment->refresh();
+        $this->assertSame(1, (int) $shipment->total_packages);
+        $this->assertEqualsWithDelta(1.476, (float) $shipment->total_volume, 0.0005);
+        $this->assertEquals(1273.0, $shipment->total_gross_weight);
+        $this->assertEquals(1200.0, $shipment->total_net_weight);
     }
 
     public function test_creates_a_pallet_whose_gross_weight_drives_the_totals_and_counts_as_one_volume(): void

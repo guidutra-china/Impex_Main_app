@@ -1,0 +1,1274 @@
+{
+    "shipment": "SH-2026-00047",
+    "source": "DHZ26061119_PL(2).xlsx + PL(1).xlsx (Yangrun) + packing list anterior do sistema (medidas e cadeiras Briliant)",
+    "notes": [
+        "Os 396 kg que faltavam nos pallets de anilha estavam somados nas caixas da DHZ (U3016 +356, E6250 +40); voltam para onde a Yangrun declarou.",
+        "Bruto dos dois pallets de anilha: 2.796 kg da Yangrun com a tara dividida igualmente (73 kg cada).",
+        "U3016: as duas partes pesam igual (225,5 kg brutos / 174,25 líquidos por caixa), como a Luslud declara no LWSS26214.",
+        "Cadeiras de massagem: sem documento da Briliant na pasta; ficam com os pesos já cadastrados (65 kg brutos; 30 e 27 líquidos)."
+    ],
+    "containers": [
+        {
+            "label": "CONT-001",
+            "container_number": "TXGU8515952",
+            "type": "40HQ",
+            "seal_number": "26H0305252",
+            "sort_order": 1,
+            "declared": {
+                "packages": 64,
+                "gross_weight": 15160,
+                "volume": 52.98
+            },
+            "packages": [
+                {
+                    "type": "carton",
+                    "gross_weight": 157,
+                    "net_weight": 132,
+                    "volume": 1.245686,
+                    "dimensions": [
+                        111,
+                        168,
+                        66.8
+                    ],
+                    "contents": [
+                        {
+                            "model": "D905Z",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 225.5,
+                    "net_weight": 174.25,
+                    "volume": 0.6732,
+                    "dimensions": [
+                        110,
+                        90,
+                        68
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3016",
+                            "pieces": 1,
+                            "part": "Body"
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 225.5,
+                    "net_weight": 174.25,
+                    "volume": 0.6732,
+                    "dimensions": [
+                        110,
+                        90,
+                        68
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3016",
+                            "pieces": 1,
+                            "part": "Body"
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 225.5,
+                    "net_weight": 174.25,
+                    "volume": 0.544,
+                    "dimensions": [
+                        100,
+                        80,
+                        68
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3016",
+                            "pieces": 1,
+                            "part": "Parts"
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 225.5,
+                    "net_weight": 174.25,
+                    "volume": 0.544,
+                    "dimensions": [
+                        100,
+                        80,
+                        68
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3016",
+                            "pieces": 1,
+                            "part": "Parts"
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 198,
+                    "net_weight": 172,
+                    "volume": 1.023,
+                    "dimensions": [
+                        165,
+                        100,
+                        62
+                    ],
+                    "contents": [
+                        {
+                            "model": "D920Z",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 180,
+                    "net_weight": 137,
+                    "volume": 1.375589,
+                    "dimensions": [
+                        143,
+                        165,
+                        58.3
+                    ],
+                    "contents": [
+                        {
+                            "model": "D930Z",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 156,
+                    "net_weight": 112,
+                    "volume": 1.144685,
+                    "dimensions": [
+                        102,
+                        168,
+                        66.8
+                    ],
+                    "contents": [
+                        {
+                            "model": "D935Z",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 146,
+                    "net_weight": 102,
+                    "volume": 1.098418,
+                    "dimensions": [
+                        102,
+                        168,
+                        64.1
+                    ],
+                    "contents": [
+                        {
+                            "model": "D940Z",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 186,
+                    "net_weight": 145,
+                    "volume": 1.336914,
+                    "dimensions": [
+                        102,
+                        170,
+                        77.1
+                    ],
+                    "contents": [
+                        {
+                            "model": "D945Z",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 261,
+                    "net_weight": 224,
+                    "volume": 1.29222,
+                    "dimensions": [
+                        143,
+                        155,
+                        58.3
+                    ],
+                    "contents": [
+                        {
+                            "model": "D950Z",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 175,
+                    "net_weight": 135,
+                    "volume": 0.78793,
+                    "dimensions": [
+                        190,
+                        130,
+                        31.9
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3056S",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 175,
+                    "net_weight": 135,
+                    "volume": 0.78793,
+                    "dimensions": [
+                        190,
+                        130,
+                        31.9
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3056S",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 109,
+                    "net_weight": 69,
+                    "volume": 1.10424,
+                    "dimensions": [
+                        107,
+                        172,
+                        60
+                    ],
+                    "contents": [
+                        {
+                            "model": "D955Z",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 115,
+                    "net_weight": 85,
+                    "volume": 0.8789,
+                    "dimensions": [
+                        170,
+                        110,
+                        47
+                    ],
+                    "contents": [
+                        {
+                            "model": "A607",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 143,
+                    "net_weight": 113,
+                    "volume": 0.785813,
+                    "dimensions": [
+                        171,
+                        111,
+                        41.4
+                    ],
+                    "contents": [
+                        {
+                            "model": "A629",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 400,
+                    "net_weight": 360,
+                    "volume": 1.430016,
+                    "dimensions": [
+                        160,
+                        84,
+                        106.4
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3042",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 400,
+                    "net_weight": 360,
+                    "volume": 1.430016,
+                    "dimensions": [
+                        160,
+                        84,
+                        106.4
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3042",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 25,
+                    "net_weight": 23,
+                    "volume": 0.114382,
+                    "dimensions": [
+                        134,
+                        97,
+                        8.8
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3043",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 25,
+                    "net_weight": 23,
+                    "volume": 0.114382,
+                    "dimensions": [
+                        134,
+                        97,
+                        8.8
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3043",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 37,
+                    "net_weight": 34,
+                    "volume": 0.308992,
+                    "dimensions": [
+                        142,
+                        64,
+                        34
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3037",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 36,
+                    "net_weight": 33,
+                    "volume": 0.184747,
+                    "dimensions": [
+                        127,
+                        39,
+                        37.3
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3036",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 36,
+                    "net_weight": 33,
+                    "volume": 0.184747,
+                    "dimensions": [
+                        127,
+                        39,
+                        37.3
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3036",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 36,
+                    "net_weight": 33,
+                    "volume": 0.184747,
+                    "dimensions": [
+                        127,
+                        39,
+                        37.3
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3036",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 26,
+                    "net_weight": 23,
+                    "volume": 0.11502,
+                    "dimensions": [
+                        142,
+                        50,
+                        16.2
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3039",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 26,
+                    "net_weight": 23,
+                    "volume": 0.11502,
+                    "dimensions": [
+                        142,
+                        50,
+                        16.2
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3039",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 26,
+                    "net_weight": 23,
+                    "volume": 0.11502,
+                    "dimensions": [
+                        142,
+                        50,
+                        16.2
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3039",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 107,
+                    "net_weight": 83,
+                    "volume": 0.49131,
+                    "dimensions": [
+                        106,
+                        45,
+                        103
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3038",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 107,
+                    "net_weight": 83,
+                    "volume": 0.49131,
+                    "dimensions": [
+                        106,
+                        45,
+                        103
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3038",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 107,
+                    "net_weight": 83,
+                    "volume": 0.49131,
+                    "dimensions": [
+                        106,
+                        45,
+                        103
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3038",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 85,
+                    "net_weight": 55,
+                    "volume": 0.417784,
+                    "dimensions": [
+                        237,
+                        156,
+                        11.3
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3048",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 50,
+                    "net_weight": 46,
+                    "volume": 0.25272,
+                    "dimensions": [
+                        120,
+                        81,
+                        26
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3044",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 61,
+                    "net_weight": 56,
+                    "volume": 0.45254,
+                    "dimensions": [
+                        170,
+                        110,
+                        24.2
+                    ],
+                    "contents": [
+                        {
+                            "model": "A602",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 89,
+                    "net_weight": 59,
+                    "volume": 0.535788,
+                    "dimensions": [
+                        164,
+                        121,
+                        27
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3047",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 175,
+                    "net_weight": 128,
+                    "volume": 0.998498,
+                    "dimensions": [
+                        195,
+                        77,
+                        66.5
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3050",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 105,
+                    "net_weight": 75,
+                    "volume": 0.376065,
+                    "dimensions": [
+                        225,
+                        137,
+                        12.2
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3057",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 284,
+                    "net_weight": 243,
+                    "volume": 1.31835,
+                    "dimensions": [
+                        170,
+                        110,
+                        70.5
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3061",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 234,
+                    "net_weight": 183,
+                    "volume": 1.650416,
+                    "dimensions": [
+                        122,
+                        95,
+                        142.4
+                    ],
+                    "contents": [
+                        {
+                            "model": "U3045",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 520,
+                    "net_weight": 480,
+                    "volume": 1.9844,
+                    "dimensions": [
+                        220,
+                        110,
+                        82
+                    ],
+                    "contents": [
+                        {
+                            "model": "E6250",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 520,
+                    "net_weight": 480,
+                    "volume": 1.9844,
+                    "dimensions": [
+                        220,
+                        110,
+                        82
+                    ],
+                    "contents": [
+                        {
+                            "model": "E6250",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65,
+                    "net_weight": 30,
+                    "volume": 0.9177,
+                    "dimensions": [
+                        115,
+                        76,
+                        105
+                    ],
+                    "contents": [
+                        {
+                            "description": "MASSAGE CHAIR - LT0001",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65,
+                    "net_weight": 30,
+                    "volume": 0.9177,
+                    "dimensions": [
+                        115,
+                        76,
+                        105
+                    ],
+                    "contents": [
+                        {
+                            "description": "MASSAGE CHAIR - LT0001",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65,
+                    "net_weight": 30,
+                    "volume": 0.9177,
+                    "dimensions": [
+                        115,
+                        76,
+                        105
+                    ],
+                    "contents": [
+                        {
+                            "description": "MASSAGE CHAIR - LT0001",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65,
+                    "net_weight": 30,
+                    "volume": 0.9177,
+                    "dimensions": [
+                        115,
+                        76,
+                        105
+                    ],
+                    "contents": [
+                        {
+                            "description": "MASSAGE CHAIR - LT0001",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65,
+                    "net_weight": 30,
+                    "volume": 0.9177,
+                    "dimensions": [
+                        115,
+                        76,
+                        105
+                    ],
+                    "contents": [
+                        {
+                            "description": "MASSAGE CHAIR - LT0001",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65,
+                    "net_weight": 30,
+                    "volume": 0.9177,
+                    "dimensions": [
+                        115,
+                        76,
+                        105
+                    ],
+                    "contents": [
+                        {
+                            "description": "MASSAGE CHAIR - LT0001",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65,
+                    "net_weight": 27,
+                    "volume": 0.9177,
+                    "dimensions": [
+                        115,
+                        76,
+                        105
+                    ],
+                    "contents": [
+                        {
+                            "description": "MASSAGE CHAIR - A19B",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65,
+                    "net_weight": 27,
+                    "volume": 0.9177,
+                    "dimensions": [
+                        115,
+                        76,
+                        105
+                    ],
+                    "contents": [
+                        {
+                            "description": "MASSAGE CHAIR - A19B",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65,
+                    "net_weight": 27,
+                    "volume": 0.9177,
+                    "dimensions": [
+                        115,
+                        76,
+                        105
+                    ],
+                    "contents": [
+                        {
+                            "description": "MASSAGE CHAIR - A19B",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65,
+                    "net_weight": 27,
+                    "volume": 0.9177,
+                    "dimensions": [
+                        115,
+                        76,
+                        105
+                    ],
+                    "contents": [
+                        {
+                            "description": "MASSAGE CHAIR - A19B",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65,
+                    "net_weight": 27,
+                    "volume": 0.9177,
+                    "dimensions": [
+                        115,
+                        76,
+                        105
+                    ],
+                    "contents": [
+                        {
+                            "description": "MASSAGE CHAIR - A19B",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65,
+                    "net_weight": 27,
+                    "volume": 0.9177,
+                    "dimensions": [
+                        115,
+                        76,
+                        105
+                    ],
+                    "contents": [
+                        {
+                            "description": "MASSAGE CHAIR - A19B",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65,
+                    "net_weight": 27,
+                    "volume": 0.9177,
+                    "dimensions": [
+                        115,
+                        76,
+                        105
+                    ],
+                    "contents": [
+                        {
+                            "description": "MASSAGE CHAIR - A19B",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65,
+                    "net_weight": 27,
+                    "volume": 0.9177,
+                    "dimensions": [
+                        115,
+                        76,
+                        105
+                    ],
+                    "contents": [
+                        {
+                            "description": "MASSAGE CHAIR - A19B",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65,
+                    "net_weight": 27,
+                    "volume": 0.9177,
+                    "dimensions": [
+                        115,
+                        76,
+                        105
+                    ],
+                    "contents": [
+                        {
+                            "description": "MASSAGE CHAIR - A19B",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65,
+                    "net_weight": 27,
+                    "volume": 0.9177,
+                    "dimensions": [
+                        115,
+                        76,
+                        105
+                    ],
+                    "contents": [
+                        {
+                            "description": "MASSAGE CHAIR - A19B",
+                            "pieces": 1
+                        }
+                    ],
+                    "notes": null
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 358,
+                    "net_weight": 342,
+                    "volume": 0.456,
+                    "dimensions": [
+                        120,
+                        100,
+                        38
+                    ],
+                    "contents": [
+                        {
+                            "description": "Vertical Dumbbell Rack",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "Dumbell Rack",
+                            "pieces": 6
+                        }
+                    ],
+                    "notes": "Yangrun YR-JJW-0609 — Dumbbell Rack"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1523,
+                    "net_weight": 1450,
+                    "volume": 1.476,
+                    "dimensions": [
+                        120,
+                        100,
+                        123
+                    ],
+                    "contents": [
+                        {
+                            "description": "Weight plate 2.5kg",
+                            "pieces": 60
+                        },
+                        {
+                            "description": "Weight plate 5kg",
+                            "pieces": 60
+                        },
+                        {
+                            "description": "Weight plate 10kg",
+                            "pieces": 100
+                        }
+                    ],
+                    "notes": "Yangrun YR-JJW-0609 — Weight Plate"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1273,
+                    "net_weight": 1200,
+                    "volume": 1.476,
+                    "dimensions": [
+                        120,
+                        100,
+                        123
+                    ],
+                    "contents": [
+                        {
+                            "description": "Weight plate 20kg",
+                            "pieces": 60
+                        }
+                    ],
+                    "notes": "Yangrun YR-JJW-0609 — Weight Plate"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 725,
+                    "net_weight": 660,
+                    "volume": 2.304,
+                    "dimensions": [
+                        120,
+                        100,
+                        192
+                    ],
+                    "contents": [
+                        {
+                            "description": "Dumbbell 1kg",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Dumbbell 2kg",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Dumbbell 3kg",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Dumbbell 4kg",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Dumbbell 5kg",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Dumbbell 6kg",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Dumbbell 7kg",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Dumbbell 8kg",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Dumbbell 9kg",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Dumbbell 10kg",
+                            "pieces": 12
+                        }
+                    ],
+                    "notes": "Yangrun YR-JJW-0609 — Dumbbell"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1104,
+                    "net_weight": 1050,
+                    "volume": 0.48,
+                    "dimensions": [
+                        120,
+                        100,
+                        40
+                    ],
+                    "contents": [
+                        {
+                            "description": "Dumbbell 12.5kg",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Dumbbell 15kg",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Dumbbell 17.5kg",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Dumbbell 20kg",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Dumbbell 22.5kg",
+                            "pieces": 12
+                        }
+                    ],
+                    "notes": "Yangrun YR-JJW-0609 — Dumbbell"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1014,
+                    "net_weight": 990,
+                    "volume": 0.48,
+                    "dimensions": [
+                        120,
+                        100,
+                        40
+                    ],
+                    "contents": [
+                        {
+                            "description": "Dumbbell 25kg",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Dumbbell 27.5kg",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Dumbbell 30kg",
+                            "pieces": 12
+                        }
+                    ],
+                    "notes": "Yangrun YR-JJW-0609 — Dumbbell"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1175,
+                    "net_weight": 1120,
+                    "volume": 0.48,
+                    "dimensions": [
+                        120,
+                        100,
+                        40
+                    ],
+                    "contents": [
+                        {
+                            "description": "Dumbbell 32.5kg",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Dumbbell 35kg",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Dumbbell 37.5kg",
+                            "pieces": 4
+                        },
+                        {
+                            "description": "Dumbbell 40kg",
+                            "pieces": 4
+                        }
+                    ],
+                    "notes": "Yangrun YR-JJW-0609 — Dumbbell"
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 528,
+                    "net_weight": 492,
+                    "volume": 0.108,
+                    "dimensions": [
+                        120,
+                        100,
+                        9
+                    ],
+                    "contents": [
+                        {
+                            "description": "1.5m Olympic bearing bar",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "W - 1.2 meters Olympic bearing bar",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "2.2m Olympic bearing bar",
+                            "pieces": 18
+                        }
+                    ],
+                    "notes": "Yangrun YR-JJW-0609 — Barbell Bar"
+                }
+            ]
+        }
+    ]
+}
