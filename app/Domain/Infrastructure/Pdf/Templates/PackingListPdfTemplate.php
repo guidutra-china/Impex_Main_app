@@ -16,6 +16,9 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
 {
     private ?ProductIdentityResolver $identity = null;
 
+    /** @var array<int, array<int, float>|null> líquido por conteúdo, memoizado por caixa */
+    private array $netShares = [];
+
     public function getView(): string
     {
         return 'pdf.packing-list';
@@ -53,6 +56,7 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
             'items.proformaInvoiceItem.product.companies',
             'items.proformaInvoiceItem.proformaInvoice',
             'cartons.contents.shipmentItem.proformaInvoiceItem.product.companies',
+            'cartons.contents.shipmentItem.proformaInvoiceItem.product.specification',
             'cartons.shipmentContainer',
             'cartons.pallet.container',
         ]);
@@ -546,13 +550,71 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
 
     private function formatContentNetWeight(Carton $carton, $content, bool $isFirst): string
     {
-        // Net weight follows the same pattern — no per-content net_weight field,
-        // so only the first line carries the carton's net weight.
+        $shares = $this->netWeightShares($carton);
+
+        if ($shares !== null) {
+            return number_format($shares[$content->id], 2);
+        }
+
+        // Sem como repartir, só a primeira linha carrega o líquido da caixa.
         if ($isFirst && $carton->net_weight !== null) {
             return number_format((float) $carton->net_weight, 2);
         }
 
         return '';
+    }
+
+    /**
+     * Líquido de cada produto quando a caixa (ou o pallet) leva mais de um.
+     *
+     * O banco tem um líquido por caixa, não por conteúdo. Quando o cadastro sabe
+     * quanto pesa cada produto — a anilha de 10 kg pesa 10 kg, e é disso que o
+     * nome fala —, o líquido da caixa é repartido na proporção desses pesos:
+     * cada linha mostra o seu e a coluna continua somando o total. Faltando o
+     * peso de algum produto, cai no comportamento antigo: tudo na primeira
+     * linha, as outras em branco.
+     *
+     * @return array<int, float>|null id do conteúdo => kg
+     */
+    private function netWeightShares(Carton $carton): ?array
+    {
+        if (array_key_exists($carton->id, $this->netShares)) {
+            return $this->netShares[$carton->id];
+        }
+
+        $contents = $carton->contents->sortBy('sort_order')->values();
+        $total = (float) $carton->net_weight;
+
+        if ($contents->count() < 2 || $total <= 0) {
+            return $this->netShares[$carton->id] = null;
+        }
+
+        $weights = [];
+
+        foreach ($contents as $content) {
+            $unit = (float) ($content->shipmentItem?->proformaInvoiceItem?->product?->specification?->net_weight ?? 0);
+
+            if ($unit <= 0) {
+                return $this->netShares[$carton->id] = null;
+            }
+
+            $weights[$content->id] = $unit * (int) $content->pieces;
+        }
+
+        $sum = array_sum($weights);
+        $ids = array_keys($weights);
+        $shares = [];
+        $allocated = 0.0;
+
+        foreach (array_slice($ids, 1) as $id) {
+            $shares[$id] = round($total * $weights[$id] / $sum, 2);
+            $allocated += $shares[$id];
+        }
+
+        // O resíduo do arredondamento fica na primeira linha, para a soma fechar.
+        $shares[$ids[0]] = round($total - $allocated, 2);
+
+        return $this->netShares[$carton->id] = $shares;
     }
 
     /**

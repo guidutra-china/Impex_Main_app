@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Logistics;
 
+use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Pdf\Templates\PackingListPdfTemplate;
 use App\Domain\Inquiries\Models\Inquiry;
@@ -447,6 +448,49 @@ class PackingListPdfV2Test extends TestCase
         $this->assertEqualsWithDelta($data['totals']['total_gross_weight'], $sum('gross_weight'), 0.01);
         $this->assertEqualsWithDelta($data['totals']['total_volume'], $sum('volume'), 0.01);
         $this->assertEqualsWithDelta($data['totals']['total_packages'], $sum('package_qty'), 0.001);
+    }
+
+    public function test_a_shared_box_splits_its_net_weight_by_the_products_own_weights(): void
+    {
+        [$shipment, $items] = $this->makeShipmentWithItems(['plate 2.5kg' => 60, 'plate 5kg' => 60, 'plate 10kg' => 100]);
+
+        // O cadastro sabe quanto pesa cada anilha — é o que está no nome.
+        foreach ([2.5, 5, 10] as $kg) {
+            $product = Product::factory()->create();
+            $product->specification()->create(['net_weight' => $kg]);
+            $items["plate {$kg}kg"]->proformaInvoiceItem->update(['product_id' => $product->id]);
+        }
+
+        $pallet = ShipmentPallet::create(['shipment_id' => $shipment->id, 'label' => 'PLT-002', 'gross_weight' => 1523.0]);
+        $box = $this->makeCarton($shipment, 'BOX-059', [
+            'shipment_pallet_id' => $pallet->id,
+            'gross_weight' => 1523.0,
+            'net_weight' => 1450.0,
+            'volume' => 1.476,
+        ]);
+        $this->addContent($box, $items['plate 2.5kg']->id, 60);
+        $this->addContent($box, $items['plate 5kg']->id, 60);
+        $this->addContent($box, $items['plate 10kg']->id, 100);
+
+        $lines = collect($this->getData($shipment)['container_groups'][0]['lines']);
+
+        // 60 × 2,5 + 60 × 5 + 100 × 10 = 1.450: cada linha com o seu, e a
+        // soma da coluna é o líquido da caixa.
+        $this->assertSame(['150.00', '300.00', '1,000.00'], $lines->pluck('net_weight')->all());
+    }
+
+    public function test_a_shared_box_without_product_weights_keeps_the_net_weight_on_the_first_line(): void
+    {
+        [$shipment, $items] = $this->makeShipmentWithItems(['rack A' => 6, 'rack B' => 6]);
+
+        $box = $this->makeCarton($shipment, 'BOX-057', ['gross_weight' => 358.0, 'net_weight' => 342.0]);
+        $this->addContent($box, $items['rack A']->id, 6);
+        $this->addContent($box, $items['rack B']->id, 6);
+
+        $lines = collect($this->getData($shipment)['container_groups'][0]['lines']);
+
+        // Sem peso no cadastro não há como repartir sem inventar: fica como era.
+        $this->assertSame(['342.00', ''], $lines->pluck('net_weight')->all());
     }
 
     public function test_document_columns_add_up_to_the_grand_total(): void
