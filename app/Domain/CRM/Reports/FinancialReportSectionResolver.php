@@ -50,6 +50,11 @@ final class FinancialReportSectionResolver
             $sections[] = new DebitNoteSectionBuilder;
             $sections[] = new CreditNoteSectionBuilder;
             $sections[] = new AdditionalCostFinancialSectionBuilder;
+        } elseif ($role === CompanyRole::FORWARDER) {
+            // Forwarder-only company: what Impex owes it per shipment
+            // (forwarder leg + any supplier leg it carries) and the payments.
+            $sections[] = new ShipmentCostSectionBuilder(CompanyRole::FORWARDER);
+            $sections[] = new PaymentSectionBuilder;
         }
 
         return $sections;

@@ -10,12 +10,14 @@ use App\Domain\CRM\Reports\StatusScopeFilter;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Financial\Enums\PaymentStatus;
+use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -36,9 +38,22 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
             ->whereBetween($dateExpr, [$filters->from->toDateString(), $filters->to->toDateString()])
             ->orderBy($dateExpr);
 
-        match ($this->role) {
-            CompanyRole::CLIENT => $query->where('company_id', $company->id),
-            CompanyRole::SUPPLIER => $query->whereHas(
+        $isClientReport = $this->role === CompanyRole::CLIENT;
+        // Forwarder mode: the FORWARDER role, or a SUPPLIER report for a
+        // company that is also a forwarder (legacy hybrid behaviour).
+        $isForwarder = $this->role === CompanyRole::FORWARDER
+            || ($this->role === CompanyRole::SUPPLIER && ($company->isForwarder() ?? false));
+        $supplierSummaryMode = $this->role === CompanyRole::SUPPLIER && ! $isForwarder;
+
+        match (true) {
+            $isClientReport => $query->where('company_id', $company->id),
+            // Forwarder: shipments where it forwards (forwarder leg) or is
+            // paid as supplier of a shipment cost (supplier leg).
+            $isForwarder => $query->whereHas(
+                'additionalCosts',
+                fn ($q) => $this->scopeCostsOwedTo($q, $company),
+            ),
+            $supplierSummaryMode => $query->whereHas(
                 'items.proformaInvoiceItem',
                 fn ($q) => $q->where('supplier_company_id', $company->id),
             ),
@@ -54,10 +69,6 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
         }
 
         $rows = [];
-        $isClientReport = $this->role === CompanyRole::CLIENT;
-        $isSupplierReport = $this->role === CompanyRole::SUPPLIER;
-        $isForwarder = $isSupplierReport && ($company->isForwarder() ?? false);
-        $supplierSummaryMode = $isSupplierReport && ! $isForwarder;
 
         $eager = ['items.proformaInvoiceItem', 'additionalCosts', 'paymentScheduleItems.allocations.payment'];
         if ($supplierSummaryMode) {
@@ -73,37 +84,58 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
             // Filter additional costs by who is being billed in this report:
             //   client report → costs recharged to the client
             //   regular supplier report → costs debited from this supplier
-            //   forwarder report → costs recharged to the client (legacy behavior)
-            $eligibleCosts = $supplierSummaryMode
-                ? $s->additionalCosts
+            //   forwarder report → costs Impex owes this company (forwarder
+            //   leg and/or supplier leg), valued at the owed amount
+            $eligibleCosts = match (true) {
+                $supplierSummaryMode => $s->additionalCosts
                     ->where('billable_to', BillableTo::SUPPLIER)
-                    ->where('supplier_company_id', $company->id)
-                : $s->additionalCosts
-                    ->where('billable_to', BillableTo::CLIENT);
+                    ->where('supplier_company_id', $company->id),
+                $isForwarder => $s->additionalCosts
+                    ->filter(fn ($cost) => $this->amountOwedToForwarder($cost, $company) > 0),
+                default => $s->additionalCosts
+                    ->where('billable_to', BillableTo::CLIENT),
+            };
 
             $eligibleCosts = $eligibleCosts
                 ->reject(fn ($cost) => $filters->isExcluded('additional_costs', (int) $cost->id));
 
+            $costValue = $isForwarder
+                ? fn ($cost) => $this->amountOwedToForwarder($cost, $company)
+                : fn ($cost) => (int) $cost->amount_in_document_currency;
+
             $freight = $eligibleCosts
                 ->where('cost_type', AdditionalCostType::FREIGHT)
-                ->sum('amount_in_document_currency');
+                ->sum($costValue);
 
             $otherCosts = $eligibleCosts
                 ->where('cost_type', '!=', AdditionalCostType::FREIGHT)
-                ->sum('amount_in_document_currency');
+                ->sum($costValue);
 
             $totalCosts = $freight + $otherCosts;
 
             // Filter schedule items by direction:
             // - CLIENT report: exclude forwarder- and supplier-payable items (those are outbound payments)
-            // - SUPPLIER/forwarder report: include only forwarder-payable items
-            $relevantScheduleItems = $s->paymentScheduleItems->filter(function ($item) use ($isClientReport) {
+            // - forwarder report: [forwarder-payable] rows of costs it forwards
+            //   plus [supplier-payable] rows of costs where it is the supplier
+            // - supplier report: only forwarder-payable rows (legacy, unused in
+            //   summary mode which renders PO slices instead)
+            $eligibleCostIds = $eligibleCosts->pluck('id')->map(fn ($id) => (int) $id)->all();
+            $relevantScheduleItems = $s->paymentScheduleItems->filter(function ($item) use ($isClientReport, $isForwarder, $eligibleCostIds) {
                 $isForwarderPayable = str_contains((string) $item->notes, PaymentScheduleItem::FORWARDER_PAYABLE_TAG);
                 $isSupplierPayable = str_contains((string) $item->notes, PaymentScheduleItem::SUPPLIER_PAYABLE_TAG);
 
-                // CLIENT report: skip both payable sides (Impex outbound cash).
-                // Forwarder report: only forwarder-payable rows (unchanged).
-                return $isClientReport ? ! ($isForwarderPayable || $isSupplierPayable) : $isForwarderPayable;
+                if ($isClientReport) {
+                    // Skip both payable sides (Impex outbound cash).
+                    return ! ($isForwarderPayable || $isSupplierPayable);
+                }
+
+                if ($isForwarder) {
+                    return ($isForwarderPayable || $isSupplierPayable)
+                        && $item->source_type === AdditionalCost::class
+                        && in_array((int) $item->source_id, $eligibleCostIds, true);
+                }
+
+                return $isForwarderPayable;
             });
 
             // Supplier-summary mode: precompute the PO-by-PO shipment slice
@@ -287,6 +319,41 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
             columns: ['number', 'bl_number', 'client_reference', 'etd', 'eta', 'status', 'freight', 'other_costs', 'total_costs', 'paid', 'balance', 'currency'],
             rows: $rows,
         );
+    }
+
+    /**
+     * Costs on which Impex owes this company something: as forwarder
+     * (forwarder leg) or as supplier of a shipment cost (supplier leg).
+     */
+    private function scopeCostsOwedTo(Builder $q, Company $company): Builder
+    {
+        return $q->where(function (Builder $q2) use ($company) {
+            $q2->where('forwarder_company_id', $company->id)
+                ->orWhere(function (Builder $q3) use ($company) {
+                    $q3->where('supplier_company_id', $company->id)
+                        ->where('supplier_payable_amount', '>', 0)
+                        ->where('billable_to', '!=', BillableTo::SUPPLIER->value);
+                });
+        });
+    }
+
+    /**
+     * Amount Impex owes this company on a cost, in the document currency:
+     * forwarder leg plus supplier leg (a company can carry both).
+     */
+    private function amountOwedToForwarder(AdditionalCost $cost, Company $company): int
+    {
+        $owed = 0;
+
+        if ((int) $cost->forwarder_company_id === (int) $company->id) {
+            $owed += (int) ($cost->forwarder_amount_in_document_currency ?? $cost->forwarder_amount ?? 0);
+        }
+
+        if ((int) $cost->supplier_company_id === (int) $company->id && $cost->hasSupplierPayableSide()) {
+            $owed += (int) ($cost->supplier_payable_amount_in_document_currency ?? $cost->supplier_payable_amount ?? 0);
+        }
+
+        return $owed;
     }
 
     /**
