@@ -12,6 +12,7 @@ use App\Domain\Financial\Models\DebitNoteLineItem;
 use App\Domain\Financial\Models\Payment;
 use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\Financial\Support\AdditionalCostSideStatus;
 use App\Domain\Logistics\Models\Shipment;
 
 /**
@@ -210,14 +211,8 @@ class ReconcileSettlementStateAction
                 continue;
             }
 
-            $notes = $scheduleItem->notes ?? '';
             $newStatus = $this->mapScheduleItemStatusToCostStatus($scheduleItem->status);
-
-            $column = match (true) {
-                str_contains($notes, PaymentScheduleItem::FORWARDER_PAYABLE_TAG) => 'forwarder_status',
-                str_contains($notes, PaymentScheduleItem::SUPPLIER_PAYABLE_TAG) => 'supplier_payable_status',
-                default => 'status',
-            };
+            $column = AdditionalCostSideStatus::columnFor($scheduleItem);
             if ($cost->{$column} !== $newStatus) {
                 $cost->{$column} = $newStatus;
                 $cost->save();
@@ -283,12 +278,6 @@ class ReconcileSettlementStateAction
 
     protected function mapScheduleItemStatusToCostStatus(?PaymentScheduleStatus $status): AdditionalCostStatus
     {
-        return match ($status) {
-            PaymentScheduleStatus::PAID => AdditionalCostStatus::PAID,
-            PaymentScheduleStatus::WAIVED => AdditionalCostStatus::WAIVED,
-            PaymentScheduleStatus::DUE,
-            PaymentScheduleStatus::OVERDUE => AdditionalCostStatus::INVOICED,
-            default => AdditionalCostStatus::PENDING,
-        };
+        return AdditionalCostSideStatus::fromScheduleStatus($status);
     }
 }

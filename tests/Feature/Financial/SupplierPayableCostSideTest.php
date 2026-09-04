@@ -546,6 +546,32 @@ class SupplierPayableCostSideTest extends TestCase
         $this->assertTrue($credits->contains($credit->id), 'supplier-leg credit missing for forwarder-only company');
     }
 
+    /**
+     * The side column used to stay NULL until the first payment allocation
+     * (only the reconcile wrote it): a fresh supplier leg showed no status
+     * in the costs table. Sync seeds it from the PSI it just created.
+     */
+    public function test_sync_seeds_supplier_payable_status_and_never_clobbers_reconcile(): void
+    {
+        $cost = $this->makePayableCost();
+        $this->assertNull($cost->supplier_payable_status);
+
+        app(SyncSupplierPayableScheduleItemAction::class)->execute($cost, $this->pi);
+        $cost->refresh();
+        $this->assertSame(AdditionalCostStatus::INVOICED, $cost->supplier_payable_status, 'PSI nasce DUE → lado fornecedor INVOICED');
+        $this->assertSame(AdditionalCostStatus::PENDING, $cost->status, 'Lado cliente não pode ser tocado.');
+
+        $psi = $this->supplierPsiFor($cost);
+        $this->payScheduleItem($psi, 3_500_000);
+        $cost->refresh();
+        $this->assertSame(AdditionalCostStatus::PAID, $cost->supplier_payable_status);
+
+        // Re-sync (e.g. description edit) must keep what the reconcile wrote.
+        $cost->update(['description' => 'Logo development v2']);
+        app(SyncSupplierPayableScheduleItemAction::class)->execute($cost->fresh(), $this->pi);
+        $this->assertSame(AdditionalCostStatus::PAID, $cost->fresh()->supplier_payable_status);
+    }
+
     public function test_waiving_cost_waives_supplier_side_too(): void
     {
         $cost = $this->makePayableCost();

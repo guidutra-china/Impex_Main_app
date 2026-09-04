@@ -104,6 +104,41 @@ class AdditionalCostStatusSyncTest extends TestCase
         ]);
     }
 
+    public function test_schedule_generation_seeds_forwarder_status_from_new_psi(): void
+    {
+        // A freight cost whose forwarder PSI does not exist yet.
+        $fresh = AdditionalCost::create([
+            'costable_type' => Shipment::class,
+            'costable_id' => $this->shipment->id,
+            'cost_type' => AdditionalCostType::FREIGHT,
+            'description' => 'Air freight',
+            'amount' => 2_000_000,
+            'currency_code' => 'USD',
+            'amount_in_document_currency' => 2_000_000,
+            'billable_to' => BillableTo::CLIENT,
+            'forwarder_company_id' => $this->forwarderCompany->id,
+            'forwarder_amount' => 1_500_000,
+            'forwarder_currency_code' => 'USD',
+            'forwarder_amount_in_document_currency' => 1_500_000,
+            'cost_date' => '2026-04-15',
+            'status' => AdditionalCostStatus::PENDING,
+        ]);
+        $this->assertNull($fresh->forwarder_status);
+
+        $generate = new \App\Domain\Financial\Actions\GeneratePaymentScheduleAction;
+        (new \ReflectionMethod($generate, 'syncAdditionalCosts'))->invoke($generate, $this->shipment);
+
+        $forwarderPsi = PaymentScheduleItem::where('source_type', AdditionalCost::class)
+            ->where('source_id', $fresh->id)
+            ->withSideTag(PaymentScheduleItem::FORWARDER_PAYABLE_TAG)
+            ->first();
+        $this->assertNotNull($forwarderPsi);
+
+        $fresh->refresh();
+        $this->assertSame(AdditionalCostStatus::INVOICED, $fresh->forwarder_status, 'PSI nasce DUE → lado forwarder INVOICED');
+        $this->assertSame(AdditionalCostStatus::PENDING, $fresh->status, 'Lado cliente segue como o form gravou.');
+    }
+
     public function test_paying_client_side_marks_only_client_status_paid(): void
     {
         $this->fullyAllocate($this->clientPsi);

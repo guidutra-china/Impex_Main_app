@@ -6,6 +6,7 @@ use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\Financial\Support\AdditionalCostSideStatus;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Enums\PurchaseOrderStatus;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
@@ -82,6 +83,8 @@ class SyncSupplierPayableScheduleItemAction
             'notes' => trim("{$tag} ".($cost->notes ?? '')),
         ];
 
+        $item = $existing;
+
         if ($existing) {
             if ($existing->isPinnedByAllocations()) {
                 // Payable stays put: the allocation was made against that document.
@@ -98,8 +101,12 @@ class SyncSupplierPayableScheduleItemAction
                 $existing->update($scheduleData);
             }
         } else {
-            PaymentScheduleItem::create($scheduleData);
+            $item = PaymentScheduleItem::create($scheduleData);
         }
+
+        // Lado fornecedor nasce com o status da parcela; o reconcile assume
+        // daí em diante (o seed nunca sobrescreve um status já gravado).
+        AdditionalCostSideStatus::seedFromScheduleItem($cost, $item);
     }
 
     /**

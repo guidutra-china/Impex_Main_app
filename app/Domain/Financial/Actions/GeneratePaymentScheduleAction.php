@@ -8,6 +8,7 @@ use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Financial\Services\ScheduleExpectationCalculator;
+use App\Domain\Financial\Support\AdditionalCostSideStatus;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
@@ -914,7 +915,7 @@ class GeneratePaymentScheduleAction
 
                     if (! $existingForwarder) {
                         $maxSortOrder++;
-                        PaymentScheduleItem::create([
+                        $forwarderItem = PaymentScheduleItem::create([
                             'payable_type' => get_class($payable),
                             'payable_id' => $payable->getKey(),
                             'label' => $forwarderLabel,
@@ -930,6 +931,7 @@ class GeneratePaymentScheduleAction
                             'sort_order' => $maxSortOrder,
                             'notes' => "{$forwarderTag} {$cost->notes}",
                         ]);
+                        AdditionalCostSideStatus::seedFromScheduleItem($cost, $forwarderItem);
                     } else {
                         $existingForwarder->update([
                             'label' => $forwarderLabel,
@@ -1016,7 +1018,7 @@ class GeneratePaymentScheduleAction
 
                 if (! $existingForwarder) {
                     $maxSortOrder++;
-                    PaymentScheduleItem::create([
+                    $forwarderItem = PaymentScheduleItem::create([
                         'payable_type' => get_class($schedulePayable),
                         'payable_id' => $schedulePayable->getKey(),
                         'label' => $forwarderLabel,
@@ -1032,6 +1034,7 @@ class GeneratePaymentScheduleAction
                         'sort_order' => $maxSortOrder,
                         'notes' => "{$forwarderTag} {$cost->notes}",
                     ]);
+                    AdditionalCostSideStatus::seedFromScheduleItem($cost, $forwarderItem);
                 } else {
                     $existingForwarder->update([
                         'label' => $forwarderLabel,
