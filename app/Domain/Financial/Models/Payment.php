@@ -6,6 +6,8 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Support\AdditionalCostScheduleSync;
+use App\Domain\Infrastructure\Actions\GenerateReferenceAction;
+use App\Domain\Infrastructure\Enums\DocumentType;
 use App\Domain\Settings\Models\BankAccount;
 use App\Domain\Settings\Models\PaymentMethod;
 use App\Models\User;
@@ -22,6 +24,7 @@ class Payment extends Model
     use LogsActivity, SoftDeletes;
 
     protected $fillable = [
+        'number',
         'direction',
         'company_id',
         'amount',
@@ -56,12 +59,15 @@ class Payment extends Model
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->useLogName('payment')
-            ->setDescriptionForEvent(fn (string $eventName) => "Payment {$this->reference} was {$eventName}");
+            ->setDescriptionForEvent(fn (string $eventName) => "Payment {$this->number} was {$eventName}");
     }
 
     protected static function booted(): void
     {
         static::creating(function (Payment $payment) {
+            if (empty($payment->number)) {
+                $payment->number = app(GenerateReferenceAction::class)->execute(DocumentType::PAYMENT);
+            }
             if (empty($payment->created_by)) {
                 $payment->created_by = auth()->id();
             }

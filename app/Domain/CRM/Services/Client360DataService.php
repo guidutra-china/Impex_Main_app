@@ -8,9 +8,9 @@ use App\Domain\CRM\DataTransferObjects\Client360TimelineEvent;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Enums\AdditionalCostType;
-use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
+use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\Payment;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Inquiries\Enums\InquiryStatus;
@@ -320,7 +320,7 @@ class Client360DataService
                 occurredAt: $invoice->issue_date ?? $invoice->created_at,
                 type: 'invoice_issued',
                 title: __('client_360.timeline.invoice_issued', ['ref' => $invoice->reference]),
-                subtitle: $invoice->currency_code . ' ' . number_format($invoice->grand_total / 10000, 2),
+                subtitle: $invoice->currency_code.' '.number_format($invoice->grand_total / 10000, 2),
                 url: null,
             ));
 
@@ -351,7 +351,7 @@ class Client360DataService
                     occurredAt: $shipment->actual_departure,
                     type: 'shipment_departed',
                     title: __('client_360.timeline.shipment_departed', ['ref' => $shipment->reference]),
-                    subtitle: trim(($shipment->origin_port ?? '') . ' → ' . ($shipment->destination_port ?? ''), ' →'),
+                    subtitle: trim(($shipment->origin_port ?? '').' → '.($shipment->destination_port ?? ''), ' →'),
                     url: null,
                 ));
             }
@@ -374,9 +374,9 @@ class Client360DataService
                     $payment->direction === PaymentDirection::INBOUND
                         ? 'client_360.timeline.payment_received'
                         : 'client_360.timeline.payment_sent',
-                    ['amount' => $payment->currency_code . ' ' . number_format($payment->amount / 10000, 2)],
+                    ['amount' => $payment->currency_code.' '.number_format($payment->amount / 10000, 2)],
                 ),
-                subtitle: $payment->reference,
+                subtitle: trim(($payment->number ?? '').' '.($payment->reference ?? '')) ?: null,
                 url: null,
             ));
         }

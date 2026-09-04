@@ -10,9 +10,8 @@ use App\Filament\Portal\Resources\PaymentResource\Pages;
 use App\Filament\Portal\Resources\PaymentResource\Widgets\PortalPaymentAllocations;
 use App\Filament\Portal\Widgets\PaymentsListStats;
 use App\Filament\Portal\Widgets\UpcomingPaymentsWidget;
-use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Components\ViewEntry;
 use BackedEnum;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -23,10 +22,15 @@ use Filament\Tables\Table;
 class PaymentResource extends Resource
 {
     protected static ?string $model = Payment::class;
+
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-banknotes';
+
     protected static ?int $navigationSort = 61;
+
     protected static ?string $slug = 'payments';
-    protected static ?string $recordTitleAttribute = 'reference';
+
+    protected static ?string $recordTitleAttribute = 'number';
+
     protected static ?string $tenantOwnershipRelationshipName = 'company';
 
     public static function canAccess(): bool
@@ -53,23 +57,28 @@ class PaymentResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('reference')
+                TextColumn::make('number')
+                    ->label(__('forms.labels.payment_number'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->copyable(),
+                TextColumn::make('reference')
+                    ->label(__('forms.labels.reference_swift_transfer'))
+                    ->searchable()
+                    ->placeholder('—'),
                 TextColumn::make('direction')
                     ->badge(),
                 TextColumn::make('status')
                     ->badge(),
                 TextColumn::make('amount')
                     ->label('Amount')
-                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 2))
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '').' '.Money::format($state, 2))
                     ->alignRight(),
                 TextColumn::make('unallocated_amount')
                     ->label('Unallocated')
                     ->getStateUsing(fn ($record) => $record->unallocated_amount)
-                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 2))
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '').' '.Money::format($state, 2))
                     ->alignRight()
                     ->color(fn ($record) => $record->unallocated_amount > 0 ? 'warning' : 'success'),
                 TextColumn::make('paymentMethod.name')
@@ -109,15 +118,19 @@ class PaymentResource extends Resource
         return $schema->components([
             Section::make('Payment Details')
                 ->schema([
-                    TextEntry::make('reference')
+                    TextEntry::make('number')
+                        ->label(__('forms.labels.payment_number'))
                         ->copyable()
                         ->weight('bold'),
+                    TextEntry::make('reference')
+                        ->label(__('forms.labels.reference_swift_transfer'))
+                        ->placeholder('—'),
                     TextEntry::make('direction')
                         ->badge(),
                     TextEntry::make('status')
                         ->badge(),
                     TextEntry::make('amount')
-                        ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state))
+                        ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '').' '.Money::format($state))
                         ->weight('bold'),
                     TextEntry::make('paymentMethod.name')
                         ->label('Payment Method')

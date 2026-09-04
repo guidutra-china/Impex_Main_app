@@ -34,8 +34,12 @@ class PayableInfolist
                 TextEntry::make('bankAccount.bank_name')
                     ->label(__('forms.labels.bank_account'))
                     ->placeholder('—'),
+                TextEntry::make('number')
+                    ->label(__('forms.labels.payment_number'))
+                    ->weight('bold')
+                    ->copyable(),
                 TextEntry::make('reference')
-                    ->label(__('forms.labels.reference'))
+                    ->label(__('forms.labels.reference_swift_transfer'))
                     ->placeholder('—'),
                 TextEntry::make('status')
                     ->label(__('forms.labels.status'))

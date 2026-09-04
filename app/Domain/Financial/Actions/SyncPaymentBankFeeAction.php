@@ -127,7 +127,8 @@ class SyncPaymentBankFeeAction
             return mb_substr($description, 0, 255);
         }
 
-        $ref = $payment->reference ?: '#'.$payment->getKey();
+        $parts = array_filter([$payment->number, $payment->reference], fn ($v) => filled($v));
+        $ref = $parts ? implode(' · ', $parts) : '#'.$payment->getKey();
 
         return mb_substr(__('forms.helpers.bank_fee_default_description', ['reference' => $ref]), 0, 255);
     }

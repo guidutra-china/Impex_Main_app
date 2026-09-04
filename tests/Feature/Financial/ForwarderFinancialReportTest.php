@@ -5,12 +5,17 @@ namespace Tests\Feature\Financial;
 use App\Domain\CRM\Models\Company;
 use App\Domain\CRM\Reports\CompanyFinancialReportService;
 use App\Domain\CRM\Reports\DTOs\FinancialReportFilters;
+use App\Domain\Financial\Actions\ApprovePaymentAction;
 use App\Domain\Financial\Actions\SyncSupplierPayableScheduleItemAction;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
 use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
+use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
+use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\AdditionalCost;
+use App\Domain\Financial\Models\Payment;
+use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Models\Document;
 use App\Domain\Infrastructure\Pdf\PdfGeneratorService;
@@ -146,6 +151,32 @@ class ForwarderFinancialReportTest extends TestCase
         $details = collect($section->rows)->where('_row_type', 'detail')->values();
         $this->assertCount(2, $details);
         $this->assertSame([1705.00, 78.69], $details->pluck('total_costs')->all());
+
+        // Paying the freight leg: the detail line names the payment by its number.
+        $payment = Payment::create([
+            'direction' => PaymentDirection::OUTBOUND,
+            'company_id' => $this->forwarder->id,
+            'amount' => 17_050_000,
+            'currency_code' => 'USD',
+            'payment_date' => now()->subDay()->toDateString(),
+            'status' => PaymentStatus::PENDING_APPROVAL,
+        ]);
+        PaymentAllocation::create([
+            'payment_id' => $payment->id,
+            'payment_schedule_item_id' => PaymentScheduleItem::where('source_id', $freight->id)->value('id'),
+            'allocated_amount' => 17_050_000,
+            'exchange_rate' => 1,
+            'allocated_amount_in_document_currency' => 17_050_000,
+        ]);
+        app(ApprovePaymentAction::class)->approve($payment);
+
+        $report = app(CompanyFinancialReportService::class)->build($this->forwarder, $this->filters());
+        $section = collect($report->sections)->firstWhere('key', 'shipments');
+        $freightLine = collect($section->rows)->where('_row_type', 'detail')->first();
+        $this->assertNotEmpty($payment->number);
+        $this->assertStringContainsString($payment->number.' (', $freightLine['client_reference']);
+        $this->assertSame(1783.69, collect($section->rows)->firstWhere('_row_type', 'header')['total_costs']);
+        $this->assertSame(1705.00, collect($section->rows)->firstWhere('_row_type', 'header')['paid']);
 
         // The report still renders to a PDF document for a forwarder-only company.
         $document = app(PdfGeneratorService::class)->generate(new CompanyFinancialStatementPdfTemplate(

@@ -2,10 +2,10 @@
 
 namespace App\Filament\RelationManagers;
 
+use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
-use App\Domain\Financial\Enums\PaymentDirection;
 use App\Filament\Resources\Finance\AccountsPayable\AccountsPayableResource;
 use App\Filament\Resources\Finance\AccountsReceivable\AccountsReceivableResource;
 use BackedEnum;
@@ -37,12 +37,12 @@ class PaymentsRelationManager extends RelationManager
                         $label = preg_replace('/\s*\x{2014}\s*\[.*\]\s*$/u', '', $state ?? '');
                         $label = e($label);
 
-                        $html = '<span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-800 dark:bg-white/10 dark:text-gray-200">' . $label . '</span>';
+                        $html = '<span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-800 dark:bg-white/10 dark:text-gray-200">'.$label.'</span>';
 
                         $record->loadMissing('shipment');
                         if ($record->shipment) {
                             $ref = e($record->shipment->bl_number ?: $record->shipment->reference);
-                            $html .= ' <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-[0.65rem] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-400/10 dark:text-blue-400 dark:ring-blue-400/30">' . $ref . '</span>';
+                            $html .= ' <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-[0.65rem] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20 dark:bg-blue-400/10 dark:text-blue-400 dark:ring-blue-400/30">'.$ref.'</span>';
                         }
 
                         if ($record->is_credit) {
@@ -60,7 +60,8 @@ class PaymentsRelationManager extends RelationManager
                 TextColumn::make('amount')
                     ->label(fn () => 'Due Amount')
                     ->formatStateUsing(function ($state, $record) {
-                        $formatted = $record->currency_code . ' ' . Money::format(abs($state));
+                        $formatted = $record->currency_code.' '.Money::format(abs($state));
+
                         return $record->is_credit ? "({$formatted})" : $formatted;
                     })
                     ->color(fn ($record) => $record->is_credit ? 'info' : null)
@@ -69,14 +70,15 @@ class PaymentsRelationManager extends RelationManager
                     ->label(__('forms.labels.paid'))
                     ->getStateUsing(fn ($record) => $record->paid_amount)
                     ->formatStateUsing(function ($state, $record) {
-                        $base = $record->currency_code . ' ' . Money::format($state);
+                        $base = $record->currency_code.' '.Money::format($state);
                         if ($record->is_overpaid) {
-                            return $base . ' ⚠ +' . Money::format($record->overpaid_amount);
+                            return $base.' ⚠ +'.Money::format($record->overpaid_amount);
                         }
+
                         return $base;
                     })
                     ->tooltip(fn ($record) => $record->is_overpaid
-                        ? 'Overpaid by ' . $record->currency_code . ' ' . Money::format($record->overpaid_amount)
+                        ? 'Overpaid by '.$record->currency_code.' '.Money::format($record->overpaid_amount)
                         : null)
                     ->alignEnd()
                     ->color(fn ($record) => $record->is_overpaid
@@ -86,7 +88,7 @@ class PaymentsRelationManager extends RelationManager
                 TextColumn::make('remaining_amount')
                     ->label(__('forms.labels.remaining'))
                     ->getStateUsing(fn ($record) => $record->remaining_amount)
-                    ->formatStateUsing(fn ($state, $record) => $record->currency_code . ' ' . Money::format(abs($state)))
+                    ->formatStateUsing(fn ($state, $record) => $record->currency_code.' '.Money::format(abs($state)))
                     ->alignEnd()
                     ->color(fn ($state) => $state > 0 ? 'warning' : 'success')
                     ->visible(fn () => ! $this->hasOnlyCredits()),
@@ -95,7 +97,8 @@ class PaymentsRelationManager extends RelationManager
                     ->badge()
                     ->formatStateUsing(function ($state, $record) {
                         $label = $state instanceof \BackedEnum ? ($state->getLabel() ?? $state->value) : (string) $state;
-                        return $record->is_overpaid ? $label . ' · Overpaid' : $label;
+
+                        return $record->is_overpaid ? $label.' · Overpaid' : $label;
                     })
                     ->color(fn ($state, $record) => $record->is_overpaid
                         ? 'warning'
@@ -110,6 +113,7 @@ class PaymentsRelationManager extends RelationManager
                             if ($source) {
                                 return "Credit from: {$source->description}";
                             }
+
                             return 'Credit';
                         }
 
@@ -131,7 +135,7 @@ class PaymentsRelationManager extends RelationManager
                             $date = $payment->payment_date?->format('d/m/Y') ?? '—';
                             $amount = Money::format($alloc->allocated_amount);
                             $currency = $payment->currency_code;
-                            $ref = $payment->reference ? " ({$payment->reference})" : '';
+                            $ref = ' ('.trim($payment->number.' '.($payment->reference ?? '')).')';
                             $statusBadge = match ($payment->status) {
                                 PaymentStatus::APPROVED => '✓',
                                 PaymentStatus::PENDING_APPROVAL => '⏳',
@@ -282,12 +286,12 @@ class PaymentsRelationManager extends RelationManager
             $html .= '<col style="width: 12%;">';
             $html .= '</colgroup>';
             $html .= '<thead><tr>';
-            $html .= '<th style="' . $thStyle . '">Date</th>';
-            $html .= '<th style="' . $thRightStyle . '">Amount</th>';
-            $html .= '<th style="' . $thStyle . '">Cur.</th>';
-            $html .= '<th style="' . $thStyle . '">Method</th>';
-            $html .= '<th style="' . $thStyle . '">Reference</th>';
-            $html .= '<th style="' . $thStyle . '">Status</th>';
+            $html .= '<th style="'.$thStyle.'">Date</th>';
+            $html .= '<th style="'.$thRightStyle.'">Amount</th>';
+            $html .= '<th style="'.$thStyle.'">Cur.</th>';
+            $html .= '<th style="'.$thStyle.'">Method</th>';
+            $html .= '<th style="'.$thStyle.'">Reference</th>';
+            $html .= '<th style="'.$thStyle.'">Status</th>';
             $html .= '<th style="text-align: center; padding: 12px 16px; border-bottom: 2px solid #e5e7eb;"></th>';
             $html .= '</tr></thead><tbody>';
 
@@ -299,7 +303,7 @@ class PaymentsRelationManager extends RelationManager
                 $amount = Money::format($alloc->allocated_amount);
                 $currency = $payment->currency_code;
                 $method = $payment->paymentMethod?->name ?? '—';
-                $ref = e($payment->reference ?? '—');
+                $ref = e(trim($payment->number.' '.($payment->reference ?? '')) ?: '—');
                 $totalPayments += $alloc->allocated_amount;
 
                 $statusColor = match ($payment->status) {
@@ -314,20 +318,20 @@ class PaymentsRelationManager extends RelationManager
                     : AccountsPayableResource::getUrl('view', ['record' => $payment]);
 
                 $html .= '<tr>';
-                $html .= '<td style="' . $tdStyle . '">' . $date . '</td>';
-                $html .= '<td style="' . $tdRightStyle . '">' . $amount . '</td>';
-                $html .= '<td style="' . $tdStyle . '">' . $currency . '</td>';
-                $html .= '<td style="' . $tdStyle . '">' . $method . '</td>';
-                $html .= '<td style="' . $tdStyle . '">' . $ref . '</td>';
-                $html .= '<td style="' . $tdStyle . ' font-weight: 600; color: ' . $statusColor . ';">' . $statusLabel . '</td>';
-                $html .= '<td style="padding: 12px 16px; border-bottom: 1px solid #f3f4f6; text-align: center;"><a href="' . $viewUrl . '" target="_blank" style="color: #7c3aed; text-decoration: none; font-weight: 600; font-size: 13px;">View</a></td>';
+                $html .= '<td style="'.$tdStyle.'">'.$date.'</td>';
+                $html .= '<td style="'.$tdRightStyle.'">'.$amount.'</td>';
+                $html .= '<td style="'.$tdStyle.'">'.$currency.'</td>';
+                $html .= '<td style="'.$tdStyle.'">'.$method.'</td>';
+                $html .= '<td style="'.$tdStyle.'">'.$ref.'</td>';
+                $html .= '<td style="'.$tdStyle.' font-weight: 600; color: '.$statusColor.';">'.$statusLabel.'</td>';
+                $html .= '<td style="padding: 12px 16px; border-bottom: 1px solid #f3f4f6; text-align: center;"><a href="'.$viewUrl.'" target="_blank" style="color: #7c3aed; text-decoration: none; font-weight: 600; font-size: 13px;">View</a></td>';
                 $html .= '</tr>';
             }
 
             $html .= '</tbody>';
             $html .= '<tfoot><tr>';
             $html .= '<td style="padding: 12px 16px; font-weight: 700; text-align: right; border-top: 2px solid #d1d5db;">Subtotal:</td>';
-            $html .= '<td style="padding: 12px 16px; text-align: right; font-weight: 700; border-top: 2px solid #d1d5db;">' . Money::format($totalPayments) . '</td>';
+            $html .= '<td style="padding: 12px 16px; text-align: right; font-weight: 700; border-top: 2px solid #d1d5db;">'.Money::format($totalPayments).'</td>';
             $html .= '<td colspan="5" style="border-top: 2px solid #d1d5db;"></td>';
             $html .= '</tr></tfoot></table></div>';
         }
@@ -342,9 +346,9 @@ class PaymentsRelationManager extends RelationManager
             $html .= '<col style="width: 15%;">';
             $html .= '</colgroup>';
             $html .= '<thead><tr>';
-            $html .= '<th style="' . $thStyle . '">Credit Source</th>';
-            $html .= '<th style="' . $thRightStyle . '">Amount</th>';
-            $html .= '<th style="' . $thStyle . '">Cur.</th>';
+            $html .= '<th style="'.$thStyle.'">Credit Source</th>';
+            $html .= '<th style="'.$thRightStyle.'">Amount</th>';
+            $html .= '<th style="'.$thStyle.'">Cur.</th>';
             $html .= '</tr></thead><tbody>';
 
             $totalCredits = 0;
@@ -355,16 +359,16 @@ class PaymentsRelationManager extends RelationManager
                 $totalCredits += $creditAmount;
 
                 $html .= '<tr>';
-                $html .= '<td style="' . $tdStyle . ' color: #16a34a; font-weight: 600;">' . $creditLabel . '</td>';
-                $html .= '<td style="' . $tdRightStyle . ' color: #16a34a;">' . Money::format($creditAmount) . '</td>';
-                $html .= '<td style="' . $tdStyle . '">' . e($item->currency_code) . '</td>';
+                $html .= '<td style="'.$tdStyle.' color: #16a34a; font-weight: 600;">'.$creditLabel.'</td>';
+                $html .= '<td style="'.$tdRightStyle.' color: #16a34a;">'.Money::format($creditAmount).'</td>';
+                $html .= '<td style="'.$tdStyle.'">'.e($item->currency_code).'</td>';
                 $html .= '</tr>';
             }
 
             $html .= '</tbody>';
             $html .= '<tfoot><tr>';
             $html .= '<td style="padding: 12px 16px; font-weight: 700; text-align: right; border-top: 2px solid #d1d5db;">Subtotal:</td>';
-            $html .= '<td style="padding: 12px 16px; text-align: right; font-weight: 700; color: #16a34a; border-top: 2px solid #d1d5db;">' . Money::format($totalCredits) . '</td>';
+            $html .= '<td style="padding: 12px 16px; text-align: right; font-weight: 700; color: #16a34a; border-top: 2px solid #d1d5db;">'.Money::format($totalCredits).'</td>';
             $html .= '<td style="border-top: 2px solid #d1d5db;"></td>';
             $html .= '</tr></tfoot></table></div>';
         }
@@ -378,15 +382,15 @@ class PaymentsRelationManager extends RelationManager
         $bgColor = $remaining > 0 ? '#fefce8' : '#f0fdf4';
         $borderColor = $remaining > 0 ? '#fde68a' : '#bbf7d0';
 
-        $html .= '<div style="margin-top: 16px; padding: 16px; border-radius: 8px; border: 1px solid ' . $borderColor . '; background: ' . $bgColor . ';">';
+        $html .= '<div style="margin-top: 16px; padding: 16px; border-radius: 8px; border: 1px solid '.$borderColor.'; background: '.$bgColor.';">';
         $html .= '<div style="display: flex; align-items: center; gap: 40px; font-size: 14px; font-weight: 700;">';
-        $html .= '<span><span style="color: #6b7280;">Due:</span> <span style="color: #111827;">' . $item->currency_code . ' ' . Money::format($item->amount) . '</span></span>';
-        $html .= '<span><span style="color: #6b7280;">Paid:</span> <span style="color: #2563eb;">' . $item->currency_code . ' ' . Money::format($totalPaid) . '</span></span>';
+        $html .= '<span><span style="color: #6b7280;">Due:</span> <span style="color: #111827;">'.$item->currency_code.' '.Money::format($item->amount).'</span></span>';
+        $html .= '<span><span style="color: #6b7280;">Paid:</span> <span style="color: #2563eb;">'.$item->currency_code.' '.Money::format($totalPaid).'</span></span>';
         if ($totalCreditApplied > 0) {
-            $html .= '<span><span style="color: #6b7280;">Credits:</span> <span style="color: #16a34a;">' . $item->currency_code . ' ' . Money::format($totalCreditApplied) . '</span></span>';
+            $html .= '<span><span style="color: #6b7280;">Credits:</span> <span style="color: #16a34a;">'.$item->currency_code.' '.Money::format($totalCreditApplied).'</span></span>';
         }
         if ($remaining > 0) {
-            $html .= '<span><span style="color: #dc2626;">Remaining: ' . $item->currency_code . ' ' . Money::format($remaining) . '</span></span>';
+            $html .= '<span><span style="color: #dc2626;">Remaining: '.$item->currency_code.' '.Money::format($remaining).'</span></span>';
         } else {
             $html .= '<span><span style="color: #16a34a;">Fully Paid</span></span>';
         }

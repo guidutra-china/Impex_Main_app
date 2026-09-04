@@ -22,6 +22,12 @@ trait HasPaymentColumns
             : __('forms.labels.supplier');
 
         $columns = [
+            TextColumn::make('number')
+                ->label(__('forms.labels.payment_number'))
+                ->weight('bold')
+                ->copyable()
+                ->searchable()
+                ->sortable(),
             TextColumn::make('payment_date')
                 ->label(__('forms.labels.date'))
                 ->date('d/m/Y')

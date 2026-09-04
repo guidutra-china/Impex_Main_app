@@ -270,7 +270,7 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
                 foreach ($item->allocations as $allocation) {
                     if ($allocation->payment && $allocation->payment->status === PaymentStatus::APPROVED) {
                         $allocAmount = (int) ($allocation->allocated_amount_in_document_currency ?? 0);
-                        $allocationDetails[] = $allocation->payment->reference
+                        $allocationDetails[] = $allocation->payment->number
                             .' ('.optional($allocation->payment->payment_date)->format('d/m/Y').')'
                             .': '.number_format($allocAmount / Money::SCALE, 2);
                     }
@@ -279,7 +279,7 @@ final class ShipmentCostSectionBuilder implements FinancialSectionBuilder
                 // Mirror allocations from PI/PO schedule item (same stage + shipment)
                 foreach ($this->getMirrorAllocations($item) as $allocation) {
                     $allocAmount = (int) ($allocation->allocated_amount_in_document_currency ?? 0);
-                    $allocationDetails[] = $allocation->payment->reference
+                    $allocationDetails[] = $allocation->payment->number
                         .' ('.optional($allocation->payment->payment_date)->format('d/m/Y').')'
                         .' [via '.$this->extractMirrorDocRef($item->label).']'
                         .': '.number_format($allocAmount / Money::SCALE, 2);

@@ -182,7 +182,7 @@ final class PaymentsSummaryReportService
 
             $details[] = new PaymentAllocationDetail(
                 paymentId: $payment->id,
-                paymentReference: (string) $payment->reference,
+                paymentReference: (string) ($payment->number ?? $payment->reference),
                 paymentDate: CarbonImmutable::parse((string) $payment->payment_date),
                 paymentStatus: $payment->status,
                 companyId: (int) $payment->company_id,

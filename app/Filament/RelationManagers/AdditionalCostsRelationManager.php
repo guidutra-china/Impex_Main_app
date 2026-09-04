@@ -156,7 +156,7 @@ class AdditionalCostsRelationManager extends RelationManager
                     // that payment and can only be edited there.
                     ->description(fn ($record) => $record->isFromPayment()
                         ? __('forms.helpers.bank_fee_from_payment', [
-                            'reference' => $record->sourcePayment?->reference ?: '#'.$record->source_payment_id,
+                            'reference' => $record->sourcePayment?->number ?: '#'.$record->source_payment_id,
                         ])
                         : null),
                 TextColumn::make('commission_rate')

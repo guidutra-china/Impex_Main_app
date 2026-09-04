@@ -481,6 +481,7 @@ return [
         'record_payment' => 'Registrar Pagamento',
         'reference' => 'Referência',
         'reference_swift_transfer' => 'Referência (SWIFT, Nº da Transferência)',
+        'payment_number' => 'Nº do pagamento',
         'recalculate_shipment_schedule' => 'Recalcular para Embarque',
         'regenerate' => 'Regenerar',
         'registration_number' => 'Número de Registro',

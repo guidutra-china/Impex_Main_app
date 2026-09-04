@@ -28,7 +28,7 @@ class AccountsReceivableResource extends Resource
 
     protected static ?string $slug = 'accounts-receivable';
 
-    protected static ?string $recordTitleAttribute = 'reference';
+    protected static ?string $recordTitleAttribute = 'number';
 
     public static function canAccess(): bool
     {
@@ -42,7 +42,7 @@ class AccountsReceivableResource extends Resource
 
     public static function getGloballySearchableAttributes(): array
     {
-        return ['reference', 'company.name', 'notes'];
+        return ['number', 'reference', 'company.name', 'notes'];
     }
 
     public static function form(Schema $schema): Schema

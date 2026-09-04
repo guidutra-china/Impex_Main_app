@@ -197,7 +197,7 @@ final class DealBreakdownReportService
 
                 $items[] = new ReceiptItem(
                     paymentDate: CarbonImmutable::parse((string) $alloc->payment->payment_date),
-                    paymentReference: (string) $alloc->payment->reference,
+                    paymentReference: (string) ($alloc->payment->number ?? $alloc->payment->reference),
                     stageLabel: $scheduleItem->paymentTermStage?->label ?? $scheduleItem->label,
                     amountOriginal: $amt,
                     amountPresentation: $pres,

@@ -481,7 +481,7 @@ class ShipmentFinancialStatementPdfTemplate extends AbstractPdfTemplate
                 return [
                     'index' => $index + 1,
                     'date' => $this->formatDate($allocation->payment->payment_date),
-                    'reference' => $allocation->payment->reference ?: '—',
+                    'reference' => $this->paymentLabel($allocation->payment),
                     'method' => $allocation->payment->paymentMethod?->name ?? '—',
                     'applied_to' => $allocation->scheduleItem?->label ?? '—',
                     'amount' => $this->formatMoney($amount, $currencyCode, 2),
@@ -512,5 +512,16 @@ class ShipmentFinancialStatementPdfTemplate extends AbstractPdfTemplate
                 'in_totals' => $piCurrency === $currencyCode,
             ];
         })->all();
+    }
+
+    /**
+     * Número do pagamento primeiro (PAY-YYYY-NNNNNN); a referência bancária
+     * (SWIFT), quando informada, vem depois.
+     */
+    private function paymentLabel(\App\Domain\Financial\Models\Payment $payment): string
+    {
+        $parts = array_filter([$payment->number, $payment->reference], fn ($v) => filled($v));
+
+        return $parts ? implode(' · ', $parts) : '—';
     }
 }

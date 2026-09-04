@@ -482,6 +482,7 @@ return [
         'record_payment' => 'Record Payment',
         'reference' => 'Reference',
         'reference_swift_transfer' => 'Reference (SWIFT, Transfer #)',
+        'payment_number' => 'Payment #',
         'recalculate_shipment_schedule' => 'Recalculate for Shipment',
         'regenerate' => 'Regenerate',
         'registration_number' => 'Registration Number',

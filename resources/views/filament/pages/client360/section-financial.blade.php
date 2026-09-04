@@ -106,7 +106,7 @@
                                         {{ $this->formatMoney((int) $payment->amount, $payment->currency_code ?? 'USD') }}
                                     </td>
                                     <td class="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs">
-                                        {{ $payment->reference ?? '—' }}
+                                        {{ $payment->number ?? '—' }}@if($payment->reference) <span class="text-gray-400">· {{ $payment->reference }}</span>@endif
                                     </td>
                                     <td class="px-3 py-2 text-right whitespace-nowrap">
                                         <a href="{{ $this->paymentUrl($payment->id) }}" class="inline-flex items-center gap-1 text-xs font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400">

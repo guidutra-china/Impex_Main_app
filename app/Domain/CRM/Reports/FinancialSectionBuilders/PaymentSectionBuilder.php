@@ -57,7 +57,7 @@ final class PaymentSectionBuilder implements FinancialSectionBuilder
             $rows[] = [
                 '_row_type' => 'header',
                 '_entity_id' => (int) $payment->id,
-                'reference' => (string) ($payment->reference ?? ''),
+                'reference' => (string) ($payment->number ?? $payment->reference ?? ''),
                 'date' => optional($payment->payment_date)->format('Y-m-d'),
                 'direction' => $payment->direction instanceof \BackedEnum ? $payment->direction->value : (string) $payment->direction,
                 'amount' => round($amount / Money::SCALE, 2),

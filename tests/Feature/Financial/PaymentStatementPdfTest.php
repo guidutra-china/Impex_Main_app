@@ -193,7 +193,8 @@ class PaymentStatementPdfTest extends TestCase
         $this->assertSame('Deposit 30%', $data['schedule'][0]['label']);
 
         $this->assertCount(1, $data['payments']);
-        $this->assertSame('WIRE-001', $data['payments'][0]['reference']);
+        // Número do pagamento primeiro, referência SWIFT (livre) em seguida.
+        $this->assertMatchesRegularExpression('/^PAY-\d{4}-\d{6} · WIRE-001$/', $data['payments'][0]['reference']);
 
         // 30.000 pagos de 100.000 -> outstanding 70.000 (minor units)
         $this->assertSame(70000, $data['totals']['raw_outstanding']);

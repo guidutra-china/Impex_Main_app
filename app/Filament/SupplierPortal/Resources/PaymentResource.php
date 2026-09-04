@@ -9,7 +9,6 @@ use App\Domain\Infrastructure\Support\Money;
 use App\Filament\SupplierPortal\Resources\PaymentResource\Pages;
 use App\Filament\SupplierPortal\Resources\PaymentResource\Widgets\SupplierPaymentAllocations;
 use BackedEnum;
-use Filament\Facades\Filament;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -21,10 +20,15 @@ use Filament\Tables\Table;
 class PaymentResource extends Resource
 {
     protected static ?string $model = Payment::class;
+
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-banknotes';
+
     protected static ?int $navigationSort = 61;
+
     protected static ?string $slug = 'payments';
-    protected static ?string $recordTitleAttribute = 'reference';
+
+    protected static ?string $recordTitleAttribute = 'number';
+
     protected static ?string $tenantOwnershipRelationshipName = 'company';
 
     public static function canAccess(): bool
@@ -54,11 +58,16 @@ class PaymentResource extends Resource
                 $query->where('direction', PaymentDirection::OUTBOUND);
             })
             ->columns([
-                TextColumn::make('reference')
+                TextColumn::make('number')
+                    ->label(__('forms.labels.payment_number'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->copyable(),
+                TextColumn::make('reference')
+                    ->label(__('forms.labels.reference_swift_transfer'))
+                    ->searchable()
+                    ->placeholder('—'),
                 TextColumn::make('status')
                     ->badge(),
                 TextColumn::make('currency_code')
@@ -67,12 +76,12 @@ class PaymentResource extends Resource
                     ->color('gray'),
                 TextColumn::make('amount')
                     ->label('Amount')
-                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 2))
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '').' '.Money::format($state, 2))
                     ->alignRight(),
                 TextColumn::make('unallocated_amount')
                     ->label('Unallocated')
                     ->getStateUsing(fn ($record) => $record->unallocated_amount)
-                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 2))
+                    ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '').' '.Money::format($state, 2))
                     ->alignRight()
                     ->color(fn ($record) => $record->unallocated_amount > 0 ? 'warning' : 'success'),
                 TextColumn::make('payment_date')
@@ -109,9 +118,13 @@ class PaymentResource extends Resource
         return $schema->components([
             Section::make('Payment Details')
                 ->schema([
-                    TextEntry::make('reference')
+                    TextEntry::make('number')
+                        ->label(__('forms.labels.payment_number'))
                         ->copyable()
                         ->weight('bold'),
+                    TextEntry::make('reference')
+                        ->label(__('forms.labels.reference_swift_transfer'))
+                        ->placeholder('—'),
                     TextEntry::make('status')
                         ->badge(),
                     TextEntry::make('currency_code')
@@ -120,7 +133,7 @@ class PaymentResource extends Resource
                         ->color('gray'),
                     TextEntry::make('amount')
                         ->label('Amount')
-                        ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '') . ' ' . Money::format($state, 2))
+                        ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '').' '.Money::format($state, 2))
                         ->weight('bold'),
                     TextEntry::make('payment_date')
                         ->label('Payment Date')
