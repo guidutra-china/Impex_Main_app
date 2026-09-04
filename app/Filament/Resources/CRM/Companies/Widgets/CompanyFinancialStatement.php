@@ -186,7 +186,18 @@ class CompanyFinancialStatement extends Widget
 
     private function buildForwarderStatement(Company $company): array
     {
-        $costs = AdditionalCost::where('forwarder_company_id', $company->id)
+        // Forwarder leg (freight paid to the forwarder) plus the supplier leg a
+        // forwarder-only company may carry on other shipment costs (e.g.
+        // export documents) — both are money Impex owes this company.
+        $costs = AdditionalCost::query()
+            ->where(function ($q) use ($company) {
+                $q->where('forwarder_company_id', $company->id)
+                    ->orWhere(function ($q2) use ($company) {
+                        $q2->where('supplier_company_id', $company->id)
+                            ->where('supplier_payable_amount', '>', 0)
+                            ->where('billable_to', '!=', \App\Domain\Financial\Enums\BillableTo::SUPPLIER->value);
+                    });
+            })
             ->whereNot('status', AdditionalCostStatus::WAIVED)
             ->where('costable_type', (new Shipment)->getMorphClass())
             ->with('costable')
@@ -206,12 +217,19 @@ class CompanyFinancialStatement extends Widget
                 continue;
             }
 
-            $total = $shipmentCosts->sum('forwarder_amount');
-            $currency = $shipmentCosts->first()->forwarder_currency_code ?? 'USD';
+            $total = $shipmentCosts
+                ->sum(fn (AdditionalCost $c) => ((int) $c->forwarder_company_id === (int) $company->id ? (int) $c->forwarder_amount : 0)
+                    + ((int) $c->supplier_company_id === (int) $company->id && $c->hasSupplierPayableSide() ? (int) $c->supplier_payable_amount : 0));
+            $currency = $shipmentCosts->first()->forwarder_currency_code
+                ?? $shipmentCosts->first()->supplier_payable_currency_code
+                ?? 'USD';
 
             $paidItems = PaymentScheduleItem::where('source_type', AdditionalCost::class)
                 ->whereIn('source_id', $shipmentCosts->pluck('id'))
-                ->where('notes', 'LIKE', '%[forwarder-payable]%')
+                ->where(function ($q) {
+                    $q->where('notes', 'LIKE', '%'.PaymentScheduleItem::FORWARDER_PAYABLE_TAG.'%')
+                        ->orWhere('notes', 'LIKE', '%'.PaymentScheduleItem::SUPPLIER_PAYABLE_TAG.'%');
+                })
                 ->get();
 
             $paid = $paidItems->sum('paid_amount');

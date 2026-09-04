@@ -521,66 +521,70 @@ trait HasPaymentFormSections
                 }
             });
         } else {
-            if ($isForwarder) {
-                $costableIds = \App\Domain\Financial\Models\AdditionalCost::where('forwarder_company_id', $companyId)
+            // A company can be forwarder AND supplier at once (e.g. a logistics
+            // agent that also invoices export documents as a supplier leg), so
+            // the two legs are OR'ed, never mutually exclusive by role.
+            $forwarderShipmentIds = $isForwarder
+                ? \App\Domain\Financial\Models\AdditionalCost::where('forwarder_company_id', $companyId)
                     ->where('costable_type', (new Shipment)->getMorphClass())
                     ->pluck('costable_id')
-                    ->unique();
+                    ->unique()
+                : collect();
 
-                $forwarderCostIds = \App\Domain\Financial\Models\AdditionalCost::where('forwarder_company_id', $companyId)
-                    ->pluck('id');
+            $poIds = PurchaseOrder::where('supplier_company_id', $companyId)->pluck('id');
 
-                $query->where(function ($q) use ($costableIds) {
-                    $q->where(function ($q2) use ($costableIds) {
-                        $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $costableIds);
+            // Shipment-level items only surface if they are additional costs
+            // whose supplier_company_id matches the selected supplier.
+            // Without this filter, freight/commission items belonging to
+            // other parties on the same shipment would leak into this
+            // supplier's outstanding list.
+            $supplierAdditionalCostIds = \App\Domain\Financial\Models\AdditionalCost::query()
+                ->where('supplier_company_id', $companyId)
+                ->pluck('id');
+
+            // Issued SUPPLIER Debit Notes — extra amounts Impex owes the
+            // supplier (payables) owned by the DN itself, mirroring how the
+            // INBOUND branch surfaces client DNs as receivables.
+            $supplierDnIds = DebitNote::where('company_id', $companyId)
+                ->where('party_type', PartyType::SUPPLIER->value)
+                ->where('status', DebitNoteStatus::ISSUED->value)
+                ->pluck('id');
+
+            $query->where(function ($q) use ($forwarderShipmentIds, $poIds, $supplierAdditionalCostIds, $supplierDnIds) {
+                // Forwarder leg: [forwarder-payable] rows on shipments this
+                // company forwards.
+                if ($forwarderShipmentIds->isNotEmpty()) {
+                    $q->orWhere(function ($q2) use ($forwarderShipmentIds) {
+                        $q2->where('payable_type', Shipment::class)
+                            ->whereIn('payable_id', $forwarderShipmentIds)
+                            ->where('notes', 'LIKE', '%'.PaymentScheduleItem::FORWARDER_PAYABLE_TAG.'%');
                     });
-                    $q->where('notes', 'LIKE', '%[forwarder-payable]%');
+                }
+
+                // Supplier leg: PO installments (never forwarder-payable rows,
+                // those belong to the leg above).
+                $q->orWhere(function ($q2) use ($poIds) {
+                    $q2->where('payable_type', PurchaseOrder::class)
+                        ->whereIn('payable_id', $poIds)
+                        ->where(function ($q3) {
+                            $q3->whereNull('notes')
+                                ->orWhere('notes', 'NOT LIKE', '%'.PaymentScheduleItem::FORWARDER_PAYABLE_TAG.'%');
+                        });
                 });
-            } else {
-                // Forwarder-payable rows belong to the forwarder branch above.
-                $query->where(function ($q) {
-                    $q->whereNull('notes')
-                        ->orWhere('notes', 'NOT LIKE', '%'.PaymentScheduleItem::FORWARDER_PAYABLE_TAG.'%');
-                });
-
-                $poIds = PurchaseOrder::where('supplier_company_id', $companyId)->pluck('id');
-
-                // Shipment-level items only surface if they are additional costs
-                // whose supplier_company_id matches the selected supplier.
-                // Without this filter, freight/commission items belonging to
-                // other parties on the same shipment would leak into this
-                // supplier's outstanding list.
-                $supplierAdditionalCostIds = \App\Domain\Financial\Models\AdditionalCost::query()
-                    ->where('supplier_company_id', $companyId)
-                    ->pluck('id');
-
-                // Issued SUPPLIER Debit Notes — extra amounts Impex owes the
-                // supplier (payables) owned by the DN itself, mirroring how the
-                // INBOUND branch surfaces client DNs as receivables.
-                $supplierDnIds = DebitNote::where('company_id', $companyId)
-                    ->where('party_type', PartyType::SUPPLIER->value)
-                    ->where('status', DebitNoteStatus::ISSUED->value)
-                    ->pluck('id');
-
-                $query->where(function ($q) use ($poIds, $supplierAdditionalCostIds, $supplierDnIds) {
-                    $q->where(function ($q2) use ($poIds) {
-                        $q2->where('payable_type', PurchaseOrder::class)->whereIn('payable_id', $poIds);
+                if ($supplierAdditionalCostIds->isNotEmpty()) {
+                    $q->orWhere(function ($q2) use ($supplierAdditionalCostIds) {
+                        $q2->where('source_type', \App\Domain\Financial\Models\AdditionalCost::class)
+                            ->whereIn('source_id', $supplierAdditionalCostIds)
+                            ->where('notes', 'LIKE', '%'.PaymentScheduleItem::SUPPLIER_PAYABLE_TAG.'%');
                     });
-                    if ($supplierAdditionalCostIds->isNotEmpty()) {
-                        $q->orWhere(function ($q2) use ($supplierAdditionalCostIds) {
-                            $q2->where('source_type', \App\Domain\Financial\Models\AdditionalCost::class)
-                                ->whereIn('source_id', $supplierAdditionalCostIds)
-                                ->where('notes', 'LIKE', '%'.PaymentScheduleItem::SUPPLIER_PAYABLE_TAG.'%');
-                        });
-                    }
-                    if ($supplierDnIds->isNotEmpty()) {
-                        $q->orWhere(function ($q2) use ($supplierDnIds) {
-                            $q2->where('payable_type', DebitNote::class)
-                                ->whereIn('payable_id', $supplierDnIds);
-                        });
-                    }
-                });
-            }
+                }
+                if ($supplierDnIds->isNotEmpty()) {
+                    $q->orWhere(function ($q2) use ($supplierDnIds) {
+                        $q2->where('payable_type', DebitNote::class)
+                            ->whereIn('payable_id', $supplierDnIds);
+                    });
+                }
+            });
         }
 
         return $query->with(['payable', 'shipment'])->get();
@@ -649,71 +653,67 @@ trait HasPaymentFormSections
                 });
             }
         } else {
-            if ($isForwarder) {
-                $costableIds = \App\Domain\Financial\Models\AdditionalCost::where('forwarder_company_id', $companyId)
+            // Same rule as getCompanyScheduleItems: forwarder and supplier legs
+            // are OR'ed, a forwarder-only company still gets its supplier-leg
+            // credits (e.g. the supplier side of a discount).
+            $forwarderShipmentIds = $isForwarder
+                ? \App\Domain\Financial\Models\AdditionalCost::where('forwarder_company_id', $companyId)
                     ->where('costable_type', (new Shipment)->getMorphClass())
                     ->pluck('costable_id')
-                    ->unique();
+                    ->unique()
+                : collect();
 
-                $query->where(function ($q) use ($costableIds, $creditNoteIds) {
-                    $q->where(function ($q2) use ($costableIds) {
-                        $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $costableIds);
+            $poIds = PurchaseOrder::where('supplier_company_id', $companyId)->pluck('id');
+
+            // Shipment-level items only surface if they are additional costs
+            // whose supplier_company_id matches the selected supplier.
+            // Without this filter, freight/commission items belonging to
+            // other parties on the same shipment would leak into this
+            // supplier's outstanding list.
+            $supplierAdditionalCostIds = \App\Domain\Financial\Models\AdditionalCost::query()
+                ->where('supplier_company_id', $companyId)
+                ->pluck('id');
+
+            // Untagged cost credits only belong to the supplier when the
+            // cost is billed TO the supplier; a CLIENT-billable cost with
+            // the informational supplier field filled must not leak its
+            // client-leg credit into this supplier's list. Tagged rows
+            // ([supplier-payable]) are the supplier leg by construction.
+            $supplierBilledCostIds = \App\Domain\Financial\Models\AdditionalCost::query()
+                ->where('supplier_company_id', $companyId)
+                ->where('billable_to', BillableTo::SUPPLIER->value)
+                ->pluck('id');
+
+            $query->where(function ($q) use ($forwarderShipmentIds, $poIds, $supplierAdditionalCostIds, $supplierBilledCostIds, $creditNoteIds) {
+                if ($forwarderShipmentIds->isNotEmpty()) {
+                    $q->orWhere(function ($q2) use ($forwarderShipmentIds) {
+                        $q2->where('payable_type', Shipment::class)->whereIn('payable_id', $forwarderShipmentIds);
                     });
-                    if ($creditNoteIds->isNotEmpty()) {
-                        $q->orWhere(function ($q2) use ($creditNoteIds) {
-                            $q2->where('payable_type', \App\Domain\Financial\Models\CreditNote::class)
-                                ->whereIn('payable_id', $creditNoteIds);
-                        });
-                    }
+                }
+                $q->orWhere(function ($q2) use ($poIds) {
+                    $q2->where('payable_type', PurchaseOrder::class)->whereIn('payable_id', $poIds)->withoutSideTags();
                 });
-            } else {
-                $poIds = PurchaseOrder::where('supplier_company_id', $companyId)->pluck('id');
-
-                // Shipment-level items only surface if they are additional costs
-                // whose supplier_company_id matches the selected supplier.
-                // Without this filter, freight/commission items belonging to
-                // other parties on the same shipment would leak into this
-                // supplier's outstanding list.
-                $supplierAdditionalCostIds = \App\Domain\Financial\Models\AdditionalCost::query()
-                    ->where('supplier_company_id', $companyId)
-                    ->pluck('id');
-
-                // Untagged cost credits only belong to the supplier when the
-                // cost is billed TO the supplier; a CLIENT-billable cost with
-                // the informational supplier field filled must not leak its
-                // client-leg credit into this supplier's list. Tagged rows
-                // ([supplier-payable]) are the supplier leg by construction.
-                $supplierBilledCostIds = \App\Domain\Financial\Models\AdditionalCost::query()
-                    ->where('supplier_company_id', $companyId)
-                    ->where('billable_to', BillableTo::SUPPLIER->value)
-                    ->pluck('id');
-
-                $query->where(function ($q) use ($poIds, $supplierAdditionalCostIds, $supplierBilledCostIds, $creditNoteIds) {
-                    $q->where(function ($q2) use ($poIds) {
-                        $q2->where('payable_type', PurchaseOrder::class)->whereIn('payable_id', $poIds)->withoutSideTags();
+                if ($supplierAdditionalCostIds->isNotEmpty()) {
+                    $q->orWhere(function ($q2) use ($supplierAdditionalCostIds) {
+                        $q2->where('source_type', \App\Domain\Financial\Models\AdditionalCost::class)
+                            ->whereIn('source_id', $supplierAdditionalCostIds)
+                            ->withSideTag(PaymentScheduleItem::SUPPLIER_PAYABLE_TAG);
                     });
-                    if ($supplierAdditionalCostIds->isNotEmpty()) {
-                        $q->orWhere(function ($q2) use ($supplierAdditionalCostIds) {
-                            $q2->where('source_type', \App\Domain\Financial\Models\AdditionalCost::class)
-                                ->whereIn('source_id', $supplierAdditionalCostIds)
-                                ->withSideTag(PaymentScheduleItem::SUPPLIER_PAYABLE_TAG);
-                        });
-                    }
-                    if ($supplierBilledCostIds->isNotEmpty()) {
-                        $q->orWhere(function ($q2) use ($supplierBilledCostIds) {
-                            $q2->where('source_type', \App\Domain\Financial\Models\AdditionalCost::class)
-                                ->whereIn('source_id', $supplierBilledCostIds)
-                                ->withoutSideTags();
-                        });
-                    }
-                    if ($creditNoteIds->isNotEmpty()) {
-                        $q->orWhere(function ($q2) use ($creditNoteIds) {
-                            $q2->where('payable_type', \App\Domain\Financial\Models\CreditNote::class)
-                                ->whereIn('payable_id', $creditNoteIds);
-                        });
-                    }
-                });
-            }
+                }
+                if ($supplierBilledCostIds->isNotEmpty()) {
+                    $q->orWhere(function ($q2) use ($supplierBilledCostIds) {
+                        $q2->where('source_type', \App\Domain\Financial\Models\AdditionalCost::class)
+                            ->whereIn('source_id', $supplierBilledCostIds)
+                            ->withoutSideTags();
+                    });
+                }
+                if ($creditNoteIds->isNotEmpty()) {
+                    $q->orWhere(function ($q2) use ($creditNoteIds) {
+                        $q2->where('payable_type', \App\Domain\Financial\Models\CreditNote::class)
+                            ->whereIn('payable_id', $creditNoteIds);
+                    });
+                }
+            });
         }
 
         return $query->with(['payable', 'shipment'])->get();

@@ -434,6 +434,118 @@ class SupplierPayableCostSideTest extends TestCase
         $this->assertFalse($inbound->contains($psi->id));
     }
 
+    /**
+     * Forwarder-only company (e.g. a logistics agent) that also carries a
+     * supplier leg on an "other" cost: the payment form must list BOTH its
+     * [forwarder-payable] freight row and its [supplier-payable] cost row.
+     * Regression: the OUTBOUND branch used to be forwarder XOR supplier, so
+     * the supplier leg of a forwarder-only company was invisible (SH-41).
+     */
+    public function test_payment_form_lists_supplier_leg_of_forwarder_only_company(): void
+    {
+        $forwarder = Company::create(['name' => 'TAS Logistics', 'status' => 'active']);
+        $forwarder->companyRoles()->create(['role' => 'forwarder']);
+
+        $shipment = Shipment::create([
+            'reference' => 'SHP-TEST-041',
+            'company_id' => $this->client->id,
+            'issue_date' => '2026-08-20',
+            'status' => ShipmentStatus::IN_TRANSIT,
+            'currency_code' => 'USD',
+            'created_by' => null,
+        ]);
+
+        // Freight cost paid to the forwarder → [forwarder-payable] row.
+        $freight = $shipment->additionalCosts()->create([
+            'cost_type' => AdditionalCostType::FREIGHT->value,
+            'description' => 'Air freight',
+            'amount' => 17_434_000,
+            'currency_code' => 'USD',
+            'exchange_rate' => 1,
+            'amount_in_document_currency' => 17_434_000,
+            'billable_to' => BillableTo::CLIENT->value,
+            'status' => AdditionalCostStatus::PENDING->value,
+            'forwarder_company_id' => $forwarder->id,
+            'forwarder_amount' => 17_050_000,
+            'forwarder_currency_code' => 'USD',
+        ]);
+        $forwarderPsi = PaymentScheduleItem::create([
+            'payable_type' => Shipment::class,
+            'payable_id' => $shipment->id,
+            'label' => 'Freight payable: TAS Logistics - Air freight',
+            'percentage' => 0,
+            'amount' => 17_050_000,
+            'currency_code' => 'USD',
+            'status' => PaymentScheduleStatus::DUE->value,
+            'is_blocking' => false,
+            'is_credit' => false,
+            'sort_order' => 1,
+            'notes' => PaymentScheduleItem::FORWARDER_PAYABLE_TAG,
+            'source_type' => AdditionalCost::class,
+            'source_id' => $freight->id,
+        ]);
+
+        // "Other" cost with a supplier leg to the same forwarder → [supplier-payable] row.
+        $docs = $shipment->additionalCosts()->create([
+            'cost_type' => AdditionalCostType::OTHER->value,
+            'description' => 'Export documents',
+            'amount' => 4_260_000,
+            'currency_code' => 'USD',
+            'exchange_rate' => 1,
+            'amount_in_document_currency' => 4_260_000,
+            'billable_to' => BillableTo::CLIENT->value,
+            'status' => AdditionalCostStatus::PENDING->value,
+            'supplier_company_id' => $forwarder->id,
+            'supplier_payable_amount' => 786_900,
+            'supplier_payable_currency_code' => 'USD',
+            'supplier_payable_amount_in_document_currency' => 786_900,
+        ]);
+        app(SyncSupplierPayableScheduleItemAction::class)->execute($docs, $shipment);
+        $supplierPsi = $this->supplierPsiFor($docs);
+        $this->assertNotNull($supplierPsi);
+
+        $helper = new class
+        {
+            use HasPaymentFormSections;
+        };
+
+        $outbound = $helper::getCompanyScheduleItems($forwarder->id, PaymentDirection::OUTBOUND)->pluck('id');
+
+        $this->assertTrue($outbound->contains($forwarderPsi->id), 'forwarder-payable row missing');
+        $this->assertTrue($outbound->contains($supplierPsi->id), 'supplier-payable row missing for forwarder-only company');
+        $this->assertCount(2, $outbound);
+    }
+
+    public function test_payment_form_lists_supplier_credit_of_forwarder_only_company(): void
+    {
+        $forwarder = Company::create(['name' => 'TAS Logistics', 'status' => 'active']);
+        $forwarder->companyRoles()->create(['role' => 'forwarder']);
+
+        $discount = $this->makeCost([
+            'cost_type' => AdditionalCostType::DISCOUNT->value,
+            'description' => 'Handling rebate',
+            'amount' => -1_000_000,
+            'amount_in_document_currency' => -1_000_000,
+            'supplier_company_id' => $forwarder->id,
+            'supplier_payable_amount' => 500_000, // positive; the credit sign lives in the PSI flag
+            'supplier_payable_currency_code' => 'USD',
+            'supplier_payable_amount_in_document_currency' => 500_000,
+        ]);
+        app(SyncSupplierPayableScheduleItemAction::class)->execute($discount, $this->pi);
+        $credit = $this->supplierPsiFor($discount);
+        $this->assertNotNull($credit);
+        $this->assertTrue($credit->is_credit);
+
+        $helper = new class
+        {
+            use HasPaymentFormSections;
+        };
+
+        $credits = $helper::getCompanyCreditItems($forwarder->id, PaymentDirection::OUTBOUND)->pluck('id');
+
+        $this->assertTrue($credits->contains($credit->id), 'supplier-leg credit missing for forwarder-only company');
+    }
+
     public function test_waiving_cost_waives_supplier_side_too(): void
     {
         $cost = $this->makePayableCost();

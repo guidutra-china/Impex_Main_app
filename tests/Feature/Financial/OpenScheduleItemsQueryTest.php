@@ -7,6 +7,7 @@ use App\Domain\CRM\Models\Company;
 use App\Domain\Financial\Actions\IssueDebitNoteAction;
 use App\Domain\Financial\Enums\DebitNoteStatus;
 use App\Domain\Financial\Enums\PartyType;
+use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\DebitNote;
 use App\Domain\Financial\Models\DebitNoteLineItem;
@@ -77,6 +78,21 @@ class OpenScheduleItemsQueryTest extends TestCase
         // No leakage across sides.
         $this->assertFalse($receivableIds->contains($poItem->id));
         $this->assertFalse($receivableIds->contains($dnItemId));
+    }
+
+    public function test_outbound_counterparty_options_include_forwarder_only_companies(): void
+    {
+        $forwarder = Company::create(['name' => 'TAS Logistics', 'status' => 'active']);
+        $forwarder->companyRoles()->create(['role' => CompanyRole::FORWARDER->value]);
+
+        $outbound = OpenScheduleItemsQuery::counterpartyOptions(PaymentDirection::OUTBOUND);
+        $this->assertTrue($outbound->has($this->supplier->id));
+        $this->assertTrue($outbound->has($forwarder->id), 'forwarder-only company missing from outbound counterparties');
+        $this->assertFalse($outbound->has($this->client->id));
+
+        $inbound = OpenScheduleItemsQuery::counterpartyOptions(PaymentDirection::INBOUND);
+        $this->assertTrue($inbound->has($this->client->id));
+        $this->assertFalse($inbound->has($forwarder->id));
     }
 
     public function test_client_dn_is_receivable_not_payable(): void

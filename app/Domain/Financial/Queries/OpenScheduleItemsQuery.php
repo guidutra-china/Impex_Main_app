@@ -154,7 +154,14 @@ final class OpenScheduleItemsQuery
      */
     public static function counterpartyOptions(PaymentDirection $direction): \Illuminate\Support\Collection
     {
-        return Company::withRole($direction === PaymentDirection::INBOUND ? CompanyRole::CLIENT : CompanyRole::SUPPLIER)
+        // Outbound counterparties are suppliers AND forwarders: a forwarder-only
+        // company can carry a [supplier-payable] leg (see payables()).
+        $roles = $direction === PaymentDirection::INBOUND
+            ? [CompanyRole::CLIENT->value]
+            : [CompanyRole::SUPPLIER->value, CompanyRole::FORWARDER->value];
+
+        return Company::query()
+            ->whereHas('companyRoles', fn ($q) => $q->whereIn('role', $roles))
             ->orderBy('name')
             ->pluck('name', 'id');
     }
