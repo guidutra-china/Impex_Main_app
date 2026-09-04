@@ -144,6 +144,9 @@ class ItemsRelationManager extends RelationManager
                         $set('selected_supplier_id', $sqItem->supplierQuotation->company_id);
                         $set('unit_cost', Money::toMajor($sqItem->unit_cost));
                         $set('cost_currency_code', $sqItem->supplierQuotation->currency_code ?? $this->getOwnerRecord()->currency_code);
+                        if ($sqItem->unit) {
+                            $set('unit', $sqItem->unit);
+                        }
                         $this->resolveFxRate($get, $set);
 
                         if ($sqItem->supplierQuotation->incoterm) {
@@ -213,6 +216,12 @@ class ItemsRelationManager extends RelationManager
                     ->required()
                     ->minValue(1)
                     ->default(1),
+
+                TextInput::make('unit')
+                    ->label(__('forms.labels.unit'))
+                    ->default('pcs')
+                    ->maxLength(20)
+                    ->required(),
 
                 TextInput::make('unit_cost')
                     ->label(__('forms.labels.unit_cost'))
@@ -344,6 +353,10 @@ class ItemsRelationManager extends RelationManager
                     ->label(__('forms.labels.qty'))
                     ->numeric()
                     ->alignCenter(),
+                TextColumn::make('unit')
+                    ->label(__('forms.labels.unit'))
+                    ->alignCenter()
+                    ->toggleable(),
                 TextColumn::make('selectedSupplier.name')
                     ->label(__('forms.labels.supplier'))
                     ->placeholder('—')
@@ -582,6 +595,9 @@ class ItemsRelationManager extends RelationManager
                 $set('selected_supplier_id', $sqItem->supplierQuotation->company_id);
                 $set('unit_cost', Money::toMajor($sqItem->unit_cost));
                 $set('cost_currency_code', $sqItem->supplierQuotation->currency_code ?? $quotation->currency_code);
+                if ($sqItem->unit) {
+                    $set('unit', $sqItem->unit);
+                }
                 $this->resolveFxRate($get, $set);
 
                 if ($sqItem->supplierQuotation->incoterm) {

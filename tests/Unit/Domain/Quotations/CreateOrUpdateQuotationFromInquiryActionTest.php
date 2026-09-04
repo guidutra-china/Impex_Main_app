@@ -90,6 +90,7 @@ class CreateOrUpdateQuotationFromInquiryActionTest extends TestCase
                 'supplier_quotation_id' => $sq->id,
                 'product_id' => $i['product_id'],
                 'quantity' => 10,
+                'unit' => $i['unit'] ?? 'pcs',
                 'unit_cost' => $i['unit_cost'],
             ]);
         }
@@ -911,5 +912,49 @@ class CreateOrUpdateQuotationFromInquiryActionTest extends TestCase
         $this->assertEqualsWithDelta(0.0, (float) $refreshed->commission_rate, 0.01);
         // Sob SEPARATE nenhum item embute comissão — a comissão vive só no cabeçalho.
         $this->assertSame(100000, $refreshed->unit_price);
+    }
+
+    /**
+     * A unidade nasce no Inquiry, passa pela SQ e tem que chegar à Quotation:
+     * vidro cotado em SQM saía no PDF como "peça" porque a quotation não
+     * guardava unidade nenhuma (QT-2026-00031 ← SQ-138/139).
+     */
+    public function test_item_unit_comes_from_the_primary_supplier_quotation_item(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems(1);
+        $items[0]->update(['unit' => 'pcs']);
+
+        $supplier = Company::factory()->create();
+        $this->buildSqWith($inquiry, $supplier, 'USD', [
+            ['product_id' => $items[0]->product_id, 'unit_cost' => 100000, 'unit' => 'SQM'],
+        ]);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: $inquiry->supplierQuotations()->pluck('id')->all(),
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+            forceNewVersion: false,
+        );
+
+        $this->assertSame('SQM', $quotation->items()->first()->unit);
+    }
+
+    public function test_item_unit_falls_back_to_the_inquiry_item_when_no_supplier_quoted_it(): void
+    {
+        [$client, $inquiry, $items] = $this->buildInquiryWithItems(1);
+        $items[0]->update(['unit' => 'SET']);
+
+        $quotation = $this->makeAction()->execute(
+            inquiry: $inquiry,
+            supplierQuotationIds: [],
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 0,
+            showSuppliers: false,
+            forceNewVersion: false,
+        );
+
+        $this->assertSame('SET', $quotation->items()->first()->unit);
     }
 }

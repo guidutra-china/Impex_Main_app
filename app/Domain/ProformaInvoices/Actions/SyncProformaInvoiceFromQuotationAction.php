@@ -118,6 +118,7 @@ class SyncProformaInvoiceFromQuotationAction
                 $updates = [
                     'product_id' => $item->product_id,
                     'quantity' => $item->quantity,
+                    'unit' => $item->unit ?: 'pcs',
                     'unit_price' => $unitPrice,
                     'unit_cost' => $item->unit_cost,
                     'cost_currency_code' => $item->cost_currency_code,
@@ -151,7 +152,7 @@ class SyncProformaInvoiceFromQuotationAction
                 'description' => $item->product?->name,
                 'specifications' => $item->product?->specification?->description ?? null,
                 'quantity' => $item->quantity,
-                'unit' => 'pcs',
+                'unit' => $item->unit ?: 'pcs',
                 'unit_price' => $unitPrice,
                 'unit_cost' => $item->unit_cost,
                 'cost_currency_code' => $item->cost_currency_code,

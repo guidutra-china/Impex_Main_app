@@ -192,6 +192,8 @@ class QuotationVersionInfolist
                         'product_name' => $productName,
                         'product_sku' => $productSku,
                         'qty' => (int) ($row['quantity'] ?? 0),
+                        // Versões antigas (antes da coluna) não trazem unit.
+                        'unit' => $row['unit'] ?? 'pcs',
                         'unit_cost_display' => $unitCost,
                         'unit_price_display' => static::money($row['unit_price'] ?? 0, 4),
                         'line_total_display' => static::money($lineTotal),
@@ -210,6 +212,9 @@ class QuotationVersionInfolist
                     ->color('gray'),
                 TextEntry::make('qty')
                     ->label(__('forms.labels.qty'))
+                    ->alignCenter(),
+                TextEntry::make('unit')
+                    ->label(__('forms.labels.unit'))
                     ->alignCenter(),
                 TextEntry::make('unit_cost_display')
                     ->label(__('forms.labels.unit_cost')),

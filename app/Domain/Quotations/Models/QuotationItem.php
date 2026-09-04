@@ -22,6 +22,7 @@ class QuotationItem extends Model
         'product_id',
         'supplier_quotation_item_id',
         'quantity',
+        'unit',
         'selected_supplier_id',
         'unit_cost',
         'cost_currency_code',

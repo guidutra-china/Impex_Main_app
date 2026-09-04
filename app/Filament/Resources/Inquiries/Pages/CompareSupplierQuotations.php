@@ -2,19 +2,16 @@
 
 namespace App\Filament\Resources\Inquiries\Pages;
 
-use App\Domain\Infrastructure\Support\Money;
+use App\Domain\Inquiries\Enums\ProjectTeamRole;
 use App\Domain\Inquiries\Models\Inquiry;
-use App\Domain\Inquiries\Models\InquiryItem;
 use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\QuotationStatus;
 use App\Domain\Quotations\Models\Quotation;
 use App\Domain\Quotations\Models\QuotationItem;
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
-use App\Domain\SupplierQuotations\Models\SupplierQuotation;
 use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
 use App\Filament\Resources\Inquiries\InquiryResource;
 use App\Filament\Resources\Quotations\QuotationResource;
-use App\Domain\Inquiries\Enums\ProjectTeamRole;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -68,7 +65,7 @@ class CompareSupplierQuotations extends Page
             $row = [
                 'inquiry_item_id' => $inquiryItem->id,
                 'product_id' => $inquiryItem->product_id,
-                'product_name' => $inquiryItem->product?->name ?? $inquiryItem->description ?? 'Item #' . $inquiryItem->id,
+                'product_name' => $inquiryItem->product?->name ?? $inquiryItem->description ?? 'Item #'.$inquiryItem->id,
                 'quantity' => $inquiryItem->quantity,
                 'unit' => $inquiryItem->unit ?? 'pcs',
                 'target_price' => $inquiryItem->target_price,
@@ -241,6 +238,7 @@ class CompareSupplierQuotations extends Page
                     $unitPrice = 0;
                     $selectedSupplierId = null;
                     $sqItemId = null;
+                    $sqUnit = null;
                     $itemCommissionRate = 0;
 
                     if ($selection) {
@@ -251,6 +249,7 @@ class CompareSupplierQuotations extends Page
                             $unitCost = $sqItem->unit_cost;
                             $selectedSupplierId = $sqItem->supplierQuotation->company_id;
                             $sqItemId = $sqItem->id;
+                            $sqUnit = $sqItem->unit;
                         }
                     }
 
@@ -280,6 +279,7 @@ class CompareSupplierQuotations extends Page
                         'product_id' => $inquiryItem->product_id,
                         'supplier_quotation_item_id' => $sqItemId,
                         'quantity' => $inquiryItem->quantity,
+                        'unit' => $sqUnit ?: ($inquiryItem->unit ?: 'pcs'),
                         'selected_supplier_id' => $selectedSupplierId,
                         'unit_cost' => $unitCost,
                         'commission_rate' => $itemCommissionRate,
@@ -293,7 +293,7 @@ class CompareSupplierQuotations extends Page
             });
 
             Notification::make()
-                ->title('Quotation created: ' . $quotation->reference)
+                ->title('Quotation created: '.$quotation->reference)
                 ->body('Items populated from selected supplier quotations.')
                 ->success()
                 ->send();

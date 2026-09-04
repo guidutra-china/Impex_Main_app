@@ -125,7 +125,7 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
                 // Pontuação CJK é normalizada centralmente no AbstractPdfTemplate.
                 'spec_notes' => $item->product?->specification?->notes,
                 'quantity' => $item->quantity,
-                'unit' => $item->product?->unit ?? 'pcs',
+                'unit' => $item->unit ?: 'pcs',
                 'unit_price' => $unitPriceDisplay,
                 'line_total' => $this->formatMoney($item->line_total, $currencyCode, 2),
                 'incoterm' => $item->incoterm instanceof \BackedEnum ? $item->incoterm->value : $item->incoterm,

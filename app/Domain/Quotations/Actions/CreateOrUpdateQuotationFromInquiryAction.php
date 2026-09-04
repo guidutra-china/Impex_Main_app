@@ -262,6 +262,8 @@ class CreateOrUpdateQuotationFromInquiryAction
                 'product_id' => $productId,
                 'supplier_quotation_item_id' => $primary?->id,
                 'quantity' => $inquiryItem->quantity,
+                // Unidade da SQ eleita > unidade pedida no inquiry > pcs.
+                'unit' => $primary?->unit ?: ($inquiryItem->unit ?: 'pcs'),
                 'selected_supplier_id' => $primary?->supplierQuotation?->company_id,
                 'unit_cost' => $unitCost,
                 'cost_currency_code' => $resolved['currency'],
