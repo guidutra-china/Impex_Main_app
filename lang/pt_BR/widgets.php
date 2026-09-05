@@ -287,6 +287,8 @@ return [
         'product' => 'Produto',
         'pi_qty' => 'Qtd PI',
         'shipped' => 'Enviado',
+        'in_shipment' => 'Em embarque',
+        'in_shipment_hint' => 'Reservado ou em desembaraço, ainda não partiu — não conta como enviado',
         'status' => 'Status',
         'shipments' => 'Remessas',
         'partial' => 'Parcial',

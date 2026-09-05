@@ -257,6 +257,13 @@ class ItemsRelationManager extends RelationManager
                     ->alignCenter()
                     ->color(fn ($record) => $record->quantity_shipped > 0 ? 'success' : 'gray')
                     ->toggleable(),
+                TextColumn::make('quantity_in_shipment')
+                    ->label(__('forms.labels.in_shipment'))
+                    ->tooltip(__('forms.helpers.in_shipment'))
+                    ->getStateUsing(fn ($record) => $record->quantity_in_shipment)
+                    ->alignCenter()
+                    ->color(fn ($record) => $record->quantity_in_shipment > 0 ? 'info' : 'gray')
+                    ->toggleable(),
                 TextColumn::make('quantity_remaining')
                     ->label(__('forms.labels.remaining'))
                     ->getStateUsing(fn ($record) => $record->quantity_remaining)

@@ -192,6 +192,18 @@ class ProformaInvoiceItem extends Model
             ->sum('quantity');
     }
 
+    /**
+     * Quantidade em embarque reservado que ainda não partiu (BOOKED/CUSTOMS).
+     * Não entra em quantity_shipped nem reduz quantity_remaining — existe
+     * para a PI não esconder o que já está alocado a um embarque real.
+     */
+    public function getQuantityInShipmentAttribute(): int
+    {
+        return (int) $this->shipmentItems()
+            ->whereHas('shipment', fn ($q) => $q->awaitingDeparture())
+            ->sum('quantity');
+    }
+
     public function getQuantityRemainingAttribute(): int
     {
         return max(0, $this->quantity - $this->quantity_shipped);

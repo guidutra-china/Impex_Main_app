@@ -287,6 +287,8 @@ return [
         'product' => 'Product',
         'pi_qty' => 'PI Qty',
         'shipped' => 'Shipped',
+        'in_shipment' => 'In Shipment',
+        'in_shipment_hint' => 'Booked or at customs, not departed yet — not counted as shipped',
         'status' => 'Status',
         'shipments' => 'Shipments',
         'partial' => 'Partial',

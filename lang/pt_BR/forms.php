@@ -601,6 +601,7 @@ return [
         'products_total' => 'Total Produtos',
         'freight' => 'Frete',
         'shipped' => 'Enviado',
+        'in_shipment' => 'Em embarque',
         'tools' => 'Ferramentas',
         'total' => 'Total',
         'total_client' => 'Total (Cliente)',
@@ -863,6 +864,7 @@ return [
         'filter_by_supplier' => 'Filtrar por Fornecedor',
     ],
     'helpers' => [
+        'in_shipment' => 'Reservado ou em desembaraço, ainda não partiu — não conta como enviado',
         'naming_preferences_section' => 'Controla se o documento usa a nomenclatura informada pela contraparte (cadastro do vínculo) ou o cadastro interno do produto, campo a campo.',
         'naming_code_source' => 'Contraparte usa o código informado pela contraparte (MODEL NO); Sistema usa o SKU interno do produto.',
         'naming_name_source' => 'Contraparte usa o nome informado pela contraparte; Sistema usa o nome cadastrado no produto.',

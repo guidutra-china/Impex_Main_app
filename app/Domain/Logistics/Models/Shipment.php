@@ -361,4 +361,13 @@ class Shipment extends Model
             ShipmentStatus::ARRIVED->value,
         ]);
     }
+
+    /** Reservado mas ainda não partiu — ver ShipmentStatus::awaitingDeparture(). */
+    public function scopeAwaitingDeparture($query)
+    {
+        return $query->whereIn(
+            'status',
+            array_map(fn (ShipmentStatus $s) => $s->value, ShipmentStatus::awaitingDeparture()),
+        );
+    }
 }

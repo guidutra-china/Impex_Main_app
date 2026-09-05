@@ -602,6 +602,7 @@ return [
         'products_total' => 'Products Total',
         'freight' => 'Freight',
         'shipped' => 'Shipped',
+        'in_shipment' => 'In Shipment',
         'total' => 'Total',
         'tools' => 'Tools',
         'total_client' => 'Total (Client)',
@@ -864,6 +865,7 @@ return [
         'filter_by_supplier' => 'Filter by Supplier',
     ],
     'helpers' => [
+        'in_shipment' => 'Booked or at customs, not departed yet — not counted as shipped',
         'naming_preferences_section' => 'Controls, field by field, whether the document uses the naming supplied by the counterparty (their record of the product) or the internal product catalog.',
         'naming_code_source' => 'Counterparty uses the code supplied by the counterparty (MODEL NO); System uses the product\'s internal SKU.',
         'naming_name_source' => 'Counterparty uses the name supplied by the counterparty; System uses the name registered on the product.',

@@ -570,6 +570,7 @@ return [
         'products_total' => '产品总计',
         'freight' => '运费',
         'shipped' => '已发货',
+        'in_shipment' => '装运中',
         'tools' => '工具',
         'total' => '总计',
         'total_client' => '客户总计',
@@ -826,6 +827,7 @@ return [
         'filter_by_supplier' => '按供应商筛选',
     ],
     'helpers' => [
+        'in_shipment' => '已订舱或报关中，尚未启运 — 不计为已发货',
         'naming_preferences_section' => '逐项控制单据使用对方提供的命名（对方对该产品的登记）还是系统内部的产品档案。',
         'naming_code_source' => '"对方"使用对方提供的编码（MODEL NO）；"系统"使用产品内部的 SKU。',
         'naming_name_source' => '"对方"使用对方提供的名称；"系统"使用产品档案登记的名称。',

@@ -6,7 +6,7 @@ use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasLabel;
 
-enum ShipmentStatus: string implements HasLabel, HasColor, HasIcon
+enum ShipmentStatus: string implements HasColor, HasIcon, HasLabel
 {
     case DRAFT = 'draft';
     case BOOKED = 'booked';
@@ -15,11 +15,23 @@ enum ShipmentStatus: string implements HasLabel, HasColor, HasIcon
     case ARRIVED = 'arrived';
     case CANCELLED = 'cancelled';
 
-    public function getLabel(): ?string
+    /**
+     * Embarque já reservado (booking/BL) mas que ainda não partiu. Não conta
+     * como enviado — só IN_TRANSIT/ARRIVED contam (Shipment::countsAsShipped)
+     * — mas também não é "pendente": a mercadoria já está comprometida com um
+     * embarque real. A PI mostra essa quantidade numa coluna própria.
+     *
+     * @return list<self>
+     */
+    public static function awaitingDeparture(): array
     {
-        return __('enums.shipment_status.' . $this->value);
+        return [self::BOOKED, self::CUSTOMS];
     }
 
+    public function getLabel(): ?string
+    {
+        return __('enums.shipment_status.'.$this->value);
+    }
 
     public function getColor(): string|array|null
     {

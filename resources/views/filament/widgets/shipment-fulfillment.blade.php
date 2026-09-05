@@ -124,6 +124,9 @@
                             <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.fulfillment.product') }}</th>
                             <th class="px-4 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.fulfillment.pi_qty') }}</th>
                             <th class="px-4 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.fulfillment.shipped') }}</th>
+                            @if ($showInShipment ?? false)
+                                <th class="px-4 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400" title="{{ __('widgets.fulfillment.in_shipment_hint') }}">{{ __('widgets.fulfillment.in_shipment') }}</th>
+                            @endif
                             <th class="px-4 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.fulfillment.remaining') }}</th>
                             <th class="px-4 py-3 text-center text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.fulfillment.status') }}</th>
                             <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.fulfillment.shipments') }}</th>
@@ -152,6 +155,15 @@
                                         'text-gray-400 dark:text-gray-500' => $item['shipped'] === 0,
                                     ])>{{ number_format($item['shipped']) }}</span>
                                 </td>
+                                @if ($showInShipment ?? false)
+                                    <td class="whitespace-nowrap px-4 py-2.5 text-right font-mono font-medium">
+                                        @if (($item['in_shipment'] ?? 0) > 0)
+                                            <span class="text-info-600 dark:text-info-400">{{ number_format($item['in_shipment']) }}</span>
+                                        @else
+                                            <span class="text-gray-300 dark:text-gray-600">&mdash;</span>
+                                        @endif
+                                    </td>
+                                @endif
                                 <td class="whitespace-nowrap px-4 py-2.5 text-right font-mono font-medium">
                                     @if ($item['remaining'] <= 0)
                                         <span class="text-success-600 dark:text-success-400">0</span>
@@ -178,10 +190,15 @@
                                     @endif
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-2.5">
-                                    @if (!empty($item['shipment_refs']))
+                                    @if (!empty($item['shipment_refs']) || !empty($item['in_shipment_refs']))
                                         <div class="flex flex-wrap gap-1">
                                             @foreach ($item['shipment_refs'] as $ref)
                                                 <span class="inline-flex items-center rounded px-1.5 py-0.5 text-[0.6rem] font-semibold bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300">
+                                                    {{ $ref }}
+                                                </span>
+                                            @endforeach
+                                            @foreach ($item['in_shipment_refs'] ?? [] as $ref)
+                                                <span class="inline-flex items-center rounded border border-dashed border-info-300 px-1.5 py-0.5 text-[0.6rem] font-semibold text-info-700 dark:border-info-500/40 dark:text-info-300">
                                                     {{ $ref }}
                                                 </span>
                                             @endforeach
@@ -204,6 +221,11 @@
                             <td class="whitespace-nowrap px-4 py-3 text-right font-mono font-bold text-success-600 dark:text-success-400">
                                 {{ number_format($totals['shipped']) }}
                             </td>
+                            @if ($showInShipment ?? false)
+                                <td class="whitespace-nowrap px-4 py-3 text-right font-mono font-bold text-info-600 dark:text-info-400">
+                                    {{ number_format($totals['in_shipment'] ?? 0) }}
+                                </td>
+                            @endif
                             <td @class([
                                 'whitespace-nowrap px-4 py-3 text-right font-mono font-bold',
                                 'text-warning-600 dark:text-warning-400' => $totals['remaining'] > 0,

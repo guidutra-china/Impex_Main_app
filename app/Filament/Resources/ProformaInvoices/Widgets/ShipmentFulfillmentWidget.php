@@ -34,19 +34,28 @@ class ShipmentFulfillmentWidget extends Widget
 
         $totalQty = 0;
         $totalShipped = 0;
+        $totalInShipment = 0;
         $pendingCount = 0;
 
         $countsAsShipped = [ShipmentStatus::IN_TRANSIT, ShipmentStatus::ARRIVED];
+        $awaitingDeparture = ShipmentStatus::awaitingDeparture();
 
-        $mappedItems = $items->map(function ($item) use (&$totalQty, &$totalShipped, &$pendingCount, $countsAsShipped) {
+        $mappedItems = $items->map(function ($item) use (&$totalQty, &$totalShipped, &$totalInShipment, &$pendingCount, $countsAsShipped, $awaitingDeparture) {
             $activeShipmentItems = $item->shipmentItems
                 ->filter(fn ($si) => $si->shipment && in_array($si->shipment->status, $countsAsShipped, true));
 
+            // Reservado mas não partiu: não é enviado, mas também não está
+            // solto — sem esta coluna a quantidade sumia da PI.
+            $awaitingShipmentItems = $item->shipmentItems
+                ->filter(fn ($si) => $si->shipment && in_array($si->shipment->status, $awaitingDeparture, true));
+
             $shipped = $activeShipmentItems->sum('quantity');
+            $inShipment = $awaitingShipmentItems->sum('quantity');
             $remaining = max(0, $item->quantity - $shipped);
 
             $totalQty += $item->quantity;
             $totalShipped += $shipped;
+            $totalInShipment += $inShipment;
 
             if ($remaining > 0) {
                 $pendingCount++;
@@ -64,14 +73,22 @@ class ShipmentFulfillmentWidget extends Widget
                 ->values()
                 ->all();
 
+            $inShipmentRefs = $awaitingShipmentItems
+                ->map(fn ($si) => ($si->shipment->bl_number ?: $si->shipment->reference).' · '.$si->shipment->status->getLabel())
+                ->unique()
+                ->values()
+                ->all();
+
             return [
                 'product_name' => $item->product_name,
                 'quantity' => $item->quantity,
                 'unit' => $item->unit ?? 'pcs',
                 'shipped' => $shipped,
+                'in_shipment' => $inShipment,
                 'remaining' => $remaining,
                 'status' => $status,
                 'shipment_refs' => $refs,
+                'in_shipment_refs' => $inShipmentRefs,
             ];
         })->all();
 
@@ -123,10 +140,12 @@ class ShipmentFulfillmentWidget extends Widget
             'totals' => [
                 'quantity' => $totalQty,
                 'shipped' => $totalShipped,
+                'in_shipment' => $totalInShipment,
                 'remaining' => $totalRemaining,
             ],
             'isFullyShipped' => $isFullyShipped,
             'showFinalizationStatus' => true,
+            'showInShipment' => true,
             'pendingItemsCount' => $pendingCount,
         ];
     }

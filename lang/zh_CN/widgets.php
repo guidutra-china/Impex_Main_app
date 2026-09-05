@@ -287,6 +287,8 @@ return [
         'product' => '产品',
         'pi_qty' => 'PI数量',
         'shipped' => '已发货',
+        'in_shipment' => '装运中',
+        'in_shipment_hint' => '已订舱或报关中，尚未启运 — 不计为已发货',
         'status' => '状态',
         'shipments' => '发货',
         'partial' => '部分',
