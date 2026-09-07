@@ -115,6 +115,19 @@ class PurchaseOrdersTable
                     ->counts('items')
                     ->alignCenter()
                     ->toggleable(isToggledHiddenByDefault: true),
+                // Mesma conta da lista da PI: só embarque IN_TRANSIT/ARRIVED conta.
+                TextColumn::make('shipment_progress')
+                    ->label(__('forms.labels.shipped'))
+                    ->getStateUsing(fn (PurchaseOrder $record) => $record->shipment_progress)
+                    ->formatStateUsing(fn ($state) => $state.'%')
+                    ->alignCenter()
+                    ->color(fn ($state) => match (true) {
+                        $state >= 100 => 'success',
+                        $state > 0 => 'warning',
+                        default => 'gray',
+                    })
+                    ->badge()
+                    ->toggleable(),
                 TextColumn::make('issue_date')
                     ->label(__('forms.labels.issue_date'))
                     ->date('d/m/Y')
