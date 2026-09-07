@@ -105,7 +105,7 @@ class PurchaseOrdersTable
                         ."AND p.status = 'approved') ".$direction
                     ))
                     ->color(fn ($record) => match (true) {
-                        $record->total > 0 && $record->schedule_paid_total >= $record->total => 'success',
+                        $record->schedulePaidCovers($record->total) => 'success',
                         $record->schedule_paid_total > 0 => 'warning',
                         default => 'gray',
                     })

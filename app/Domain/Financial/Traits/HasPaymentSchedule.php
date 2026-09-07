@@ -45,6 +45,27 @@ trait HasPaymentSchedule
             ->sum('allocated_amount_in_document_currency');
     }
 
+    /**
+     * Totais de documento carregam 4 casas (custo × quantidade); pagamentos
+     * chegam com 2. A diferença é invisível na tela mas derruba um `>=`
+     * seco (PO-2026-00054: 33.267,8744 devidos contra 33.267,8700 pagos).
+     * Mesma tolerância que faz a parcela virar PAID
+     * ({@see \App\Domain\Financial\Models\PaymentScheduleItem::getIsPaidInFullAttribute()}).
+     */
+    public const PAID_ROUNDING_TOLERANCE = 100;
+
+    /** O pago cobre $amount, absorvendo arredondamento? */
+    public function schedulePaidCovers(int $amount): bool
+    {
+        return $amount > 0 && $this->schedule_paid_total >= $amount - self::PAID_ROUNDING_TOLERANCE;
+    }
+
+    /** O pago é, na prática, exatamente $amount? */
+    public function schedulePaidMatches(int $amount): bool
+    {
+        return $amount > 0 && abs($this->schedule_paid_total - $amount) <= self::PAID_ROUNDING_TOLERANCE;
+    }
+
     public function getScheduleRemainingAttribute(): int
     {
         return max(0, $this->schedule_total - $this->schedule_paid_total);

@@ -102,10 +102,10 @@ class ProformaInvoicesTable
                         ."AND p.status = 'approved') ".$direction
                     ))
                     ->color(fn ($record) => match (true) {
-                        $record->grand_total > 0 && $record->schedule_paid_total >= $record->grand_total => 'success',
+                        $record->schedulePaidCovers($record->grand_total) => 'success',
                         // Regra de negócio: pago igual ao total de produtos (sem os
                         // custos adicionais) ganha destaque próprio em azul.
-                        $record->total > 0 && $record->schedule_paid_total === $record->total => 'info',
+                        $record->schedulePaidMatches($record->total) => 'info',
                         $record->schedule_paid_total > 0 => 'warning',
                         default => 'gray',
                     })

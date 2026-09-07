@@ -138,6 +138,35 @@ class PaidColumnColorTest extends TestCase
         $this->assertSame('success', $this->paidColumnColorFor($pi));
     }
 
+    /**
+     * Total com 4 casas contra pagamento com 2 (caso PO-2026-00054): 0,0044
+     * de diferença não pode tirar o verde. Mesma tolerância que marca a
+     * parcela como paga.
+     */
+    public function test_rounding_gap_below_one_cent_still_counts_as_paid(): void
+    {
+        $pi = $this->createProformaInvoice();
+        $this->payAmount($pi, Money::toMinor(1200) - 44);
+
+        $this->assertSame('success', $this->paidColumnColorFor($pi));
+    }
+
+    public function test_rounding_gap_below_one_cent_still_matches_the_products_total(): void
+    {
+        $pi = $this->createProformaInvoice();
+        $this->payAmount($pi, Money::toMinor(1000) + 44);
+
+        $this->assertSame('info', $this->paidColumnColorFor($pi));
+    }
+
+    public function test_gap_above_the_tolerance_is_still_partial(): void
+    {
+        $pi = $this->createProformaInvoice();
+        $this->payAmount($pi, Money::toMinor(1200) - 101);
+
+        $this->assertSame('warning', $this->paidColumnColorFor($pi));
+    }
+
     public function test_partial_payment_is_warning(): void
     {
         $pi = $this->createProformaInvoice();
