@@ -4,7 +4,6 @@ namespace App\Domain\Infrastructure\Pdf\Templates;
 
 use App\Domain\Catalog\Services\ProductIdentityResolver;
 use App\Domain\Financial\Enums\AdditionalCostStatus;
-use App\Domain\Financial\Enums\AdditionalCostType;
 use App\Domain\Financial\Enums\BillableTo;
 use App\Domain\Infrastructure\Pdf\Support\PriceFormula;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
@@ -137,26 +136,22 @@ class ProformaInvoicePdfTemplate extends AbstractPdfTemplate
 
         $subtotal = $pi->items->sum(fn ($item) => $this->effectiveUnitPrice($item) * $item->quantity);
 
-        $serviceFees = $pi->additionalCosts
-            ->filter(function ($cost) {
-                if ($cost->billable_to !== BillableTo::CLIENT) {
-                    return false;
-                }
-                if ($cost->status === AdditionalCostStatus::WAIVED) {
-                    return false;
-                }
-                // commission_mode is NOT consulted here: the payment schedule
-                // charges every client-billable cost regardless of it, so
-                // dropping EMBEDDED rows printed a grand total lower than the
-                // amount actually invoiced (prod: PI-2026-00078 printed
-                // 4,325.06 against 4,544.20 charged). hideCommission stays as
-                // the explicit, per-document way to omit the line.
-                if ($cost->cost_type === AdditionalCostType::COMMISSION && $this->hideCommission) {
-                    return false;
-                }
+        // "Esconder Taxa de Serviço" esconde TODOS os custos adicionais do
+        // cliente (comissão, frete, etc.): o documento sai só com os produtos
+        // e o total vira o subtotal. Decisão de 2026-09-09; antes só a
+        // comissão saía e o frete continuava impresso.
+        //
+        // commission_mode is NOT consulted here: the payment schedule charges
+        // every client-billable cost regardless of it, so dropping EMBEDDED
+        // rows printed a grand total lower than the amount actually invoiced
+        // (prod: PI-2026-00078 printed 4,325.06 against 4,544.20 charged).
+        // hideCommission stays as the explicit, per-document way to omit them.
+        $serviceFees = $this->hideCommission
+            ? collect()
+            : $pi->additionalCosts->filter(fn ($cost) => $cost->billable_to === BillableTo::CLIENT
+                && $cost->status !== AdditionalCostStatus::WAIVED);
 
-                return true;
-            })
+        $serviceFees = $serviceFees
             ->map(fn ($cost) => [
                 'description' => $cost->description,
                 'amount' => $this->formatMoney($cost->amount_in_document_currency, $currencyCode, 2),

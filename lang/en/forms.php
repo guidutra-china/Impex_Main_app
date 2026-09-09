@@ -877,7 +877,7 @@ return [
         'bank_fee_billable_to' => 'Client creates a receivable; Supplier becomes a credit deducted from what we owe them; Company just records the cost.',
         'bank_fee_default_description' => 'Bank fee — :reference',
         'bank_fee_from_payment' => 'Entered from payment :reference',
-        'hide_service_fee' => 'If checked, the Service Fee line will not appear in the PDF.',
+        'hide_service_fee' => 'If checked, no additional cost (service fee, freight, etc.) appears in the PDF — the total shows products only.',
         'client_ncm' => 'Tax classification this client uses to import the product. Appears on the Commercial Invoice. 4 to 8 digits.',
         'only_pis_with_items_left_to_ship' => 'Only Proforma Invoices with items left to ship are listed.',
         'import_modality_affects_ci_and_packing_list' => 'The import modality affects the Commercial Invoice and Packing List.',

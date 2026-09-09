@@ -876,7 +876,7 @@ return [
         'bank_fee_billable_to' => 'Cliente gera cobrança; Fornecedor vira crédito que abate do que devemos a ele; Empresa apenas registra o custo.',
         'bank_fee_default_description' => 'Taxa bancária — :reference',
         'bank_fee_from_payment' => 'Lançada pelo pagamento :reference',
-        'hide_service_fee' => 'Se marcado, a linha de Taxa de Serviço não aparece no PDF.',
+        'hide_service_fee' => 'Se marcado, nenhum custo adicional (taxa de serviço, frete, etc.) aparece no PDF — o total fica só com os produtos.',
         'client_ncm' => 'Classificação fiscal que este cliente usa para importar o produto. Aparece na Commercial Invoice. De 4 a 8 dígitos.',
         'only_pis_with_items_left_to_ship' => 'Só aparecem as Proforma Invoices com itens ainda a embarcar.',
         'import_modality_affects_ci_and_packing_list' => 'A modalidade de importação afeta a Commercial Invoice e o Packing List.',

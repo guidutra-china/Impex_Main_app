@@ -190,6 +190,40 @@ class ProformaInvoicePdfOptionsTest extends TestCase
         $this->assertSame($hidden['totals']['subtotal'], $hidden['totals']['grand_total']);
     }
 
+    /**
+     * "Esconder Taxa de Serviço" esconde todos os custos do cliente, não só a
+     * comissão: com frete cadastrado, o PDF sai só com os produtos.
+     */
+    public function test_hide_commission_hides_every_client_cost_not_only_the_commission(): void
+    {
+        $this->addItem(Product::factory()->create(), 'Item');
+
+        foreach ([
+            [\App\Domain\Financial\Enums\AdditionalCostType::COMMISSION, 'Service Fee', 500000],
+            [\App\Domain\Financial\Enums\AdditionalCostType::FREIGHT, 'Freight', 300000],
+        ] as [$type, $label, $amount]) {
+            \App\Domain\Financial\Models\AdditionalCost::create([
+                'costable_type' => ProformaInvoice::class,
+                'costable_id' => $this->pi->id,
+                'cost_type' => $type,
+                'commission_mode' => \App\Domain\Quotations\Enums\CommissionType::SEPARATE,
+                'description' => $label,
+                'amount' => $amount,
+                'currency_code' => 'USD',
+                'amount_in_document_currency' => $amount,
+                'billable_to' => \App\Domain\Financial\Enums\BillableTo::CLIENT,
+                'cost_date' => now()->toDateString(),
+            ]);
+        }
+
+        $visible = (new ProformaInvoicePdfTemplate($this->pi->fresh(), 'en'))->getData();
+        $this->assertSame(['Service Fee', 'Freight'], array_column($visible['service_fees'], 'description'));
+
+        $hidden = (new ProformaInvoicePdfTemplate($this->pi->fresh(), 'en', hideCommission: true))->getData();
+        $this->assertSame([], $hidden['service_fees']);
+        $this->assertSame($hidden['totals']['subtotal'], $hidden['totals']['grand_total']);
+    }
+
     public function test_modal_checkbox_names_map_onto_the_template_constructor(): void
     {
         $this->addItem(Product::factory()->create(), 'Item');
