@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Finance\Trips\Schemas;
 
 use App\Domain\Infrastructure\Support\Money;
+use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -19,6 +20,14 @@ class TripInfolist
                 TextEntry::make('company_label')
                     ->label(__('forms.labels.company'))
                     ->state(fn ($record) => $record->company_label),
+
+                TextEntry::make('proformaInvoice.reference')
+                    ->label(__('forms.labels.related_proforma_invoice'))
+                    ->placeholder('—')
+                    ->url(fn ($record) => $record->proforma_invoice_id
+                        ? ProformaInvoiceResource::getUrl('view', ['record' => $record->proforma_invoice_id])
+                        : null)
+                    ->color('primary'),
 
                 TextEntry::make('traveler.name')
                     ->label(__('forms.labels.traveler'))

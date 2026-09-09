@@ -460,6 +460,9 @@ return [
         'products' => 'Products',
         'project_team' => 'Project Team',
         'proforma_invoice' => 'Proforma Invoice',
+        'related_proforma_invoice' => 'Related PI',
+        'trips' => 'Trips',
+        'no_trips_linked' => 'No trips linked to this PI',
         'proforma_invoices' => 'Proforma Invoices',
         'purchase_order' => 'Purchase Order',
         'purchase_order_prefix' => 'Purchase Order Prefix',
@@ -865,6 +868,7 @@ return [
         'filter_by_supplier' => 'Filter by Supplier',
     ],
     'helpers' => [
+        'trip_proforma_invoice' => 'Optional. Which PI this trip relates to — only PIs of the chosen company. The debit note generated on approval carries it.',
         'in_shipment' => 'Booked or at customs, not departed yet — not counted as shipped',
         'naming_preferences_section' => 'Controls, field by field, whether the document uses the naming supplied by the counterparty (their record of the product) or the internal product catalog.',
         'naming_code_source' => 'Counterparty uses the code supplied by the counterparty (MODEL NO); System uses the product\'s internal SKU.',

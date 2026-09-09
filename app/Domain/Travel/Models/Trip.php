@@ -3,6 +3,7 @@
 namespace App\Domain\Travel\Models;
 
 use App\Domain\CRM\Models\Company;
+use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\Travel\Enums\TripStatus;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -20,6 +21,7 @@ class Trip extends Model
         'client_uuid',
         'user_id',
         'company_id',
+        'proforma_invoice_id',
         'is_internal',
         'title',
         'destination_city',
@@ -62,10 +64,23 @@ class Trip extends Model
         static::saving(function (Trip $trip) {
             if ($trip->is_internal) {
                 $trip->company_id = null;
+                $trip->proforma_invoice_id = null;
             } elseif (empty($trip->company_id)) {
                 throw new \InvalidArgumentException(
                     'A trip must belong to a company or be marked as internal.'
                 );
+            }
+
+            // A PI vinculada tem que ser do mesmo cliente da viagem. O form
+            // já filtra; aqui vale para API/mobile e para troca de empresa.
+            if ($trip->proforma_invoice_id !== null) {
+                $piCompanyId = ProformaInvoice::whereKey($trip->proforma_invoice_id)->value('company_id');
+
+                if ((int) $piCompanyId !== (int) $trip->company_id) {
+                    throw new \InvalidArgumentException(
+                        'The linked proforma invoice must belong to the trip company.'
+                    );
+                }
             }
         });
 
@@ -73,7 +88,7 @@ class Trip extends Model
         // DRAFT) so it must be re-approved — which then refreshes the billing.
         static::updating(function (Trip $trip) {
             $headerFields = [
-                'title', 'company_id', 'is_internal', 'destination_city',
+                'title', 'company_id', 'proforma_invoice_id', 'is_internal', 'destination_city',
                 'destination_country', 'start_date', 'end_date', 'notes',
             ];
 
@@ -117,7 +132,7 @@ class Trip extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['status', 'company_id', 'is_internal', 'title', 'approved_by', 'rejected_reason'])
+            ->logOnly(['status', 'company_id', 'proforma_invoice_id', 'is_internal', 'title', 'approved_by', 'rejected_reason'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->useLogName('trip')
@@ -134,6 +149,11 @@ class Trip extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function proformaInvoice(): BelongsTo
+    {
+        return $this->belongsTo(ProformaInvoice::class);
     }
 
     public function expenses(): HasMany

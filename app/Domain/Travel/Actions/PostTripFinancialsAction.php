@@ -90,12 +90,16 @@ class PostTripFinancialsAction
                 'company_id' => $trip->company_id,
                 'party_type' => \App\Domain\Financial\Enums\PartyType::CLIENT,
                 'trip_id' => $trip->id,
+                'proforma_invoice_id' => $trip->proforma_invoice_id,
                 'currency_code' => $billing->billingCurrency,
                 'status' => DebitNoteStatus::DRAFT,
                 'notes' => "Despesas de viagem: {$trip->title}.",
             ]);
         } else {
-            $debitNote->update(['currency_code' => $billing->billingCurrency]);
+            $debitNote->update([
+                'currency_code' => $billing->billingCurrency,
+                'proforma_invoice_id' => $trip->proforma_invoice_id,
+            ]);
             $debitNote->lineItems()->delete();
         }
 

@@ -162,6 +162,11 @@ class ProformaInvoice extends Model
         return $this->belongsTo(Company::class);
     }
 
+    public function trips(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Domain\Travel\Models\Trip::class);
+    }
+
     public function debitNotes(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(\App\Domain\Financial\Models\DebitNote::class);

@@ -432,6 +432,9 @@ return [
         'products' => '产品',
         'project_team' => '项目团队',
         'proforma_invoice' => '形式发票',
+        'related_proforma_invoice' => '关联形式发票',
+        'trips' => '差旅',
+        'no_trips_linked' => '暂无与此形式发票关联的差旅',
         'proforma_invoices' => '形式发票',
         'purchase_order_prefix' => '采购订单前缀',
         'purchase_orders' => '采购订单',
@@ -827,6 +830,7 @@ return [
         'filter_by_supplier' => '按供应商筛选',
     ],
     'helpers' => [
+        'trip_proforma_invoice' => '可选。此次差旅对应的形式发票——仅限所选公司的形式发票。审批生成的借记单将带上该形式发票。',
         'in_shipment' => '已订舱或报关中，尚未启运 — 不计为已发货',
         'naming_preferences_section' => '逐项控制单据使用对方提供的命名（对方对该产品的登记）还是系统内部的产品档案。',
         'naming_code_source' => '"对方"使用对方提供的编码（MODEL NO）；"系统"使用产品内部的 SKU。',

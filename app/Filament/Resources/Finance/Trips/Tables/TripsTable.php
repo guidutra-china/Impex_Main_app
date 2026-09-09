@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Finance\Trips\Tables;
 
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Travel\Enums\TripStatus;
+use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
@@ -36,6 +37,15 @@ class TripsTable
                     ->state(fn ($record) => $record->company_label)
                     ->badge()
                     ->color(fn ($record) => $record->is_internal ? 'gray' : 'primary'),
+
+                TextColumn::make('proformaInvoice.reference')
+                    ->label(__('forms.labels.related_proforma_invoice'))
+                    ->placeholder('—')
+                    ->url(fn ($record) => $record->proforma_invoice_id
+                        ? ProformaInvoiceResource::getUrl('view', ['record' => $record->proforma_invoice_id])
+                        : null)
+                    ->color('primary')
+                    ->toggleable(),
 
                 TextColumn::make('destination_city')
                     ->label(__('forms.labels.destination'))

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Finance\Trips\Schemas;
 
+use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -43,8 +44,28 @@ class TripForm
                     ->relationship('company', 'name')
                     ->searchable()
                     ->preload()
+                    ->live()
+                    // Trocar de empresa invalida a PI escolhida.
+                    ->afterStateUpdated(fn (Set $set) => $set('proforma_invoice_id', null))
                     ->visible(fn (Get $get) => ! $get('is_internal'))
                     ->required(fn (Get $get) => ! $get('is_internal'))
+                    ->columnSpanFull(),
+
+                Select::make('proforma_invoice_id')
+                    ->label(__('forms.labels.related_proforma_invoice'))
+                    ->helperText(__('forms.helpers.trip_proforma_invoice'))
+                    ->options(fn (Get $get) => $get('company_id')
+                        ? ProformaInvoice::query()
+                            ->where('company_id', $get('company_id'))
+                            ->orderByDesc('id')
+                            ->get()
+                            ->mapWithKeys(fn (ProformaInvoice $pi) => [
+                                $pi->id => $pi->reference.($pi->client_reference ? ' — '.$pi->client_reference : ''),
+                            ])
+                            ->all()
+                        : [])
+                    ->searchable()
+                    ->visible(fn (Get $get) => ! $get('is_internal') && filled($get('company_id')))
                     ->columnSpanFull(),
 
                 TextInput::make('destination_city')

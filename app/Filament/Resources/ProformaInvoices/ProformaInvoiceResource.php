@@ -14,6 +14,7 @@ use App\Filament\Resources\ProformaInvoices\RelationManagers\PaymentScheduleRela
 use App\Filament\Resources\ProformaInvoices\RelationManagers\PaymentsRelationManager;
 use App\Filament\Resources\ProformaInvoices\RelationManagers\ProductionSchedulesRelationManager;
 use App\Filament\Resources\ProformaInvoices\RelationManagers\ShipmentPlansRelationManager;
+use App\Filament\Resources\ProformaInvoices\RelationManagers\TripsRelationManager;
 use App\Filament\Resources\ProformaInvoices\Schemas\ProformaInvoiceForm;
 use App\Filament\Resources\ProformaInvoices\Schemas\ProformaInvoiceInfolist;
 use App\Filament\Resources\ProformaInvoices\Tables\ProformaInvoicesTable;
@@ -72,6 +73,7 @@ class ProformaInvoiceResource extends Resource
             \App\Filament\RelationManagers\CreditNotesRelationManager::class,
             ProductionSchedulesRelationManager::class,
             ShipmentPlansRelationManager::class,
+            TripsRelationManager::class,
             DocumentsRelationManager::class,
         ];
     }

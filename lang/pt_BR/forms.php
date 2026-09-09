@@ -460,6 +460,9 @@ return [
         'products' => 'Produtos',
         'project_team' => 'Equipe do Projeto',
         'proforma_invoice' => 'Fatura Proforma',
+        'related_proforma_invoice' => 'PI relacionada',
+        'trips' => 'Viagens',
+        'no_trips_linked' => 'Nenhuma viagem vinculada a esta PI',
         'proforma_invoices' => 'Faturas Proforma',
         'purchase_order_prefix' => 'Prefixo do Pedido de Compra',
         'purchase_orders' => 'Pedidos de Compra',
@@ -864,6 +867,7 @@ return [
         'filter_by_supplier' => 'Filtrar por Fornecedor',
     ],
     'helpers' => [
+        'trip_proforma_invoice' => 'Opcional. A qual PI esta viagem se refere — só PIs da empresa escolhida. A nota de débito gerada na aprovação carrega a PI.',
         'in_shipment' => 'Reservado ou em desembaraço, ainda não partiu — não conta como enviado',
         'naming_preferences_section' => 'Controla se o documento usa a nomenclatura informada pela contraparte (cadastro do vínculo) ou o cadastro interno do produto, campo a campo.',
         'naming_code_source' => 'Contraparte usa o código informado pela contraparte (MODEL NO); Sistema usa o SKU interno do produto.',
