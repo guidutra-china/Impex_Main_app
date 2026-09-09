@@ -18,6 +18,8 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\RestoreAction;
+use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -160,6 +162,7 @@ class ShipmentsTable
                         ->before(function (Shipment $record, DeleteAction $action) {
                             static::haltIfDeletionBlocked([$record], $action);
                         }),
+                    RestoreAction::make(),
                 ])
                     ->icon('heroicon-m-ellipsis-vertical')
                     ->color('gray'),
@@ -170,6 +173,7 @@ class ShipmentsTable
                         ->before(function (Collection $records, DeleteBulkAction $action) {
                             static::haltIfDeletionBlocked($records, $action);
                         }),
+                    RestoreBulkAction::make(),
                 ]),
             ])
             ->persistFiltersInSession()

@@ -7,6 +7,7 @@ use App\Filament\Pages\Concerns\HasSaveAndReturnFormActions;
 use App\Filament\Resources\Shipments\Concerns\ShipmentHeaderActions;
 use App\Filament\Resources\Shipments\ShipmentResource;
 use Filament\Actions\Action;
+use Filament\Actions\RestoreAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditShipment extends EditRecord
@@ -21,6 +22,7 @@ class EditShipment extends EditRecord
     {
         return array_merge(
             [
+                RestoreAction::make(),
                 Action::make('packingList')
                     ->label('Packing List')
                     ->icon('heroicon-o-archive-box')

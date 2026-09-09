@@ -19,19 +19,34 @@ use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
-use UnitEnum;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ShipmentResource extends Resource
 {
     protected static ?string $model = Shipment::class;
+
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-truck';
+
     protected static ?int $navigationSort = 48;
+
     protected static ?string $slug = 'shipments';
+
     protected static ?string $recordTitleAttribute = 'reference';
 
     public static function canAccess(): bool
     {
         return auth()->user()?->can('view-shipments') ?? false;
+    }
+
+    /**
+     * Sem o escopo de soft delete o filtro "Excluídos" até lista, mas a página
+     * do embarque excluído dava 404 e não havia como restaurar.
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->withoutGlobalScopes([SoftDeletingScope::class]);
     }
 
     public static function getGloballySearchableAttributes(): array

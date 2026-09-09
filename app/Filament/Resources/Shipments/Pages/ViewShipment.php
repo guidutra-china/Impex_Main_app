@@ -8,6 +8,7 @@ use App\Filament\Resources\Shipments\ShipmentResource;
 use App\Filament\Resources\Shipments\Widgets\ShipmentPaymentProgress;
 use App\Filament\Resources\Shipments\Widgets\ShipmentSummary;
 use Filament\Actions\Action;
+use Filament\Actions\RestoreAction;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewShipment extends ViewRecord
@@ -29,6 +30,7 @@ class ViewShipment extends ViewRecord
     {
         return array_merge(
             [
+                RestoreAction::make(),
                 Action::make('packingList')
                     ->label('Packing List')
                     ->icon('heroicon-o-archive-box')
