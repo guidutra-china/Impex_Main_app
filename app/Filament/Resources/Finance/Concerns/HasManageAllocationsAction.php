@@ -83,14 +83,8 @@ trait HasManageAllocationsAction
                             }),
                     ]),
 
-                // Apply available credits (Credit Notes, supplier deductions)
-                // against open items, independent of the wire amount.
-                Section::make(__('forms.sections.credit_applications'))
-                    ->description(__('forms.descriptions.apply_credits_to_offset_schedule_item_balances_this_does'))
-                    ->visible(fn () => static::getCompanyCreditItems((int) $this->record->company_id, $this->record->direction)->isNotEmpty())
-                    ->schema([
-                        static::creditApplicationsRepeater($this->record->direction),
-                    ]),
+                // Créditos vivem dentro de cada linha de alocação
+                // (creditsRepeater) — não há mais quadro separado.
             ])
             ->action(function (array $data) {
                 $payment = $this->record;
@@ -187,7 +181,7 @@ trait HasManageAllocationsAction
                 // supplier deduction) against an open item. allocated_amount=0
                 // so the wire amount is untouched; the document-currency amount
                 // carries the credit value. The observer reconciles statuses.
-                foreach ($data['credit_applications'] ?? [] as $creditData) {
+                foreach (\App\Domain\Financial\Support\AllocationFormShape::flattenCredits($newAllocations) as $creditData) {
                     $creditItemId = $creditData['credit_schedule_item_id'] ?? null;
                     $targetItemId = $creditData['payment_schedule_item_id'] ?? null;
                     $creditAmount = (float) ($creditData['credit_amount'] ?? 0);

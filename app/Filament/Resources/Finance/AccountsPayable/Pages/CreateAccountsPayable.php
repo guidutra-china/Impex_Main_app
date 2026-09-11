@@ -31,7 +31,7 @@ class CreateAccountsPayable extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $this->pendingAllocations = $data['allocations'] ?? [];
-        $this->pendingCreditApplications = $data['credit_applications'] ?? [];
+        $this->pendingCreditApplications = \App\Domain\Financial\Support\AllocationFormShape::flattenCredits($data['allocations'] ?? []);
 
         $data = $this->extractBankFee($data);
 

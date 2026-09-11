@@ -39,11 +39,16 @@ class EditAccountsReceivable extends EditRecord
             ->whereNotNull('credit_schedule_item_id')
             ->get();
 
-        $data['credit_applications'] = $creditAllocations->map(fn ($alloc) => [
-            'credit_schedule_item_id' => $alloc->credit_schedule_item_id,
-            'payment_schedule_item_id' => $alloc->payment_schedule_item_id,
-            'credit_amount' => Money::toMajor($alloc->allocated_amount_in_document_currency),
-        ])->toArray();
+        // Crédito aninhado na linha da parcela (forma do formulário).
+        $data['allocations'] = \App\Domain\Financial\Support\AllocationFormShape::nestCredits(
+            $data['allocations'],
+            $creditAllocations->map(fn ($alloc) => [
+                'credit_schedule_item_id' => $alloc->credit_schedule_item_id,
+                'payment_schedule_item_id' => $alloc->payment_schedule_item_id,
+                'credit_amount' => Money::toMajor($alloc->allocated_amount_in_document_currency),
+                'document_currency_code' => $alloc->scheduleItem?->currency_code,
+            ])->all(),
+        );
 
         return $data;
     }
@@ -51,7 +56,7 @@ class EditAccountsReceivable extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $this->pendingAllocations = $data['allocations'] ?? [];
-        $this->pendingCreditApplications = $data['credit_applications'] ?? [];
+        $this->pendingCreditApplications = \App\Domain\Financial\Support\AllocationFormShape::flattenCredits($data['allocations'] ?? []);
 
         $data['amount'] = Money::toMinor((float) $data['amount']);
         $data['status'] = PaymentStatus::PENDING_APPROVAL->value;

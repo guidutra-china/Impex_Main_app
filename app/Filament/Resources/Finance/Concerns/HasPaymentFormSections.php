@@ -13,6 +13,8 @@ use App\Domain\Financial\Models\AdditionalCost;
 use App\Domain\Financial\Models\DebitNote;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Financial\Support\AllocationCalculator;
+use App\Domain\Financial\Support\AllocationFormShape;
+use App\Domain\Financial\Support\AllocationPrefill;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
@@ -33,6 +35,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Support\Collection;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 
 trait HasPaymentFormSections
 {
@@ -62,7 +65,6 @@ trait HasPaymentFormSections
                     ->live()
                     ->afterStateUpdated(function (Set $set) {
                         $set('allocations', []);
-                        $set('credit_applications', []);
                         $set('amount', null);
                     }),
                 Select::make('currency_code')
@@ -218,9 +220,10 @@ trait HasPaymentFormSections
                         // MESMA parcela não pode exceder o saldo dela (o prefill
                         // preenche o valor cheio; o crédito completa o resto).
                         ->rule(static fn (Get $get, ?\Illuminate\Database\Eloquent\Model $record) => function (string $attribute, mixed $value, \Closure $fail) use ($get, $record) {
+                            $rows = is_array($value) ? array_values($value) : [];
                             $errors = \App\Domain\Financial\Support\AllocationGuards::overpayErrors(
-                                is_array($value) ? array_values($value) : [],
-                                array_values($get('credit_applications') ?? []),
+                                $rows,
+                                AllocationFormShape::flattenCredits($rows),
                                 filled($get('amount')) ? (float) $get('amount') : null,
                                 $record?->getKey(),
                             );
@@ -242,57 +245,72 @@ trait HasPaymentFormSections
                         }),
                 ])
                 ->columnSpanFull(),
-
-            Section::make(__('forms.sections.credit_applications'))
-                ->description(__('forms.descriptions.apply_credits_to_offset_schedule_item_balances_this_does'))
-                ->visible(fn (Get $get) => filled($get('company_id'))
-                    && static::getCompanyCreditItems((int) $get('company_id'), $direction)->isNotEmpty())
-                ->schema([
-                    static::creditApplicationsRepeater($direction),
-                ])
-                ->columnSpanFull(),
         ];
     }
 
     /**
-     * Repeater for applying available credits (Credit Notes, supplier
-     * deductions) against open schedule items. Shared between the
-     * Create/Edit payment form and the "Manage Allocations" modal so an
-     * approved payment can still consume a credit. Reads ../../company_id,
-     * so company_id must exist at the enclosing form root.
+     * Créditos aplicáveis (Credit Notes, deduções de fornecedor) para a
+     * empresa. No Edit, um crédito já consumido POR ESTE pagamento está PAID
+     * e sumiria das opções — a linha reidratada falharia na validação —
+     * então os créditos do próprio pagamento são reincluídos.
+     *
+     * @return array<int, string>
      */
-    public static function creditApplicationsRepeater(PaymentDirection $direction): Repeater
+    public static function creditItemOptions(int $companyId, mixed $direction, ?\Illuminate\Database\Eloquent\Model $record): array
     {
-        return Repeater::make('credit_applications')
-            ->hiddenLabel()
+        $items = static::getCompanyCreditItems($companyId, $direction);
+
+        if ($record) {
+            $own = PaymentScheduleItem::query()
+                ->where('is_credit', true)
+                ->whereHas('creditAllocations', fn ($q) => $q->where('payment_id', $record->getKey()))
+                ->with('payable')
+                ->get();
+
+            $items = $items->concat($own)->unique('id')->values();
+        }
+
+        return $items->mapWithKeys(fn ($item) => [
+            $item->id => static::formatCreditItemLabel($item),
+        ])->all();
+    }
+
+    /**
+     * Créditos que pertencem ao MESMO documento da parcela (desconto da
+     * PO-71 para a parcela da PO-71), já filtrados pela direção/lado.
+     *
+     * @return list<array{id: int, available: int}>
+     */
+    public static function ownCreditsFor(PaymentScheduleItem $item, int $companyId, mixed $direction): array
+    {
+        return static::getCompanyCreditItems($companyId, $direction)
+            ->filter(fn (PaymentScheduleItem $credit) => $credit->payable_type === $item->payable_type
+                && (int) $credit->payable_id === (int) $item->payable_id)
+            ->map(fn (PaymentScheduleItem $credit) => ['id' => $credit->id, 'available' => (int) $credit->credit_available_amount])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Repeater de créditos DENTRO da linha da parcela. Cada crédito aplicado
+     * debita o dinheiro sugerido da mesma linha na hora (netCashFromCredits),
+     * em vez de viver em outro quadro e ser conferido só no fim.
+     *
+     * Caminhos relativos: um campo do crédito enxerga a linha da parcela em
+     * `../../` e a raiz do formulário em `../../../../`.
+     */
+    protected static function creditsRepeater(PaymentDirection $direction): Repeater
+    {
+        return Repeater::make('credits')
+            ->label(__('forms.labels.credits_for_this_item'))
+            ->helperText(__('forms.helpers.credits_net_cash'))
             ->schema([
                 Select::make('credit_schedule_item_id')
                     ->label(__('forms.labels.credit'))
                     ->options(function (Get $get, ?\Illuminate\Database\Eloquent\Model $record) use ($direction) {
-                        $companyId = $get('../../company_id');
-                        if (! $companyId) {
-                            return [];
-                        }
+                        $companyId = (int) static::rootValue($get, '../../', 'company_id');
 
-                        $items = static::getCompanyCreditItems((int) $companyId, $direction);
-
-                        // No Edit, um crédito já consumido POR ESTE pagamento
-                        // está PAID e sumiria das opções — a linha rehidratada
-                        // falharia na validação. Reinclui os créditos do
-                        // próprio pagamento.
-                        if ($record) {
-                            $own = PaymentScheduleItem::query()
-                                ->where('is_credit', true)
-                                ->whereHas('creditAllocations', fn ($q) => $q->where('payment_id', $record->getKey()))
-                                ->with('payable')
-                                ->get();
-
-                            $items = $items->concat($own)->unique('id')->values();
-                        }
-
-                        return $items->mapWithKeys(fn ($item) => [
-                            $item->id => static::formatCreditItemLabel($item),
-                        ]);
+                        return $companyId ? static::creditItemOptions($companyId, $direction, $record) : [];
                     })
                     ->getOptionLabelUsing(function ($value): ?string {
                         $item = PaymentScheduleItem::with('payable')->find($value);
@@ -302,37 +320,48 @@ trait HasPaymentFormSections
                     ->required()
                     ->distinct()
                     ->searchable()
-                    ->columnSpan(4),
-                Select::make('payment_schedule_item_id')
-                    ->label(__('forms.labels.apply_to'))
-                    ->options(function (Get $get) use ($direction) {
-                        $companyId = $get('../../company_id');
-                        if (! $companyId) {
-                            return [];
+                    ->live()
+                    ->afterStateUpdated(function ($state, Get $get, Set $set, ?\Illuminate\Database\Eloquent\Model $record) {
+                        if (! $state) {
+                            return;
                         }
 
-                        return static::getCompanyScheduleItems((int) $companyId, $direction)
-                            ->mapWithKeys(fn ($item) => [
-                                $item->id => static::formatScheduleItemLabel($item),
-                            ]);
-                    })
-                    ->getOptionLabelUsing(function ($value): ?string {
-                        $item = PaymentScheduleItem::with('payable')->find($value);
+                        $credit = PaymentScheduleItem::find($state);
+                        $item = PaymentScheduleItem::find((int) $get('../../payment_schedule_item_id'));
 
-                        return $item ? static::formatScheduleItemLabel($item) : null;
+                        if (! $credit || ! $item) {
+                            return;
+                        }
+
+                        // Sugere o menor entre o crédito disponível e o que a
+                        // parcela ainda comporta (saldo − outros créditos da linha).
+                        $others = 0.0;
+                        foreach ($get('../../credits') ?? [] as $row) {
+                            if ((int) ($row['credit_schedule_item_id'] ?? 0) !== (int) $state) {
+                                $others += (float) ($row['credit_amount'] ?? 0);
+                            }
+                        }
+
+                        $room = max(0.0, Money::toMajor($item->remaining_amount) - $others);
+                        $suggested = min(static::maxApplicableCreditMajor($credit, $record?->getKey()), $room);
+
+                        $set('credit_amount', number_format($suggested, 2, '.', ''));
+                        static::netCashFromCredits($get, $set, '../../');
                     })
-                    ->required()
-                    ->searchable()
-                    ->columnSpan(4),
+                    ->columnSpan(8),
                 TextInput::make('credit_amount')
                     ->label(__('forms.labels.amount'))
                     ->numeric()
                     ->step('0.01')
                     ->minValue(0.01)
                     ->required()
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(fn (Get $get, Set $set) => static::netCashFromCredits($get, $set, '../../'))
                     ->rules([
+                        // O mesmo crédito pode ser dividido entre parcelas; a
+                        // SOMA no formulário é que não pode passar do disponível.
                         fn (Get $get, ?\Illuminate\Database\Eloquent\Model $record): \Closure => function (string $attribute, $value, \Closure $fail) use ($get, $record) {
-                            $creditItemId = $get('credit_schedule_item_id');
+                            $creditItemId = (int) $get('credit_schedule_item_id');
                             if (! $creditItemId) {
                                 return;
                             }
@@ -340,19 +369,76 @@ trait HasPaymentFormSections
                             if (! $creditItem) {
                                 return;
                             }
+
+                            $allocations = static::rootValue($get, '../../', 'allocations')
+                                ?? static::rootValue($get, '../../', 'new_allocations')
+                                ?? [];
+                            $applied = 0.0;
+                            foreach (AllocationFormShape::flattenCredits(is_array($allocations) ? $allocations : []) as $row) {
+                                if ($row['credit_schedule_item_id'] === $creditItemId) {
+                                    $applied += $row['credit_amount'];
+                                }
+                            }
+
                             $maxAmount = static::maxApplicableCreditMajor($creditItem, $record?->getKey());
-                            if ((float) $value > $maxAmount) {
-                                $fail("Amount cannot exceed the available credit of {$creditItem->currency_code} ".number_format($maxAmount, 2).'.');
+                            if ($applied > $maxAmount + 0.005) {
+                                $fail(__('forms.validation.credit_total_exceeds_available', [
+                                    'applied' => number_format($applied, 2),
+                                    'available' => $creditItem->currency_code.' '.number_format($maxAmount, 2),
+                                ]));
                             }
                         },
                     ])
-                    ->columnSpan(2),
+                    ->columnSpan(4),
             ])
-            ->columns(10)
+            ->columns(12)
             ->defaultItems(0)
-            ->addActionLabel('+ Apply Credit')
+            ->addActionLabel('+ '.__('forms.labels.apply_credit'))
+            ->deleteAction(fn ($action) => $action->after(fn (Get $get, Set $set) => static::netCashFromCredits($get, $set, '')))
             ->live()
-            ->columnSpanFull();
+            ->columnSpan(12);
+    }
+
+    /**
+     * Recalcula o dinheiro da linha da parcela como saldo − créditos da linha.
+     * `$row` é o caminho relativo até a linha: `'../../'` a partir de um campo
+     * do crédito, `''` a partir do próprio repeater de créditos.
+     */
+    protected static function netCashFromCredits(Get $get, Set $set, string $row): void
+    {
+        $itemId = (int) ($get($row.'payment_schedule_item_id') ?? 0);
+        $item = $itemId ? PaymentScheduleItem::find($itemId) : null;
+
+        if (! $item) {
+            return;
+        }
+
+        $creditsMinor = 0;
+        foreach ($get($row.'credits') ?? [] as $credit) {
+            $creditsMinor += Money::toMinor((float) ($credit['credit_amount'] ?? 0));
+        }
+
+        $docMajor = Money::toMajor(max(0, $item->remaining_amount - $creditsMinor));
+        $set($row.'allocated_amount_in_document_currency', number_format($docMajor, 2, '.', ''));
+
+        $pmtCurrency = (string) (static::rootValue($get, $row, 'currency_code') ?? '');
+
+        if ($pmtCurrency === '' || $pmtCurrency === (string) $item->currency_code) {
+            $set($row.'allocated_amount', number_format($docMajor, 2, '.', ''));
+
+            return;
+        }
+
+        $rate = (float) ($get($row.'exchange_rate') ?? 0);
+        if ($rate > 0) {
+            $set($row.'allocated_amount', number_format($docMajor / $rate, 2, '.', ''));
+        }
+    }
+
+    /** Valor de um campo da raiz do formulário, dado o caminho até a linha da parcela. */
+    protected static function rootValue(Get $get, string $row, string $key): mixed
+    {
+        return $get($row.'../../'.$key);
     }
 
     /**
@@ -881,14 +967,16 @@ trait HasPaymentFormSections
                 ->distinct()
                 ->searchable()
                 ->live()
-                ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                ->afterStateUpdated(function ($state, Set $set, Get $get) use ($direction) {
                     if (! $state) {
                         return;
                     }
-                    static::prefillAllocationRowForItem((int) $state, $get, $set);
+                    static::prefillAllocationRowForItem((int) $state, $get, $set, $direction);
                     static::recalculateTotal($get, $set);
                 })
                 ->columnSpan(12),
+
+            static::creditsRepeater($direction),
 
             TextInput::make('allocated_amount')
                 ->label(fn (Get $get) => static::allocationFieldLabel(
@@ -897,8 +985,19 @@ trait HasPaymentFormSections
                 ))
                 ->numeric()
                 ->step('0.01')
-                ->minValue(0.01)
+                // Zero é válido quando a parcela é liquidada só com crédito.
+                ->minValue(0)
                 ->required()
+                ->rule(fn (Get $get) => function (string $attribute, $value, \Closure $fail) use ($get) {
+                    $hasCredit = AllocationFormShape::flattenCredits([[
+                        'payment_schedule_item_id' => $get('payment_schedule_item_id'),
+                        'credits' => $get('credits') ?? [],
+                    ]]) !== [];
+
+                    if ((float) $value <= 0 && ! $hasCredit) {
+                        $fail(__('forms.validation.allocation_row_needs_cash_or_credit'));
+                    }
+                })
                 ->live(onBlur: true)
                 ->afterStateUpdated(function (Get $get, Set $set) {
                     static::syncAllocationRow($get, $set, 'allocated_amount');
@@ -913,7 +1012,7 @@ trait HasPaymentFormSections
                 ))
                 ->numeric()
                 ->step('0.01')
-                ->minValue(0.01)
+                ->minValue(0)
                 ->live(onBlur: true)
                 ->visible(fn (Get $get) => static::rowHasDifferingCurrencies($get))
                 ->required(fn (Get $get) => static::rowHasDifferingCurrencies($get))
@@ -975,7 +1074,7 @@ trait HasPaymentFormSections
      * rate exists, the payment-currency amount and the rate are left blank
      * for the user to enter manually (no silent fallback).
      */
-    protected static function prefillAllocationRowForItem(int $itemId, Get $get, Set $set): void
+    protected static function prefillAllocationRowForItem(int $itemId, Get $get, Set $set, mixed $direction = null): void
     {
         $item = PaymentScheduleItem::find($itemId);
         if (! $item) {
@@ -984,7 +1083,32 @@ trait HasPaymentFormSections
 
         $docCurrency = (string) $item->currency_code;
         $pmtCurrency = (string) ($get('../../currency_code') ?? '');
-        $remainingDocMajor = Money::toMajor($item->remaining_amount);
+
+        // Créditos do mesmo documento entram sozinhos (menos os já usados em
+        // outras linhas) e o dinheiro sugerido já sai líquido.
+        $cashMinor = $item->remaining_amount;
+        $companyId = (int) ($get('../../company_id') ?? 0);
+        $resolvedDirection = $direction ?? $get('../../direction');
+
+        if ($companyId && $resolvedDirection) {
+            $allRows = $get('../../allocations') ?? $get('../../new_allocations') ?? [];
+            $ownIds = array_map(fn ($c) => (int) ($c['credit_schedule_item_id'] ?? 0), $get('credits') ?? []);
+            $usedElsewhere = array_values(array_diff(
+                array_column(AllocationFormShape::flattenCredits(is_array($allRows) ? $allRows : []), 'credit_schedule_item_id'),
+                $ownIds,
+            ));
+
+            $plan = AllocationPrefill::plan(
+                $item->remaining_amount,
+                static::ownCreditsFor($item, $companyId, $resolvedDirection),
+                $usedElsewhere,
+            );
+
+            $set('credits', collect($plan['credits'])->mapWithKeys(fn ($row) => [(string) Str::uuid() => $row])->all());
+            $cashMinor = $plan['cash_minor'];
+        }
+
+        $remainingDocMajor = Money::toMajor($cashMinor);
 
         $set('document_currency_code', $docCurrency);
 
@@ -1125,6 +1249,7 @@ trait HasPaymentFormSections
         }
 
         $remaining = $wireAmount - $totalAllocated;
+        $creditTotals = AllocationFormShape::creditTotalsByCurrency($allocations, $currency);
 
         // Inline styles: the panel's precompiled CSS may not include these
         // utility classes, which renders the segments glued together.
@@ -1133,6 +1258,11 @@ trait HasPaymentFormSections
             .e($currency).' '.number_format($wireAmount, 2).'</span></span>';
         $html .= '<span class="text-gray-500">Allocated: <span class="font-semibold text-blue-600">'
             .e($currency).' '.number_format($totalAllocated, 2).'</span></span>';
+
+        foreach ($creditTotals as $code => $total) {
+            $html .= '<span class="text-gray-500">'.e(__('forms.labels.credits_applied')).': <span class="font-semibold text-emerald-600">'
+                .e($code).' '.number_format($total, 2).'</span></span>';
+        }
 
         if ($wireAmount > 0 && abs($remaining) > 0.001) {
             if ($remaining > 0) {

@@ -60,26 +60,35 @@ trait HasPaymentAllocationPersistence
         $currencies = $items->pluck('currency_code')->unique();
         $sameCurrency = $currencies->count() === 1;
 
-        $data['allocations'] = $items->map(function (PaymentScheduleItem $item) use ($sameCurrency) {
-            $remaining = number_format(Money::toMajor($item->remaining_amount), 2, '.', '');
+        // Créditos do próprio documento entram sozinhos e o dinheiro sai
+        // líquido — mesma regra do prefill ao escolher a parcela na tela.
+        $usedCreditIds = [];
+        $cashTotalMinor = 0;
+
+        $data['allocations'] = $items->map(function (PaymentScheduleItem $item) use ($sameCurrency, $companyId, $direction, &$usedCreditIds, &$cashTotalMinor) {
+            $plan = \App\Domain\Financial\Support\AllocationPrefill::plan(
+                $item->remaining_amount,
+                \App\Filament\Resources\Finance\AccountsPayable\Schemas\PayableForm::ownCreditsFor($item, (int) $companyId, $direction),
+                $usedCreditIds,
+            );
+            $usedCreditIds = array_merge($usedCreditIds, array_column($plan['credits'], 'credit_schedule_item_id'));
+            $cashTotalMinor += $plan['cash_minor'];
+
+            $cash = number_format(Money::toMajor($plan['cash_minor']), 2, '.', '');
 
             return [
                 'payment_schedule_item_id' => $item->id,
                 'document_currency_code' => $item->currency_code,
-                'allocated_amount_in_document_currency' => $remaining,
-                'allocated_amount' => $sameCurrency ? $remaining : null,
+                'allocated_amount_in_document_currency' => $cash,
+                'allocated_amount' => $sameCurrency ? $cash : null,
                 'exchange_rate' => null,
+                'credits' => $plan['credits'],
             ];
         })->values()->all();
 
         if ($sameCurrency) {
             $data['currency_code'] = $currencies->first();
-            $data['amount'] = number_format(
-                Money::toMajor((int) $items->sum(fn (PaymentScheduleItem $i) => $i->remaining_amount)),
-                2,
-                '.',
-                ''
-            );
+            $data['amount'] = number_format(Money::toMajor($cashTotalMinor), 2, '.', '');
         }
 
         return $data;
