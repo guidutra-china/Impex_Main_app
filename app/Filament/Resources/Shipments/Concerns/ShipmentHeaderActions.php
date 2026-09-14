@@ -16,6 +16,7 @@ use App\Domain\Infrastructure\Pdf\Templates\ShipmentFinancialStatementPdfTemplat
 use App\Domain\Infrastructure\Pdf\Templates\ShipmentProformaInvoicePdfTemplate;
 use App\Domain\Infrastructure\Services\DocumentService;
 use App\Domain\Logistics\Enums\ShipmentStatus;
+use App\Domain\Logistics\Models\Shipment;
 use App\Domain\Logistics\Reports\CommercialInvoiceExcelExporter;
 use App\Domain\Logistics\Reports\PackingListExcelExporter;
 use App\Filament\Actions\GeneratePdfAction;
@@ -362,9 +363,31 @@ trait ShipmentHeaderActions
                 $this->handleSaveCustomPrices($record, $data);
 
                 $path = (new CommercialInvoiceExcelExporter)->export($record, $data);
+                $document = $this->archiveExcel($record, $path, 'commercial_invoice_xlsx', 'CI');
 
-                return response()->download($path)->deleteFileAfterSend();
+                return response()->download($path, $document->name)->deleteFileAfterSend();
             });
+    }
+
+    /**
+     * Excel entra na aba Documents com o mesmo versionamento dos PDFs — tipo
+     * próprio (…_xlsx), então a linha do tempo do Excel não mistura com a do
+     * PDF. O arquivo continua sendo baixado na hora.
+     */
+    protected function archiveExcel(Shipment $shipment, string $path, string $type, string $prefix): \App\Domain\Infrastructure\Models\Document
+    {
+        $nextVersion = ((int) $shipment->documents()->where('type', $type)->max('version')) + 1;
+        $name = "{$prefix}-{$shipment->reference}-v{$nextVersion}.xlsx";
+
+        $document = (new DocumentService)->storeGeneratedFile($shipment, $path, $type, $name, 'xlsx');
+
+        Notification::make()
+            ->title(__('messages.excel_archived'))
+            ->body(__('messages.document_version_created', ['version' => $document->version, 'name' => $document->name]))
+            ->success()
+            ->send();
+
+        return $document;
     }
 
     protected function packingListExcelAction(): Action
@@ -378,9 +401,11 @@ trait ShipmentHeaderActions
             ->modalSubmitActionLabel(__('forms.labels.export_excel'))
             ->form($this->packingListOptions())
             ->action(function (array $data) {
-                $path = (new PackingListExcelExporter)->export($this->getRecord(), $data);
+                $record = $this->getRecord();
+                $path = (new PackingListExcelExporter)->export($record, $data);
+                $document = $this->archiveExcel($record, $path, 'packing_list_xlsx', 'PL');
 
-                return response()->download($path)->deleteFileAfterSend();
+                return response()->download($path, $document->name)->deleteFileAfterSend();
             });
     }
 

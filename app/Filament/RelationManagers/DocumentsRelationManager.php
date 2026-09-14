@@ -39,7 +39,11 @@ class DocumentsRelationManager extends RelationManager
         'shipment_proforma_invoice_pdf' => 'Shipment Proforma Invoice PDF',
         'custom_price_pdf' => 'Custom Price PDF',
         'commercial_invoice' => 'Commercial Invoice',
+        'commercial_invoice_pdf' => 'Commercial Invoice PDF',
+        'commercial_invoice_xlsx' => 'Commercial Invoice Excel',
         'packing_list' => 'Packing List',
+        'packing_list_pdf' => 'Packing List PDF',
+        'packing_list_xlsx' => 'Packing List Excel',
         'bill_of_lading' => 'Bill of Lading',
         'certificate_of_origin' => 'Certificate of Origin',
         'inspection_report' => 'Inspection Report',
@@ -59,9 +63,9 @@ class DocumentsRelationManager extends RelationManager
                     ->color(fn (string $state) => match ($state) {
                         'quotation_pdf', 'rfq_pdf' => 'success',
                         'supplier_quotation', 'supplier_response' => 'warning',
-                        'proforma_invoice', 'proforma_invoice_pdf', 'shipment_proforma_invoice_pdf', 'commercial_invoice' => 'danger',
+                        'proforma_invoice', 'proforma_invoice_pdf', 'shipment_proforma_invoice_pdf', 'commercial_invoice', 'commercial_invoice_pdf', 'commercial_invoice_xlsx' => 'danger',
                         'custom_price_pdf' => 'purple',
-                        'packing_list', 'bill_of_lading' => 'info',
+                        'packing_list', 'packing_list_pdf', 'packing_list_xlsx', 'bill_of_lading' => 'info',
                         default => 'gray',
                     })
                     ->sortable(),
@@ -115,7 +119,7 @@ class DocumentsRelationManager extends RelationManager
                             ->label(__('forms.labels.file'))
                             ->required()
                             ->disk('local')
-                            ->directory(fn () => 'documents/' . strtolower(class_basename($this->getOwnerRecord())) . '/' . $this->getOwnerRecord()->id)
+                            ->directory(fn () => 'documents/'.strtolower(class_basename($this->getOwnerRecord())).'/'.$this->getOwnerRecord()->id)
                             ->maxSize(20480)
                             ->acceptedFileTypes([
                                 'application/pdf',
@@ -207,7 +211,7 @@ class DocumentsRelationManager extends RelationManager
                             function () use ($fullPath) {
                                 echo file_get_contents($fullPath);
                             },
-                            $record->name . '.' . pathinfo($record->path, PATHINFO_EXTENSION),
+                            $record->name.'.'.pathinfo($record->path, PATHINFO_EXTENSION),
                             ['Content-Type' => $record->mime_type ?? 'application/octet-stream'],
                         );
                     }),
@@ -263,7 +267,7 @@ class DocumentsRelationManager extends RelationManager
                                         $url = URL::signedRoute('document-version.download', ['version' => $state]);
 
                                         return new \Illuminate\Support\HtmlString(
-                                            '<a href="' . e($url) . '" target="_blank" class="text-primary-600 hover:underline text-sm font-medium">Download</a>'
+                                            '<a href="'.e($url).'" target="_blank" class="text-primary-600 hover:underline text-sm font-medium">Download</a>'
                                         );
                                     }),
                             ])
@@ -285,6 +289,6 @@ class DocumentsRelationManager extends RelationManager
         $units = ['B', 'KB', 'MB', 'GB'];
         $i = floor(log($bytes, 1024));
 
-        return round($bytes / pow(1024, $i), 1) . ' ' . $units[$i];
+        return round($bytes / pow(1024, $i), 1).' '.$units[$i];
     }
 }

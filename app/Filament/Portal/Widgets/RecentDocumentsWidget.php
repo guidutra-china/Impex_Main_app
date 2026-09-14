@@ -13,6 +13,7 @@ use Filament\Widgets\TableWidget as BaseWidget;
 class RecentDocumentsWidget extends BaseWidget
 {
     protected int|string|array $columnSpan = 'full';
+
     protected static ?int $sort = 3;
 
     public function getHeading(): string
@@ -58,7 +59,9 @@ class RecentDocumentsWidget extends BaseWidget
                     ->badge()
                     ->formatStateUsing(fn (string $state) => match ($state) {
                         'commercial_invoice_pdf' => __('widgets.portal.commercial_invoice'),
+                        'commercial_invoice_xlsx' => __('widgets.portal.commercial_invoice').' (Excel)',
                         'packing_list_pdf' => __('widgets.portal.packing_list'),
+                        'packing_list_xlsx' => __('widgets.portal.packing_list').' (Excel)',
                         'proforma_invoice_pdf', 'shipment_proforma_invoice_pdf' => __('navigation.models.proforma_invoice'),
                         default => $state,
                     }),

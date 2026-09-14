@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'excel_archived' => 'Excel 已归档至文档',
+    'document_version_created' => '已创建版本 :version：:name',
     'credit_note_issued' => '贷记通知单已开具',
     'credit_note_cancelled' => '贷记通知单已取消',
     'debit_note_issued' => '借记通知单已开具',

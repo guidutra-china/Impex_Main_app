@@ -45,12 +45,33 @@ class DocumentService
     ): Document {
         $directory = $this->getDirectory($documentable, $type);
         $filename = $this->generateFilename($name, $extension);
-        $path = $directory . '/' . $filename;
+        $path = $directory.'/'.$filename;
 
         Storage::disk($disk)->put($path, $content);
         $fullPath = Storage::disk($disk)->path($path);
 
         return $this->createOrVersion($documentable, $type, $name, $disk, $path, $fullPath, DocumentSourceType::GENERATED);
+    }
+
+    /**
+     * Arquiva um arquivo já gerado em disco (Excel dos exportadores, por
+     * exemplo) com o mesmo versionamento por tipo dos PDFs.
+     */
+    public function storeGeneratedFile(
+        Model $documentable,
+        string $localPath,
+        string $type,
+        string $name,
+        string $extension,
+        string $disk = 'local',
+    ): Document {
+        $content = file_get_contents($localPath);
+
+        if ($content === false) {
+            throw new \RuntimeException("Generated file not readable: {$localPath}");
+        }
+
+        return $this->storeGenerated($documentable, $content, $type, $name, $extension, $disk);
     }
 
     private function createOrVersion(

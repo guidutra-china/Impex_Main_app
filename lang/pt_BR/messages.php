@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'excel_archived' => 'Excel arquivado em Documentos',
+    'document_version_created' => 'Versão :version criada: :name',
     'credit_note_issued' => 'Nota de crédito emitida',
     'credit_note_cancelled' => 'Nota de crédito cancelada',
     'debit_note_issued' => 'Nota de débito emitida',
