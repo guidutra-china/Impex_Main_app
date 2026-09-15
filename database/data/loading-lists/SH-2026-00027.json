@@ -1,0 +1,2664 @@
+{
+  "shipment": "SH-2026-00027",
+  "source": "JGYAN-20260320-PL-run.xls (Shandong JingGong / Ava, BL LWSCN26168, container UETU5422150) + caixas anteriores do sistema (medidas, cadeiras de massagem)",
+  "notes": [
+    "Regra do Gui (2026-09-15): o bruto total do packing list fica nos 12.770 kg do BL; o líquido não importa. JG soma 11.508 + 20 cadeiras × 35 = 12.208; a diferença de 562 kg vai para o pallet T03 das torres.",
+    "Máquinas de torre viajam sem a torre: o pallet T03 da JG leva 16 torres (1.960 kg líquidos) e entra como volume sem linha da PI.",
+    "JG-9800A: 2 esteiras em 4 volumes (M01-M02 + Z01-Z02, 330/432); dividido igual entre os 4 porque a JG não separa.",
+    "JG-6860: M09 + Z93-Z95 (273/326 para 2 pçs); a JG diz \"one box is JG parts, two is from other factory\". Z95 entra sem item.",
+    "Anilhas: nominal 1.950 kg = T02 (1.150) + Z33-Z92 (800) exato, mas a JG não diz quais anilhas vão onde; distribuição com 1 anilha por caixa (pallet 10×5 + 50×10 + 30×20; caixas 20×5 + 10×10 + 30×20).",
+    "Halteres hexagonais e cabeça redonda pelo nominal (JG: 216/220 e 735/750).",
+    "Cadeiras de massagem: sem documento da outra fábrica; ficam como estavam (35 brutos / 27 líquidos).",
+    "Medidas: das caixas anteriores do sistema quando o volume é o mesmo; a cubagem é a da JG."
+  ],
+  "containers": [
+    {
+      "label": "CONT-001",
+      "container_number": "UETU5422150",
+      "type": "40HQ",
+      "seal_number": null,
+      "sort_order": 1,
+      "declared": {
+        "packages": 143,
+        "gross_weight": 12770.0
+      },
+      "packages": [
+        {
+          "type": "carton",
+          "gross_weight": 108.0,
+          "net_weight": 82.5,
+          "volume": 0.86,
+          "dimensions": [
+            160,
+            90,
+            65.24
+          ],
+          "contents": [
+            {
+              "description": "Treadmill JG-9800A",
+              "pieces": 1,
+              "part": "Part 1"
+            }
+          ],
+          "notes": "M01 — JG-9800A"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 108.0,
+          "net_weight": 82.5,
+          "volume": 0.86,
+          "dimensions": [
+            160,
+            90,
+            65.24
+          ],
+          "contents": [
+            {
+              "description": "Treadmill JG-9800A",
+              "pieces": 1,
+              "part": "Part 1"
+            }
+          ],
+          "notes": "M02 — JG-9800A"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 108.0,
+          "net_weight": 82.5,
+          "volume": 0.86,
+          "dimensions": [
+            160,
+            87,
+            50
+          ],
+          "contents": [
+            {
+              "description": "Treadmill JG-9800A",
+              "pieces": 1,
+              "part": "Part 2"
+            }
+          ],
+          "notes": "Z01 — JG-9800A"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 108.0,
+          "net_weight": 82.5,
+          "volume": 0.86,
+          "dimensions": [
+            160,
+            87,
+            50
+          ],
+          "contents": [
+            {
+              "description": "Treadmill JG-9800A",
+              "pieces": 1,
+              "part": "Part 2"
+            }
+          ],
+          "notes": "Z02 — JG-9800A"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 210,
+          "net_weight": 160,
+          "volume": 1.73,
+          "dimensions": [
+            180,
+            120,
+            83
+          ],
+          "contents": [
+            {
+              "description": "Stair climber JG-8925\n（1238）",
+              "pieces": 1
+            }
+          ],
+          "notes": "M03"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 210,
+          "net_weight": 160,
+          "volume": 1.73,
+          "dimensions": [
+            180,
+            120,
+            83
+          ],
+          "contents": [
+            {
+              "description": "Stair climber JG-8925\n（1238）",
+              "pieces": 1
+            }
+          ],
+          "notes": "M04"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 158,
+          "net_weight": 108,
+          "volume": 1.28,
+          "dimensions": [
+            130,
+            90,
+            102
+          ],
+          "contents": [
+            {
+              "description": "Elliptical trainer JG-1217B",
+              "pieces": 1
+            }
+          ],
+          "notes": "M05"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 76,
+          "net_weight": 75,
+          "volume": 0.63,
+          "dimensions": [
+            100,
+            90,
+            88
+          ],
+          "contents": [
+            {
+              "description": "Stationary bike  JG-1218",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z03"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 360,
+          "net_weight": 310,
+          "volume": 1.85,
+          "dimensions": [
+            180,
+            120,
+            112
+          ],
+          "contents": [
+            {
+              "description": "High and low pull all-in-one machine\n(put 120kg)",
+              "pieces": 2
+            }
+          ],
+          "notes": "M06 — sem as torres (pallet T03)"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 344,
+          "net_weight": 294,
+          "volume": 2.15,
+          "dimensions": [
+            150,
+            120,
+            112
+          ],
+          "contents": [
+            {
+              "description": "Inner Weight Machines JG-E6816",
+              "pieces": 2
+            }
+          ],
+          "notes": "M07 — sem as torres (pallet T03)"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 363,
+          "net_weight": 313,
+          "volume": 1.98,
+          "contents": [
+            {
+              "description": "Inner Weight Machines JG-E6816",
+              "pieces": 1
+            },
+            {
+              "description": "Out Weight Machines JG-1903",
+              "pieces": 1
+            }
+          ],
+          "notes": "M08 — sem a torre do 6816 (pallet T03)"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 81.5,
+          "net_weight": 68.25,
+          "volume": 0.5375,
+          "dimensions": [
+            100,
+            50,
+            100
+          ],
+          "contents": [
+            {
+              "description": "Two-head and three-head all-in-one machine\n(put 120kg)",
+              "pieces": 2,
+              "part": "Part 1"
+            }
+          ],
+          "notes": "M09 — corpos, sem as torres (pallet T03)"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 81.5,
+          "net_weight": 68.25,
+          "volume": 0.5375,
+          "dimensions": [
+            100,
+            50,
+            100
+          ],
+          "contents": [
+            {
+              "description": "Two-head and three-head all-in-one machine\n(put 120kg)",
+              "pieces": 1,
+              "part": "Part 2"
+            }
+          ],
+          "notes": "Z93 — peças JG"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 81.5,
+          "net_weight": 68.25,
+          "volume": 0.5375,
+          "dimensions": [
+            100,
+            50,
+            100
+          ],
+          "contents": [
+            {
+              "description": "Two-head and three-head all-in-one machine\n(put 120kg)",
+              "pieces": 1,
+              "part": "Part 2"
+            }
+          ],
+          "notes": "Z94 — peças de outra fábrica"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 81.5,
+          "net_weight": 68.25,
+          "volume": 0.5375,
+          "dimensions": [
+            100,
+            50,
+            100
+          ],
+          "contents": [],
+          "notes": "Z95 — peças do JG-6860 de outra fábrica (Z93-Z95 no packing list da JG, 3 volumes para 2 máquinas)"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 217.333,
+          "net_weight": 172.333,
+          "volume": 1.76,
+          "contents": [
+            {
+              "description": "Inner Weight Machines JG-E6861 — inner/out thightrainer\n(put 120kg)",
+              "pieces": 2
+            }
+          ],
+          "notes": "M10 — JG-6861 biceps curl + triceps press rack"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 217.333,
+          "net_weight": 172.333,
+          "volume": 1.76,
+          "contents": [
+            {
+              "description": "Inner Weight Machines JG-E6861 — inner/out thightrainer\n(put 120kg)",
+              "pieces": 2
+            }
+          ],
+          "notes": "M11 — JG-6861 biceps curl + triceps press rack"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 217.333,
+          "net_weight": 172.333,
+          "volume": 1.76,
+          "contents": [
+            {
+              "description": "Inner Weight Machines JG-E6861 — inner/out thightrainer\n(put 120kg)",
+              "pieces": 2
+            }
+          ],
+          "notes": "M12 — JG-6861 biceps curl + triceps press rack"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 370,
+          "net_weight": 320,
+          "volume": 2.15,
+          "dimensions": [
+            169,
+            130,
+            100
+          ],
+          "contents": [
+            {
+              "description": "Seated leg training device\n(put 120kg)",
+              "pieces": 1
+            },
+            {
+              "description": "Out Weight Machines JG-1922",
+              "pieces": 1
+            }
+          ],
+          "notes": "M13 — sem a torre do 6824 (pallet T03)"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 60,
+          "net_weight": 56.333,
+          "volume": 0.833333,
+          "dimensions": [
+            120,
+            100,
+            70
+          ],
+          "contents": [
+            {
+              "description": "cable crossover",
+              "pieces": 1,
+              "part": "Part 1"
+            }
+          ],
+          "notes": "P03 — sem a torre (pallet T03)"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 60,
+          "net_weight": 56.333,
+          "volume": 0.833333,
+          "dimensions": [
+            120,
+            100,
+            70
+          ],
+          "contents": [
+            {
+              "description": "cable crossover",
+              "pieces": 1,
+              "part": "Part 2"
+            }
+          ],
+          "notes": "P04 — sem a torre (pallet T03)"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 59,
+          "net_weight": 56.333,
+          "volume": 0.833333,
+          "dimensions": [
+            120,
+            100,
+            69
+          ],
+          "contents": [
+            {
+              "description": "cable crossover",
+              "pieces": 1,
+              "part": "Part 3"
+            }
+          ],
+          "notes": "P05 — sem a torre (pallet T03)"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 365,
+          "net_weight": 320,
+          "volume": 2.16,
+          "dimensions": [
+            150,
+            120,
+            111
+          ],
+          "contents": [
+            {
+              "description": "leg extension trainer\n(put 120kg)",
+              "pieces": 1
+            },
+            {
+              "description": "Seated leg training device\n(put 120kg)",
+              "pieces": 1
+            }
+          ],
+          "notes": "M14 — sem as torres (pallet T03)"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 124.0,
+          "net_weight": 119.0,
+          "volume": 0.65,
+          "dimensions": [
+            110,
+            80,
+            75
+          ],
+          "contents": [
+            {
+              "description": "Hack Slide",
+              "pieces": 1,
+              "part": "Part 1"
+            }
+          ],
+          "notes": "P01"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 124.0,
+          "net_weight": 119.0,
+          "volume": 0.65,
+          "dimensions": [
+            110,
+            80,
+            75
+          ],
+          "contents": [
+            {
+              "description": "Hack Slide",
+              "pieces": 1,
+              "part": "Part 2"
+            }
+          ],
+          "notes": "P02"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 299,
+          "net_weight": 264,
+          "volume": 1.85,
+          "dimensions": [
+            150,
+            105,
+            127
+          ],
+          "contents": [
+            {
+              "description": "Inner Weight Machines JG-E6838",
+              "pieces": 1
+            },
+            {
+              "description": "Rack  JG-6802",
+              "pieces": 1
+            },
+            {
+              "description": "Out Weight Machines JG-1643",
+              "pieces": 1
+            },
+            {
+              "description": "Rack  JG-100624",
+              "pieces": 1
+            }
+          ],
+          "notes": "M15 — sem a torre do 6838 (pallet T03)"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 810,
+          "net_weight": 660,
+          "volume": 2.36,
+          "contents": [
+            {
+              "description": "Out Weight Machines JG-6817A",
+              "pieces": 2
+            }
+          ],
+          "notes": "M16"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 590,
+          "net_weight": 540,
+          "volume": 3.33,
+          "contents": [
+            {
+              "description": "Out Weight Machines JH60",
+              "pieces": 3
+            }
+          ],
+          "notes": "M17 — sem as torres (pallet T03)"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 414,
+          "net_weight": 364,
+          "volume": 2.48,
+          "contents": [
+            {
+              "description": "olympic decline bench",
+              "pieces": 1
+            },
+            {
+              "description": "Inner Weight Machines JG-E6861",
+              "pieces": 1
+            },
+            {
+              "description": "Out Weight Machines JG-1903",
+              "pieces": 1
+            }
+          ],
+          "notes": "M18 — JG-6839 + JG-6861A (sem a torre) + JG-1903"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 47.5,
+          "net_weight": 45.0,
+          "volume": 0.4,
+          "dimensions": [
+            50,
+            50,
+            100
+          ],
+          "contents": [
+            {
+              "description": "Power Cage (round)",
+              "pieces": 1,
+              "part": "Part 1"
+            }
+          ],
+          "notes": "P06 — Power Rack"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 47.5,
+          "net_weight": 45.0,
+          "volume": 0.4,
+          "dimensions": [
+            50,
+            50,
+            100
+          ],
+          "contents": [
+            {
+              "description": "Power Cage (round)",
+              "pieces": 1,
+              "part": "Part 2"
+            }
+          ],
+          "notes": "P07 — Power Rack"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 11,
+          "net_weight": 10.5,
+          "volume": 0.03,
+          "dimensions": [
+            150,
+            15,
+            15
+          ],
+          "contents": [
+            {
+              "description": "Bars JG-Z12",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z04"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 11,
+          "net_weight": 10.5,
+          "volume": 0.03,
+          "dimensions": [
+            150,
+            15,
+            15
+          ],
+          "contents": [
+            {
+              "description": "Bars JG-Z12",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z05"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20,
+          "net_weight": 19.667,
+          "volume": 0.0216,
+          "dimensions": [
+            150,
+            12,
+            12
+          ],
+          "contents": [
+            {
+              "description": "Bars JG-Z22700",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z06"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20,
+          "net_weight": 19.667,
+          "volume": 0.0216,
+          "dimensions": [
+            150,
+            12,
+            12
+          ],
+          "contents": [
+            {
+              "description": "Bars JG-Z22700",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z07"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20,
+          "net_weight": 19.667,
+          "volume": 0.0216,
+          "dimensions": [
+            150,
+            12,
+            12
+          ],
+          "contents": [
+            {
+              "description": "Bars JG-Z22700",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z08"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 8.0,
+          "net_weight": 7.855,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY02",
+              "pieces": 4
+            }
+          ],
+          "notes": "Z09"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 11.0,
+          "net_weight": 10.8,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY03",
+              "pieces": 3
+            },
+            {
+              "description": "Dumbbell JG-SY01",
+              "pieces": 2
+            }
+          ],
+          "notes": "Z10"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 13.0,
+          "net_weight": 12.764,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            30,
+            50
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY03",
+              "pieces": 1
+            },
+            {
+              "description": "Dumbbell JG-SY04",
+              "pieces": 2
+            },
+            {
+              "description": "Dumbbell JG-SY01",
+              "pieces": 2
+            }
+          ],
+          "notes": "Z11"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 8.0,
+          "net_weight": 7.855,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY04",
+              "pieces": 2
+            }
+          ],
+          "notes": "Z12"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 10.0,
+          "net_weight": 9.818,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY05",
+              "pieces": 2
+            }
+          ],
+          "notes": "Z13"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 10.0,
+          "net_weight": 9.818,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY05",
+              "pieces": 2
+            }
+          ],
+          "notes": "Z14"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 12.0,
+          "net_weight": 11.782,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY06",
+              "pieces": 2
+            }
+          ],
+          "notes": "Z15"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 12.0,
+          "net_weight": 11.782,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY06",
+              "pieces": 2
+            }
+          ],
+          "notes": "Z16"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 7.0,
+          "net_weight": 6.873,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY07",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z17"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 7.0,
+          "net_weight": 6.873,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY07",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z18"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 7.0,
+          "net_weight": 6.873,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY07",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z19"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 7.0,
+          "net_weight": 6.873,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY07",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z20"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 8.0,
+          "net_weight": 7.855,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY08",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z21"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 8.0,
+          "net_weight": 7.855,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY08",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z22"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 8.0,
+          "net_weight": 7.855,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY08",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z23"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 8.0,
+          "net_weight": 7.855,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY08",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z24"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 9.0,
+          "net_weight": 8.836,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY09",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z25"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 9.0,
+          "net_weight": 8.836,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY09",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z26"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 9.0,
+          "net_weight": 8.836,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY09",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z27"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 9.0,
+          "net_weight": 8.836,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY09",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z28"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 10.0,
+          "net_weight": 9.818,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY10",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z29"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 10.0,
+          "net_weight": 9.818,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY10",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z30"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 10.0,
+          "net_weight": 9.818,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY10",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z31"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 10.0,
+          "net_weight": 9.818,
+          "volume": 0.018333,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-SY10",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z32"
+        },
+        {
+          "type": "pallet",
+          "gross_weight": 750,
+          "net_weight": 735,
+          "volume": 1.5,
+          "dimensions": [
+            120,
+            100,
+            125
+          ],
+          "contents": [
+            {
+              "description": "Dumbbell JG-XY-12.5",
+              "pieces": 4
+            },
+            {
+              "description": "Dumbbell JG-XY-15",
+              "pieces": 2
+            },
+            {
+              "description": "Dumbbell JG-XY-17.5",
+              "pieces": 4
+            },
+            {
+              "description": "Dumbbell JG-XY-20",
+              "pieces": 4
+            },
+            {
+              "description": "Dumbbell JG-XY-22.5",
+              "pieces": 2
+            },
+            {
+              "description": "Dumbbell JG-XY-25",
+              "pieces": 2
+            },
+            {
+              "description": "Dumbbell JG-XY-27.5",
+              "pieces": 2
+            },
+            {
+              "description": "Dumbbell JG-XY-30",
+              "pieces": 2
+            },
+            {
+              "description": "Dumbbell JG-XY-32.5",
+              "pieces": 2
+            },
+            {
+              "description": "Dumbbell JG-XY-37,5",
+              "pieces": 4
+            },
+            {
+              "description": "Dumbbell JG-XY-40",
+              "pieces": 2
+            }
+          ],
+          "notes": "T01 — JG-XY Round Head Dumbbell"
+        },
+        {
+          "type": "pallet",
+          "gross_weight": 1165,
+          "net_weight": 1150,
+          "volume": 2.33,
+          "dimensions": [
+            120,
+            100,
+            194
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-5",
+              "pieces": 10
+            },
+            {
+              "description": "Weight plate JG-PJ-10",
+              "pieces": 50
+            },
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 30
+            }
+          ],
+          "notes": "T02 — JG-PJ Three-hole Weight Plate"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 5.062,
+          "net_weight": 5.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-5",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z33"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 5.062,
+          "net_weight": 5.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-5",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z34"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 5.062,
+          "net_weight": 5.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-5",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z35"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 5.062,
+          "net_weight": 5.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-5",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z36"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 5.062,
+          "net_weight": 5.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-5",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z37"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 5.062,
+          "net_weight": 5.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-5",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z38"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 5.062,
+          "net_weight": 5.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-5",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z39"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 5.062,
+          "net_weight": 5.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-5",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z40"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 5.062,
+          "net_weight": 5.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-5",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z41"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 5.062,
+          "net_weight": 5.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-5",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z42"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 5.062,
+          "net_weight": 5.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-5",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z43"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 5.062,
+          "net_weight": 5.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-5",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z44"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 5.062,
+          "net_weight": 5.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-5",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z45"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 5.062,
+          "net_weight": 5.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-5",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z46"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 5.062,
+          "net_weight": 5.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-5",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z47"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 5.062,
+          "net_weight": 5.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-5",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z48"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 5.062,
+          "net_weight": 5.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-5",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z49"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 5.062,
+          "net_weight": 5.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-5",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z50"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 5.062,
+          "net_weight": 5.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-5",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z51"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 5.062,
+          "net_weight": 5.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-5",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z52"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 10.125,
+          "net_weight": 10.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-10",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z53"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 10.125,
+          "net_weight": 10.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-10",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z54"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 10.125,
+          "net_weight": 10.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-10",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z55"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 10.125,
+          "net_weight": 10.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-10",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z56"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 10.125,
+          "net_weight": 10.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-10",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z57"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 10.125,
+          "net_weight": 10.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-10",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z58"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 10.125,
+          "net_weight": 10.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-10",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z59"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 10.125,
+          "net_weight": 10.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-10",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z60"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 10.125,
+          "net_weight": 10.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-10",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z61"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 10.125,
+          "net_weight": 10.0,
+          "volume": 0.0135,
+          "dimensions": [
+            30,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-10",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z62"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z63"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z64"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z65"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z66"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z67"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z68"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z69"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z70"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z71"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z72"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z73"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z74"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z75"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z76"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z77"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z78"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z79"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z80"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z81"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z82"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z83"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z84"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z85"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z86"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z87"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z88"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z89"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z90"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z91"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 20.25,
+          "net_weight": 20.0,
+          "volume": 0.0135,
+          "dimensions": [
+            60,
+            20,
+            21
+          ],
+          "contents": [
+            {
+              "description": "Weight plate JG-PJ-20",
+              "pieces": 1
+            }
+          ],
+          "notes": "Z92"
+        },
+        {
+          "type": "pallet",
+          "gross_weight": 2542.011,
+          "net_weight": 1960,
+          "volume": 0.41,
+          "dimensions": [
+            120,
+            100,
+            35
+          ],
+          "contents": [],
+          "notes": "T03 — 16 torres de peso (122,5 kg cada) das máquinas 6859, 6816, 6860, 6861A, 6824, 6814B, 6827, 6838 e JH60; não é linha da PI — bruto ajustado em +562.011 kg para o packing list fechar nos 12770 kg do BL"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 35,
+          "net_weight": 27,
+          "volume": 1.0028,
+          "dimensions": [
+            115,
+            80,
+            109
+          ],
+          "contents": [
+            {
+              "description": "MASSAGE CHAIR - LT0001",
+              "pieces": 1
+            }
+          ],
+          "notes": null
+        },
+        {
+          "type": "carton",
+          "gross_weight": 35,
+          "net_weight": 27,
+          "volume": 1.0028,
+          "dimensions": [
+            115,
+            80,
+            109
+          ],
+          "contents": [
+            {
+              "description": "MASSAGE CHAIR - LT0001",
+              "pieces": 1
+            }
+          ],
+          "notes": null
+        },
+        {
+          "type": "carton",
+          "gross_weight": 35,
+          "net_weight": 27,
+          "volume": 1.0028,
+          "dimensions": [
+            115,
+            80,
+            109
+          ],
+          "contents": [
+            {
+              "description": "MASSAGE CHAIR - LT0001",
+              "pieces": 1
+            }
+          ],
+          "notes": null
+        },
+        {
+          "type": "carton",
+          "gross_weight": 35,
+          "net_weight": 27,
+          "volume": 1.0028,
+          "dimensions": [
+            115,
+            80,
+            109
+          ],
+          "contents": [
+            {
+              "description": "MASSAGE CHAIR - LT0001",
+              "pieces": 1
+            }
+          ],
+          "notes": null
+        },
+        {
+          "type": "carton",
+          "gross_weight": 35,
+          "net_weight": 27,
+          "volume": 1.0028,
+          "dimensions": [
+            115,
+            80,
+            109
+          ],
+          "contents": [
+            {
+              "description": "MASSAGE CHAIR - LT0001",
+              "pieces": 1
+            }
+          ],
+          "notes": null
+        },
+        {
+          "type": "carton",
+          "gross_weight": 35,
+          "net_weight": 27,
+          "volume": 1.0028,
+          "dimensions": [
+            115,
+            80,
+            109
+          ],
+          "contents": [
+            {
+              "description": "MASSAGE CHAIR - LT0001",
+              "pieces": 1
+            }
+          ],
+          "notes": null
+        },
+        {
+          "type": "carton",
+          "gross_weight": 35,
+          "net_weight": 27,
+          "volume": 1.0028,
+          "dimensions": [
+            115,
+            80,
+            109
+          ],
+          "contents": [
+            {
+              "description": "MASSAGE CHAIR - LT0001",
+              "pieces": 1
+            }
+          ],
+          "notes": null
+        },
+        {
+          "type": "carton",
+          "gross_weight": 35,
+          "net_weight": 27,
+          "volume": 1.0028,
+          "dimensions": [
+            115,
+            80,
+            109
+          ],
+          "contents": [
+            {
+              "description": "MASSAGE CHAIR - LT0001",
+              "pieces": 1
+            }
+          ],
+          "notes": null
+        },
+        {
+          "type": "carton",
+          "gross_weight": 35,
+          "net_weight": 27,
+          "volume": 1.0028,
+          "dimensions": [
+            115,
+            80,
+            109
+          ],
+          "contents": [
+            {
+              "description": "MASSAGE CHAIR - LT0001",
+              "pieces": 1
+            }
+          ],
+          "notes": null
+        },
+        {
+          "type": "carton",
+          "gross_weight": 35,
+          "net_weight": 27,
+          "volume": 1.0028,
+          "dimensions": [
+            115,
+            80,
+            109
+          ],
+          "contents": [
+            {
+              "description": "MASSAGE CHAIR - LT0001",
+              "pieces": 1
+            }
+          ],
+          "notes": null
+        },
+        {
+          "type": "carton",
+          "gross_weight": 35,
+          "net_weight": 27,
+          "volume": 1.0028,
+          "dimensions": [
+            115,
+            80,
+            109
+          ],
+          "contents": [
+            {
+              "description": "MASSAGE CHAIR - LT0001",
+              "pieces": 1
+            }
+          ],
+          "notes": null
+        },
+        {
+          "type": "carton",
+          "gross_weight": 35,
+          "net_weight": 27,
+          "volume": 1.0028,
+          "dimensions": [
+            115,
+            80,
+            109
+          ],
+          "contents": [
+            {
+              "description": "MASSAGE CHAIR - LT0001",
+              "pieces": 1
+            }
+          ],
+          "notes": null
+        },
+        {
+          "type": "carton",
+          "gross_weight": 35,
+          "net_weight": 27,
+          "volume": 1.0028,
+          "dimensions": [
+            115,
+            80,
+            109
+          ],
+          "contents": [
+            {
+              "description": "MASSAGE CHAIR - LT0001",
+              "pieces": 1
+            }
+          ],
+          "notes": null
+        },
+        {
+          "type": "carton",
+          "gross_weight": 35,
+          "net_weight": 27,
+          "volume": 1.0028,
+          "dimensions": [
+            115,
+            80,
+            109
+          ],
+          "contents": [
+            {
+              "description": "MASSAGE CHAIR - LT0001",
+              "pieces": 1
+            }
+          ],
+          "notes": null
+        },
+        {
+          "type": "carton",
+          "gross_weight": 35,
+          "net_weight": 27,
+          "volume": 1.0028,
+          "dimensions": [
+            115,
+            80,
+            109
+          ],
+          "contents": [
+            {
+              "description": "MASSAGE CHAIR - LT0001",
+              "pieces": 1
+            }
+          ],
+          "notes": null
+        },
+        {
+          "type": "carton",
+          "gross_weight": 35,
+          "net_weight": 27,
+          "volume": 1.0028,
+          "dimensions": [
+            115,
+            80,
+            109
+          ],
+          "contents": [
+            {
+              "description": "MASSAGE CHAIR - LT0001",
+              "pieces": 1
+            }
+          ],
+          "notes": null
+        },
+        {
+          "type": "carton",
+          "gross_weight": 35,
+          "net_weight": 27,
+          "volume": 1.0028,
+          "dimensions": [
+            115,
+            80,
+            109
+          ],
+          "contents": [
+            {
+              "description": "MASSAGE CHAIR - LT0001",
+              "pieces": 1
+            }
+          ],
+          "notes": null
+        },
+        {
+          "type": "carton",
+          "gross_weight": 35,
+          "net_weight": 27,
+          "volume": 1.0028,
+          "dimensions": [
+            115,
+            80,
+            109
+          ],
+          "contents": [
+            {
+              "description": "MASSAGE CHAIR - LT0001",
+              "pieces": 1
+            }
+          ],
+          "notes": null
+        },
+        {
+          "type": "carton",
+          "gross_weight": 35,
+          "net_weight": 27,
+          "volume": 1.0028,
+          "dimensions": [
+            115,
+            80,
+            109
+          ],
+          "contents": [
+            {
+              "description": "MASSAGE CHAIR - LT0001",
+              "pieces": 1
+            }
+          ],
+          "notes": null
+        },
+        {
+          "type": "carton",
+          "gross_weight": 35,
+          "net_weight": 27,
+          "volume": 1.0028,
+          "dimensions": [
+            115,
+            80,
+            109
+          ],
+          "contents": [
+            {
+              "description": "MASSAGE CHAIR - LT0001",
+              "pieces": 1
+            }
+          ],
+          "notes": null
+        }
+      ]
+    }
+  ]
+}
