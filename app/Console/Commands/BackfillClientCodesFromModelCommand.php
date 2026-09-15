@@ -24,6 +24,7 @@ use Illuminate\Support\Collection;
  *  - model_number diferente (sem replaces)      → reporta, não mexe
  *  - pivot cliente inexistente / vazio          → cria / preenche com o código
  *  - pivot com o mesmo código                   → ignora
+ *  - pivot com código igual a "replaces_code"   → corrige para o derivado
  *  - pivot com código diferente                 → reporta; só sobrescreve com
  *    --overwrite-prefix, e só se a diferença for apenas o prefixo (DPF-1646 →
  *    DF-1646). Códigos sem relação nunca são tocados.
@@ -169,6 +170,9 @@ class BackfillClientCodesFromModelCommand extends Command
             } elseif ($this->normalize($pivot->external_code) === $this->normalize($clientCode)) {
                 $unchanged++;
                 $pivotAction = '=';
+            } elseif (isset($entry['replaces_code']) && $this->normalize($pivot->external_code) === $this->normalize((string) $entry['replaces_code'])) {
+                $pivotReplaces[] = [$pivot, $clientCode];
+                $pivotAction = "corrigir ({$pivot->external_code})";
             } elseif ($overwritePrefix && $this->differsOnlyByPrefix($pivot->external_code, $clientCode, $toPrefix)) {
                 $pivotReplaces[] = [$pivot, $clientCode];
                 $pivotAction = "substituir ({$pivot->external_code})";

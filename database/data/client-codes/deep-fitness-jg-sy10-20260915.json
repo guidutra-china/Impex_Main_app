@@ -1,0 +1,10 @@
+{
+    "source": "Conferência do packing list do SH-2026-00027 (2026-09-15): o halter hexagonal JG-SY10 saía com código de cliente DPF-XY-10 (padrão dos halteres de cabeça redonda JG-XY-<kg>), enquanto SY01..SY09 seguem DPF-SY0n. Pivot gravado à mão em 2026-08-26.",
+    "client": "DEEP FITNESS",
+    "suppliers": ["JiongGong Fitness Equipment Co.,Ltd.", "Shandong JingGong Fitness Equipment Co.,Ltd."],
+    "from_prefix": "JG-",
+    "to_prefix": "DPF-",
+    "products": [
+        {"model": "JG-SY10", "name": "Hexagon Dumbbell 10kg", "replaces_code": "DPF-XY-10"}
+    ]
+}

@@ -169,4 +169,26 @@ class BackfillClientCodesFromModelCommandTest extends TestCase
 
         $this->artisan('products:backfill-client-codes', ['file' => $this->file])->assertFailed();
     }
+
+    public function test_replaces_code_fixes_a_declared_wrong_client_code_and_nothing_else(): void
+    {
+        $sy10 = Product::factory()->create(['sku' => 'JG-SY10', 'model_number' => 'JG-SY10', 'name' => 'Dumbbell JG-SY10']);
+        $sy10->companies()->attach($this->client->id, ['role' => 'client', 'external_code' => 'DF-XY-10', 'external_name' => 'Halter Hexagonal SY10']);
+
+        $other = Product::factory()->create(['sku' => 'JG-SY09', 'model_number' => 'JG-SY09', 'name' => 'Dumbbell JG-SY09']);
+        $other->companies()->attach($this->client->id, ['role' => 'client', 'external_code' => 'DF-XY-9']);
+
+        $this->writeFile([
+            ['model' => 'JG-SY10', 'replaces_code' => 'DF-XY-10'],
+            ['model' => 'JG-SY09', 'replaces_code' => 'DF-ALGO-OUTRO'],
+        ]);
+
+        $this->artisan('products:backfill-client-codes', ['file' => $this->file, '--apply' => true])
+            ->expectsOutputToContain('DF-XY-9')
+            ->assertSuccessful();
+
+        $this->assertSame('DF-SY10', $this->clientPivot($sy10)->external_code);
+        $this->assertSame('Halter Hexagonal SY10', $this->clientPivot($sy10)->external_name, 'só o código muda');
+        $this->assertSame('DF-XY-9', $this->clientPivot($other)->external_code, 'replaces_code que não bate não mexe');
+    }
 }
