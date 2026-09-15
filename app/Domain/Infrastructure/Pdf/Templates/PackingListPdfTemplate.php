@@ -19,6 +19,9 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
     /** @var array<int, array<int, float>|null> líquido por conteúdo, memoizado por caixa */
     private array $netShares = [];
 
+    /** @var array<int, array<int, float>|null> bruto repartido por caixa, memoizado */
+    private array $grossShares = [];
+
     public function getView(): string
     {
         return 'pdf.packing-list';
@@ -262,10 +265,16 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
             'pallet' => null,
             'packaging_type' => 'PALLET',
             'package_qty' => 1,
-            'gross_weight' => $gross > 0 ? number_format($gross, 2) : '',
             'dimensions' => $this->formatPalletDimensions($pallet) ?: $this->formatCartonDimensions($carton),
             'volume' => $volume > 0 ? number_format($volume, 2) : '',
         ]);
+
+        // Com o bruto repartido entre os produtos, a primeira linha já carrega a
+        // sua fatia (calculada sobre o bruto do pallet); só sem rateio é que ela
+        // leva o pallet inteiro.
+        if ($this->grossWeightShares($carton) === null) {
+            $lines[0]['gross_weight'] = $gross > 0 ? number_format($gross, 2) : '';
+        }
 
         return $lines;
     }
@@ -536,16 +545,61 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
 
     private function formatContentGrossWeight(Carton $carton, $content, bool $isFirst): string
     {
-        // Prefer weight_share when set; otherwise only show carton gross on first line.
+        // weight_share declarado vale mais que qualquer rateio.
         if ($content->weight_share !== null) {
             return number_format((float) $content->weight_share, 2);
         }
 
+        $shares = $this->grossWeightShares($carton);
+
+        if ($shares !== null) {
+            return number_format($shares[$content->id], 2);
+        }
+
+        // Sem como repartir, só a primeira linha carrega o bruto da caixa.
         if ($isFirst && $carton->gross_weight !== null) {
             return number_format((float) $carton->gross_weight, 2);
         }
 
         return '';
+    }
+
+    /**
+     * Bruto de cada produto quando a caixa (ou o pallet) leva mais de um e
+     * ninguém declarou weight_share: segue a mesma proporção do líquido
+     * ({@see netWeightShares}), sobre o bruto que vale para o volume — o do
+     * pallet quando ele tem peso próprio, senão o da caixa. Resíduo do
+     * arredondamento na primeira linha, para a coluna somar o total.
+     *
+     * @return array<int, float>|null id do conteúdo => kg
+     */
+    private function grossWeightShares(Carton $carton): ?array
+    {
+        if (array_key_exists($carton->id, $this->grossShares)) {
+            return $this->grossShares[$carton->id];
+        }
+
+        $netShares = $this->netWeightShares($carton);
+        $net = (float) $carton->net_weight;
+        $gross = $carton->pallet?->effectiveGrossWeight((float) $carton->gross_weight) ?? (float) $carton->gross_weight;
+
+        if ($netShares === null || $net <= 0 || $gross <= 0) {
+            return $this->grossShares[$carton->id] = null;
+        }
+
+        // Na ordem das linhas da caixa: o resíduo tem de cair na primeira.
+        $ids = $carton->contents->sortBy('sort_order')->pluck('id')->all();
+        $shares = [];
+        $allocated = 0.0;
+
+        foreach (array_slice($ids, 1) as $id) {
+            $shares[$id] = round($gross * $netShares[$id] / $net, 2);
+            $allocated += $shares[$id];
+        }
+
+        $shares[$ids[0]] = round($gross - $allocated, 2);
+
+        return $this->grossShares[$carton->id] = $shares;
     }
 
     private function formatContentNetWeight(Carton $carton, $content, bool $isFirst): string

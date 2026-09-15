@@ -477,6 +477,29 @@ class PackingListPdfV2Test extends TestCase
         // 60 × 2,5 + 60 × 5 + 100 × 10 = 1.450: cada linha com o seu, e a
         // soma da coluna é o líquido da caixa.
         $this->assertSame(['150.00', '300.00', '1,000.00'], $lines->pluck('net_weight')->all());
+
+        // O bruto do pallet (1.523) segue a mesma proporção: cada linha com o seu,
+        // o resíduo do arredondamento na primeira, e a coluna soma o bruto do pallet.
+        $this->assertSame(['157.56', '315.10', '1,050.34'], $lines->pluck('gross_weight')->all());
+    }
+
+    public function test_a_declared_weight_share_wins_over_the_proportional_gross_split(): void
+    {
+        [$shipment, $items] = $this->makeShipmentWithItems(['plate 5kg' => 10, 'plate 10kg' => 10]);
+
+        foreach ([5, 10] as $kg) {
+            $product = Product::factory()->create();
+            $product->specification()->create(['net_weight' => $kg]);
+            $items["plate {$kg}kg"]->proformaInvoiceItem->update(['product_id' => $product->id]);
+        }
+
+        $box = $this->makeCarton($shipment, 'BOX-001', ['gross_weight' => 160.0, 'net_weight' => 150.0]);
+        $this->addContent($box, $items['plate 5kg']->id, 10)->update(['weight_share' => 60.0]);
+        $this->addContent($box, $items['plate 10kg']->id, 10)->update(['weight_share' => 100.0]);
+
+        $lines = collect($this->getData($shipment)['container_groups'][0]['lines']);
+
+        $this->assertSame(['60.00', '100.00'], $lines->pluck('gross_weight')->all());
     }
 
     public function test_a_shared_box_without_product_weights_keeps_the_net_weight_on_the_first_line(): void
@@ -491,6 +514,7 @@ class PackingListPdfV2Test extends TestCase
 
         // Sem peso no cadastro não há como repartir sem inventar: fica como era.
         $this->assertSame(['342.00', ''], $lines->pluck('net_weight')->all());
+        $this->assertSame(['358.00', ''], $lines->pluck('gross_weight')->all());
     }
 
     public function test_document_columns_add_up_to_the_grand_total(): void
