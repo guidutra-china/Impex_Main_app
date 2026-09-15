@@ -211,7 +211,7 @@ class DocumentsRelationManager extends RelationManager
                             function () use ($fullPath) {
                                 echo file_get_contents($fullPath);
                             },
-                            $record->name.'.'.pathinfo($record->path, PATHINFO_EXTENSION),
+                            $record->downloadFilename(),
                             ['Content-Type' => $record->mime_type ?? 'application/octet-stream'],
                         );
                     }),

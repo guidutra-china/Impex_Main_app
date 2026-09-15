@@ -35,7 +35,7 @@ class PortalDocumentDownloadController extends Controller
 
         return Storage::disk($document->disk)->download(
             $document->path,
-            $document->name . '.pdf'
+            $document->downloadFilename(),
         );
     }
 

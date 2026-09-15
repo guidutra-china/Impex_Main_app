@@ -117,7 +117,7 @@ class DocumentsRelationManager extends RelationManager
                             ->label(__('forms.labels.file'))
                             ->required()
                             ->disk('local')
-                            ->directory(fn () => 'purchase-orders/' . $this->getOwnerRecord()->id . '/documents')
+                            ->directory(fn () => 'purchase-orders/'.$this->getOwnerRecord()->id.'/documents')
                             ->maxSize(20480)
                             ->acceptedFileTypes([
                                 'application/pdf',
@@ -209,7 +209,7 @@ class DocumentsRelationManager extends RelationManager
                             function () use ($fullPath) {
                                 echo file_get_contents($fullPath);
                             },
-                            $record->name . '.' . pathinfo($record->path, PATHINFO_EXTENSION),
+                            $record->downloadFilename(),
                             ['Content-Type' => $record->mime_type ?? 'application/octet-stream'],
                         );
                     }),
@@ -247,7 +247,7 @@ class DocumentsRelationManager extends RelationManager
                                         $url = URL::signedRoute('document-version.download', ['version' => $state]);
 
                                         return new \Illuminate\Support\HtmlString(
-                                            '<a href="' . e($url) . '" target="_blank" class="text-primary-600 hover:underline text-sm font-medium">Download</a>'
+                                            '<a href="'.e($url).'" target="_blank" class="text-primary-600 hover:underline text-sm font-medium">Download</a>'
                                         );
                                     }),
                             ])
@@ -269,6 +269,6 @@ class DocumentsRelationManager extends RelationManager
         $units = ['B', 'KB', 'MB', 'GB'];
         $i = floor(log($bytes, 1024));
 
-        return round($bytes / pow(1024, $i), 1) . ' ' . $units[$i];
+        return round($bytes / pow(1024, $i), 1).' '.$units[$i];
     }
 }

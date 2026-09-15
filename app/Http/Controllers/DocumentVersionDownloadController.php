@@ -23,11 +23,6 @@ class DocumentVersionDownloadController extends Controller
             abort(404, 'File not found on disk.');
         }
 
-        $extension = pathinfo($version->path, PATHINFO_EXTENSION);
-        $filename = str($document->name)
-            ->beforeLast('.')
-            ->append("-v{$version->version}.{$extension}");
-
-        return Storage::disk($disk)->download($version->path, $filename);
+        return Storage::disk($disk)->download($version->path, $document->versionDownloadFilename($version));
     }
 }

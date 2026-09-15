@@ -74,4 +74,36 @@ class Document extends Model
     {
         return Storage::disk($this->disk)->exists($this->path);
     }
+
+    /**
+     * Nome do arquivo entregue no download. Documento gerado já nasce com a
+     * extensão no nome (CI-SH-…-v1.pdf); documento enviado à mão tem o nome
+     * digitado pelo usuário (Signed Contract). Colar a extensão sem olhar
+     * produzia 'PL-SH-2026-00027-v1.xlsx.xlsx'.
+     */
+    public function downloadFilename(?string $path = null): string
+    {
+        $extension = strtolower((string) pathinfo($path ?? $this->path, PATHINFO_EXTENSION));
+        $name = (string) $this->name;
+
+        if ($extension === '' || str_ends_with(strtolower($name), '.'.$extension)) {
+            return $name;
+        }
+
+        return $name.'.'.$extension;
+    }
+
+    /**
+     * Nome de download de uma versão antiga: mesmo nome, com o número da
+     * versão trocado — 'CI-SH-…-v2.pdf' com v1 no histórico baixa como
+     * 'CI-SH-…-v1.pdf', não 'CI-SH-…-v2-v1.pdf'.
+     */
+    public function versionDownloadFilename(DocumentVersion $version): string
+    {
+        $extension = strtolower((string) pathinfo($version->path, PATHINFO_EXTENSION));
+        $base = (string) pathinfo($this->downloadFilename($version->path), PATHINFO_FILENAME);
+        $base = preg_replace('/-v\d+$/i', '', $base);
+
+        return "{$base}-v{$version->version}".($extension !== '' ? ".{$extension}" : '');
+    }
 }
