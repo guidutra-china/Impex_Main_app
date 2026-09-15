@@ -23,6 +23,8 @@ class CommercialInvoiceExcelExporter
 {
     use Concerns\WritesShipmentDocumentSheets;
 
+    public const DOCUMENT_TYPE = 'commercial_invoice_xlsx';
+
     /** Larguras por papel da coluna; as letras mudam quando a coluna NCM entra. */
     private const WIDTH_BY_ROLE = [
         'index' => 6, 'model' => 20, 'ncm' => 12, 'product' => 55,
@@ -56,6 +58,7 @@ class CommercialInvoiceExcelExporter
             client: $data['client'],
             meta: array_filter([
                 'Reference' => $data['shipment']['reference'],
+                'Version' => 'v'.$this->nextExcelVersion($shipment, self::DOCUMENT_TYPE),
                 'Date' => $data['shipment']['date'],
                 'PI Reference' => $data['shipment']['pi_references'],
                 'Incoterm' => $data['shipment']['incoterm'],

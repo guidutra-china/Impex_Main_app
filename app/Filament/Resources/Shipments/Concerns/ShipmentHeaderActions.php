@@ -363,7 +363,7 @@ trait ShipmentHeaderActions
                 $this->handleSaveCustomPrices($record, $data);
 
                 $path = (new CommercialInvoiceExcelExporter)->export($record, $data);
-                $document = $this->archiveExcel($record, $path, 'commercial_invoice_xlsx', 'CI');
+                $document = $this->archiveExcel($record, $path, CommercialInvoiceExcelExporter::DOCUMENT_TYPE, 'CI');
 
                 return response()->download($path, $document->name)->deleteFileAfterSend();
             });
@@ -403,7 +403,7 @@ trait ShipmentHeaderActions
             ->action(function (array $data) {
                 $record = $this->getRecord();
                 $path = (new PackingListExcelExporter)->export($record, $data);
-                $document = $this->archiveExcel($record, $path, 'packing_list_xlsx', 'PL');
+                $document = $this->archiveExcel($record, $path, PackingListExcelExporter::DOCUMENT_TYPE, 'PL');
 
                 return response()->download($path, $document->name)->deleteFileAfterSend();
             });

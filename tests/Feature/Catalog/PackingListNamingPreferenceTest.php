@@ -189,7 +189,12 @@ class PackingListNamingPreferenceTest extends TestCase
         );
 
         $sheet = IOFactory::load($path)->getActiveSheet();
-        $productCell = (string) $sheet->getCell('C12')->getValue();
+        // Primeira linha de item = a seguinte ao cabeçalho da tabela; sem
+        // endereço fixo, para o bloco de metadados poder crescer (ex.: Version).
+        $rows = $sheet->toArray(null, true, false, false);
+        $headerIndex = collect($rows)->search(fn ($row) => in_array('PRODUCT NAME', array_map(fn ($c) => trim((string) $c), $row), true));
+        $this->assertNotFalse($headerIndex, 'cabeçalho PRODUCT NAME não encontrado');
+        $productCell = (string) $rows[$headerIndex + 1][2];
         unlink($path);
 
         $this->assertStringContainsString('Internal Product Name', $productCell);

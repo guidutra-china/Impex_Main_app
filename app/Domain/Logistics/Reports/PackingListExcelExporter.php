@@ -22,6 +22,8 @@ class PackingListExcelExporter
 {
     use Concerns\WritesShipmentDocumentSheets;
 
+    public const DOCUMENT_TYPE = 'packing_list_xlsx';
+
     private const COLUMN_WIDTHS = [
         'A' => 12, 'B' => 18, 'C' => 45, 'D' => 8, 'E' => 11,
         'F' => 10, 'G' => 12, 'H' => 12, 'I' => 20, 'J' => 12,
@@ -50,6 +52,7 @@ class PackingListExcelExporter
             client: $data['client'],
             meta: array_filter([
                 'Reference' => $data['shipment']['reference'],
+                'Version' => 'v'.$this->nextExcelVersion($shipment, self::DOCUMENT_TYPE),
                 'Date' => $data['shipment']['date'],
                 'PI Reference' => $data['shipment']['pi_references'],
                 'B/L' => $data['shipment']['bl_number'],

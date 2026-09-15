@@ -4,7 +4,13 @@
     <table class="document-meta-table">
         <tr>
             <td class="meta-label">{{ $labels['reference'] }}</td>
-            <td class="meta-value">{{ $purchase_order['reference'] }} (v{{ $document_version }})</td>
+            <td class="meta-value">{{ $purchase_order['reference'] }}</td>
+        </tr>
+        {{-- Versão em linha própria: colada à referência, "(v1)" acabava copiado
+             para documentos oficiais do cliente. --}}
+        <tr>
+            <td class="meta-label">{{ $labels['version'] }}</td>
+            <td class="meta-value">v{{ $document_version }}</td>
         </tr>
         <tr>
             <td class="meta-label">{{ $labels['issue_date'] }}</td>
