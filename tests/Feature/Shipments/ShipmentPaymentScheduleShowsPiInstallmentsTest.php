@@ -111,6 +111,75 @@ class ShipmentPaymentScheduleShowsPiInstallmentsTest extends TestCase
         $this->table($shipment)->assertCanSeeTableRecords([$installment]);
     }
 
+    /**
+     * SH-2026-00056 / PI-2026-00017: a parcela "30% — Before Shipment" saía
+     * duas vezes. O embarque já tinha o ESPELHO dela (payable = o embarque) e
+     * a aba passou a listar também a canônica da PI com shipment_id — as duas
+     * renderizam idênticas. Com espelho, a canônica gêmea fica de fora; sem
+     * espelho (teste acima), a canônica é a única representação e aparece.
+     */
+    public function test_canonical_pi_row_is_hidden_when_the_shipment_already_has_its_mirror(): void
+    {
+        $pi = ProformaInvoice::factory()->create(['reference' => 'PI-2026-00017']);
+        $shipment = $this->shipmentCarrying($pi);
+        $label = '30% — Before Shipment — ['.$shipment->reference.' / PI-2026-00017]';
+
+        $mirror = PaymentScheduleItemFactory::new()->create([
+            'payable_type' => Shipment::class,
+            'payable_id' => $shipment->id,
+            'shipment_id' => $shipment->id,
+            'label' => $label,
+            'amount' => 712_417_100,
+            'due_condition' => CalculationBase::BEFORE_SHIPMENT,
+        ]);
+        $canonicalTwin = PaymentScheduleItemFactory::new()->create([
+            'payable_type' => ProformaInvoice::class,
+            'payable_id' => $pi->id,
+            'shipment_id' => $shipment->id,
+            'label' => $label,
+            'amount' => 712_417_100,
+            'due_condition' => CalculationBase::BEFORE_SHIPMENT,
+        ]);
+
+        $this->table($shipment)
+            ->assertCanSeeTableRecords([$mirror])
+            ->assertCanNotSeeTableRecords([$canonicalTwin]);
+    }
+
+    public function test_a_mirror_only_hides_the_twin_of_its_own_pi_and_stage(): void
+    {
+        $mirroredPi = ProformaInvoice::factory()->create(['reference' => 'PI-2026-00017']);
+        $shipment = $this->shipmentCarrying($mirroredPi);
+        $otherPi = ProformaInvoice::factory()->create(['reference' => 'PI-2026-00015', 'company_id' => $mirroredPi->company_id]);
+
+        PaymentScheduleItemFactory::new()->create([
+            'payable_type' => Shipment::class,
+            'payable_id' => $shipment->id,
+            'shipment_id' => $shipment->id,
+            'label' => '30% — Before Shipment — ['.$shipment->reference.' / PI-2026-00017]',
+            'due_condition' => CalculationBase::BEFORE_SHIPMENT,
+        ]);
+
+        // Mesma PI, OUTRO estágio sem espelho: continua aparecendo.
+        $otherStage = PaymentScheduleItemFactory::new()->create([
+            'payable_type' => ProformaInvoice::class,
+            'payable_id' => $mirroredPi->id,
+            'shipment_id' => $shipment->id,
+            'label' => '60% — Delivery Date — ['.$shipment->reference.' / PI-2026-00017]',
+            'due_condition' => CalculationBase::DELIVERY_DATE,
+        ]);
+        // OUTRA PI, mesmo estágio, sem espelho: continua aparecendo.
+        $otherPiSameStage = PaymentScheduleItemFactory::new()->create([
+            'payable_type' => ProformaInvoice::class,
+            'payable_id' => $otherPi->id,
+            'shipment_id' => $shipment->id,
+            'label' => '30% — Before Shipment — ['.$shipment->reference.' / PI-2026-00015]',
+            'due_condition' => CalculationBase::BEFORE_SHIPMENT,
+        ]);
+
+        $this->table($shipment)->assertCanSeeTableRecords([$otherStage, $otherPiSameStage]);
+    }
+
     public function test_remaining_rows_and_foreign_pis_are_not_listed(): void
     {
         $pi = ProformaInvoice::factory()->create();
