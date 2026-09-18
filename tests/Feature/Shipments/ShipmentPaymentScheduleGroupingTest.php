@@ -157,6 +157,34 @@ class ShipmentPaymentScheduleGroupingTest extends TestCase
         $this->assertStringContainsString('2', $description);
     }
 
+    public function test_collapsed_header_also_shows_what_is_still_remaining(): void
+    {
+        // Fornecedor 30%: duas parcelas de 43.737,50; uma recebeu 10.000,00.
+        $payment = \App\Domain\Financial\Models\Payment::create([
+            'direction' => \App\Domain\Financial\Enums\PaymentDirection::OUTBOUND,
+            'company_id' => \App\Domain\CRM\Models\Company::factory()->create()->id,
+            'amount' => 100_000_000,
+            'currency_code' => 'USD',
+            'payment_date' => '2026-09-18',
+            'status' => \App\Domain\Financial\Enums\PaymentStatus::APPROVED,
+        ]);
+        \App\Domain\Financial\Models\PaymentAllocation::create([
+            'payment_id' => $payment->id,
+            'payment_schedule_item_id' => $this->rows['po_30']->id,
+            'allocated_amount' => 100_000_000,
+            'exchange_rate' => null,
+            'allocated_amount_in_document_currency' => 100_000_000,
+        ]);
+
+        $group = $this->tab()->instance()->getTable()->getGrouping();
+        $record = $this->rows['po_30']->fresh();
+        $description = (string) $group->getDescription($record, (string) $group->getTitle($record));
+
+        $this->assertStringContainsString('USD 87,475.00', $description);           // soma
+        $this->assertStringContainsString('Paid USD 10,000.00', $description);       // pago
+        $this->assertStringContainsString('Remaining USD 77,475.00', $description);  // restante
+    }
+
     public function test_group_titles_are_unique_so_collapse_state_never_leaks_between_groups(): void
     {
         $group = $this->tab()->instance()->getTable()->getGrouping();

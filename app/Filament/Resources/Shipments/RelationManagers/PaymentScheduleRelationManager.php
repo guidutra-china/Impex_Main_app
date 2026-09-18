@@ -201,7 +201,7 @@ class PaymentScheduleRelationManager extends BasePaymentScheduleRelationManager
         return implode(' · ', $parts);
     }
 
-    /** Soma, quantidade e pago do grupo — é o que aparece com o grupo fechado. */
+    /** Soma, quantidade, pago e restante do grupo — é o que aparece com o grupo fechado. */
     protected function stageDescription(PaymentScheduleItem $record): string
     {
         $totals = $this->stageTotals()['groups'][self::stageKey($record)] ?? null;
@@ -216,11 +216,12 @@ class PaymentScheduleRelationManager extends BasePaymentScheduleRelationManager
             $currency.' '.Money::format($totals['amount']),
             trans_choice('forms.labels.group_installments_count', $totals['count'], ['count' => $totals['count']]),
             __('forms.labels.paid').' '.$currency.' '.Money::format($totals['paid']),
+            __('forms.labels.remaining').' '.$currency.' '.Money::format($totals['remaining']),
         ]);
     }
 
     /**
-     * @return array{groups: array<string, array{amount: int, paid: int, count: int}>, currencies: list<string>}
+     * @return array{groups: array<string, array{amount: int, paid: int, remaining: int, count: int}>, currencies: list<string>}
      */
     protected function stageTotals(): array
     {
@@ -230,9 +231,12 @@ class PaymentScheduleRelationManager extends BasePaymentScheduleRelationManager
 
             foreach ($this->getFilteredTableQuery()->reorder()->get() as $row) {
                 $key = self::stageKey($row);
-                $groups[$key] ??= ['amount' => 0, 'paid' => 0, 'count' => 0];
+                $groups[$key] ??= ['amount' => 0, 'paid' => 0, 'remaining' => 0, 'count' => 0];
                 $groups[$key]['amount'] += (int) $row->amount;
                 $groups[$key]['paid'] += (int) $row->paid_amount;
+                // Saldo por parcela (o mesmo da linha), não amount − paid do
+                // grupo: parcela paga a mais não abate o saldo das outras.
+                $groups[$key]['remaining'] += (int) $row->remaining_amount;
                 $groups[$key]['count']++;
                 $currencies[(string) $row->currency_code] = true;
             }
@@ -241,7 +245,7 @@ class PaymentScheduleRelationManager extends BasePaymentScheduleRelationManager
         })();
     }
 
-    /** @var array{groups: array<string, array{amount: int, paid: int, count: int}>, currencies: list<string>}|null */
+    /** @var array{groups: array<string, array{amount: int, paid: int, remaining: int, count: int}>, currencies: list<string>}|null */
     protected ?array $stageTotalsCache = null;
 
     /**
