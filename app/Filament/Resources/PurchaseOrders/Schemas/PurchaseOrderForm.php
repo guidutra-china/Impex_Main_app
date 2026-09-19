@@ -13,6 +13,7 @@ use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Settings\Models\Currency;
 use App\Domain\Settings\Models\PaymentTerm;
 use App\Domain\Users\Enums\UserType;
+use App\Filament\Support\RecentRecordSelect;
 use App\Models\User;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
@@ -69,18 +70,11 @@ class PurchaseOrderForm
                         ->default(PurchaseOrderStatus::DRAFT->value)
                         ->disabled(fn (?\Illuminate\Database\Eloquent\Model $record) => $record !== null)
                         ->dehydrated(),
-                    Select::make('proforma_invoice_id')
-                        ->label(__('forms.labels.proforma_invoice'))
-                        ->options(
-                            fn () => ProformaInvoice::query()
-                                ->orderByDesc('id')
-                                ->limit(100)
-                                ->get()
-                                ->mapWithKeys(fn ($pi) => [
-                                    $pi->id => $pi->reference.' — '.($pi->company?->name ?? 'N/A'),
-                                ])
-                        )
-                        ->searchable()
+                    RecentRecordSelect::configure(
+                        Select::make('proforma_invoice_id')->label(__('forms.labels.proforma_invoice')),
+                        ProformaInvoice::class,
+                        fn (ProformaInvoice $pi) => $pi->reference.' — '.($pi->company?->name ?? 'N/A'),
+                    )
                         ->required()
                         ->live()
                         ->helperText(__('forms.helpers.the_proforma_invoice_this_po_originates_from')),

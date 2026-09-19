@@ -12,6 +12,7 @@ use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Settings\Models\Currency;
 use App\Domain\Settings\Models\PaymentTerm;
 use App\Domain\Users\Enums\UserType;
+use App\Filament\Support\RecentRecordSelect;
 use App\Models\User;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
@@ -73,18 +74,11 @@ class ProformaInvoiceForm
                         ->default(ProformaInvoiceStatus::DRAFT->value)
                         ->disabled(fn (?\Illuminate\Database\Eloquent\Model $record) => $record !== null)
                         ->dehydrated(),
-                    Select::make('inquiry_id')
-                        ->label(__('forms.labels.inquiry'))
-                        ->options(
-                            fn () => Inquiry::query()
-                                ->orderByDesc('id')
-                                ->limit(100)
-                                ->get()
-                                ->mapWithKeys(fn ($i) => [
-                                    $i->id => $i->reference . ' — ' . ($i->company?->name ?? 'N/A'),
-                                ])
-                        )
-                        ->searchable()
+                    RecentRecordSelect::configure(
+                        Select::make('inquiry_id')->label(__('forms.labels.inquiry')),
+                        Inquiry::class,
+                        fn (Inquiry $i) => $i->reference.' — '.($i->company?->name ?? 'N/A'),
+                    )
                         ->required()
                         ->live()
                         ->afterStateUpdated(function (Set $set, ?string $state) {

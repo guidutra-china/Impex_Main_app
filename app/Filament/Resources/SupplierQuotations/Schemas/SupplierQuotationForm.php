@@ -12,6 +12,7 @@ use App\Domain\Settings\Models\Currency;
 use App\Domain\Settings\Models\PaymentTerm;
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
 use App\Domain\Users\Enums\UserType;
+use App\Filament\Support\RecentRecordSelect;
 use App\Models\User;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
@@ -73,21 +74,13 @@ class SupplierQuotationForm
                         ->default(SupplierQuotationStatus::REQUESTED->value)
                         ->disabled(fn (?\Illuminate\Database\Eloquent\Model $record) => $record !== null)
                         ->dehydrated(),
-                    Select::make('inquiry_id')
-                        ->label(__('forms.labels.inquiry'))
-                        ->options(
-                            fn () => Inquiry::query()
-                                ->with('company')
-                                ->orderByDesc('id')
-                                ->limit(100)
-                                ->get()
-                                ->mapWithKeys(fn ($i) => [
-                                    $i->id => $i->reference
-                                        .' — '.($i->company?->name ?? 'N/A')
-                                        .(filled($i->description) ? ' — '.Str::limit($i->description, 60) : ''),
-                                ])
-                        )
-                        ->searchable()
+                    RecentRecordSelect::configure(
+                        Select::make('inquiry_id')->label(__('forms.labels.inquiry')),
+                        Inquiry::class,
+                        fn (Inquiry $i) => $i->reference
+                            .' — '.($i->company?->name ?? 'N/A')
+                            .(filled($i->description) ? ' — '.Str::limit($i->description, 60) : ''),
+                    )
                         ->required()
                         ->live()
                         ->afterStateUpdated(function (Set $set, Get $get, $state) {
