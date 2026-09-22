@@ -16,14 +16,13 @@ use App\Filament\Resources\CRM\Companies\RelationManagers\RolesRelationManager;
 use App\Filament\Resources\CRM\Companies\RelationManagers\SupplierAuditsRelationManager;
 use App\Filament\Resources\CRM\Companies\RelationManagers\SupplierProductsRelationManager;
 use App\Filament\Resources\CRM\Companies\Schemas\CompanyForm;
-use App\Filament\Resources\CRM\Companies\Widgets\CompanyFinancialStatement;
 use App\Filament\Resources\CRM\Companies\Schemas\CompanyInfolist;
 use App\Filament\Resources\CRM\Companies\Tables\CompaniesTable;
+use App\Filament\Resources\CRM\Companies\Widgets\CompanyFinancialStatement;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
-use UnitEnum;
 
 class CompanyResource extends Resource
 {
@@ -42,9 +41,36 @@ class CompanyResource extends Resource
         return auth()->user()?->can('view-companies') ?? false;
     }
 
+    /**
+     * Contatos entram na busca global (Ctrl+K): digitar o nome, e-mail ou
+     * telefone de uma pessoa traz a empresa dela — antes só os campos da
+     * própria empresa eram pesquisados.
+     */
     public static function getGloballySearchableAttributes(): array
     {
-        return ['name', 'legal_name', 'tax_number', 'email'];
+        return [
+            'name', 'legal_name', 'tax_number', 'email',
+            'contacts.name', 'contacts.email', 'contacts.phone', 'contacts.whatsapp', 'contacts.wechat',
+        ];
+    }
+
+    public static function getGlobalSearchEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getGlobalSearchEloquentQuery()->with([
+            'contacts' => fn ($query) => $query->orderByDesc('is_primary')->orderBy('name'),
+        ]);
+    }
+
+    /** @return array<string, string> */
+    public static function getGlobalSearchResultDetails(\Illuminate\Database\Eloquent\Model $record): array
+    {
+        $contact = $record->contacts->first();
+
+        return array_filter([
+            __('forms.labels.contact') => $contact
+                ? trim($contact->name.($contact->phone ? ' · '.$contact->phone : ''))
+                : null,
+        ]);
     }
 
     public static function form(Schema $schema): Schema
