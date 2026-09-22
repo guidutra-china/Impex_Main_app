@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Shipments\RelationManagers;
 
 use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\Financial\Support\InstallmentStage;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
@@ -88,50 +89,15 @@ class PaymentScheduleRelationManager extends BasePaymentScheduleRelationManager
             ));
     }
 
-    /**
-     * Chave do grupo, feita SÓ de colunas reais — para o escopo/ordenação em
-     * SQL baterem com a classificação em PHP:
-     *
-     *   client|30.00|before_shipment|USD     parcela do cliente (espelho/PI)
-     *   supplier|30.00|before_shipment|USD   parcela do fornecedor (PO)
-     *   cost_in|USD / cost_out|USD           custos adicionais a receber/pagar
-     *   credit|USD                           créditos
-     *
-     * Lado e moeda entram na chave: o mesmo "30% — Before Shipment" existe
-     * para o cliente e para a fábrica, e moedas diferentes não se somam.
-     */
+    /** Chave do grupo — regra em {@see InstallmentStage}, compartilhada com o portal do cliente. */
     public static function stageKey(PaymentScheduleItem $record): string
     {
-        $currency = (string) $record->currency_code;
-        $bucket = self::stageBucket($record);
-
-        if (! in_array($bucket, ['client', 'supplier'], true)) {
-            return "{$bucket}|{$currency}";
-        }
-
-        return implode('|', [
-            $bucket,
-            number_format((float) $record->percentage, 2, '.', ''),
-            (string) $record->getRawOriginal('due_condition'),
-            $currency,
-        ]);
+        return InstallmentStage::key($record);
     }
 
     protected static function stageBucket(PaymentScheduleItem $record): string
     {
-        if ($record->is_credit) {
-            return 'credit';
-        }
-
-        if ($record->source_type !== null || $record->getRawOriginal('due_condition') === null) {
-            $notes = (string) $record->notes;
-            $isPayable = str_contains($notes, PaymentScheduleItem::FORWARDER_PAYABLE_TAG)
-                || str_contains($notes, PaymentScheduleItem::SUPPLIER_PAYABLE_TAG);
-
-            return $isPayable ? 'cost_out' : 'cost_in';
-        }
-
-        return $record->payable_type === PurchaseOrder::class ? 'supplier' : 'client';
+        return InstallmentStage::bucket($record);
     }
 
     /**
@@ -175,7 +141,7 @@ class PaymentScheduleRelationManager extends BasePaymentScheduleRelationManager
         $bucket = self::stageBucket($record);
 
         $title = match ($bucket) {
-            'client', 'supplier' => trim((string) preg_replace('/\s*\x{2014}\s*\[.*\]\s*$/u', '', (string) $record->label)),
+            'client', 'supplier' => InstallmentStage::cleanLabel($record),
             'cost_in', 'cost_out' => __('forms.labels.additional_costs'),
             default => __('forms.labels.credits'),
         };

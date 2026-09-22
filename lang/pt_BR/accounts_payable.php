@@ -27,6 +27,10 @@ return [
         'overdue' => 'Vencidas',
         'no_due_date' => 'Sem data de vencimento',
         'items_count' => ':count itens',
+        'additional_costs' => 'Custos adicionais',
+        'credits' => 'Créditos',
+        'installments_count' => '{1} :count parcela|[2,*] :count parcelas',
+        'toggle_group' => 'Mostrar ou ocultar as parcelas deste grupo',
     ],
     'columns' => [
         'due_date' => 'Vencimento',

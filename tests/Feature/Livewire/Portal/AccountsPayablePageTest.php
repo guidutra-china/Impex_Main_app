@@ -64,6 +64,68 @@ class AccountsPayablePageTest extends TestCase
             ->assertSee('USD');
     }
 
+    /**
+     * Mesma regra da aba do embarque: parcelas iguais viram um grupo
+     * recolhido com a soma; expandir mostra de quais PIs são.
+     */
+    public function test_equal_installments_are_grouped_collapsed_with_their_sum(): void
+    {
+        $company = Company::factory()->create();
+        $this->actingAsPortalUser($company);
+
+        $due = now()->addDays(10);
+        foreach ([['PI-2026-00015', 437_375_000], ['PI-2026-00017', 712_417_100]] as [$reference, $amount]) {
+            $pi = ProformaInvoice::factory()->create(['company_id' => $company->id, 'reference' => $reference]);
+            PaymentScheduleItem::factory()->create([
+                'payable_type' => ProformaInvoice::class,
+                'payable_id' => $pi->id,
+                'label' => '30% — Before Shipment — [SH-2026-00056 / '.$reference.']',
+                'percentage' => 30,
+                'status' => PaymentScheduleStatus::PENDING,
+                'due_condition' => \App\Domain\Settings\Enums\CalculationBase::BEFORE_SHIPMENT,
+                'due_date' => $due,
+                'amount' => $amount,
+                'currency_code' => 'USD',
+                'is_credit' => false,
+            ]);
+        }
+
+        Livewire::test(AccountsPayablePage::class)
+            ->assertOk()
+            // Cabeçalho do grupo: título limpo, quantidade e soma (43.737,50 + 71.241,71).
+            ->assertSee('30% — Before Shipment')
+            ->assertSee('2 installments')
+            ->assertSee('114,979.21')
+            // Recolhido por padrão, com as duas PIs dentro.
+            ->assertSeeHtml('x-data="{ open: false }"')
+            ->assertSee('PI-2026-00015')
+            ->assertSee('PI-2026-00017');
+    }
+
+    public function test_a_single_installment_stays_a_plain_row(): void
+    {
+        $company = Company::factory()->create();
+        $this->actingAsPortalUser($company);
+
+        $pi = ProformaInvoice::factory()->create(['company_id' => $company->id]);
+        PaymentScheduleItem::factory()->create([
+            'payable_type' => ProformaInvoice::class,
+            'payable_id' => $pi->id,
+            'label' => '100% — Order Date',
+            'status' => PaymentScheduleStatus::PENDING,
+            'due_condition' => \App\Domain\Settings\Enums\CalculationBase::ORDER_DATE,
+            'due_date' => now()->addDays(10),
+            'amount' => 100_000_000,
+            'currency_code' => 'USD',
+            'is_credit' => false,
+        ]);
+
+        Livewire::test(AccountsPayablePage::class)
+            ->assertOk()
+            ->assertSee('100% — Order Date')
+            ->assertDontSeeHtml('x-data="{ open: false }"');
+    }
+
     public function test_user_without_company_receives_403(): void
     {
         $user = User::factory()->create(['company_id' => null]);

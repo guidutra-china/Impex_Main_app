@@ -27,6 +27,10 @@ return [
         'overdue' => 'Overdue',
         'no_due_date' => 'No due date',
         'items_count' => ':count items',
+        'additional_costs' => 'Additional costs',
+        'credits' => 'Credits',
+        'installments_count' => '{1} :count installment|[2,*] :count installments',
+        'toggle_group' => 'Show or hide the installments in this group',
     ],
     'columns' => [
         'due_date' => 'Due date',

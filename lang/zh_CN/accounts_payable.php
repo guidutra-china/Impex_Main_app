@@ -27,6 +27,10 @@ return [
         'overdue' => '逾期',
         'no_due_date' => '无到期日',
         'items_count' => ':count 项',
+        'additional_costs' => '附加费用',
+        'credits' => '抵扣',
+        'installments_count' => '{1} :count 笔分期|[2,*] :count 笔分期',
+        'toggle_group' => '显示或隐藏此分组的分期',
     ],
     'columns' => [
         'due_date' => '到期日',
