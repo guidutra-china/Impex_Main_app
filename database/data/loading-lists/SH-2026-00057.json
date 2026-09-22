@@ -1,0 +1,947 @@
+{
+    "shipment": "SH-2026-00057",
+    "source": "DHZ26080401_PL(2).xlsx (Luslud, invoices DHZ26080401 + DHZ26073007) + draft HBL LWSCN26271",
+    "notes": [
+        "U3016 (Cable Crossover Evost) embala 2 volumes por peça (Body/Parts); as duas caixas pesam igual. É o que leva o TGBU5844988 de 79 peças aos 89 volumes do BL.",
+        "Cubagem: o documento só dá 60 CBM por contêiner. Cada caixa leva a cubagem cadastrada (ou uma estimativa, sem cadastro) como proporção, escalada por contêiner para fechar 60,000. Sem medidas nas caixas.",
+        "Estimativas de cubagem (sem cadastro): D602 1.584, A611 0.69, U1017C 0.8505, U3063 1.3, A609 0.97, A604 1.1, D910Z 1.2, D915Z 1.54742, D925Z 1.2, A619 1, U2046 1.5, U3062 0.5, U3041 0.4.",
+        "U3041: o cadastro traz 206×178×109 cm, que é o produto montado, não a caixa — entrou como estimativa.",
+        "A604-G01 no packing list é o produto A604."
+    ],
+    "splits": {
+        "U3016": [
+            "Body",
+            "Parts"
+        ]
+    },
+    "containers": [
+        {
+            "label": "CONT-001",
+            "container_number": "CMAU6898890",
+            "type": "40HQ",
+            "seal_number": "M8512822",
+            "sort_order": 1,
+            "scale_factor": 0.8725,
+            "declared": {
+                "packages": 78,
+                "net_weight": 13150,
+                "gross_weight": 14880,
+                "volume": 60
+            },
+            "lines": [
+                {
+                    "model": "D935Z",
+                    "description": "Shoulder Press",
+                    "packages": 2,
+                    "unit_net_weight": 142,
+                    "unit_gross_weight": 186,
+                    "notes": null,
+                    "unit_volume": 0.998734
+                },
+                {
+                    "model": "A607",
+                    "description": "Belt Squat",
+                    "packages": 3,
+                    "unit_net_weight": 115,
+                    "unit_gross_weight": 145,
+                    "notes": null,
+                    "unit_volume": 0.766838
+                },
+                {
+                    "model": "U3042",
+                    "description": "Olympic Incline Bench",
+                    "packages": 4,
+                    "unit_net_weight": 113,
+                    "unit_gross_weight": 137,
+                    "notes": null,
+                    "unit_volume": 1.247685
+                },
+                {
+                    "model": "U3037",
+                    "description": "Adjustable Decline Bench",
+                    "packages": 3,
+                    "unit_net_weight": 34,
+                    "unit_gross_weight": 37,
+                    "notes": null,
+                    "unit_volume": 0.269595
+                },
+                {
+                    "model": "U3039",
+                    "description": "Super Bench",
+                    "packages": 5,
+                    "unit_net_weight": 53,
+                    "unit_gross_weight": 56,
+                    "notes": null,
+                    "unit_volume": 0.100355
+                },
+                {
+                    "model": "U3038",
+                    "description": "Multi-Purpose Bench",
+                    "packages": 11,
+                    "unit_net_weight": 23,
+                    "unit_gross_weight": 26,
+                    "notes": null,
+                    "unit_volume": 0.469107
+                },
+                {
+                    "model": "E6250",
+                    "description": "Multi Power Station",
+                    "packages": 15,
+                    "unit_net_weight": 480,
+                    "unit_gross_weight": 520,
+                    "notes": null,
+                    "unit_volume": 1.731383
+                },
+                {
+                    "model": "U3041",
+                    "description": "Olympic Decline Bench",
+                    "packages": 1,
+                    "unit_net_weight": 51,
+                    "unit_gross_weight": 82,
+                    "notes": null,
+                    "unit_volume": 0.348999
+                },
+                {
+                    "model": "D602",
+                    "description": "Power Smith Machine Dual System Upper",
+                    "packages": 1,
+                    "unit_net_weight": 195,
+                    "unit_gross_weight": 225,
+                    "notes": null,
+                    "unit_volume": 1.382035
+                },
+                {
+                    "model": "A611",
+                    "description": "Incline Linear Row",
+                    "packages": 3,
+                    "unit_net_weight": 147,
+                    "unit_gross_weight": 179,
+                    "notes": null,
+                    "unit_volume": 0.602023
+                },
+                {
+                    "model": "U3038",
+                    "description": "Multi-Purpose Bench",
+                    "packages": 5,
+                    "unit_net_weight": 23,
+                    "unit_gross_weight": 26,
+                    "notes": null,
+                    "unit_volume": 0.469107
+                },
+                {
+                    "model": "U3039",
+                    "description": "Super Bench",
+                    "packages": 6,
+                    "unit_net_weight": 53,
+                    "unit_gross_weight": 56,
+                    "notes": null,
+                    "unit_volume": 0.100355
+                },
+                {
+                    "model": "U3042",
+                    "description": "Olympic Incline Bench",
+                    "packages": 2,
+                    "unit_net_weight": 113,
+                    "unit_gross_weight": 137,
+                    "notes": null,
+                    "unit_volume": 1.247685
+                },
+                {
+                    "model": "U3041",
+                    "description": "Olympic Decline Bench",
+                    "packages": 2,
+                    "unit_net_weight": 51,
+                    "unit_gross_weight": 82,
+                    "notes": null,
+                    "unit_volume": 0.348999
+                },
+                {
+                    "model": "A611",
+                    "description": "Incline Linear Row",
+                    "packages": 2,
+                    "unit_net_weight": 147,
+                    "unit_gross_weight": 179,
+                    "notes": null,
+                    "unit_volume": 0.602023
+                },
+                {
+                    "model": "U1017C",
+                    "description": "Functional Trainer Evost",
+                    "packages": 5,
+                    "unit_net_weight": 365,
+                    "unit_gross_weight": 406,
+                    "notes": null,
+                    "unit_volume": 0.742059
+                },
+                {
+                    "model": "U3062",
+                    "description": "Seated Calf",
+                    "packages": 2,
+                    "unit_net_weight": 74,
+                    "unit_gross_weight": 99,
+                    "notes": null,
+                    "unit_volume": 0.436248
+                },
+                {
+                    "model": "U3047",
+                    "description": "Vertical Knee Up/Dip",
+                    "packages": 6,
+                    "unit_net_weight": 89,
+                    "unit_gross_weight": 119,
+                    "notes": null,
+                    "unit_volume": 0.467473
+                }
+            ]
+        },
+        {
+            "label": "CONT-002",
+            "container_number": "TCNU3227190",
+            "type": "40HQ",
+            "seal_number": "M8512975",
+            "sort_order": 2,
+            "scale_factor": 1.02575,
+            "declared": {
+                "packages": 55,
+                "net_weight": 9724,
+                "gross_weight": 11620,
+                "volume": 60
+            },
+            "lines": [
+                {
+                    "model": "D905Z",
+                    "description": "Chest Press",
+                    "packages": 1,
+                    "unit_net_weight": 132,
+                    "unit_gross_weight": 157,
+                    "notes": null,
+                    "unit_volume": 1.174158
+                },
+                {
+                    "model": "D935Z",
+                    "description": "Shoulder Press",
+                    "packages": 3,
+                    "unit_net_weight": 142,
+                    "unit_gross_weight": 186,
+                    "notes": null,
+                    "unit_volume": 1.174158
+                },
+                {
+                    "model": "D950Z",
+                    "description": "Leg Press",
+                    "packages": 4,
+                    "unit_net_weight": 264,
+                    "unit_gross_weight": 301,
+                    "notes": null,
+                    "unit_volume": 1.582038
+                },
+                {
+                    "model": "U3056S",
+                    "description": "Angled Leg Press Linear Bearing",
+                    "packages": 4,
+                    "unit_net_weight": 283,
+                    "unit_gross_weight": 324,
+                    "notes": null,
+                    "unit_volume": 0.893293
+                },
+                {
+                    "model": "A629",
+                    "description": "Standing Abductor",
+                    "packages": 1,
+                    "unit_net_weight": 165,
+                    "unit_gross_weight": 205,
+                    "notes": null,
+                    "unit_volume": 0.806046
+                },
+                {
+                    "model": "U3042",
+                    "description": "Olympic Incline Bench",
+                    "packages": 3,
+                    "unit_net_weight": 113,
+                    "unit_gross_weight": 137,
+                    "notes": null,
+                    "unit_volume": 1.466835
+                },
+                {
+                    "model": "U3037",
+                    "description": "Adjustable Decline Bench",
+                    "packages": 2,
+                    "unit_net_weight": 34,
+                    "unit_gross_weight": 37,
+                    "notes": null,
+                    "unit_volume": 0.316948
+                },
+                {
+                    "model": "U3047",
+                    "description": "Vertical Knee Up/Dip",
+                    "packages": 3,
+                    "unit_net_weight": 89,
+                    "unit_gross_weight": 119,
+                    "notes": null,
+                    "unit_volume": 0.549583
+                },
+                {
+                    "model": "E6250",
+                    "description": "Multi Power Station",
+                    "packages": 1,
+                    "unit_net_weight": 480,
+                    "unit_gross_weight": 520,
+                    "notes": null,
+                    "unit_volume": 2.035493
+                },
+                {
+                    "model": "U2046",
+                    "description": "Standing Multi Flight",
+                    "packages": 2,
+                    "unit_net_weight": 317,
+                    "unit_gross_weight": 347,
+                    "notes": null,
+                    "unit_volume": 1.538621
+                },
+                {
+                    "model": "A609",
+                    "description": "3D Smith Hip Thrust",
+                    "packages": 2,
+                    "unit_net_weight": 186,
+                    "unit_gross_weight": 226,
+                    "notes": null,
+                    "unit_volume": 0.994975
+                },
+                {
+                    "model": "D602",
+                    "description": "Power Smith Machine Dual System Upper",
+                    "packages": 3,
+                    "unit_net_weight": 195,
+                    "unit_gross_weight": 225,
+                    "notes": null,
+                    "unit_volume": 1.624784
+                },
+                {
+                    "model": "A619",
+                    "description": "Glute Kickback",
+                    "packages": 1,
+                    "unit_net_weight": 150,
+                    "unit_gross_weight": 180,
+                    "notes": null,
+                    "unit_volume": 1.025748
+                },
+                {
+                    "model": "U3038",
+                    "description": "Multi-Purpose Bench",
+                    "packages": 1,
+                    "unit_net_weight": 23,
+                    "unit_gross_weight": 26,
+                    "notes": null,
+                    "unit_volume": 0.551503
+                },
+                {
+                    "model": "U3036",
+                    "description": "Flat Bench",
+                    "packages": 2,
+                    "unit_net_weight": 53,
+                    "unit_gross_weight": 55,
+                    "notes": null,
+                    "unit_volume": 0.189504
+                },
+                {
+                    "model": "D602",
+                    "description": "Power Smith Machine Dual System Upper",
+                    "packages": 2,
+                    "unit_net_weight": 195,
+                    "unit_gross_weight": 225,
+                    "notes": null,
+                    "unit_volume": 1.624784
+                },
+                {
+                    "model": "A629",
+                    "description": "Standing Abductor",
+                    "packages": 3,
+                    "unit_net_weight": 165,
+                    "unit_gross_weight": 205,
+                    "notes": null,
+                    "unit_volume": 0.806046
+                },
+                {
+                    "model": "A602",
+                    "description": "Hip Thrust Walk-through",
+                    "packages": 5,
+                    "unit_net_weight": 109,
+                    "unit_gross_weight": 149,
+                    "notes": null,
+                    "unit_volume": 0.464192
+                },
+                {
+                    "model": "A609",
+                    "description": "3D Smith Hip Thrust",
+                    "packages": 3,
+                    "unit_net_weight": 186,
+                    "unit_gross_weight": 226,
+                    "notes": null,
+                    "unit_volume": 0.994975
+                },
+                {
+                    "model": "A604",
+                    "description": "Multi Abductor",
+                    "packages": 1,
+                    "unit_net_weight": 89,
+                    "unit_gross_weight": 129,
+                    "notes": "Modelo A604-G01 no packing list",
+                    "unit_volume": 1.128322
+                },
+                {
+                    "model": "D910Z",
+                    "description": "Wide Chest Press",
+                    "packages": 1,
+                    "unit_net_weight": 139,
+                    "unit_gross_weight": 207,
+                    "notes": null,
+                    "unit_volume": 1.230897
+                },
+                {
+                    "model": "D915Z",
+                    "description": "Incline Chest Press",
+                    "packages": 2,
+                    "unit_net_weight": 148,
+                    "unit_gross_weight": 218,
+                    "notes": null,
+                    "unit_volume": 1.587262
+                },
+                {
+                    "model": "D925Z",
+                    "description": "Low Row",
+                    "packages": 1,
+                    "unit_net_weight": 115,
+                    "unit_gross_weight": 145,
+                    "notes": null,
+                    "unit_volume": 1.230897
+                },
+                {
+                    "model": "D950Z",
+                    "description": "Leg Press",
+                    "packages": 2,
+                    "unit_net_weight": 264,
+                    "unit_gross_weight": 301,
+                    "notes": null,
+                    "unit_volume": 1.582038
+                },
+                {
+                    "model": "U2046",
+                    "description": "Standing Multi Flight",
+                    "packages": 2,
+                    "unit_net_weight": 317,
+                    "unit_gross_weight": 347,
+                    "notes": null,
+                    "unit_volume": 1.538621
+                }
+            ]
+        },
+        {
+            "label": "CONT-003",
+            "container_number": "CMAU7875164",
+            "type": "40HQ",
+            "seal_number": "M8512582",
+            "sort_order": 3,
+            "scale_factor": 1.36822,
+            "declared": {
+                "packages": 60,
+                "net_weight": 8438,
+                "gross_weight": 10660,
+                "volume": 60
+            },
+            "lines": [
+                {
+                    "model": "D930Z",
+                    "description": "Row",
+                    "packages": 1,
+                    "unit_net_weight": 137,
+                    "unit_gross_weight": 180,
+                    "notes": null,
+                    "unit_volume": 2.110239
+                },
+                {
+                    "model": "D940Z",
+                    "description": "Rear Kick",
+                    "packages": 2,
+                    "unit_net_weight": 102,
+                    "unit_gross_weight": 151,
+                    "notes": null,
+                    "unit_volume": 1.502875
+                },
+                {
+                    "model": "D945Z",
+                    "description": "Calf",
+                    "packages": 3,
+                    "unit_net_weight": 145,
+                    "unit_gross_weight": 186,
+                    "notes": null,
+                    "unit_volume": 1.829189
+                },
+                {
+                    "model": "D950Z",
+                    "description": "Leg Press",
+                    "packages": 1,
+                    "unit_net_weight": 264,
+                    "unit_gross_weight": 301,
+                    "notes": null,
+                    "unit_volume": 2.110239
+                },
+                {
+                    "model": "U3056S",
+                    "description": "Angled Leg Press Linear Bearing",
+                    "packages": 8,
+                    "unit_net_weight": 283,
+                    "unit_gross_weight": 324,
+                    "notes": null,
+                    "unit_volume": 1.19154
+                },
+                {
+                    "model": "D955Z",
+                    "description": "Standing Leg curl",
+                    "packages": 5,
+                    "unit_net_weight": 135,
+                    "unit_gross_weight": 175,
+                    "notes": null,
+                    "unit_volume": 1.51084
+                },
+                {
+                    "model": "A629",
+                    "description": "Standing Abductor",
+                    "packages": 2,
+                    "unit_net_weight": 165,
+                    "unit_gross_weight": 205,
+                    "notes": null,
+                    "unit_volume": 1.075163
+                },
+                {
+                    "model": "A607",
+                    "description": "Belt Squat",
+                    "packages": 1,
+                    "unit_net_weight": 115,
+                    "unit_gross_weight": 145,
+                    "notes": null,
+                    "unit_volume": 1.202526
+                },
+                {
+                    "model": "U3043",
+                    "description": "Olympic Flat Bench",
+                    "packages": 9,
+                    "unit_net_weight": 55,
+                    "unit_gross_weight": 85,
+                    "notes": null,
+                    "unit_volume": 0.156499
+                },
+                {
+                    "model": "A602",
+                    "description": "Hip Thrust Walk-through",
+                    "packages": 4,
+                    "unit_net_weight": 109,
+                    "unit_gross_weight": 149,
+                    "notes": null,
+                    "unit_volume": 0.619173
+                },
+                {
+                    "model": "U3047",
+                    "description": "Vertical Knee Up/Dip",
+                    "packages": 2,
+                    "unit_net_weight": 89,
+                    "unit_gross_weight": 119,
+                    "notes": null,
+                    "unit_volume": 0.733074
+                },
+                {
+                    "model": "U3057",
+                    "description": "Hack Squat",
+                    "packages": 5,
+                    "unit_net_weight": 183,
+                    "unit_gross_weight": 234,
+                    "notes": null,
+                    "unit_volume": 0.514539
+                },
+                {
+                    "model": "U3062",
+                    "description": "Seated Calf",
+                    "packages": 3,
+                    "unit_net_weight": 74,
+                    "unit_gross_weight": 99,
+                    "notes": null,
+                    "unit_volume": 0.684109
+                },
+                {
+                    "model": "U3045",
+                    "description": "Back Extension",
+                    "packages": 1,
+                    "unit_net_weight": 56,
+                    "unit_gross_weight": 61,
+                    "notes": null,
+                    "unit_volume": 2.258128
+                },
+                {
+                    "model": "U3043",
+                    "description": "Olympic Flat Bench",
+                    "packages": 3,
+                    "unit_net_weight": 55,
+                    "unit_gross_weight": 85,
+                    "notes": null,
+                    "unit_volume": 0.156499
+                },
+                {
+                    "model": "U3063",
+                    "description": "Smith Machine",
+                    "packages": 3,
+                    "unit_net_weight": 258,
+                    "unit_gross_weight": 309,
+                    "notes": null,
+                    "unit_volume": 1.778683
+                },
+                {
+                    "model": "A607",
+                    "description": "Belt Squat",
+                    "packages": 3,
+                    "unit_net_weight": 115,
+                    "unit_gross_weight": 145,
+                    "notes": null,
+                    "unit_volume": 1.202526
+                },
+                {
+                    "model": "A604",
+                    "description": "Multi Abductor",
+                    "packages": 1,
+                    "unit_net_weight": 89,
+                    "unit_gross_weight": 129,
+                    "notes": "Modelo A604-G01 no packing list",
+                    "unit_volume": 1.505039
+                },
+                {
+                    "model": "D925Z",
+                    "description": "Low Row",
+                    "packages": 1,
+                    "unit_net_weight": 115,
+                    "unit_gross_weight": 145,
+                    "notes": null,
+                    "unit_volume": 1.641861
+                },
+                {
+                    "model": "A619",
+                    "description": "Glute Kickback",
+                    "packages": 1,
+                    "unit_net_weight": 150,
+                    "unit_gross_weight": 180,
+                    "notes": null,
+                    "unit_volume": 1.368217
+                },
+                {
+                    "model": "U3062",
+                    "description": "Seated Calf",
+                    "packages": 1,
+                    "unit_net_weight": 74,
+                    "unit_gross_weight": 99,
+                    "notes": null,
+                    "unit_volume": 0.684109
+                }
+            ]
+        },
+        {
+            "label": "CONT-004",
+            "container_number": "TGBU5844988",
+            "type": "40HQ",
+            "seal_number": "M7304940",
+            "sort_order": 4,
+            "scale_factor": 0.93772,
+            "declared": {
+                "packages": 89,
+                "net_weight": 11087,
+                "gross_weight": 12880,
+                "volume": 60
+            },
+            "lines": [
+                {
+                    "model": "D920Z",
+                    "description": "Pull Down",
+                    "packages": 1,
+                    "unit_net_weight": 202,
+                    "unit_gross_weight": 228,
+                    "notes": null,
+                    "unit_volume": 0.959289
+                },
+                {
+                    "model": "D930Z",
+                    "description": "Row",
+                    "packages": 3,
+                    "unit_net_weight": 137,
+                    "unit_gross_weight": 180,
+                    "notes": null,
+                    "unit_volume": 1.446273
+                },
+                {
+                    "model": "D940Z",
+                    "description": "Rear Kick",
+                    "packages": 3,
+                    "unit_net_weight": 102,
+                    "unit_gross_weight": 151,
+                    "notes": null,
+                    "unit_volume": 1.03001
+                },
+                {
+                    "model": "D945Z",
+                    "description": "Calf",
+                    "packages": 2,
+                    "unit_net_weight": 145,
+                    "unit_gross_weight": 186,
+                    "notes": null,
+                    "unit_volume": 1.253653
+                },
+                {
+                    "model": "D950Z",
+                    "description": "Leg Press",
+                    "packages": 1,
+                    "unit_net_weight": 264,
+                    "unit_gross_weight": 301,
+                    "notes": null,
+                    "unit_volume": 1.446273
+                },
+                {
+                    "model": "A629",
+                    "description": "Standing Abductor",
+                    "packages": 2,
+                    "unit_net_weight": 165,
+                    "unit_gross_weight": 205,
+                    "notes": null,
+                    "unit_volume": 0.736874
+                },
+                {
+                    "model": "A607",
+                    "description": "Belt Squat",
+                    "packages": 1,
+                    "unit_net_weight": 115,
+                    "unit_gross_weight": 145,
+                    "notes": null,
+                    "unit_volume": 0.824163
+                },
+                {
+                    "model": "U3042",
+                    "description": "Olympic Incline Bench",
+                    "packages": 3,
+                    "unit_net_weight": 113,
+                    "unit_gross_weight": 137,
+                    "notes": null,
+                    "unit_volume": 1.340957
+                },
+                {
+                    "model": "U3043",
+                    "description": "Olympic Flat Bench",
+                    "packages": 1,
+                    "unit_net_weight": 55,
+                    "unit_gross_weight": 85,
+                    "notes": null,
+                    "unit_volume": 0.107258
+                },
+                {
+                    "model": "U3036",
+                    "description": "Flat Bench",
+                    "packages": 12,
+                    "unit_net_weight": 53,
+                    "unit_gross_weight": 55,
+                    "notes": null,
+                    "unit_volume": 0.173241
+                },
+                {
+                    "model": "U3039",
+                    "description": "Super Bench",
+                    "packages": 6,
+                    "unit_net_weight": 53,
+                    "unit_gross_weight": 56,
+                    "notes": null,
+                    "unit_volume": 0.107857
+                },
+                {
+                    "model": "U3038",
+                    "description": "Multi-Purpose Bench",
+                    "packages": 2,
+                    "unit_net_weight": 23,
+                    "unit_gross_weight": 26,
+                    "notes": null,
+                    "unit_volume": 0.504175
+                },
+                {
+                    "model": "U3044",
+                    "description": "Seated Preacher Curl",
+                    "packages": 5,
+                    "unit_net_weight": 66,
+                    "unit_gross_weight": 73,
+                    "notes": null,
+                    "unit_volume": 0.236981
+                },
+                {
+                    "model": "U3045",
+                    "description": "Back Extension",
+                    "packages": 3,
+                    "unit_net_weight": 56,
+                    "unit_gross_weight": 61,
+                    "notes": null,
+                    "unit_volume": 1.54763
+                },
+                {
+                    "model": "U3016",
+                    "description": "Cable Crossover Evost",
+                    "packages": 20,
+                    "unit_net_weight": 205,
+                    "unit_gross_weight": 225,
+                    "notes": null,
+                    "unit_volume": 0.416995
+                },
+                {
+                    "model": "U2046",
+                    "description": "Standing Multi Flight",
+                    "packages": 1,
+                    "unit_net_weight": 317,
+                    "unit_gross_weight": 347,
+                    "notes": null,
+                    "unit_volume": 1.406582
+                },
+                {
+                    "model": "U3062",
+                    "description": "Seated Calf",
+                    "packages": 1,
+                    "unit_net_weight": 74,
+                    "unit_gross_weight": 99,
+                    "notes": null,
+                    "unit_volume": 0.468861
+                },
+                {
+                    "model": "D602",
+                    "description": "Power Smith Machine Dual System Upper",
+                    "packages": 2,
+                    "unit_net_weight": 195,
+                    "unit_gross_weight": 225,
+                    "notes": null,
+                    "unit_volume": 1.485351
+                },
+                {
+                    "model": "D910Z",
+                    "description": "Wide Chest Press",
+                    "packages": 1,
+                    "unit_net_weight": 139,
+                    "unit_gross_weight": 207,
+                    "notes": null,
+                    "unit_volume": 1.125266
+                },
+                {
+                    "model": "D915Z",
+                    "description": "Incline Chest Press",
+                    "packages": 1,
+                    "unit_net_weight": 148,
+                    "unit_gross_weight": 218,
+                    "notes": null,
+                    "unit_volume": 1.451049
+                },
+                {
+                    "model": "D925Z",
+                    "description": "Low Row",
+                    "packages": 1,
+                    "unit_net_weight": 115,
+                    "unit_gross_weight": 145,
+                    "notes": null,
+                    "unit_volume": 1.125266
+                },
+                {
+                    "model": "U3045",
+                    "description": "Back Extension",
+                    "packages": 2,
+                    "unit_net_weight": 56,
+                    "unit_gross_weight": 61,
+                    "notes": null,
+                    "unit_volume": 1.54763
+                },
+                {
+                    "model": "U3036",
+                    "description": "Flat Bench",
+                    "packages": 1,
+                    "unit_net_weight": 53,
+                    "unit_gross_weight": 55,
+                    "notes": null,
+                    "unit_volume": 0.173241
+                },
+                {
+                    "model": "U3042",
+                    "description": "Olympic Incline Bench",
+                    "packages": 1,
+                    "unit_net_weight": 113,
+                    "unit_gross_weight": 137,
+                    "notes": null,
+                    "unit_volume": 1.340957
+                },
+                {
+                    "model": "U3041",
+                    "description": "Olympic Decline Bench",
+                    "packages": 1,
+                    "unit_net_weight": 51,
+                    "unit_gross_weight": 82,
+                    "notes": null,
+                    "unit_volume": 0.375089
+                },
+                {
+                    "model": "U3044",
+                    "description": "Seated Preacher Curl",
+                    "packages": 3,
+                    "unit_net_weight": 66,
+                    "unit_gross_weight": 73,
+                    "notes": null,
+                    "unit_volume": 0.236981
+                },
+                {
+                    "model": "D602",
+                    "description": "Power Smith Machine Dual System Upper",
+                    "packages": 3,
+                    "unit_net_weight": 195,
+                    "unit_gross_weight": 225,
+                    "notes": null,
+                    "unit_volume": 1.485351
+                },
+                {
+                    "model": "A629",
+                    "description": "Standing Abductor",
+                    "packages": 1,
+                    "unit_net_weight": 165,
+                    "unit_gross_weight": 205,
+                    "notes": null,
+                    "unit_volume": 0.736874
+                },
+                {
+                    "model": "U1017C",
+                    "description": "Functional Trainer Evost",
+                    "packages": 1,
+                    "unit_net_weight": 365,
+                    "unit_gross_weight": 406,
+                    "notes": null,
+                    "unit_volume": 0.797532
+                },
+                {
+                    "model": "A604",
+                    "description": "Multi Abductor",
+                    "packages": 1,
+                    "unit_net_weight": 89,
+                    "unit_gross_weight": 129,
+                    "notes": "Modelo A604-G01 no packing list",
+                    "unit_volume": 1.031494
+                },
+                {
+                    "model": "D925Z",
+                    "description": "Low Row",
+                    "packages": 1,
+                    "unit_net_weight": 115,
+                    "unit_gross_weight": 145,
+                    "notes": null,
+                    "unit_volume": 1.125266
+                },
+                {
+                    "model": "U3062",
+                    "description": "Seated Calf",
+                    "packages": 2,
+                    "unit_net_weight": 74,
+                    "unit_gross_weight": 99,
+                    "notes": null,
+                    "unit_volume": 0.468861
+                }
+            ]
+        }
+    ]
+}

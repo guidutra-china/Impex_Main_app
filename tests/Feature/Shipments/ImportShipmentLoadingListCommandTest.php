@@ -103,9 +103,9 @@ class ImportShipmentLoadingListCommandTest extends TestCase
      * [numero, [modelo => volumes, ...]] — pesos unitários são fixos e
      * declarados por dedução, como na planilha real.
      */
-    private function makeFile(Shipment $shipment, array $containers): string
+    private function makeFile(Shipment $shipment, array $containers, array $extra = []): string
     {
-        $payload = ['shipment' => $shipment->reference, 'containers' => []];
+        $payload = ['shipment' => $shipment->reference, 'containers' => []] + $extra;
 
         foreach ($containers as $index => [$number, $lines]) {
             $entries = [];
@@ -593,6 +593,73 @@ class ImportShipmentLoadingListCommandTest extends TestCase
         $inFirst = $contents->whereIn('carton_id', Carton::where('shipment_container_id', $firstContainer)->pluck('id'));
         $this->assertGreaterThan(0, $inFirst->where('part_label', 'Body')->count());
         $this->assertGreaterThan(0, $inFirst->where('part_label', 'Parts')->count());
+    }
+
+    public function test_divides_an_unsplit_item_into_the_parts_the_file_declares(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['U3016' => 4]);
+        $file = $this->makeFile(
+            $shipment,
+            [['HMMU1111111', ['U3016' => 8]]],
+            ['splits' => ['U3016' => ['Body', 'Parts']]],
+        );
+
+        $this->artisan("shipments:import-loading-list {$file} --apply")->assertSuccessful();
+
+        $split = $items['U3016']->refresh()->packing_split;
+        $this->assertSame(['Body', 'Parts'], $split['part_labels']);
+
+        $contents = CartonContent::whereIn('carton_id', Carton::where('shipment_id', $shipment->id)->pluck('id'))->get();
+        $this->assertSame(4, $contents->where('part_label', 'Body')->count());
+        $this->assertSame(4, $contents->where('part_label', 'Parts')->count());
+        $this->assertSame([$split['set_id']], $contents->pluck('multi_box_set_id')->unique()->values()->all());
+    }
+
+    public function test_dry_run_does_not_persist_a_split_declared_in_the_file(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['U3016' => 4]);
+        $file = $this->makeFile(
+            $shipment,
+            [['HMMU1111111', ['U3016' => 8]]],
+            ['splits' => ['U3016' => ['Body', 'Parts']]],
+        );
+
+        $this->artisan("shipments:import-loading-list {$file}")->assertSuccessful();
+
+        $this->assertNull($items['U3016']->refresh()->packing_split);
+    }
+
+    public function test_keeps_an_existing_split_that_matches_the_file(): void
+    {
+        [$shipment, $items] = $this->makeShipment([
+            'U3016' => ['qty' => 4, 'parts' => ['Body', 'Parts']],
+        ]);
+        $setId = $items['U3016']->packing_split['set_id'];
+        $file = $this->makeFile(
+            $shipment,
+            [['HMMU1111111', ['U3016' => 8]]],
+            ['splits' => ['U3016' => ['Body', 'Parts']]],
+        );
+
+        $this->artisan("shipments:import-loading-list {$file} --apply")->assertSuccessful();
+
+        $this->assertSame($setId, $items['U3016']->refresh()->packing_split['set_id']);
+    }
+
+    public function test_aborts_when_the_file_split_disagrees_with_the_existing_one(): void
+    {
+        [$shipment] = $this->makeShipment([
+            'U3016' => ['qty' => 4, 'parts' => ['Body', 'Others']],
+        ]);
+        $file = $this->makeFile(
+            $shipment,
+            [['HMMU1111111', ['U3016' => 8]]],
+            ['splits' => ['U3016' => ['Body', 'Parts']]],
+        );
+
+        $this->artisan("shipments:import-loading-list {$file} --apply")->assertFailed();
+
+        $this->assertSame(0, Carton::where('shipment_id', $shipment->id)->count());
     }
 
     public function test_dry_run_writes_nothing(): void

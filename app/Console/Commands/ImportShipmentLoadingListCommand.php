@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Domain\Logistics\Actions\RecalculateShipmentTotalsAction;
+use App\Domain\Logistics\Actions\SplitProductAcrossCartonsAction;
 use App\Domain\Logistics\Actions\SyncShipmentContainerNumbersAction;
 use App\Domain\Logistics\Enums\PackagingType;
 use App\Domain\Logistics\Models\Carton;
@@ -42,6 +43,11 @@ use RuntimeException;
  * partes quando o item está dividido em multi-box). Não fechando, aborta sem
  * escrever nada.
  *
+ * Item que viaja em mais de um volume por peça (multi-box) pode vir dividido
+ * da tela ou ser dividido pelo próprio arquivo, em `splits`: modelo → rótulos
+ * das partes. O arquivo só divide item que ainda não está dividido; se já
+ * estiver, os rótulos têm de ser os mesmos.
+ *
  * Pallet segue a regra do domínio: conta 1 volume, o peso bruto é o dele, a
  * cubagem sai da caixa que ele carrega e o líquido nunca vem do estrado.
  *
@@ -62,6 +68,7 @@ class ImportShipmentLoadingListCommand extends Command
     public function __construct(
         private readonly RecalculateShipmentTotalsAction $recalculateTotals,
         private readonly SyncShipmentContainerNumbersAction $syncContainerNumbers,
+        private readonly SplitProductAcrossCartonsAction $splitProduct,
     ) {
         parent::__construct();
     }
@@ -75,7 +82,7 @@ class ImportShipmentLoadingListCommand extends Command
             $shipment = $this->resolveShipment($data);
             $this->guardExistingCartons($shipment);
             $containers = $this->normalizeContainers($data);
-            $plan = $this->buildPlan($shipment, $containers);
+            $plan = $this->buildPlan($shipment, $containers, $this->declaredSplits($data));
         } catch (RuntimeException $e) {
             $this->error($e->getMessage());
 
@@ -93,6 +100,7 @@ class ImportShipmentLoadingListCommand extends Command
 
         DB::transaction(function () use ($shipment, $containers, $plan) {
             $this->wipeExistingPacking($shipment);
+            $this->applyDeclaredSplits($plan['items']);
             $models = $this->syncContainers($shipment, $containers);
             $this->createPackages($shipment, $containers, $models, $plan['items']);
 
@@ -303,6 +311,28 @@ class ImportShipmentLoadingListCommand extends Command
     }
 
     /**
+     * Divisões multi-box declaradas no arquivo, por modelo.
+     *
+     * @return array<string, list<string>>
+     */
+    private function declaredSplits(array $data): array
+    {
+        $splits = [];
+
+        foreach ($data['splits'] ?? [] as $model => $labels) {
+            $labels = array_values(array_unique(array_filter(array_map('trim', (array) $labels), fn ($l) => $l !== '')));
+
+            if (count($labels) < 2) {
+                throw new RuntimeException("splits.{$model}: a divisão precisa de ao menos 2 partes.");
+            }
+
+            $splits[mb_strtoupper(trim((string) $model))] = $labels;
+        }
+
+        return $splits;
+    }
+
+    /**
      * Casa cada referência do arquivo com os itens do embarque e confere se a
      * carga fecha.
      *
@@ -311,7 +341,7 @@ class ImportShipmentLoadingListCommand extends Command
      * do mesmo produto. Nesse caso as peças são distribuídas na ordem dos itens
      * — enche o primeiro, depois o próximo — e a soma tem de fechar todos.
      */
-    private function buildPlan(Shipment $shipment, array $containers): array
+    private function buildPlan(Shipment $shipment, array $containers, array $splits = []): array
     {
         $byModel = [];
         $byDescription = [];
@@ -390,12 +420,32 @@ class ImportShipmentLoadingListCommand extends Command
                 }
 
                 $parts = $this->partLabels($item);
+                $declared = $ref['by'] === 'model' ? ($splits[$ref['value']] ?? null) : null;
+                $pendingSplit = null;
+
+                if ($declared !== null && $parts === [null]) {
+                    // Divide só na escrita; até lá a conferência usa as partes do arquivo.
+                    $parts = $pendingSplit = $declared;
+                } elseif ($declared !== null && $parts !== $declared) {
+                    $errors[] = sprintf(
+                        '%s: o item #%d já está dividido em %s, mas o arquivo declara %s.',
+                        $label,
+                        $item->id,
+                        implode('/', $parts),
+                        implode('/', $declared),
+                    );
+                    $clash = true;
+
+                    break;
+                }
+
                 $expected += (int) $item->quantity * count($parts);
 
                 $slots[] = [
                     'item' => $item,
                     'parts' => $parts,
                     'set_id' => $item->packing_split['set_id'] ?? null,
+                    'pending_split' => $pendingSplit,
                     'remaining' => array_fill_keys($parts, (int) $item->quantity),
                 ];
             }
@@ -507,6 +557,29 @@ class ImportShipmentLoadingListCommand extends Command
     }
 
     // ───────────────────────────── escrita ─────────────────────────────
+
+    /**
+     * Grava as divisões multi-box que o arquivo declarou para itens que ainda
+     * não estavam divididos, e passa o set_id novo para a criação dos volumes.
+     *
+     * @param  array<string, array<string, mixed>>  $items
+     */
+    private function applyDeclaredSplits(array &$items): void
+    {
+        foreach ($items as &$entry) {
+            foreach ($entry['slots'] as &$slot) {
+                if ($slot['pending_split'] === null) {
+                    continue;
+                }
+
+                $slot['set_id'] = $this->splitProduct->execute($slot['item'], $slot['pending_split'])['set_id'];
+            }
+
+            unset($slot);
+        }
+
+        unset($entry);
+    }
 
     private function wipeExistingPacking(Shipment $shipment): void
     {
