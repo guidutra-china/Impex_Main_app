@@ -190,9 +190,9 @@ class PackingListPdfV2Test extends TestCase
         $data = $this->getData($shipment);
 
         $this->assertEquals(2, $data['totals']['total_packages']);
-        // Grand total sums pieces across all cartons (matches visual EQUIP QTY column sum).
-        // Frame (1) + Accessories (1) = 2, even though it represents one logical machine.
-        $this->assertEquals(2, $data['totals']['total_equipment_qty']);
+        // Frame e Accessories são a MESMA máquina: só a primeira parte conta
+        // equipamento, senão o PL declara o dobro de peças da CI.
+        $this->assertEquals(1, $data['totals']['total_equipment_qty']);
         $this->assertEqualsWithDelta(65.0, $data['totals']['total_gross_weight'], 0.01);
 
         $this->assertCount(2, $data['container_groups'][0]['lines']);
@@ -227,8 +227,8 @@ class PackingListPdfV2Test extends TestCase
         $data = $this->getData($shipment);
 
         $this->assertEquals(2, $data['totals']['total_packages']);
-        // Frame (1) + Accessories (1) + 5 sandals + 3 socks = 10
-        $this->assertEquals(10, $data['totals']['total_equipment_qty']);
+        // Frame (1) + 5 sandals + 3 socks = 9 — Accessories é parte da mesma máquina.
+        $this->assertEquals(9, $data['totals']['total_equipment_qty']);
 
         // BOX-001: 1 line, BOX-002: 3 lines (1 main + 2 sub-items) = 4 total
         $this->assertCount(4, $data['container_groups'][0]['lines']);
@@ -561,6 +561,54 @@ class PackingListPdfV2Test extends TestCase
         $this->assertEqualsWithDelta($data['totals']['total_gross_weight'], $sum('gross_weight'), 0.01);
         $this->assertEqualsWithDelta($data['totals']['total_net_weight'], $sum('net_weight'), 0.01);
         $this->assertEqualsWithDelta($data['totals']['total_volume'], $sum('volume'), 0.01);
+    }
+
+    public function test_split_secondary_part_boxes_do_not_count_as_equipment(): void
+    {
+        // Formato do SH-2026-00037: N esteiras, cada uma na sua caixa, e os
+        // small parts de todas elas consolidados em poucas caixas.
+        [$shipment, $items] = $this->makeShipmentWithItems(['treadmill' => 4]);
+
+        $setId = (string) Str::ulid();
+        $items['treadmill']->update([
+            'packing_split' => ['set_id' => $setId, 'part_labels' => ['Treadmill', 'Small Parts']],
+        ]);
+
+        foreach (['BOX-001', 'BOX-002', 'BOX-003', 'BOX-004'] as $label) {
+            $this->addContent(
+                $this->makeCarton($shipment, $label, ['gross_weight' => 164.0, 'net_weight' => 147.0, 'volume' => 0.9]),
+                $items['treadmill']->id, 1, $setId, 'Treadmill',
+            );
+        }
+
+        foreach (['BOX-005', 'BOX-006'] as $label) {
+            $this->addContent(
+                $this->makeCarton($shipment, $label, ['gross_weight' => 13.6, 'net_weight' => 12.24, 'volume' => 0.1]),
+                $items['treadmill']->id, 2, $setId, 'Small Parts',
+            );
+        }
+
+        $data = $this->getData($shipment);
+        $lines = collect($data['container_groups'][0]['lines']);
+
+        // 4 esteiras declaradas, não 4 + 4 kits.
+        $this->assertEquals(4, $data['totals']['total_equipment_qty']);
+        $this->assertEquals(6, $data['totals']['total_packages']);
+
+        $treadmill = $lines->first(fn ($l) => str_contains($l['product_name'], 'Treadmill'));
+        $smallParts = $lines->first(fn ($l) => str_contains($l['product_name'], 'Small Parts'));
+        $this->assertNotNull($smallParts);
+        $this->assertEquals(4, $treadmill['equipment_qty']);
+        // A linha dos small parts continua no documento, com bulto e peso, sem peça.
+        $this->assertEmpty($smallParts['equipment_qty']);
+        $this->assertEquals(2, $smallParts['package_qty']);
+        $this->assertEquals('27.20', $smallParts['gross_weight']);
+
+        // Coluna EQUIP QTY continua fechando com o total.
+        $this->assertEquals(
+            $data['totals']['total_equipment_qty'],
+            $lines->sum(fn ($l) => (int) $l['equipment_qty']),
+        );
     }
 
     public function test_package_no_uses_carton_label(): void

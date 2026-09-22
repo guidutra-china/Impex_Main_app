@@ -38,4 +38,24 @@ class CartonContent extends Model
     {
         return $this->belongsTo(ShipmentItem::class);
     }
+
+    /**
+     * Peças que contam como equipamento nos documentos (EQUIP QTY).
+     *
+     * Num produto dividido em partes (packing_split), cada parte carrega as N
+     * peças do item para o controle de empacotamento fechar, mas todas são a
+     * mesma máquina. Só a primeira parte conta; as demais (acessórios, small
+     * parts) saem com zero, senão o packing list declara o dobro da CI.
+     */
+    public function equipmentPieces(): int
+    {
+        $split = $this->shipmentItem?->packing_split;
+
+        $isSecondaryPart = $this->multi_box_set_id !== null
+            && is_array($split)
+            && ($split['set_id'] ?? null) === $this->multi_box_set_id
+            && $this->part_label !== ($split['part_labels'][0] ?? null);
+
+        return $isSecondaryPart ? 0 : (int) $this->pieces;
+    }
 }

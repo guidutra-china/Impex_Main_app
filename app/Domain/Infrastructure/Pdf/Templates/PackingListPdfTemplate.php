@@ -449,7 +449,7 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
         $packageRange = $firstCarton->label.' ~ '.$lastCarton->label;
 
         // Sum totals across all cartons in the group
-        $totalEquipmentQty = (int) $content->pieces * $count;
+        $totalEquipmentQty = $content->equipmentPieces() * $count;
         $totalGrossWeight = (float) $firstCarton->gross_weight * $count;
         $totalNetWeight = (float) $firstCarton->net_weight * $count;
         $totalVolume = (float) $firstCarton->volume * $count;
@@ -515,7 +515,7 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
                 'product_name' => $productName,
                 'description' => $description,
                 'unit' => $shipmentItem?->unit ?? 'pcs',
-                'equipment_qty' => (int) $content->pieces,
+                'equipment_qty' => $content->equipmentPieces(),
                 'package_qty' => 1,
                 'net_weight' => $this->formatContentNetWeight($carton, $content, true),
                 'gross_weight' => $this->formatContentGrossWeight($carton, $content, true),
@@ -533,7 +533,7 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
             'product_name' => $productName,
             'description' => $description,
             'unit' => $shipmentItem?->unit ?? 'pcs',
-            'equipment_qty' => (int) $content->pieces,
+            'equipment_qty' => $content->equipmentPieces(),
             'package_qty' => '',
             'net_weight' => $this->formatContentNetWeight($carton, $content, false),
             'gross_weight' => $this->formatContentGrossWeight($carton, $content, false),
@@ -732,7 +732,7 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
 
         $totalEquipmentQty = (int) $cartons
             ->flatMap(fn (Carton $c) => $c->contents)
-            ->sum(fn ($content) => (int) $content->pieces);
+            ->sum(fn ($content) => $content->equipmentPieces());
 
         return [
             'total_packages' => $totalPackages,
