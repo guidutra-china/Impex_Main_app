@@ -1,0 +1,1157 @@
+{
+    "shipment": "SH-2026-00058",
+    "source": "Container_PL_YQ260723GW及加单(1).xlsx (Yinqian, packing list por contêiner; PI-2026-00072 + PI-2026-00084) + draft HBL LWSCN26270",
+    "notes": [
+        "A divisão por contêiner é a do fornecedor (uma aba por contêiner), não inventada.",
+        "Cubagem: as abas somam 288,418 CBM e o BL traz 288,000 (60/60/60/55/53). Cada caixa leva a cubagem da Yinqian escalada por contêiner para fechar o BL. Sem medidas.",
+        "LT004: 5 peças em 8 volumes — 3 caixas de acessório sem item, com o mesmo bruto; o líquido fica todo nas 5 máquinas.",
+        "LT002AC no packing list = LT002A no sistema; BLT015 = LT015. LT012A, XVD033, XVD025 e LT016A casam pela descrição (item da PI sem produto)."
+    ],
+    "containers": [
+        {
+            "label": "CONT-001",
+            "container_number": "FFAU7542500",
+            "type": "40HQ",
+            "seal_number": "CX0954129",
+            "sort_order": 1,
+            "scale_factor": 1.005335,
+            "declared": {
+                "packages": 54,
+                "net_weight": 11592.5,
+                "gross_weight": 13510,
+                "volume": 60
+            },
+            "lines": [
+                {
+                    "model": "LT013A",
+                    "description": "Horizontal Leg Curl",
+                    "packages": 2,
+                    "unit_net_weight": 207.033,
+                    "unit_gross_weight": 256.533,
+                    "unit_volume": 1.038616,
+                    "notes": null
+                },
+                {
+                    "model": "LT013A",
+                    "description": "Horizontal Leg Curl",
+                    "packages": 1,
+                    "unit_net_weight": 207.034,
+                    "unit_gross_weight": 256.534,
+                    "unit_volume": 1.038615,
+                    "notes": null
+                },
+                {
+                    "model": "LT013",
+                    "description": "Seated Leg Curl",
+                    "packages": 2,
+                    "unit_net_weight": 233.6,
+                    "unit_gross_weight": 281.6,
+                    "unit_volume": 1.195155,
+                    "notes": null
+                },
+                {
+                    "model": "LT013",
+                    "description": "Seated Leg Curl",
+                    "packages": 1,
+                    "unit_net_weight": 233.6,
+                    "unit_gross_weight": 281.6,
+                    "unit_volume": 1.195156,
+                    "notes": null
+                },
+                {
+                    "model": "LT013",
+                    "description": "Seated Leg Curl",
+                    "packages": 1,
+                    "unit_net_weight": 233.6,
+                    "unit_gross_weight": 281.6,
+                    "unit_volume": 1.195155,
+                    "notes": null
+                },
+                {
+                    "model": "LT013",
+                    "description": "Seated Leg Curl",
+                    "packages": 1,
+                    "unit_net_weight": 233.6,
+                    "unit_gross_weight": 281.6,
+                    "unit_volume": 1.195156,
+                    "notes": null
+                },
+                {
+                    "model": "LT014",
+                    "description": "Leg Extension",
+                    "packages": 2,
+                    "unit_net_weight": 249.167,
+                    "unit_gross_weight": 298.667,
+                    "unit_volume": 1.13254,
+                    "notes": null
+                },
+                {
+                    "model": "LT014",
+                    "description": "Leg Extension",
+                    "packages": 1,
+                    "unit_net_weight": 249.166,
+                    "unit_gross_weight": 298.666,
+                    "unit_volume": 1.13254,
+                    "notes": null
+                },
+                {
+                    "model": "BLT012",
+                    "description": "High Pulley/Row",
+                    "packages": 1,
+                    "unit_net_weight": 233.6,
+                    "unit_gross_weight": 270.1,
+                    "unit_volume": 1.468634,
+                    "notes": null
+                },
+                {
+                    "model": "BLT012",
+                    "description": "High Pulley/Row",
+                    "packages": 1,
+                    "unit_net_weight": 233.6,
+                    "unit_gross_weight": 270.1,
+                    "unit_volume": 1.468635,
+                    "notes": null
+                },
+                {
+                    "model": "BLT012",
+                    "description": "High Pulley/Row",
+                    "packages": 2,
+                    "unit_net_weight": 233.6,
+                    "unit_gross_weight": 270.1,
+                    "unit_volume": 1.468635,
+                    "notes": null
+                },
+                {
+                    "model": "LT015",
+                    "description": "Leg Press",
+                    "packages": 2,
+                    "unit_net_weight": 259.667,
+                    "unit_gross_weight": 333.667,
+                    "unit_volume": 1.252527,
+                    "notes": null
+                },
+                {
+                    "model": "LT015",
+                    "description": "Leg Press",
+                    "packages": 1,
+                    "unit_net_weight": 259.666,
+                    "unit_gross_weight": 333.666,
+                    "unit_volume": 1.252528,
+                    "notes": null
+                },
+                {
+                    "model": "LT002A",
+                    "description": "Pec Fly/Dear Delt",
+                    "packages": 2,
+                    "unit_net_weight": 255.667,
+                    "unit_gross_weight": 306.667,
+                    "unit_volume": 1.367275,
+                    "notes": "Modelo LT002AC no packing list"
+                },
+                {
+                    "model": "LT002A",
+                    "description": "Pec Fly/Dear Delt",
+                    "packages": 1,
+                    "unit_net_weight": 255.666,
+                    "unit_gross_weight": 306.666,
+                    "unit_volume": 1.367276,
+                    "notes": "Modelo LT002AC no packing list"
+                },
+                {
+                    "model": "BLT1819",
+                    "description": "Adductor&Abductor",
+                    "packages": 2,
+                    "unit_net_weight": 267.7,
+                    "unit_gross_weight": 287.7,
+                    "unit_volume": 1.116886,
+                    "notes": null
+                },
+                {
+                    "model": "BLT1819",
+                    "description": "Adductor&Abductor",
+                    "packages": 1,
+                    "unit_net_weight": 267.7,
+                    "unit_gross_weight": 287.7,
+                    "unit_volume": 1.116885,
+                    "notes": null
+                },
+                {
+                    "model": "BLT1819",
+                    "description": "Adductor&Abductor",
+                    "packages": 3,
+                    "unit_net_weight": 267.675,
+                    "unit_gross_weight": 287.675,
+                    "unit_volume": 1.116886,
+                    "notes": null
+                },
+                {
+                    "model": "BLT1819",
+                    "description": "Adductor&Abductor",
+                    "packages": 1,
+                    "unit_net_weight": 267.675,
+                    "unit_gross_weight": 287.675,
+                    "unit_volume": 1.116885,
+                    "notes": null
+                },
+                {
+                    "model": "LT003A",
+                    "description": "Delts Machine",
+                    "packages": 1,
+                    "unit_net_weight": 246.15,
+                    "unit_gross_weight": 286.15,
+                    "unit_volume": 1.218823,
+                    "notes": null
+                },
+                {
+                    "model": "LT003A",
+                    "description": "Delts Machine",
+                    "packages": 1,
+                    "unit_net_weight": 246.15,
+                    "unit_gross_weight": 286.15,
+                    "unit_volume": 1.218824,
+                    "notes": null
+                },
+                {
+                    "model": "LT003A",
+                    "description": "Delts Machine",
+                    "packages": 2,
+                    "unit_net_weight": 246.133,
+                    "unit_gross_weight": 286.133,
+                    "unit_volume": 1.218824,
+                    "notes": null
+                },
+                {
+                    "model": "LT003A",
+                    "description": "Delts Machine",
+                    "packages": 1,
+                    "unit_net_weight": 246.134,
+                    "unit_gross_weight": 286.134,
+                    "unit_volume": 1.218824,
+                    "notes": null
+                },
+                {
+                    "model": "BLT0607",
+                    "description": "Biceps Curl/Triceps Press",
+                    "packages": 1,
+                    "unit_net_weight": 269.7,
+                    "unit_gross_weight": 290.2,
+                    "unit_volume": 1.099392,
+                    "notes": null
+                },
+                {
+                    "model": "BLT0607",
+                    "description": "Biceps Curl/Triceps Press",
+                    "packages": 1,
+                    "unit_net_weight": 269.7,
+                    "unit_gross_weight": 290.2,
+                    "unit_volume": 1.099391,
+                    "notes": null
+                },
+                {
+                    "model": "LT010",
+                    "description": "Abdominal Crunch",
+                    "packages": 2,
+                    "unit_net_weight": 195.5,
+                    "unit_gross_weight": 215,
+                    "unit_volume": 1.219411,
+                    "notes": null
+                },
+                {
+                    "model": "LT010",
+                    "description": "Abdominal Crunch",
+                    "packages": 1,
+                    "unit_net_weight": 195.5,
+                    "unit_gross_weight": 215,
+                    "unit_volume": 1.21941,
+                    "notes": null
+                },
+                {
+                    "model": "XVD007",
+                    "description": "LOW BACK PULL TRAINER",
+                    "packages": 2,
+                    "unit_net_weight": 145.9,
+                    "unit_gross_weight": 160.4,
+                    "unit_volume": 0.813239,
+                    "notes": null
+                },
+                {
+                    "model": "XVD007",
+                    "description": "LOW BACK PULL TRAINER",
+                    "packages": 1,
+                    "unit_net_weight": 145.9,
+                    "unit_gross_weight": 160.4,
+                    "unit_volume": 0.813238,
+                    "notes": null
+                },
+                {
+                    "model": "XVD001",
+                    "description": "ISO-LATERAL BENCH PRESS",
+                    "packages": 2,
+                    "unit_net_weight": 151.35,
+                    "unit_gross_weight": 168.35,
+                    "unit_volume": 0.948327,
+                    "notes": null
+                },
+                {
+                    "model": "XVD027",
+                    "description": "PLATE-LOADED ISO-LATERAL WIDE PULLDOWN",
+                    "packages": 2,
+                    "unit_net_weight": 155.45,
+                    "unit_gross_weight": 194.95,
+                    "unit_volume": 0.949708,
+                    "notes": null
+                },
+                {
+                    "model": null,
+                    "description": "ISO-LATERAL FRONT LAT PULLDOWN",
+                    "packages": 2,
+                    "unit_net_weight": 158.9,
+                    "unit_gross_weight": 209.4,
+                    "unit_volume": 1.250814,
+                    "notes": null
+                },
+                {
+                    "model": "XVD003",
+                    "description": "ISO-LATERAL KNEELING LEG CURL",
+                    "packages": 3,
+                    "unit_net_weight": 122.3,
+                    "unit_gross_weight": 129.8,
+                    "unit_volume": 0.593116,
+                    "notes": null
+                },
+                {
+                    "model": null,
+                    "description": "ISO-LATERAL LEG EXTENSION",
+                    "packages": 1,
+                    "unit_net_weight": 134.9,
+                    "unit_gross_weight": 166.9,
+                    "unit_volume": 0.7957,
+                    "notes": null
+                },
+                {
+                    "model": null,
+                    "description": "ISO-LATERAL LEG EXTENSION",
+                    "packages": 2,
+                    "unit_net_weight": 134.85,
+                    "unit_gross_weight": 166.85,
+                    "unit_volume": 0.7957,
+                    "notes": null
+                },
+                {
+                    "model": "XVD045",
+                    "description": "HACK SQUAT",
+                    "packages": 1,
+                    "unit_net_weight": 204.5,
+                    "unit_gross_weight": 248.5,
+                    "unit_volume": 1.103614,
+                    "notes": null
+                }
+            ],
+            "packages": []
+        },
+        {
+            "label": "CONT-002",
+            "container_number": "BEAU6479731",
+            "type": "40HQ",
+            "seal_number": "CX0954128",
+            "sort_order": 2,
+            "scale_factor": 0.992751,
+            "declared": {
+                "packages": 50,
+                "net_weight": 10729.5,
+                "gross_weight": 12530,
+                "volume": 60
+            },
+            "lines": [
+                {
+                    "model": "BLT012",
+                    "description": "High Pulley/Row",
+                    "packages": 1,
+                    "unit_net_weight": 230.7,
+                    "unit_gross_weight": 267.2,
+                    "unit_volume": 1.545744,
+                    "notes": null
+                },
+                {
+                    "model": "BLT012",
+                    "description": "High Pulley/Row",
+                    "packages": 4,
+                    "unit_net_weight": 230.72,
+                    "unit_gross_weight": 267.24,
+                    "unit_volume": 1.545744,
+                    "notes": null
+                },
+                {
+                    "model": "BLT012",
+                    "description": "High Pulley/Row",
+                    "packages": 1,
+                    "unit_net_weight": 230.72,
+                    "unit_gross_weight": 267.24,
+                    "unit_volume": 1.545742,
+                    "notes": null
+                },
+                {
+                    "model": null,
+                    "description": "Seated Horizontal Pulley",
+                    "packages": 2,
+                    "unit_net_weight": 210.433,
+                    "unit_gross_weight": 240.433,
+                    "unit_volume": 1.027243,
+                    "notes": null
+                },
+                {
+                    "model": null,
+                    "description": "Seated Horizontal Pulley",
+                    "packages": 1,
+                    "unit_net_weight": 210.434,
+                    "unit_gross_weight": 240.434,
+                    "unit_volume": 1.027244,
+                    "notes": null
+                },
+                {
+                    "model": "LT001",
+                    "description": "Chest Press",
+                    "packages": 1,
+                    "unit_net_weight": 249.55,
+                    "unit_gross_weight": 279.55,
+                    "unit_volume": 1.235935,
+                    "notes": null
+                },
+                {
+                    "model": "LT001",
+                    "description": "Chest Press",
+                    "packages": 1,
+                    "unit_net_weight": 249.55,
+                    "unit_gross_weight": 279.55,
+                    "unit_volume": 1.235936,
+                    "notes": null
+                },
+                {
+                    "model": "LT003",
+                    "description": "Shoulder Press",
+                    "packages": 2,
+                    "unit_net_weight": 204.967,
+                    "unit_gross_weight": 264,
+                    "unit_volume": 1.221724,
+                    "notes": null
+                },
+                {
+                    "model": "LT003",
+                    "description": "Shoulder Press",
+                    "packages": 1,
+                    "unit_net_weight": 204.966,
+                    "unit_gross_weight": 264,
+                    "unit_volume": 1.221723,
+                    "notes": null
+                },
+                {
+                    "model": "LT007",
+                    "description": "Triceps Press",
+                    "packages": 3,
+                    "unit_net_weight": 189.125,
+                    "unit_gross_weight": 232.625,
+                    "unit_volume": 0.822706,
+                    "notes": null
+                },
+                {
+                    "model": "LT007",
+                    "description": "Triceps Press",
+                    "packages": 1,
+                    "unit_net_weight": 189.125,
+                    "unit_gross_weight": 232.625,
+                    "unit_volume": 0.822707,
+                    "notes": null
+                },
+                {
+                    "model": null,
+                    "description": "Standing Leg Extension",
+                    "packages": 2,
+                    "unit_net_weight": 201.5,
+                    "unit_gross_weight": 231.5,
+                    "unit_volume": 1.086157,
+                    "notes": null
+                },
+                {
+                    "model": null,
+                    "description": "Standing Leg Extension",
+                    "packages": 1,
+                    "unit_net_weight": 201.5,
+                    "unit_gross_weight": 231.5,
+                    "unit_volume": 1.086158,
+                    "notes": null
+                },
+                {
+                    "model": "XVD015",
+                    "description": "ABDOMINAL OBLIQUE CRUNCH",
+                    "packages": 1,
+                    "unit_net_weight": 165.9,
+                    "unit_gross_weight": 214.45,
+                    "unit_volume": 1.191926,
+                    "notes": null
+                },
+                {
+                    "model": "XVD015",
+                    "description": "ABDOMINAL OBLIQUE CRUNCH",
+                    "packages": 1,
+                    "unit_net_weight": 165.9,
+                    "unit_gross_weight": 214.45,
+                    "unit_volume": 1.191925,
+                    "notes": null
+                },
+                {
+                    "model": "XVD002",
+                    "description": "ISO-LATERAL SUPPER INCLINE PRESS",
+                    "packages": 1,
+                    "unit_net_weight": 139.6,
+                    "unit_gross_weight": 153.6,
+                    "unit_volume": 0.746111,
+                    "notes": null
+                },
+                {
+                    "model": "XVD002",
+                    "description": "ISO-LATERAL SUPPER INCLINE PRESS",
+                    "packages": 1,
+                    "unit_net_weight": 139.6,
+                    "unit_gross_weight": 153.6,
+                    "unit_volume": 0.746112,
+                    "notes": null
+                },
+                {
+                    "model": null,
+                    "description": "ISO-LATERAL LEG EXTENSION",
+                    "packages": 1,
+                    "unit_net_weight": 133.2,
+                    "unit_gross_weight": 165.2,
+                    "unit_volume": 0.837477,
+                    "notes": null
+                },
+                {
+                    "model": "XVD045",
+                    "description": "HACK SQUAT",
+                    "packages": 2,
+                    "unit_net_weight": 202,
+                    "unit_gross_weight": 246,
+                    "unit_volume": 1.161558,
+                    "notes": null
+                },
+                {
+                    "model": "XVD010",
+                    "description": "INCLINE SQUAT MACHINE(45°）",
+                    "packages": 5,
+                    "unit_net_weight": 193.583,
+                    "unit_gross_weight": 243.6,
+                    "unit_volume": 0.95827,
+                    "notes": null
+                },
+                {
+                    "model": "XVD010",
+                    "description": "INCLINE SQUAT MACHINE(45°）",
+                    "packages": 1,
+                    "unit_net_weight": 193.585,
+                    "unit_gross_weight": 243.6,
+                    "unit_volume": 0.95827,
+                    "notes": null
+                },
+                {
+                    "model": "XT008",
+                    "description": "Rear Kick",
+                    "packages": 2,
+                    "unit_net_weight": 172.3,
+                    "unit_gross_weight": 192.3,
+                    "unit_volume": 1.103775,
+                    "notes": null
+                },
+                {
+                    "model": "XVD014",
+                    "description": "PLATE-LOADED ISO-LATERAL ROW",
+                    "packages": 1,
+                    "unit_net_weight": 138.65,
+                    "unit_gross_weight": 146.65,
+                    "unit_volume": 0.637131,
+                    "notes": null
+                },
+                {
+                    "model": "XVD014",
+                    "description": "PLATE-LOADED ISO-LATERAL ROW",
+                    "packages": 1,
+                    "unit_net_weight": 138.65,
+                    "unit_gross_weight": 146.65,
+                    "unit_volume": 0.63713,
+                    "notes": null
+                },
+                {
+                    "model": "LT012C",
+                    "description": "Lat Pull Down",
+                    "packages": 1,
+                    "unit_net_weight": 265.4,
+                    "unit_gross_weight": 285.4,
+                    "unit_volume": 1.307653,
+                    "notes": null
+                },
+                {
+                    "model": "BLT012",
+                    "description": "High Pulley/Row",
+                    "packages": 4,
+                    "unit_net_weight": 230.72,
+                    "unit_gross_weight": 267.22,
+                    "unit_volume": 1.545744,
+                    "notes": null
+                },
+                {
+                    "model": "BLT012",
+                    "description": "High Pulley/Row",
+                    "packages": 1,
+                    "unit_net_weight": 230.72,
+                    "unit_gross_weight": 267.22,
+                    "unit_volume": 1.545742,
+                    "notes": null
+                },
+                {
+                    "model": "BLT012",
+                    "description": "High Pulley/Row",
+                    "packages": 1,
+                    "unit_net_weight": 230.7,
+                    "unit_gross_weight": 267.3,
+                    "unit_volume": 1.545744,
+                    "notes": null
+                },
+                {
+                    "model": "LT008",
+                    "description": "Assisted Chin/Dip",
+                    "packages": 4,
+                    "unit_net_weight": 331.52,
+                    "unit_gross_weight": 361.52,
+                    "unit_volume": 1.621451,
+                    "notes": null
+                },
+                {
+                    "model": "LT008",
+                    "description": "Assisted Chin/Dip",
+                    "packages": 1,
+                    "unit_net_weight": 331.52,
+                    "unit_gross_weight": 361.52,
+                    "unit_volume": 1.621452,
+                    "notes": null
+                }
+            ],
+            "packages": []
+        },
+        {
+            "label": "CONT-003",
+            "container_number": "PIDU4091228",
+            "type": "40HQ",
+            "seal_number": "CX0658990",
+            "sort_order": 3,
+            "scale_factor": 1.005805,
+            "declared": {
+                "packages": 54,
+                "net_weight": 11733.5,
+                "gross_weight": 14000,
+                "volume": 60
+            },
+            "lines": [
+                {
+                    "model": "LT001",
+                    "description": "Chest Press",
+                    "packages": 1,
+                    "unit_net_weight": 248.4,
+                    "unit_gross_weight": 278.4,
+                    "unit_volume": 1.168144,
+                    "notes": null
+                },
+                {
+                    "model": "LT012C",
+                    "description": "Lat Pull Down",
+                    "packages": 3,
+                    "unit_net_weight": 264.15,
+                    "unit_gross_weight": 284.15,
+                    "unit_volume": 1.235928,
+                    "notes": null
+                },
+                {
+                    "model": "LT012C",
+                    "description": "Lat Pull Down",
+                    "packages": 1,
+                    "unit_net_weight": 264.15,
+                    "unit_gross_weight": 284.15,
+                    "unit_volume": 1.235927,
+                    "notes": null
+                },
+                {
+                    "model": "LT001",
+                    "description": "Chest Press",
+                    "packages": 4,
+                    "unit_net_weight": 248.38,
+                    "unit_gross_weight": 278.38,
+                    "unit_volume": 1.168144,
+                    "notes": null
+                },
+                {
+                    "model": "LT001",
+                    "description": "Chest Press",
+                    "packages": 1,
+                    "unit_net_weight": 248.38,
+                    "unit_gross_weight": 278.38,
+                    "unit_volume": 1.168142,
+                    "notes": null
+                },
+                {
+                    "model": "LT001",
+                    "description": "Chest Press",
+                    "packages": 1,
+                    "unit_net_weight": 248.4,
+                    "unit_gross_weight": 278.4,
+                    "unit_volume": 1.168143,
+                    "notes": null
+                },
+                {
+                    "model": "LT003",
+                    "description": "Shoulder Press",
+                    "packages": 5,
+                    "unit_net_weight": 204.02,
+                    "unit_gross_weight": 263.02,
+                    "unit_volume": 1.154712,
+                    "notes": null
+                },
+                {
+                    "model": "LT003",
+                    "description": "Shoulder Press",
+                    "packages": 1,
+                    "unit_net_weight": 204,
+                    "unit_gross_weight": 263,
+                    "unit_volume": 1.154712,
+                    "notes": null
+                },
+                {
+                    "model": "LT014",
+                    "description": "Leg Extension",
+                    "packages": 8,
+                    "unit_net_weight": 244.933,
+                    "unit_gross_weight": 294.433,
+                    "unit_volume": 1.12662,
+                    "notes": null
+                },
+                {
+                    "model": "LT014",
+                    "description": "Leg Extension",
+                    "packages": 1,
+                    "unit_net_weight": 244.936,
+                    "unit_gross_weight": 294.436,
+                    "unit_volume": 1.126624,
+                    "notes": null
+                },
+                {
+                    "model": "LT014",
+                    "description": "Leg Extension",
+                    "packages": 1,
+                    "unit_net_weight": 244.9,
+                    "unit_gross_weight": 294.4,
+                    "unit_volume": 1.12662,
+                    "notes": null
+                },
+                {
+                    "model": "LT004",
+                    "description": "Seated Row",
+                    "packages": 4,
+                    "unit_net_weight": 237.06,
+                    "unit_gross_weight": 182.538,
+                    "unit_volume": 0.80982,
+                    "notes": null
+                },
+                {
+                    "model": "LT004",
+                    "description": "Seated Row",
+                    "packages": 1,
+                    "unit_net_weight": 237.06,
+                    "unit_gross_weight": 182.534,
+                    "unit_volume": 0.809821,
+                    "notes": null
+                },
+                {
+                    "model": "LT013A",
+                    "description": "Horizontal Leg Curl",
+                    "packages": 8,
+                    "unit_net_weight": 203.533,
+                    "unit_gross_weight": 253.033,
+                    "unit_volume": 1.033188,
+                    "notes": null
+                },
+                {
+                    "model": "LT013A",
+                    "description": "Horizontal Leg Curl",
+                    "packages": 1,
+                    "unit_net_weight": 203.536,
+                    "unit_gross_weight": 253.036,
+                    "unit_volume": 1.033184,
+                    "notes": null
+                },
+                {
+                    "model": "LT013A",
+                    "description": "Horizontal Leg Curl",
+                    "packages": 1,
+                    "unit_net_weight": 203.5,
+                    "unit_gross_weight": 253,
+                    "unit_volume": 1.033187,
+                    "notes": null
+                },
+                {
+                    "model": "LT002A",
+                    "description": "Pec Fly/Dear Delt",
+                    "packages": 4,
+                    "unit_net_weight": 251.325,
+                    "unit_gross_weight": 302.325,
+                    "unit_volume": 1.36013,
+                    "notes": "Modelo LT002AC no packing list"
+                },
+                {
+                    "model": "BLT012",
+                    "description": "High Pulley/Row",
+                    "packages": 3,
+                    "unit_net_weight": 229.675,
+                    "unit_gross_weight": 266.175,
+                    "unit_volume": 1.460959,
+                    "notes": null
+                },
+                {
+                    "model": "BLT012",
+                    "description": "High Pulley/Row",
+                    "packages": 1,
+                    "unit_net_weight": 229.675,
+                    "unit_gross_weight": 266.175,
+                    "unit_volume": 1.460958,
+                    "notes": null
+                },
+                {
+                    "model": "XVD003",
+                    "description": "ISO-LATERAL KNEELING LEG CURL",
+                    "packages": 1,
+                    "unit_net_weight": 120.2,
+                    "unit_gross_weight": 127.7,
+                    "unit_volume": 0.590016,
+                    "notes": null
+                }
+            ],
+            "packages": [
+                {
+                    "type": "carton",
+                    "gross_weight": 182.538,
+                    "net_weight": 0,
+                    "volume": 0.80982,
+                    "notes": "Acessórios do LT004 (volume sem máquina)",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 182.538,
+                    "net_weight": 0,
+                    "volume": 0.80982,
+                    "notes": "Acessórios do LT004 (volume sem máquina)",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 182.538,
+                    "net_weight": 0,
+                    "volume": 0.80982,
+                    "notes": "Acessórios do LT004 (volume sem máquina)",
+                    "contents": []
+                }
+            ]
+        },
+        {
+            "label": "CONT-004",
+            "container_number": "HPCU4830758",
+            "type": "40HQ",
+            "seal_number": "CX0954126",
+            "sort_order": 4,
+            "scale_factor": 0.997168,
+            "declared": {
+                "packages": 33,
+                "net_weight": 7719.5,
+                "gross_weight": 9090,
+                "volume": 55
+            },
+            "lines": [
+                {
+                    "model": "LT018",
+                    "description": "Adductor",
+                    "packages": 4,
+                    "unit_net_weight": 221.28,
+                    "unit_gross_weight": 285.28,
+                    "unit_volume": 1.898709,
+                    "notes": null
+                },
+                {
+                    "model": "LT018",
+                    "description": "Adductor",
+                    "packages": 1,
+                    "unit_net_weight": 221.28,
+                    "unit_gross_weight": 285.28,
+                    "unit_volume": 1.898708,
+                    "notes": null
+                },
+                {
+                    "model": "LT019",
+                    "description": "Adductor",
+                    "packages": 4,
+                    "unit_net_weight": 221.26,
+                    "unit_gross_weight": 287.26,
+                    "unit_volume": 1.925561,
+                    "notes": null
+                },
+                {
+                    "model": "LT019",
+                    "description": "Adductor",
+                    "packages": 1,
+                    "unit_net_weight": 221.26,
+                    "unit_gross_weight": 287.26,
+                    "unit_volume": 1.925559,
+                    "notes": null
+                },
+                {
+                    "model": "LT014",
+                    "description": "Leg Extension",
+                    "packages": 5,
+                    "unit_net_weight": 243.3,
+                    "unit_gross_weight": 292.8,
+                    "unit_volume": 1.572735,
+                    "notes": null
+                },
+                {
+                    "model": "LT014",
+                    "description": "Leg Extension",
+                    "packages": 1,
+                    "unit_net_weight": 243.3,
+                    "unit_gross_weight": 292.8,
+                    "unit_volume": 1.572737,
+                    "notes": null
+                },
+                {
+                    "model": "LT013A",
+                    "description": "Horizontal Leg Curl",
+                    "packages": 1,
+                    "unit_net_weight": 202.2,
+                    "unit_gross_weight": 251.7,
+                    "unit_volume": 1.442305,
+                    "notes": null
+                },
+                {
+                    "model": "BLT0607",
+                    "description": "Biceps Curl/Triceps Press",
+                    "packages": 7,
+                    "unit_net_weight": 263.363,
+                    "unit_gross_weight": 283.863,
+                    "unit_volume": 1.526704,
+                    "notes": null
+                },
+                {
+                    "model": "BLT0607",
+                    "description": "Biceps Curl/Triceps Press",
+                    "packages": 1,
+                    "unit_net_weight": 263.359,
+                    "unit_gross_weight": 283.859,
+                    "unit_volume": 1.526702,
+                    "notes": null
+                },
+                {
+                    "model": null,
+                    "description": "Seated Horizontal Pulley",
+                    "packages": 3,
+                    "unit_net_weight": 208.075,
+                    "unit_gross_weight": 238.075,
+                    "unit_volume": 1.355352,
+                    "notes": null
+                },
+                {
+                    "model": null,
+                    "description": "Seated Horizontal Pulley",
+                    "packages": 1,
+                    "unit_net_weight": 208.075,
+                    "unit_gross_weight": 238.075,
+                    "unit_volume": 1.355351,
+                    "notes": null
+                },
+                {
+                    "model": null,
+                    "description": "Seated Horizontal Pulley",
+                    "packages": 1,
+                    "unit_net_weight": 208,
+                    "unit_gross_weight": 238,
+                    "unit_volume": 1.355352,
+                    "notes": null
+                },
+                {
+                    "model": "LT015",
+                    "description": "Leg Press",
+                    "packages": 2,
+                    "unit_net_weight": 232.533,
+                    "unit_gross_weight": 252.533,
+                    "unit_volume": 2.003182,
+                    "notes": "Modelo BLT015 no packing list"
+                },
+                {
+                    "model": "LT015",
+                    "description": "Leg Press",
+                    "packages": 1,
+                    "unit_net_weight": 232.534,
+                    "unit_gross_weight": 252.534,
+                    "unit_volume": 2.003183,
+                    "notes": "Modelo BLT015 no packing list"
+                }
+            ],
+            "packages": []
+        },
+        {
+            "label": "CONT-005",
+            "container_number": "BSIU8012978",
+            "type": "40HQ",
+            "seal_number": "CX0954122",
+            "sort_order": 5,
+            "scale_factor": 0.990854,
+            "declared": {
+                "packages": 27,
+                "net_weight": 6979,
+                "gross_weight": 7970,
+                "volume": 53
+            },
+            "lines": [
+                {
+                    "model": "LT013",
+                    "description": "Seated Leg Curl",
+                    "packages": 4,
+                    "unit_net_weight": 247.62,
+                    "unit_gross_weight": 295.6,
+                    "unit_volume": 1.842933,
+                    "notes": null
+                },
+                {
+                    "model": "LT013",
+                    "description": "Seated Leg Curl",
+                    "packages": 1,
+                    "unit_net_weight": 247.62,
+                    "unit_gross_weight": 295.6,
+                    "unit_volume": 1.842931,
+                    "notes": null
+                },
+                {
+                    "model": "LT013",
+                    "description": "Seated Leg Curl",
+                    "packages": 1,
+                    "unit_net_weight": 247.6,
+                    "unit_gross_weight": 295.6,
+                    "unit_volume": 1.842932,
+                    "notes": null
+                },
+                {
+                    "model": "LT002A",
+                    "description": "Pec Fly/Dear Delt",
+                    "packages": 5,
+                    "unit_net_weight": 271,
+                    "unit_gross_weight": 321.967,
+                    "unit_volume": 2.108343,
+                    "notes": "Modelo LT002AC no packing list"
+                },
+                {
+                    "model": "LT002A",
+                    "description": "Pec Fly/Dear Delt",
+                    "packages": 1,
+                    "unit_net_weight": 271,
+                    "unit_gross_weight": 321.965,
+                    "unit_volume": 2.10834,
+                    "notes": "Modelo LT002AC no packing list"
+                },
+                {
+                    "model": "LT002A",
+                    "description": "Pec Fly/Dear Delt",
+                    "packages": 1,
+                    "unit_net_weight": 271,
+                    "unit_gross_weight": 322,
+                    "unit_volume": 2.108343,
+                    "notes": "Modelo LT002AC no packing list"
+                },
+                {
+                    "model": "BLT012",
+                    "description": "High Pulley/Row",
+                    "packages": 1,
+                    "unit_net_weight": 247.6,
+                    "unit_gross_weight": 284.1,
+                    "unit_volume": 2.264638,
+                    "notes": null
+                },
+                {
+                    "model": "LT015",
+                    "description": "Leg Press",
+                    "packages": 2,
+                    "unit_net_weight": 252.4,
+                    "unit_gross_weight": 272.35,
+                    "unit_volume": 2.224351,
+                    "notes": "Modelo BLT015 no packing list"
+                },
+                {
+                    "model": "LT015",
+                    "description": "Leg Press",
+                    "packages": 1,
+                    "unit_net_weight": 252.4,
+                    "unit_gross_weight": 272.4,
+                    "unit_volume": 2.224351,
+                    "notes": "Modelo BLT015 no packing list"
+                },
+                {
+                    "model": "LT015",
+                    "description": "Leg Press",
+                    "packages": 1,
+                    "unit_net_weight": 252.4,
+                    "unit_gross_weight": 272.4,
+                    "unit_volume": 2.22435,
+                    "notes": "Modelo BLT015 no packing list"
+                },
+                {
+                    "model": "LT003A",
+                    "description": "Delts Machine",
+                    "packages": 1,
+                    "unit_net_weight": 260.9,
+                    "unit_gross_weight": 300.9,
+                    "unit_volume": 1.87943,
+                    "notes": null
+                },
+                {
+                    "model": "LT010",
+                    "description": "Abdominal Crunch",
+                    "packages": 1,
+                    "unit_net_weight": 207.2,
+                    "unit_gross_weight": 226.7,
+                    "unit_volume": 1.880334,
+                    "notes": null
+                },
+                {
+                    "model": "BLT1819",
+                    "description": "Adductor&Abductor",
+                    "packages": 5,
+                    "unit_net_weight": 283.767,
+                    "unit_gross_weight": 303.75,
+                    "unit_volume": 1.72224,
+                    "notes": null
+                },
+                {
+                    "model": "BLT1819",
+                    "description": "Adductor&Abductor",
+                    "packages": 1,
+                    "unit_net_weight": 283.765,
+                    "unit_gross_weight": 303.75,
+                    "unit_volume": 1.722242,
+                    "notes": null
+                },
+                {
+                    "model": null,
+                    "description": "ISO-LATERAL FRONT LAT PULLDOWN",
+                    "packages": 1,
+                    "unit_net_weight": 168.4,
+                    "unit_gross_weight": 218.9,
+                    "unit_volume": 1.928758,
+                    "notes": null
+                }
+            ],
+            "packages": []
+        }
+    ]
+}
