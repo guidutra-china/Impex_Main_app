@@ -8,10 +8,10 @@
         <table class="w-full text-sm text-left">
             <thead class="bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 font-medium">
                 <tr>
-                    <th class="px-4 py-2.5">Type</th>
-                    <th class="px-4 py-2.5">Description</th>
-                    <th class="px-4 py-2.5 text-right">Amount</th>
-                    <th class="px-4 py-2.5 text-center">Status</th>
+                    <th class="px-4 py-2.5">{{ __('forms.labels.type') }}</th>
+                    <th class="px-4 py-2.5">{{ __('forms.labels.description') }}</th>
+                    <th class="px-4 py-2.5 text-right">{{ __('forms.labels.amount') }}</th>
+                    <th class="px-4 py-2.5 text-center">{{ __('forms.labels.status') }}</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-white/10">

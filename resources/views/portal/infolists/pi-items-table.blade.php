@@ -1,6 +1,10 @@
 @php
     $record = $getRecord();
-    $items = $record->items()->with('product')->get();
+    // Código e nome como o cliente conhece o produto (pivot do cliente >
+    // model number > SKU), respeitando a preferência de nomenclatura — o
+    // mesmo que sai no PDF da PI.
+    $items = $record->items()->with('product.companies')->orderBy('sort_order')->get();
+    $identity = \App\Domain\Catalog\Services\ProductIdentityResolver::forClientCompany($record->company);
     $showFinancial = auth()->user()?->can('portal:view-financial-summary');
     $currency = $record->currency_code ?? 'USD';
 @endphp
@@ -11,18 +15,20 @@
             <thead class="bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 font-medium">
                 <tr>
                     <th class="px-4 py-2.5 w-12"></th>
-                    <th class="px-4 py-2.5">Product</th>
-                    <th class="px-4 py-2.5">Description</th>
-                    <th class="px-4 py-2.5 text-center">Quantity</th>
-                    <th class="px-4 py-2.5 text-center">Unit</th>
+                    <th class="px-4 py-2.5">{{ __('widgets.portal.pi.code') }}</th>
+                    <th class="px-4 py-2.5">{{ __('forms.labels.product') }}</th>
+                    <th class="px-4 py-2.5">{{ __('forms.labels.description') }}</th>
+                    <th class="px-4 py-2.5 text-center">{{ __('forms.labels.quantity') }}</th>
+                    <th class="px-4 py-2.5 text-center">{{ __('forms.labels.unit') }}</th>
                     @if($showFinancial)
-                        <th class="px-4 py-2.5 text-right">Unit price</th>
-                        <th class="px-4 py-2.5 text-right">Line total</th>
+                        <th class="px-4 py-2.5 text-right">{{ __('forms.labels.unit_price') }}</th>
+                        <th class="px-4 py-2.5 text-right">{{ __('forms.labels.line_total') }}</th>
                     @endif
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-white/10">
                 @foreach($items as $item)
+                    @php $productIdentity = $identity->resolve($item->product); @endphp
                     <tr class="text-gray-900 dark:text-white">
                         <td class="px-4 py-2.5">
                             @if($item->product?->avatar)
@@ -33,6 +39,7 @@
                                 </div>
                             @endif
                         </td>
+                        <td class="px-4 py-2.5 font-mono text-xs whitespace-nowrap">{{ $productIdentity->codeOr('—') }}</td>
                         <td class="px-4 py-2.5">{{ $item->product?->name ?? '—' }}</td>
                         <td class="px-4 py-2.5">{{ $item->description ?? '—' }}</td>
                         <td class="px-4 py-2.5 text-center">{{ number_format($item->quantity) }}</td>
@@ -47,7 +54,7 @@
             @if($showFinancial)
                 <tfoot class="bg-gray-50 dark:bg-white/5 font-bold text-gray-900 dark:text-white">
                     <tr>
-                        <td colspan="5" class="px-4 py-2.5 text-right">Subtotal</td>
+                        <td colspan="6" class="px-4 py-2.5 text-right">{{ __('forms.labels.subtotal') }}</td>
                         <td class="px-4 py-2.5"></td>
                         <td class="px-4 py-2.5 text-right">{{ $currency }} {{ \App\Domain\Infrastructure\Support\Money::format($record->total, 2) }}</td>
                     </tr>
@@ -56,5 +63,5 @@
         </table>
     </div>
 @else
-    <p class="text-sm text-gray-500 dark:text-gray-400 italic">No items in this proforma invoice.</p>
+    <p class="text-sm text-gray-500 dark:text-gray-400 italic">{{ __('widgets.portal.pi.no_items') }}</p>
 @endif

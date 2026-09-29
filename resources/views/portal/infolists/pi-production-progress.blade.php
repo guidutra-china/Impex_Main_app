@@ -85,14 +85,14 @@
                 <table class="w-full text-sm text-left">
                     <thead class="bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 font-medium text-xs">
                         <tr>
-                            <th class="px-4 py-2.5 min-w-[140px]">Product</th>
-                            <th class="px-3 py-2.5 text-center">PI Qty</th>
+                            <th class="px-4 py-2.5 min-w-[140px]">{{ __('forms.labels.product') }}</th>
+                            <th class="px-3 py-2.5 text-center">{{ __('widgets.portal.pi.pi_qty') }}</th>
                             @foreach($productionDates as $date)
                                 <th class="px-3 py-2.5 text-center min-w-[80px]">
                                     {{ \Carbon\Carbon::parse($date)->format('d/m') }}
                                 </th>
                             @endforeach
-                            <th class="px-3 py-2.5 text-center min-w-[100px]">Progress</th>
+                            <th class="px-3 py-2.5 text-center min-w-[100px]">{{ __('widgets.portal.pi.progress') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-white/10">
@@ -135,21 +135,21 @@
             <div>
                 <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
                     <x-heroicon-o-truck class="w-4 h-4"/>
-                    Components
+                    {{ __('widgets.portal.pi.components') }}
                 </h4>
                 <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-white/10">
                     <table class="w-full text-sm text-left">
                         <thead class="bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 font-medium text-xs">
                             <tr>
-                                <th class="px-4 py-2.5 min-w-[140px]">Component</th>
-                                <th class="px-3 py-2.5 text-center">Needed</th>
+                                <th class="px-4 py-2.5 min-w-[140px]">{{ __('widgets.portal.pi.component') }}</th>
+                                <th class="px-3 py-2.5 text-center">{{ __('widgets.portal.pi.needed') }}</th>
                                 @foreach($componentDates as $date)
                                     <th class="px-3 py-2.5 text-center min-w-[70px]">
                                         {{ \Carbon\Carbon::parse($date)->format('d/m') }}
                                     </th>
                                 @endforeach
-                                <th class="px-3 py-2.5 text-center">Received</th>
-                                <th class="px-3 py-2.5 text-center min-w-[100px]">Progress</th>
+                                <th class="px-3 py-2.5 text-center">{{ __('widgets.portal.pi.received') }}</th>
+                                <th class="px-3 py-2.5 text-center min-w-[100px]">{{ __('widgets.portal.pi.progress') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-white/10">
@@ -198,7 +198,7 @@
         @foreach($schedules->where('status', 'pending_approval') as $pendingSchedule)
             <div class="mt-4">
                 <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Schedule {{ $pendingSchedule->reference }} — Pending Your Approval
+                    {{ __('widgets.portal.pi.schedule_pending_approval', ['reference' => $pendingSchedule->reference]) }}
                 </h4>
                 <livewire:portal.schedule-approval-widget
                     :schedule="$pendingSchedule"
@@ -208,5 +208,5 @@
         @endforeach
     </div>
 @else
-    <p class="text-sm text-gray-500 dark:text-gray-400 italic">No production schedule data available for this proforma invoice.</p>
+    <p class="text-sm text-gray-500 dark:text-gray-400 italic">{{ __('widgets.portal.pi.no_production_data') }}</p>
 @endif
