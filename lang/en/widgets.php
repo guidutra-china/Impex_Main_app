@@ -236,6 +236,8 @@ return [
         'product_value' => 'Product Value',
         'currency' => 'Currency',
         'total_pi_value' => 'Total PI Value',
+        'total_billed' => 'Total Billed',
+        'total_billed_desc' => 'PIs, freight, costs and debit notes',
         'total_paid' => 'Total Paid',
         'pending_balance' => 'Pending Balance',
         'payments_received' => 'Payments Received',

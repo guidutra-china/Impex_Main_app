@@ -3,7 +3,7 @@
 namespace App\Filament\Portal\Widgets;
 
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
-use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\Financial\Queries\ClientScheduleItemsQuery;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use Filament\Facades\Filament;
@@ -33,47 +33,39 @@ class FinancialSummaryWidget extends BaseWidget
             ->get()
             ->sum(fn ($pi) => $pi->total);
 
-        // Mesma família de predicados do Contas a Pagar do portal: parcelas de
-        // PI não cancelada + custos adicionais por shipment (frete, comissão),
-        // sem linhas de crédito nem espelhos forwarder/supplier-payable.
-        $scheduleItems = PaymentScheduleItem::query()
-            ->where(function ($outer) use ($companyId) {
-                $outer->where(function ($q) use ($companyId) {
-                    $q->where('payable_type', ProformaInvoice::class)
-                        ->whereHasMorph('payable', [ProformaInvoice::class], fn ($sub) => $sub
-                            ->where('company_id', $companyId)
-                            ->where('status', '!=', 'cancelled'));
-                })->orWhere(function ($q) use ($companyId) {
-                    $q->where('payable_type', \App\Domain\Logistics\Models\Shipment::class)
-                        ->where('source_type', \App\Domain\Financial\Models\AdditionalCost::class)
-                        ->whereHasMorph('payable', [\App\Domain\Logistics\Models\Shipment::class], fn ($sub) => $sub
-                            ->where('company_id', $companyId)
-                            ->where('status', '!=', 'cancelled'));
-                });
-            })
+        // Mesma população do Próximos Pagamentos e do cronograma: parcelas da
+        // PI, custos do embarque cobráveis do cliente e DNs do cliente — sem
+        // crédito, sem espelho de Shipment e sem documento cancelado.
+        $scheduleItems = ClientScheduleItemsQuery::forClient($companyId)
             ->where('is_credit', false)
-            ->withoutSideTags()
+            ->payableNotCancelled()
             ->with('allocations.payment')
             ->get();
 
-        // Pago = alocações aprovadas (captura pagamentos parciais); pendente =
-        // SALDO restante das parcelas abertas (pending + due + overdue —
-        // "due" ficava de fora e parcialmente pagas entravam pelo valor cheio).
-        $totalPaid = $scheduleItems->sum(fn ($item) => $item->paid_amount);
+        // Waived foi perdoada: não é dívida nem pagamento.
+        $billable = $scheduleItems->reject(fn ($item) => $item->status === PaymentScheduleStatus::WAIVED);
 
-        $totalPending = $scheduleItems
-            ->whereIn('status', [
-                PaymentScheduleStatus::PENDING,
-                PaymentScheduleStatus::DUE,
-                PaymentScheduleStatus::OVERDUE,
-            ])
+        $totalBilled = (int) $billable->sum('amount');
+
+        // Pendente = SALDO restante das parcelas abertas (pending + due + overdue).
+        $totalPending = (int) $billable
+            ->reject(fn ($item) => $item->status->isResolved())
             ->sum(fn ($item) => max(0, (int) $item->amount - (int) $item->paid_amount));
+
+        // Pago = o que foi cobrado menos o que está em aberto, para o card
+        // fechar a conta Total − Pago = Pendente. Difere da soma das alocações
+        // só por sobra de centavos em parcela já quitada.
+        $totalPaid = $totalBilled - $totalPending;
 
         return [
             Stat::make(__('widgets.portal.total_pi_value'), 'USD '.Money::format($totalPiValue))
                 ->description(__('widgets.portal.confirmed_proforma_invoices'))
                 ->icon('heroicon-o-document-check')
                 ->color('primary'),
+            Stat::make(__('widgets.portal.total_billed'), 'USD '.Money::format($totalBilled))
+                ->description(__('widgets.portal.total_billed_desc'))
+                ->icon('heroicon-o-banknotes')
+                ->color('gray'),
             Stat::make(__('widgets.portal.total_paid'), 'USD '.Money::format($totalPaid))
                 ->description(__('widgets.portal.payments_received'))
                 ->icon('heroicon-o-check-circle')

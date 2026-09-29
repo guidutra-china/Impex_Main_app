@@ -236,6 +236,8 @@ return [
         'product_value' => 'Valor dos Produtos',
         'currency' => 'Moeda',
         'total_pi_value' => 'Valor Total das PIs',
+        'total_billed' => 'Valor Total a Pagar',
+        'total_billed_desc' => 'PIs, frete, custos e notas de débito',
         'total_paid' => 'Total Pago',
         'pending_balance' => 'Saldo Pendente',
         'payments_received' => 'Pagamentos Recebidos',

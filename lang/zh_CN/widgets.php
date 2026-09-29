@@ -236,6 +236,8 @@ return [
         'product_value' => '产品价值',
         'currency' => '货币',
         'total_pi_value' => 'PI总价值',
+        'total_billed' => '应付总额',
+        'total_billed_desc' => '形式发票、运费、费用及借项通知单',
         'total_paid' => '已付总额',
         'pending_balance' => '待付余额',
         'payments_received' => '已收付款',
