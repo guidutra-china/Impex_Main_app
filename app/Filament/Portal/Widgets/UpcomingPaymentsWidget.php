@@ -2,8 +2,10 @@
 
 namespace App\Filament\Portal\Widgets;
 
+use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
-use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\Financial\Models\DebitNote;
+use App\Domain\Financial\Queries\OpenScheduleItemsQuery;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
@@ -42,69 +44,41 @@ class UpcomingPaymentsWidget extends Widget
         $endOfWeek = $today->copy()->addDays(7);
         $endOfMonth = $today->copy()->addDays(30);
 
-        $baseQuery = PaymentScheduleItem::query()
-            ->with('payable')
-            ->where('is_credit', false)
-            ->whereIn('status', [
-                PaymentScheduleStatus::PENDING,
-                PaymentScheduleStatus::DUE,
-                PaymentScheduleStatus::OVERDUE,
-            ])
-            ->where(function ($query) use ($tenant) {
-                $query->whereHasMorph('payable', [ProformaInvoice::class], function ($q) use ($tenant) {
-                    $q->where('company_id', $tenant->id);
-                })->orWhereHasMorph('payable', [Shipment::class], function ($q) use ($tenant) {
-                    $q->where('company_id', $tenant->id);
-                });
-            })
-            ->withoutSideTags();
-
-        // Overdue: explicit OVERDUE status OR past due_date with PENDING/DUE status
-        $overdueItems = (clone $baseQuery)
-            ->where(function ($query) use ($today) {
-                $query->where('status', PaymentScheduleStatus::OVERDUE)
-                    ->orWhere(function ($q) use ($today) {
-                        $q->whereNotNull('due_date')
-                            ->where('due_date', '<', $today)
-                            ->whereIn('status', [PaymentScheduleStatus::PENDING, PaymentScheduleStatus::DUE]);
-                    });
-            })
+        // Mesma regra do Contas a Receber do admin: parcelas canônicas da PI,
+        // custos cobráveis do cliente e DNs do cliente. Os espelhos de
+        // Shipment ficam de fora — a parcela já está na PI, e somar os dois
+        // contava a mesma dívida em dobro.
+        $open = OpenScheduleItemsQuery::filterByCounterparty(
+            OpenScheduleItemsQuery::receivables(),
+            $tenant->id,
+            PaymentDirection::INBOUND,
+        )
             ->orderBy('due_date')
-            ->get();
-
-        // Due this week (today to +7 days, not overdue)
-        $weekItems = (clone $baseQuery)
-            ->whereNotNull('due_date')
-            ->whereBetween('due_date', [$today, $endOfWeek])
-            ->whereIn('status', [PaymentScheduleStatus::PENDING, PaymentScheduleStatus::DUE])
-            ->orderBy('due_date')
-            ->get();
-
-        // Due this month (+8 to +30 days)
-        $monthItems = (clone $baseQuery)
-            ->whereNotNull('due_date')
-            ->whereBetween('due_date', [$endOfWeek->copy()->addDay(), $endOfMonth])
-            ->whereIn('status', [PaymentScheduleStatus::PENDING, PaymentScheduleStatus::DUE])
-            ->orderBy('due_date')
-            ->get();
-
-        // Pending without due_date (show separately so they're not hidden)
-        $pendingNoDueDate = (clone $baseQuery)
-            ->whereNull('due_date')
-            ->whereIn('status', [PaymentScheduleStatus::PENDING, PaymentScheduleStatus::DUE])
             ->orderBy('created_at')
             ->get();
+
+        // Cada parcela cai em exatamente um card: a soma dos cards é o total em aberto.
+        $overdueItems = $open->filter(fn ($item) => $item->status === PaymentScheduleStatus::OVERDUE
+            || ($item->due_date && $item->due_date->lt($today)))->values();
+        $rest = $open->reject(fn ($item) => $overdueItems->contains($item));
+
+        $weekItems = $rest->filter(fn ($item) => $item->due_date && $item->due_date->lte($endOfWeek))->values();
+        $monthItems = $rest->filter(fn ($item) => $item->due_date && $item->due_date->gt($endOfWeek) && $item->due_date->lte($endOfMonth))->values();
+        $laterItems = $rest->filter(fn ($item) => $item->due_date && $item->due_date->gt($endOfMonth))->values();
+        $pendingNoDueDate = $rest->filter(fn ($item) => ! $item->due_date)->values();
 
         $mapItem = function ($item) use ($today) {
             $payable = $item->payable;
             $docType = match (true) {
                 $payable instanceof ProformaInvoice => 'PI',
                 $payable instanceof Shipment => 'Shipment',
+                $payable instanceof DebitNote => 'DN',
                 default => 'Doc',
             };
             $docColor = match ($docType) {
                 'PI' => 'primary',
                 'Shipment' => 'info',
+                'DN' => 'warning',
                 default => 'gray',
             };
             $ref = ($payable instanceof Shipment && $payable->bl_number)
@@ -133,12 +107,9 @@ class UpcomingPaymentsWidget extends Widget
         $overdueTotal = $overdueItems->sum('remaining_amount');
         $weekTotal = $weekItems->sum('remaining_amount');
         $monthTotal = $monthItems->sum('remaining_amount');
+        $laterTotal = $laterItems->sum('remaining_amount');
         $pendingTotal = $pendingNoDueDate->sum('remaining_amount');
-        $currency = $overdueItems->first()?->currency_code
-            ?? $weekItems->first()?->currency_code
-            ?? $monthItems->first()?->currency_code
-            ?? $pendingNoDueDate->first()?->currency_code
-            ?? 'USD';
+        $currency = $open->first()?->currency_code ?? 'USD';
 
         return [
             'overdue' => $overdueItems->map($mapItem)->all(),
@@ -150,11 +121,14 @@ class UpcomingPaymentsWidget extends Widget
             'thisMonth' => $monthItems->map($mapItem)->all(),
             'monthTotal' => Money::format($monthTotal, 2),
             'monthCount' => $monthItems->count(),
+            'later' => $laterItems->map($mapItem)->all(),
+            'laterTotal' => Money::format($laterTotal, 2),
+            'laterCount' => $laterItems->count(),
             'pending' => $pendingNoDueDate->map($mapItem)->all(),
             'pendingTotal' => Money::format($pendingTotal, 2),
             'pendingCount' => $pendingNoDueDate->count(),
             'currency' => $currency,
-            'hasAny' => $overdueItems->isNotEmpty() || $weekItems->isNotEmpty() || $monthItems->isNotEmpty() || $pendingNoDueDate->isNotEmpty(),
+            'hasAny' => $open->isNotEmpty(),
         ];
     }
 
@@ -170,6 +144,9 @@ class UpcomingPaymentsWidget extends Widget
             'thisMonth' => [],
             'monthTotal' => '0.00',
             'monthCount' => 0,
+            'later' => [],
+            'laterTotal' => '0.00',
+            'laterCount' => 0,
             'pending' => [],
             'pendingTotal' => '0.00',
             'pendingCount' => 0,

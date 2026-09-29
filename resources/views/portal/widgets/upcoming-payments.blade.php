@@ -1,16 +1,16 @@
 <x-filament-widgets::widget>
     <x-filament::section
-        heading="Upcoming Payments"
+        :heading="__('widgets.portal.upcoming.heading')"
         icon="heroicon-o-calendar-days"
     >
         @if (! $hasAny)
             <div class="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-10 dark:border-gray-700 dark:bg-white/5">
                 <x-filament::icon icon="heroicon-o-check-circle" class="h-8 w-8 text-success-400 dark:text-success-600" />
-                <span class="text-sm font-medium text-success-600 dark:text-success-400">No upcoming payments due</span>
+                <span class="text-sm font-medium text-success-600 dark:text-success-400">{{ __('widgets.portal.upcoming.none') }}</span>
             </div>
         @else
             {{-- Summary Cards --}}
-            <div class="grid grid-cols-2 gap-3 mb-6 sm:grid-cols-4">
+            <div class="grid grid-cols-2 gap-3 mb-6 sm:grid-cols-3 xl:grid-cols-5">
                 {{-- Overdue --}}
                 <div @class([
                     'rounded-xl border p-4',
@@ -34,13 +34,13 @@
                                 'text-[0.65rem] font-semibold uppercase tracking-wide',
                                 'text-danger-600 dark:text-danger-400' => $overdueCount > 0,
                                 'text-gray-400 dark:text-gray-500' => $overdueCount === 0,
-                            ])>Overdue</p>
+                            ])>{{ __('widgets.portal.upcoming.overdue') }}</p>
                             <p @class([
                                 'text-lg font-bold',
                                 'text-danger-700 dark:text-danger-300' => $overdueCount > 0,
                                 'text-gray-400 dark:text-gray-500' => $overdueCount === 0,
                             ])>{{ $overdueCount > 0 ? $currency . ' ' . $overdueTotal : '—' }}</p>
-                            <p class="text-[0.65rem] text-gray-400 dark:text-gray-500">{{ $overdueCount }} {{ $overdueCount === 1 ? 'item' : 'items' }}</p>
+                            <p class="text-[0.65rem] text-gray-400 dark:text-gray-500">{{ trans_choice('widgets.portal.upcoming.items', $overdueCount) }}</p>
                         </div>
                     </div>
                 </div>
@@ -68,13 +68,13 @@
                                 'text-[0.65rem] font-semibold uppercase tracking-wide',
                                 'text-warning-600 dark:text-warning-400' => $weekCount > 0,
                                 'text-gray-400 dark:text-gray-500' => $weekCount === 0,
-                            ])>Next 7 Days</p>
+                            ])>{{ __('widgets.portal.upcoming.next_7_days') }}</p>
                             <p @class([
                                 'text-lg font-bold',
                                 'text-warning-700 dark:text-warning-300' => $weekCount > 0,
                                 'text-gray-400 dark:text-gray-500' => $weekCount === 0,
                             ])>{{ $weekCount > 0 ? $currency . ' ' . $weekTotal : '—' }}</p>
-                            <p class="text-[0.65rem] text-gray-400 dark:text-gray-500">{{ $weekCount }} {{ $weekCount === 1 ? 'item' : 'items' }}</p>
+                            <p class="text-[0.65rem] text-gray-400 dark:text-gray-500">{{ trans_choice('widgets.portal.upcoming.items', $weekCount) }}</p>
                         </div>
                     </div>
                 </div>
@@ -102,13 +102,47 @@
                                 'text-[0.65rem] font-semibold uppercase tracking-wide',
                                 'text-info-600 dark:text-info-400' => $monthCount > 0,
                                 'text-gray-400 dark:text-gray-500' => $monthCount === 0,
-                            ])>Next 30 Days</p>
+                            ])>{{ __('widgets.portal.upcoming.next_30_days') }}</p>
                             <p @class([
                                 'text-lg font-bold',
                                 'text-info-700 dark:text-info-300' => $monthCount > 0,
                                 'text-gray-400 dark:text-gray-500' => $monthCount === 0,
                             ])>{{ $monthCount > 0 ? $currency . ' ' . $monthTotal : '—' }}</p>
-                            <p class="text-[0.65rem] text-gray-400 dark:text-gray-500">{{ $monthCount }} {{ $monthCount === 1 ? 'item' : 'items' }}</p>
+                            <p class="text-[0.65rem] text-gray-400 dark:text-gray-500">{{ trans_choice('widgets.portal.upcoming.items', $monthCount) }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Later than 30 days --}}
+                <div @class([
+                    'rounded-xl border p-4',
+                    'border-primary-200 bg-primary-50 dark:border-primary-500/20 dark:bg-primary-500/5' => $laterCount > 0,
+                    'border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/5' => $laterCount === 0,
+                ])>
+                    <div class="flex items-center gap-3">
+                        <div @class([
+                            'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
+                            'bg-primary-200 dark:bg-primary-500/20' => $laterCount > 0,
+                            'bg-gray-200 dark:bg-white/10' => $laterCount === 0,
+                        ])>
+                            <x-filament::icon icon="heroicon-o-calendar-days" @class([
+                                'h-5 w-5',
+                                'text-primary-600 dark:text-primary-400' => $laterCount > 0,
+                                'text-gray-400 dark:text-gray-500' => $laterCount === 0,
+                            ]) />
+                        </div>
+                        <div class="min-w-0">
+                            <p @class([
+                                'text-[0.65rem] font-semibold uppercase tracking-wide',
+                                'text-primary-600 dark:text-primary-400' => $laterCount > 0,
+                                'text-gray-400 dark:text-gray-500' => $laterCount === 0,
+                            ])>{{ __('widgets.portal.upcoming.later') }}</p>
+                            <p @class([
+                                'text-lg font-bold',
+                                'text-primary-700 dark:text-primary-300' => $laterCount > 0,
+                                'text-gray-400 dark:text-gray-500' => $laterCount === 0,
+                            ])>{{ $laterCount > 0 ? $currency . ' ' . $laterTotal : '—' }}</p>
+                            <p class="text-[0.65rem] text-gray-400 dark:text-gray-500">{{ trans_choice('widgets.portal.upcoming.items', $laterCount) }}</p>
                         </div>
                     </div>
                 </div>
@@ -136,13 +170,13 @@
                                 'text-[0.65rem] font-semibold uppercase tracking-wide',
                                 'text-gray-600 dark:text-gray-400' => $pendingCount > 0,
                                 'text-gray-400 dark:text-gray-500' => $pendingCount === 0,
-                            ])>Pending</p>
+                            ])>{{ __('widgets.portal.upcoming.no_due_date') }}</p>
                             <p @class([
                                 'text-lg font-bold',
                                 'text-gray-700 dark:text-gray-300' => $pendingCount > 0,
                                 'text-gray-400 dark:text-gray-500' => $pendingCount === 0,
                             ])>{{ $pendingCount > 0 ? $currency . ' ' . $pendingTotal : '—' }}</p>
-                            <p class="text-[0.65rem] text-gray-400 dark:text-gray-500">{{ $pendingCount }} {{ $pendingCount === 1 ? 'item' : 'items' }} (no due date)</p>
+                            <p class="text-[0.65rem] text-gray-400 dark:text-gray-500">{{ trans_choice('widgets.portal.upcoming.items', $pendingCount) }}</p>
                         </div>
                     </div>
                 </div>
@@ -161,13 +195,13 @@
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="border-b-2 border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/5">
-                                <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Type</th>
-                                <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Reference</th>
-                                <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Stage</th>
-                                <th class="px-4 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Remaining</th>
-                                <th class="px-4 py-3 text-center text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Due Date</th>
-                                <th class="px-4 py-3 text-center text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Days</th>
-                                <th class="px-4 py-3 text-center text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</th>
+                                <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('forms.labels.type') }}</th>
+                                <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('forms.labels.reference') }}</th>
+                                <th class="px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.portal.upcoming.stage') }}</th>
+                                <th class="px-4 py-3 text-right text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.portal.upcoming.remaining') }}</th>
+                                <th class="px-4 py-3 text-center text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('forms.labels.due_date') }}</th>
+                                <th class="px-4 py-3 text-center text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('widgets.portal.upcoming.days') }}</th>
+                                <th class="px-4 py-3 text-center text-[0.7rem] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ __('forms.labels.status') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -217,11 +251,11 @@
                                         @if ($item['days_until'] !== null)
                                             @if ($item['days_until'] < 0)
                                                 <span class="inline-flex items-center rounded-full bg-danger-100 px-2 py-0.5 text-[0.65rem] font-bold text-danger-700 dark:bg-danger-500/20 dark:text-danger-400">
-                                                    {{ abs($item['days_until']) }}d overdue
+                                                    {{ __('widgets.portal.upcoming.days_overdue', ['days' => abs($item['days_until'])]) }}
                                                 </span>
                                             @elseif ($item['days_until'] === 0)
                                                 <span class="inline-flex items-center rounded-full bg-warning-100 px-2 py-0.5 text-[0.65rem] font-bold text-warning-700 dark:bg-warning-500/20 dark:text-warning-400">
-                                                    Today
+                                                    {{ __('widgets.portal.upcoming.today') }}
                                                 </span>
                                             @else
                                                 <span @class([
@@ -229,7 +263,7 @@
                                                     'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' => $item['days_until'] <= 7,
                                                     'bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-400' => $item['days_until'] > 7,
                                                 ])>
-                                                    in {{ $item['days_until'] }}d
+                                                    {{ __('widgets.portal.upcoming.in_days', ['days' => $item['days_until']]) }}
                                                 </span>
                                             @endif
                                         @else

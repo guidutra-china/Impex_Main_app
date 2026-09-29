@@ -2,7 +2,11 @@
 
 namespace App\Filament\Portal\Resources\PaymentResource\Pages;
 
+use App\Domain\Financial\Enums\BillableTo;
+use App\Domain\Financial\Enums\PartyType;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
+use App\Domain\Financial\Models\AdditionalCost;
+use App\Domain\Financial\Models\DebitNote;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Models\Shipment;
@@ -53,11 +57,22 @@ class ListPayments extends ListRecords
             ->query(
                 PaymentScheduleItem::query()
                     ->with(['payable', 'paymentTermStage'])
+                    // Parcelas da PI, custos cobráveis do cliente e DNs do cliente.
+                    // Espelhos de Shipment (parcela da PI replicada no embarque)
+                    // ficam de fora: a parcela já aparece pela PI.
                     ->where(function ($query) use ($tenant) {
                         $query->whereHasMorph('payable', [ProformaInvoice::class], function ($q) use ($tenant) {
                             $q->where('company_id', $tenant->id);
-                        })->orWhereHasMorph('payable', [Shipment::class], function ($q) use ($tenant) {
-                            $q->where('company_id', $tenant->id);
+                        })->orWhere(function ($q) use ($tenant) {
+                            $q->whereHasMorph('payable', [Shipment::class], fn ($sq) => $sq->where('company_id', $tenant->id))
+                                ->where('payment_schedule_items.source_type', AdditionalCost::class)
+                                ->whereIn(
+                                    'payment_schedule_items.source_id',
+                                    AdditionalCost::query()->where('billable_to', BillableTo::CLIENT)->select('id'),
+                                );
+                        })->orWhereHasMorph('payable', [DebitNote::class], function ($q) use ($tenant) {
+                            $q->where('company_id', $tenant->id)
+                                ->where('party_type', PartyType::CLIENT->value);
                         });
                     })
                     // Qualified manually: sortable() closures join tables that also have a notes column, so the unqualified withoutSideTags() scope would be ambiguous.
@@ -78,7 +93,7 @@ class ListPayments extends ListRecords
                         return match (true) {
                             $payable instanceof ProformaInvoice => 'PI',
                             $payable instanceof Shipment => 'Shipment',
-                            $payable instanceof \App\Domain\PurchaseOrders\Models\PurchaseOrder => 'PO',
+                            $payable instanceof DebitNote => 'DN',
                             default => '—',
                         };
                     })
@@ -86,7 +101,7 @@ class ListPayments extends ListRecords
                     ->color(fn ($state) => match ($state) {
                         'PI' => 'primary',
                         'Shipment' => 'info',
-                        'PO' => 'warning',
+                        'DN' => 'warning',
                         default => 'gray',
                     })
                     ->sortable(query: fn ($query, string $direction) => $query->orderBy('payable_type', $direction)),
@@ -111,6 +126,8 @@ class ListPayments extends ListRecords
                             })->orWhereHasMorph('payable', [Shipment::class], function ($sub) use ($search) {
                                 $sub->where('reference', 'like', "%{$search}%")
                                     ->orWhere('bl_number', 'like', "%{$search}%");
+                            })->orWhereHasMorph('payable', [DebitNote::class], function ($sub) use ($search) {
+                                $sub->where('reference', 'like', "%{$search}%");
                             });
                         });
                     })
