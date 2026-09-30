@@ -234,8 +234,11 @@ class ImportShipmentLoadingListCommand extends Command
                 ];
             }
 
-            // Atalho `lines`: um volume por peça, todos iguais.
+            // Atalho `lines`: volumes iguais do mesmo modelo, uma peça em cada —
+            // ou `pieces` peças em cada, quando a caixa leva mais de uma.
             foreach ($container['lines'] ?? [] as $line) {
+                $pieces = max(1, (int) ($line['pieces'] ?? 1));
+
                 for ($i = 0; $i < (int) $line['packages']; $i++) {
                     $packages[] = [
                         'type' => 'carton',
@@ -244,7 +247,7 @@ class ImportShipmentLoadingListCommand extends Command
                         'volume' => $line['unit_volume'] ?? null,
                         'dimensions' => $this->dimensions($line['dimensions'] ?? null),
                         'notes' => $line['notes'] ?? null,
-                        'contents' => [['ref' => $this->contentRef($line), 'pieces' => 1, 'part' => null]],
+                        'contents' => [['ref' => $this->contentRef($line), 'pieces' => $pieces, 'part' => null]],
                     ];
                 }
             }

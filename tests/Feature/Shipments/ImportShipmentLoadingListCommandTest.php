@@ -112,15 +112,19 @@ class ImportShipmentLoadingListCommandTest extends TestCase
             $packages = 0;
 
             foreach ($lines as $model => $count) {
-                $entries[] = [
+                $pieces = is_array($count) ? ($count['pieces'] ?? 1) : 1;
+                $count = is_array($count) ? $count['packages'] : $count;
+
+                $entries[] = array_filter([
                     'model' => $model,
                     'description' => "Product {$model}",
                     'packages' => $count,
+                    'pieces' => $pieces > 1 ? $pieces : null,
                     'unit_net_weight' => 10,
                     'unit_gross_weight' => 12,
                     'unit_volume' => 0.5,
                     'notes' => null,
-                ];
+                ], fn ($v) => $v !== null);
                 $packages += $count;
             }
 
@@ -656,6 +660,33 @@ class ImportShipmentLoadingListCommandTest extends TestCase
             [['HMMU1111111', ['U3016' => 8]]],
             ['splits' => ['U3016' => ['Body', 'Parts']]],
         );
+
+        $this->artisan("shipments:import-loading-list {$file} --apply")->assertFailed();
+
+        $this->assertSame(0, Carton::where('shipment_id', $shipment->id)->count());
+    }
+
+    public function test_a_line_may_declare_how_many_pieces_ride_in_each_package(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['AGN-150D4' => 6]);
+        // 3 volumes × 2 peças cada.
+        $file = $this->makeFile($shipment, [['HMMU1111111', ['AGN-150D4' => ['packages' => 3, 'pieces' => 2]]]]);
+
+        $this->artisan("shipments:import-loading-list {$file} --apply")->assertSuccessful();
+
+        $cartons = Carton::where('shipment_id', $shipment->id)->get();
+        $this->assertCount(3, $cartons);
+
+        $contents = CartonContent::whereIn('carton_id', $cartons->pluck('id'))->get();
+        $this->assertCount(3, $contents);
+        $this->assertSame([2, 2, 2], $contents->pluck('pieces')->all());
+        $this->assertSame(6, (int) $items['AGN-150D4']->refresh()->quantity);
+    }
+
+    public function test_aborts_when_the_pieces_per_package_do_not_fill_the_item(): void
+    {
+        [$shipment] = $this->makeShipment(['AGN-150D4' => 5]);
+        $file = $this->makeFile($shipment, [['HMMU1111111', ['AGN-150D4' => ['packages' => 3, 'pieces' => 2]]]]);
 
         $this->artisan("shipments:import-loading-list {$file} --apply")->assertFailed();
 

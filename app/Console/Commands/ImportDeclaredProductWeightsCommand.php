@@ -16,11 +16,14 @@ use RuntimeException;
  * versionada: dev e prod rodam o mesmo comando sobre o mesmo JSON, casando por
  * SKU — nunca por id. Cada SKU traz `net` e `gross` de uma peça; o comando
  * escreve o líquido unitário (product_specifications.net_weight) e o cartão de
- * embalagem (carton_net_weight / carton_weight, criando a linha com 1 pç/cx).
+ * embalagem (carton_net_weight / carton_weight): o peso da peça multiplicado
+ * pelas peças que a caixa leva no cadastro, criando a linha com 1 pç/cx quando
+ * ainda não há embalagem.
  *
- * Só preenche o que está vazio. Produto cujo líquido cadastrado difere do
- * arquivo é um conflito: fica intacto e aparece no relatório, até alguém
- * decidir com --overwrite (que então troca líquido, NW e bruto da caixa).
+ * Só preenche o que está vazio. Produto cujo líquido cadastrado — ou, faltando
+ * líquido, cujo bruto da caixa — difere do arquivo é um conflito: fica intacto
+ * e aparece no relatório, até alguém decidir com --overwrite (que então troca
+ * líquido, NW e bruto da caixa).
  *
  * Dry-run por padrão; passe --apply para gravar.
  */
@@ -74,10 +77,29 @@ class ImportDeclaredProductWeightsCommand extends Command
             $current = $product->specification?->net_weight;
             $packaging = $product->packaging;
 
-            $diverges = $current !== null && abs((float) $current - $net) >= 0.0005;
+            // O arquivo declara UMA peça; a caixa-mestre leva quantas o cadastro
+            // disser (1, quando ainda não há embalagem).
+            $perCarton = max(1, (int) ($packaging?->pcs_per_carton ?: 1));
+            $cartonNet = round($net * $perCarton, 3);
+            $cartonGross = $gross === null ? null : round($gross * $perCarton, 3);
+
+            // Divergência é o líquido cadastrado contra o do arquivo — ou, para
+            // produto sem líquido nenhum, o bruto da caixa, que foi o caso da
+            // Agnes: 7,15 no cadastro contra 6,5 no packing list da fábrica.
+            $netDiverges = $current !== null && abs((float) $current - $net) >= 0.0005;
+            $grossDiverges = $cartonGross !== null
+                && $packaging?->carton_weight !== null
+                && abs((float) $packaging->carton_weight - $cartonGross) >= 0.0005;
+            $diverges = $netDiverges || $grossDiverges;
 
             if ($diverges && ! $this->option('overwrite')) {
-                $conflicts[] = [$sku, mb_substr($product->name, 0, 40), number_format((float) $current, 3), number_format($net, 3)];
+                $conflicts[] = [
+                    $sku,
+                    mb_substr($product->name, 0, 40),
+                    $netDiverges ? 'líquido/pç' : 'bruto da caixa',
+                    number_format($netDiverges ? (float) $current : (float) $packaging->carton_weight, 3),
+                    number_format($netDiverges ? $net : $cartonGross, 3),
+                ];
 
                 continue;
             }
@@ -90,11 +112,11 @@ class ImportDeclaredProductWeightsCommand extends Command
             }
 
             if ($packaging === null || $packaging->carton_net_weight === null || $diverges) {
-                $pack['carton_net_weight'] = $net;
+                $pack['carton_net_weight'] = $cartonNet;
             }
 
-            if ($gross !== null && ($packaging === null || $packaging->carton_weight === null || $diverges)) {
-                $pack['carton_weight'] = $gross;
+            if ($cartonGross !== null && ($packaging === null || $packaging->carton_weight === null || $diverges)) {
+                $pack['carton_weight'] = $cartonGross;
             }
 
             if ($spec === [] && $pack === []) {
@@ -113,8 +135,8 @@ class ImportDeclaredProductWeightsCommand extends Command
                 mb_substr($product->name, 0, 40),
                 $current === null ? '—' : number_format((float) $current, 3),
                 isset($spec['net_weight']) ? number_format($net, 3) : '(mantido)',
-                isset($pack['carton_net_weight']) ? number_format($net, 3) : '(mantido)',
-                isset($pack['carton_weight']) ? number_format($gross, 3) : ($gross === null ? '—' : '(mantido)'),
+                isset($pack['carton_net_weight']) ? number_format($cartonNet, 3) : '(mantido)',
+                isset($pack['carton_weight']) ? number_format($cartonGross, 3) : ($gross === null ? '—' : '(mantido)'),
             ];
         }
 
@@ -125,8 +147,8 @@ class ImportDeclaredProductWeightsCommand extends Command
         }
 
         if ($conflicts !== []) {
-            $this->warn('Em conflito (líquido cadastrado ≠ arquivo) — intactos, use --overwrite para trocar:');
-            $this->table(['SKU', 'Produto', 'Cadastro', 'Arquivo'], $conflicts);
+            $this->warn('Em conflito (cadastro ≠ arquivo) — intactos, use --overwrite para trocar:');
+            $this->table(['SKU', 'Produto', 'Campo', 'Cadastro', 'Arquivo'], $conflicts);
         }
 
         foreach ($missing as $sku) {

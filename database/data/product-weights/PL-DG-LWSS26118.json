@@ -1,0 +1,8 @@
+{
+    "_": "Peso de 1 peça, em kg, declarado pelo fornecedor. Lido por products:import-declared-weights, que multiplica pelas peças da caixa-mestre do cadastro.",
+    "_fonte": "PL-DG.xls (packing list do contêiner DG), na pasta do LWSS26118 = SH-2026-00044, contêiner TIIU7167062. Declara a caixa de 2 peças: 5,55 líquido / 6,5 bruto, 66,5×30×21 cm, 0,041895 m³ — daí 2,775 e 3,25 por peça.",
+    "_motivo": "O cadastro trazia 7,15 kg de bruto por caixa, sem líquido, e era esse peso que estava no packing list do SH-2026-00044: 876 kg a mais do que o manifest NGP4118602 e o BL LWSCN26118 declaram para os 1348 volumes. Roda com --overwrite, para trocar o peso antigo da caixa.",
+    "weights": {
+        "STL-00015": {"net": 2.775, "gross": 3.25, "from": "AGN-150D4 / AG-N-7150-D4 com shorting cap, 4000K — 1348 caixas de 2 peças, 7.481,4 líquido / 8.762 bruto"}
+    }
+}

@@ -50,6 +50,37 @@ class ImportDeclaredProductWeightsCommandTest extends TestCase
         $this->assertEquals(191.0, $product->packaging->carton_weight);
     }
 
+    public function test_multiplies_the_declared_piece_by_the_pieces_the_carton_already_holds(): void
+    {
+        $product = Product::factory()->create(['sku' => 'STL-00015', 'name' => 'Agnes-150W - 4000K']);
+        $product->packaging()->create(['pcs_per_carton' => 2]);
+        // 3,25 e 2,775 por peça = a caixa de 2 peças do packing list: 6,5 / 5,55.
+        $this->declare(['STL-00015' => ['net' => 2.775, 'gross' => 3.25]]);
+
+        $this->import('--apply')->assertSuccessful();
+
+        $product->refresh();
+        $this->assertEquals(2.775, $product->specification->net_weight);
+        $this->assertSame(2, $product->packaging->pcs_per_carton);
+        $this->assertEquals(5.55, $product->packaging->carton_net_weight);
+        $this->assertEquals(6.5, $product->packaging->carton_weight);
+    }
+
+    public function test_overwrite_rewrites_the_carton_of_a_product_that_holds_several_pieces(): void
+    {
+        $product = Product::factory()->create(['sku' => 'STL-00015']);
+        $product->specification()->create(['net_weight' => 3.575]);
+        $product->packaging()->create(['pcs_per_carton' => 2, 'carton_weight' => 7.15, 'carton_net_weight' => 7.15]);
+        $this->declare(['STL-00015' => ['net' => 2.775, 'gross' => 3.25]]);
+
+        $this->import('--apply --overwrite')->assertSuccessful();
+
+        $product->refresh();
+        $this->assertEquals(2.775, $product->specification->net_weight);
+        $this->assertEquals(5.55, $product->packaging->carton_net_weight);
+        $this->assertEquals(6.5, $product->packaging->carton_weight);
+    }
+
     public function test_fills_only_the_missing_fields_of_a_product_that_already_has_the_same_net_weight(): void
     {
         $product = Product::factory()->create(['sku' => 'JG-6802']);
@@ -88,6 +119,34 @@ class ImportDeclaredProductWeightsCommandTest extends TestCase
         $this->assertEquals(165.0, $product->specification->net_weight);
         $this->assertEquals(165.0, $product->packaging->carton_net_weight);
         $this->assertEquals(216.0, $product->packaging->carton_weight);
+    }
+
+    public function test_a_carton_gross_that_differs_from_the_file_is_a_conflict_even_without_a_net_weight(): void
+    {
+        $product = Product::factory()->create(['sku' => 'STL-00015']);
+        $product->packaging()->create(['pcs_per_carton' => 2, 'carton_weight' => 7.15]);
+        $this->declare(['STL-00015' => ['net' => 2.775, 'gross' => 3.25]]);
+
+        $this->import('--apply')->assertSuccessful();
+
+        $product->refresh();
+        // O bruto errado fica intacto até alguém decidir com --overwrite.
+        $this->assertEquals(7.15, $product->packaging->carton_weight);
+        $this->assertNull($product->specification);
+    }
+
+    public function test_overwrite_replaces_a_carton_gross_that_differs_from_the_file(): void
+    {
+        $product = Product::factory()->create(['sku' => 'STL-00015']);
+        $product->packaging()->create(['pcs_per_carton' => 2, 'carton_weight' => 7.15]);
+        $this->declare(['STL-00015' => ['net' => 2.775, 'gross' => 3.25]]);
+
+        $this->import('--apply --overwrite')->assertSuccessful();
+
+        $product->refresh();
+        $this->assertEquals(6.5, $product->packaging->carton_weight);
+        $this->assertEquals(5.55, $product->packaging->carton_net_weight);
+        $this->assertEquals(2.775, $product->specification->net_weight);
     }
 
     public function test_an_unknown_sku_is_reported_and_does_not_stop_the_others(): void

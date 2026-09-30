@@ -1,0 +1,1004 @@
+{
+    "shipment": "SH-2026-00044",
+    "source": "Packing lists da pasta do LWSS26118 (PL-DG, PL-BM263002, PL 8pcs by sea, Packing list for SEA) + manifest NGP4118602 + draft HBL LWSCN26118",
+    "notes": [
+        "Os 1573 volumes já estavam certos no sistema e batem com o manifest grupo a grupo; o que foi refeito é peso e cubagem.",
+        "A Agnes estava com o peso do cadastro (7,15 kg/caixa); o packing list da fábrica (PL-DG) declara 6,5 bruto e 5,55 líquido por caixa de 2 peças, que é o que o manifest usa.",
+        "Solares (17), street lights (45) e notebooks de brinde (60) estavam sem peso nenhum; vieram dos packing lists e, no caso dos notebooks, do manifest.",
+        "Notebooks: sem packing list, o líquido é 90% do bruto — a proporção do resto do embarque (decisão do Gui).",
+        "Solares e street lights viajam em 4 estrados, mas o BL conta as 62 peças como volumes; ficam como caixas soltas para o embarque continuar com 1573.",
+        "Stadium 1000W: o fornecedor declara 226,4 kg / 0,965 m³ e o manifest 225 / 1,000; vale o manifest.",
+        "Lentes: o fornecedor descreve 5 caixas grandes e 1 pequena, o sistema tem 3 e 3; a repartição do sistema foi mantida e a cubagem do grupo rateada pelo tamanho — por isso ficam sem medida."
+    ],
+    "containers": [
+        {
+            "label": "CONT-001",
+            "container_number": "TIIU7167062",
+            "type": "40HQ",
+            "seal_number": "J2314476",
+            "sort_order": 1,
+            "declared": {
+                "packages": 1573,
+                "net_weight": 9757.05,
+                "gross_weight": 11430.1,
+                "volume": 69.55
+            },
+            "lines": [
+                {
+                    "model": null,
+                    "description": "PV5-40",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 13.461,
+                    "unit_gross_weight": 18,
+                    "unit_volume": 0.146349,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "PV5-60",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 13.461,
+                    "unit_gross_weight": 18,
+                    "unit_volume": 0.146349,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "PV5-50",
+                    "packages": 2,
+                    "pieces": 1,
+                    "unit_net_weight": 13.461,
+                    "unit_gross_weight": 18,
+                    "unit_volume": 0.146349,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "PV5-50",
+                    "packages": 1,
+                    "pieces": 1,
+                    "unit_net_weight": 13.459,
+                    "unit_gross_weight": 18,
+                    "unit_volume": 0.146347,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "PV5-120",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 19.182,
+                    "unit_gross_weight": 25.65,
+                    "unit_volume": 0.247858,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "PV5-100",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 19.182,
+                    "unit_gross_weight": 25.65,
+                    "unit_volume": 0.247858,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "PV5-80",
+                    "packages": 1,
+                    "pieces": 1,
+                    "unit_net_weight": 19.182,
+                    "unit_gross_weight": 25.65,
+                    "unit_volume": 0.247858,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "PV5-80",
+                    "packages": 1,
+                    "pieces": 1,
+                    "unit_net_weight": 19.179,
+                    "unit_gross_weight": 25.65,
+                    "unit_volume": 0.247855,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "ZG-1094B-100",
+                    "packages": 2,
+                    "pieces": 1,
+                    "unit_net_weight": 8.488,
+                    "unit_gross_weight": 11.4,
+                    "unit_volume": 0.19152,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "ZG-1094B-80",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 8.488,
+                    "unit_gross_weight": 11.4,
+                    "unit_volume": 0.19152,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "ZG-1094A-60",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 8.488,
+                    "unit_gross_weight": 11.4,
+                    "unit_volume": 0.19152,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "ZG-1094A-40",
+                    "packages": 2,
+                    "pieces": 1,
+                    "unit_net_weight": 8.488,
+                    "unit_gross_weight": 11.4,
+                    "unit_volume": 0.19152,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "ZG-1094A-40",
+                    "packages": 1,
+                    "pieces": 1,
+                    "unit_net_weight": 8.49,
+                    "unit_gross_weight": 11.4,
+                    "unit_volume": 0.191519,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "ZG-ST20-50PT1",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 6.548,
+                    "unit_gross_weight": 8.794,
+                    "unit_volume": 0.052155,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "ZG-ST20-150SE",
+                    "packages": 2,
+                    "pieces": 1,
+                    "unit_net_weight": 6.548,
+                    "unit_gross_weight": 8.794,
+                    "unit_volume": 0.052155,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "ZG-ST20-80SE",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 6.548,
+                    "unit_gross_weight": 8.794,
+                    "unit_volume": 0.052155,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "ZG-ST20-120SE",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 6.548,
+                    "unit_gross_weight": 8.794,
+                    "unit_volume": 0.052155,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "ZG-ST20-100SE",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 6.548,
+                    "unit_gross_weight": 8.794,
+                    "unit_volume": 0.052155,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "ZG-ST20-50SE",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 6.548,
+                    "unit_gross_weight": 8.794,
+                    "unit_volume": 0.052155,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "ZG-ST20-30SE",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 6.548,
+                    "unit_gross_weight": 8.794,
+                    "unit_volume": 0.052155,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "ZG-ST20-150PT1",
+                    "packages": 2,
+                    "pieces": 1,
+                    "unit_net_weight": 6.548,
+                    "unit_gross_weight": 8.794,
+                    "unit_volume": 0.052155,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "ZG-ST20-120PT1",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 6.548,
+                    "unit_gross_weight": 8.794,
+                    "unit_volume": 0.052155,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "ZG-ST20-100PT1",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 6.548,
+                    "unit_gross_weight": 8.794,
+                    "unit_volume": 0.052155,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "ZG-ST20-80PT1",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 6.548,
+                    "unit_gross_weight": 8.794,
+                    "unit_volume": 0.052155,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "ZG-ST20-30PT1",
+                    "packages": 2,
+                    "pieces": 1,
+                    "unit_net_weight": 6.548,
+                    "unit_gross_weight": 8.794,
+                    "unit_volume": 0.052155,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "ZG-ST20-30PT1",
+                    "packages": 1,
+                    "pieces": 1,
+                    "unit_net_weight": 6.546,
+                    "unit_gross_weight": 8.798,
+                    "unit_volume": 0.052166,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-S-60W-3K",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 4.6,
+                    "unit_gross_weight": 5.101,
+                    "unit_volume": 0.01828,
+                    "dimensions": [
+                        43,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-S-60W-4K",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 4.6,
+                    "unit_gross_weight": 5.101,
+                    "unit_volume": 0.01828,
+                    "dimensions": [
+                        43,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-S-60W-5K",
+                    "packages": 2,
+                    "pieces": 1,
+                    "unit_net_weight": 4.6,
+                    "unit_gross_weight": 5.101,
+                    "unit_volume": 0.01828,
+                    "dimensions": [
+                        43,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-S-60W-5K",
+                    "packages": 1,
+                    "pieces": 1,
+                    "unit_net_weight": 4.6,
+                    "unit_gross_weight": 5.097,
+                    "unit_volume": 0.018284,
+                    "dimensions": [
+                        43,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-S-80W-3K",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 4.62,
+                    "unit_gross_weight": 5.121,
+                    "unit_volume": 0.01828,
+                    "dimensions": [
+                        43,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-S-80W-4K",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 4.62,
+                    "unit_gross_weight": 5.121,
+                    "unit_volume": 0.01828,
+                    "dimensions": [
+                        43,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-S-80W-5K",
+                    "packages": 2,
+                    "pieces": 1,
+                    "unit_net_weight": 4.62,
+                    "unit_gross_weight": 5.121,
+                    "unit_volume": 0.01828,
+                    "dimensions": [
+                        43,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-S-80W-5K",
+                    "packages": 1,
+                    "pieces": 1,
+                    "unit_net_weight": 4.62,
+                    "unit_gross_weight": 5.117,
+                    "unit_volume": 0.018284,
+                    "dimensions": [
+                        43,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-S-100W-3K",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 4.64,
+                    "unit_gross_weight": 5.141,
+                    "unit_volume": 0.01828,
+                    "dimensions": [
+                        43,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-S-100W-4K",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 4.64,
+                    "unit_gross_weight": 5.141,
+                    "unit_volume": 0.01828,
+                    "dimensions": [
+                        43,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-S-100W-5K",
+                    "packages": 2,
+                    "pieces": 1,
+                    "unit_net_weight": 4.64,
+                    "unit_gross_weight": 5.141,
+                    "unit_volume": 0.01828,
+                    "dimensions": [
+                        43,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-S-100W-5K",
+                    "packages": 1,
+                    "pieces": 1,
+                    "unit_net_weight": 4.64,
+                    "unit_gross_weight": 5.137,
+                    "unit_volume": 0.018284,
+                    "dimensions": [
+                        43,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-S-120W-3K",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 4.66,
+                    "unit_gross_weight": 5.161,
+                    "unit_volume": 0.01828,
+                    "dimensions": [
+                        43,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-S-120W-4K",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 4.66,
+                    "unit_gross_weight": 5.161,
+                    "unit_volume": 0.01828,
+                    "dimensions": [
+                        43,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-S-120W-5K",
+                    "packages": 2,
+                    "pieces": 1,
+                    "unit_net_weight": 4.66,
+                    "unit_gross_weight": 5.161,
+                    "unit_volume": 0.01828,
+                    "dimensions": [
+                        43,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-S-120W-5K",
+                    "packages": 1,
+                    "pieces": 1,
+                    "unit_net_weight": 4.66,
+                    "unit_gross_weight": 5.157,
+                    "unit_volume": 0.018284,
+                    "dimensions": [
+                        43,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-M-150W-3K",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 5.9,
+                    "unit_gross_weight": 6.601,
+                    "unit_volume": 0.022532,
+                    "dimensions": [
+                        53,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-M-150W-4K",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 5.9,
+                    "unit_gross_weight": 6.601,
+                    "unit_volume": 0.022532,
+                    "dimensions": [
+                        53,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-M-150W-5K",
+                    "packages": 2,
+                    "pieces": 1,
+                    "unit_net_weight": 5.9,
+                    "unit_gross_weight": 6.601,
+                    "unit_volume": 0.022532,
+                    "dimensions": [
+                        53,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-M-150W-5K",
+                    "packages": 1,
+                    "pieces": 1,
+                    "unit_net_weight": 5.9,
+                    "unit_gross_weight": 6.598,
+                    "unit_volume": 0.022529,
+                    "dimensions": [
+                        53,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-M-200W-3K",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 5.95,
+                    "unit_gross_weight": 6.651,
+                    "unit_volume": 0.022532,
+                    "dimensions": [
+                        53,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-M-200W-4K",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 5.95,
+                    "unit_gross_weight": 6.651,
+                    "unit_volume": 0.022532,
+                    "dimensions": [
+                        53,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-M-200W-5K",
+                    "packages": 2,
+                    "pieces": 1,
+                    "unit_net_weight": 5.95,
+                    "unit_gross_weight": 6.651,
+                    "unit_volume": 0.022532,
+                    "dimensions": [
+                        53,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-M-200W-5K",
+                    "packages": 1,
+                    "pieces": 1,
+                    "unit_net_weight": 5.95,
+                    "unit_gross_weight": 6.648,
+                    "unit_volume": 0.022529,
+                    "dimensions": [
+                        53,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-M-250W-3K",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 6.05,
+                    "unit_gross_weight": 6.751,
+                    "unit_volume": 0.022532,
+                    "dimensions": [
+                        53,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-M-250W-4K",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 6.05,
+                    "unit_gross_weight": 6.751,
+                    "unit_volume": 0.022532,
+                    "dimensions": [
+                        53,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-M-250W-5K",
+                    "packages": 2,
+                    "pieces": 1,
+                    "unit_net_weight": 6.05,
+                    "unit_gross_weight": 6.751,
+                    "unit_volume": 0.022532,
+                    "dimensions": [
+                        53,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-M-250W-5K",
+                    "packages": 1,
+                    "pieces": 1,
+                    "unit_net_weight": 6.05,
+                    "unit_gross_weight": 6.748,
+                    "unit_volume": 0.022529,
+                    "dimensions": [
+                        53,
+                        37,
+                        11.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-L-300W-3K",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 10,
+                    "unit_gross_weight": 11.501,
+                    "unit_volume": 0.044367,
+                    "dimensions": [
+                        62.5,
+                        49,
+                        14.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-L-300W-4K",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 10,
+                    "unit_gross_weight": 11.501,
+                    "unit_volume": 0.044367,
+                    "dimensions": [
+                        62.5,
+                        49,
+                        14.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-L-300W-5K",
+                    "packages": 2,
+                    "pieces": 1,
+                    "unit_net_weight": 10,
+                    "unit_gross_weight": 11.501,
+                    "unit_volume": 0.044367,
+                    "dimensions": [
+                        62.5,
+                        49,
+                        14.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-L-300W-5K",
+                    "packages": 1,
+                    "pieces": 1,
+                    "unit_net_weight": 10,
+                    "unit_gross_weight": 11.503,
+                    "unit_volume": 0.044369,
+                    "dimensions": [
+                        62.5,
+                        49,
+                        14.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-L-350W-3K",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 10.25,
+                    "unit_gross_weight": 11.751,
+                    "unit_volume": 0.044367,
+                    "dimensions": [
+                        62.5,
+                        49,
+                        14.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-L-350W-4K",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 10.25,
+                    "unit_gross_weight": 11.751,
+                    "unit_volume": 0.044367,
+                    "dimensions": [
+                        62.5,
+                        49,
+                        14.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-L-350W-5K",
+                    "packages": 2,
+                    "pieces": 1,
+                    "unit_net_weight": 10.25,
+                    "unit_gross_weight": 11.751,
+                    "unit_volume": 0.044367,
+                    "dimensions": [
+                        62.5,
+                        49,
+                        14.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-L-350W-5K",
+                    "packages": 1,
+                    "pieces": 1,
+                    "unit_net_weight": 10.25,
+                    "unit_gross_weight": 11.753,
+                    "unit_volume": 0.044369,
+                    "dimensions": [
+                        62.5,
+                        49,
+                        14.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-L-400W-3K",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 10.5,
+                    "unit_gross_weight": 12.001,
+                    "unit_volume": 0.044367,
+                    "dimensions": [
+                        62.5,
+                        49,
+                        14.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-L-400W-4K",
+                    "packages": 2,
+                    "pieces": 1,
+                    "unit_net_weight": 10.5,
+                    "unit_gross_weight": 12.001,
+                    "unit_volume": 0.044367,
+                    "dimensions": [
+                        62.5,
+                        49,
+                        14.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-L-400W-5K",
+                    "packages": 2,
+                    "pieces": 1,
+                    "unit_net_weight": 10.5,
+                    "unit_gross_weight": 12.001,
+                    "unit_volume": 0.044367,
+                    "dimensions": [
+                        62.5,
+                        49,
+                        14.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Flood Light NOVA-L-400W-5K",
+                    "packages": 1,
+                    "pieces": 1,
+                    "unit_net_weight": 10.5,
+                    "unit_gross_weight": 12.003,
+                    "unit_volume": 0.044369,
+                    "dimensions": [
+                        62.5,
+                        49,
+                        14.5
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Lens 90°6H1",
+                    "packages": 1,
+                    "pieces": 702,
+                    "unit_net_weight": 7.67,
+                    "unit_gross_weight": 8.583,
+                    "unit_volume": 0.056306,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "Lens 60°6H1",
+                    "packages": 1,
+                    "pieces": 702,
+                    "unit_net_weight": 7.67,
+                    "unit_gross_weight": 8.583,
+                    "unit_volume": 0.056306,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "Lens 30°6H1",
+                    "packages": 1,
+                    "pieces": 702,
+                    "unit_net_weight": 7.67,
+                    "unit_gross_weight": 8.585,
+                    "unit_volume": 0.056305,
+                    "dimensions": null
+                },
+                {
+                    "model": "AGN-150D4",
+                    "description": "Agnes-150W - 4000K",
+                    "packages": 1347,
+                    "pieces": 2,
+                    "unit_net_weight": 5.55,
+                    "unit_gross_weight": 6.5,
+                    "unit_volume": 0.041892,
+                    "dimensions": [
+                        66.5,
+                        30,
+                        21
+                    ]
+                },
+                {
+                    "model": "AGN-150D4",
+                    "description": "Agnes-150W - 4000K",
+                    "packages": 1,
+                    "pieces": 2,
+                    "unit_net_weight": 5.55,
+                    "unit_gross_weight": 6.5,
+                    "unit_volume": 0.041476,
+                    "dimensions": [
+                        66.5,
+                        30,
+                        21
+                    ]
+                },
+                {
+                    "model": null,
+                    "description": "Stadium Light 1000W - 3000k",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 26,
+                    "unit_gross_weight": 28.125,
+                    "unit_volume": 0.125,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "Stadium Light 1000W - 4000k",
+                    "packages": 2,
+                    "pieces": 1,
+                    "unit_net_weight": 26,
+                    "unit_gross_weight": 28.125,
+                    "unit_volume": 0.125,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "Stadium Light 1000W - 5000k",
+                    "packages": 3,
+                    "pieces": 1,
+                    "unit_net_weight": 26,
+                    "unit_gross_weight": 28.125,
+                    "unit_volume": 0.125,
+                    "dimensions": null
+                },
+                {
+                    "model": null,
+                    "description": "Gift -Notebook",
+                    "packages": 60,
+                    "pieces": 50,
+                    "unit_net_weight": 13.95,
+                    "unit_gross_weight": 15.5,
+                    "unit_volume": 0.037,
+                    "dimensions": null
+                }
+            ],
+            "packages": [
+                {
+                    "type": "carton",
+                    "gross_weight": 8.583,
+                    "net_weight": 7.67,
+                    "volume": 0.030361,
+                    "contents": [
+                        {
+                            "model": null,
+                            "description": "Lens 90°8H1",
+                            "pieces": 270
+                        },
+                        {
+                            "model": null,
+                            "description": "Lens 90°4H1",
+                            "pieces": 558
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 8.583,
+                    "net_weight": 7.67,
+                    "volume": 0.030361,
+                    "contents": [
+                        {
+                            "model": null,
+                            "description": "Lens 60°8H1",
+                            "pieces": 270
+                        },
+                        {
+                            "model": null,
+                            "description": "Lens 60°4H1",
+                            "pieces": 558
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 8.583,
+                    "net_weight": 7.67,
+                    "volume": 0.030361,
+                    "contents": [
+                        {
+                            "model": null,
+                            "description": "Lens 30°8H1",
+                            "pieces": 270
+                        },
+                        {
+                            "model": null,
+                            "description": "Lens 30°4H1",
+                            "pieces": 558
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
