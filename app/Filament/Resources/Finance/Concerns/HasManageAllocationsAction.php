@@ -89,7 +89,7 @@ trait HasManageAllocationsAction
             ->action(function (array $data) {
                 $payment = $this->record;
                 $paymentCurrencyCode = $payment->currency_code;
-                $newAllocations = $data['new_allocations'] ?? [];
+                $newAllocations = \App\Domain\Financial\Support\DebitNoteBundle::expandRows($data['new_allocations'] ?? []);
 
                 $totalNewAllocation = 0;
                 foreach ($newAllocations as $alloc) {

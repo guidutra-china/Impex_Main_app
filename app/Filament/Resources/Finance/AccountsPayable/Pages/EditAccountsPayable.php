@@ -50,13 +50,17 @@ class EditAccountsPayable extends EditRecord
             ])->all(),
         );
 
+        // Parcelas de uma mesma DN voltam a ser uma linha só na tela.
+        $data['allocations'] = \App\Domain\Financial\Support\DebitNoteBundle::collapseRows($data['allocations']);
+
         return $this->hydrateBankFee($data);
     }
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        $this->pendingAllocations = $data['allocations'] ?? [];
-        $this->pendingCreditApplications = \App\Domain\Financial\Support\AllocationFormShape::flattenCredits($data['allocations'] ?? []);
+        // DN com várias linhas chega como uma linha só; aqui vira uma por parcela.
+        $this->pendingAllocations = \App\Domain\Financial\Support\DebitNoteBundle::expandRows($data['allocations'] ?? [], $this->record->getKey());
+        $this->pendingCreditApplications = \App\Domain\Financial\Support\AllocationFormShape::flattenCredits($this->pendingAllocations);
 
         $data = $this->extractBankFee($data);
 

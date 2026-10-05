@@ -15,6 +15,7 @@ use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Financial\Support\AllocationCalculator;
 use App\Domain\Financial\Support\AllocationFormShape;
 use App\Domain\Financial\Support\AllocationPrefill;
+use App\Domain\Financial\Support\DebitNoteBundle;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
@@ -220,7 +221,7 @@ trait HasPaymentFormSections
                         // MESMA parcela não pode exceder o saldo dela (o prefill
                         // preenche o valor cheio; o crédito completa o resto).
                         ->rule(static fn (Get $get, ?\Illuminate\Database\Eloquent\Model $record) => function (string $attribute, mixed $value, \Closure $fail) use ($get, $record) {
-                            $rows = is_array($value) ? array_values($value) : [];
+                            $rows = DebitNoteBundle::expandRows(is_array($value) ? array_values($value) : [], $record?->getKey());
                             $errors = \App\Domain\Financial\Support\AllocationGuards::overpayErrors(
                                 $rows,
                                 AllocationFormShape::flattenCredits($rows),
@@ -342,7 +343,7 @@ trait HasPaymentFormSections
                             }
                         }
 
-                        $room = max(0.0, Money::toMajor($item->remaining_amount) - $others);
+                        $room = max(0.0, Money::toMajor(DebitNoteBundle::remainingMinor($item)) - $others);
                         $suggested = min(static::maxApplicableCreditMajor($credit, $record?->getKey()), $room);
 
                         $set('credit_amount', number_format($suggested, 2, '.', ''));
@@ -418,7 +419,7 @@ trait HasPaymentFormSections
             $creditsMinor += Money::toMinor((float) ($credit['credit_amount'] ?? 0));
         }
 
-        $docMajor = Money::toMajor(max(0, $item->remaining_amount - $creditsMinor));
+        $docMajor = Money::toMajor(max(0, DebitNoteBundle::remainingMinor($item) - $creditsMinor));
         $set($row.'allocated_amount_in_document_currency', number_format($docMajor, 2, '.', ''));
 
         $pmtCurrency = (string) (static::rootValue($get, $row, 'currency_code') ?? '');
@@ -807,7 +808,8 @@ trait HasPaymentFormSections
 
     public static function buildOutstandingTable(Collection $items): string
     {
-        $grouped = $items->groupBy(fn ($item) => $item->payable?->reference ?? 'Unknown');
+        // DN com várias linhas aparece UMA vez, com o total — igual ao seletor.
+        $grouped = DebitNoteBundle::collapseItems($items)->groupBy(fn ($item) => $item->payable?->reference ?? 'Unknown');
 
         $html = '<div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Outstanding Items</div>';
         $html .= '<table class="w-full text-sm border-collapse">';
@@ -826,7 +828,9 @@ trait HasPaymentFormSections
 
         foreach ($grouped as $docRef => $docItems) {
             foreach ($docItems as $item) {
-                $remaining = $item->remaining_amount;
+                $isDnBundle = DebitNoteBundle::isBundle($item);
+                $remaining = $isDnBundle ? DebitNoteBundle::remainingMinor($item) : $item->remaining_amount;
+                $amount = $isDnBundle ? DebitNoteBundle::amountMinor($item) : $item->amount;
                 $totalRemaining += $remaining;
                 $statusColor = match ($item->status->value ?? $item->status) {
                     'due' => 'text-yellow-600',
@@ -835,7 +839,9 @@ trait HasPaymentFormSections
                 };
                 $statusLabel = $item->status instanceof \BackedEnum ? $item->status->value : $item->status;
 
-                $cleanLabel = e(static::cleanLabel($item));
+                $cleanLabel = $isDnBundle
+                    ? e('Debit Note total ('.DebitNoteBundle::lines($item)->count().' items)')
+                    : e(static::cleanLabel($item));
                 $shipRef = static::shipmentRef($item);
 
                 $stageBadge = '<span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-800 dark:bg-white/10 dark:text-gray-200">'.$cleanLabel.'</span>';
@@ -855,8 +861,8 @@ trait HasPaymentFormSections
                 $html .= '<td class="py-1.5 px-2 font-medium">'.e($displayRef).'</td>';
                 $html .= '<td class="py-1.5 px-2">'.e($supplierInvoice).'</td>';
                 $html .= '<td class="py-1.5 px-2">'.$stageBadge.'</td>';
-                $html .= '<td class="py-1.5 px-2 text-right">'.Money::format($item->amount).'</td>';
-                $html .= '<td class="py-1.5 px-2 text-right">'.Money::format($item->paid_amount).'</td>';
+                $html .= '<td class="py-1.5 px-2 text-right">'.Money::format($amount).'</td>';
+                $html .= '<td class="py-1.5 px-2 text-right">'.Money::format($isDnBundle ? max(0, $amount - $remaining) : $item->paid_amount).'</td>';
                 $html .= '<td class="py-1.5 px-2 text-right font-semibold">'.Money::format($remaining).'</td>';
                 $html .= '<td class="py-1.5 px-2">'.e($item->currency_code).'</td>';
                 $html .= '<td class="py-1.5 px-2 '.$statusColor.' capitalize">'.e($statusLabel).'</td>';
@@ -953,15 +959,12 @@ trait HasPaymentFormSections
                         return [];
                     }
 
-                    return static::getCompanyScheduleItems((int) $companyId, $direction)
-                        ->mapWithKeys(fn ($item) => [
-                            $item->id => static::formatScheduleItemLabel($item),
-                        ]);
+                    return static::allocationItemOptions((int) $companyId, $direction);
                 })
                 ->getOptionLabelUsing(function ($value): ?string {
                     $item = PaymentScheduleItem::with('payable')->find($value);
 
-                    return $item ? static::formatScheduleItemLabel($item) : null;
+                    return $item ? static::allocationItemLabel($item) : null;
                 })
                 ->required()
                 ->distinct()
@@ -1086,7 +1089,9 @@ trait HasPaymentFormSections
 
         // Créditos do mesmo documento entram sozinhos (menos os já usados em
         // outras linhas) e o dinheiro sugerido já sai líquido.
-        $cashMinor = $item->remaining_amount;
+        // DN com várias linhas entra pelo total (DebitNoteBundle).
+        $remainingMinor = DebitNoteBundle::remainingMinor($item);
+        $cashMinor = $remainingMinor;
         $companyId = (int) ($get('../../company_id') ?? 0);
         $resolvedDirection = $direction ?? $get('../../direction');
 
@@ -1099,7 +1104,7 @@ trait HasPaymentFormSections
             ));
 
             $plan = AllocationPrefill::plan(
-                $item->remaining_amount,
+                $remainingMinor,
                 static::ownCreditsFor($item, $companyId, $resolvedDirection),
                 $usedElsewhere,
             );
@@ -1317,6 +1322,35 @@ trait HasPaymentFormSections
         }
 
         return $payable?->reference ?? 'Unknown';
+    }
+
+    /**
+     * Opções do seletor de alocação: uma por parcela, exceto Debit Note com
+     * várias linhas, que aparece UMA vez com o total (DebitNoteBundle).
+     *
+     * @return array<int, string>
+     */
+    public static function allocationItemOptions(int $companyId, mixed $direction): array
+    {
+        return DebitNoteBundle::collapseItems(static::getCompanyScheduleItems($companyId, $direction))
+            ->mapWithKeys(fn (PaymentScheduleItem $item) => [$item->id => static::allocationItemLabel($item)])
+            ->all();
+    }
+
+    public static function allocationItemLabel(PaymentScheduleItem $item): string
+    {
+        if (! DebitNoteBundle::isBundle($item)) {
+            return static::formatScheduleItemLabel($item);
+        }
+
+        $docRef = static::formatDocRef($item);
+        $count = DebitNoteBundle::lines($item)->count();
+        $remaining = Money::format(DebitNoteBundle::remainingMinor($item));
+        $trip = $item->payable?->trip?->title;
+
+        return "[{$docRef}] Debit Note total"
+            .($trip ? " — {$trip}" : '')
+            ." ({$count} items) — {$item->currency_code} {$remaining} remaining";
     }
 
     public static function formatScheduleItemLabel(PaymentScheduleItem $item): string
