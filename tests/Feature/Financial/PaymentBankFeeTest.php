@@ -52,6 +52,8 @@ class PaymentBankFeeTest extends TestCase
         $this->pi = ProformaInvoice::factory()->create([
             'company_id' => $this->client->id,
             'currency_code' => 'USD',
+            // Recebimento só enxerga PI a partir de Confirmed.
+            'status' => 'confirmed',
         ]);
 
         // Wire sent to the supplier; the bank fee rides on top of it.

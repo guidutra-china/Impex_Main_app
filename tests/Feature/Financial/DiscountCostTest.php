@@ -35,6 +35,8 @@ class DiscountCostTest extends TestCase
         $this->pi = ProformaInvoice::factory()->create([
             'company_id' => $this->client->id,
             'currency_code' => 'USD',
+            // Recebimento só enxerga PI a partir de Confirmed.
+            'status' => 'confirmed',
         ]);
     }
 

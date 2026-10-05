@@ -18,6 +18,7 @@ use App\Domain\Financial\Support\AllocationPrefill;
 use App\Domain\Financial\Support\DebitNoteBundle;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Models\Shipment;
+use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\Settings\Models\BankAccount;
@@ -530,6 +531,28 @@ trait HasPaymentFormSections
         };
     }
 
+    /**
+     * PIs do cliente que podem receber alocação. PI em Sent é proposta ainda
+     * não aceita (e Draft nem saiu): parcelas, comissão e demais custos dela
+     * não são dívida do cliente e ficam fora do recebimento. Entra a partir
+     * de Confirmed; Finalized e Reopened são fases posteriores do mesmo
+     * pedido e podem ter saldo em aberto.
+     *
+     * @return Collection<int, int>
+     */
+    public static function receivableProformaInvoiceIds(int $companyId): Collection
+    {
+        return ProformaInvoice::query()
+            ->where('company_id', $companyId)
+            ->whereIn('status', [
+                ProformaInvoiceStatus::CONFIRMED->value,
+                ProformaInvoiceStatus::SHIPPED->value,
+                ProformaInvoiceStatus::FINALIZED->value,
+                ProformaInvoiceStatus::REOPENED->value,
+            ])
+            ->pluck('id');
+    }
+
     public static function getCompanyScheduleItems(int $companyId, mixed $direction): Collection
     {
         $directionValue = $direction instanceof PaymentDirection ? $direction->value : $direction;
@@ -564,7 +587,7 @@ trait HasPaymentFormSections
             // would leave the PI installment stuck PENDING). Forwarder- and
             // supplier-payable costs are also excluded by the withoutSideTags()
             // scope applied earlier in the query.
-            $piIds = ProformaInvoice::where('company_id', $companyId)->pluck('id');
+            $piIds = static::receivableProformaInvoiceIds($companyId);
             $shipmentIds = Shipment::where('company_id', $companyId)->pluck('id');
 
             $clientCostIds = AdditionalCost::query()
@@ -707,7 +730,7 @@ trait HasPaymentFormSections
             // they fall back to PI anchoring while the PO doesn't exist yet.
             $query->withoutSideTags();
 
-            $piIds = ProformaInvoice::where('company_id', $companyId)->pluck('id');
+            $piIds = static::receivableProformaInvoiceIds($companyId);
 
             $query->where(function ($q) use ($piIds, $creditNoteIds) {
                 $q->where(function ($q2) use ($piIds) {
