@@ -19,6 +19,19 @@ trait HasPaymentAllocationPersistence
     protected array $pendingCreditApplications = [];
 
     /**
+     * Remove todas as alocações do pagamento (usado pelo Edit, que as recria
+     * a partir do formulário). Apaga model a model para o observer
+     * PaymentAllocation::deleted rodar o reconcile completo — parcela, crédito,
+     * Debit/Credit Note, custo adicional e espelho de embarque. Um mass-delete
+     * via Query Builder só deixava a parcela correta e o cabeçalho do DN preso
+     * em PAID, sumindo da lista de alocação.
+     */
+    protected function releaseAllocations($payment): void
+    {
+        $payment->allocations()->get()->each->delete();
+    }
+
+    /**
      * Build the Create-form prefill from `?company_id=` and an optional
      * `?schedule_item_ids=` CSV (set by the "Registrar pagamento" bulk action
      * on the AR/AP open-item worklists). One allocation row per item, seeded

@@ -3,8 +3,6 @@
 namespace App\Filament\Resources\Finance\AccountsPayable\Pages;
 
 use App\Domain\Financial\Enums\PaymentStatus;
-use App\Domain\Financial\Models\PaymentAllocation;
-use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Support\Money;
 use App\Filament\Pages\Concerns\HasSaveAndReturnFormActions;
 use App\Filament\Resources\Finance\AccountsPayable\AccountsPayableResource;
@@ -76,39 +74,7 @@ class EditAccountsPayable extends EditRecord
     {
         $payment = $this->record;
 
-        $previousScheduleItemIds = $payment->allocations()
-            ->pluck('payment_schedule_item_id')
-            ->unique()
-            ->toArray();
-
-        $previousCreditItemIds = $payment->allocations()
-            ->whereNotNull('credit_schedule_item_id')
-            ->pluck('credit_schedule_item_id')
-            ->unique()
-            ->toArray();
-
-        $payment->allocations()->delete();
-
-        // Mass-delete via Query Builder bypasses the PaymentAllocation
-        // deleted observer, so reconcile status here explicitly for every
-        // schedule item that previously carried an allocation from this
-        // payment. Without this, items stay stuck at PAID with paid_amount
-        // reverting to 0, hiding them from the allocation list and AP
-        // report.
-        foreach (array_unique(array_merge($previousScheduleItemIds, $previousCreditItemIds)) as $itemId) {
-            $item = PaymentScheduleItem::find($itemId);
-
-            if (! $item) {
-                continue;
-            }
-
-            // recalculateStatus() pula créditos por design — sem isto, um
-            // crédito cuja aplicação foi removida na edição ficaria PAID
-            // obsoleto (e sumiria da lista de créditos disponíveis).
-            $item->is_credit
-                ? app(\App\Domain\Financial\Actions\ReconcileSettlementStateAction::class)->recalculateCreditItemStatus($item)
-                : $item->recalculateStatus();
-        }
+        $this->releaseAllocations($payment);
 
         $this->persistAllocations($payment, $payment->currency_code);
         $this->persistCreditApplications($payment);
