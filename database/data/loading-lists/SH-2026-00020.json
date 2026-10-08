@@ -1,0 +1,2520 @@
+{
+  "shipment": "SH-2026-00020",
+  "source": "BL SHAE26090561 + 4th/5th Delivery List Jinmu, Shenlong, Juli, Daytop, Impex LCD, Gauss, Parts Box (pasta SH-61 - Marangatu)",
+  "notes": [
+    "Carga consolidada de 8 documentos / 6 PIs: PI-88 (4th), PI-92 (5th, embarque parcial), PI-40 (correntes), PI-1 (rack), PI-12 (eixo), PI-25 (LCD), PI-26 (sensores), PI-94 (caixa plástica).",
+    "Caixa plástica: 3 pallets de 300 peças. Pelo \"Rev 2 10.7 Parts Box\" o pacote pode ser nude cargo preenchendo vãos, então os pallets não somam cubagem; os 400 kg brutos que faltam para o BL (20.953,97) foram rateados nos 3 pallets.",
+    "Cubagem: os documentos somam 45.5865 m³ sem os pallets e o BL traz 45,426; todos os demais volumes foram escalados por 0.996479 (-0.35%) para fechar o BL, mesmo critério do SH-2026-00058."
+  ],
+  "containers": [
+    {
+      "label": "CONT-001",
+      "container_number": "EGSU9208970",
+      "type": "40HQ",
+      "seal_number": "EMCVPY5404",
+      "sort_order": 1,
+      "declared": {
+        "packages": 51,
+        "gross_weight": 20953.97,
+        "volume": 45.426
+      },
+      "packages": [
+        {
+          "type": "carton",
+          "gross_weight": 1417,
+          "net_weight": 1347.38,
+          "volume": 3.507607,
+          "contents": [
+            {
+              "description": "Tractor parts AH223014",
+              "pieces": 6
+            },
+            {
+              "description": "Tractor parts AH223015",
+              "pieces": 6
+            },
+            {
+              "description": "Tractor parts AXE16294",
+              "pieces": 6
+            },
+            {
+              "description": "Tractor parts HXE25944",
+              "pieces": 300
+            },
+            {
+              "description": "Tractor parts HXE25943",
+              "pieces": 300
+            },
+            {
+              "description": "Tractor parts AH234499",
+              "pieces": 1
+            },
+            {
+              "description": "Tractor parts AH225742",
+              "pieces": 15
+            },
+            {
+              "description": "Tractor parts 1347351C2",
+              "pieces": 4
+            },
+            {
+              "description": "Tractor parts 1347336C2",
+              "pieces": 4
+            },
+            {
+              "description": "Tractor parts 84394060",
+              "pieces": 4
+            },
+            {
+              "description": "Tractor parts 86627639",
+              "pieces": 10
+            },
+            {
+              "description": "Tractor parts 87283101",
+              "pieces": 40
+            },
+            {
+              "model": "CNH 129967A1 87450165 87035837",
+              "pieces": 6
+            },
+            {
+              "description": "Tractor parts CNH 1345472C1",
+              "pieces": 3
+            },
+            {
+              "description": "Tractor parts CASE 129973A2",
+              "pieces": 4
+            },
+            {
+              "description": "Tractor parts CNH 87011708",
+              "pieces": 4
+            },
+            {
+              "description": "Tractor parts CNH 84163939",
+              "pieces": 3
+            },
+            {
+              "description": "Tractor parts STARA 80364144",
+              "pieces": 100
+            },
+            {
+              "model": "CNH 84401598 87011880",
+              "pieces": 20
+            },
+            {
+              "description": "Tractor parts CNH 84416055",
+              "pieces": 2
+            },
+            {
+              "description": "Tractor parts CNH 84484650",
+              "pieces": 4
+            },
+            {
+              "description": "Tractor parts CNH 87283436",
+              "pieces": 3
+            },
+            {
+              "description": "Tractor parts CNH 84376918",
+              "pieces": 4
+            },
+            {
+              "description": "Tractor parts 1317412C1",
+              "pieces": 8
+            },
+            {
+              "description": "Tractor parts 1321039C1",
+              "pieces": 10
+            },
+            {
+              "description": "Tractor parts 87731456",
+              "pieces": 4
+            },
+            {
+              "description": "Tractor parts D28786908",
+              "pieces": 3
+            },
+            {
+              "description": "Tractor parts H86248",
+              "pieces": 10000
+            },
+            {
+              "description": "Tractor parts AH223322",
+              "pieces": 5
+            },
+            {
+              "model": "AXE69564",
+              "pieces": 2
+            },
+            {
+              "model": "F45721",
+              "pieces": 200
+            },
+            {
+              "model": "F45959.1",
+              "pieces": 200
+            }
+          ],
+          "notes": "4th Delivery List (Jinmu 4 / Gencrea), CTN 1-1 — PI-2026-00088"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 744.0,
+          "net_weight": 693.58,
+          "volume": 0.984048,
+          "dimensions": [
+            105.0,
+            95.0,
+            99.0
+          ],
+          "contents": [
+            {
+              "model": "Z11542",
+              "pieces": 1000
+            },
+            {
+              "model": "H153157",
+              "pieces": 1000
+            },
+            {
+              "model": "H101200",
+              "pieces": 2000
+            },
+            {
+              "model": "RE38009",
+              "pieces": 15
+            },
+            {
+              "model": "H201727",
+              "pieces": 70
+            },
+            {
+              "model": "RE271398",
+              "pieces": 10
+            },
+            {
+              "model": "H163893",
+              "pieces": 50
+            },
+            {
+              "model": "AH214869\nH205319",
+              "pieces": 30
+            },
+            {
+              "model": "AH229100",
+              "pieces": 6
+            },
+            {
+              "model": "H231690",
+              "pieces": 600
+            },
+            {
+              "model": "AH228045",
+              "pieces": 6
+            },
+            {
+              "model": "H162672",
+              "pieces": 50
+            },
+            {
+              "model": "CE35971\nCE21674\nCE18445",
+              "pieces": 6
+            },
+            {
+              "model": "DE18618",
+              "pieces": 20
+            },
+            {
+              "model": "243333A1",
+              "pieces": 2
+            },
+            {
+              "model": "86623219",
+              "pieces": 2
+            },
+            {
+              "model": "184072C1",
+              "pieces": 15
+            },
+            {
+              "model": "1997618C4",
+              "pieces": 15
+            },
+            {
+              "model": "1997619C4",
+              "pieces": 15
+            },
+            {
+              "model": "1997616C4",
+              "pieces": 15
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 1/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 486.0,
+          "net_weight": 424.98,
+          "volume": 0.974108,
+          "dimensions": [
+            105.0,
+            95.0,
+            98.0
+          ],
+          "contents": [
+            {
+              "model": "E52444\nCQ54742",
+              "pieces": 20
+            },
+            {
+              "model": "HXE182337",
+              "pieces": 50
+            },
+            {
+              "model": "H171274",
+              "pieces": 4
+            },
+            {
+              "model": "DZ109985 DZ111267 RE537144",
+              "pieces": 1
+            },
+            {
+              "model": "RE183407",
+              "pieces": 4
+            },
+            {
+              "model": "re577637 re50757 re54872",
+              "pieces": 1
+            },
+            {
+              "model": "AH224451",
+              "pieces": 10
+            },
+            {
+              "model": "AH232265",
+              "pieces": 6
+            },
+            {
+              "model": "H203514",
+              "pieces": 10
+            },
+            {
+              "model": "H205344",
+              "pieces": 1300
+            },
+            {
+              "model": "H214184",
+              "pieces": 20
+            },
+            {
+              "model": "87602138",
+              "pieces": 2
+            },
+            {
+              "model": "192816C2",
+              "pieces": 2
+            },
+            {
+              "model": "RE204264",
+              "pieces": 20
+            },
+            {
+              "model": "AH125975",
+              "pieces": 10
+            },
+            {
+              "model": "AH221427",
+              "pieces": 10
+            },
+            {
+              "model": "AH170744",
+              "pieces": 20
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 2/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 570.0,
+          "net_weight": 509.51,
+          "volume": 0.974108,
+          "dimensions": [
+            105.0,
+            95.0,
+            98.0
+          ],
+          "contents": [
+            {
+              "model": "AH169549",
+              "pieces": 10
+            },
+            {
+              "model": "H157043",
+              "pieces": 20
+            },
+            {
+              "model": "RE522823",
+              "pieces": 8
+            },
+            {
+              "model": "HXE30611",
+              "pieces": 50
+            },
+            {
+              "model": "H167722",
+              "pieces": 3
+            },
+            {
+              "model": "AH232668\nAH212944\nAXE12177",
+              "pieces": 15
+            },
+            {
+              "model": "RE520930,RE515635,8029398,\n499000-6141,4990006141,392030034",
+              "pieces": 4
+            },
+            {
+              "model": "RE575331\nRE243767\nJDR60466\n079-19,9360-586,07919,9360586",
+              "pieces": 10
+            },
+            {
+              "model": "AXE14245",
+              "pieces": 5
+            },
+            {
+              "model": "RE569037 RE515494 RE537637",
+              "pieces": 30
+            },
+            {
+              "model": "H171061",
+              "pieces": 100
+            },
+            {
+              "model": "H206765",
+              "pieces": 4
+            },
+            {
+              "model": "H113625",
+              "pieces": 100
+            },
+            {
+              "model": "E10018 Z42840",
+              "pieces": 100
+            },
+            {
+              "model": "AH232266",
+              "pieces": 20
+            },
+            {
+              "model": "H231693",
+              "pieces": 100
+            },
+            {
+              "model": "AH89498",
+              "pieces": 20
+            },
+            {
+              "model": "AXE13287\nAXE13829\nAH170587",
+              "pieces": 20
+            },
+            {
+              "model": "H208626",
+              "pieces": 100
+            },
+            {
+              "model": "H209705 HXE40025 HXE137547 HXE137545 H205446",
+              "pieces": 20
+            },
+            {
+              "model": "411043A1",
+              "pieces": 3
+            },
+            {
+              "model": "AH221431",
+              "pieces": 10
+            },
+            {
+              "description": "Tractor parts 47728648",
+              "pieces": 2
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 3/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 584.0,
+          "net_weight": 517.54,
+          "volume": 0.974108,
+          "dimensions": [
+            105.0,
+            95.0,
+            98.0
+          ],
+          "contents": [
+            {
+              "model": "AKK16814",
+              "pieces": 10
+            },
+            {
+              "model": "RE217077",
+              "pieces": 5
+            },
+            {
+              "model": "RE295936",
+              "pieces": 20
+            },
+            {
+              "model": "RE232483",
+              "pieces": 4
+            },
+            {
+              "model": "RE505265",
+              "pieces": 4
+            },
+            {
+              "model": "AZ35440",
+              "pieces": 40
+            },
+            {
+              "model": "47743896 87317615",
+              "pieces": 10
+            },
+            {
+              "model": "RE66153",
+              "pieces": 8
+            },
+            {
+              "model": "RE540860",
+              "pieces": 8
+            },
+            {
+              "model": "HXE22628 H221000 HXE38943",
+              "pieces": 35
+            },
+            {
+              "model": "RE548027 RE70536 RE518097",
+              "pieces": 25
+            },
+            {
+              "model": "87801838",
+              "pieces": 10
+            },
+            {
+              "model": "RE261356 RE69297",
+              "pieces": 6
+            },
+            {
+              "model": "RE169008 RE55851 RE68756 RE39668 RE116081 RE165704",
+              "pieces": 4
+            },
+            {
+              "model": "RE519144 RE63619 RE71121 RE43511 RE508195",
+              "pieces": 20
+            },
+            {
+              "model": "RE537634",
+              "pieces": 12
+            },
+            {
+              "model": "AH201252",
+              "pieces": 6
+            },
+            {
+              "model": "H121681",
+              "pieces": 4
+            },
+            {
+              "model": "AH157219",
+              "pieces": 4
+            },
+            {
+              "model": "CE18776 DE31554",
+              "pieces": 8
+            },
+            {
+              "model": "H233203",
+              "pieces": 6
+            },
+            {
+              "model": "AH215111",
+              "pieces": 4
+            },
+            {
+              "model": "1307583C1, 241577A1, 241578A1, 848286, 86974037, 87283072, H113626, H133621",
+              "pieces": 150
+            },
+            {
+              "model": "AH228007\nAXE68069",
+              "pieces": 20
+            },
+            {
+              "model": "AH165012",
+              "pieces": 50
+            },
+            {
+              "model": "RE582501",
+              "pieces": 8
+            },
+            {
+              "model": "87693674",
+              "pieces": 10
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 4/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 562.0,
+          "net_weight": 492.36,
+          "volume": 0.974108,
+          "dimensions": [
+            105.0,
+            95.0,
+            98.0
+          ],
+          "contents": [
+            {
+              "model": "AH169875\nAN221429\nRE46609",
+              "pieces": 2
+            },
+            {
+              "model": "H173373",
+              "pieces": 6
+            },
+            {
+              "model": "H172475",
+              "pieces": 20
+            },
+            {
+              "model": "Z11331 Z10745",
+              "pieces": 6
+            },
+            {
+              "model": "AH167534 AXE14339",
+              "pieces": 30
+            },
+            {
+              "model": "H164061",
+              "pieces": 3
+            },
+            {
+              "model": "H207015 H160953",
+              "pieces": 20
+            },
+            {
+              "model": "H218499",
+              "pieces": 600
+            },
+            {
+              "model": "H159815",
+              "pieces": 2
+            },
+            {
+              "model": "192865C1\n192865C2\n194494C92",
+              "pieces": 2
+            },
+            {
+              "model": "87586665",
+              "pieces": 6
+            },
+            {
+              "model": "298009A1",
+              "pieces": 20
+            },
+            {
+              "model": "H211285",
+              "pieces": 200
+            },
+            {
+              "model": "H128265",
+              "pieces": 70
+            },
+            {
+              "model": "H226883",
+              "pieces": 40
+            },
+            {
+              "model": "188218C6 47442301 51454057",
+              "pieces": 15
+            },
+            {
+              "model": "87386758",
+              "pieces": 2
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 5/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 521.0,
+          "net_weight": 443.7,
+          "volume": 0.974108,
+          "dimensions": [
+            105.0,
+            95.0,
+            98.0
+          ],
+          "contents": [
+            {
+              "model": "AH94450\nAN220598",
+              "pieces": 20
+            },
+            {
+              "model": "AH124878",
+              "pieces": 4
+            },
+            {
+              "description": "AXE46135",
+              "pieces": 8
+            },
+            {
+              "model": "AH146552",
+              "pieces": 2
+            },
+            {
+              "model": "AH219370",
+              "pieces": 2
+            },
+            {
+              "model": "H170501",
+              "pieces": 50
+            },
+            {
+              "model": "AH143903\nAA77820\n84409160\n111787A2",
+              "pieces": 30
+            },
+            {
+              "model": "84163939",
+              "pieces": 4
+            },
+            {
+              "model": "48007763\n301141A1",
+              "pieces": 20
+            },
+            {
+              "model": "87559515",
+              "pieces": 4
+            },
+            {
+              "model": "1324840C1",
+              "pieces": 10
+            },
+            {
+              "model": "CE18212",
+              "pieces": 5
+            },
+            {
+              "model": "AH211639",
+              "pieces": 10
+            },
+            {
+              "model": "87693674",
+              "pieces": 20
+            },
+            {
+              "model": "AH223322 AH207913",
+              "pieces": 8
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 6/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 696.0,
+          "net_weight": 611.22,
+          "volume": 1.411926,
+          "dimensions": [
+            111.0,
+            111.0,
+            115.0
+          ],
+          "contents": [
+            {
+              "model": "AH97031\nAH165366",
+              "pieces": 50
+            },
+            {
+              "model": "H134118",
+              "pieces": 50
+            },
+            {
+              "model": "AT333680",
+              "pieces": 20
+            },
+            {
+              "model": "AE74688",
+              "pieces": 4
+            },
+            {
+              "model": "AXE57294",
+              "pieces": 30
+            },
+            {
+              "model": "N377016",
+              "pieces": 4
+            },
+            {
+              "model": "AH233507",
+              "pieces": 3
+            },
+            {
+              "model": "AL110351 \nAL163868",
+              "pieces": 6
+            },
+            {
+              "model": "AXE57295",
+              "pieces": 10
+            },
+            {
+              "model": "H147593\nH143351",
+              "pieces": 10
+            },
+            {
+              "model": "H201736",
+              "pieces": 50
+            },
+            {
+              "model": "AXE17036\nAE74687\nAXE57294",
+              "pieces": 80
+            },
+            {
+              "model": "87358620\n87379140\n192563C1",
+              "pieces": 2
+            },
+            {
+              "model": "87522943\n87384189",
+              "pieces": 4
+            },
+            {
+              "model": "418093A1\n87757146",
+              "pieces": 6
+            },
+            {
+              "model": "1319401C1\n176579C1",
+              "pieces": 2
+            },
+            {
+              "model": "87748011",
+              "pieces": 40
+            },
+            {
+              "model": "87668029",
+              "pieces": 10
+            },
+            {
+              "model": "86588003",
+              "pieces": 4
+            },
+            {
+              "model": "84072736",
+              "pieces": 12
+            },
+            {
+              "model": "1315597C1 1315599C1  1315598C1",
+              "pieces": 4
+            },
+            {
+              "model": "AH97031",
+              "pieces": 60
+            },
+            {
+              "model": "AH93318",
+              "pieces": 10
+            },
+            {
+              "description": "Tractor parts AH234499",
+              "pieces": 5
+            },
+            {
+              "model": "87347281 84335407 84053684 48152072 90416686",
+              "pieces": 4
+            },
+            {
+              "model": "196482C3",
+              "pieces": 8
+            },
+            {
+              "model": "84124122",
+              "pieces": 2
+            },
+            {
+              "model": "87619364",
+              "pieces": 2
+            },
+            {
+              "model": "AT368739",
+              "pieces": 2
+            },
+            {
+              "model": "AT326151",
+              "pieces": 2
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 7/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 361.0,
+          "net_weight": 311.2,
+          "volume": 0.932132,
+          "dimensions": [
+            155.0,
+            85.0,
+            71.0
+          ],
+          "contents": [
+            {
+              "model": "AH218485 AH154330 AH204566 AH205897",
+              "pieces": 7
+            },
+            {
+              "model": "AH154441",
+              "pieces": 10
+            },
+            {
+              "model": "H206345",
+              "pieces": 30
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 8/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 790.0,
+          "net_weight": 724.84,
+          "volume": 2.020262,
+          "dimensions": [
+            155.0,
+            109.0,
+            120.0
+          ],
+          "contents": [
+            {
+              "model": "AH146786\nAH168284\nAH169620",
+              "pieces": 4
+            },
+            {
+              "model": "H173904 H170737 H131452",
+              "pieces": 8
+            },
+            {
+              "model": "AH218485 AH154330 AH204566 AH205897",
+              "pieces": 3
+            },
+            {
+              "model": "AH218485",
+              "pieces": 15
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 9/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 753.0,
+          "net_weight": 674.12,
+          "volume": 1.531923,
+          "dimensions": [
+            164.0,
+            109.0,
+            86.0
+          ],
+          "contents": [
+            {
+              "model": "H206716",
+              "pieces": 10
+            },
+            {
+              "model": "AH146462",
+              "pieces": 3
+            },
+            {
+              "model": "AH164868 AH221847 AH140127 AH132272",
+              "pieces": 4
+            },
+            {
+              "model": "AXE69564 AXE13122",
+              "pieces": 4
+            },
+            {
+              "model": "H150800",
+              "pieces": 8
+            },
+            {
+              "model": "H119709",
+              "pieces": 2
+            },
+            {
+              "model": "H148132",
+              "pieces": 30
+            },
+            {
+              "model": "418092A1\n87757148\n181198C1\n108533A1",
+              "pieces": 4
+            },
+            {
+              "model": "87323202",
+              "pieces": 10
+            },
+            {
+              "model": "HXE22628",
+              "pieces": 25
+            },
+            {
+              "model": "AH85276",
+              "pieces": 40
+            },
+            {
+              "model": "HXE16941",
+              "pieces": 40
+            },
+            {
+              "model": "184489C1",
+              "pieces": 8
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 10/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 442.0,
+          "net_weight": 373.86,
+          "volume": 0.776058,
+          "dimensions": [
+            200.0,
+            59.0,
+            66.0
+          ],
+          "contents": [
+            {
+              "model": "AH169497",
+              "pieces": 10
+            },
+            {
+              "model": "H171186",
+              "pieces": 10
+            },
+            {
+              "model": "Z11409",
+              "pieces": 4
+            },
+            {
+              "model": "AH212606",
+              "pieces": 1
+            },
+            {
+              "model": "AXE15284",
+              "pieces": 8
+            },
+            {
+              "model": "AH225244",
+              "pieces": 2
+            },
+            {
+              "model": "AH235033",
+              "pieces": 6
+            },
+            {
+              "model": "AH162517",
+              "pieces": 8
+            },
+            {
+              "model": "AXE69563",
+              "pieces": 2
+            },
+            {
+              "model": "AH147472",
+              "pieces": 2
+            },
+            {
+              "model": "1322616C2",
+              "pieces": 8
+            },
+            {
+              "model": "Z11409",
+              "pieces": 4
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 11/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 865.0,
+          "net_weight": 794.17,
+          "volume": 1.411926,
+          "dimensions": [
+            111.0,
+            111.0,
+            115.0
+          ],
+          "contents": [
+            {
+              "model": "AH167579",
+              "pieces": 4
+            },
+            {
+              "model": "AH225670  AH201333  AXE60984 AXE21789",
+              "pieces": 30
+            },
+            {
+              "model": "AL200979\nAL166181",
+              "pieces": 4
+            },
+            {
+              "model": "SJ11129",
+              "pieces": 12
+            },
+            {
+              "model": "AM102487\nAM102420 AH116632",
+              "pieces": 10
+            },
+            {
+              "model": "RE45822",
+              "pieces": 10
+            },
+            {
+              "model": "HXE117551",
+              "pieces": 2
+            },
+            {
+              "model": "RE203206 RE577560 RE256693 RE226728",
+              "pieces": 10
+            },
+            {
+              "model": "AH226058 AN114857 AH114857",
+              "pieces": 10
+            },
+            {
+              "model": "AH213758",
+              "pieces": 4
+            },
+            {
+              "model": "H173606",
+              "pieces": 2
+            },
+            {
+              "model": "H208429",
+              "pieces": 100
+            },
+            {
+              "model": "AH215152",
+              "pieces": 6
+            },
+            {
+              "model": "AH128075",
+              "pieces": 2
+            },
+            {
+              "model": "H219634",
+              "pieces": 14
+            },
+            {
+              "model": "AXE74236\nAXE67131\nAXE13292",
+              "pieces": 3
+            },
+            {
+              "model": "H170967",
+              "pieces": 14
+            },
+            {
+              "model": "AXE49949",
+              "pieces": 150
+            },
+            {
+              "model": "AH204389",
+              "pieces": 50
+            },
+            {
+              "model": "AH220916",
+              "pieces": 10
+            },
+            {
+              "model": "AH141762",
+              "pieces": 10
+            },
+            {
+              "model": "H179093",
+              "pieces": 10
+            },
+            {
+              "model": "AH210837",
+              "pieces": 45
+            },
+            {
+              "model": "AXE21789",
+              "pieces": 20
+            },
+            {
+              "model": "87538599",
+              "pieces": 500
+            },
+            {
+              "model": "AH219987",
+              "pieces": 10
+            },
+            {
+              "description": "Tractor parts 85000175",
+              "pieces": 2
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 12/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 760.0,
+          "net_weight": 693.16,
+          "volume": 1.411926,
+          "dimensions": [
+            111.0,
+            111.0,
+            115.0
+          ],
+          "contents": [
+            {
+              "model": "RE62419",
+              "pieces": 30
+            },
+            {
+              "model": "RE539279",
+              "pieces": 10
+            },
+            {
+              "model": "RE532952",
+              "pieces": 5
+            },
+            {
+              "model": "RE522868",
+              "pieces": 30
+            },
+            {
+              "model": "AH168397",
+              "pieces": 4
+            },
+            {
+              "model": "AHC12165",
+              "pieces": 5
+            },
+            {
+              "model": "H161051 HXE69871",
+              "pieces": 11
+            },
+            {
+              "model": "H234586",
+              "pieces": 10
+            },
+            {
+              "model": "HXE38943",
+              "pieces": 5
+            },
+            {
+              "model": "AH206707",
+              "pieces": 10
+            },
+            {
+              "model": "H169044",
+              "pieces": 8
+            },
+            {
+              "model": "AHC17562\nAH168143\nAHC14731",
+              "pieces": 12
+            },
+            {
+              "model": "H161051",
+              "pieces": 25
+            },
+            {
+              "model": "H204872",
+              "pieces": 8
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 13/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 611.0,
+          "net_weight": 538.0,
+          "volume": 1.804273,
+          "dimensions": [
+            149.0,
+            98.0,
+            124.0
+          ],
+          "contents": [
+            {
+              "model": "AXE12904",
+              "pieces": 4
+            },
+            {
+              "model": "AH225668\nAXE60986\nAH171017",
+              "pieces": 50
+            },
+            {
+              "model": "AH225669\nAXE53030\nAXE60985\nAH171018",
+              "pieces": 50
+            },
+            {
+              "model": "AH210858",
+              "pieces": 24
+            },
+            {
+              "model": "DE20100",
+              "pieces": 20
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 14/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 736.0,
+          "net_weight": 650.34,
+          "volume": 1.399649,
+          "dimensions": [
+            111.0,
+            111.0,
+            114.0
+          ],
+          "contents": [
+            {
+              "model": "RE505980 RE500734 RE505981\nRE546906\nRE546917",
+              "pieces": 20
+            },
+            {
+              "model": "RE500737 RE546917 RE505981   RE500734",
+              "pieces": 20
+            },
+            {
+              "description": "Tractor parts AXE16294",
+              "pieces": 16
+            },
+            {
+              "model": "AH167316",
+              "pieces": 6
+            },
+            {
+              "model": "H233482\nH233466",
+              "pieces": 2
+            },
+            {
+              "model": "AL210587",
+              "pieces": 20
+            },
+            {
+              "model": "AH202008 AH135463",
+              "pieces": 8
+            },
+            {
+              "model": "H161293",
+              "pieces": 6
+            },
+            {
+              "model": "H161415",
+              "pieces": 4
+            },
+            {
+              "model": "H206016",
+              "pieces": 4
+            },
+            {
+              "model": "DE18569",
+              "pieces": 2
+            },
+            {
+              "model": "AH125070",
+              "pieces": 5
+            },
+            {
+              "model": "AH205918",
+              "pieces": 100
+            },
+            {
+              "model": "AH94450",
+              "pieces": 40
+            },
+            {
+              "model": "AH150900",
+              "pieces": 30
+            },
+            {
+              "model": "87532511",
+              "pieces": 2
+            },
+            {
+              "model": "RE549117",
+              "pieces": 1
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 15/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 129.0,
+          "net_weight": 102.0,
+          "volume": 0.359181,
+          "dimensions": [
+            90.0,
+            89.0,
+            45.0
+          ],
+          "contents": [
+            {
+              "model": "AH146840",
+              "pieces": 3
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 16/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 107.0,
+          "net_weight": 78.92,
+          "volume": 0.363755,
+          "dimensions": [
+            90.0,
+            78.0,
+            52.0
+          ],
+          "contents": [
+            {
+              "model": "AXE18070",
+              "pieces": 2
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 17/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 207.0,
+          "net_weight": 157.84,
+          "volume": 0.698233,
+          "dimensions": [
+            175.0,
+            77.0,
+            52.0
+          ],
+          "contents": [
+            {
+              "model": "AXE18070",
+              "pieces": 4
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 18/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 207.0,
+          "net_weight": 157.84,
+          "volume": 0.698233,
+          "dimensions": [
+            175.0,
+            77.0,
+            52.0
+          ],
+          "contents": [
+            {
+              "model": "AXE18070",
+              "pieces": 4
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 19/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 207.0,
+          "net_weight": 157.84,
+          "volume": 0.698233,
+          "dimensions": [
+            175.0,
+            77.0,
+            52.0
+          ],
+          "contents": [
+            {
+              "model": "AXE18070",
+              "pieces": 4
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 20/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 446.0,
+          "net_weight": 391.66,
+          "volume": 1.28915,
+          "dimensions": [
+            111.0,
+            111.0,
+            105.0
+          ],
+          "contents": [
+            {
+              "model": "H168206",
+              "pieces": 1500
+            },
+            {
+              "model": "RE59754",
+              "pieces": 30
+            },
+            {
+              "model": "H160992",
+              "pieces": 3
+            },
+            {
+              "model": "AH171602",
+              "pieces": 1500
+            },
+            {
+              "model": "AH235218",
+              "pieces": 2
+            },
+            {
+              "model": "47564869",
+              "pieces": 2
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 21/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 656.0,
+          "net_weight": 616.8,
+          "volume": 0.529569,
+          "dimensions": [
+            112.0,
+            65.0,
+            73.0
+          ],
+          "contents": [
+            {
+              "model": "286330",
+              "pieces": 300
+            },
+            {
+              "model": "286461",
+              "pieces": 4520
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 22/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 226.0,
+          "net_weight": 190.0,
+          "volume": 0.505137,
+          "dimensions": [
+            194.0,
+            39.0,
+            67.0
+          ],
+          "contents": [
+            {
+              "model": "KXE10161",
+              "pieces": 5
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 23/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 704.0,
+          "net_weight": 630.0,
+          "volume": 1.613133,
+          "dimensions": [
+            166.0,
+            106.0,
+            92.0
+          ],
+          "contents": [
+            {
+              "model": "AH207850 AH205254   AXE28950 AXE28960",
+              "pieces": 6
+            },
+            {
+              "model": "AH207851",
+              "pieces": 6
+            },
+            {
+              "model": "AH207851 AH205255 AXE28961 AXE28958",
+              "pieces": 6
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 24/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 1730.0,
+          "net_weight": 1650.0,
+          "volume": 1.810224,
+          "dimensions": [
+            137.0,
+            102.0,
+            130.0
+          ],
+          "contents": [
+            {
+              "description": "AH219369",
+              "pieces": 4
+            },
+            {
+              "description": "Tractor parts DE19294",
+              "pieces": 150
+            },
+            {
+              "model": "DE19785",
+              "pieces": 20
+            },
+            {
+              "description": "Tractor parts DE19294",
+              "pieces": 350
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 25/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 661.0,
+          "net_weight": 607.07,
+          "volume": 1.241439,
+          "dimensions": [
+            105.0,
+            105.0,
+            113.0
+          ],
+          "contents": [
+            {
+              "model": "AT365869",
+              "pieces": 10
+            },
+            {
+              "model": "9510531",
+              "pieces": 8
+            },
+            {
+              "model": "AH203076 AH232851",
+              "pieces": 2
+            },
+            {
+              "model": "AT129775",
+              "pieces": 6
+            },
+            {
+              "model": "AH126008",
+              "pieces": 30
+            },
+            {
+              "model": "AH147557",
+              "pieces": 10
+            },
+            {
+              "model": "H201791",
+              "pieces": 1
+            },
+            {
+              "model": "AN207368",
+              "pieces": 8
+            },
+            {
+              "model": "84159778",
+              "pieces": 5
+            },
+            {
+              "model": "H169912",
+              "pieces": 1700
+            },
+            {
+              "model": "286318",
+              "pieces": 300
+            },
+            {
+              "model": "286461",
+              "pieces": 480
+            },
+            {
+              "model": "47564869",
+              "pieces": 1
+            },
+            {
+              "model": "AL169573",
+              "pieces": 5
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 26/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 1000.0,
+          "net_weight": 928.0,
+          "volume": 0.794557,
+          "dimensions": [
+            107.0,
+            81.0,
+            92.0
+          ],
+          "contents": [
+            {
+              "description": "Tractor parts H229539",
+              "pieces": 800
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 27/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 983.0,
+          "net_weight": 912.46,
+          "volume": 1.264353,
+          "dimensions": [
+            106.0,
+            105.0,
+            114.0
+          ],
+          "contents": [
+            {
+              "model": "AH170774",
+              "pieces": 20
+            },
+            {
+              "model": "RE162771, RE300527, 208336, RE208336",
+              "pieces": 4
+            },
+            {
+              "model": "AL176767",
+              "pieces": 20
+            },
+            {
+              "model": "H215755 HXE105456",
+              "pieces": 2
+            },
+            {
+              "description": "Tractor parts H229540",
+              "pieces": 800
+            },
+            {
+              "model": "AH208345",
+              "pieces": 2
+            },
+            {
+              "description": "Tractor parts AH234499",
+              "pieces": 1
+            },
+            {
+              "model": "84072736",
+              "pieces": 18
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 28/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 468.0,
+          "net_weight": 430.0,
+          "volume": 0.295356,
+          "dimensions": [
+            80.0,
+            65.0,
+            57.0
+          ],
+          "contents": [
+            {
+              "model": "87728905",
+              "pieces": 5000
+            }
+          ],
+          "notes": "5th Delivery List (Jinmu 5), CTN 29/29 — PI-2026-00092"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 494,
+          "net_weight": 450,
+          "volume": 1.135986,
+          "dimensions": [
+            107,
+            105,
+            102
+          ],
+          "contents": [
+            {
+              "description": "CA550K19 6X6 C/91ELOS 03EM 02RED（Φ8.5）",
+              "pieces": 3
+            },
+            {
+              "description": "CA550K19 6X6 C/93ELOS 01EM 03RED（Φ8.5）",
+              "pieces": 2
+            },
+            {
+              "description": "CA550K19 2X2 4X4 C/94ELOS 03RED",
+              "pieces": 2
+            },
+            {
+              "description": "CA550K19 2X2 4X4 C/94ELOS 03RED",
+              "pieces": 4
+            },
+            {
+              "description": "CA550K19 2X2 4X4 C/101ELOS 03EM 04RED（Φ8.5）",
+              "pieces": 1
+            },
+            {
+              "description": "CA550K19 6X6 C/102ELOS 02EM 04RED",
+              "pieces": 2
+            },
+            {
+              "description": "CA550K19 2X2 4X4 C/79ELOS 01EME 01RED",
+              "pieces": 1
+            },
+            {
+              "description": "CA550K19 4X4 6X6 C/79ELOS 01EME 01RED",
+              "pieces": 1
+            },
+            {
+              "description": "CA550K19 4X4 6X6 C/94ELOS 03RED",
+              "pieces": 6
+            },
+            {
+              "description": "CA557K54 2X4X5X6 C/87ELOS 01EME 03RED furo 10mm",
+              "pieces": 1
+            },
+            {
+              "description": "Agriculture CA557K54 6X7X8 C/87ELOS 01EME 03RED",
+              "pieces": 2
+            },
+            {
+              "description": "CA550 K19 2X2 79E",
+              "pieces": 1
+            },
+            {
+              "description": "CA550 K19 4X4 78+2R",
+              "pieces": 1
+            },
+            {
+              "description": "CA550 K194X4 76+2+2",
+              "pieces": 1
+            },
+            {
+              "description": "CA550SDF3-GB(195X95)/4LX148L  37P",
+              "pieces": 1
+            },
+            {
+              "description": "CA550F6-GB(214X123)X145L 36P",
+              "pieces": 1
+            },
+            {
+              "description": "Agriculture S55AF2-GB(175X87)/4LX164L   41P",
+              "pieces": 1
+            },
+            {
+              "description": "CA550F6-GB(214X123)/4LX145L 36P-B",
+              "pieces": 1
+            },
+            {
+              "description": "Agriculture S55AF2-GB(135X85)/4LX164L   41P",
+              "pieces": 1
+            },
+            {
+              "description": "Agriculture S55AF2-GB(135X85)/4LX144L   36P",
+              "pieces": 1
+            },
+            {
+              "description": "CA550F5-GB(150X76)/6LX115L 19P",
+              "pieces": 1
+            },
+            {
+              "description": "CA550VF2SD-GB(225X76)/6LX79L 13P",
+              "pieces": 1
+            },
+            {
+              "description": "CA550F5-GB(130X79)/6LX97L 16P",
+              "pieces": 1
+            }
+          ],
+          "notes": "Shenlong (correntes), caixote 1 — PI-2026-00040"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 327,
+          "net_weight": 282,
+          "volume": 1.20574,
+          "dimensions": [
+            140,
+            93,
+            93
+          ],
+          "contents": [
+            {
+              "description": "Agriculture L L=588mm",
+              "pieces": 1
+            },
+            {
+              "description": "Agriculture S L=513mm",
+              "pieces": 1
+            },
+            {
+              "description": "Agriculture L420 L=672mm",
+              "pieces": 2
+            },
+            {
+              "description": "Agriculture TS847",
+              "pieces": 1
+            },
+            {
+              "description": "Agriculture U L=530mm",
+              "pieces": 1
+            },
+            {
+              "description": "Agriculture HXE42402-TRAVESSA",
+              "pieces": 2
+            },
+            {
+              "description": "TS277",
+              "pieces": 1
+            },
+            {
+              "description": "QT700",
+              "pieces": 1
+            },
+            {
+              "description": "CA550K1F9X92L（AH231006）",
+              "pieces": 1
+            },
+            {
+              "description": "CA557K1F10X91L（AXE27247）",
+              "pieces": 1
+            },
+            {
+              "description": "CA550K1F9X101L（AH217634 AH217629）",
+              "pieces": 1
+            }
+          ],
+          "notes": "Shenlong (correntes), caixote 2 — PI-2026-00040"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 780,
+          "net_weight": 780,
+          "volume": 7.971838,
+          "dimensions": [
+            227.8,
+            125.8,
+            280
+          ],
+          "contents": [
+            {
+              "description": "Rack",
+              "pieces": 10
+            }
+          ],
+          "notes": "Tire rack Juli, 10 racks em 1 pack — PI-2026-00001"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 125,
+          "net_weight": 120,
+          "volume": 0.194704,
+          "dimensions": [
+            64,
+            71,
+            43
+          ],
+          "contents": [
+            {
+              "description": "Tractor parts - DT88.9-275-210",
+              "pieces": 2
+            }
+          ],
+          "notes": "Trailer axle Daytop — PI-2026-00012"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 12.74,
+          "net_weight": 12.103,
+          "volume": 0.058832,
+          "dimensions": [
+            60,
+            20.5,
+            48
+          ],
+          "contents": [
+            {
+              "description": "LCD  TOUCH-3 GS 3 2630-8",
+              "pieces": 25
+            },
+            {
+              "description": "LCD  TOUCH-3 GS 3 2630-11",
+              "pieces": 25
+            }
+          ],
+          "notes": "LCD/holders caixa #1 — PI-2026-00025"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 12.49,
+          "net_weight": 11.866,
+          "volume": 0.054527,
+          "dimensions": [
+            48,
+            38,
+            30
+          ],
+          "contents": [
+            {
+              "description": "LCD  TOUCH-LT104AC54000",
+              "pieces": 10
+            },
+            {
+              "description": "LCD  TOUCH SCREEN- G121X1-L03",
+              "pieces": 4
+            }
+          ],
+          "notes": "LCD/holders caixa #2 — PI-2026-00025"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 10.57,
+          "net_weight": 10.042,
+          "volume": 0.054527,
+          "dimensions": [
+            48,
+            38,
+            30
+          ],
+          "contents": [
+            {
+              "description": "LCD  TOUCH SCREEN- G121X1-L03",
+              "pieces": 6
+            },
+            {
+              "description": "LCD  TOUCH SCREEN -Trimble  500",
+              "pieces": 4
+            },
+            {
+              "description": "LCD  TOUCH SCREEN -G065VN01 V2",
+              "pieces": 5
+            },
+            {
+              "description": "LCD  TOUCH SCREEN -Gen 4 GS4 4640",
+              "pieces": 10
+            }
+          ],
+          "notes": "LCD/holders caixa #3 — PI-2026-00025"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 2.57,
+          "net_weight": 2.4415,
+          "volume": 0.015565,
+          "dimensions": [
+            31,
+            24,
+            21
+          ],
+          "contents": [
+            {
+              "description": "LCD  TOUCH SCREEN- Omni 700",
+              "pieces": 10
+            },
+            {
+              "description": "LCD  TOUCH SCREEN -7,165mm*100mm NOVO",
+              "pieces": 25
+            }
+          ],
+          "notes": "LCD/holders caixa #4 — PI-2026-00025"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 11.34,
+          "net_weight": 10.773,
+          "volume": 0.023916,
+          "dimensions": [
+            40,
+            30,
+            20
+          ],
+          "contents": [
+            {
+              "description": "HOLDER -NPHA-D BALL",
+              "pieces": 10
+            },
+            {
+              "description": "HOLDER -NPHA-M6 BALL",
+              "pieces": 10
+            },
+            {
+              "description": "HOLDER -NPHA-BM6 BALL+B15CM ARM+BM6 BALL",
+              "pieces": 5
+            },
+            {
+              "description": "HOLDER -NPHA-BM6 BALL+B15CM ARM +BC BALL",
+              "pieces": 5
+            },
+            {
+              "description": "HOLDER -NPHA-BM6 BALL+B15CM ARM +MC BALL",
+              "pieces": 5
+            },
+            {
+              "description": "HOLDER -NPHA-SD BALL",
+              "pieces": 10
+            }
+          ],
+          "notes": "LCD/holders caixa #5 — PI-2026-00025"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 13.07,
+          "net_weight": 10.79,
+          "volume": 0.045281,
+          "dimensions": [
+            51.0,
+            27.0,
+            33.0
+          ],
+          "contents": [
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS10018",
+              "pieces": 5
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor- GS10027",
+              "pieces": 12
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor GS10036",
+              "pieces": 5
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS11014",
+              "pieces": 5
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS11023",
+              "pieces": 5
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS11057",
+              "pieces": 6
+            },
+            {
+              "description": "Agriculture-E-Parts & Stop Solenoid -GS22029",
+              "pieces": 10
+            }
+          ],
+          "notes": "Sensores Gauss, caixa №.T1 — PI-2026-00026"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 8.2,
+          "net_weight": 5.74,
+          "volume": 0.048214,
+          "dimensions": [
+            42.0,
+            32.0,
+            36.0
+          ],
+          "contents": [
+            {
+              "description": "Agriculture-E-Parts & Sensor- GS10013",
+              "pieces": 10
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS10019",
+              "pieces": 23
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS10026",
+              "pieces": 7
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor- GS10033",
+              "pieces": 5
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS11004",
+              "pieces": 2
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS11014",
+              "pieces": 5
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS11058",
+              "pieces": 5
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS21002",
+              "pieces": 5
+            }
+          ],
+          "notes": "Sensores Gauss, caixa №.T2 — PI-2026-00026"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 16.17,
+          "net_weight": 11.82,
+          "volume": 0.066292,
+          "dimensions": [
+            58.0,
+            37.0,
+            31.0
+          ],
+          "contents": [
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS10018",
+              "pieces": 3
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS10019",
+              "pieces": 2
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor GS10023",
+              "pieces": 20
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor- GS10025",
+              "pieces": 30
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS10039",
+              "pieces": 10
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS10052",
+              "pieces": 10
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS10056",
+              "pieces": 10
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS11001",
+              "pieces": 5
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS11004",
+              "pieces": 8
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS11023",
+              "pieces": 5
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS11039",
+              "pieces": 6
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS11043",
+              "pieces": 5
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS11046",
+              "pieces": 10
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS16002",
+              "pieces": 20
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS20002",
+              "pieces": 10
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS29003",
+              "pieces": 40
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS32001",
+              "pieces": 10
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS37001",
+              "pieces": 10
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS37004",
+              "pieces": 5
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS37005",
+              "pieces": 10
+            },
+            {
+              "description": "Agriculture-E-Parts & Wiring -GS49001",
+              "pieces": 20
+            }
+          ],
+          "notes": "Sensores Gauss, caixa №.T3 — PI-2026-00026"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 11.5,
+          "net_weight": 8.74,
+          "volume": 0.049926,
+          "dimensions": [
+            47.0,
+            26.0,
+            41.0
+          ],
+          "contents": [
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS11010",
+              "pieces": 10
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS11027",
+              "pieces": 10
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS20001",
+              "pieces": 2
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS21001",
+              "pieces": 6
+            },
+            {
+              "description": "Agriculture-E-Parts & Brush Holder -GS42001",
+              "pieces": 10
+            },
+            {
+              "description": "Agriculture-E-Parts & Brush Holder -GS42002",
+              "pieces": 10
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS46002",
+              "pieces": 10
+            }
+          ],
+          "notes": "Sensores Gauss, caixa №.T4 — PI-2026-00026"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 16.79,
+          "net_weight": 13.15,
+          "volume": 0.075199,
+          "dimensions": [
+            65.0,
+            43.0,
+            27.0
+          ],
+          "contents": [
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS10014",
+              "pieces": 20
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS10035",
+              "pieces": 10
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor GS10036",
+              "pieces": 5
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS11010",
+              "pieces": 10
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS11043",
+              "pieces": 5
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS11058",
+              "pieces": 5
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS16001",
+              "pieces": 2
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS20001",
+              "pieces": 3
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS21001",
+              "pieces": 4
+            },
+            {
+              "description": "Agriculture-E-Parts & Actuador -GS43001",
+              "pieces": 10
+            },
+            {
+              "description": "Agriculture-E-Parts & Pressure Switch -GS47008",
+              "pieces": 20
+            }
+          ],
+          "notes": "Sensores Gauss, caixa №.T5 — PI-2026-00026"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 8.58,
+          "net_weight": 5.79,
+          "volume": 0.067388,
+          "dimensions": [
+            51.0,
+            34.0,
+            39.0
+          ],
+          "contents": [
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS10018",
+              "pieces": 2
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS10026",
+              "pieces": 5
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS11001",
+              "pieces": 5
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS11009",
+              "pieces": 10
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS11035",
+              "pieces": 6
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS14001",
+              "pieces": 10
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS16001",
+              "pieces": 8
+            },
+            {
+              "description": "Agriculture-E-Parts &Electronic Unit Control -GS23001",
+              "pieces": 10
+            },
+            {
+              "description": "Agriculture-E-Parts &Electric Motor -GS30010",
+              "pieces": 20
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS37004",
+              "pieces": 5
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS44002",
+              "pieces": 10
+            }
+          ],
+          "notes": "Sensores Gauss, caixa №.T6 — PI-2026-00026"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 35.83,
+          "net_weight": 31.36,
+          "volume": 0.054868,
+          "dimensions": [
+            57.0,
+            46.0,
+            21.0
+          ],
+          "contents": [
+            {
+              "description": "Agriculture-E-Parts &Electric Motor -GS30004",
+              "pieces": 10
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS11047",
+              "pieces": 6
+            },
+            {
+              "description": "Agriculture-E-Parts &Electric Motor -GS30005",
+              "pieces": 4
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS26007",
+              "pieces": 20
+            },
+            {
+              "description": "Agriculture-E-Parts & Sensor -GS26010",
+              "pieces": 20
+            },
+            {
+              "description": "Agriculture-E-Parts &Electric Motor -GS30002",
+              "pieces": 5
+            },
+            {
+              "description": "Agriculture-E-Parts &Electric Motor -GS30006",
+              "pieces": 6
+            }
+          ],
+          "notes": "Sensores Gauss, caixa №.T7 — PI-2026-00026"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 17.86,
+          "net_weight": 15.37,
+          "volume": 0.04407,
+          "dimensions": [
+            54.0,
+            39.0,
+            21.0
+          ],
+          "contents": [
+            {
+              "description": "Agriculture-E-Parts &Electric Motor -GS30002",
+              "pieces": 20
+            }
+          ],
+          "notes": "Sensores Gauss, caixa №.T8 — PI-2026-00026"
+        },
+        {
+          "type": "carton",
+          "gross_weight": 21.26,
+          "net_weight": 19.51,
+          "volume": 0.036304,
+          "dimensions": [
+            66.0,
+            24.0,
+            23.0
+          ],
+          "contents": [
+            {
+              "description": "Agriculture-E-Parts &Electric Motor -GS30001",
+              "pieces": 10
+            }
+          ],
+          "notes": "Sensores Gauss, caixa №.T9 — PI-2026-00026"
+        },
+        {
+          "type": "pallet",
+          "gross_weight": 133.33,
+          "net_weight": 95,
+          "volume": 0,
+          "contents": [
+            {
+              "description": "Plastic Box X-3 part box",
+              "pieces": 300
+            }
+          ],
+          "notes": "X-3 Part Box, pallet 1/3 — nude cargo/sem cubagem própria; peso bruto rateado de 400 kg para fechar o BL"
+        },
+        {
+          "type": "pallet",
+          "gross_weight": 133.33,
+          "net_weight": 95,
+          "volume": 0,
+          "contents": [
+            {
+              "description": "Plastic Box X-3 part box",
+              "pieces": 300
+            }
+          ],
+          "notes": "X-3 Part Box, pallet 2/3 — nude cargo/sem cubagem própria; peso bruto rateado de 400 kg para fechar o BL"
+        },
+        {
+          "type": "pallet",
+          "gross_weight": 133.34,
+          "net_weight": 95,
+          "volume": 0,
+          "contents": [
+            {
+              "description": "Plastic Box X-3 part box",
+              "pieces": 300
+            }
+          ],
+          "notes": "X-3 Part Box, pallet 3/3 — nude cargo/sem cubagem própria; peso bruto rateado de 400 kg para fechar o BL"
+        }
+      ],
+      "scale_factor": 0.996479
+    }
+  ]
+}
