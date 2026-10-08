@@ -177,6 +177,23 @@ abstract class AbstractPdfTemplate
      * sem isso o DomPDF expande a coluna e empurra as colunas de valores para
      * fora da página) e corte no limite de caracteres.
      */
+    /**
+     * Nome de produto pronto para a célula do PDF. Listas de modelos sem
+     * espaço ("COMBINE:S650,S660,S670,…") viram um token que o DomPDF não
+     * quebra: a coluna alarga, a tabela passa da página e Qty/Preço/Total
+     * somem (CI-SH-2026-00020). Só tokens longos ganham o espaço depois de
+     * `, ; / :` — "Halter 12,5 kg" fica como está. Sem limite de tamanho: o
+     * nome é a identidade do item, não se trunca.
+     */
+    protected function breakableName(string $name, int $tokenLength = 25): string
+    {
+        return preg_replace_callback(
+            '~\S{'.$tokenLength.',}~u',
+            fn (array $m) => preg_replace('~([,;/:])(?=\S)~', '$1 ', $m[0]),
+            $name,
+        ) ?? $name;
+    }
+
     protected function formatDescription(string $description, int $limit = 150): string
     {
         $breakable = preg_replace('~([,/;])(?=\S)~', '$1 ', $description);

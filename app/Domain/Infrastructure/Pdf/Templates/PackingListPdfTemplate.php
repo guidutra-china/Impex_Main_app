@@ -440,7 +440,7 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
         $product = $shipmentItem?->proformaInvoiceItem?->product;
         $identity = $this->resolveIdentity($shipmentItem);
 
-        $productName = $identity->name;
+        $productName = $this->breakableName($identity->name);
         if (filled($content->part_label)) {
             $productName .= ' — '.$content->part_label;
         }
@@ -499,7 +499,7 @@ class PackingListPdfTemplate extends AbstractPdfTemplate
         $shipmentItem = $content->shipmentItem;
         $identity = $this->resolveIdentity($shipmentItem);
 
-        $productName = $identity->name;
+        $productName = $this->breakableName($identity->name);
         if (filled($content->part_label)) {
             $productName .= ' — '.$content->part_label;
         }

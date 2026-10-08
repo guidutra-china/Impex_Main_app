@@ -166,7 +166,7 @@ class CommercialInvoicePdfTemplate extends AbstractPdfTemplate
                     // identificador continua imprimindo célula vazia.
                     'model_no' => $product ? $identity->code : '—',
                     'ncm' => $identity->ncmHeading(),
-                    'product_name' => $identity->name,
+                    'product_name' => $this->breakableName($identity->name),
                     'description' => $this->formatDescription(
                         $identity->descriptionOr($piItem?->specifications ?? '') ?? ''
                     ),
