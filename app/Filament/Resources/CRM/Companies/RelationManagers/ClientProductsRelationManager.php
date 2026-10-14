@@ -36,6 +36,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -192,10 +193,28 @@ class ClientProductsRelationManager extends RelationManager
                     ->formatStateUsing(fn ($state) => $state ? Money::format($state, 4) : '—')
                     ->prefix('$ ')
                     ->alignEnd(),
-                TextColumn::make('pivot.custom_price')
+                // Editável direto na lista: mostra/aceita em moeda (major),
+                // grava em inteiro na escala do Money. updateStateUsing
+                // substitui o save padrão do Filament, que gravaria a string crua.
+                TextInputColumn::make('pivot.custom_price')
                     ->label(__('forms.labels.ci_price'))
-                    ->formatStateUsing(fn ($state) => $state ? Money::format($state, 4) : '—')
-                    ->prefix('$ ')
+                    ->type('number')
+                    ->inputMode('decimal')
+                    ->step('0.0001')
+                    ->prefix('$')
+                    ->rules(['nullable', 'numeric', 'min:0'])
+                    ->disabled(fn () => ! auth()->user()?->can('edit-companies'))
+                    ->getStateUsing(fn (Model $record) => $record->pivot?->custom_price
+                        ? number_format(Money::toMajor($record->pivot->custom_price), 4, '.', '')
+                        : null)
+                    ->updateStateUsing(function (Model $record, $state) {
+                        $minor = blank($state) ? null : Money::toMinor((float) str_replace(',', '', (string) $state));
+
+                        CompanyProduct::whereKey($record->pivot->id)->update(['custom_price' => $minor]);
+                        $record->pivot->custom_price = $minor;
+
+                        return $minor === null ? null : number_format(Money::toMajor($minor), 4, '.', '');
+                    })
                     ->alignEnd(),
                 TextColumn::make('pivot.currency_code')
                     ->label(__('forms.labels.currency'))
