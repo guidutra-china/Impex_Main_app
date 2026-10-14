@@ -9,6 +9,7 @@ use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Enums\ShipmentStatus;
 use App\Domain\Logistics\Enums\TransportMode;
 use App\Domain\Logistics\Models\Shipment;
+use App\Domain\Quotations\Enums\Incoterm;
 use App\Filament\Actions\QuickViewAction;
 use App\Filament\Actions\StatusTransitionActions;
 use App\Filament\Resources\Shipments\ShipmentResource;
@@ -61,6 +62,9 @@ class ShipmentsTable
                     ->action(static::changeStatusAction()),
                 TextColumn::make('transport_mode')
                     ->badge()
+                    ->formatStateUsing(fn (TransportMode $state, Shipment $record): string => $record->incoterm instanceof Incoterm
+                        ? $state->getLabel().' · '.$record->incoterm->value
+                        : (string) $state->getLabel())
                     ->toggleable(),
                 TextColumn::make('bl_number')
                     ->label(__('forms.labels.bl'))
