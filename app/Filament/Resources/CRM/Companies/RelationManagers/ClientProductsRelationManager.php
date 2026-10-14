@@ -8,6 +8,7 @@ use App\Domain\Catalog\Models\CompanyProductDocument;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Reports\ClientProductsExcelExporter;
 use App\Domain\Catalog\Reports\ClientProductsReportImporter;
+use App\Domain\Catalog\Support\ClientProductStats;
 use App\Domain\CRM\Enums\CompanyRole;
 use App\Domain\CRM\Enums\DocumentCategory;
 use App\Domain\Infrastructure\Support\Money;
@@ -50,6 +51,37 @@ class ClientProductsRelationManager extends RelationManager
     protected static ?string $recordTitleAttribute = 'name';
 
     protected static BackedEnum|string|null $icon = 'heroicon-o-user-group';
+
+    /** Visão geral por produto (PIs, POs, embarques), calculada uma vez por request. */
+    private ?array $clientProductStats = null;
+
+    private function statsFor(Model $record): array
+    {
+        $this->clientProductStats ??= ClientProductStats::forCompany($this->getOwnerRecord());
+
+        return $this->clientProductStats[(int) $record->getKey()] ?? [];
+    }
+
+    private function statColumn(string $key): TextColumn
+    {
+        return TextColumn::make("stats.{$key}")
+            ->getStateUsing(fn (Model $record) => $this->statsFor($record)[$key] ?? null)
+            ->placeholder('—')
+            ->toggleable();
+    }
+
+    private function moneyStatColumn(string $key, string $currencyKey, string $mixedKey, string $label): TextColumn
+    {
+        return $this->statColumn($key)
+            ->label($label)
+            ->formatStateUsing(fn ($state, Model $record) => $state === null
+                ? '—'
+                : trim(($this->statsFor($record)[$currencyKey] ?? '').' '.Money::format((int) $state, 2)))
+            ->description(fn (Model $record) => ($this->statsFor($record)[$mixedKey] ?? false)
+                ? '+ '.__('forms.labels.other_currencies')
+                : null)
+            ->alignEnd();
+    }
 
     public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
     {
@@ -172,6 +204,39 @@ class ClientProductsRelationManager extends RelationManager
                     ->label(__('forms.labels.primary'))
                     ->boolean()
                     ->alignCenter(),
+
+                // Visão geral do produto neste cliente (ClientProductStats).
+                $this->statColumn('purchased_qty')
+                    ->label(__('forms.labels.purchased_qty'))
+                    ->numeric()
+                    ->alignEnd(),
+                $this->statColumn('shipped_qty')
+                    ->label(__('forms.labels.shipped_qty'))
+                    ->numeric()
+                    ->alignEnd(),
+                $this->moneyStatColumn('last_price', 'price_currency', 'mixed_price_currencies', __('forms.labels.last_price_paid')),
+                $this->moneyStatColumn('max_price', 'price_currency', 'mixed_price_currencies', __('forms.labels.max_price_paid')),
+                $this->moneyStatColumn('avg_price', 'price_currency', 'mixed_price_currencies', __('forms.labels.avg_price_paid'))
+                    ->toggleable(isToggledHiddenByDefault: true),
+                $this->moneyStatColumn('last_cost', 'cost_currency', 'mixed_cost_currencies', __('forms.labels.last_supplier_cost'))
+                    ->description(fn (Model $record) => collect([
+                        $this->statsFor($record)['last_supplier'] ?? null,
+                        ($this->statsFor($record)['mixed_cost_currencies'] ?? false) ? '+ '.__('forms.labels.other_currencies') : null,
+                    ])->filter()->implode(' · ') ?: null),
+                $this->moneyStatColumn('max_cost', 'cost_currency', 'mixed_cost_currencies', __('forms.labels.max_supplier_cost')),
+                $this->statColumn('last_margin_pct')
+                    ->label(__('forms.labels.last_margin'))
+                    ->formatStateUsing(fn ($state) => $state === null ? '—' : number_format((float) $state, 1).'%')
+                    ->color(fn ($state) => $state === null ? null : ((float) $state < 0 ? 'danger' : 'success'))
+                    ->alignEnd(),
+                $this->statColumn('last_purchase_date')
+                    ->label(__('forms.labels.last_purchase_date'))
+                    ->date('d/m/Y'),
+                $this->statColumn('pi_count')
+                    ->label(__('forms.labels.pi_count'))
+                    ->numeric()
+                    ->alignEnd()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->headerActions([
                 Action::make('exportExcel')
