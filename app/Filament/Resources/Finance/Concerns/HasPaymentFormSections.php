@@ -16,6 +16,7 @@ use App\Domain\Financial\Support\AllocationCalculator;
 use App\Domain\Financial\Support\AllocationFormShape;
 use App\Domain\Financial\Support\AllocationPrefill;
 use App\Domain\Financial\Support\DebitNoteBundle;
+use App\Domain\Financial\Support\ExchangeRateDirection;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
@@ -24,6 +25,7 @@ use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\Settings\Models\BankAccount;
 use App\Domain\Settings\Models\Currency;
 use App\Domain\Settings\Models\PaymentMethod;
+use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
@@ -1047,6 +1049,9 @@ trait HasPaymentFormSections
                 })
                 ->columnSpan(4),
 
+            // O valor gravado é sempre doc por pmt (ex.: USD por BRL). O usuário
+            // pode inverter a exibição (USD → BRL); a conversão acontece no
+            // dehydrate, então a persistência não muda.
             TextInput::make('exchange_rate')
                 ->label(fn (Get $get) => static::exchangeRateLabel($get))
                 ->numeric()
@@ -1057,6 +1062,16 @@ trait HasPaymentFormSections
                     static::syncAllocationRow($get, $set, 'exchange_rate');
                     $set('exchange_rate_captured_at', static::paymentDateFromForm($get) ?? now()->toDateString());
                 })
+                ->dehydrateStateUsing(fn ($state, Get $get) => ExchangeRateDirection::toStored($state, static::rateIsInverted($get)))
+                ->suffixAction(
+                    Action::make('invertExchangeRate')
+                        ->icon('heroicon-m-arrows-right-left')
+                        ->tooltip(__('forms.labels.invert_exchange_rate'))
+                        ->action(function (Get $get, Set $set) {
+                            $set('exchange_rate_inverted', ! static::rateIsInverted($get));
+                            $set('exchange_rate', ExchangeRateDirection::invert($get('exchange_rate')));
+                        })
+                )
                 ->helperText(function (Get $get) {
                     $captured = $get('exchange_rate_captured_at');
                     if (! $captured) {
@@ -1070,6 +1085,11 @@ trait HasPaymentFormSections
                 ->columnSpan(4),
 
             \Filament\Forms\Components\Hidden::make('exchange_rate_captured_at'),
+
+            // Só exibição: não vai para o banco.
+            Hidden::make('exchange_rate_inverted')
+                ->default(false)
+                ->dehydrated(false),
         ];
     }
 
@@ -1155,7 +1175,7 @@ trait HasPaymentFormSections
         $rate = $resolved['rate'];
 
         if ($rate !== null && $rate > 0) {
-            $set('exchange_rate', number_format($rate, 8, '.', ''));
+            static::setDisplayedRate($get, $set, $rate);
             $set('allocated_amount', number_format($remainingDocMajor / $rate, 2, '.', ''));
             $set('exchange_rate_captured_at', $resolved['date'] ?? $paymentDate ?? now()->toDateString());
         } else {
@@ -1178,7 +1198,7 @@ trait HasPaymentFormSections
 
         $pmt = (float) ($get('allocated_amount') ?? 0);
         $doc = (float) ($get('allocated_amount_in_document_currency') ?? 0);
-        $rate = (float) ($get('exchange_rate') ?? 0);
+        $rate = static::effectiveRate($get);
 
         // Same currency (or doc currency unknown): mirror pmt <-> doc, clear rate.
         if ($pmtCurrency === '' || $docCurrency === '' || $pmtCurrency === $docCurrency) {
@@ -1197,7 +1217,7 @@ trait HasPaymentFormSections
                 if ($rate > 0 && $pmt > 0) {
                     $set('allocated_amount_in_document_currency', number_format($pmt * $rate, 2, '.', ''));
                 } elseif ($pmt > 0 && $doc > 0) {
-                    $set('exchange_rate', number_format($doc / $pmt, 8, '.', ''));
+                    static::setDisplayedRate($get, $set, $doc / $pmt);
                 }
                 break;
 
@@ -1205,7 +1225,7 @@ trait HasPaymentFormSections
                 if ($rate > 0 && $doc > 0) {
                     $set('allocated_amount', number_format($doc / $rate, 2, '.', ''));
                 } elseif ($pmt > 0 && $doc > 0) {
-                    $set('exchange_rate', number_format($doc / $pmt, 8, '.', ''));
+                    static::setDisplayedRate($get, $set, $doc / $pmt);
                 }
                 break;
 
@@ -1231,6 +1251,23 @@ trait HasPaymentFormSections
         return $pmtCurrency !== $docCurrency;
     }
 
+    protected static function rateIsInverted(Get $get): bool
+    {
+        return (bool) $get('exchange_rate_inverted');
+    }
+
+    /** Taxa efetiva (doc por pmt) a partir do que está no campo, 0 quando vazio. */
+    protected static function effectiveRate(Get $get): float
+    {
+        return (float) (ExchangeRateDirection::toStored($get('exchange_rate'), static::rateIsInverted($get)) ?? 0);
+    }
+
+    /** Escreve no campo a taxa doc por pmt, respeitando a direção escolhida na linha. */
+    protected static function setDisplayedRate(Get $get, Set $set, float $docPerPmt): void
+    {
+        $set('exchange_rate', ExchangeRateDirection::toDisplayed($docPerPmt, static::rateIsInverted($get)));
+    }
+
     protected static function allocationFieldLabel(string $base, string $currencyCode): string
     {
         return $currencyCode !== '' ? "{$base} ({$currencyCode})" : $base;
@@ -1244,7 +1281,9 @@ trait HasPaymentFormSections
         $base = __('forms.labels.exchange_rate');
 
         if ($pmt !== '' && $doc !== '' && $pmt !== $doc) {
-            return "{$base} ({$pmt} → {$doc})";
+            return static::rateIsInverted($get)
+                ? "{$base} ({$doc} → {$pmt})"
+                : "{$base} ({$pmt} → {$doc})";
         }
 
         return $base;

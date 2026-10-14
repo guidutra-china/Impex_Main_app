@@ -260,6 +260,7 @@ return [
         'evaluation_type' => '评估类型',
         'excel_file_xlsx' => 'Excel 文件 (.xlsx)',
         'exchange_rate' => '汇率',
+        'invert_exchange_rate' => '反转汇率方向',
         'expected_delivery' => '预计交货',
         'expires' => '过期',
         'expiry_date' => '到期日期',

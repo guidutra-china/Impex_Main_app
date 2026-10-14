@@ -272,6 +272,7 @@ return [
         'evaluation_type' => 'Evaluation Type',
         'excel_file_xlsx' => 'Excel File (.xlsx)',
         'exchange_rate' => 'Exchange Rate',
+        'invert_exchange_rate' => 'Invert rate direction',
         'expected_delivery' => 'Expected Delivery',
         'expires' => 'Expires',
         'expiry_date' => 'Expiry Date',

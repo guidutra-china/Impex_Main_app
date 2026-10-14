@@ -272,6 +272,7 @@ return [
         'evaluation_type' => 'Tipo de Avaliação',
         'excel_file_xlsx' => 'Arquivo Excel (.xlsx)',
         'exchange_rate' => 'Taxa de Câmbio',
+        'invert_exchange_rate' => 'Inverter a direção da taxa',
         'expected_delivery' => 'Entrega Esperada',
         'expires' => 'Expira',
         'expiry_date' => 'Data de Expiração',
