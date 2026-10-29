@@ -6,14 +6,16 @@ namespace App\Domain\AI\Import;
 
 use App\Domain\AI\Import\Models\ProductImportAlias;
 use App\Domain\AI\Import\Support\NameNormalizer;
+use App\Domain\Catalog\Models\CompanyProduct;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\CRM\Models\Company;
 use App\Domain\Infrastructure\Support\Money;
 
 /**
  * Deterministically resolves an extracted inquiry draft into a preview model:
- * matches the client company by name and each product by part number vs
- * reference_code/model_number/sku, with a client-scoped exact-name fallback,
+ * matches the client company by name and each product by part number vs the
+ * client's own code (pivot external_code), then reference_code/model_number/sku,
+ * with a client-scoped exact-name fallback,
  * a learned alias layer, and an LLM suggestion layer for items still unmatched
  * (match-only — inquiry items never create products; unmatched items keep
  * product_id null with the description, mirroring the deterministic Excel
@@ -35,9 +37,10 @@ class ResolveInquiryDraft
             : null;
 
         $currency = strtoupper((string) ($draft['cliente']['currency_code'] ?? 'USD'));
+        $clientProductsByCode = $this->clientProductsByCode($client);
         $clientProductsByName = $this->clientProductsByName($client);
         $aliasesByKey = $this->aliasesByKey($client);
-        $itens = array_map(fn (array $item) => $this->resolveItem($item, $clientProductsByName, $aliasesByKey), $draft['itens'] ?? []);
+        $itens = array_map(fn (array $item) => $this->resolveItem($item, $clientProductsByCode, $clientProductsByName, $aliasesByKey), $draft['itens'] ?? []);
         $itens = $this->applyAiSuggestions($itens, $client);
 
         $matched = count(array_filter($itens, fn ($i) => $i['status'] === 'existente'));
@@ -67,6 +70,49 @@ class ResolveInquiryDraft
                 'total_estimado' => $totalMinor !== 0 ? $currency.' '.Money::format($totalMinor) : null,
             ],
         ];
+    }
+
+    /**
+     * Código do próprio cliente (pivot external_code) => product_id. O cliente
+     * cota com o código dele, que muitas vezes difere do model_number (ex.:
+     * "6204-2RS-KRB" × "6204-2RS"). Códigos repetidos dentro do cliente são
+     * descartados (match precisa ser único).
+     *
+     * @return array<string, int>
+     */
+    private function clientProductsByCode(?Company $client): array
+    {
+        if ($client === null) {
+            return [];
+        }
+
+        $map = [];
+        $duplicated = [];
+
+        CompanyProduct::query()
+            ->where('company_id', $client->id)
+            ->whereNotNull('external_code')
+            ->get(['product_id', 'external_code'])
+            ->each(function (CompanyProduct $pivot) use (&$map, &$duplicated) {
+                $key = self::codeKey($pivot->external_code);
+                if ($key === '' || isset($duplicated[$key])) {
+                    return;
+                }
+                if (isset($map[$key]) && $map[$key] !== (int) $pivot->product_id) {
+                    unset($map[$key]);
+                    $duplicated[$key] = true;
+
+                    return;
+                }
+                $map[$key] = (int) $pivot->product_id;
+            });
+
+        return $map;
+    }
+
+    private static function codeKey(?string $code): string
+    {
+        return mb_strtoupper(trim((string) $code));
     }
 
     /**
@@ -212,24 +258,32 @@ class ResolveInquiryDraft
 
     /**
      * @param  array<string,mixed>  $item
+     * @param  array<string, int>  $clientProductsByCode
      * @param  array<string, Product>  $clientProductsByName
      * @param  array<string, int>  $aliasesByKey
      * @return array<string,mixed>
      */
-    private function resolveItem(array $item, array $clientProductsByName, array $aliasesByKey): array
+    private function resolveItem(array $item, array $clientProductsByCode, array $clientProductsByName, array $aliasesByKey): array
     {
         $matchSource = null;
+        $product = null;
 
         $partNo = trim((string) ($item['part_no'] ?? ''));
-        $product = $partNo !== ''
-            ? Product::where('reference_code', $partNo)
+
+        // Código do cliente primeiro: é específico desta empresa, enquanto o
+        // part_no global pode colidir com o modelo de outro produto.
+        $clientProductId = $partNo !== '' ? ($clientProductsByCode[self::codeKey($partNo)] ?? null) : null;
+        if ($clientProductId !== null) {
+            $product = Product::find($clientProductId);
+            $matchSource = $product !== null ? 'client_code' : null;
+        }
+
+        if ($product === null && $partNo !== '') {
+            $product = Product::where('reference_code', $partNo)
                 ->orWhere('model_number', $partNo)
                 ->orWhere('sku', $partNo)
-                ->first()
-            : null;
-
-        if ($product !== null) {
-            $matchSource = 'part_no';
+                ->first();
+            $matchSource = $product !== null ? 'part_no' : null;
         }
 
         $descriptionKey = NameNormalizer::normalize($item['description'] ?? null);

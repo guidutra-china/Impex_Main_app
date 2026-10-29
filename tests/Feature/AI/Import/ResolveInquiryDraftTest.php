@@ -82,6 +82,54 @@ class ResolveInquiryDraftTest extends TestCase
         $this->assertSame($product->id, $preview['itens'][0]['product_id']);
     }
 
+    public function test_matches_part_no_against_client_external_code(): void
+    {
+        $client = Company::factory()->create(['name' => 'MARANGATU MAQUINARIAS']);
+        $product = Product::factory()->create(['model_number' => '6204-2RS', 'reference_code' => null]);
+        $product->companies()->attach($client->id, ['role' => 'client', 'external_code' => '6204-2RS-KRB']);
+
+        $preview = (new ResolveInquiryDraft($this->suggesterReturning([], throw: true)))->resolve([
+            'cliente' => ['nome' => 'MARANGATU', 'currency_code' => 'USD'],
+            'itens' => [
+                ['part_no' => ' 6204-2rs-krb ', 'description' => 'RULEMAN 20 X 47 X 14MM', 'quantity' => 10000],
+            ],
+        ]);
+
+        $this->assertSame([$product->id, 'client_code'], [$preview['itens'][0]['product_id'], $preview['itens'][0]['match_source']]);
+        $this->assertFalse($this->lastSuggester->called);
+    }
+
+    public function test_client_external_code_wins_over_global_part_number(): void
+    {
+        $client = Company::factory()->create(['name' => 'MARANGATU MAQUINARIAS']);
+        Product::factory()->create(['model_number' => 'ES437']);
+        $clients = Product::factory()->create(['model_number' => 'CA550K1F9X92L']);
+        $clients->companies()->attach($client->id, ['role' => 'client', 'external_code' => 'ES437']);
+
+        $preview = app(ResolveInquiryDraft::class)->resolve([
+            'cliente' => ['nome' => 'MARANGATU', 'currency_code' => 'USD'],
+            'itens' => [['part_no' => 'ES437', 'description' => 'Esteira', 'quantity' => 1]],
+        ]);
+
+        $this->assertSame([$clients->id, 'client_code'], [$preview['itens'][0]['product_id'], $preview['itens'][0]['match_source']]);
+    }
+
+    public function test_ambiguous_client_external_code_falls_back_to_global_part_number(): void
+    {
+        $client = Company::factory()->create(['name' => 'MARANGATU MAQUINARIAS']);
+        foreach ([1, 2] as $_) {
+            Product::factory()->create()->companies()->attach($client->id, ['role' => 'client', 'external_code' => 'KIT-1']);
+        }
+        $global = Product::factory()->create(['model_number' => 'KIT-1']);
+
+        $preview = app(ResolveInquiryDraft::class)->resolve([
+            'cliente' => ['nome' => 'MARANGATU', 'currency_code' => 'USD'],
+            'itens' => [['part_no' => 'KIT-1', 'description' => 'Kit', 'quantity' => 1]],
+        ]);
+
+        $this->assertSame([$global->id, 'part_no'], [$preview['itens'][0]['product_id'], $preview['itens'][0]['match_source']]);
+    }
+
     public function test_unknown_client_is_marked_new(): void
     {
         $preview = app(ResolveInquiryDraft::class)->resolve([
