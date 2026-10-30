@@ -185,4 +185,11 @@ return [
     'fx_rates_updated_title' => 'Câmbio atualizado',
     'fx_rates_updated_body' => ':updated item(ns) atualizado(s), :skipped ignorado(s) (sem taxa disponível)',
     'allocation_conversion_incomplete' => 'Dados de alocação incompletos',
+    'supplier_response_status_not_allowed' => 'Não é possível importar resposta do fornecedor numa cotação com status :status.',
+    'supplier_response_currency_mismatch' => 'O documento está em :document, mas a cotação está em :quotation.',
+    'supplier_response_foreign_item' => 'Uma das linhas não pertence a esta cotação.',
+    'supplier_response_imported_note' => 'Resposta do fornecedor importada (:file)',
+    'supplier_response_applied' => ':count preço(s) aplicado(s) em :reference',
+    'supplier_response_extraction_failed' => 'Não foi possível ler a resposta do fornecedor',
+    'supplier_response_invalid_file' => 'Arquivo inválido. Envie a resposta novamente.',
 ];

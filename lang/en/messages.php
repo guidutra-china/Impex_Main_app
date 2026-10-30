@@ -187,4 +187,11 @@ return [
     'fx_rates_updated_title' => 'Exchange rates updated',
     'fx_rates_updated_body' => ':updated item(s) updated, :skipped skipped (no rate available)',
     'allocation_conversion_incomplete' => 'Incomplete allocation data',
+    'supplier_response_status_not_allowed' => 'A supplier response cannot be imported into a quotation with status :status.',
+    'supplier_response_currency_mismatch' => 'The document is in :document but the quotation is in :quotation.',
+    'supplier_response_foreign_item' => 'A line does not belong to this quotation.',
+    'supplier_response_imported_note' => 'Supplier response imported (:file)',
+    'supplier_response_applied' => ':count price(s) applied to :reference',
+    'supplier_response_extraction_failed' => 'Could not read the supplier response',
+    'supplier_response_invalid_file' => 'Invalid file. Upload the response again.',
 ];

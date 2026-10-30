@@ -2,9 +2,16 @@
 
 namespace App\Filament\Resources\SupplierQuotations\RelationManagers;
 
+use Anthropic\Core\Exceptions\AnthropicException;
+use App\Domain\AI\Import\DocumentExtractor;
+use App\Domain\AI\Import\DraftExtractor;
+use App\Domain\AI\Import\Exceptions\ExtractionFailedException;
+use App\Domain\AI\Import\Exceptions\UnsupportedDocumentException;
+use App\Domain\AI\Import\Targets\SupplierQuotationResponseTarget;
 use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Infrastructure\Support\Money;
+use App\Domain\SupplierQuotations\Actions\ApplySupplierQuotationResponseAction;
 use App\Domain\SupplierQuotations\Models\SupplierQuotationItem;
 use App\Filament\Actions\PasteItemsFromSpreadsheetAction;
 use Filament\Actions\Action;
@@ -13,18 +20,28 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Width;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\HtmlString;
 
 class ItemsRelationManager extends RelationManager
 {
@@ -300,6 +317,7 @@ class ItemsRelationManager extends RelationManager
                         }
                     }),
                 PasteItemsFromSpreadsheetAction::forSupplierQuotationItems(),
+                $this->importSupplierResponseAction(),
             ])
             ->recordActions([
                 EditAction::make()
@@ -325,5 +343,197 @@ class ItemsRelationManager extends RelationManager
         $unitCost = (float) ($get('unit_cost') ?? 0);
         $total = $quantity * $unitCost;
         $set('total_cost', number_format($total, 4, '.', ''));
+    }
+
+    /**
+     * Passo 1: sobe a resposta do fornecedor e extrai com IA casando com as
+     * nossas linhas. Nada é gravado aqui — o resultado abre o passo 2 (revisão).
+     */
+    protected function importSupplierResponseAction(): Action
+    {
+        return Action::make('importSupplierResponse')
+            ->label(__('forms.labels.import_supplier_response'))
+            ->icon('heroicon-o-sparkles')
+            ->color('primary')
+            ->visible(fn () => (auth()->user()?->can('edit-supplier-quotations') ?? false)
+                && (auth()->user()?->can('view-assistant') ?? false)
+                && in_array($this->getOwnerRecord()->status, ApplySupplierQuotationResponseAction::ALLOWED_STATUSES, true)
+                && $this->getOwnerRecord()->items()->exists())
+            ->modalHeading(__('forms.labels.import_supplier_response'))
+            ->modalSubmitActionLabel(__('assistant.import_with_ai'))
+            ->schema([
+                FileUpload::make('file')
+                    ->label(__('forms.labels.supplier_response_file'))
+                    ->disk('local')
+                    ->directory(fn () => 'ai-imports/'.uniqid('resp_'))
+                    ->storeFileNamesIn('file_name')
+                    ->acceptedFileTypes([
+                        'application/pdf',
+                        'application/vnd.ms-excel',
+                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    ])
+                    ->maxSize(51200)
+                    ->required()
+                    ->helperText(__('forms.helpers.supplier_response_file')),
+                Hidden::make('file_name'),
+            ])
+            ->action(function (array $data) {
+                $relativePath = (string) $data['file'];
+
+                try {
+                    $target = new SupplierQuotationResponseTarget($this->getOwnerRecord());
+                    $blocks = app(DocumentExtractor::class)->toContentBlocks(Storage::disk('local')->path($relativePath));
+                    $preview = $target->resolve(app(DraftExtractor::class)->extract($target, $blocks));
+                } catch (UnsupportedDocumentException|ExtractionFailedException $e) {
+                    $this->failSupplierResponse($relativePath, $e->getMessage());
+
+                    return;
+                } catch (AnthropicException $e) {
+                    report($e);
+                    $this->failSupplierResponse($relativePath, __('assistant.connection_failed'));
+
+                    return;
+                } catch (\Throwable $e) {
+                    report($e);
+                    $this->failSupplierResponse($relativePath, __('assistant.process_error'));
+
+                    return;
+                }
+
+                $this->replaceMountedAction('reviewSupplierResponse', [
+                    'file' => $relativePath,
+                    'file_name' => (string) ($data['file_name'] ?? basename($relativePath)),
+                    'preview' => $preview,
+                ]);
+            });
+    }
+
+    /**
+     * Passo 2: revisão editável das NOSSAS linhas com o que foi lido. Só aqui a
+     * resposta é gravada (documento + preços + status).
+     */
+    public function reviewSupplierResponseAction(): Action
+    {
+        return Action::make('reviewSupplierResponse')
+            ->modalHeading(__('forms.labels.review_supplier_response'))
+            ->modalWidth(Width::SevenExtraLarge)
+            ->modalSubmitActionLabel(__('forms.labels.apply_supplier_response'))
+            ->fillForm(fn (array $arguments) => (new SupplierQuotationResponseTarget($this->getOwnerRecord()))
+                ->buildForm($arguments['preview'], []))
+            ->schema(fn (array $arguments) => [
+                Placeholder::make('summary')
+                    ->hiddenLabel()
+                    ->content(fn () => $this->supplierResponseSummary($arguments['preview'])),
+                Section::make()
+                    ->description(__('forms.helpers.supplier_response_header'))
+                    ->columns(5)
+                    ->schema([
+                        Hidden::make('cabecalho.currency_code'),
+                        TextInput::make('cabecalho.supplier_reference')->label(__('forms.labels.supplier_ref')),
+                        DatePicker::make('cabecalho.valid_until')->label(__('forms.labels.valid_until')),
+                        TextInput::make('cabecalho.lead_time_days')->label(__('forms.labels.lead_time_days'))->numeric()->minValue(0),
+                        TextInput::make('cabecalho.moq')->label(__('forms.labels.moq'))->numeric()->minValue(0),
+                        TextInput::make('cabecalho.incoterm')->label(__('forms.labels.incoterm')),
+                    ]),
+                Repeater::make('linhas')
+                    ->hiddenLabel()
+                    ->table([
+                        TableColumn::make(__('forms.labels.description'))->width('26%'),
+                        TableColumn::make(__('forms.labels.quantity'))->width('11%'),
+                        TableColumn::make(__('forms.labels.document_line'))->width('20%'),
+                        TableColumn::make(__('forms.labels.unit_cost').' ('.$this->getOwnerRecord()->currency_code.')')->width('11%'),
+                        TableColumn::make(__('forms.labels.moq'))->width('8%'),
+                        TableColumn::make(__('forms.labels.lead_time_days'))->width('9%'),
+                        TableColumn::make(__('forms.labels.notes'))->width('15%'),
+                    ])
+                    ->schema([
+                        Hidden::make('sq_item_id'),
+                        TextInput::make('description')->disabled()->dehydrated(false)
+                            ->extraInputAttributes(fn (?string $state) => ['title' => $state]),
+                        TextInput::make('quantity')->disabled()->dehydrated(false),
+                        TextInput::make('source')->disabled()->dehydrated(false)->placeholder('—')
+                            ->extraInputAttributes(fn (?string $state) => ['title' => $state]),
+                        TextInput::make('unit_cost')->numeric()->minValue(0)->step('0.0001'),
+                        TextInput::make('moq')->numeric()->minValue(0),
+                        TextInput::make('lead_time_days')->numeric()->minValue(0),
+                        TextInput::make('notes'),
+                    ])
+                    ->addable(false)
+                    ->deletable(false)
+                    ->reorderable(false),
+            ])
+            ->action(function (array $data, array $arguments, Action $action) {
+                $base = realpath(Storage::disk('local')->path('ai-imports'));
+                $real = realpath(Storage::disk('local')->path((string) ($arguments['file'] ?? '')));
+                if ($base === false || $real === false || ! str_starts_with($real, $base.DIRECTORY_SEPARATOR)) {
+                    Notification::make()->title(__('messages.supplier_response_invalid_file'))->danger()->send();
+
+                    return;
+                }
+
+                try {
+                    $result = app(ApplySupplierQuotationResponseAction::class)(
+                        $this->getOwnerRecord(),
+                        $data['linhas'] ?? [],
+                        $data['cabecalho'] ?? [],
+                        auth()->user(),
+                        $real,
+                        (string) ($arguments['file_name'] ?? basename($real)),
+                    );
+                } catch (\InvalidArgumentException|\Illuminate\Auth\Access\AuthorizationException $e) {
+                    Notification::make()->title($e->getMessage() ?: __('messages.import_failed'))->danger()->send();
+                    $action->halt(); // mantém a revisão aberta para corrigir
+                }
+
+                Storage::disk('local')->deleteDirectory(dirname((string) $arguments['file']));
+
+                Notification::make()
+                    ->title(__('messages.supplier_response_applied', [
+                        'count' => $result['updated'],
+                        'reference' => $this->getOwnerRecord()->reference,
+                    ]))
+                    ->success()
+                    ->send();
+
+                // Status e cabeçalho mudaram: a página dona precisa refletir.
+                $this->redirect($this->pageClass::getUrl(['record' => $this->getOwnerRecord()]));
+            });
+    }
+
+    private function failSupplierResponse(string $relativePath, string $message): void
+    {
+        Storage::disk('local')->deleteDirectory(dirname($relativePath));
+
+        Notification::make()
+            ->title(__('messages.supplier_response_extraction_failed'))
+            ->body($message)
+            ->danger()
+            ->send();
+    }
+
+    /** @param  array<string,mixed>  $preview */
+    private function supplierResponseSummary(array $preview): HtmlString
+    {
+        $lines = [e(__('forms.helpers.supplier_response_summary', [
+            'quoted' => $preview['resumo']['cotados'] ?? 0,
+            'total' => count($preview['linhas'] ?? []),
+        ]))];
+
+        if ($preview['currency_mismatch'] ?? false) {
+            $lines[] = '<span style="color: rgb(220 38 38); font-weight: 600">'.e(__('forms.helpers.supplier_response_currency_mismatch', [
+                'document' => $preview['cabecalho']['currency_code'] ?? '?',
+                'quotation' => $this->getOwnerRecord()->currency_code,
+            ])).'</span>';
+        }
+
+        $unmatched = array_filter($preview['nao_casados'] ?? [], fn ($row) => filled($row['descricao'] ?? null));
+        if ($unmatched !== []) {
+            $lines[] = e(__('forms.helpers.supplier_response_unmatched')).'<ul style="list-style: disc; margin-left: 1.25rem">'
+                .implode('', array_map(fn ($row) => '<li>'.e($row['descricao'])
+                    .(filled($row['valor'] ?? null) ? ' — '.e((string) $row['valor']) : '').'</li>', $unmatched))
+                .'</ul>';
+        }
+
+        return new HtmlString(implode('<br>', $lines));
     }
 }

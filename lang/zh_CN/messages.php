@@ -175,4 +175,11 @@ return [
     'fx_rates_updated_title' => '汇率已更新',
     'fx_rates_updated_body' => '已更新 :updated 项，跳过 :skipped 项（无可用汇率）',
     'allocation_conversion_incomplete' => '分摊数据不完整',
+    'supplier_response_status_not_allowed' => '状态为 :status 的报价单不能导入供应商回复。',
+    'supplier_response_currency_mismatch' => '文件币种为 :document，但报价单币种为 :quotation。',
+    'supplier_response_foreign_item' => '有一行不属于本报价单。',
+    'supplier_response_imported_note' => '已导入供应商回复 (:file)',
+    'supplier_response_applied' => '已在 :reference 应用 :count 个价格',
+    'supplier_response_extraction_failed' => '无法读取供应商回复',
+    'supplier_response_invalid_file' => '文件无效，请重新上传回复。',
 ];
