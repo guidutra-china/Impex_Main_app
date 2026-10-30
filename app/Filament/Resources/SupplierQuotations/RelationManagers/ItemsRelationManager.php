@@ -269,7 +269,9 @@ class ItemsRelationManager extends RelationManager
                         \Filament\Forms\Components\Toggle::make('include_target_price')
                             ->label('Include Target Price')
                             ->helperText('Pre-fill unit cost with the target price from the inquiry (if available)')
-                            ->default(true),
+                            // Desligado: o alvo é do cliente, não custo do fornecedor
+                            // (mesma regra do Request Supplier Quotation).
+                            ->default(false),
                     ])
                     ->modalHeading('Import Items from Inquiry')
                     ->modalDescription('This will copy all items from the linked inquiry into this supplier quotation.')
