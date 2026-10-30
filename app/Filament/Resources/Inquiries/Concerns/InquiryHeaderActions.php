@@ -30,6 +30,7 @@ use App\Filament\Resources\ProformaInvoices\ProformaInvoiceResource;
 use App\Filament\Resources\Quotations\QuotationResource;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -169,6 +170,18 @@ trait InquiryHeaderActions
                     ->searchable()
                     ->required()
                     ->helperText(__('forms.helpers.select_one_or_more_suppliers_to_request_quotations_from')),
+                CheckboxList::make('inquiry_item_ids')
+                    ->label(__('forms.labels.items_to_quote'))
+                    ->options(fn () => $this->record->items()->orderBy('sort_order')->orderBy('id')->get()
+                        ->mapWithKeys(fn ($item) => [
+                            (string) $item->id => mb_strimwidth((string) $item->description, 0, 80, '…')
+                                .' — '.rtrim(rtrim(number_format((float) $item->quantity, 2, '.', ''), '0'), '.').' '.$item->unit,
+                        ]))
+                    ->default(fn () => $this->record->items()->pluck('id')->map(fn ($id) => (string) $id)->all())
+                    ->bulkToggleable()
+                    ->searchable()
+                    ->required()
+                    ->helperText(__('forms.helpers.select_items_to_quote')),
             ])
             ->action(function (array $data) {
                 try {
@@ -176,6 +189,8 @@ trait InquiryHeaderActions
                     $updated = [];
                     DB::transaction(function () use ($data, &$created, &$updated) {
                         $inquiry = Inquiry::lockForUpdate()->findOrFail($this->record->id);
+                        $selectedIds = array_map('intval', $data['inquiry_item_ids'] ?? []);
+                        $selectedItems = $inquiry->items->whereIn('id', $selectedIds);
 
                         foreach ($data['company_ids'] as $companyId) {
                             $existing = SupplierQuotation::where('inquiry_id', $inquiry->id)
@@ -184,7 +199,7 @@ trait InquiryHeaderActions
                                 ->first();
 
                             if ($existing) {
-                                $this->syncRfqItems($existing, $inquiry);
+                                $this->syncRfqItems($existing, $inquiry, $selectedItems);
                                 $updated[] = $existing->reference.' ('.Company::find($companyId)->name.')';
                             } else {
                                 $sq = SupplierQuotation::create([
@@ -198,7 +213,7 @@ trait InquiryHeaderActions
                                         ?? $inquiry->responsible_user_id,
                                 ]);
 
-                                foreach ($inquiry->items as $item) {
+                                foreach ($selectedItems as $item) {
                                     $unitCost = $this->resolveSupplierCost($item, $companyId);
 
                                     SupplierQuotationItem::create([
@@ -256,14 +271,26 @@ trait InquiryHeaderActions
             });
     }
 
-    protected function syncRfqItems(SupplierQuotation $sq, Inquiry $inquiry): void
+    /**
+     * Refreshes the items already on the RFQ and adds the newly selected ones.
+     * Items the user did not select this time stay as they are — a supplier
+     * keeps what it was asked before; only lines whose inquiry item no longer
+     * exists are removed.
+     *
+     * @param  \Illuminate\Support\Collection<int, \App\Domain\Inquiries\Models\InquiryItem>  $selectedItems
+     */
+    protected function syncRfqItems(SupplierQuotation $sq, Inquiry $inquiry, \Illuminate\Support\Collection $selectedItems): void
     {
         $existingItemsByInquiryItemId = $sq->items->keyBy('inquiry_item_id');
         $inquiryItemIds = $inquiry->items->pluck('id')->toArray();
 
         $sq->items()->whereNotIn('inquiry_item_id', $inquiryItemIds)->delete();
 
-        foreach ($inquiry->items as $item) {
+        $toSync = $inquiry->items->filter(
+            fn ($item) => $existingItemsByInquiryItemId->has($item->id) || $selectedItems->contains('id', $item->id)
+        );
+
+        foreach ($toSync as $item) {
             $existing = $existingItemsByInquiryItemId->get($item->id);
 
             if ($existing) {
@@ -295,12 +322,14 @@ trait InquiryHeaderActions
         }
     }
 
+    /**
+     * Supplier cost seed for an RFQ line: the price already agreed with this
+     * supplier (pivot), else zero. Never the inquiry target price — that is
+     * the client's target, not a supplier cost, and seeding it made requested
+     * SQs look quoted.
+     */
     protected function resolveSupplierCost($inquiryItem, int $supplierId): int
     {
-        if (($inquiryItem->target_price ?? 0) > 0) {
-            return $inquiryItem->target_price;
-        }
-
         if ($inquiryItem->product_id) {
             $pivot = CompanyProduct::where('product_id', $inquiryItem->product_id)
                 ->where('company_id', $supplierId)
