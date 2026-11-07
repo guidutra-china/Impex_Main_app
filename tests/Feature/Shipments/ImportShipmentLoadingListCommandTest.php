@@ -457,6 +457,75 @@ class ImportShipmentLoadingListCommandTest extends TestCase
         $this->assertSame(4, $content->pieces);
     }
 
+    public function test_a_content_may_name_the_proforma_invoice_when_the_description_repeats_across_pis(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['__NOCODE__' => 4]);
+        $first = $items['__NOCODE__'];
+        $first->proformaInvoiceItem->update(['description' => 'Weight plate 10kg']);
+        $first->proformaInvoiceItem->product->update(['reference_code' => null]);
+
+        // A mesma descrição numa segunda PI do mesmo embarque.
+        $otherPi = $first->proformaInvoiceItem->proformaInvoice->replicate();
+        $otherPi->reference = 'PI-LL-'.uniqid();
+        $otherPi->save();
+        $otherPiItem = ProformaInvoiceItem::create([
+            'proforma_invoice_id' => $otherPi->id,
+            'product_id' => $first->proformaInvoiceItem->product_id,
+            'description' => 'Weight plate 10kg',
+            'quantity' => 2,
+            'unit_price' => 100000,
+            'unit' => 'pcs',
+        ]);
+        $second = ShipmentItem::create([
+            'shipment_id' => $shipment->id,
+            'proforma_invoice_item_id' => $otherPiItem->id,
+            'quantity' => 2,
+            'sort_order' => 99,
+        ]);
+
+        // O 1º volume é da SEGUNDA PI: sem a PI no arquivo, ele encheria o 1º item.
+        $pallet = fn (string $pi, int $pieces) => [
+            'type' => 'pallet', 'gross_weight' => 100.0, 'net_weight' => 90.0, 'volume' => 1.0,
+            'contents' => [['description' => 'Weight plate 10kg', 'proforma_invoice' => $pi, 'pieces' => $pieces]],
+        ];
+        $this->file = tempnam(sys_get_temp_dir(), 'll').'.json';
+        file_put_contents($this->file, json_encode([
+            'shipment' => $shipment->reference,
+            'containers' => [[
+                'label' => 'CONT-001', 'container_number' => 'HMMU1111111', 'type' => '40HQ', 'sort_order' => 1,
+                'packages' => [$pallet($otherPi->reference, 2), $pallet($first->proformaInvoiceItem->proformaInvoice->reference, 4)],
+            ]],
+        ]));
+
+        $this->artisan("shipments:import-loading-list {$this->file} --apply")->assertSuccessful();
+
+        $cartons = Carton::where('shipment_id', $shipment->id)->orderBy('sort_order')->get();
+        $this->assertSame([$second->id], $cartons[0]->contents()->pluck('shipment_item_id')->all());
+        $this->assertSame([$first->id], $cartons[1]->contents()->pluck('shipment_item_id')->all());
+    }
+
+    public function test_aborts_when_the_named_proforma_invoice_has_no_item_with_that_description(): void
+    {
+        [$shipment, $items] = $this->makeShipment(['__NOCODE__' => 4]);
+        $items['__NOCODE__']->proformaInvoiceItem->update(['description' => 'Weight plate 10kg']);
+        $items['__NOCODE__']->proformaInvoiceItem->product->update(['reference_code' => null]);
+
+        $this->file = tempnam(sys_get_temp_dir(), 'll').'.json';
+        file_put_contents($this->file, json_encode([
+            'shipment' => $shipment->reference,
+            'containers' => [[
+                'label' => 'CONT-001', 'container_number' => 'HMMU1111111', 'type' => '40HQ', 'sort_order' => 1,
+                'packages' => [[
+                    'type' => 'pallet', 'gross_weight' => 100.0, 'net_weight' => 90.0, 'volume' => 1.0,
+                    'contents' => [['description' => 'Weight plate 10kg', 'proforma_invoice' => 'PI-NOPE', 'pieces' => 4]],
+                ]],
+            ]],
+        ]));
+
+        $this->artisan("shipments:import-loading-list {$this->file} --apply")->assertFailed();
+        $this->assertSame(0, Carton::where('shipment_id', $shipment->id)->count());
+    }
+
     public function test_one_package_can_hold_several_items_and_their_weights_are_left_alone(): void
     {
         [$shipment, $items] = $this->makeShipment(['D905Z' => 2, 'U3050' => 3]);

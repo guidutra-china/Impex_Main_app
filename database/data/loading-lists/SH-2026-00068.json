@@ -1,0 +1,3752 @@
+{
+    "shipment": "SH-2026-00068",
+    "source": "LWSS26258.xls (loading list do despachante = HBL LWSCN26258) + PLs LWSS26258A/B/C/D/D-1/E + JGYAN-20260722-PL.xls",
+    "notes": [
+        "Pesos e cubagens escalados por fornecedor em cada contêiner para fechar o loading list do despachante, que soma o HBL.",
+        "JG: divisão OOCU × CAAU estimada (a JG não tem a lista por contêiner): CAAU = PI-2026-00096 + 24 volumes da PI-2026-00076.",
+        "Yangrun: líquido = bruto − 30 kg por pallet (o documento não traz líquido); pallets 5 e 13 (\"acessórios\") receberam o resto da PI-2026-00063.",
+        "DHZ: packing list sem linhas (#REF!); bruto e cubagem por peça do cadastro, escalados."
+    ],
+    "containers": [
+        {
+            "label": "CONT-001",
+            "container_number": "CSGU7464107",
+            "type": "40HQ",
+            "seal_number": "CY396841",
+            "sort_order": 1,
+            "declared": {
+                "packages": 48,
+                "gross_weight": 18996,
+                "volume": 54.476
+            },
+            "packages": [
+                {
+                    "type": "carton",
+                    "gross_weight": 160.751,
+                    "net_weight": 134.554,
+                    "volume": 0.938735,
+                    "notes": "DHZ26080401",
+                    "contents": [
+                        {
+                            "model": "D905Z",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 160.751,
+                    "net_weight": 134.554,
+                    "volume": 0.938735,
+                    "notes": "DHZ26080401",
+                    "contents": [
+                        {
+                            "model": "D905Z",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 160.751,
+                    "net_weight": 134.554,
+                    "volume": 0.938735,
+                    "notes": "DHZ26080401",
+                    "contents": [
+                        {
+                            "model": "D905Z",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 160.751,
+                    "net_weight": 134.554,
+                    "volume": 0.938735,
+                    "notes": "DHZ26080401",
+                    "contents": [
+                        {
+                            "model": "D905Z",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 202.73,
+                    "net_weight": 169.693,
+                    "volume": 0.838943,
+                    "notes": "DHZ26080401",
+                    "contents": [
+                        {
+                            "model": "D920Z",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 202.73,
+                    "net_weight": 169.693,
+                    "volume": 0.838943,
+                    "notes": "DHZ26080401",
+                    "contents": [
+                        {
+                            "model": "D920Z",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 202.73,
+                    "net_weight": 169.693,
+                    "volume": 0.838943,
+                    "notes": "DHZ26080401",
+                    "contents": [
+                        {
+                            "model": "D920Z",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 202.73,
+                    "net_weight": 169.693,
+                    "volume": 0.838943,
+                    "notes": "DHZ26080401",
+                    "contents": [
+                        {
+                            "model": "D920Z",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 184.3,
+                    "net_weight": 154.266,
+                    "volume": 1.264833,
+                    "notes": "DHZ26080401",
+                    "contents": [
+                        {
+                            "model": "D930Z",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 36.86,
+                    "net_weight": 30.853,
+                    "volume": 0.151508,
+                    "notes": "DHZ26080401",
+                    "contents": [
+                        {
+                            "model": "U3036",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 36.86,
+                    "net_weight": 30.853,
+                    "volume": 0.151508,
+                    "notes": "DHZ26080401",
+                    "contents": [
+                        {
+                            "model": "U3036",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 36.86,
+                    "net_weight": 30.853,
+                    "volume": 0.151508,
+                    "notes": "DHZ26080401",
+                    "contents": [
+                        {
+                            "model": "U3036",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 26.621,
+                    "net_weight": 22.283,
+                    "volume": 0.094326,
+                    "notes": "DHZ26080401",
+                    "contents": [
+                        {
+                            "model": "U3039",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 26.621,
+                    "net_weight": 22.283,
+                    "volume": 0.094326,
+                    "notes": "DHZ26080401",
+                    "contents": [
+                        {
+                            "model": "U3039",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 26.621,
+                    "net_weight": 22.283,
+                    "volume": 0.094326,
+                    "notes": "DHZ26080401",
+                    "contents": [
+                        {
+                            "model": "U3039",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 26.621,
+                    "net_weight": 22.283,
+                    "volume": 0.094326,
+                    "notes": "DHZ26080401",
+                    "contents": [
+                        {
+                            "model": "U3039",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 109.556,
+                    "net_weight": 91.703,
+                    "volume": 0.440925,
+                    "notes": "DHZ26080401",
+                    "contents": [
+                        {
+                            "model": "U3038",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 109.556,
+                    "net_weight": 91.703,
+                    "volume": 0.440925,
+                    "notes": "DHZ26080401",
+                    "contents": [
+                        {
+                            "model": "U3038",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 62.457,
+                    "net_weight": 52.279,
+                    "volume": 0.37112,
+                    "notes": "DHZ26080401",
+                    "contents": [
+                        {
+                            "model": "A602",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 239.59,
+                    "net_weight": 200.546,
+                    "volume": 1.353475,
+                    "notes": "DHZ26080401",
+                    "contents": [
+                        {
+                            "model": "U3045",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 239.59,
+                    "net_weight": 200.546,
+                    "volume": 1.353475,
+                    "notes": "DHZ26080401",
+                    "contents": [
+                        {
+                            "model": "U3045",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 83.963,
+                    "net_weight": 70.278,
+                    "volume": 3.277707,
+                    "notes": "DHZ26080401",
+                    "contents": [
+                        {
+                            "model": "U3041",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1255.803,
+                    "net_weight": 1226.37,
+                    "volume": 1.150161,
+                    "notes": "Yangrun 托盘 1: 六角哑铃 1–10kg ×20",
+                    "contents": [
+                        {
+                            "description": "Hexagonal Dumbbell 10kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 20
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 9kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 20
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 8kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 20
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 7kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 20
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 6kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 20
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 5kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 20
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 4kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 20
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 3kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 20
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 2kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 20
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 1kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 20
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 981.096,
+                    "net_weight": 951.663,
+                    "volume": 1.307001,
+                    "notes": "Yangrun 托盘 5: 能量包 5/10/15/20kg ×10, 下拉弹力绳套装, 一体档杆, 战绳 ×8",
+                    "contents": [
+                        {
+                            "description": "Power bag / saco de peso para treino, cor preta — 5kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "Power bag / saco de peso para treino, cor preta — 10kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "Power bag / saco de peso para treino, cor preta — 15kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "Power bag / saco de peso para treino, cor preta — 20kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "Kit de suspensão / suspension trainer com alças amarelas",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 20
+                        },
+                        {
+                            "description": "Par de barras curtas para halteres, cromadas",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 20
+                        },
+                        {
+                            "description": "Corda naval / battle rope preta",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 8
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1079.205,
+                    "net_weight": 1049.772,
+                    "volume": 0.963945,
+                    "notes": "Yangrun 托盘 6: 壶铃 8/10/12/20kg ×20",
+                    "contents": [
+                        {
+                            "description": "Cast Iron Painted Kettlebell — 8kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 20
+                        },
+                        {
+                            "description": "Cast Iron Painted Kettlebell — 10kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 20
+                        },
+                        {
+                            "description": "Cast Iron Painted Kettlebell — 12kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 20
+                        },
+                        {
+                            "description": "Cast Iron Painted Kettlebell — 20kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 20
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 196.219,
+                    "net_weight": 166.786,
+                    "volume": 1.424009,
+                    "notes": "Yangrun 托盘 7: 木架 ×10, 蹦床 ×10",
+                    "contents": [
+                        {
+                            "description": "Espaldar / wall bar de madeira",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "Cama elástica / trampolim de fitness redondo, borda azul",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 10
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 981.096,
+                    "net_weight": 951.663,
+                    "volume": 0.858887,
+                    "notes": "Yangrun 托盘 8: 壶铃 16kg ×20, 28kg ×10, 32kg ×10",
+                    "contents": [
+                        {
+                            "description": "Cast Iron Painted Kettlebell — 16kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 20
+                        },
+                        {
+                            "description": "Cast Iron Painted Kettlebell — 28kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "Cast Iron Painted Kettlebell — 32kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 10
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 313.951,
+                    "net_weight": 284.518,
+                    "volume": 2.62894,
+                    "notes": "Yangrun 托盘 9: A型哑铃架 ×5, 双层哑铃架 ×5, 杠铃架 ×1",
+                    "contents": [
+                        {
+                            "description": "Vertical Dumbbell Rack",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 5
+                        },
+                        {
+                            "description": "Dumbell Rack",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 5
+                        },
+                        {
+                            "description": "Rack / suporte para barras",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 196.219,
+                    "net_weight": 166.786,
+                    "volume": 1.304512,
+                    "notes": "Yangrun 托盘 10: 药球 4/6/8kg ×10",
+                    "contents": [
+                        {
+                            "description": "Wall ball / slam ball preta com marcação de peso — 4kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "Wall ball / slam ball preta com marcação de peso — 6kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "Wall ball / slam ball preta com marcação de peso — 8kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 10
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 981.096,
+                    "net_weight": 951.663,
+                    "volume": 1.911956,
+                    "notes": "Yangrun 托盘 11: 球 6kg ×50, 4kg ×3, 8kg ×2, 瑜伽球",
+                    "contents": [
+                        {
+                            "description": "Medicine ball com pegada de borracha, cor azul — 6kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 50
+                        },
+                        {
+                            "description": "Medicine ball com pegada de borracha, cor azul — 4kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 3
+                        },
+                        {
+                            "description": "Medicine ball com pegada de borracha, cor azul — 8kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 2
+                        },
+                        {
+                            "description": "Bola de ginástica / gym ball cinza — 650mm",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 20
+                        },
+                        {
+                            "description": "Bola de ginástica / gym ball cinza — 750mm",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 20
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 588.657,
+                    "net_weight": 559.225,
+                    "volume": 1.344344,
+                    "notes": "Yangrun 托盘 12: 杠铃杆 2.2m ×10, 1.2m ×5, 1.8m ×10, 1.5m ×10",
+                    "contents": [
+                        {
+                            "description": "2.2m Olympic Bearing Barbell Bar",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "1.2m Bearing Barbell Bar",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 5
+                        },
+                        {
+                            "description": "Barra Reta 1,8m",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "1.5m Olympic Bearing Barbell Bar",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 10
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 294.329,
+                    "net_weight": 264.896,
+                    "volume": 0.936062,
+                    "notes": "Yangrun 托盘 13: 配件: 手把件, 下拉绳配件, 把手配件, W型杆拉手",
+                    "contents": [
+                        {
+                            "description": "Barra/pegador triangular para puxador de metal",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "Double-ended rope (puxador de corda com duas alças)",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 20
+                        },
+                        {
+                            "description": "Conjunto de pegadores/handles para cabo em aço",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "Puxador triangular V-bar cromado para cabo",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 20
+                        },
+                        {
+                            "description": "Barra \"W\" para Puxador",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 5
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 392.438,
+                    "net_weight": 363.005,
+                    "volume": 1.289276,
+                    "notes": "Yangrun 托盘 14: 药球 6/8/10/12kg ×10, 平衡盘 ×20",
+                    "contents": [
+                        {
+                            "description": "Wall ball / medicine ball com textura, cor cinza — 6kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "Wall ball / medicine ball com textura, cor cinza — 8kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "Wall ball / medicine ball com textura, cor cinza — 10kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "Wall ball / medicine ball com textura, cor cinza — 12kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "Disco de equilíbrio / balance board preto",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 20
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 392.438,
+                    "net_weight": 363.005,
+                    "volume": 1.363165,
+                    "notes": "Yangrun 托盘 15: 球 8kg ×48",
+                    "contents": [
+                        {
+                            "description": "Medicine ball com pegada de borracha, cor azul — 8kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 48
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 686.767,
+                    "net_weight": 657.334,
+                    "volume": 2.240574,
+                    "notes": "Yangrun 托盘 16: 球 4kg ×47, 10kg ×50",
+                    "contents": [
+                        {
+                            "description": "Medicine ball com pegada de borracha, cor azul — 4kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 47
+                        },
+                        {
+                            "description": "Medicine ball com pegada de borracha, cor azul — 10kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 50
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 196.219,
+                    "net_weight": 166.786,
+                    "volume": 1.070695,
+                    "notes": "Yangrun 木箱 17: 木箱 杠铃片挂架",
+                    "contents": [
+                        {
+                            "description": "Estação de treino / equipamento de academia com estrutura em tubo de aço",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 7
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 490.548,
+                    "net_weight": 461.115,
+                    "volume": 2.485543,
+                    "notes": "Yangrun 托盘 18: 姑娘蹲",
+                    "contents": [
+                        {
+                            "description": "Bench-type gym machine (steel frame training bench/machine)",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 10
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 490.548,
+                    "net_weight": 461.115,
+                    "volume": 2.150951,
+                    "notes": "Yangrun 木箱 19: 木箱 杠铃片挂架",
+                    "contents": [
+                        {
+                            "description": "Estação de treino / equipamento de academia com estrutura em tubo de aço",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 15
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1226.37,
+                    "net_weight": 1196.937,
+                    "volume": 0.896229,
+                    "notes": "Yangrun 托盘 20: 圆头哑铃 27.5kg ×9, 30/32.5/35kg ×10",
+                    "contents": [
+                        {
+                            "description": "Dumbbell 27.5kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 9
+                        },
+                        {
+                            "description": "Dumbbell 30kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "Dumbbell 32.5kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "Dumbbell 35kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 10
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1177.315,
+                    "net_weight": 1147.882,
+                    "volume": 1.075475,
+                    "notes": "Yangrun 托盘 21: 圆头哑铃 12.5–25kg ×10, 27.5kg ×1",
+                    "contents": [
+                        {
+                            "description": "Dumbbell 12.5kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "Dumbbell 15kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "Dumbbell 17.5kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "Dumbbell 20kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "Dumbbell 22.5kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "Dumbbell 25kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "Dumbbell 27.5kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 294.329,
+                    "net_weight": 264.896,
+                    "volume": 1.204931,
+                    "notes": "Yangrun 托盘 22: 战绳 ×22, 杠铃 10–30kg ×2",
+                    "contents": [
+                        {
+                            "description": "Corda naval / battle rope preta",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 22
+                        },
+                        {
+                            "description": "barras com anilhas — 10kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 2
+                        },
+                        {
+                            "description": "barras com anilhas — 15kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 2
+                        },
+                        {
+                            "description": "barras com anilhas — 20kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 2
+                        },
+                        {
+                            "description": "barras com anilhas — 25kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 2
+                        },
+                        {
+                            "description": "barras com anilhas — 30kg",
+                            "proforma_invoice": "PI-2026-00063",
+                            "pieces": 2
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 686.767,
+                    "net_weight": 657.334,
+                    "volume": 3.505253,
+                    "notes": "Yangrun 托盘 23: 双层十副哑铃架 ×15",
+                    "contents": [
+                        {
+                            "description": "Dumbell Rack",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 15
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 686.767,
+                    "net_weight": 657.334,
+                    "volume": 1.708811,
+                    "notes": "Yangrun 托盘 24: 杠铃杆 1.2m曲 ×10, 1.2m直 ×10, 2.2m ×40, 1.5m ×20, 小环形 ×5",
+                    "contents": [
+                        {
+                            "description": "W - 1.2 meters Olympic bearing bar",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 15
+                        },
+                        {
+                            "description": "1.2m Bearing Barbell Bar",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 10
+                        },
+                        {
+                            "description": "2.2m Olympic bearing bar",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 40
+                        },
+                        {
+                            "description": "1.5m Olympic bearing bar",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 20
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 196.219,
+                    "net_weight": 166.786,
+                    "volume": 0.547696,
+                    "notes": "Yangrun 托盘 25: A6哑铃架 ×15",
+                    "contents": [
+                        {
+                            "description": "Vertical Dumbbell Rack",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 15
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 882.986,
+                    "net_weight": 853.553,
+                    "volume": 0.876313,
+                    "notes": "Yangrun 托盘 31: 六角哑铃 6/4/9/10kg ×30",
+                    "contents": [
+                        {
+                            "description": "Hexagonal Dumbbell 6kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 30
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 4kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 30
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 9kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 30
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 10kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 30
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 784.877,
+                    "net_weight": 755.444,
+                    "volume": 0.876313,
+                    "notes": "Yangrun 托盘 32: 六角哑铃 8/7/5/3/2/1kg ×30",
+                    "contents": [
+                        {
+                            "description": "Hexagonal Dumbbell 8kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 30
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 7kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 30
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 5kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 30
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 3kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 30
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 2kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 30
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 1kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 30
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 156.975,
+                    "net_weight": 127.542,
+                    "volume": 2.088414,
+                    "notes": "Yangrun 托盘 40: 姑娘蹲 ×5",
+                    "contents": [
+                        {
+                            "description": "Hip thrust / glute drive machine (seated bench)",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 5
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 686.766,
+                    "net_weight": 657.335,
+                    "volume": 0.821544,
+                    "notes": "Yangrun 托盘 49: 六角哑铃 1–10kg ×12",
+                    "contents": [
+                        {
+                            "description": "Hexagonal Dumbbell 3kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 7kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 8kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 5kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 1kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 2kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 6kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 4kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 9kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 12
+                        },
+                        {
+                            "description": "Hexagonal Dumbbell 10kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 12
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "CONT-002",
+            "container_number": "CSGU7414678",
+            "type": "40HQ",
+            "seal_number": "CY396994",
+            "sort_order": 2,
+            "declared": {
+                "packages": 58,
+                "gross_weight": 20824,
+                "volume": 58.144
+            },
+            "packages": [
+                {
+                    "type": "pallet",
+                    "gross_weight": 1535.619,
+                    "net_weight": 1504.906,
+                    "volume": 0.992745,
+                    "notes": "Yangrun 托盘 26: 圆头哑铃 22.5kg ×5, 27.5kg ×23, 30kg ×24",
+                    "contents": [
+                        {
+                            "description": "Dumbbell 22.5kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 5
+                        },
+                        {
+                            "description": "Dumbbell 27.5kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 23
+                        },
+                        {
+                            "description": "Dumbbell 30kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 24
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1740.368,
+                    "net_weight": 1709.656,
+                    "volume": 0.992745,
+                    "notes": "Yangrun 托盘 27: 圆头哑铃 35kg ×30, 20kg ×30",
+                    "contents": [
+                        {
+                            "description": "Dumbbell 35kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 30
+                        },
+                        {
+                            "description": "Dumbbell 20kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 30
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1228.495,
+                    "net_weight": 1197.783,
+                    "volume": 0.992745,
+                    "notes": "Yangrun 托盘 28: 圆头哑铃 22.5kg ×25, 12.5kg ×30, 25kg ×10",
+                    "contents": [
+                        {
+                            "description": "Dumbbell 22.5kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 25
+                        },
+                        {
+                            "description": "Dumbbell 12.5kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 30
+                        },
+                        {
+                            "description": "Dumbbell 25kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 10
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1330.87,
+                    "net_weight": 1300.157,
+                    "volume": 0.992745,
+                    "notes": "Yangrun 托盘 29: 圆头哑铃 25kg ×20, 27.5kg ×7, 15kg ×30, 17.5kg ×7",
+                    "contents": [
+                        {
+                            "description": "Dumbbell 25kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 20
+                        },
+                        {
+                            "description": "Dumbbell 27.5kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 7
+                        },
+                        {
+                            "description": "Dumbbell 15kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 30
+                        },
+                        {
+                            "description": "Dumbbell 17.5kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 7
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1330.87,
+                    "net_weight": 1300.157,
+                    "volume": 0.716982,
+                    "notes": "Yangrun 托盘 33: 悍马片 10kg ×132, 20kg ×2",
+                    "contents": [
+                        {
+                            "description": "Weight plate 10kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 132
+                        },
+                        {
+                            "description": "Weight plate 20kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 2
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1330.87,
+                    "net_weight": 1300.157,
+                    "volume": 0.716982,
+                    "notes": "Yangrun 托盘 34: 悍马片 20kg ×66",
+                    "contents": [
+                        {
+                            "description": "Weight plate 20kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 66
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1535.619,
+                    "net_weight": 1504.906,
+                    "volume": 0.716982,
+                    "notes": "Yangrun 托盘 35: 悍马片 10kg ×156",
+                    "contents": [
+                        {
+                            "description": "Weight plate 10kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 156
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1433.244,
+                    "net_weight": 1402.532,
+                    "volume": 0.716982,
+                    "notes": "Yangrun 托盘 36: 悍马片 10kg ×112, 2.5kg ×120",
+                    "contents": [
+                        {
+                            "description": "Weight plate 10kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 112
+                        },
+                        {
+                            "description": "Weight plate 2.5kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 120
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1279.682,
+                    "net_weight": 1248.97,
+                    "volume": 0.716982,
+                    "notes": "Yangrun 托盘 37: 悍马片 2.5kg ×50, 5kg ×150, 20kg ×18",
+                    "contents": [
+                        {
+                            "description": "Weight plate 2.5kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 50
+                        },
+                        {
+                            "description": "Weight plate 5kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 150
+                        },
+                        {
+                            "description": "Weight plate 20kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 18
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 511.873,
+                    "net_weight": 481.161,
+                    "volume": 0.884446,
+                    "notes": "Yangrun 托盘 41: 杠铃架 ×3, 哑铃架 ×6, 五件套/双头绳/配件",
+                    "contents": [
+                        {
+                            "description": "Rack / suporte para barras",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 3
+                        },
+                        {
+                            "description": "Vertical Dumbbell Rack",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "Conjunto de pegadores/handles para cabo em aço",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 3
+                        },
+                        {
+                            "description": "Double-ended rope (puxador de corda com duas alças)",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "Barra/pegador triangular para puxador de metal",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "Barra \"W\" para Puxador",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 3
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 511.873,
+                    "net_weight": 481.161,
+                    "volume": 1.698697,
+                    "notes": "Yangrun 托盘 42: 哑铃架 ×12件, 杠铃杆 1.2m曲 ×3, 1.2m直 ×6, 2.2m ×6, 1.5m ×10",
+                    "contents": [
+                        {
+                            "description": "Dumbell Rack",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "W - 1.2 meters Olympic bearing bar",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 3
+                        },
+                        {
+                            "description": "1.2m Bearing Barbell Bar",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "2.2m Olympic bearing bar",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "1.5m Olympic bearing bar",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 10
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 870.184,
+                    "net_weight": 839.472,
+                    "volume": 0.716982,
+                    "notes": "Yangrun 托盘 44: 杠铃片 2.5kg ×60, 5kg ×60, 20kg ×19",
+                    "contents": [
+                        {
+                            "description": "Weight plate 2.5kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 60
+                        },
+                        {
+                            "description": "Weight plate 5kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 60
+                        },
+                        {
+                            "description": "Weight plate 20kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 19
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 665.433,
+                    "net_weight": 634.721,
+                    "volume": 0.716985,
+                    "notes": "Yangrun 托盘 46: 固定杠铃 10–30kg ×6 (直、曲各3)",
+                    "contents": [
+                        {
+                            "description": "barras com anilhas — 10kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "barras com anilhas — 15kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "barras com anilhas — 20kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "barras com anilhas — 25kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "barras com anilhas — 30kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 6
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97.0,
+                    "net_weight": 76.0,
+                    "volume": 1.150744,
+                    "notes": "Shengqi 20261021 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97.0,
+                    "net_weight": 76.0,
+                    "volume": 1.150744,
+                    "notes": "Shengqi 20261021 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97.0,
+                    "net_weight": 76.0,
+                    "volume": 1.150744,
+                    "notes": "Shengqi 20261021 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97.0,
+                    "net_weight": 76.0,
+                    "volume": 1.150744,
+                    "notes": "Shengqi 20261021 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97.0,
+                    "net_weight": 76.0,
+                    "volume": 1.150744,
+                    "notes": "Shengqi 20261021 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97.0,
+                    "net_weight": 76.0,
+                    "volume": 1.150744,
+                    "notes": "Shengqi 20261021 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97.0,
+                    "net_weight": 76.0,
+                    "volume": 1.150744,
+                    "notes": "Shengqi 20261021 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97.0,
+                    "net_weight": 76.0,
+                    "volume": 1.150744,
+                    "notes": "Shengqi 20261021 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97.0,
+                    "net_weight": 76.0,
+                    "volume": 1.150744,
+                    "notes": "Shengqi 20261021 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97.0,
+                    "net_weight": 76.0,
+                    "volume": 1.150744,
+                    "notes": "Shengqi 20261021 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97.0,
+                    "net_weight": 76.0,
+                    "volume": 1.150744,
+                    "notes": "Shengqi 20261021 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97.0,
+                    "net_weight": 76.0,
+                    "volume": 1.150744,
+                    "notes": "Shengqi 20261021 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 97.0,
+                    "net_weight": 76.0,
+                    "volume": 1.150744,
+                    "notes": "Shengqi 20261021 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X20",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174.0,
+                    "net_weight": 137.0,
+                    "volume": 1.59509,
+                    "notes": "Shengqi 20261021 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "proforma_invoice": "PI-2026-00109",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174.0,
+                    "net_weight": 137.0,
+                    "volume": 1.59509,
+                    "notes": "Shengqi 20261021 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "proforma_invoice": "PI-2026-00109",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174.0,
+                    "net_weight": 137.0,
+                    "volume": 1.59509,
+                    "notes": "Shengqi 20261021 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "proforma_invoice": "PI-2026-00109",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174.0,
+                    "net_weight": 137.0,
+                    "volume": 1.59509,
+                    "notes": "Shengqi 20261021 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "proforma_invoice": "PI-2026-00109",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174.0,
+                    "net_weight": 137.0,
+                    "volume": 1.59509,
+                    "notes": "Shengqi 20261021 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "proforma_invoice": "PI-2026-00109",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174.0,
+                    "net_weight": 137.0,
+                    "volume": 1.59509,
+                    "notes": "Shengqi 20261021 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "proforma_invoice": "PI-2026-00109",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174.0,
+                    "net_weight": 137.0,
+                    "volume": 1.59509,
+                    "notes": "Shengqi 20261021 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "proforma_invoice": "PI-2026-00109",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174.0,
+                    "net_weight": 137.0,
+                    "volume": 1.59509,
+                    "notes": "Shengqi 20261021 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "proforma_invoice": "PI-2026-00109",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 35.0,
+                    "net_weight": 30.0,
+                    "volume": 0.364592,
+                    "notes": "Shengqi SQ-1043 air rower",
+                    "contents": [
+                        {
+                            "description": "Fitness equipment - remo (rowing machine)",
+                            "proforma_invoice": "PI-2026-00113",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 56.0,
+                    "net_weight": 49.0,
+                    "volume": 0.410166,
+                    "notes": "Shengqi SQ-1033 air bike",
+                    "contents": [
+                        {
+                            "description": "Fitness equipment - air bike",
+                            "proforma_invoice": "PI-2026-00113",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 190.0,
+                    "net_weight": 160.0,
+                    "volume": 1.184924,
+                    "notes": "Shengqi SQ-1005 unpowered treadmill — plywood case",
+                    "contents": [
+                        {
+                            "description": "Fitness equipment - esteira/treadmill",
+                            "proforma_invoice": "PI-2026-00113",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 190.0,
+                    "net_weight": 160.0,
+                    "volume": 1.184926,
+                    "notes": "Shengqi SQ-1005 unpowered treadmill — plywood case",
+                    "contents": [
+                        {
+                            "description": "Fitness equipment - esteira/treadmill",
+                            "proforma_invoice": "PI-2026-00113",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174.0,
+                    "net_weight": 137.0,
+                    "volume": 1.421875,
+                    "notes": "Xuyu PIXY20260727002 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "proforma_invoice": "PI-2026-00071",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174.0,
+                    "net_weight": 137.0,
+                    "volume": 1.421875,
+                    "notes": "Xuyu PIXY20260727002 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "proforma_invoice": "PI-2026-00071",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174.0,
+                    "net_weight": 137.0,
+                    "volume": 1.421875,
+                    "notes": "Xuyu PIXY20260727002 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "proforma_invoice": "PI-2026-00071",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174.0,
+                    "net_weight": 137.0,
+                    "volume": 1.421875,
+                    "notes": "Xuyu PIXY20260727002 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "proforma_invoice": "PI-2026-00071",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 174.0,
+                    "net_weight": 137.0,
+                    "volume": 1.421875,
+                    "notes": "Xuyu PIXY20260727002 — plywood case",
+                    "contents": [
+                        {
+                            "model": "SQ-X17",
+                            "proforma_invoice": "PI-2026-00071",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 335.0,
+                    "net_weight": 310.0,
+                    "volume": 1.472656,
+                    "notes": "Xuyu export pallet (5 bikes)",
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 5
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 268.0,
+                    "net_weight": 248.0,
+                    "volume": 1.178125,
+                    "notes": "Xuyu export pallet (4 bikes)",
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 4
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67.0,
+                    "net_weight": 62.0,
+                    "volume": 0.294531,
+                    "notes": "Xuyu PIXY20260727002 — carton",
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67.0,
+                    "net_weight": 62.0,
+                    "volume": 0.294531,
+                    "notes": "Xuyu PIXY20260727002 — carton",
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67.0,
+                    "net_weight": 62.0,
+                    "volume": 0.294531,
+                    "notes": "Xuyu PIXY20260727002 — carton",
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67.0,
+                    "net_weight": 62.0,
+                    "volume": 0.294531,
+                    "notes": "Xuyu PIXY20260727002 — carton",
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67.0,
+                    "net_weight": 62.0,
+                    "volume": 0.294531,
+                    "notes": "Xuyu PIXY20260727002 — carton",
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67.0,
+                    "net_weight": 62.0,
+                    "volume": 0.294531,
+                    "notes": "Xuyu PIXY20260727002 — carton",
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67.0,
+                    "net_weight": 62.0,
+                    "volume": 0.294531,
+                    "notes": "Xuyu PIXY20260727002 — carton",
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67.0,
+                    "net_weight": 62.0,
+                    "volume": 0.294531,
+                    "notes": "Xuyu PIXY20260727002 — carton",
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67.0,
+                    "net_weight": 62.0,
+                    "volume": 0.294531,
+                    "notes": "Xuyu PIXY20260727002 — carton",
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67.0,
+                    "net_weight": 62.0,
+                    "volume": 0.294531,
+                    "notes": "Xuyu PIXY20260727002 — carton",
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 67.0,
+                    "net_weight": 62.0,
+                    "volume": 0.294534,
+                    "notes": "Xuyu PIXY20260727002 — carton",
+                    "contents": [
+                        {
+                            "model": "SQ-1023",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 85.0,
+                    "net_weight": 57.0,
+                    "volume": 1.20048,
+                    "notes": "Brilliant HSH20260912-1 — A19",
+                    "contents": [
+                        {
+                            "description": "MASSAGE CHAIR - A19B",
+                            "proforma_invoice": "PI-2026-00105",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 100.0,
+                    "net_weight": 70.0,
+                    "volume": 1.50552,
+                    "notes": "Brilliant HSH20260912-1 — SY-5",
+                    "contents": [
+                        {
+                            "description": "MASSAGE CHAIR - WITH COIN",
+                            "proforma_invoice": "PI-2026-00105",
+                            "pieces": 1
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "CONT-003",
+            "container_number": "OOCU9598321",
+            "type": "40HQ",
+            "seal_number": "CY396846",
+            "sort_order": 3,
+            "declared": {
+                "packages": 72,
+                "gross_weight": 17559,
+                "volume": 56.695
+            },
+            "packages": [
+                {
+                    "type": "pallet",
+                    "gross_weight": 1394.983,
+                    "net_weight": 1365.09,
+                    "volume": 0.999474,
+                    "notes": "Yangrun 托盘 2: 悍马十边杠铃片 20kg ×68",
+                    "contents": [
+                        {
+                            "description": "Weight plate 20kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 68
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1494.624,
+                    "net_weight": 1464.732,
+                    "volume": 0.932842,
+                    "notes": "Yangrun 托盘 3: 杠铃片 20kg ×2, 10kg ×144",
+                    "contents": [
+                        {
+                            "description": "Weight plate 20kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 2
+                        },
+                        {
+                            "description": "Weight plate 10kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 144
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1444.803,
+                    "net_weight": 1414.911,
+                    "volume": 0.999474,
+                    "notes": "Yangrun 托盘 4: 杠铃片 10kg ×31, 2.5kg ×50, 5kg ×180",
+                    "contents": [
+                        {
+                            "description": "Weight plate 10kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 31
+                        },
+                        {
+                            "description": "Weight plate 2.5kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 50
+                        },
+                        {
+                            "description": "Weight plate 5kg",
+                            "proforma_invoice": "PI-2026-00064",
+                            "pieces": 180
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1444.803,
+                    "net_weight": 1414.911,
+                    "volume": 1.199369,
+                    "notes": "Yangrun 托盘 30: 圆头哑铃 32.5kg ×30, 30kg ×6, 17.5kg ×23",
+                    "contents": [
+                        {
+                            "description": "Dumbbell 32.5kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 30
+                        },
+                        {
+                            "description": "Dumbbell 30kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "Dumbbell 17.5kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 23
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1295.341,
+                    "net_weight": 1265.448,
+                    "volume": 0.866211,
+                    "notes": "Yangrun 托盘 38: 悍马片 20kg ×64",
+                    "contents": [
+                        {
+                            "description": "Weight plate 20kg",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 64
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 179.355,
+                    "net_weight": 149.462,
+                    "volume": 0.97694,
+                    "notes": "Yangrun 托盘 39: 杠铃片储存架 ×5",
+                    "contents": [
+                        {
+                            "description": "Estação de treino / equipamento de academia com estrutura em tubo de aço",
+                            "proforma_invoice": "PI-2026-00086",
+                            "pieces": 5
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1145.878,
+                    "net_weight": 1115.986,
+                    "volume": 0.866211,
+                    "notes": "Yangrun 托盘 43: 杠铃片 20kg ×56",
+                    "contents": [
+                        {
+                            "description": "Weight plate 20kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 56
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1145.878,
+                    "net_weight": 1115.986,
+                    "volume": 0.866211,
+                    "notes": "Yangrun 托盘 45: 杠铃片 10kg ×110",
+                    "contents": [
+                        {
+                            "description": "Weight plate 10kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 110
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1414.911,
+                    "net_weight": 1385.018,
+                    "volume": 1.199369,
+                    "notes": "Yangrun 托盘 47: 圆头哑铃 12.5–35kg ×6",
+                    "contents": [
+                        {
+                            "description": "Dumbbell 12.5kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "Dumbbell 15kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "Dumbbell 17.5kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "Dumbbell 20kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "Dumbbell 22.5kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "Dumbbell 25kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "Dumbbell 27.5kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "Dumbbell 30kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "Dumbbell 32.5kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 6
+                        },
+                        {
+                            "description": "Dumbbell 35kg",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 6
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 199.283,
+                    "net_weight": 169.391,
+                    "volume": 0.597019,
+                    "notes": "Yangrun 托盘 48: 杠铃片整理架 ×3",
+                    "contents": [
+                        {
+                            "description": "Estação de treino / equipamento de academia com estrutura em tubo de aço",
+                            "proforma_invoice": "PI-2026-00077",
+                            "pieces": 3
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 119.57,
+                    "net_weight": 89.677,
+                    "volume": 0.97694,
+                    "notes": "Yangrun 托盘 50: 杠铃片储存架",
+                    "contents": [
+                        {
+                            "description": "Estação de treino / equipamento de academia com estrutura em tubo de aço",
+                            "proforma_invoice": "PI-2026-00108",
+                            "pieces": 5
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 119.571,
+                    "net_weight": 89.678,
+                    "volume": 0.97694,
+                    "notes": "Yangrun 托盘 51: 杠铃片储存架",
+                    "contents": [
+                        {
+                            "description": "Estação de treino / equipamento de academia com estrutura em tubo de aço",
+                            "proforma_invoice": "PI-2026-00108",
+                            "pieces": 5
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG P11 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG P12 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6848",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG P13 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG P14 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6848",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG P15 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG P16 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6848",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG P17 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG P18 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6848",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG P19 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG P20 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6848",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG P21 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG P22 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6848",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG M17 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "description": "Hack squating",
+                            "proforma_invoice": "PI-2026-00076",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG P01 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG P02 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6847",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG P03 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG P04 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6847",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG P05 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG P06 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6847",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG P07 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG P08 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6847",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG P09 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 63.98,
+                    "net_weight": 59.487,
+                    "volume": 0.521716,
+                    "notes": "JG P10 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6847",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 566.249,
+                    "net_weight": 505.54,
+                    "volume": 3.359851,
+                    "notes": "JG M18 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "description": "Hack squating",
+                            "proforma_invoice": "PI-2026-00076",
+                            "pieces": 2
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 566.249,
+                    "net_weight": 505.54,
+                    "volume": 3.359851,
+                    "notes": "JG M19 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "description": "Hack squating",
+                            "proforma_invoice": "PI-2026-00076",
+                            "pieces": 2
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 83.799,
+                    "net_weight": 76.973,
+                    "volume": 0.553822,
+                    "notes": "JG M22 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "description": "Pendulum Squating",
+                            "proforma_invoice": "PI-2026-00076",
+                            "pieces": 1
+                        },
+                        {
+                            "description": "Lateral Raise + Squating Hard Pull",
+                            "proforma_invoice": "PI-2026-00076",
+                            "pieces": 1
+                        },
+                        {
+                            "model": "JG-6813A",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 83.799,
+                    "net_weight": 76.973,
+                    "volume": 0.553822,
+                    "notes": "JG P51 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 83.799,
+                    "net_weight": 76.973,
+                    "volume": 0.553822,
+                    "notes": "JG P52 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6849",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 83.799,
+                    "net_weight": 76.973,
+                    "volume": 0.553822,
+                    "notes": "JG P53 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 83.799,
+                    "net_weight": 76.973,
+                    "volume": 0.553822,
+                    "notes": "JG P54 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6849",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 83.799,
+                    "net_weight": 76.973,
+                    "volume": 0.553822,
+                    "notes": "JG P55 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 83.799,
+                    "net_weight": 76.973,
+                    "volume": 0.553822,
+                    "notes": "JG P56 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6849",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 83.799,
+                    "net_weight": 76.973,
+                    "volume": 0.553822,
+                    "notes": "JG P57 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 83.799,
+                    "net_weight": 76.973,
+                    "volume": 0.553822,
+                    "notes": "JG P58 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6849",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 83.799,
+                    "net_weight": 76.973,
+                    "volume": 0.553822,
+                    "notes": "JG P59 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 83.799,
+                    "net_weight": 76.973,
+                    "volume": 0.553822,
+                    "notes": "JG P60 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6849",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 83.799,
+                    "net_weight": 76.973,
+                    "volume": 0.553822,
+                    "notes": "JG P61 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 83.799,
+                    "net_weight": 76.973,
+                    "volume": 0.553822,
+                    "notes": "JG P62 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6849",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65.124,
+                    "net_weight": 60.66,
+                    "volume": 0.757861,
+                    "notes": "JG P41 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65.124,
+                    "net_weight": 60.66,
+                    "volume": 0.757861,
+                    "notes": "JG P42 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6848",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65.124,
+                    "net_weight": 60.66,
+                    "volume": 0.757861,
+                    "notes": "JG P43 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65.124,
+                    "net_weight": 60.66,
+                    "volume": 0.757861,
+                    "notes": "JG P44 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6848",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65.124,
+                    "net_weight": 60.66,
+                    "volume": 0.757861,
+                    "notes": "JG P45 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65.124,
+                    "net_weight": 60.66,
+                    "volume": 0.757861,
+                    "notes": "JG P46 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6848",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65.124,
+                    "net_weight": 60.66,
+                    "volume": 0.757861,
+                    "notes": "JG P47 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65.124,
+                    "net_weight": 60.66,
+                    "volume": 0.757861,
+                    "notes": "JG P48 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6848",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65.124,
+                    "net_weight": 60.66,
+                    "volume": 0.757861,
+                    "notes": "JG P49 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65.124,
+                    "net_weight": 60.66,
+                    "volume": 0.757861,
+                    "notes": "JG P50 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6848",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65.124,
+                    "net_weight": 60.66,
+                    "volume": 0.757861,
+                    "notes": "JG M23 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "description": "Multi Roman chair",
+                            "proforma_invoice": "PI-2026-00076",
+                            "pieces": 1
+                        },
+                        {
+                            "model": "JG-6842",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65.124,
+                    "net_weight": 60.66,
+                    "volume": 0.757861,
+                    "notes": "JG P63 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65.124,
+                    "net_weight": 60.66,
+                    "volume": 0.757861,
+                    "notes": "JG P64 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6849",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65.124,
+                    "net_weight": 60.66,
+                    "volume": 0.757861,
+                    "notes": "JG P65 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65.124,
+                    "net_weight": 60.66,
+                    "volume": 0.757861,
+                    "notes": "JG P66 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6849",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65.124,
+                    "net_weight": 60.66,
+                    "volume": 0.757861,
+                    "notes": "JG P67 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65.124,
+                    "net_weight": 60.66,
+                    "volume": 0.757861,
+                    "notes": "JG P68 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6849",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65.124,
+                    "net_weight": 60.66,
+                    "volume": 0.757861,
+                    "notes": "JG P69 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 65.124,
+                    "net_weight": 60.66,
+                    "volume": 0.757861,
+                    "notes": "JG P70 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6849",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 349.537,
+                    "net_weight": 284.076,
+                    "volume": 2.159905,
+                    "notes": "JG M24 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6842",
+                            "pieces": 6
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 349.537,
+                    "net_weight": 284.076,
+                    "volume": 2.159905,
+                    "notes": "JG M25 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6842",
+                            "pieces": 6
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 530.145,
+                    "net_weight": 504.378,
+                    "volume": 0.599975,
+                    "notes": "JG T03 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "description": "Weight Stacks",
+                            "proforma_invoice": "PI-2026-00076",
+                            "pieces": 360
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "CONT-004",
+            "container_number": "CAAU6143570",
+            "type": "40HQ",
+            "seal_number": "CY396842",
+            "sort_order": 4,
+            "declared": {
+                "packages": 64,
+                "gross_weight": 12173,
+                "volume": 55.67
+            },
+            "packages": [
+                {
+                    "type": "carton",
+                    "gross_weight": 432.239,
+                    "net_weight": 422.862,
+                    "volume": 2.720349,
+                    "notes": "JG M01 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "model": "JG-BM021A",
+                            "pieces": 1
+                        },
+                        {
+                            "model": "JG-1639",
+                            "pieces": 2
+                        },
+                        {
+                            "model": "JG-1611",
+                            "pieces": 1
+                        },
+                        {
+                            "model": "JG-1613",
+                            "pieces": 1
+                        },
+                        {
+                            "model": "JG-1608",
+                            "pieces": 3
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 132.391,
+                    "net_weight": 122.264,
+                    "volume": 0.893829,
+                    "notes": "JG P11 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "description": "Hack Slide",
+                            "proforma_invoice": "PI-2026-00096",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 132.391,
+                    "net_weight": 122.264,
+                    "volume": 0.893829,
+                    "notes": "JG P12 (JGYAN-20260818) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 132.391,
+                    "net_weight": 122.264,
+                    "volume": 0.893829,
+                    "notes": "JG M02 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "model": "JG-S6760",
+                            "pieces": 1
+                        },
+                        {
+                            "model": "JG-S6758",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 132.391,
+                    "net_weight": 122.264,
+                    "volume": 0.893829,
+                    "notes": "JG P07 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "model": "JG-1648",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 132.391,
+                    "net_weight": 122.264,
+                    "volume": 0.893829,
+                    "notes": "JG P08 (JGYAN-20260818) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 338.477,
+                    "net_weight": 291.597,
+                    "volume": 1.943106,
+                    "notes": "JG M03 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "model": "JG-S6710",
+                            "pieces": 1
+                        },
+                        {
+                            "model": "JG-S6761",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 315.037,
+                    "net_weight": 268.157,
+                    "volume": 1.943106,
+                    "notes": "JG M04 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "model": "JG-S6738",
+                            "pieces": 2
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 317.85,
+                    "net_weight": 270.969,
+                    "volume": 2.428883,
+                    "notes": "JG M05 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "model": "JG-S6709",
+                            "pieces": 1
+                        },
+                        {
+                            "model": "JG-S6726",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 290.659,
+                    "net_weight": 243.779,
+                    "volume": 2.428883,
+                    "notes": "JG M06 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "model": "JG-S6737",
+                            "pieces": 2
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 516.624,
+                    "net_weight": 469.743,
+                    "volume": 2.428883,
+                    "notes": "JG M07 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "model": "JG-1908",
+                            "pieces": 1
+                        },
+                        {
+                            "model": "JG-1901",
+                            "pieces": 1
+                        },
+                        {
+                            "model": "JG-1906",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 626.324,
+                    "net_weight": 579.443,
+                    "volume": 1.943106,
+                    "notes": "JG M08 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "model": "JG-1665",
+                            "pieces": 1
+                        },
+                        {
+                            "model": "JG-1612",
+                            "pieces": 2
+                        },
+                        {
+                            "model": "JG-S6704",
+                            "pieces": 2
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 399.422,
+                    "net_weight": 352.542,
+                    "volume": 1.943106,
+                    "notes": "JG M09 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "model": "JG-1904",
+                            "pieces": 1
+                        },
+                        {
+                            "model": "JG-1910",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 461.304,
+                    "net_weight": 414.424,
+                    "volume": 1.943106,
+                    "notes": "JG M10 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "model": "JG-S6727",
+                            "pieces": 3
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 175.802,
+                    "net_weight": 151.893,
+                    "volume": 0.728665,
+                    "notes": "JG M11 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "model": "JG-1910A",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 175.802,
+                    "net_weight": 151.893,
+                    "volume": 0.728665,
+                    "notes": "JG P10 (JGYAN-20260818) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 309.88,
+                    "net_weight": 263.0,
+                    "volume": 1.748796,
+                    "notes": "JG M12 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "model": "JG-6890",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 309.88,
+                    "net_weight": 263.0,
+                    "volume": 1.748796,
+                    "notes": "JG M13 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "model": "JG-6890",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 55.944,
+                    "net_weight": 55.006,
+                    "volume": 0.809628,
+                    "notes": "JG P01 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "model": "JG-1614",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 55.944,
+                    "net_weight": 55.006,
+                    "volume": 0.809628,
+                    "notes": "JG P02 (JGYAN-20260818) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 55.944,
+                    "net_weight": 55.006,
+                    "volume": 0.809628,
+                    "notes": "JG P03 (JGYAN-20260818) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 55.944,
+                    "net_weight": 55.006,
+                    "volume": 0.809628,
+                    "notes": "JG P04 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "model": "JG-1614",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 55.944,
+                    "net_weight": 55.006,
+                    "volume": 0.809628,
+                    "notes": "JG P05 (JGYAN-20260818) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 55.944,
+                    "net_weight": 55.006,
+                    "volume": 0.809628,
+                    "notes": "JG P06 (JGYAN-20260818) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 474.431,
+                    "net_weight": 427.55,
+                    "volume": 2.720349,
+                    "notes": "JG M14 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "model": "JG-1629",
+                            "pieces": 3
+                        },
+                        {
+                            "model": "JG-S6733",
+                            "pieces": 1
+                        },
+                        {
+                            "model": "JG-S6759",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 335.665,
+                    "net_weight": 288.784,
+                    "volume": 2.137417,
+                    "notes": "JG M15 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "model": "JG-S6720",
+                            "pieces": 1
+                        },
+                        {
+                            "model": "JG-1907",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 175.802,
+                    "net_weight": 151.893,
+                    "volume": 0.728665,
+                    "notes": "JG M16 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "model": "JG-1910A",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 175.802,
+                    "net_weight": 151.893,
+                    "volume": 0.728665,
+                    "notes": "JG P09 (JGYAN-20260818) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 1331.407,
+                    "net_weight": 1312.655,
+                    "volume": 1.943106,
+                    "notes": "JG T01 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "model": "JG-PJ-25KG",
+                            "pieces": 24
+                        },
+                        {
+                            "description": "Weight plate JG-PJ-5 — Three-hole Weight Plate",
+                            "proforma_invoice": "PI-2026-00096",
+                            "pieces": 20
+                        },
+                        {
+                            "description": "Weight plate JG-PJ-10 — Three-hole Weight Plate",
+                            "proforma_invoice": "PI-2026-00096",
+                            "pieces": 70
+                        },
+                        {
+                            "description": "Weight plate JG-PJ-20 — Three-hole Weight Plate",
+                            "proforma_invoice": "PI-2026-00096",
+                            "pieces": 27
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 19.69,
+                    "net_weight": 18.752,
+                    "volume": 0.048578,
+                    "notes": "JG Z01 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "description": "Bars JG-Z22700 — Electroplated bar for men bearing capacity of 500 pound",
+                            "proforma_invoice": "PI-2026-00096",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 19.69,
+                    "net_weight": 18.752,
+                    "volume": 0.048578,
+                    "notes": "JG Z02 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "description": "Bars JG-Z22700 — Electroplated bar for men bearing capacity of 500 pound",
+                            "proforma_invoice": "PI-2026-00096",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 19.69,
+                    "net_weight": 18.752,
+                    "volume": 0.048578,
+                    "notes": "JG Z03 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "description": "Bars JG-Z22700 — Electroplated bar for men bearing capacity of 500 pound",
+                            "proforma_invoice": "PI-2026-00096",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 19.69,
+                    "net_weight": 18.752,
+                    "volume": 0.048578,
+                    "notes": "JG Z04 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "description": "Bars JG-Z22700 — Electroplated bar for men bearing capacity of 500 pound",
+                            "proforma_invoice": "PI-2026-00096",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 19.69,
+                    "net_weight": 18.752,
+                    "volume": 0.048578,
+                    "notes": "JG Z05 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "description": "Bars JG-Z22700 — Electroplated bar for men bearing capacity of 500 pound",
+                            "proforma_invoice": "PI-2026-00096",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 19.69,
+                    "net_weight": 18.752,
+                    "volume": 0.048578,
+                    "notes": "JG Z06 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "description": "Bars JG-Z22700 — Electroplated bar for men bearing capacity of 500 pound",
+                            "proforma_invoice": "PI-2026-00096",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 19.69,
+                    "net_weight": 18.752,
+                    "volume": 0.048578,
+                    "notes": "JG Z07 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "description": "Bars JG-Z22700 — Electroplated bar for men bearing capacity of 500 pound",
+                            "proforma_invoice": "PI-2026-00096",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 19.69,
+                    "net_weight": 18.752,
+                    "volume": 0.048578,
+                    "notes": "JG Z08 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "description": "Bars JG-Z22700 — Electroplated bar for men bearing capacity of 500 pound",
+                            "proforma_invoice": "PI-2026-00096",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 19.69,
+                    "net_weight": 18.752,
+                    "volume": 0.048578,
+                    "notes": "JG Z09 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "description": "Bars JG-Z22700 — Electroplated bar for men bearing capacity of 500 pound",
+                            "proforma_invoice": "PI-2026-00096",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 19.69,
+                    "net_weight": 18.752,
+                    "volume": 0.048578,
+                    "notes": "JG Z10 (JGYAN-20260818)",
+                    "contents": [
+                        {
+                            "description": "Bars JG-Z22700 — Electroplated bar for men bearing capacity of 500 pound",
+                            "proforma_invoice": "PI-2026-00096",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "pallet",
+                    "gross_weight": 2315.898,
+                    "net_weight": 2297.146,
+                    "volume": 2.91466,
+                    "notes": "JG T02 (JGYAN-20260818) — weight stacks das máquinas da JGYAN-20260818 (S6727/S6737/S6758/…/1614/6890A) — sem linha própria na PI",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 253.155,
+                    "net_weight": 206.274,
+                    "volume": 2.720349,
+                    "notes": "JG M20 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "description": "Lateral Raise + Squating Hard Pull",
+                            "proforma_invoice": "PI-2026-00076",
+                            "pieces": 1
+                        },
+                        {
+                            "model": "JG-6842",
+                            "pieces": 3
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 52.062,
+                    "net_weight": 48.213,
+                    "volume": 0.306806,
+                    "notes": "JG M21 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6842",
+                            "pieces": 4
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 52.062,
+                    "net_weight": 48.213,
+                    "volume": 0.306806,
+                    "notes": "JG P23 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 52.062,
+                    "net_weight": 48.213,
+                    "volume": 0.306806,
+                    "notes": "JG P24 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6848",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 52.062,
+                    "net_weight": 48.213,
+                    "volume": 0.306806,
+                    "notes": "JG P25 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 52.062,
+                    "net_weight": 48.213,
+                    "volume": 0.306806,
+                    "notes": "JG P26 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6848",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 52.062,
+                    "net_weight": 48.213,
+                    "volume": 0.306806,
+                    "notes": "JG P27 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 52.062,
+                    "net_weight": 48.213,
+                    "volume": 0.306806,
+                    "notes": "JG P28 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6848",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 52.062,
+                    "net_weight": 48.213,
+                    "volume": 0.306806,
+                    "notes": "JG P29 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 52.062,
+                    "net_weight": 48.213,
+                    "volume": 0.306806,
+                    "notes": "JG P30 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6848",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 52.062,
+                    "net_weight": 48.213,
+                    "volume": 0.306806,
+                    "notes": "JG P31 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 52.062,
+                    "net_weight": 48.213,
+                    "volume": 0.306806,
+                    "notes": "JG P32 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6848",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 52.062,
+                    "net_weight": 48.213,
+                    "volume": 0.306806,
+                    "notes": "JG P33 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 52.062,
+                    "net_weight": 48.213,
+                    "volume": 0.306806,
+                    "notes": "JG P34 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6848",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 52.062,
+                    "net_weight": 48.213,
+                    "volume": 0.306806,
+                    "notes": "JG P35 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 52.062,
+                    "net_weight": 48.213,
+                    "volume": 0.306806,
+                    "notes": "JG P36 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6848",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 52.062,
+                    "net_weight": 48.213,
+                    "volume": 0.306806,
+                    "notes": "JG P37 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 52.062,
+                    "net_weight": 48.213,
+                    "volume": 0.306806,
+                    "notes": "JG P38 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6848",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 52.062,
+                    "net_weight": 48.213,
+                    "volume": 0.306806,
+                    "notes": "JG P39 (JGYAN-20260722) — parte, sem a peça",
+                    "contents": []
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 52.062,
+                    "net_weight": 48.213,
+                    "volume": 0.306806,
+                    "notes": "JG P40 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "model": "JG-6848",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 229.715,
+                    "net_weight": 182.834,
+                    "volume": 1.263019,
+                    "notes": "JG M26 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "description": "Abdominal crunch",
+                            "proforma_invoice": "PI-2026-00076",
+                            "pieces": 1
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 4.688,
+                    "net_weight": 4.219,
+                    "volume": 0.048578,
+                    "notes": "JG Z11 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "description": "Selection Bar",
+                            "proforma_invoice": "PI-2026-00076",
+                            "pieces": 3
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 4.688,
+                    "net_weight": 4.219,
+                    "volume": 0.048578,
+                    "notes": "JG Z12 (JGYAN-20260722)",
+                    "contents": [
+                        {
+                            "description": "Selection Bar",
+                            "proforma_invoice": "PI-2026-00076",
+                            "pieces": 3
+                        }
+                    ]
+                },
+                {
+                    "type": "carton",
+                    "gross_weight": 18.752,
+                    "net_weight": 17.822,
+                    "volume": 0.097157,
+                    "notes": "JG B01 (JGYAN-20260722) — volume sem modelo no PL da JG",
+                    "contents": []
+                }
+            ]
+        }
+    ]
+}

@@ -35,7 +35,10 @@ use RuntimeException;
  * O casamento é feito por REFERÊNCIA do embarque e, dentro dele, por
  * `reference_code` do produto ou pela descrição do item — nunca por id — para
  * que o mesmo arquivo e o mesmo comando produzam o mesmo resultado em dev e em
- * produção, onde os ids divergem.
+ * produção, onde os ids divergem. Quando a mesma descrição (ou modelo) está em
+ * mais de uma PI do embarque, o conteúdo pode dizer de qual é com
+ * `proforma_invoice` (a referência da PI) — senão as peças enchem os itens na
+ * ordem do embarque, sem saber de que PI é cada volume.
  *
  * Antes de gravar qualquer coisa o comando exige que a carga feche: para cada
  * item, a soma das peças declaradas nos volumes tem de ser exatamente a
@@ -165,7 +168,7 @@ class ImportShipmentLoadingListCommand extends Command
 
         $shipment = Shipment::query()
             ->where('reference', $reference)
-            ->with(['items.proformaInvoiceItem.product:id,reference_code,name'])
+            ->with(['items.proformaInvoiceItem.product:id,reference_code,name', 'items.proformaInvoiceItem.proformaInvoice:id,reference'])
             ->first();
 
         if (! $shipment) {
@@ -285,15 +288,26 @@ class ImportShipmentLoadingListCommand extends Command
      */
     private function contentRef(array $node): array
     {
+        // A mesma descrição (ou modelo) pode estar em mais de uma PI do embarque;
+        // `proforma_invoice` diz de qual é a peça, para não encher a linha errada.
+        $pi = mb_strtoupper(trim((string) ($node['proforma_invoice'] ?? '')));
+        $pi = $pi === '' ? null : $pi;
+
         if (($node['model'] ?? '') !== '') {
-            return ['by' => 'model', 'value' => mb_strtoupper(trim((string) $node['model']))];
+            return ['by' => 'model', 'value' => mb_strtoupper(trim((string) $node['model'])), 'pi' => $pi];
         }
 
         if (($node['description'] ?? '') !== '') {
-            return ['by' => 'description', 'value' => mb_strtolower(trim((string) $node['description']))];
+            return ['by' => 'description', 'value' => mb_strtolower(trim((string) $node['description'])), 'pi' => $pi];
         }
 
         throw new RuntimeException('Conteúdo de volume sem `model` nem `description`.');
+    }
+
+    /** Chave de uma referência do arquivo: tipo, valor e, se houver, a PI. */
+    private function refKey(array $ref): string
+    {
+        return $ref['by'].':'.$ref['value'].($ref['pi'] !== null ? '@'.$ref['pi'] : '');
     }
 
     /**
@@ -371,7 +385,7 @@ class ImportShipmentLoadingListCommand extends Command
                 $single = count($package['contents']) === 1;
 
                 foreach ($package['contents'] as $content) {
-                    $key = $content['ref']['by'].':'.$content['ref']['value'];
+                    $key = $this->refKey($content['ref']);
                     $loaded[$key]['ref'] = $content['ref'];
                     $loaded[$key]['pieces'] = ($loaded[$key]['pieces'] ?? 0) + $content['pieces'];
                     $loaded[$key]['mixed'] = ($loaded[$key]['mixed'] ?? false) || ! $single;
@@ -402,10 +416,20 @@ class ImportShipmentLoadingListCommand extends Command
                 ? ($byModel[$ref['value']] ?? [])
                 : ($byDescription[$ref['value']] ?? []);
 
+            if ($ref['pi'] !== null) {
+                $label .= " ({$ref['pi']})";
+                $candidates = array_values(array_filter(
+                    $candidates,
+                    fn (ShipmentItem $item) => mb_strtoupper((string) $item->proformaInvoiceItem?->proformaInvoice?->reference) === $ref['pi'],
+                ));
+            }
+
             if ($candidates === []) {
-                $errors[] = $ref['by'] === 'model'
-                    ? "{$label}: nenhum item do embarque aponta para um produto com este reference_code."
-                    : "\"{$label}\": nenhum item do embarque tem esta descrição.";
+                $errors[] = match (true) {
+                    $ref['pi'] !== null => "{$label}: nenhum item do embarque desta PI tem este ".($ref['by'] === 'model' ? 'reference_code.' : 'descrição.'),
+                    $ref['by'] === 'model' => "{$label}: nenhum item do embarque aponta para um produto com este reference_code.",
+                    default => "\"{$label}\": nenhum item do embarque tem esta descrição.",
+                };
 
                 continue;
             }
@@ -716,7 +740,7 @@ class ImportShipmentLoadingListCommand extends Command
                 $order = 0;
 
                 foreach ($package['contents'] as $content) {
-                    $key = $content['ref']['by'].':'.$content['ref']['value'];
+                    $key = $this->refKey($content['ref']);
                     $slots = &$items[$key]['slots'];
 
                     // Quando a referência cobre mais de um item do embarque, as
