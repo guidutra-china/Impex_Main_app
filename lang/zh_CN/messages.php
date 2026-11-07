@@ -56,6 +56,8 @@ return [
     'quotation_updated' => '报价已更新',
     'quotation_locked' => '报价已锁定，无法重新计算',
     'quotation_locked_needs_new_version' => '报价单 :reference 已发送给客户，无法重新计算。请勾选"创建新版本"以基于它生成新版本。',
+    'inquiry_items_without_product' => '询价单中有未关联产品的行',
+    'inquiry_items_without_product_body' => '请为 :reference 中的以下行关联产品后重试：:items',
     'quotation_new_version_created' => '已创建报价的新版本',
     'product_linked' => '产品关联成功',
     'product_link_updated' => '产品关联已更新',

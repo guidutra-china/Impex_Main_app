@@ -6,6 +6,7 @@ use App\Domain\Inquiries\Models\Inquiry;
 use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Quotations\Enums\QuotationStatus;
+use App\Domain\Quotations\Exceptions\InquiryItemsWithoutProductException;
 use App\Domain\Quotations\Exceptions\QuotationLockedException;
 use App\Domain\Quotations\Models\Quotation;
 use App\Domain\Quotations\Models\QuotationItem;
@@ -80,6 +81,17 @@ class CreateOrUpdateQuotationFromInquiryAction
         // toda rodada seguinte re-detecta "mudança" (10.00 gravado vs 10.001 recebido) e
         // descarta ajustes manuais item a item sem nenhuma mudança real ter sido pedida.
         $commissionRate = round($commissionRate, 2);
+
+        // A Quotation é montada por produto: uma linha sem produto estouraria no
+        // insert (quotation_items.product_id NOT NULL) com um erro de banco que o
+        // trader não entende. Falha antes, nomeando as linhas a vincular.
+        $productless = $inquiry->items()->whereNull('product_id')->orderBy('sort_order')->orderBy('id')->get();
+        if ($productless->isNotEmpty()) {
+            throw new InquiryItemsWithoutProductException(
+                $inquiry,
+                $productless->map(fn ($item) => trim((string) $item->description) ?: '#'.$item->id)->values()->all(),
+            );
+        }
 
         return DB::transaction(function () use (
             $inquiry, $supplierQuotationIds, $commissionType, $commissionRate, $showSuppliers,

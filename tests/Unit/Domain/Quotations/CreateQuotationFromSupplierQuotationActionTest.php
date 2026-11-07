@@ -10,6 +10,7 @@ use App\Domain\Quotations\Actions\CreateQuotationFromSupplierQuotationAction;
 use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Quotations\Enums\QuotationStatus;
+use App\Domain\Quotations\Exceptions\InquiryItemsWithoutProductException;
 use App\Domain\Quotations\Exceptions\QuotationLockedException;
 use App\Domain\Quotations\Models\Quotation;
 use App\Domain\Settings\Enums\ExchangeRateStatus;
@@ -601,5 +602,83 @@ class CreateQuotationFromSupplierQuotationActionTest extends TestCase
 
         // A SQ já estava UNDER_ANALYSIS antes desta segunda chamada; não muda de novo.
         $this->assertSame(SupplierQuotationStatus::UNDER_ANALYSIS, $sq->fresh()->status);
+    }
+
+    public function test_sq_born_from_an_inquiry_of_bare_part_numbers_creates_the_quotation(): void
+    {
+        // Reprodução de INQ-2026-00142 / SQ-2026-00151 em produção: as linhas eram
+        // só o part number, sem produto, na Inquiry e na SQ (em CNY). Antes, a
+        // criação estourava com "product_id cannot be null".
+        $client = Company::factory()->create();
+        $inquiry = Inquiry::factory()->create(['company_id' => $client->id, 'currency_code' => 'USD']);
+        $sq = SupplierQuotation::create([
+            'inquiry_id' => $inquiry->id,
+            'company_id' => Company::factory()->create()->id,
+            'currency_code' => 'CNY',
+            'status' => SupplierQuotationStatus::RECEIVED,
+        ]);
+
+        foreach ([['CQ38620', 600, 70000], ['84981409', 400, 140000]] as $i => [$code, $qty, $cost]) {
+            $line = InquiryItem::create([
+                'inquiry_id' => $inquiry->id,
+                'description' => $code,
+                'quantity' => $qty,
+                'sort_order' => $i,
+            ]);
+            SupplierQuotationItem::create([
+                'supplier_quotation_id' => $sq->id,
+                'inquiry_item_id' => $line->id,
+                'description' => $code,
+                'quantity' => $qty,
+                'unit_cost' => $cost,
+            ]);
+        }
+
+        $quotation = $this->makeAction()->execute(
+            sq: $sq,
+            companyId: $client->id,
+            contactId: null,
+            currencyCode: 'USD',
+            commissionType: CommissionType::EMBEDDED,
+            commissionRate: 5,
+        );
+
+        $this->assertSame(2, $inquiry->items()->count());
+        $this->assertSame(0, $inquiry->items()->whereNull('product_id')->count());
+        $this->assertSame(2, $quotation->items()->count());
+        // unit_cost fica na moeda do fornecedor; o preço sai convertido:
+        // 70000 CNY / 7 = 10000 USD, +5% embutido = 10500.
+        $first = $quotation->items()->orderBy('sort_order')->first();
+        $this->assertSame('CNY', $first->cost_currency_code);
+        $this->assertSame(70000, $first->unit_cost);
+        $this->assertSame(10500, $first->unit_price);
+    }
+
+    public function test_inquiry_line_without_product_and_without_offer_fails_with_a_clear_exception(): void
+    {
+        [$client, $inquiry, $sq] = $this->buildScenario();
+        InquiryItem::create([
+            'inquiry_id' => $inquiry->id,
+            'description' => 'Peça avulsa XYZ',
+            'quantity' => 10,
+            'sort_order' => 5,
+        ]);
+
+        try {
+            $this->makeAction()->execute(
+                sq: $sq,
+                companyId: $client->id,
+                contactId: null,
+                currencyCode: 'USD',
+                commissionType: CommissionType::EMBEDDED,
+                commissionRate: 10,
+            );
+            $this->fail('Esperava InquiryItemsWithoutProductException.');
+        } catch (InquiryItemsWithoutProductException $e) {
+            $this->assertSame(['Peça avulsa XYZ'], $e->descriptions);
+        }
+
+        $this->assertSame(0, Quotation::count());
+        $this->assertSame(SupplierQuotationStatus::RECEIVED, $sq->fresh()->status);
     }
 }

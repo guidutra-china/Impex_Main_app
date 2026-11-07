@@ -19,6 +19,7 @@ use App\Domain\Quotations\Actions\CreateOrUpdateQuotationFromInquiryAction;
 use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Quotations\Enums\QuotationStatus;
+use App\Domain\Quotations\Exceptions\InquiryItemsWithoutProductException;
 use App\Domain\Quotations\Exceptions\QuotationLockedException;
 use App\Domain\Quotations\Models\Quotation;
 use App\Domain\SupplierQuotations\Enums\SupplierQuotationStatus;
@@ -568,6 +569,16 @@ trait InquiryHeaderActions
                         ->send();
 
                     return redirect(QuotationResource::getUrl('edit', ['record' => $quotation]));
+                } catch (InquiryItemsWithoutProductException $e) {
+                    Notification::make()
+                        ->title(__('messages.inquiry_items_without_product'))
+                        ->body(__('messages.inquiry_items_without_product_body', [
+                            'reference' => $e->inquiry->reference,
+                            'items' => implode(', ', $e->descriptions),
+                        ]))
+                        ->danger()
+                        ->persistent()
+                        ->send();
                 } catch (QuotationLockedException $e) {
                     Notification::make()
                         ->title(__('messages.quotation_locked'))
@@ -624,6 +635,16 @@ trait InquiryHeaderActions
                         ->send();
 
                     return redirect(QuotationResource::getUrl('edit', ['record' => $quotation]));
+                } catch (InquiryItemsWithoutProductException $e) {
+                    Notification::make()
+                        ->title(__('messages.inquiry_items_without_product'))
+                        ->body(__('messages.inquiry_items_without_product_body', [
+                            'reference' => $e->inquiry->reference,
+                            'items' => implode(', ', $e->descriptions),
+                        ]))
+                        ->danger()
+                        ->persistent()
+                        ->send();
                 } catch (\Throwable $e) {
                     Notification::make()
                         ->title(__('messages.error_creating_quotation'))

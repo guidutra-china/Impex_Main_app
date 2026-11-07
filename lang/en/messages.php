@@ -66,6 +66,8 @@ return [
     'quotation_updated' => 'Quotation updated',
     'quotation_locked' => 'Quotation locked from recalculation',
     'quotation_locked_needs_new_version' => 'Quotation :reference has already been sent to the client and cannot be recalculated. Check "Create New Version" to generate a new version from it.',
+    'inquiry_items_without_product' => 'Inquiry has items without a linked product',
+    'inquiry_items_without_product_body' => 'Link a product to these lines of :reference and try again: :items',
     'quotation_new_version_created' => 'New quotation version created',
     'product_linked' => 'Product linked successfully',
     'product_link_updated' => 'Product link updated',

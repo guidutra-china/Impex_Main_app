@@ -13,6 +13,7 @@ use App\Domain\Quotations\Actions\CreateQuotationFromSupplierQuotationAction;
 use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Enums\Incoterm;
 use App\Domain\Quotations\Enums\QuotationStatus;
+use App\Domain\Quotations\Exceptions\InquiryItemsWithoutProductException;
 use App\Domain\Quotations\Exceptions\QuotationLockedException;
 use App\Domain\Settings\Models\Currency;
 use App\Domain\Settings\Models\PaymentTerm;
@@ -248,6 +249,18 @@ trait SupplierQuotationHeaderActions
                         ->send();
 
                     return redirect(QuotationResource::getUrl('edit', ['record' => $quotation]));
+                } catch (InquiryItemsWithoutProductException $e) {
+                    Notification::make()
+                        ->title(__('messages.inquiry_items_without_product'))
+                        ->body(__('messages.inquiry_items_without_product_body', [
+                            'reference' => $e->inquiry->reference,
+                            'items' => implode(', ', $e->descriptions),
+                        ]))
+                        ->danger()
+                        ->persistent()
+                        ->send();
+
+                    $action->halt();
                 } catch (QuotationLockedException $e) {
                     // getMessage() é redigida para logs (em inglês, citando o parâmetro
                     // forceNewVersion) — nunca mostrada ao trader. O corpo do toast usa a

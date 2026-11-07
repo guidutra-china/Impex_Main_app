@@ -482,4 +482,89 @@ class SyncInquiryFromSupplierQuotationActionTest extends TestCase
 
         $this->assertSame(0, $inquiry->items()->first()->sort_order);
     }
+
+    public function test_fills_the_linked_inquiry_line_instead_of_appending_a_duplicate(): void
+    {
+        // Caso real (INQ-2026-00142 / SQ-2026-00151): a SQ nasceu da Inquiry e as
+        // linhas eram só o part number, sem produto. A sync criava o produto
+        // rascunho para o item da SQ mas ACRESCENTAVA uma linha nova, deixando a
+        // original com product_id nulo — e a Quotation estourava no insert.
+        $client = Company::factory()->create();
+        $inquiry = Inquiry::factory()->create(['company_id' => $client->id]);
+        $line = InquiryItem::create([
+            'inquiry_id' => $inquiry->id,
+            'product_id' => null,
+            'description' => 'CQ38620',
+            'quantity' => 600,
+            'sort_order' => 0,
+        ]);
+        $sq = $this->makeSq($inquiry);
+        $sqItem = $this->addSqItem($sq, null, [
+            'description' => 'CQ38620',
+            'quantity' => 600,
+            'inquiry_item_id' => $line->id,
+        ]);
+
+        $this->makeAction()->execute(sq: $sq, companyId: $client->id, contactId: null, currencyCode: 'USD');
+
+        $this->assertSame(1, $inquiry->items()->count());
+        $this->assertNotNull($line->fresh()->product_id);
+        $this->assertSame($sqItem->fresh()->product_id, $line->fresh()->product_id);
+        $this->assertSame(600, (int) $line->fresh()->quantity);
+    }
+
+    public function test_fills_a_productless_line_by_matching_description_when_there_is_no_link(): void
+    {
+        $client = Company::factory()->create();
+        $inquiry = Inquiry::factory()->create(['company_id' => $client->id]);
+        $line = InquiryItem::create([
+            'inquiry_id' => $inquiry->id,
+            'product_id' => null,
+            'description' => '84981409',
+            'quantity' => 400,
+            'sort_order' => 0,
+        ]);
+        $sq = $this->makeSq($inquiry);
+        $sqItem = $this->addSqItem($sq, null, ['description' => ' 84981409 ', 'quantity' => 400]);
+
+        $this->makeAction()->execute(sq: $sq, companyId: $client->id, contactId: null, currencyCode: 'USD');
+
+        $this->assertSame(1, $inquiry->items()->count());
+        $this->assertSame($sqItem->fresh()->product_id, $line->fresh()->product_id);
+    }
+
+    public function test_repeated_productless_lines_are_each_filled_once(): void
+    {
+        // Linhas repetidas do mesmo item são legítimas: cada item da SQ consome
+        // uma linha da Inquiry, nunca as duas.
+        $client = Company::factory()->create();
+        $inquiry = Inquiry::factory()->create(['company_id' => $client->id]);
+        $first = InquiryItem::create(['inquiry_id' => $inquiry->id, 'description' => 'H203392', 'quantity' => 100, 'sort_order' => 0]);
+        $second = InquiryItem::create(['inquiry_id' => $inquiry->id, 'description' => 'H203392', 'quantity' => 50, 'sort_order' => 1]);
+        $sq = $this->makeSq($inquiry);
+        $this->addSqItem($sq, null, ['description' => 'H203392', 'quantity' => 100]);
+        $this->addSqItem($sq, null, ['description' => 'H203392', 'quantity' => 50]);
+
+        $this->makeAction()->execute(sq: $sq, companyId: $client->id, contactId: null, currencyCode: 'USD');
+
+        $this->assertSame(2, $inquiry->items()->count());
+        $this->assertNotNull($first->fresh()->product_id);
+        $this->assertNotNull($second->fresh()->product_id);
+    }
+
+    public function test_does_not_touch_lines_of_another_inquiry_when_the_client_differs(): void
+    {
+        $originalClient = Company::factory()->create();
+        $otherClient = Company::factory()->create();
+        $inquiry = Inquiry::factory()->create(['company_id' => $originalClient->id]);
+        $line = InquiryItem::create(['inquiry_id' => $inquiry->id, 'description' => 'CQ38620', 'quantity' => 600, 'sort_order' => 0]);
+        $sq = $this->makeSq($inquiry);
+        $this->addSqItem($sq, null, ['description' => 'CQ38620', 'quantity' => 600, 'inquiry_item_id' => $line->id]);
+
+        $result = $this->makeAction()->execute(sq: $sq, companyId: $otherClient->id, contactId: null, currencyCode: 'USD');
+
+        $this->assertNull($line->fresh()->product_id);
+        $this->assertSame(1, $result->items()->count());
+        $this->assertNotNull($result->items()->first()->product_id);
+    }
 }

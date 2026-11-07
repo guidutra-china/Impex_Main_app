@@ -600,4 +600,37 @@ class CreateClientQuotationActionTest extends TestCase
                 checkComponentUsing: fn ($c) => $c->getPlaceholder() === __('forms.placeholders.select_payment_term'),
             );
     }
+
+    public function test_inquiry_line_without_product_shows_which_lines_to_link(): void
+    {
+        $sq = $this->buildSq();
+        $inquiry = $sq->inquiry;
+        InquiryItem::create([
+            'inquiry_id' => $inquiry->id,
+            'description' => 'Peça avulsa XYZ',
+            'quantity' => 10,
+            'sort_order' => 5,
+        ]);
+
+        Livewire::test(ViewSupplierQuotation::class, ['record' => $sq->getKey()])
+            ->callAction('createClientQuotation', [
+                'company_id' => $inquiry->company_id,
+                'currency_code' => 'USD',
+                'commission_type' => CommissionType::EMBEDDED->value,
+                'commission_rate' => 10,
+                'validity_days' => 30,
+                'show_suppliers' => false,
+                'force_new_version' => false,
+            ])
+            ->assertHasNoActionErrors();
+
+        $notified = collect(session('filament.notifications', []))->last();
+        $this->assertNotNull($notified);
+        $this->assertSame(__('messages.inquiry_items_without_product'), $notified['title']);
+        $this->assertSame(
+            __('messages.inquiry_items_without_product_body', ['reference' => $inquiry->reference, 'items' => 'Peça avulsa XYZ']),
+            $notified['body'],
+        );
+        $this->assertSame(0, Quotation::count());
+    }
 }

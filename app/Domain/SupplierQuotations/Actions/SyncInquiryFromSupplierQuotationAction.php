@@ -127,6 +127,13 @@ class SyncInquiryFromSupplierQuotationAction
         $sqItems = $sq->items()->orderBy('sort_order')->orderBy('id')->get();
         $productsById = $this->resolveProducts($sq, $sqItems);
 
+        // Linhas da Inquiry sem produto que correspondem a itens da SQ recebem o
+        // produto resolvido em vez de ganharem uma duplicata — senão a linha
+        // original continua com product_id nulo e a Quotation estoura no insert.
+        if ($this->fillProductlessLines($inquiry, $sqItems, $productsById)) {
+            $existingProductIds = $inquiry->items()->pluck('product_id')->filter()->all();
+        }
+
         // Duas linhas da SQ podem apontar para o mesmo produto (mesmo catálogo ou
         // mesmo rascunho recém-criado por descrição idêntica) — mantém uma linha
         // por produto na Inquiry, elegendo a de menor unit_cost, na mesma regra
@@ -159,6 +166,68 @@ class SyncInquiryFromSupplierQuotationAction
 
             $existingProductIds[] = $productId;
         }
+    }
+
+    /**
+     * Vincula o produto resolvido às linhas da Inquiry que ainda não têm produto.
+     *
+     * Casamento em duas passadas, cada linha consumida no máximo uma vez (linhas
+     * repetidas do mesmo item são legítimas):
+     * 1. pelo vínculo explícito `inquiry_item_id` do item da SQ;
+     * 2. para os itens sem vínculo, pela descrição normalizada, na ordem da Inquiry.
+     * Só linhas desta Inquiry entram — quando a SQ gera uma Inquiry nova para
+     * outro cliente, as linhas da Inquiry original não são tocadas.
+     *
+     * @param  Collection<int,\App\Domain\SupplierQuotations\Models\SupplierQuotationItem>  $sqItems
+     * @param  array<int,Product>  $productsById  chave = supplier_quotation_item.id
+     * @return bool se alguma linha foi preenchida
+     */
+    private function fillProductlessLines(Inquiry $inquiry, Collection $sqItems, array $productsById): bool
+    {
+        $openLines = $inquiry->items()
+            ->whereNull('product_id')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->keyBy('id');
+
+        if ($openLines->isEmpty()) {
+            return false;
+        }
+
+        $normalize = fn (?string $description): string => mb_strtolower(trim((string) $description));
+        $assignments = [];
+
+        foreach ($sqItems as $sqItem) {
+            if ($sqItem->inquiry_item_id !== null && $openLines->has($sqItem->inquiry_item_id)) {
+                $assignments[$sqItem->inquiry_item_id] = $productsById[$sqItem->id];
+                $openLines->forget($sqItem->inquiry_item_id);
+            }
+        }
+
+        foreach ($sqItems as $sqItem) {
+            if ($sqItem->inquiry_item_id !== null && isset($assignments[$sqItem->inquiry_item_id])) {
+                continue;
+            }
+
+            $key = $normalize($sqItem->description);
+            if ($key === '') {
+                continue;
+            }
+
+            $line = $openLines->first(fn (InquiryItem $line) => $normalize($line->description) === $key);
+            if ($line !== null) {
+                $assignments[$line->id] = $productsById[$sqItem->id];
+                $openLines->forget($line->id);
+            }
+        }
+
+        foreach ($assignments as $lineId => $product) {
+            // Por model (não query builder) para preservar hooks da InquiryItem.
+            InquiryItem::find($lineId)?->update(['product_id' => $product->id]);
+        }
+
+        return $assignments !== [];
     }
 
     /**
