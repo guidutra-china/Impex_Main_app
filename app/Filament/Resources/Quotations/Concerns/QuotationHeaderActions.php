@@ -36,6 +36,8 @@ trait QuotationHeaderActions
                         ->label('Include product photos')
                         ->default(true)
                         ->helperText('If checked, each line item will display the product photo and the filename will include "PIC".'),
+                    Checkbox::make('show_model_number')
+                        ->label(__('forms.labels.show_model_number')),
                 ],
             ),
             GeneratePdfAction::download(
@@ -51,6 +53,9 @@ trait QuotationHeaderActions
                         ->default(true)
                         ->live()
                         ->helperText('Preview the PDF with product photos in each line item.'),
+                    Checkbox::make('show_model_number')
+                        ->label(__('forms.labels.show_model_number'))
+                        ->live(),
                 ],
             ),
             SendDocumentByEmailAction::make(

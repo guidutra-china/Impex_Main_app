@@ -72,6 +72,9 @@
                     <th class="text-center" style="width: 55px;">{{ $labels['photo'] ?? 'Photo' }}</th>
                 @endif
                 <th style="width: 75px;">{{ $labels['product_code'] }}</th>
+                @if(! empty($show_model_number))
+                    <th style="width: 80px;">{{ $labels['model_number'] }}</th>
+                @endif
                 <th style="width: 140px;">{{ $labels['description'] }}</th>
                 @if($show_suppliers)
                     <th style="width: 150px;">{{ $labels['supplier'] }}</th>
@@ -94,6 +97,9 @@
                         </td>
                     @endif
                     <td>{{ $item['product_code'] }}</td>
+                    @if(! empty($show_model_number))
+                        <td>{{ $item['model_number'] }}</td>
+                    @endif
                     <td>
                         {{ $item['description'] }}
                         @if(! empty($item['spec_notes']))

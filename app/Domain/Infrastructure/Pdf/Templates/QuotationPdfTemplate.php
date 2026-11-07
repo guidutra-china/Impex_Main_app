@@ -2,6 +2,7 @@
 
 namespace App\Domain\Infrastructure\Pdf\Templates;
 
+use App\Domain\Catalog\Services\ProductIdentityResolver;
 use App\Domain\Quotations\Enums\CommissionType;
 use App\Domain\Quotations\Models\Quotation;
 
@@ -9,13 +10,18 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
 {
     protected bool $withImages;
 
+    /** Campo opcional escolhido na hora de gerar: coluna Model (código do cliente > model number). */
+    protected bool $showModelNumber;
+
     public function __construct(
         \Illuminate\Database\Eloquent\Model $model,
         string $locale = 'en',
         bool $withImages = true,
+        bool $showModelNumber = false,
     ) {
         parent::__construct($model, $locale);
         $this->withImages = $withImages;
+        $this->showModelNumber = $showModelNumber;
     }
 
     public function getFilename(): string
@@ -52,6 +58,8 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
             'inquiry',
             'paymentTerm',
             'items.product.specification',
+            // Pivot do cliente (código/nome do cliente) para o ProductIdentityResolver.
+            'items.product.companies',
             'items.selectedSupplier',
             'items.suppliers.company',
             'creator',
@@ -64,7 +72,12 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
             ? $quotation->commission_type
             : ($quotation->commission_type ? CommissionType::tryFrom((string) $quotation->commission_type) : null);
 
-        $items = $quotation->items->map(function ($item, $index) use ($currencyCode, $showSuppliers, $commissionType) {
+        // Mesma identidade da PI: código do cliente (pivot) vence o model number.
+        $identityResolver = ProductIdentityResolver::forClientCompany(company: $quotation->company);
+        $identityResolver->warm($quotation->items->map(fn ($item) => $item->product));
+
+        $items = $quotation->items->map(function ($item, $index) use ($currencyCode, $showSuppliers, $commissionType, $identityResolver) {
+            $identity = $identityResolver->resolve($item->product);
             $supplierName = $showSuppliers ? ($item->selectedSupplier?->name ?? null) : null;
             $unitPriceDisplay = $this->formatMoney($item->unit_price, $currencyCode, 2);
 
@@ -119,6 +132,7 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
             return [
                 'index' => $index + 1,
                 'product_code' => $item->product?->sku ?? '—',
+                'model_number' => $identity->codeOr('—'),
                 'description' => $this->formatDescription($item->product?->name ?? $item->notes ?? '—'),
                 // Só na cotação ao cliente: as notas de especificação do produto
                 // ajudam a vender; documentos formais (PI/CI) não as carregam.
@@ -153,6 +167,7 @@ class QuotationPdfTemplate extends AbstractPdfTemplate
             ],
             'show_suppliers' => $showSuppliers,
             'with_images' => $this->withImages,
+            'show_model_number' => $this->showModelNumber,
             'client' => [
                 'name' => $quotation->company?->name ?? '—',
                 'legal_name' => $quotation->company?->legal_name,
