@@ -296,4 +296,46 @@ class ShipmentPaymentScheduleShowsPiInstallmentsTest extends TestCase
         $this->table($shipment)
             ->assertSee(PaymentScheduleRelationManager::DOCUMENT_LEVEL_BADGE);
     }
+
+    /**
+     * SH-2026-00068: com 12 PIs a aba enchia de parcelas já quitadas (30% de
+     * Order Date, espelhos de 70% pagos), com saldo 0. Quitadas ficam escondidas
+     * por padrão; o filtro "esconder pagas" desligado mostra tudo.
+     */
+    public function test_paid_installments_are_hidden_by_default_and_shown_when_the_filter_is_off(): void
+    {
+        $pi = ProformaInvoice::factory()->create();
+        $shipment = $this->shipmentCarrying($pi);
+
+        $paid = PaymentScheduleItemFactory::new()->create([
+            'payable_type' => ProformaInvoice::class,
+            'payable_id' => $pi->id,
+            'shipment_id' => null,
+            'label' => '30% — Order Date',
+            'due_condition' => CalculationBase::ORDER_DATE,
+            'status' => \App\Domain\Financial\Enums\PaymentScheduleStatus::PAID,
+        ]);
+        $open = PaymentScheduleItemFactory::new()->create([
+            'payable_type' => ProformaInvoice::class,
+            'payable_id' => $pi->id,
+            'shipment_id' => $shipment->id,
+            'label' => '70% — Before Shipment [SH-1 / '.$pi->reference.']',
+            'due_condition' => CalculationBase::BEFORE_SHIPMENT,
+            'status' => \App\Domain\Financial\Enums\PaymentScheduleStatus::PENDING,
+        ]);
+        // Também some quando é linha do próprio embarque (custo/espelho pago).
+        $paidOwn = PaymentScheduleItemFactory::new()->create([
+            'payable_type' => Shipment::class,
+            'payable_id' => $shipment->id,
+            'label' => 'Freight: Sea Freight',
+            'due_condition' => null,
+            'status' => \App\Domain\Financial\Enums\PaymentScheduleStatus::PAID,
+        ]);
+
+        $this->table($shipment)
+            ->assertCanSeeTableRecords([$open])
+            ->assertCanNotSeeTableRecords([$paid, $paidOwn])
+            ->filterTable('hide_paid', false)
+            ->assertCanSeeTableRecords([$open, $paid, $paidOwn]);
+    }
 }

@@ -6,6 +6,7 @@ namespace App\Console\Commands;
 
 use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Financial\Models\PaymentScheduleItem;
+use App\Domain\Infrastructure\Support\Money;
 use App\Domain\Logistics\Models\Shipment;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
@@ -139,13 +140,34 @@ class RebalanceStageAllocationsCommand extends Command
 
         $sources = $sources->filter(fn (PaymentScheduleItem $item) => $item->allocations->isNotEmpty());
 
-        if ($sources->isEmpty()) {
-            return;
-        }
-
         // Chave composta de propósito: sortBy() com ARRAY de closures trata
         // cada closure como comparador ($a, $b), não como extrator de chave,
         // e a ordenação sai embaralhada sem erro nenhum.
+        $byPaymentDate = fn (array $row) => sprintf(
+            '%s|%012d',
+            $row['allocation']->payment?->payment_date?->toDateString() ?? '9999-12-31',
+            $row['allocation']->id,
+        );
+
+        // Alocações das fontes em ordem de pagamento — é a ordem em que o
+        // dinheiro entrou, e portanto a ordem em que cobre os embarques.
+        $pool = $sources
+            ->flatMap(fn (PaymentScheduleItem $source) => $source->allocations->map(fn (PaymentAllocation $a) => [
+                'allocation' => $a,
+                'source' => $source,
+                'amount' => (int) $a->allocated_amount_in_document_currency,
+            ]))
+            // O que foi pago A MAIS numa parcela de embarque real também é
+            // fonte (PO-2026-00071: o 70% inteiro entrou no SH-57 e a parcela
+            // do SH-68 ficou em aberto).
+            ->concat($targets->flatMap(fn (PaymentScheduleItem $target) => $this->excessRows($target)))
+            ->sortBy($byPaymentDate)
+            ->values();
+
+        if ($pool->isEmpty()) {
+            return;
+        }
+
         $targets = $targets
             ->sortBy(fn (PaymentScheduleItem $item) => sprintf(
                 '%s|%012d',
@@ -154,22 +176,14 @@ class RebalanceStageAllocationsCommand extends Command
             ))
             ->values();
 
-        // Alocações das fontes em ordem de pagamento — é a ordem em que o
-        // dinheiro entrou, e portanto a ordem em que cobre os embarques.
-        $pool = $sources
-            ->flatMap(fn (PaymentScheduleItem $source) => $source->allocations->map(fn (PaymentAllocation $a) => [
-                'allocation' => $a,
-                'source' => $source,
-            ]))
-            ->sortBy(fn (array $row) => sprintf(
-                '%s|%012d',
-                $row['allocation']->payment?->payment_date?->toDateString() ?? '9999-12-31',
-                $row['allocation']->id,
-            ))
-            ->values();
+        // Saldo ainda não movido de cada alocação: decide se a fatia parte a
+        // alocação ou só troca o dono dela.
+        $unmoved = $pool->mapWithKeys(fn (array $row) => [
+            $row['allocation']->id => (int) $row['allocation']->allocated_amount_in_document_currency,
+        ])->all();
 
         $cursor = 0;
-        $available = $pool->isEmpty() ? 0 : (int) $pool[0]['allocation']->allocated_amount_in_document_currency;
+        $available = (int) $pool[0]['amount'];
 
         foreach ($targets as $target) {
             $need = (int) $target->amount - (int) $target->allocations->sum('allocated_amount_in_document_currency');
@@ -178,14 +192,14 @@ class RebalanceStageAllocationsCommand extends Command
                 $row = $pool[$cursor];
                 $take = min($need, $available);
 
-                if ($take <= 0) {
+                if ($take <= 0 || $row['source']->is($target)) {
                     $cursor++;
-                    $available = $cursor < $pool->count()
-                        ? (int) $pool[$cursor]['allocation']->allocated_amount_in_document_currency
-                        : 0;
+                    $available = $cursor < $pool->count() ? (int) $pool[$cursor]['amount'] : 0;
 
                     continue;
                 }
+
+                $allocationId = $row['allocation']->id;
 
                 $this->moves[] = [
                     'allocation' => $row['allocation'],
@@ -194,17 +208,16 @@ class RebalanceStageAllocationsCommand extends Command
                     'amount' => $take,
                     // Relativo ao saldo AINDA não movido desta alocação: a
                     // última fatia não parte nada, só muda de dono.
-                    'split' => $take < $available,
+                    'split' => $take < $unmoved[$allocationId],
                 ];
 
+                $unmoved[$allocationId] -= $take;
                 $need -= $take;
                 $available -= $take;
 
                 if ($available === 0) {
                     $cursor++;
-                    $available = $cursor < $pool->count()
-                        ? (int) $pool[$cursor]['allocation']->allocated_amount_in_document_currency
-                        : 0;
+                    $available = $cursor < $pool->count() ? (int) $pool[$cursor]['amount'] : 0;
                 }
             }
         }
@@ -230,6 +243,44 @@ class RebalanceStageAllocationsCommand extends Command
                 $this->detach[] = $source;
             }
         }
+    }
+
+    /**
+     * Fatias do que foi pago além do valor de uma parcela de embarque real,
+     * tiradas do dinheiro que entrou por último. Só alocação em dinheiro:
+     * crédito aplicado (desconto, CN) fica onde está.
+     *
+     * @return list<array{allocation: PaymentAllocation, source: PaymentScheduleItem, amount: int}>
+     */
+    private function excessRows(PaymentScheduleItem $target): array
+    {
+        $excess = (int) $target->allocations->sum('allocated_amount_in_document_currency') - (int) $target->amount;
+
+        // Mesma tolerância de arredondamento do PaymentScheduleItem (0,01).
+        if ($excess <= 100) {
+            return [];
+        }
+
+        $rows = [];
+        $cash = $target->allocations
+            ->whereNull('credit_schedule_item_id')
+            ->sortByDesc(fn (PaymentAllocation $a) => sprintf(
+                '%s|%012d',
+                $a->payment?->payment_date?->toDateString() ?? '0000-00-00',
+                $a->id,
+            ));
+
+        foreach ($cash as $allocation) {
+            if ($excess <= 0) {
+                break;
+            }
+
+            $slice = min($excess, (int) $allocation->allocated_amount_in_document_currency);
+            $rows[] = ['allocation' => $allocation, 'source' => $target, 'amount' => $slice];
+            $excess -= $slice;
+        }
+
+        return $rows;
     }
 
     /**
@@ -273,6 +324,7 @@ class RebalanceStageAllocationsCommand extends Command
                 PaymentAllocation::create([
                     'payment_id' => $allocation->payment_id,
                     'payment_schedule_item_id' => $move['to']->id,
+                    'credit_schedule_item_id' => $allocation->credit_schedule_item_id,
                     'allocated_amount' => $sliceInPaymentCurrency,
                     'exchange_rate' => $allocation->exchange_rate,
                     'exchange_rate_captured_at' => $allocation->exchange_rate_captured_at,
@@ -335,7 +387,7 @@ class RebalanceStageAllocationsCommand extends Command
                     $move['allocation']->id,
                     $move['allocation']->payment_id,
                     $move['allocation']->payment?->payment_date?->format('d/m/Y') ?? '—',
-                    number_format($move['amount'] / 100, 2),
+                    Money::format($move['amount']),
                     mb_strimwidth((string) $move['from']->label, 0, 42, '…'),
                     mb_strimwidth((string) $move['to']->label, 0, 42, '…'),
                     $move['split'] ? 'sim' : '',
@@ -352,7 +404,7 @@ class RebalanceStageAllocationsCommand extends Command
                     $item->id,
                     mb_strimwidth((string) $item->label, 0, 42, '…'),
                     mb_strimwidth($this->baseLabel($item), 0, 42, '…'),
-                    number_format((int) $item->allocations->sum('allocated_amount_in_document_currency') / 100, 2),
+                    Money::format((int) $item->allocations->sum('allocated_amount_in_document_currency')),
                 ])->all(),
             );
         }
@@ -365,7 +417,7 @@ class RebalanceStageAllocationsCommand extends Command
                 collect($this->drop)->map(fn (PaymentScheduleItem $item) => [
                     $item->id,
                     mb_strimwidth((string) $item->label, 0, 52, '…'),
-                    number_format((int) $item->amount / 100, 2),
+                    Money::format((int) $item->amount),
                 ])->all(),
             );
         }

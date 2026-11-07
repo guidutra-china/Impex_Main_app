@@ -252,4 +252,61 @@ class RebalanceStageAllocationsCommandTest extends TestCase
         $this->artisan('financial:rebalance-stage-allocations PI-NAO-EXISTE')
             ->assertFailed();
     }
+
+    /**
+     * Caso PO-2026-00071 / PI-2026-00083: o 70% inteiro foi pago na parcela do
+     * 1º embarque (que só carregava parte das peças) e, quando o resto embarcou,
+     * a parcela nova do 2º embarque ficou em aberto. O excesso pago no 1º tem
+     * de cobrir o 2º.
+     *
+     * @return array{first: PaymentScheduleItem, second: PaymentScheduleItem, late: PaymentAllocation}
+     */
+    private function overpaidFirstShipmentScenario(): array
+    {
+        $first = $this->scheduleItem($this->liveShipment('SH-57', '2026-09-01'), 650000, '70% — Before Shipment — [SH-57 / '.$this->pi->reference.']', PaymentScheduleStatus::PAID);
+        $second = $this->scheduleItem($this->liveShipment('SH-68', '2026-10-30'), 50000, '70% — Before Shipment — [SH-68 / '.$this->pi->reference.']');
+
+        $this->allocate($first, 400000, '2026-08-06');
+        $late = $this->allocate($first, 300000, '2026-09-11');
+
+        return compact('first', 'second', 'late');
+    }
+
+    public function test_the_excess_paid_on_one_shipment_covers_the_open_one(): void
+    {
+        $s = $this->overpaidFirstShipmentScenario();
+
+        $this->artisan('financial:rebalance-stage-allocations PI-TEST-0049 --apply')->assertSuccessful();
+
+        $this->assertSame(650000, $this->allocatedOn($s['first']));
+        $this->assertSame(50000, $this->allocatedOn($s['second']));
+        $this->assertSame(PaymentScheduleStatus::PAID, $s['second']->fresh()->status);
+        $this->assertSame(PaymentScheduleStatus::PAID, $s['first']->fresh()->status);
+    }
+
+    public function test_the_excess_is_sliced_from_the_latest_payment(): void
+    {
+        $s = $this->overpaidFirstShipmentScenario();
+
+        $this->artisan('financial:rebalance-stage-allocations PI-TEST-0049 --apply')->assertSuccessful();
+
+        // O dinheiro que entrou por último é o que sobra no 1º embarque.
+        $this->assertSame(250000, (int) $s['late']->fresh()->allocated_amount_in_document_currency);
+        $moved = PaymentAllocation::where('payment_schedule_item_id', $s['second']->id)->sole();
+        $this->assertSame($s['late']->payment_id, $moved->payment_id);
+        $this->assertSame(50000, (int) $moved->allocated_amount);
+    }
+
+    public function test_an_overpaid_shipment_line_is_kept_even_when_nothing_is_open(): void
+    {
+        $s = $this->overpaidFirstShipmentScenario();
+        $s['second']->delete();
+
+        $this->artisan('financial:rebalance-stage-allocations PI-TEST-0049 --apply')
+            ->expectsOutputToContain('Nada a redistribuir')
+            ->assertSuccessful();
+
+        $this->assertSame(700000, $this->allocatedOn($s['first']));
+        $this->assertTrue($s['first']->fresh()->exists);
+    }
 }

@@ -404,6 +404,7 @@ return [
         'notes_evidence' => 'Notas / Evidências',
         'number' => 'Número',
         'number_of_packages' => 'Número de Pacotes',
+        'hide_paid_installments' => 'Esconder parcelas pagas',
         'only_import_remaining_quantities_exclude_already_shipped' => 'Importar apenas quantidades restantes (excluir já enviadas)',
         'only_import_remaining_quantities_exclude_already_imported' => 'Importar apenas quantidades restantes (excluir já importadas)',
         'options' => 'Opções',

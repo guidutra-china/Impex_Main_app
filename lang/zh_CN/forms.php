@@ -378,6 +378,7 @@ return [
         'notes_evidence' => '备注 / 证据',
         'number' => '数量',
         'number_of_packages' => '包裹数量',
+        'hide_paid_installments' => '隐藏已付分期',
         'only_import_remaining_quantities_exclude_already_shipped' => '仅导入剩余数量（排除已发货）',
         'only_import_remaining_quantities_exclude_already_imported' => '仅导入剩余数量（排除已导入）',
         'options' => '选项',

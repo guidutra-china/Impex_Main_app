@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Shipments\RelationManagers;
 
+use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Financial\Support\InstallmentStage;
 use App\Domain\Infrastructure\Support\Money;
@@ -10,6 +11,7 @@ use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use App\Domain\Settings\Enums\CalculationBase;
 use App\Filament\RelationManagers\PaymentScheduleRelationManager as BasePaymentScheduleRelationManager;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -60,16 +62,30 @@ class PaymentScheduleRelationManager extends BasePaymentScheduleRelationManager
             // orderBy('sort_order'), que venceria a ordenação do grupo e
             // QUEBRAVA um grupo em vários cabeçalhos (no SH-2026-00056 os
             // estágios do fornecedor saíam intercalados: 30%, 60%, 30%, 60%).
-            ->modifyQueryUsing(fn (Builder $query) => $query->reorder()->orWhere(
+            // Parcelas quitadas escondidas por padrão (SH-2026-00068: 12 PIs
+            // enchiam a aba de linhas com saldo 0). A condição vai DENTRO de
+            // cada ramo do OR, e não no filtro: a restrição da relação
+            // (payable = o embarque) não está entre parênteses, então um
+            // where depois dos orWhere só valeria para o último ramo.
+            ->filters([
+                Filter::make('hide_paid')
+                    ->label(__('forms.labels.hide_paid_installments'))
+                    ->toggle()
+                    ->default()
+                    ->query(fn (Builder $query) => $query),
+            ])
+            ->modifyQueryUsing(fn (Builder $query) => $query->reorder()->where($this->unpaidOnly(...))->orWhere(
                 fn (Builder $q) => $q
                     ->where('shipment_id', $shipment->id)
-                    ->where('payable_type', PurchaseOrder::class),
+                    ->where('payable_type', PurchaseOrder::class)
+                    ->where($this->unpaidOnly(...)),
             )->orWhere(
                 // Canônica da PI só quando é a ÚNICA representação da parcela
                 // (embarque sem espelho, ex.: SH-2026-00054).
                 fn (Builder $q) => $q
                     ->where('shipment_id', $shipment->id)
                     ->where('payable_type', ProformaInvoice::class)
+                    ->where($this->unpaidOnly(...))
                     ->where(function (Builder $unmirrored) use ($mirrored) {
                         foreach ($mirrored as [$piId, $dueCondition]) {
                             // Escrito sem NOT(...) de propósito: com due_condition
@@ -85,8 +101,19 @@ class PaymentScheduleRelationManager extends BasePaymentScheduleRelationManager
                     ->where('payable_type', ProformaInvoice::class)
                     ->whereNull('shipment_id')
                     ->whereIn('due_condition', CalculationBase::documentLevelValues())
-                    ->whereIn('payable_id', $this->carriedProformaInvoiceIds($shipment)),
+                    ->whereIn('payable_id', $this->carriedProformaInvoiceIds($shipment))
+                    ->where($this->unpaidOnly(...)),
             ));
+    }
+
+    /** Restringe às parcelas não quitadas enquanto o filtro "esconder pagas" está ligado. */
+    protected function unpaidOnly(Builder $query): void
+    {
+        if (! ($this->tableFilters['hide_paid']['isActive'] ?? true)) {
+            return;
+        }
+
+        $query->where('status', '!=', PaymentScheduleStatus::PAID->value);
     }
 
     /** Chave do grupo — regra em {@see InstallmentStage}, compartilhada com o portal do cliente. */
