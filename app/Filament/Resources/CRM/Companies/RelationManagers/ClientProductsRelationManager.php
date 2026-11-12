@@ -313,10 +313,6 @@ class ClientProductsRelationManager extends RelationManager
                             ->send();
                     }),
                 FlexibleProductImportAction::make('client', fn () => $this->getOwnerRecord()),
-                FlexibleProductImportAction::makeDownloadSimpleTemplate('client')
-                    ->visible(fn () => auth()->user()?->can('edit-companies')),
-                FlexibleProductImportAction::makeDownloadTemplate('client')
-                    ->visible(fn () => auth()->user()?->can('edit-companies')),
                 AttachAction::make()
                     ->label(__('forms.labels.add_product'))
                     ->visible(fn () => auth()->user()?->can('edit-companies'))

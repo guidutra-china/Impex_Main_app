@@ -3,7 +3,6 @@
 namespace App\Filament\Actions;
 
 use App\Domain\Catalog\Actions\GenerateProductSkuAction;
-use App\Domain\Catalog\Actions\Import\GenerateProductImportTemplate;
 use App\Domain\Catalog\Actions\Import\PreImportAnalysis;
 use App\Domain\Catalog\Enums\ProductStatus;
 use App\Domain\Catalog\Models\Category;
@@ -864,8 +863,25 @@ class FlexibleProductImportAction
     {
         $mapping = [];
 
+        // A coluna do preço da CI ("Custom Price") contém "custo" e "price":
+        // nunca pode ser lida como preço de venda ou de compra.
+        $customPriceColumns = [];
+        foreach ($firstRow as $index => $value) {
+            $normalized = strtolower(trim($value));
+            foreach ($fieldPatterns['custom_price'] ?? [] as $pattern) {
+                if (str_contains($normalized, $pattern)) {
+                    $customPriceColumns[$index] = true;
+                    break;
+                }
+            }
+        }
+
         foreach ($fieldPatterns as $field => $patterns) {
             foreach ($firstRow as $index => $value) {
+                if (isset($customPriceColumns[$index]) && in_array($field, ['unit_price', 'cross_unit_price'], true)) {
+                    continue;
+                }
+
                 $normalized = strtolower(trim($value));
                 foreach ($patterns as $pattern) {
                     if (str_contains($normalized, $pattern)) {
@@ -1237,75 +1253,5 @@ class FlexibleProductImportAction
         $html .= '</tbody></table></div>';
 
         return $html;
-    }
-
-    public static function makeDownloadTemplate(string $role): Action
-    {
-        $crossRole = $role === 'client' ? 'supplier' : 'client';
-        $crossLabel = $role === 'client' ? 'Supplier' : 'Client';
-        $roleLabel = $role === 'client' ? 'Client' : 'Supplier';
-
-        return Action::make('downloadProductTemplate')
-            ->label('Full Template')
-            ->icon('heroicon-o-document-arrow-down')
-            ->color('gray')
-            ->modalHeading('Download Full Product Import Template')
-            ->modalWidth('md')
-            ->form([
-                Select::make('category_id')
-                    ->label(__('forms.labels.product_category'))
-                    ->options(fn () => Category::active()->pluck('name', 'id'))
-                    ->searchable()
-                    ->required()
-                    ->helperText(__('forms.helpers.select_the_category_to_generate_the_template_with_the')),
-
-                Toggle::make('include_cross_company')
-                    ->label("Include {$crossLabel} columns")
-                    ->helperText("If enabled, the template will have two sets of company link columns: one for {$roleLabel} data and one for {$crossLabel} data (external codes, prices, etc.).")
-                    ->default(false),
-            ])
-            ->action(function (array $data) use ($role) {
-                $category = Category::findOrFail($data['category_id']);
-                $includeCross = $data['include_cross_company'] ?? false;
-                $generator = new GenerateProductImportTemplate;
-                $path = $generator->execute($category, $role, $includeCross);
-
-                return response()->download($path)->deleteFileAfterSend();
-            });
-    }
-
-    public static function makeDownloadSimpleTemplate(string $role): Action
-    {
-        $crossRole = $role === 'client' ? 'supplier' : 'client';
-        $crossLabel = $role === 'client' ? 'Supplier' : 'Client';
-        $roleLabel = $role === 'client' ? 'Client' : 'Supplier';
-
-        return Action::make('downloadSimpleTemplate')
-            ->label('Simple Template')
-            ->icon('heroicon-o-document-arrow-down')
-            ->color('gray')
-            ->modalHeading('Download Simple Product Import Template')
-            ->modalWidth('md')
-            ->form([
-                Select::make('category_id')
-                    ->label(__('forms.labels.product_category'))
-                    ->options(fn () => Category::active()->pluck('name', 'id'))
-                    ->searchable()
-                    ->required()
-                    ->helperText('Template will include required attributes for this category.'),
-
-                Toggle::make('include_cross_company')
-                    ->label("Include {$crossLabel} columns")
-                    ->helperText("Add a second set of company link columns for {$crossLabel} data (external codes, prices, etc.).")
-                    ->default(false),
-            ])
-            ->action(function (array $data) use ($role) {
-                $category = Category::findOrFail($data['category_id']);
-                $includeCross = $data['include_cross_company'] ?? false;
-                $generator = new GenerateProductImportTemplate;
-                $path = $generator->executeSimple($category, $role, $includeCross);
-
-                return response()->download($path)->deleteFileAfterSend();
-            });
     }
 }

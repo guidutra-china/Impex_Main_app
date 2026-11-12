@@ -3,11 +3,9 @@
 namespace App\Domain\Catalog\Actions\Import;
 
 use App\Domain\Catalog\Models\Category;
-use OpenSpout\Common\Entity\Cell;
-use OpenSpout\Common\Entity\Row;
-use OpenSpout\Common\Entity\Style\Color;
-use OpenSpout\Common\Entity\Style\Style;
-use OpenSpout\Writer\XLSX\Writer;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class GenerateProductImportTemplate
 {
@@ -64,90 +62,6 @@ class GenerateProductImportTemplate
         'incoterm' => ['label' => 'Incoterm', 'required' => false, 'hint' => 'EXW, FOB, CIF, etc.'],
         'is_preferred' => ['label' => 'Is Preferred', 'required' => false, 'hint' => 'yes or no'],
     ];
-
-    public function execute(Category $category, string $role, bool $includeCrossRole = false): string
-    {
-        $crossRole = $role === 'client' ? 'supplier' : 'client';
-        $suffix = $includeCrossRole ? "_{$role}_and_{$crossRole}" : "_{$role}";
-        $filename = 'product_import_template_'.str($category->name)->slug().$suffix.'.xlsx';
-        $path = storage_path('app/temp/'.$filename);
-
-        if (! is_dir(dirname($path))) {
-            mkdir(dirname($path), 0755, true);
-        }
-
-        $writer = new Writer;
-        $writer->openToFile($path);
-
-        $allColumns = $this->buildColumnMap($category, $role, $includeCrossRole);
-
-        $headerStyle = (new Style)
-            ->setFontBold()
-            ->setFontSize(11)
-            ->setBackgroundColor('4472C4')
-            ->setFontColor(Color::WHITE);
-
-        $sectionStyle = (new Style)
-            ->setFontBold()
-            ->setFontSize(10)
-            ->setBackgroundColor('D9E2F3')
-            ->setFontColor('1F3864');
-
-        $hintStyle = (new Style)
-            ->setFontItalic()
-            ->setFontSize(9)
-            ->setFontColor('808080');
-
-        // Row 1: Section headers
-        $sectionCells = [];
-        foreach ($allColumns as $col) {
-            $sectionCells[] = $col['section'];
-        }
-        $writer->addRow(new Row(
-            array_map(fn ($v) => Cell::fromValue($v), $sectionCells),
-            $sectionStyle
-        ));
-
-        // Row 2: Column headers
-        $headerCells = [];
-        foreach ($allColumns as $col) {
-            $label = $col['label'];
-            if ($col['required']) {
-                $label .= ' *';
-            }
-            $headerCells[] = $label;
-        }
-        $writer->addRow(new Row(
-            array_map(fn ($v) => Cell::fromValue($v), $headerCells),
-            $headerStyle
-        ));
-
-        // Row 3: Hints
-        $hintCells = [];
-        foreach ($allColumns as $col) {
-            $hintCells[] = $col['hint'];
-        }
-        $writer->addRow(new Row(
-            array_map(fn ($v) => Cell::fromValue($v), $hintCells),
-            $hintStyle
-        ));
-
-        // Row 4: Example base product
-        $exampleBase = $this->buildExampleRow($allColumns, isVariant: false, role: $role, includeCrossRole: $includeCrossRole);
-        $writer->addRow(new Row(
-            array_map(fn ($v) => Cell::fromValue($v), $exampleBase)
-        ));
-
-        // Row 5: Example variant
-        $exampleVariant = $this->buildExampleRow($allColumns, isVariant: true, role: $role, includeCrossRole: $includeCrossRole);
-        $writer->addRow(new Row(
-            array_map(fn ($v) => Cell::fromValue($v), $exampleVariant)
-        ));
-
-        $writer->close();
-
-        return $path;
-    }
 
     public function buildColumnMap(Category $category, ?string $role = null, bool $includeCrossRole = false): array
     {
@@ -225,229 +139,96 @@ class GenerateProductImportTemplate
         return $columns;
     }
 
-    private function buildExampleRow(array $columns, bool $isVariant, string $role = 'client', bool $includeCrossRole = false): array
+    /**
+     * Cabeçalhos do modelo em branco do Quick Import (produtos do cliente ou do
+     * fornecedor). Cada nome é reconhecido pelo mapeamento automático do
+     * FlexibleProductImportAction e o total cabe nas 15 colunas mapeáveis.
+     * Evite "Custom Price": o padrão "custo" confundiria com preço de compra.
+     *
+     * @return list<string>
+     */
+    public function quickImportHeaders(string $role, bool $includeCrossRole = false): array
     {
-        $rolePrefix = strtoupper(substr($role, 0, 3));
-        $crossRole = ($role === 'client') ? 'supplier' : 'client';
-        $crossPrefix = strtoupper(substr($crossRole, 0, 3));
+        $common = ['Product Name', 'Product Family', 'Model Number', 'Reference Code'];
 
-        $row = [];
-        foreach ($columns as $colKey => $col) {
-            $row[] = match ($colKey) {
-                'name' => $isVariant ? 'Example Product - Blue' : 'Example Product',
-                'product_family' => 'MX Series',
-                'reference_code' => $isVariant ? 'MX-100-BL' : 'MX-100',
-                'parent_ref' => $isVariant ? 'MX-100' : '',
-                'hs_code' => '6912.00',
-                'origin_country' => 'CN',
-                'brand' => 'BrandX',
-                'model_number' => $isVariant ? 'MX-100-BL' : 'MX-100',
-                'moq' => '500',
-                'moq_unit' => 'pcs',
-                'lead_time_days' => '30',
-                'spec_net_weight' => '0.350',
-                'spec_color' => $isVariant ? 'Blue' : 'White',
-                'spec_material' => 'Ceramic',
-                'pkg_packaging_type' => 'carton',
-                'pkg_pcs_per_carton' => '24',
-                'cost_base_price' => '8.00',
-                'cost_markup_percentage' => '30',
-                // Primary company link
-                'company_external_code' => $isVariant ? "{$rolePrefix}-MX100-BL" : "{$rolePrefix}-MX100",
-                'company_unit_price' => $role === 'client' ? '15.00' : '8.50',
-                'company_currency_code' => 'USD',
-                'company_incoterm' => 'FOB',
-                'company_is_preferred' => $isVariant ? 'no' : 'yes',
-                // Cross-company link
-                'cross_external_code' => $includeCrossRole ? ($isVariant ? "{$crossPrefix}-MX100-BL" : "{$crossPrefix}-MX100") : '',
-                'cross_unit_price' => $includeCrossRole ? ($crossRole === 'supplier' ? '8.50' : '15.00') : '',
-                'cross_currency_code' => $includeCrossRole ? 'USD' : '',
-                'cross_incoterm' => $includeCrossRole ? 'EXW' : '',
-                'cross_is_preferred' => $includeCrossRole ? ($isVariant ? 'no' : 'yes') : '',
-                default => '',
-            };
+        if ($role === 'client') {
+            $headers = [...$common, 'Client Code', 'Client Product Name', 'Invoice Description',
+                'Selling Price', 'CI Price', 'MOQ', 'Lead Time (days)', 'Remarks'];
+
+            return $includeCrossRole
+                ? [...$headers, 'Supplier Code', 'Supplier Product Name', 'Purchase Price']
+                : $headers;
         }
 
-        return $row;
+        $headers = [...$common, 'Supplier Code', 'Supplier Product Name', 'Purchase Price',
+            'MOQ', 'Lead Time (days)', 'Material', 'Specifications', 'Remarks'];
+
+        return $includeCrossRole
+            ? [...$headers, 'Client Code', 'Client Product Name', 'Selling Price']
+            : $headers;
     }
 
-    public function executeSimple(Category $category, string $role, bool $includeCrossRole = false): string
+    /**
+     * Gera o modelo em branco do Quick Import: aba de dados com só o cabeçalho
+     * (linha 1) e uma aba de instruções depois dela — o import lê só a aba ativa.
+     */
+    public function quickImport(string $role, bool $includeCrossRole = false): string
     {
-        $crossRole = $role === 'client' ? 'supplier' : 'client';
-        $suffix = $includeCrossRole ? "_{$role}_and_{$crossRole}" : "_{$role}";
-        $filename = 'product_import_simple_'.str($category->name)->slug().$suffix.'.xlsx';
-        $path = storage_path('app/temp/'.$filename);
+        $suffix = $includeCrossRole ? "{$role}_and_".($role === 'client' ? 'supplier' : 'client') : $role;
+        $path = storage_path("app/temp/product_quick_import_{$suffix}.xlsx");
 
         if (! is_dir(dirname($path))) {
             mkdir(dirname($path), 0755, true);
         }
 
-        $allColumns = $this->buildSimpleColumnMap($category, $role, $includeCrossRole);
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Products');
 
-        $writer = new Writer;
-        $writer->openToFile($path);
-
-        $headerStyle = (new Style)
-            ->setFontBold()
-            ->setFontSize(11)
-            ->setBackgroundColor('4472C4')
-            ->setFontColor(Color::WHITE);
-
-        $sectionStyle = (new Style)
-            ->setFontBold()
-            ->setFontSize(10)
-            ->setBackgroundColor('D9E2F3')
-            ->setFontColor('1F3864');
-
-        $hintStyle = (new Style)
-            ->setFontItalic()
-            ->setFontSize(9)
-            ->setFontColor('808080');
-
-        // Row 1: Section headers
-        $writer->addRow(new Row(
-            array_map(fn ($col) => Cell::fromValue($col['section']), $allColumns),
-            $sectionStyle
-        ));
-
-        // Row 2: Column headers
-        $headerCells = [];
-        foreach ($allColumns as $col) {
-            $label = $col['label'];
-            if ($col['required']) {
-                $label .= ' *';
-            }
-            $headerCells[] = $label;
+        foreach ($this->quickImportHeaders($role, $includeCrossRole) as $index => $label) {
+            $column = Coordinate::stringFromColumnIndex($index + 1);
+            $sheet->setCellValue($column.'1', $label);
+            $sheet->getColumnDimension($column)->setWidth(max(14, mb_strlen($label) + 4));
         }
-        $writer->addRow(new Row(
-            array_map(fn ($v) => Cell::fromValue($v), $headerCells),
-            $headerStyle
-        ));
 
-        // Row 3: Hints
-        $writer->addRow(new Row(
-            array_map(fn ($col) => Cell::fromValue($col['hint']), $allColumns),
-            $hintStyle
-        ));
+        $sheet->getStyle('A1:'.$sheet->getHighestColumn().'1')->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '4472C4']],
+        ]);
+        $sheet->freezePane('A2');
 
-        // Row 4: Example
-        $rolePrefix = strtoupper(substr($role, 0, 3));
-        $exampleRow = [];
-        foreach ($allColumns as $colKey => $col) {
-            $exampleRow[] = match ($colKey) {
-                'name' => 'Example Product',
-                'reference_code' => 'MX-100',
-                'moq' => '500',
-                'lead_time_days' => '30',
-                'company_external_code' => "{$rolePrefix}-MX100",
-                'company_unit_price' => '8.50',
-                'company_currency_code' => 'USD',
-                'company_incoterm' => 'FOB',
-                'company_is_preferred' => 'yes',
-                'spec_material' => 'Ceramic',
-                'spec_color' => 'White',
-                default => '',
-            };
+        $help = $spreadsheet->createSheet();
+        $help->setTitle('Instructions');
+        $help->getColumnDimension('A')->setWidth(110);
+        foreach ($this->quickImportInstructions($role) as $row => $line) {
+            $help->setCellValue('A'.($row + 1), $line);
         }
-        $writer->addRow(new Row(
-            array_map(fn ($v) => Cell::fromValue($v), $exampleRow)
-        ));
 
-        $writer->close();
+        $spreadsheet->setActiveSheetIndex(0);
+        (new Xlsx($spreadsheet))->save($path);
+        $spreadsheet->disconnectWorksheets();
 
         return $path;
     }
 
     /**
-     * Build a simple column map with company link and required category attributes.
+     * @return list<string>
      */
-    private const SIMPLE_COMPANY_COLUMNS = [
-        'external_code' => ['label' => 'External Code', 'required' => false, 'hint' => "Company's internal code for this product"],
-        'external_name' => ['label' => 'External Product Name', 'required' => false, 'hint' => 'Name used by this company'],
-        'external_description' => ['label' => 'External Description', 'required' => false, 'hint' => 'Description for invoices'],
-        'unit_price' => ['label' => 'Unit Price', 'required' => false, 'hint' => 'Decimal (e.g. 12.50, NOT in cents)'],
-        'custom_price' => ['label' => 'Custom Price (CI Override)', 'required' => false, 'hint' => 'Decimal. Overrides PI price on Commercial Invoice.'],
-        'currency_code' => ['label' => 'Currency', 'required' => false, 'hint' => 'e.g. USD, EUR, CNY'],
-    ];
-
-    public function buildSimpleColumnMap(Category $category, string $role, bool $includeCrossRole = false): array
+    private function quickImportInstructions(string $role): array
     {
-        $roleLabel = ucfirst($role);
-        $crossRole = ($role === 'client') ? 'supplier' : 'client';
-        $crossRoleLabel = ucfirst($crossRole);
-        $columns = [];
+        $priceLine = $role === 'client'
+            ? 'Selling Price = client selling price. CI Price = price used only on the Commercial Invoice (leave blank if not used).'
+            : 'Purchase Price = this supplier\'s purchase price.';
 
-        // Core product fields
-        $simpleProductColumns = ['name', 'product_family', 'reference_code', 'moq', 'lead_time_days'];
-        foreach ($simpleProductColumns as $key) {
-            $col = self::PRODUCT_COLUMNS[$key];
-            $columns[$key] = array_merge($col, ['section' => 'PRODUCT', 'key' => $key, 'group' => 'product']);
-        }
-
-        // Primary company link columns
-        $sectionName = strtoupper($roleLabel).' LINK';
-        foreach (self::SIMPLE_COMPANY_COLUMNS as $key => $col) {
-            $columns["company_{$key}"] = array_merge($col, [
-                'section' => $sectionName,
-                'key' => $key,
-                'group' => 'company',
-                'link_role' => $role,
-            ]);
-        }
-
-        // Cross-company link (optional)
-        if ($includeCrossRole) {
-            $crossSectionName = strtoupper($crossRoleLabel).' LINK';
-            foreach (self::SIMPLE_COMPANY_COLUMNS as $key => $col) {
-                $columns["cross_{$key}"] = array_merge($col, [
-                    'section' => $crossSectionName,
-                    'key' => $key,
-                    'group' => 'cross_company',
-                    'link_role' => $crossRole,
-                ]);
-            }
-        }
-
-        // Basic spec columns (material, color)
-        $simpleSpecColumns = ['material', 'color'];
-        foreach ($simpleSpecColumns as $key) {
-            if (isset(self::SPEC_COLUMNS[$key])) {
-                $col = self::SPEC_COLUMNS[$key];
-                $columns["spec_{$key}"] = array_merge($col, ['section' => 'SPECIFICATION', 'key' => $key, 'group' => 'spec']);
-            }
-        }
-
-        // Required category attributes
-        $categoryAttributes = $category->getAllAttributes();
-        foreach ($categoryAttributes as $attr) {
-            if (! $attr->is_required) {
-                continue;
-            }
-
-            $hint = '';
-            if ($attr->type === \App\Domain\Catalog\Enums\AttributeType::SELECT && ! empty($attr->options)) {
-                $hint = 'Options: '.implode(', ', $attr->options);
-            } elseif ($attr->type === \App\Domain\Catalog\Enums\AttributeType::BOOLEAN) {
-                $hint = 'yes or no';
-            } elseif ($attr->type === \App\Domain\Catalog\Enums\AttributeType::NUMBER) {
-                $hint = 'Numeric value';
-            }
-            if ($attr->unit) {
-                $hint .= ($hint ? '. ' : '')."Unit: {$attr->unit}";
-            }
-
-            $columns["attr_{$attr->id}"] = [
-                'label' => $attr->name.($attr->unit ? " ({$attr->unit})" : ''),
-                'required' => true,
-                'hint' => $hint ?: ($attr->default_value ? "Default: {$attr->default_value}" : 'Required'),
-                'section' => 'ATTRIBUTES',
-                'key' => $attr->id,
-                'group' => 'attribute',
-                'attribute_type' => $attr->type,
-            ];
-        }
-
-        return $columns;
+        return [
+            'Quick Import — '.($role === 'client' ? 'client' : 'supplier').' products',
+            'Fill one product per row on the "Products" sheet, starting at row 2. Keep the header names: the import maps columns by name.',
+            'Prices as plain decimals (12.50), never in cents. The currency is chosen on the import screen.',
+            'Reference Code = our product code. '.($role === 'client' ? 'Client' : 'Supplier').' Code = the code this company uses.',
+            $priceLine,
+            'Only the first 15 columns (A–O) can be mapped. Pictures pasted on a product row are imported with it.',
+            'Import: Companies → open the company → products tab → Quick Import.',
+        ];
     }
 
     public function getColumnKeys(Category $category, ?string $role = null, bool $includeCrossRole = false): array

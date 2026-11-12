@@ -175,10 +175,6 @@ class SupplierProductsRelationManager extends RelationManager
             ])
             ->headerActions([
                 FlexibleProductImportAction::make('supplier', fn () => $this->getOwnerRecord()),
-                FlexibleProductImportAction::makeDownloadSimpleTemplate('supplier')
-                    ->visible(fn () => auth()->user()?->can('edit-companies')),
-                FlexibleProductImportAction::makeDownloadTemplate('supplier')
-                    ->visible(fn () => auth()->user()?->can('edit-companies')),
                 AttachAction::make()
                     ->label(__('forms.labels.add_product'))
                     ->visible(fn () => auth()->user()?->can('edit-companies'))
