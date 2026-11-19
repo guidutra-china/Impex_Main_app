@@ -10,9 +10,11 @@ use App\Domain\Financial\Models\PaymentScheduleItem;
 use App\Domain\Infrastructure\Actions\TransitionStatusAction;
 use App\Domain\Infrastructure\Pdf\Support\PriceFormula;
 use App\Domain\Infrastructure\Pdf\Templates\ProformaInvoicePdfTemplate;
+use App\Domain\Infrastructure\Services\DocumentService;
 use App\Domain\ProformaInvoices\Actions\CancelProformaInvoiceAction;
 use App\Domain\ProformaInvoices\Actions\SyncClientProductPricesAction;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
+use App\Domain\ProformaInvoices\Reports\ProformaInvoiceExcelExporter;
 use App\Domain\ProformaInvoices\Services\ProformaInvoiceItemCurrencyResolver;
 use App\Domain\PurchaseOrders\Actions\GeneratePurchaseOrdersAction;
 use App\Filament\Actions\GeneratePdfAction;
@@ -203,6 +205,7 @@ trait ProformaInvoiceHeaderActions
                 ],
                 beforeGenerate: fn ($record, array $data) => $this->handleSaveCustomPrices($record, $data),
             ),
+            $this->proformaInvoiceExcelAction(),
             SendDocumentByEmailAction::make(
                 documentType: 'proforma_invoice_pdf',
                 settingsKey: 'email_default_message_proforma_invoice',
@@ -213,6 +216,76 @@ trait ProformaInvoiceHeaderActions
             ->icon('heroicon-o-document-text')
             ->color('info')
             ->button();
+    }
+
+    /**
+     * PI em Excel. Mesmas opções do PDF (menos fotos), para os dois formatos
+     * saírem com os mesmos valores. O arquivo é baixado na hora e entra na
+     * aba Documents com versionamento próprio (…_xlsx); preço alterado vai
+     * para custom_price_xlsx, sem avançar a versão da PI oficial.
+     */
+    protected function proformaInvoiceExcelAction(): Action
+    {
+        return Action::make('exportProformaInvoiceExcel')
+            ->label(__('forms.labels.export_excel'))
+            ->icon('heroicon-o-table-cells')
+            ->color('success')
+            ->visible(fn () => auth()->user()?->can('generate-documents'))
+            ->modalHeading(__('forms.labels.export_excel').' — '.__('forms.labels.proforma_invoice'))
+            ->modalSubmitActionLabel(__('forms.labels.export_excel'))
+            ->form([
+                Checkbox::make('show_model_number')
+                    ->label(__('forms.labels.show_model_number'))
+                    ->default(true),
+                Checkbox::make('show_product_code')
+                    ->label(__('forms.labels.show_product_code')),
+                Checkbox::make('hide_commission')
+                    ->label(__('forms.labels.hide_service_fee'))
+                    ->helperText(__('forms.helpers.hide_service_fee')),
+                Checkbox::make('use_custom_prices')
+                    ->label(__('forms.labels.use_client_custom_prices'))
+                    ->helperText(__('forms.helpers.use_client_custom_prices'))
+                    ->live(),
+                Checkbox::make('use_formula')
+                    ->label(__('forms.labels.apply_price_formula'))
+                    ->visible(fn (Get $get) => ! $get('use_custom_prices'))
+                    ->live()
+                    ->helperText(__('forms.helpers.apply_formula_to_recalculate_prices')),
+                TextInput::make('price_formula')
+                    ->label(__('forms.labels.formula'))
+                    ->placeholder('e.g. *0.70, *1.15, +10, -5')
+                    ->visible(fn (Get $get) => ! $get('use_custom_prices') && $get('use_formula'))
+                    ->dehydrated(fn (Get $get) => (bool) $get('use_formula'))
+                    ->requiredIf('use_formula', true)
+                    ->regex('/^[*\/+\-]\s*[0-9]*\.?[0-9]+$/')
+                    ->helperText(__('forms.helpers.formula_operators'))
+                    ->live(onBlur: true),
+                Checkbox::make('save_as_custom_price')
+                    ->label(__('forms.labels.save_as_custom_price'))
+                    ->visible(fn (Get $get) => ! $get('use_custom_prices') && $get('use_formula'))
+                    ->helperText(__('forms.helpers.save_formula_prices_to_custom_price')),
+                $this->documentNamingSection($this->namingPreferenceDefaults()),
+            ])
+            ->action(function (array $data) {
+                $record = $this->getRecord();
+                $this->handleSaveCustomPrices($record, $data);
+
+                $path = (new ProformaInvoiceExcelExporter)->export($record, $data);
+
+                $type = ProformaInvoiceExcelExporter::documentType($data);
+                $nextVersion = ((int) $record->documents()->where('type', $type)->max('version')) + 1;
+                $name = ProformaInvoiceExcelExporter::filename($record, $data, $nextVersion);
+
+                $document = (new DocumentService)->storeGeneratedFile($record, $path, $type, $name, 'xlsx');
+
+                Notification::make()
+                    ->title(__('messages.excel_archived'))
+                    ->body(__('messages.document_version_created', ['version' => $document->version, 'name' => $document->name]))
+                    ->success()
+                    ->send();
+
+                return response()->download($path, $document->name)->deleteFileAfterSend();
+            });
     }
 
     /**

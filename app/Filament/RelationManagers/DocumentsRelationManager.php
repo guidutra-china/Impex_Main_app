@@ -38,6 +38,8 @@ class DocumentsRelationManager extends RelationManager
         'proforma_invoice_pdf' => 'Proforma Invoice PDF',
         'shipment_proforma_invoice_pdf' => 'Shipment Proforma Invoice PDF',
         'custom_price_pdf' => 'Custom Price PDF',
+        'proforma_invoice_xlsx' => 'Proforma Invoice Excel',
+        'custom_price_xlsx' => 'Custom Price Excel',
         'commercial_invoice' => 'Commercial Invoice',
         'commercial_invoice_pdf' => 'Commercial Invoice PDF',
         'commercial_invoice_xlsx' => 'Commercial Invoice Excel',
@@ -63,8 +65,8 @@ class DocumentsRelationManager extends RelationManager
                     ->color(fn (string $state) => match ($state) {
                         'quotation_pdf', 'rfq_pdf' => 'success',
                         'supplier_quotation', 'supplier_response' => 'warning',
-                        'proforma_invoice', 'proforma_invoice_pdf', 'shipment_proforma_invoice_pdf', 'commercial_invoice', 'commercial_invoice_pdf', 'commercial_invoice_xlsx' => 'danger',
-                        'custom_price_pdf' => 'purple',
+                        'proforma_invoice', 'proforma_invoice_pdf', 'shipment_proforma_invoice_pdf', 'commercial_invoice', 'commercial_invoice_pdf', 'commercial_invoice_xlsx', 'proforma_invoice_xlsx' => 'danger',
+                        'custom_price_pdf', 'custom_price_xlsx' => 'purple',
                         'packing_list', 'packing_list_pdf', 'packing_list_xlsx', 'bill_of_lading' => 'info',
                         default => 'gray',
                     })

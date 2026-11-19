@@ -2,7 +2,7 @@
 
 namespace App\Domain\Logistics\Reports\Concerns;
 
-use App\Domain\Logistics\Models\Shipment;
+use Illuminate\Database\Eloquent\Model;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
@@ -27,9 +27,9 @@ trait WritesShipmentDocumentSheets
      * separada da do PDF, então o cabeçalho não pode usar document_version
      * do template. Mesma conta que o arquivamento faz ao gravar.
      */
-    protected function nextExcelVersion(Shipment $shipment, string $documentType): int
+    protected function nextExcelVersion(Model $documentable, string $documentType): int
     {
-        return ((int) $shipment->documents()->where('type', $documentType)->max('version')) + 1;
+        return ((int) $documentable->documents()->where('type', $documentType)->max('version')) + 1;
     }
 
     protected function writeDocumentHeader(
