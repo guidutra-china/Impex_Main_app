@@ -6,6 +6,7 @@ use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\Payment;
+use App\Domain\Financial\Support\ScheduleSettlementSummary;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\PurchaseOrders\Models\PurchaseOrder;
 use Filament\Widgets\Widget;
@@ -35,21 +36,15 @@ class PurchaseOrderStats extends Widget
 
         $scheduleItems = $po->paymentScheduleItems->sortBy('sort_order');
         $regularItems = $scheduleItems->where('is_credit', false);
-        $creditItems = $scheduleItems->where('is_credit', true);
 
-        $totalDue = $regularItems->sum('amount');
-        $totalCredits = $creditItems->sum(fn ($i) => abs($i->amount));
-        $netDue = $totalDue - $totalCredits;
-        $totalPaid = $regularItems->sum(fn ($i) => $i->paid_amount);
-
-        // Parcelas isentas (waived) contam como quitadas no saldo exibido.
-        $waivedTotal = $regularItems
-            ->where('status', PaymentScheduleStatus::WAIVED)
-            ->sum(fn ($i) => $i->remaining_amount);
-
-        $netRemaining = max(0, $netDue - $totalPaid - $waivedTotal);
-        $progress = $netDue > 0 ? (int) round((($totalPaid + $waivedTotal) / $netDue) * 100) : 0;
-        $paidProgress = $netDue > 0 ? (int) round(($totalPaid / $netDue) * 100) : 0;
+        $summary = ScheduleSettlementSummary::fromScheduleItems($scheduleItems);
+        $totalCredits = $summary->credits;
+        $netDue = $summary->netDue;
+        $totalPaid = $summary->paid;
+        $waivedTotal = $summary->waived;
+        $netRemaining = $summary->remaining;
+        $progress = $summary->progress();
+        $paidProgress = $summary->paidProgress();
 
         $overdueAmount = $regularItems
             ->where('status', PaymentScheduleStatus::OVERDUE)

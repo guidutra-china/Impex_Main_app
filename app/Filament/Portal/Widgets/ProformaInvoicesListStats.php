@@ -3,6 +3,8 @@
 namespace App\Filament\Portal\Widgets;
 
 use App\Domain\Financial\Enums\PaymentScheduleStatus;
+use App\Domain\Financial\Enums\PaymentStatus;
+use App\Domain\Financial\Models\PaymentAllocation;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\ProformaInvoices\Enums\ProformaInvoiceStatus;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
@@ -41,7 +43,21 @@ class ProformaInvoicesListStats extends Widget
             $currency = $invoices->first()?->currency_code ?? 'USD';
 
             $totalValue = $invoices->sum(fn ($pi) => $pi->grand_total);
-            $totalPaid = $invoices->sum(fn ($pi) => $pi->paymentScheduleItems->sum('paid_amount'));
+
+            // paid_amount inclui o crédito (desconto) aplicado na parcela, e o
+            // grand_total destas PIs já vem líquido dos descontos delas: crédito
+            // das próprias PIs não conta como pago, senão o desconto entra em
+            // dobro. Crédito de outro documento (ex.: Credit Note) conta.
+            $scheduleItems = $invoices->flatMap(fn ($pi) => $pi->paymentScheduleItems);
+            $ownCreditItemIds = $scheduleItems->where('is_credit', true)->pluck('id');
+
+            $totalPaid = (int) PaymentAllocation::query()
+                ->whereIn('payment_schedule_item_id', $scheduleItems->where('is_credit', false)->pluck('id'))
+                ->where(fn ($q) => $q
+                    ->whereNull('credit_schedule_item_id')
+                    ->orWhereNotIn('credit_schedule_item_id', $ownCreditItemIds))
+                ->whereHas('payment', fn ($q) => $q->where('status', PaymentStatus::APPROVED))
+                ->sum('allocated_amount_in_document_currency');
 
             // Parcelas isentas (waived) contam como quitadas no saldo do Portal.
             $totalWaived = $invoices->sum(
