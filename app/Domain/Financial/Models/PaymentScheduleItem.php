@@ -79,6 +79,28 @@ class PaymentScheduleItem extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        // Mudar o valor de uma parcela que já recebeu pagamento muda o que
+        // falta nela, então o status guardado precisa ser revisto. Vários
+        // caminhos redimensionam parcelas "sobreviventes" (regeneração do
+        // cronograma, recálculo pelo embarque) e nem todos reviam o status:
+        // uma parcela quitada que crescia seguia PAID e sumia do formulário
+        // de pagamento com saldo em aberto (PI-2026-00085).
+        //
+        // Parcela sem pagamento nenhum fica como está: PENDING/DUE/OVERDUE
+        // pertencem ao ciclo de vida do documento, não ao valor.
+        static::updated(function (self $item): void {
+            if (! $item->wasChanged('amount')) {
+                return;
+            }
+
+            if ($item->status === PaymentScheduleStatus::PAID || $item->paid_amount > 0) {
+                $item->recalculateStatus();
+            }
+        });
+    }
+
     // --- Scopes ---
 
     /**
