@@ -271,6 +271,17 @@ return [
         'allocation' => 'alocação',
         'allocations' => 'alocações',
         'no_allocations_yet' => 'Nenhuma alocação registrada ainda.',
+        'allocation_details' => [
+            'action' => 'Alocações',
+            'download' => 'Baixar planilha',
+            'download_short' => 'Planilha',
+            'heading' => 'Alocações do pagamento :number',
+            'pi' => 'PI',
+            'shipment' => 'Embarque',
+            'bl' => 'BL',
+            'document_amount' => 'Valor no documento',
+            'credit_applied' => 'Crédito aplicado',
+        ],
         'upcoming' => [
             'heading' => 'Próximos Pagamentos',
             'none' => 'Nenhum pagamento em aberto',

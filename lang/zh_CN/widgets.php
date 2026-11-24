@@ -271,6 +271,17 @@ return [
         'allocation' => '项分配',
         'allocations' => '项分配',
         'no_allocations_yet' => '尚无分配记录。',
+        'allocation_details' => [
+            'action' => '分配明细',
+            'download' => '下载表格',
+            'download_short' => '表格',
+            'heading' => '付款 :number 的分配明细',
+            'pi' => 'PI',
+            'shipment' => '货运',
+            'bl' => '提单号',
+            'document_amount' => '单据币种金额',
+            'credit_applied' => '已用抵扣',
+        ],
         'upcoming' => [
             'heading' => '即将到期的付款',
             'none' => '没有待付款项',

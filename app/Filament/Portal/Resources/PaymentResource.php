@@ -5,19 +5,24 @@ namespace App\Filament\Portal\Resources;
 use App\Domain\Financial\Enums\PaymentDirection;
 use App\Domain\Financial\Enums\PaymentStatus;
 use App\Domain\Financial\Models\Payment;
+use App\Domain\Financial\Reports\PaymentAllocationExcelExporter;
+use App\Domain\Financial\Reports\PaymentAllocationReport;
 use App\Domain\Infrastructure\Support\Money;
 use App\Filament\Portal\Resources\PaymentResource\Pages;
 use App\Filament\Portal\Resources\PaymentResource\Widgets\PortalPaymentAllocations;
 use App\Filament\Portal\Widgets\PaymentsListStats;
 use App\Filament\Portal\Widgets\UpcomingPaymentsWidget;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Width;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class PaymentResource extends Resource
 {
@@ -105,12 +110,50 @@ class PaymentResource extends Resource
                 \Filament\Actions\ViewAction::make()
                     ->url(fn ($record) => $record instanceof Payment ? Pages\ViewPayment::getUrl(['record' => $record]) : null)
                     ->visible(fn ($record) => $record instanceof Payment),
+                // Modal e planilha leem o mesmo PaymentAllocationReport: o
+                // que o cliente vê na tela é o que ele baixa.
+                Action::make('viewAllocations')
+                    ->label(__('widgets.portal.allocation_details.action'))
+                    ->icon('heroicon-o-arrows-right-left')
+                    ->color('gray')
+                    ->visible(fn ($record) => $record instanceof Payment)
+                    ->modalHeading(fn (Payment $record) => __('widgets.portal.allocation_details.heading', ['number' => $record->number]))
+                    ->modalDescription(fn (Payment $record) => collect([$record->reference, $record->payment_date?->format('d/m/Y')])->filter()->implode(' · ') ?: null)
+                    ->modalWidth(Width::SevenExtraLarge)
+                    ->modalContent(fn (Payment $record) => view('portal.modals.payment-allocations', [
+                        'report' => PaymentAllocationReport::forPayment($record),
+                    ]))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel(__('filament-actions::view.single.modal.actions.close.label'))
+                    ->extraModalFooterActions(fn (Payment $record) => [
+                        Action::make('downloadAllocationsFromModal')
+                            ->label(__('widgets.portal.allocation_details.download'))
+                            ->icon('heroicon-o-arrow-down-tray')
+                            ->color('gray')
+                            ->action(fn () => static::downloadAllocations($record)),
+                    ]),
+                Action::make('downloadAllocations')
+                    ->label(__('widgets.portal.allocation_details.download_short'))
+                    ->tooltip(__('widgets.portal.allocation_details.download'))
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('gray')
+                    ->visible(fn ($record) => $record instanceof Payment)
+                    ->action(fn (Payment $record) => static::downloadAllocations($record)),
             ])
             ->persistFiltersInSession()
             ->defaultSort('created_at', 'desc')
             ->emptyStateHeading('No payments')
             ->emptyStateDescription('No payments found for your company.')
             ->emptyStateIcon('heroicon-o-banknotes');
+    }
+
+    protected static function downloadAllocations(Payment $payment): BinaryFileResponse
+    {
+        $path = (new PaymentAllocationExcelExporter)->export($payment);
+
+        return response()
+            ->download($path, PaymentAllocationExcelExporter::filename($payment))
+            ->deleteFileAfterSend();
     }
 
     public static function infolist(Schema $schema): Schema

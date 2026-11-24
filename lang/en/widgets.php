@@ -271,6 +271,17 @@ return [
         'allocation' => 'allocation',
         'allocations' => 'allocations',
         'no_allocations_yet' => 'No allocations recorded yet.',
+        'allocation_details' => [
+            'action' => 'Allocations',
+            'download' => 'Download spreadsheet',
+            'download_short' => 'Spreadsheet',
+            'heading' => 'Allocations of payment :number',
+            'pi' => 'PI',
+            'shipment' => 'Shipment',
+            'bl' => 'BL',
+            'document_amount' => 'Amount in document currency',
+            'credit_applied' => 'Credit applied',
+        ],
         'upcoming' => [
             'heading' => 'Upcoming Payments',
             'none' => 'No upcoming payments due',
