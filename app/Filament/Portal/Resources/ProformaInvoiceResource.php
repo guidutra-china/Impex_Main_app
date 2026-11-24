@@ -2,6 +2,8 @@
 
 namespace App\Filament\Portal\Resources;
 
+use App\Domain\Financial\Enums\BillableTo;
+use App\Domain\Financial\Queries\ProformaInvoicePaymentSplit;
 use App\Domain\Infrastructure\Support\Money;
 use App\Domain\ProformaInvoices\Models\ProformaInvoice;
 use App\Filament\Portal\Resources\ProformaInvoiceResource\Pages;
@@ -17,6 +19,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ProformaInvoiceResource extends Resource
 {
@@ -55,6 +58,10 @@ class ProformaInvoiceResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            // Pago por grupo vem em subselects; items e additionalCosts
+            // carregados de uma vez porque os totais da linha leem os dois.
+            ->modifyQueryUsing(fn (Builder $query) => ProformaInvoicePaymentSplit::addSelects($query)
+                ->with(['items', 'additionalCosts']))
             ->columns([
                 TextColumn::make('reference')
                     ->label(__('forms.labels.reference'))
@@ -94,6 +101,32 @@ class ProformaInvoiceResource extends Resource
                     ->formatStateUsing(fn ($state, $record) => ($record->currency_code ?? '').' '.Money::format($state, 2))
                     ->alignRight()
                     ->visible(fn () => auth()->user()?->can('portal:view-financial-summary')),
+                static::paidColumn(
+                    name: ProformaInvoicePaymentSplit::PRODUCTS_PAID,
+                    waivedAttribute: ProformaInvoicePaymentSplit::PRODUCTS_WAIVED,
+                    label: __('forms.labels.products_paid'),
+                    due: fn (ProformaInvoice $record): int => $record->total,
+                ),
+                TextColumn::make('other_costs_total')
+                    ->label(__('forms.labels.other_costs'))
+                    ->getStateUsing(fn (ProformaInvoice $record) => static::otherCostsCharged($record))
+                    ->formatStateUsing(fn ($state, $record) => (int) $state === 0
+                        ? '—'
+                        : ($record->currency_code ?? '').' '.Money::format((int) $state, 2))
+                    // Desconto não é custo cobrado: fica fora do valor e
+                    // aparece aqui, para a soma com o Total continuar legível.
+                    ->description(fn (ProformaInvoice $record) => static::discountsGranted($record) > 0
+                        ? __('forms.labels.discount_granted').': '.($record->currency_code ?? '').' '.Money::format(static::discountsGranted($record), 2)
+                        : null)
+                    ->alignRight()
+                    ->visible(fn () => auth()->user()?->can('portal:view-financial-summary')),
+                static::paidColumn(
+                    name: ProformaInvoicePaymentSplit::OTHER_COSTS_PAID,
+                    waivedAttribute: ProformaInvoicePaymentSplit::OTHER_COSTS_WAIVED,
+                    label: __('forms.labels.other_costs_paid'),
+                    due: fn (ProformaInvoice $record): int => static::otherCostsCharged($record),
+                    dashWhenEmpty: true,
+                ),
                 TextColumn::make('grand_total')
                     ->label(__('forms.labels.total'))
                     ->getStateUsing(fn ($record) => $record->grand_total)
@@ -141,6 +174,72 @@ class ProformaInvoiceResource extends Resource
             ->emptyStateHeading(__('widgets.portal.pi.empty_heading'))
             ->emptyStateDescription(__('widgets.portal.pi.empty_description'))
             ->emptyStateIcon('heroicon-o-document-check');
+    }
+
+    /**
+     * Custos cobrados do cliente além dos produtos (comissão, frete…).
+     * Descontos são custos negativos e ficam de fora: ver discountsGranted().
+     */
+    protected static function otherCostsCharged(ProformaInvoice $record): int
+    {
+        return (int) $record->additionalCosts
+            ->where('billable_to', BillableTo::CLIENT)
+            ->where('amount_in_document_currency', '>', 0)
+            ->sum('amount_in_document_currency');
+    }
+
+    /** Descontos dados ao cliente nesta PI, em valor positivo. */
+    protected static function discountsGranted(ProformaInvoice $record): int
+    {
+        return (int) abs($record->additionalCosts
+            ->where('billable_to', BillableTo::CLIENT)
+            ->where('amount_in_document_currency', '<', 0)
+            ->sum('amount_in_document_currency'));
+    }
+
+    /**
+     * Coluna de "pago" de um grupo (produtos ou outros custos).
+     *
+     * Verde quando o grupo está quitado, contando o isento como quitado —
+     * mesma regra do resumo financeiro da PI no Portal. O valor isento
+     * aparece embaixo para o pago menor que o total não parecer dívida.
+     *
+     * @param  \Closure(ProformaInvoice): int  $due  total devido do grupo
+     */
+    protected static function paidColumn(
+        string $name,
+        string $waivedAttribute,
+        string $label,
+        \Closure $due,
+        bool $dashWhenEmpty = false,
+    ): TextColumn {
+        $waived = fn (ProformaInvoice $record): int => max(0, (int) $record->getAttribute($waivedAttribute));
+        $money = fn (ProformaInvoice $record, int $amount): string => ($record->currency_code ?? '').' '.Money::format($amount, 2);
+
+        return TextColumn::make($name)
+            ->label($label)
+            ->formatStateUsing(fn ($state, ProformaInvoice $record) => $dashWhenEmpty && (int) $state === 0 && $due($record) === 0
+                ? '—'
+                : $money($record, (int) $state))
+            ->description(fn (ProformaInvoice $record) => $waived($record) > 0
+                ? __('widgets.document_summary.waived').': '.$money($record, $waived($record))
+                : null)
+            ->color(function ($state, ProformaInvoice $record) use ($due, $waived) {
+                $paid = (int) $state;
+                $total = $due($record);
+                $tolerance = ProformaInvoice::PAID_ROUNDING_TOLERANCE;
+
+                $settled = $total > 0 && $paid + $waived($record) >= $total - $tolerance;
+
+                return match (true) {
+                    $settled => 'success',
+                    $paid !== 0 => 'warning',
+                    default => null,
+                };
+            })
+            ->sortable(query: fn (Builder $query, string $direction) => $query->orderBy($name, $direction))
+            ->alignRight()
+            ->visible(fn () => auth()->user()?->can('portal:view-financial-summary'));
     }
 
     public static function infolist(Schema $schema): Schema
