@@ -1111,6 +1111,7 @@ return [
         'save_version_explainer' => 'Cria um snapshot imutável da Quotation atual antes de você fazer alterações. A versão atual passa a ser N+1; a versão N fica salva no histórico.',
     ],
     'placeholders' => [
+        'select_the_client_first' => 'Selecione o cliente primeiro',
         'no_location' => 'Sem localização',
         'no_documents_uploaded_yet' => 'Nenhum documento enviado ainda.',
         'own_category' => '(categoria própria)',

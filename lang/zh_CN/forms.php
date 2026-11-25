@@ -1073,6 +1073,7 @@ return [
         'save_version_explainer' => '在进行更改之前，为当前报价创建一个不可变的快照。当前版本将变为 N+1；版本 N 将保留在历史记录中。',
     ],
     'placeholders' => [
+        'select_the_client_first' => '请先选择客户',
         'no_location' => '无地点',
         'no_documents_uploaded_yet' => '尚未上传文件。',
         'own_category' => '（自有类别）',

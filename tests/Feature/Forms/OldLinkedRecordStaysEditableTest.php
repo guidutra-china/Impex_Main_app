@@ -40,7 +40,9 @@ class OldLinkedRecordStaysEditableTest extends TestCase
     private function oldInquiry(): Inquiry
     {
         $old = Inquiry::factory()->create(['reference' => 'INQ-2026-00020']);
-        Inquiry::factory()->count(RecentRecordSelect::PRELOADED + 1)->create();
+        // Mesmo cliente: na PI a lista é filtrada por ele, então só inquiries
+        // dele empurram a antiga para fora da janela pré-carregada.
+        Inquiry::factory()->count(RecentRecordSelect::PRELOADED + 1)->create(['company_id' => $old->company_id]);
 
         return $old;
     }
@@ -64,12 +66,15 @@ class OldLinkedRecordStaysEditableTest extends TestCase
     public function test_an_old_inquiry_can_still_be_found_by_typing(): void
     {
         $old = $this->oldInquiry();
+        $old->update(['description' => 'Tractor parts 7830']);
         $pi = ProformaInvoice::factory()->create(['inquiry_id' => $old->id, 'company_id' => $old->company_id]);
 
+        // Na PI a lista já é só do cliente, então a busca útil é por número
+        // ou pela descrição da inquiry.
         Livewire::test(EditProformaInvoice::class, ['record' => $pi->getRouteKey()])
             ->assertFormFieldExists('inquiry_id', function (Select $select) use ($old): bool {
                 return array_key_exists($old->id, $select->getSearchResults('INQ-2026-00020'))
-                    && array_key_exists($old->id, $select->getSearchResults($old->company->name));
+                    && array_key_exists($old->id, $select->getSearchResults('tractor parts'));
             });
     }
 

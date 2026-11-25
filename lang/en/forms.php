@@ -1112,6 +1112,7 @@ return [
         'save_version_explainer' => 'Creates an immutable snapshot of the current quotation before you make changes. Current version becomes N+1; N is preserved in history.',
     ],
     'placeholders' => [
+        'select_the_client_first' => 'Select the client first',
         'no_location' => 'No location',
         'no_documents_uploaded_yet' => 'No documents uploaded yet.',
         'own_category' => '(own category)',

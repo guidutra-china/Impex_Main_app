@@ -24,6 +24,7 @@ use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 
 class ProformaInvoiceForm
 {
@@ -54,6 +55,72 @@ class ProformaInvoiceForm
     protected static function generalTab(): array
     {
         return [
+            // Cliente primeiro: a Inquiry só lista as do cliente escolhido.
+            Section::make(__('forms.sections.client'))
+                ->schema([
+                    Select::make('company_id')
+                        ->label(__('forms.labels.client'))
+                        ->options(
+                            fn () => Company::query()
+                                ->whereHas('companyRoles', fn ($q) => $q->where('role', CompanyRole::CLIENT))
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                        )
+                        ->searchable()
+                        ->required()
+                        ->live()
+                        ->afterStateUpdated(function (Set $set, Get $get, $state): void {
+                            $set('contact_id', null);
+
+                            // Inquiry de outro cliente não pode ficar para trás.
+                            $inquiryId = $get('inquiry_id');
+                            if ($inquiryId && Inquiry::whereKey($inquiryId)->value('company_id') != $state) {
+                                $set('inquiry_id', null);
+                            }
+                        }),
+                    RecentRecordSelect::configure(
+                        Select::make('inquiry_id')->label(__('forms.labels.inquiry')),
+                        Inquiry::class,
+                        // Descrição é o que identifica a inquiry para quem digita;
+                        // sem ela, cai no nome da empresa.
+                        fn (Inquiry $i) => $i->reference.' — '.(filled($i->description) ? $i->description : ($i->company?->name ?? 'N/A')),
+                        scope: fn (Builder $query, Get $get) => filled($get('company_id'))
+                            ? $query->where('company_id', $get('company_id'))
+                            : false,
+                        searchColumns: ['description'],
+                    )
+                        ->required()
+                        ->live()
+                        ->placeholder(fn (Get $get) => blank($get('company_id'))
+                            ? __('forms.placeholders.select_the_client_first')
+                            : null)
+                        ->afterStateUpdated(function (Set $set, ?string $state) {
+                            if ($state) {
+                                $inquiry = Inquiry::find($state);
+                                if ($inquiry) {
+                                    $set('contact_id', $inquiry->contact_id);
+                                    $set('currency_code', $inquiry->currency_code ?? 'USD');
+                                }
+                            }
+                        })
+                        ->helperText(__('forms.helpers.the_client_inquiry_this_proforma_invoice_is_for')),
+                    Select::make('contact_id')
+                        ->label(__('forms.labels.contact'))
+                        ->options(function (Get $get) {
+                            $companyId = $get('company_id');
+                            if (! $companyId) {
+                                return [];
+                            }
+
+                            return Contact::where('company_id', $companyId)
+                                ->orderBy('name')
+                                ->pluck('name', 'id');
+                        })
+                        ->searchable()
+                        ->helperText(__('forms.helpers.client_contact_person')),
+                ])
+                ->columns(3),
+
             Section::make(__('forms.sections.invoice_identity'))
                 ->schema([
                     TextInput::make('reference')
@@ -74,24 +141,6 @@ class ProformaInvoiceForm
                         ->default(ProformaInvoiceStatus::DRAFT->value)
                         ->disabled(fn (?\Illuminate\Database\Eloquent\Model $record) => $record !== null)
                         ->dehydrated(),
-                    RecentRecordSelect::configure(
-                        Select::make('inquiry_id')->label(__('forms.labels.inquiry')),
-                        Inquiry::class,
-                        fn (Inquiry $i) => $i->reference.' — '.($i->company?->name ?? 'N/A'),
-                    )
-                        ->required()
-                        ->live()
-                        ->afterStateUpdated(function (Set $set, ?string $state) {
-                            if ($state) {
-                                $inquiry = Inquiry::find($state);
-                                if ($inquiry) {
-                                    $set('company_id', $inquiry->company_id);
-                                    $set('contact_id', $inquiry->contact_id);
-                                    $set('currency_code', $inquiry->currency_code ?? 'USD');
-                                }
-                            }
-                        })
-                        ->helperText(__('forms.helpers.the_client_inquiry_this_proforma_invoice_is_for')),
                     Select::make('currency_code')
                         ->label(__('forms.labels.currency'))
                         ->options(fn () => Currency::where('is_active', true)->pluck('code', 'code'))
@@ -107,37 +156,6 @@ class ProformaInvoiceForm
                         )
                         ->searchable()
                         ->default(fn () => auth()->id()),
-                ])
-                ->columns(2),
-
-            Section::make(__('forms.sections.client'))
-                ->schema([
-                    Select::make('company_id')
-                        ->label(__('forms.labels.client'))
-                        ->options(
-                            fn () => Company::query()
-                                ->whereHas('companyRoles', fn ($q) => $q->where('role', CompanyRole::CLIENT))
-                                ->orderBy('name')
-                                ->pluck('name', 'id')
-                        )
-                        ->searchable()
-                        ->required()
-                        ->live()
-                        ->afterStateUpdated(fn (Set $set) => $set('contact_id', null)),
-                    Select::make('contact_id')
-                        ->label(__('forms.labels.contact'))
-                        ->options(function (Get $get) {
-                            $companyId = $get('company_id');
-                            if (! $companyId) {
-                                return [];
-                            }
-
-                            return Contact::where('company_id', $companyId)
-                                ->orderBy('name')
-                                ->pluck('name', 'id');
-                        })
-                        ->searchable()
-                        ->helperText(__('forms.helpers.client_contact_person')),
                 ])
                 ->columns(2),
 
